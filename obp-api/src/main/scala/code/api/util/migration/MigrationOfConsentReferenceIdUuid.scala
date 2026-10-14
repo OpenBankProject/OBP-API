@@ -81,12 +81,12 @@ object MigrationOfConsentReferenceIdUuid {
         try {
           // 1. Backups — table-snapshot copies so we can recover from any later failure.
           val backupMappedConsent = if (isMssql) {
-            "SELECT * INTO backup_2026_05_mappedconsent FROM mappedconsent;"
+            "IF OBJECT_ID('backup_2026_05_mappedconsent', 'U') IS NULL SELECT * INTO backup_2026_05_mappedconsent FROM mappedconsent;"
           } else {
             "CREATE TABLE backup_2026_05_mappedconsent AS SELECT * FROM mappedconsent;"
           }
           val backupConsentItem = if (isMssql) {
-            "SELECT * INTO backup_2026_05_consent_item FROM consent_item;"
+            "IF OBJECT_ID('backup_2026_05_consent_item', 'U') IS NULL SELECT * INTO backup_2026_05_consent_item FROM consent_item;"
           } else {
             "CREATE TABLE backup_2026_05_consent_item AS SELECT * FROM consent_item;"
           }
@@ -98,7 +98,8 @@ object MigrationOfConsentReferenceIdUuid {
 
           // 3. Add the new UUID column on mappedconsent, nullable for the backfill.
           val addColumn = if (isMssql) {
-            "ALTER TABLE mappedconsent ADD consent_reference_id VARCHAR(36) NULL;"
+            """IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('mappedconsent') AND name = 'consent_reference_id')
+              |  ALTER TABLE mappedconsent ADD consent_reference_id VARCHAR(36) NULL;""".stripMargin
           } else {
             "ALTER TABLE mappedconsent ADD COLUMN IF NOT EXISTS consent_reference_id VARCHAR(36);"
           }
@@ -120,13 +121,18 @@ object MigrationOfConsentReferenceIdUuid {
             "ALTER TABLE mappedconsent ALTER COLUMN consent_reference_id SET NOT NULL;"
           }
           sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => setNotNull)).append("\n")
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() =>
+          val addConstraint = if (isMssql) {
+            """IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'uq_mappedconsent_consent_reference_id' AND parent_object_id = OBJECT_ID('mappedconsent'))
+              |  ALTER TABLE mappedconsent ADD CONSTRAINT uq_mappedconsent_consent_reference_id UNIQUE (consent_reference_id);""".stripMargin
+          } else {
             "ALTER TABLE mappedconsent ADD CONSTRAINT uq_mappedconsent_consent_reference_id UNIQUE (consent_reference_id);"
-          )).append("\n")
+          }
+          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => addConstraint)).append("\n")
 
           // 6. Widen consent_item.consent_reference_id from BIGINT to VARCHAR(36).
           val alterConsentItem = if (isMssql) {
-            "ALTER TABLE consent_item ALTER COLUMN consent_reference_id VARCHAR(36);"
+            """IF EXISTS (SELECT 1 FROM sys.columns c JOIN sys.types t ON c.user_type_id = t.user_type_id WHERE c.object_id = OBJECT_ID('consent_item') AND c.name = 'consent_reference_id' AND t.name <> 'varchar')
+              |  ALTER TABLE consent_item ALTER COLUMN consent_reference_id VARCHAR(36);""".stripMargin
           } else {
             "ALTER TABLE consent_item ALTER COLUMN consent_reference_id TYPE VARCHAR(36) USING consent_reference_id::text;"
           }

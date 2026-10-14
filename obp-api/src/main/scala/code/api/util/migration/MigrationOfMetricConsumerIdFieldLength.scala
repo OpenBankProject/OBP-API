@@ -70,8 +70,22 @@ object MigrationOfMetricConsumerIdFieldLength {
 
         // 2. Widen metric.consumerid to match Consumer.consumerId (250).
         val alterMetricSql = DbFunction.maybeWrite(true, Schemifier.infoF _) { () =>
-          if (isSqlServer) "ALTER TABLE metric ALTER COLUMN consumerid varchar(250);"
-          else "ALTER TABLE metric ALTER COLUMN consumerid TYPE character varying(250);"
+          if (isSqlServer) {
+            """
+              |IF EXISTS (
+              |  SELECT 1 FROM sys.columns c
+              |  WHERE c.object_id = OBJECT_ID('metric')
+              |    AND c.name = 'consumerid'
+              |    AND c.max_length < 250
+              |)
+              |BEGIN
+              |  IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'Metric_consumerid' AND object_id = OBJECT_ID('metric'))
+              |    DROP INDEX Metric_consumerid ON metric;
+              |  ALTER TABLE metric ALTER COLUMN consumerid varchar(250);
+              |  CREATE INDEX Metric_consumerid ON metric (consumerid);
+              |END;
+              |""".stripMargin
+          } else "ALTER TABLE metric ALTER COLUMN consumerid TYPE character varying(250);"
         }
 
         // 3. Widen metricarchive.consumerid too — the archiver copies metric rows verbatim,
@@ -80,8 +94,22 @@ object MigrationOfMetricConsumerIdFieldLength {
         val alterArchiveSql =
           if (DbFunction.tableExists(MetricArchive)) {
             DbFunction.maybeWrite(true, Schemifier.infoF _) { () =>
-              if (isSqlServer) "ALTER TABLE metricarchive ALTER COLUMN consumerid varchar(250);"
-              else "ALTER TABLE metricarchive ALTER COLUMN consumerid TYPE character varying(250);"
+              if (isSqlServer) {
+                """
+                  |IF EXISTS (
+                  |  SELECT 1 FROM sys.columns c
+                  |  WHERE c.object_id = OBJECT_ID('metricarchive')
+                  |    AND c.name = 'consumerid'
+                  |    AND c.max_length < 250
+                  |)
+                  |BEGIN
+                  |  IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'MetricArchive_consumerid' AND object_id = OBJECT_ID('metricarchive'))
+                  |    DROP INDEX MetricArchive_consumerid ON metricarchive;
+                  |  ALTER TABLE metricarchive ALTER COLUMN consumerid varchar(250);
+                  |  CREATE INDEX MetricArchive_consumerid ON metricarchive (consumerid);
+                  |END;
+                  |""".stripMargin
+              } else "ALTER TABLE metricarchive ALTER COLUMN consumerid TYPE character varying(250);"
             }
           } else {
             s"${MetricArchive._dbTableNameLC} table does not exist; skipped"

@@ -60,14 +60,16 @@ object MigrationOfMetricAuthType {
 
         try {
           val addColumnMetric = if (isMssql) {
-            "ALTER TABLE metric ADD auth_type VARCHAR(32) NULL;"
+            """IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('metric') AND name = 'auth_type')
+              |  ALTER TABLE metric ADD auth_type VARCHAR(32) NULL;""".stripMargin
           } else {
             "ALTER TABLE metric ADD COLUMN IF NOT EXISTS auth_type VARCHAR(32);"
           }
           sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => addColumnMetric)).append("\n")
 
           val addColumnArchive = if (isMssql) {
-            "ALTER TABLE metricarchive ADD auth_type VARCHAR(32) NULL;"
+            """IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('metricarchive') AND name = 'auth_type')
+              |  ALTER TABLE metricarchive ADD auth_type VARCHAR(32) NULL;""".stripMargin
           } else {
             "ALTER TABLE metricarchive ADD COLUMN IF NOT EXISTS auth_type VARCHAR(32);"
           }

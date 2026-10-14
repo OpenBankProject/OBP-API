@@ -71,10 +71,10 @@ object MigrationOfMetricCertificateTrust {
           // in the codebase (Schemifier emits unquoted DDL, so Postgres folds to lowercase).
           val statements =
             if (isMssql) List(
-              "ALTER TABLE metric ADD certificate_trust VARCHAR(32) NULL;",
-              "ALTER TABLE metric ADD certificate_trust_detail VARCHAR(255) NULL;",
-              "ALTER TABLE metricarchive ADD certificate_trust VARCHAR(32) NULL;",
-              "ALTER TABLE metricarchive ADD certificate_trust_detail VARCHAR(255) NULL;"
+              "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('metric') AND name = 'certificate_trust') ALTER TABLE metric ADD certificate_trust VARCHAR(32) NULL;",
+              "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('metric') AND name = 'certificate_trust_detail') ALTER TABLE metric ADD certificate_trust_detail VARCHAR(255) NULL;",
+              "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('metricarchive') AND name = 'certificate_trust') ALTER TABLE metricarchive ADD certificate_trust VARCHAR(32) NULL;",
+              "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('metricarchive') AND name = 'certificate_trust_detail') ALTER TABLE metricarchive ADD certificate_trust_detail VARCHAR(255) NULL;"
             ) else List(
               "ALTER TABLE metric ADD COLUMN IF NOT EXISTS certificate_trust VARCHAR(32);",
               "ALTER TABLE metric ADD COLUMN IF NOT EXISTS certificate_trust_detail VARCHAR(255);",
