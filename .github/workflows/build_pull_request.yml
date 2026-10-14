@@ -121,7 +121,7 @@ jobs:
   test:
     needs: compile
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -234,6 +234,20 @@ jobs:
               code.api.v4_0_0.AuthenticationTypeValidationPublicPropTrueTest
 
     services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: Developer
+          MSSQL_SA_PASSWORD: "ObpTests2026!Ci"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'ObpTests2026!Ci' -No -Q 'SELECT 1' -b"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 30
+          --health-start-period 60s
       redis:
         image: redis:7-alpine   # pinned + small (~30MB) to cut redis docker-pull flakiness
         ports:
@@ -246,6 +260,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Create SQL Server test database
+        run: |
+          docker exec "${{ job.services.sqlserver.id }}" \
+            /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'ObpTests2026!Ci' \
+            -No -b -Q "CREATE DATABASE obp_test_only"
 
       - name: Set up JDK 25
         uses: actions/setup-java@v4
@@ -295,6 +315,8 @@ jobs:
           cp obp-api/src/main/resources/props/sample.props.template \
              obp-api/src/main/resources/props/production.default.props
           echo connector=star > obp-api/src/main/resources/props/test.default.props
+          echo db.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver >> obp-api/src/main/resources/props/test.default.props
+          echo 'db.url=jdbc:sqlserver://localhost:1433;databaseName=obp_test_only;user=sa;password=ObpTests2026!Ci;encrypt=false' >> obp-api/src/main/resources/props/test.default.props
           echo starConnector_supported_types=mapped,internal >> obp-api/src/main/resources/props/test.default.props
           echo hostname=http://localhost:8016 >> obp-api/src/main/resources/props/test.default.props
           echo tests.port=8016 >> obp-api/src/main/resources/props/test.default.props
