@@ -30,7 +30,7 @@ package code.consent
 import doobie._
 import doobie.implicits._
 import doobie.implicits.javasql._
-import code.api.util.{DBUtil, DoobieUtil}
+import code.api.util.DoobieUtil
 
 import java.sql.Timestamp
 import scala.concurrent.{ExecutionContext, Future}
@@ -163,13 +163,6 @@ object DoobieConsentQueries {
       case (_, _)                   => fr"ORDER BY created_date DESC"
     }
 
-  private def buildPagination(limit: Int, offset: Int): Fragment =
-    if (DBUtil.isSqlServer) {
-      fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
-    } else {
-      fr"LIMIT $limit OFFSET $offset"
-    }
-
   private def buildGetConsentsQuery(
     userId: String,
     status: Option[String],
@@ -182,7 +175,7 @@ object DoobieConsentQueries {
     val orderBy = buildOrderBy(sortField, sortDirection)
 
     val whereClause = fr"WHERE created_by_user_id = $userId " ++ statusCond
-    val dataQuery = selectColumns ++ fr" " ++ whereClause ++ fr" " ++ orderBy ++ fr" " ++ buildPagination(limit, offset)
+    val dataQuery = selectColumns ++ fr" " ++ whereClause ++ fr" " ++ orderBy ++ fr" " ++ DoobieUtil.pagination(limit, offset)
 
     dataQuery.query[ConsentRow].to[List]
   }
@@ -204,7 +197,7 @@ object DoobieConsentQueries {
     val orderBy = buildOrderBy(sortField, sortDirection)
 
     val whereClause = fr"WHERE 1=1 " ++ userCond ++ consumerCond ++ consentCond ++ statusCond
-    val dataQuery = selectColumns ++ fr" " ++ whereClause ++ fr" " ++ orderBy ++ fr" " ++ buildPagination(limit, offset)
+    val dataQuery = selectColumns ++ fr" " ++ whereClause ++ fr" " ++ orderBy ++ fr" " ++ DoobieUtil.pagination(limit, offset)
 
     dataQuery.query[ConsentRow].to[List]
   }
@@ -278,7 +271,7 @@ object DoobieConsentQueries {
              SELECT 1 FROM consent_item cb
              WHERE cb.consent_reference_id = v.consent_reference_id
              AND cb.bank_id = $bankId
-           )""" ++ statusCond ++ fr" " ++ orderBy ++ fr" " ++ buildPagination(limit, offset)
+           )""" ++ statusCond ++ fr" " ++ orderBy ++ fr" " ++ DoobieUtil.pagination(limit, offset)
 
     dataQuery.query[ConsentRow].to[List]
   }

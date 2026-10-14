@@ -29,7 +29,7 @@ package code.investigation
 
 import java.sql.Timestamp
 
-import code.api.util.{DBUtil, DoobieUtil}
+import code.api.util.DoobieUtil
 import code.util.Helper.MdcLoggable
 import doobie._
 import doobie.implicits._
@@ -149,11 +149,7 @@ object DoobieInvestigationQueries extends MdcLoggable {
     val accountIdFragments = accountIds.map(id => fr"$id")
     val inClause = accountIdFragments.reduceLeft((a, b) => a ++ fr"," ++ b)
 
-    val pagination = if (DBUtil.isSqlServer) {
-      fr"OFFSET 0 ROWS FETCH NEXT $limit ROWS ONLY"
-    } else {
-      fr"LIMIT $limit"
-    }
+    val pagination = DoobieUtil.pagination(limit, 0)
 
     val query: ConnectionIO[List[TransactionRow]] =
       (fr"""SELECT transactionid, bank, account, amount, currency, transactiontype,

@@ -223,6 +223,23 @@ object DoobieUtil extends MdcLoggable {
   def isSqlServer: Boolean = DBUtil.isSqlServer
 
   /**
+   * The page clause in the form the database takes. SQL Server writes it as OFFSET ... FETCH and requires an
+   * ORDER BY in front of it; the other databases take LIMIT ... OFFSET.
+   */
+  def pagination(limit: Int, offset: Int): Fragment =
+    if (isSqlServer) fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
+    else fr"LIMIT $limit OFFSET $offset"
+
+  /**
+   * Row locking for a SELECT is a table hint on SQL Server, placed straight after the table name, and a
+   * FOR UPDATE suffix elsewhere. Use `lockHint` after the table and `forUpdate` at the end of the statement;
+   * exactly one of the two is empty on any database.
+   */
+  def lockHint: Fragment = if (isSqlServer) fr"WITH (UPDLOCK, ROWLOCK)" else Fragment.empty
+
+  def forUpdate: Fragment = if (isSqlServer) Fragment.empty else fr"FOR UPDATE"
+
+  /**
    * Get database URL for checking database type
    */
   def dbUrl: String = DBUtil.dbUrl

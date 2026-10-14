@@ -44,11 +44,9 @@ object DoobieBankAccountQueries {
    * @return The new balance after the update
    */
   def atomicallyUpdateBalance(bankId: String, accountId: String, amount: Long): ConnectionIO[Long] = {
-    val selectLock = if (code.api.util.DBUtil.isSqlServer) {
-      sql"SELECT accountbalance FROM mappedbankaccount WITH (UPDLOCK, ROWLOCK) WHERE bank = $bankId AND theaccountid = $accountId"
-    } else {
-      sql"SELECT accountbalance FROM mappedbankaccount WHERE bank = $bankId AND theaccountid = $accountId FOR UPDATE"
-    }
+    val selectLock =
+      fr"SELECT accountbalance FROM mappedbankaccount" ++ DoobieUtil.lockHint ++
+        fr"WHERE bank = $bankId AND theaccountid = $accountId" ++ DoobieUtil.forUpdate
     for {
       // 1. Lock the row and get the current balance
       currentBalance <- selectLock.query[Long].unique

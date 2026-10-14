@@ -194,11 +194,7 @@ object DoobieUserQueries {
       fr"$maxBadLogin THEN true ELSE false END AS is_locked"
     }
 
-    val pagination = if (DBUtil.isSqlServer) {
-      fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
-    } else {
-      fr"LIMIT $limit OFFSET $offset"
-    }
+    val pagination = DoobieUtil.pagination(limit, offset)
 
     val query: ConnectionIO[List[UserSearchRow]] =
       (selectColumns ++ isLockedCase ++

@@ -1367,11 +1367,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       fr"'type:' || mappedaccountattribute.mtype || ',code:' || mappedaccountattribute.mcode || ',value:' || mappedaccountattribute.mvalue"
     }
 
-    val pagination = if (code.api.util.DBUtil.isSqlServer) {
-      fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
-    } else {
-      fr"LIMIT $limit OFFSET $offset"
-    }
+    val pagination = DoobieUtil.pagination(limit, offset)
 
     val query = (fr"""
        select
@@ -1502,11 +1498,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       fr"'type:' || mappedaccountattribute.mtype || ',code:' || mappedaccountattribute.mcode || ',value:' || mappedaccountattribute.mvalue"
     }
 
-    val pagination = if (code.api.util.DBUtil.isSqlServer) {
-      fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
-    } else {
-      fr"LIMIT $limit OFFSET $offset"
-    }
+    val pagination = DoobieUtil.pagination(limit, offset)
 
     val query = (fr"""
        select

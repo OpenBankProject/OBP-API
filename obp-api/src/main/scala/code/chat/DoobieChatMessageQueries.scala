@@ -30,7 +30,7 @@ package code.chat
 import java.sql.Timestamp
 import java.util.Date
 
-import code.api.util.{DBUtil, DoobieUtil}
+import code.api.util.DoobieUtil
 import code.util.Helper.MdcLoggable
 import doobie._
 import doobie.implicits._
@@ -83,11 +83,7 @@ object DoobieChatMessageQueries extends MdcLoggable {
     val fromTs = new Timestamp(fromDate.getTime)
     val toTs = new Timestamp(toDate.getTime)
 
-    val pagination = if (DBUtil.isSqlServer) {
-      fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
-    } else {
-      fr"LIMIT $limit OFFSET $offset"
-    }
+    val pagination = DoobieUtil.pagination(limit, offset)
 
     val messagesQuery: ConnectionIO[List[ChatMessageRow]] =
       (sql"""SELECT m.chatmessageid, m.chatroomid, m.senderuserid, m.senderconsumerid,

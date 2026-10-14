@@ -37,7 +37,12 @@ import java.sql.{ResultSet, Types}
 object DBUtil {
   def dbUrl: String = APIUtil.getPropsValue("db.url") openOr Constant.h2DatabaseDefaultUrlValue
 
-  def isSqlServer: Boolean = dbUrl.contains("sqlserver") || APIUtil.getPropsValue("db.driver").exists(_.contains("sqlserver"))
+  /**
+   * Whether the configured database is SQL Server. It cannot change while the instance runs, and it is asked
+   * on every paginated or locking query, so it is worked out once.
+   */
+  lazy val isSqlServer: Boolean =
+    dbUrl.contains("sqlserver") || APIUtil.getPropsValue("db.driver").exists(_.contains("sqlserver"))
 
   /** The endpoint timeout in whole seconds, rounded up, which is the unit JDBC takes. */
   private[code] def queryTimeoutSeconds: Int =

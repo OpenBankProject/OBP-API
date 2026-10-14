@@ -34,16 +34,9 @@ import doobie.implicits._
 object DoobieBadLoginAttemptQueries {
 
   private def atomicIncrement(provider: String, username: String): ConnectionIO[Int] = {
-    val selectLock = if (code.api.util.DBUtil.isSqlServer) {
-      sql"""SELECT mbadattemptssincelastsuccessorreset
-            FROM mappedbadloginattempt WITH (UPDLOCK, ROWLOCK)
-            WHERE provider = $provider AND musername = $username"""
-    } else {
-      sql"""SELECT mbadattemptssincelastsuccessorreset
-            FROM mappedbadloginattempt
-            WHERE provider = $provider AND musername = $username
-            FOR UPDATE"""
-    }
+    val selectLock =
+      fr"SELECT mbadattemptssincelastsuccessorreset FROM mappedbadloginattempt" ++ DoobieUtil.lockHint ++
+        fr"WHERE provider = $provider AND musername = $username" ++ DoobieUtil.forUpdate
     for {
       _ <- selectLock.query[Int].option
       rows <- sql"""UPDATE mappedbadloginattempt
