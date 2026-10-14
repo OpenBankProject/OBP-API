@@ -280,7 +280,9 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
   def randomTransaction(bankId : String, accountId : String, viewId: String) : TransactionJSON = {
     val transactionsJson = getTransactions(bankId, accountId, viewId, user1).body.extract[TransactionsJSON].transactions
-    val candidates = if (transactionsJson.nonEmpty) {
+    // The fallback below only exists for SQL Server test data; on other databases an empty list is a
+    // real failure and must not be papered over.
+    val candidates = if (transactionsJson.nonEmpty || !code.api.util.DBUtil.isSqlServer) {
       transactionsJson
     } else {
       val ownerList = getTransactions(bankId, accountId, SYSTEM_OWNER_VIEW_ID, user1).body.extract[TransactionsJSON].transactions
