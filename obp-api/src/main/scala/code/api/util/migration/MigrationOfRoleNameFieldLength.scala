@@ -82,10 +82,12 @@ object MigrationOfRoleNameFieldLength {
                 |    AND (t.name <> 'nvarchar' OR c.max_length < 510)
                 |)
                 |BEGIN
-                |  DROP INDEX mappedentitlement_mbankid_muserid_mrolename ON mappedentitlement;
+                |  IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'mappedentitlement_mbankid_muserid_mrolename' AND object_id = OBJECT_ID('mappedentitlement'))
+                |    DROP INDEX mappedentitlement_mbankid_muserid_mrolename ON mappedentitlement;
                 |  ALTER TABLE mappedentitlement ALTER COLUMN mrolename NVARCHAR(255);
-                |  CREATE UNIQUE INDEX mappedentitlement_mbankid_muserid_mrolename
-                |    ON mappedentitlement (mbankid, muserid, mrolename);
+                |  IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'mappedentitlement_mbankid_muserid_mrolename' AND object_id = OBJECT_ID('mappedentitlement'))
+                |    CREATE UNIQUE INDEX mappedentitlement_mbankid_muserid_mrolename
+                |      ON mappedentitlement (mbankid, muserid, mrolename);
                 |END;
                 |IF EXISTS (
                 |  SELECT 1 FROM sys.columns c
