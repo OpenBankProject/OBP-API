@@ -244,7 +244,18 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
 
   feature("Feature 6: updating a row-level record keeps its id, and the entity can be cascade-deleted") {
 
-    def idOf(body: JValue): JValue = body \ "test_rl" \ "test_rl_id"
+    // Cascade delete is refused for an entity that has personal endpoints, so this one has none.
+    val entityName = "test_rlc"
+    val rowLevelWithoutPersonal: JValue =
+      ("entity_name" -> entityName) ~ ("use_row_level_access" -> true) ~ ("has_personal_entity" -> false) ~ ("schema" -> simpleSchema)
+
+    def createRecordOf(name: String): String = {
+      val resp = makePostRequest((dynamicEntity_Request / entityName).POST <@ (user1), write(("name" -> name): JValue))
+      resp.code should equal(201)
+      (resp.body \ entityName \ s"${entityName}_id").extract[String]
+    }
+
+    def idOf(body: JValue): JValue = body \ entityName \ s"${entityName}_id"
 
     def cascadeDelete(dynamicEntityId: String): Int = {
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanDeleteCascadeDynamicEntityDefinition.toString)
@@ -252,41 +263,41 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
     }
 
     scenario("6.1: PUT and PATCH keep the record id in the stored record, and cascade delete succeeds", VersionOfApi) {
-      val (createStatus, body) = createSystemEntity(entityRowLevel)
+      val (createStatus, body) = createSystemEntity(rowLevelWithoutPersonal)
       createStatus should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
-      val id = createRecord("before")
+      val id = createRecordOf("before")
 
       When("the record is replaced with PUT, whose body carries no id")
-      makePutRequest((dynamicEntity_Request / "test_rl" / id).PUT <@ (user1), write(("name" -> "after put"): JValue)).code should equal(200)
+      makePutRequest((dynamicEntity_Request / entityName / id).PUT <@ (user1), write(("name" -> "after put"): JValue)).code should equal(200)
 
       Then("a GET still returns the record with its id")
-      val afterPut = makeGetRequest((dynamicEntity_Request / "test_rl" / id).GET <@ (user1))
+      val afterPut = makeGetRequest((dynamicEntity_Request / entityName / id).GET <@ (user1))
       afterPut.code should equal(200)
       idOf(afterPut.body) should equal(JString(id))
-      (afterPut.body \ "test_rl" \ "name").extract[String] should equal("after put")
+      (afterPut.body \ entityName \ "name").extract[String] should equal("after put")
 
       When("the record is changed with PATCH")
-      makePatchRequest((dynamicEntity_Request / "test_rl" / id).PATCH <@ (user1), write(("name" -> "after patch"): JValue)).code should equal(200)
+      makePatchRequest((dynamicEntity_Request / entityName / id).PATCH <@ (user1), write(("name" -> "after patch"): JValue)).code should equal(200)
 
       Then("a GET still returns the record with its id")
-      val afterPatch = makeGetRequest((dynamicEntity_Request / "test_rl" / id).GET <@ (user1))
+      val afterPatch = makeGetRequest((dynamicEntity_Request / entityName / id).GET <@ (user1))
       idOf(afterPatch.body) should equal(JString(id))
-      (afterPatch.body \ "test_rl" \ "name").extract[String] should equal("after patch")
+      (afterPatch.body \ entityName \ "name").extract[String] should equal("after patch")
 
       And("the entity can be deleted with its records")
       cascadeDelete(dynamicEntityId) should equal(200)
     }
 
     scenario("6.2: a record whose stored JSON already lost its id is still cascade-deleted", VersionOfApi) {
-      val (createStatus, body) = createSystemEntity(entityRowLevel)
+      val (createStatus, body) = createSystemEntity(rowLevelWithoutPersonal)
       createStatus should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
-      val id = createRecord("damaged")
+      val id = createRecordOf("damaged")
 
-      Given("a record written by an earlier version, whose stored JSON has no test_rl_id")
+      Given("a record written by an earlier version, whose stored JSON has no id")
       val row = code.DynamicData.DynamicData.find(
-        net.liftweb.mapper.By(code.DynamicData.DynamicData.DynamicEntityName, "test_rl"),
+        net.liftweb.mapper.By(code.DynamicData.DynamicData.DynamicEntityName, entityName),
         net.liftweb.mapper.By(code.DynamicData.DynamicData.DynamicDataId, id)
       ).openOrThrowException("the record should exist")
       row.DataJson("""{"name":"damaged"}""").save
