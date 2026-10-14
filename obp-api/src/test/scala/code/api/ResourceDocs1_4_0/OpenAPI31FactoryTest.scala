@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.ResourceDocs1_4_0
 
 import code.api.v1_4_0.JSONFactory1_4_0
+import code.setup.PropsReset
 import org.json4s.JsonAST.{JNothing, JValue}
 import org.json4s.native.JsonMethods.parse
 import org.scalatest.{FlatSpec, Matchers}
@@ -43,7 +44,7 @@ import org.scalatest.{FlatSpec, Matchers}
  *
  * These are unit tests over the factory, not the endpoint: no server, no resource-docs fetch.
  */
-class OpenAPI31FactoryTest extends FlatSpec with Matchers {
+class OpenAPI31FactoryTest extends FlatSpec with Matchers with PropsReset {
 
   private def doc(operationId: String, typedBody: JValue): JSONFactory1_4_0.ResourceDocJson =
     JSONFactory1_4_0.ResourceDocJson(
@@ -138,4 +139,41 @@ class OpenAPI31FactoryTest extends FlatSpec with Matchers {
     desc should include("Register your application at https://api.example.com/consumer-registration to obtain a consumer_key.")
     desc should include("POST https://api.example.com/obp/v6.0.0/my/logins/direct")
   }
+
+  "oidcTokenEndpoint" should "fall back to <OIDC_provider_token_endpoint> when no OIDC host is set" in {
+    OpenAPI31JSONFactory.oidcTokenEndpoint should equal("<OIDC_provider_token_endpoint>")
+  }
+
+  it should "resolve token endpoint from oauth2.obp_oidc.host" in {
+    setPropsValues("oauth2.obp_oidc.host" -> "https://oidc.example.com")
+    OpenAPI31JSONFactory.oidcTokenEndpoint should equal("https://oidc.example.com/obp-oidc/token")
+  }
+
+  it should "strip trailing slashes when resolving token endpoint" in {
+    setPropsValues("oauth2.obp_oidc.host" -> "https://oidc.example.com/")
+    OpenAPI31JSONFactory.oidcTokenEndpoint should equal("https://oidc.example.com/obp-oidc/token")
+  }
+
+  "oidcDiscoveryUrl" should "return None when no OIDC host or well-known prop is set" in {
+    OpenAPI31JSONFactory.oidcDiscoveryUrl should equal(None)
+  }
+
+  it should "resolve discovery url from oauth2.obp_oidc.host" in {
+    setPropsValues("oauth2.obp_oidc.host" -> "https://oidc.example.com")
+    OpenAPI31JSONFactory.oidcDiscoveryUrl should equal(Some("https://oidc.example.com/obp-oidc/.well-known/openid-configuration"))
+  }
+
+  it should "prefer explicit oauth2.obp_oidc.well_known prop when present" in {
+    setPropsValues("oauth2.obp_oidc.well_known" -> "https://custom.example.com/.well-known/openid-configuration")
+    OpenAPI31JSONFactory.oidcDiscoveryUrl should equal(Some("https://custom.example.com/.well-known/openid-configuration"))
+  }
+
+  "oAuth2Description" should "render dynamically resolved token endpoint and discovery info when OIDC host is set" in {
+    setPropsValues("oauth2.obp_oidc.host" -> "https://oidc.example.com")
+    val desc = OpenAPI31JSONFactory.oAuth2Description("https://api.example.com")
+    desc should include("POST https://oidc.example.com/obp-oidc/token")
+    desc should include("OIDC discovery endpoint: https://oidc.example.com/obp-oidc/.well-known/openid-configuration")
+    desc should include("GET https://api.example.com/obp/v5.1.0/well-known")
+  }
 }
+

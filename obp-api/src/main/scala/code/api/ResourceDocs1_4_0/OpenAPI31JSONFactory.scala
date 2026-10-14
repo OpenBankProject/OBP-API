@@ -68,6 +68,22 @@ object OpenAPI31JSONFactory extends MdcLoggable {
           .openOr(s"${hostname}/consumer-registration")
       )
 
+  def oidcTokenEndpoint: String =
+    APIUtil.getPropsValue("oauth2.obp_oidc.host")
+      .or(APIUtil.getPropsValue("public_obp_oidc_url"))
+      .filter(_.trim.nonEmpty)
+      .map(host => s"${host.stripSuffix("/")}/obp-oidc/token")
+      .openOr("<OIDC_provider_token_endpoint>")
+
+  def oidcDiscoveryUrl: Option[String] =
+    APIUtil.getPropsValue("oauth2.obp_oidc.well_known").filter(_.trim.nonEmpty)
+      .or(
+        APIUtil.getPropsValue("oauth2.obp_oidc.host")
+          .or(APIUtil.getPropsValue("public_obp_oidc_url"))
+          .filter(_.trim.nonEmpty)
+          .map(host => s"${host.stripSuffix("/")}/obp-oidc/.well-known/openid-configuration")
+      ).toOption
+
   def directLoginDescription(hostname: String): String =
     s"""Direct Login is a simple authentication process for trusted environments and testing.
        |
@@ -110,7 +126,15 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |- Direct Login is intended for hackathons, testing, and trusted environments.
        |- For production use with third-party applications, use OAuth2 / OIDC instead.""".stripMargin
 
-  def oAuth2Description(hostname: String): String =
+  def oAuth2Description(hostname: String): String = {
+    val discoveryNote = oidcDiscoveryUrl match {
+      case Some(discoveryUrl) =>
+        s"- OIDC discovery endpoint: $discoveryUrl (contains token_endpoint, authorization_endpoint, and jwks_uri).\n" +
+        s"- All configured discovery URIs can be queried via: GET ${hostname}/obp/v5.1.0/well-known"
+      case None =>
+        s"- Configured discovery URIs can be queried via: GET ${hostname}/obp/v5.1.0/well-known"
+    }
+
     s"""OAuth2 / OpenID Connect (OIDC) is the recommended authentication method for production use.
        |
        |OBP supports the OAuth2 Authorization Code flow for user-facing applications and the
@@ -134,7 +158,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |Use this flow for endpoints with authMode ApplicationOnly or UserOrApplication.
        |The application authenticates itself using its client_id and client_secret without a user login.
        |
-       |    POST <OIDC_provider_token_endpoint>
+       |    POST $oidcTokenEndpoint
        |    Content-Type: application/x-www-form-urlencoded
        |
        |    grant_type=client_credentials&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET
@@ -144,8 +168,10 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |### Notes
        |
        |- The authorization and token endpoint URLs depend on the OIDC provider configured for this OBP instance.
+       |$discoveryNote
        |- Token expiry and refresh behaviour depend on the OIDC provider configuration.
        |- OAuth2 / OIDC is the recommended method for production deployments.""".stripMargin
+  }
 
   def gatewayLoginDescription(hostname: String): String =
     s"""Gateway Login allows a gateway (e.g. API Gateway) to authenticate on behalf of a user.
