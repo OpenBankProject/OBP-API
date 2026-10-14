@@ -194,6 +194,7 @@ object Migration extends MdcLoggable {
       renameDynamicEntityRoles()
       renameDynamicEntityDefinitionRoles()
       upperCaseStoredCurrencyCodes()
+      alterSqlServerDateTimeColumns()
     }
 
     /**
@@ -961,6 +962,13 @@ object Migration extends MdcLoggable {
       val name = nameOf(upperCaseStoredCurrencyCodes)
       runOnce(name) {
         MigrationOfCurrencyCodesUpperCase.upperCaseEverywhere(name)
+      }
+    }
+
+    private def alterSqlServerDateTimeColumns(): Boolean = {
+      val name = nameOf(alterSqlServerDateTimeColumns)
+      runOnce(name) {
+        MigrationOfSqlServerDateTimeColumns.alterColumns(name)
       }
     }
 

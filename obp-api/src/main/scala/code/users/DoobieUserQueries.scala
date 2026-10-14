@@ -150,7 +150,11 @@ object DoobieUserQueries {
     val emailFilter:    Fragment = email.map(v => fr"AND ru.email       = $v").getOrElse(Fragment.empty)
     val userIdFilter:   Fragment = userId.map(v => fr"AND ru.userid_    = $v").getOrElse(Fragment.empty)
     val deletedFlag: Boolean     = isDeleted.getOrElse(false)
-    val deletedFilter: Fragment  = fr"AND (ru.isdeleted = $deletedFlag OR ru.isdeleted IS NULL AND $deletedFlag = false)"
+    val deletedFilter: Fragment  = if (deletedFlag) {
+      fr"AND ru.isdeleted = ${true}"
+    } else {
+      fr"AND (ru.isdeleted = ${false} OR ru.isdeleted IS NULL)"
+    }
 
     val lockedFilter: Fragment = lockedStatus.map(_.toLowerCase) match {
       case Some("locked") =>

@@ -666,8 +666,83 @@ class Boot extends MdcLoggable {
 
   def schemifyAll() = {
     Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
+    if (code.api.util.DBUtil.isSqlServer) {
+      upgradeSqlServerDateTimeColumns()
+    }
     // Create default system-level "general" chat room (is_open_room = true)
     code.chat.ChatRoomTrait.chatRoomProvider.vend.getOrCreateDefaultRoom()
+  }
+
+  private def upgradeSqlServerDateTimeColumns(): Unit = {
+    val knownStatements = List(
+      "ALTER TABLE mappedcustomer ALTER COLUMN mdateofbirth DATETIME2 NULL",
+      "ALTER TABLE mappedcustomer ALTER COLUMN mfaceimagetime DATETIME2 NULL",
+      "ALTER TABLE mappedcustomer ALTER COLUMN mlastokdate DATETIME2 NULL",
+      "ALTER TABLE mappedcustomerdependant ALTER COLUMN mdateofbirth DATETIME2 NULL",
+      "ALTER TABLE mappedusercustomerlink ALTER COLUMN mdateinserted DATETIME2 NULL",
+      "ALTER TABLE mappedphysicalcard ALTER COLUMN mvalidfrom DATETIME2 NULL",
+      "ALTER TABLE mappedphysicalcard ALTER COLUMN mexpires DATETIME2 NULL",
+      "ALTER TABLE mappedphysicalcard ALTER COLUMN mcollected DATETIME2 NULL",
+      "ALTER TABLE mappedphysicalcard ALTER COLUMN mposted DATETIME2 NULL",
+      "ALTER TABLE mappedphysicalcard ALTER COLUMN mreplacementdate DATETIME2 NULL",
+      "ALTER TABLE mappedmeeting ALTER COLUMN mwhen DATETIME2 NULL"
+    )
+    DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
+      for (sql <- knownStatements) {
+        try {
+          val stmt = conn.createStatement()
+          try {
+            stmt.execute(sql)
+            conn.commit()
+          } finally {
+            stmt.close()
+          }
+        } catch {
+          case NonFatal(e) =>
+            logger.warn(s"upgradeSqlServerDateTimeColumns (known) failed for '$sql': ${e.getMessage}")
+        }
+      }
+
+      try {
+        val stmt = conn.createStatement()
+        val columns = scala.collection.mutable.ListBuffer[(String, String, String)]()
+        try {
+          val rs = stmt.executeQuery(
+            """
+              |SELECT c.TABLE_SCHEMA, c.TABLE_NAME, c.COLUMN_NAME
+              |FROM INFORMATION_SCHEMA.COLUMNS c
+              |JOIN INFORMATION_SCHEMA.TABLES t
+              |  ON c.TABLE_NAME = t.TABLE_NAME AND c.TABLE_SCHEMA = t.TABLE_SCHEMA
+              |WHERE c.DATA_TYPE = 'datetime' AND t.TABLE_TYPE = 'BASE TABLE'
+              |""".stripMargin
+          )
+          while (rs.next()) {
+            columns += ((rs.getString(1), rs.getString(2), rs.getString(3)))
+          }
+          rs.close()
+        } finally {
+          stmt.close()
+        }
+
+        for ((schema, table, column) <- columns) {
+          try {
+            val alterStmt = conn.createStatement()
+            try {
+              alterStmt.execute(s"ALTER TABLE [$schema].[$table] ALTER COLUMN [$column] DATETIME2 NULL")
+              conn.commit()
+            } finally {
+              alterStmt.close()
+            }
+          } catch {
+            case NonFatal(e) =>
+              logger.debug(s"upgradeSqlServerDateTimeColumns (dynamic): could not alter [$schema].[$table].[$column]: ${e.getMessage}")
+          }
+        }
+      } catch {
+        case NonFatal(e) =>
+          logger.warn(s"upgradeSqlServerDateTimeColumns dynamic query failed: ${e.getMessage}")
+      }
+    }
   }
 
   /**
