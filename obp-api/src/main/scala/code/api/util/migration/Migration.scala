@@ -195,7 +195,7 @@ object Migration extends MdcLoggable {
       renameDynamicEntityDefinitionRoles()
       upperCaseStoredCurrencyCodes()
       alterSqlServerDateTimeColumns()
-      MigrationOfConsentView.addConsentView("ensure_v_consent_exists_final")
+      ensureConsentViewExists()
     }
 
     /**
@@ -963,6 +963,18 @@ object Migration extends MdcLoggable {
       val name = nameOf(upperCaseStoredCurrencyCodes)
       runOnce(name) {
         MigrationOfCurrencyCodesUpperCase.upperCaseEverywhere(name)
+      }
+    }
+
+    /**
+     * Last step of the chain: earlier steps can drop v_consent (migrateConsentReferenceIdToUuid does), so
+     * make sure it exists once more. Registered like the other migrations so it runs once per database
+     * instead of on every boot.
+     */
+    private def ensureConsentViewExists(): Boolean = {
+      val name = nameOf(ensureConsentViewExists)
+      runOnce(name) {
+        MigrationOfConsentView.addConsentView(name)
       }
     }
 

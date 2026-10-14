@@ -160,15 +160,15 @@ object MigrationOfConsentReferenceIdUuid {
           }
           sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => backfillConsentItem)).append("\n")
 
-          // 8. Recreate v_consent with the new column projection.
-          MigrationOfConsentView.addConsentView(name + "_view_rebuild")
-
+          // 8. v_consent is recreated in the finally block below, with the new column projection.
           isSuccessful = true
         } catch {
           case e: Exception =>
             isSuccessful = false
             sqlLog.append(s"\nException: ${e.getMessage}\n")
         } finally {
+          // Runs on success and on failure: step 2 dropped v_consent, so a failure part-way must not
+          // leave it missing.
           MigrationOfConsentView.addConsentView(name + "_view_rebuild")
         }
 
