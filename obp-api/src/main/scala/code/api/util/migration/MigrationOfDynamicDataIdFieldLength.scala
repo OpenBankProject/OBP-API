@@ -65,16 +65,17 @@ object MigrationOfDynamicDataIdFieldLength {
                   """
                     |IF EXISTS (
                     |  SELECT 1 FROM sys.columns c
+                    |  JOIN sys.types t ON c.user_type_id = t.user_type_id
                     |  WHERE c.object_id = OBJECT_ID('dynamicdata')
                     |    AND c.name = 'dynamicdataid'
-                    |    AND c.max_length < 255
+                    |    AND (t.name <> 'nvarchar' OR c.max_length < 510)
                     |)
                     |BEGIN
                     |  IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'dynamicdata_bankid_dynamicentityname_dynamicdataid' AND object_id = OBJECT_ID('dynamicdata'))
                     |    DROP INDEX dynamicdata_bankid_dynamicentityname_dynamicdataid ON dynamicdata;
                     |  IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'dynamicdata_dynamicdataid' AND object_id = OBJECT_ID('dynamicdata'))
                     |    DROP INDEX dynamicdata_dynamicdataid ON dynamicdata;
-                    |  ALTER TABLE dynamicdata ALTER COLUMN dynamicdataid varchar(255);
+                    |  ALTER TABLE dynamicdata ALTER COLUMN dynamicdataid NVARCHAR(255);
                     |  CREATE UNIQUE INDEX dynamicdata_bankid_dynamicentityname_dynamicdataid
                     |    ON dynamicdata (bankid, dynamicentityname, dynamicdataid);
                     |END;

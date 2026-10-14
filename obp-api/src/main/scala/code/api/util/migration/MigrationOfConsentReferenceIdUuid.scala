@@ -116,10 +116,13 @@ object MigrationOfConsentReferenceIdUuid {
 
           // 5. Enforce NOT NULL + UNIQUE.
           val setNotNull = if (isMssql) {
-            """IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('mappedconsent') AND name = 'mappedconsent_consent_reference_id')
+            """IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('mappedconsent') AND name = 'consent_reference_id' AND is_nullable = 1)
               |BEGIN
-              |  IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('mappedconsent') AND name = 'consent_reference_id' AND is_nullable = 1)
-              |    ALTER TABLE mappedconsent ALTER COLUMN consent_reference_id VARCHAR(36) NOT NULL;
+              |  IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('mappedconsent') AND name = 'mappedconsent_consent_reference_id')
+              |    DROP INDEX mappedconsent_consent_reference_id ON mappedconsent;
+              |  IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'uq_mappedconsent_consent_reference_id' AND parent_object_id = OBJECT_ID('mappedconsent'))
+              |    ALTER TABLE mappedconsent DROP CONSTRAINT uq_mappedconsent_consent_reference_id;
+              |  ALTER TABLE mappedconsent ALTER COLUMN consent_reference_id VARCHAR(36) NOT NULL;
               |END""".stripMargin
           } else {
             "ALTER TABLE mappedconsent ALTER COLUMN consent_reference_id SET NOT NULL;"

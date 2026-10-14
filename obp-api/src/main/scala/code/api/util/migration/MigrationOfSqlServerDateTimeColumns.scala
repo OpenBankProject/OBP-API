@@ -72,19 +72,41 @@ object MigrationOfSqlServerDateTimeColumns extends MdcLoggable {
 
     DB.use(DefaultConnectionIdentifier) { conn =>
       for ((table, col) <- targetColumns) {
-        val sql = s"ALTER TABLE $table ALTER COLUMN $col DATETIME2 NULL"
         try {
-          val stmt = conn.createStatement()
+          var isDatetime = false
+          val checkStmt = conn.prepareStatement(
+            """SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+              |WHERE TABLE_NAME = ? AND COLUMN_NAME = ? AND LOWER(DATA_TYPE) = 'datetime'""".stripMargin
+          )
           try {
-            stmt.execute(sql)
-            conn.commit()
-            altered += s"$table.$col"
+            checkStmt.setString(1, table)
+            checkStmt.setString(2, col)
+            val rs = checkStmt.executeQuery()
+            try {
+              isDatetime = rs.next()
+            } finally {
+              rs.close()
+            }
           } finally {
-            stmt.close()
+            checkStmt.close()
+          }
+
+          if (isDatetime) {
+            val sql = s"ALTER TABLE $table ALTER COLUMN $col DATETIME2 NULL"
+            val stmt = conn.createStatement()
+            try {
+              stmt.execute(sql)
+              conn.commit()
+              altered += s"$table.$col"
+            } finally {
+              stmt.close()
+            }
+          } else {
+            altered += s"$table.$col (already datetime2)"
           }
         } catch {
           case NonFatal(e) =>
-            logger.warn(s"MigrationOfSqlServerDateTimeColumns: failed $sql: ${e.getMessage}")
+            logger.warn(s"MigrationOfSqlServerDateTimeColumns: failed $table.$col: ${e.getMessage}")
             failed += s"$table.$col (${e.getMessage})"
         }
       }

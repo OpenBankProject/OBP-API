@@ -674,34 +674,7 @@ class Boot extends MdcLoggable {
   }
 
   private def upgradeSqlServerDateTimeColumns(): Unit = {
-    val knownStatements = List(
-      "ALTER TABLE mappedcustomer ALTER COLUMN mdateofbirth DATETIME2 NULL",
-      "ALTER TABLE mappedcustomer ALTER COLUMN mfaceimagetime DATETIME2 NULL",
-      "ALTER TABLE mappedcustomer ALTER COLUMN mlastokdate DATETIME2 NULL",
-      "ALTER TABLE mappedcustomerdependant ALTER COLUMN mdateofbirth DATETIME2 NULL",
-      "ALTER TABLE mappedusercustomerlink ALTER COLUMN mdateinserted DATETIME2 NULL",
-      "ALTER TABLE mappedphysicalcard ALTER COLUMN mvalidfrom DATETIME2 NULL",
-      "ALTER TABLE mappedphysicalcard ALTER COLUMN mexpires DATETIME2 NULL",
-      "ALTER TABLE mappedphysicalcard ALTER COLUMN mcollected DATETIME2 NULL",
-      "ALTER TABLE mappedphysicalcard ALTER COLUMN mposted DATETIME2 NULL",
-      "ALTER TABLE mappedphysicalcard ALTER COLUMN mreplacementdate DATETIME2 NULL",
-      "ALTER TABLE mappedmeeting ALTER COLUMN mwhen DATETIME2 NULL"
-    )
     DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
-      for (sql <- knownStatements) {
-        try {
-          val stmt = conn.createStatement()
-          try {
-            stmt.execute(sql)
-            conn.commit()
-          } finally {
-            stmt.close()
-          }
-        } catch {
-          case NonFatal(e) =>
-            logger.warn(s"upgradeSqlServerDateTimeColumns (known) failed for '$sql': ${e.getMessage}")
-        }
-      }
 
       try {
         val stmt = conn.createStatement()
