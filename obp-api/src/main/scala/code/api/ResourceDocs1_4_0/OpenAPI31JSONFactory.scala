@@ -64,9 +64,22 @@ object OpenAPI31JSONFactory extends MdcLoggable {
     APIUtil.getPropsValue("consumer_registration_url").filter(_.trim.nonEmpty)
       .openOr(
         APIUtil.getPortalUrl
-          .map(portal => s"${portal.stripSuffix("/")}/developers/consumer-creation")
+          .map(portal => s"${portal.stripSuffix("/")}/consumers/register")
           .openOr(s"${hostname}/consumer-registration")
       )
+
+  def consumerCreationGuideUrl: Option[String] =
+    APIUtil.getPortalUrl
+      .map(portal => s"${portal.stripSuffix("/")}/developers/consumer-creation")
+      .toOption
+
+  def consumerRegistrationInstruction(hostname: String, credentialDescription: String): String =
+    consumerCreationGuideUrl match {
+      case Some(guideUrl) =>
+        s"Read the registration instructions at $guideUrl, log in and proceed to ${consumerRegistrationUrl(hostname)} to register your application and obtain a $credentialDescription."
+      case None =>
+        s"Register your application at ${consumerRegistrationUrl(hostname)} to obtain a $credentialDescription."
+    }
 
   def oidcTokenEndpoint: String =
     APIUtil.getPropsValue("oauth2.obp_oidc.host")
@@ -89,7 +102,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |
        |### Step 1: Get your Consumer Key
        |
-       |Register your application at ${consumerRegistrationUrl(hostname)} to obtain a consumer_key.
+       |${consumerRegistrationInstruction(hostname, "consumer_key")}
        |
        |### Step 2: Obtain a token
        |
@@ -144,7 +157,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |
        |Use this flow when your application needs to act on behalf of a user.
        |
-       |1. Register your application at ${consumerRegistrationUrl(hostname)} to obtain a client_id and client_secret.
+       |1. ${consumerRegistrationInstruction(hostname, "client_id and client_secret")}
        |2. Redirect the user to the authorization URL with your client_id and redirect_uri.
        |3. After the user authenticates and consents, they are redirected back with an authorization code.
        |4. Exchange the authorization code for an access token at the token endpoint.
