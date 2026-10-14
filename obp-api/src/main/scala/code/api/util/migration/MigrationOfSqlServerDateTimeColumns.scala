@@ -54,6 +54,7 @@ object MigrationOfSqlServerDateTimeColumns extends MdcLoggable {
     val startDate = System.currentTimeMillis()
     val commitId: String = APIUtil.gitCommit
     val altered = ListBuffer[String]()
+    val failed = ListBuffer[String]()
 
     val targetColumns = List(
       ("mappedcustomer", "mdateofbirth"),
@@ -83,14 +84,20 @@ object MigrationOfSqlServerDateTimeColumns extends MdcLoggable {
           }
         } catch {
           case NonFatal(e) =>
-            logger.warn(s"MigrationOfSqlServerDateTimeColumns: skipping $sql: ${e.getMessage}")
+            logger.warn(s"MigrationOfSqlServerDateTimeColumns: failed $sql: ${e.getMessage}")
+            failed += s"$table.$col (${e.getMessage})"
         }
       }
     }
 
     val endDate = System.currentTimeMillis()
-    val comment = s"Altered SQL Server DATETIME columns to DATETIME2: ${altered.mkString(", ")}"
-    saveLog(name, commitId, isSuccessful = true, startDate, endDate, comment)
-    true
+    val isSuccessful = failed.isEmpty
+    val comment = if (isSuccessful) {
+      s"Altered SQL Server DATETIME columns to DATETIME2: ${altered.mkString(", ")}"
+    } else {
+      s"Failed to alter columns: ${failed.mkString("; ")}; successfully altered: ${altered.mkString(", ")}"
+    }
+    saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
+    isSuccessful
   }
 }

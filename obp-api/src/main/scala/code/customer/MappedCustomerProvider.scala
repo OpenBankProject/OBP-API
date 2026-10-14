@@ -237,7 +237,7 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
     
         Full(mappedCustomer)
     } catch {
-      case e: Throwable =>
+      case scala.util.control.NonFatal(e) =>
         logger.error(s"addCustomer failed for bank=$bankId, number=$number: ${e.getMessage}", e)
         Failure(s"addCustomer failed: ${e.getMessage}", Full(e), Empty)
     }
