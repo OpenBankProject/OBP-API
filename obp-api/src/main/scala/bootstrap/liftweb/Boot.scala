@@ -697,6 +697,7 @@ class Boot extends MdcLoggable {
           stmt.close()
         }
 
+        val failed = scala.collection.mutable.ListBuffer[String]()
         for ((schema, table, column) <- columns) {
           try {
             val alterStmt = conn.createStatement()
@@ -708,8 +709,11 @@ class Boot extends MdcLoggable {
             }
           } catch {
             case NonFatal(e) =>
-              logger.debug(s"upgradeSqlServerDateTimeColumns (dynamic): could not alter [$schema].[$table].[$column]: ${e.getMessage}")
+              failed += s"[$schema].[$table].[$column] (${e.getMessage})"
           }
+        }
+        if (failed.nonEmpty) {
+          logger.warn(s"upgradeSqlServerDateTimeColumns: ${failed.size} of ${columns.size} DATETIME columns could not be altered to DATETIME2 and keep the 1753 date floor: ${failed.mkString("; ")}")
         }
       } catch {
         case NonFatal(e) =>
