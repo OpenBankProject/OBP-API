@@ -70,6 +70,8 @@ class DynamicEntityWebhooksTest extends V600ServerSetup {
   object ApiEndpoint5 extends Tag("updateDynamicEntityWebhook")
   object ApiEndpoint6 extends Tag("deleteDynamicEntityWebhook")
   object ApiEndpoint7 extends Tag("testDynamicEntityWebhook")
+  object ApiEndpoint8 extends Tag("getDynamicEntityWebhookDeliveries")
+  object ApiEndpoint9 extends Tag("retryDynamicEntityWebhookDelivery")
 
   private val SYS = DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
   private val owner = "dynamic-entity-webhook-owner"
@@ -486,6 +488,66 @@ class DynamicEntityWebhooksTest extends V600ServerSetup {
         row.LastError.get should include("refused")
         receiver.received.size should equal(0)
       } finally receiver.stop()
+    }
+  }
+
+  feature("Following and retrying Dynamic Entity webhook deliveries") {
+
+    scenario("a STICKY delivery is listed, can be retried once, and goes back to PENDING with its attempts reset",
+      ApiEndpoint8, ApiEndpoint9, VersionOfApi) {
+      allowLocalReceivers()
+      grantAllAt(SYS)
+      val entityId = entityIn(None, s"followed_$suffix")
+      val refusing = new Receiver(400)
+      try {
+        val (webhookId, eventId) = webhookWithTestRequest(entityId, refusing.url)
+        deliverOnce(eventId).status should equal(MessageOutbox.STATUS_STICKY)
+        val deliveries = webhooks(SYS, entityId) / webhookId / "deliveries"
+
+        When("an anonymous caller lists the deliveries")
+        makeGetRequest(deliveries.GET).code should equal(401)
+
+        When("user1 lists them")
+        val listed = makeGetRequest(deliveries.GET <@ (user1))
+        withClue(listed.body) { listed.code should equal(200) }
+        val delivery = (listed.body \ "deliveries").children.find(d => (d \ "event_id").extract[String] == eventId)
+          .getOrElse(fail(s"delivery $eventId is not listed"))
+        (delivery \ "event_name").extract[String] should equal("webhook.test")
+        (delivery \ "status").extract[String] should equal("STICKY")
+        (delivery \ "attempts").extract[Int] should equal(1)
+        (delivery \ "last_http_status").extract[Int] should equal(400)
+        (delivery \ "last_error").extract[String] should include("400")
+        (delivery \ "record_id") should equal(JNothing)
+
+        Then("the status filter narrows the list, and an unknown status is refused")
+        (makeGetRequest(deliveries.GET <<? List("status" -> "STICKY") <@ (user1)).body \ "deliveries").children should have size 1
+        (makeGetRequest(deliveries.GET <<? List("status" -> "DELIVERED") <@ (user1)).body \ "deliveries").children should have size 0
+        val badStatus = makeGetRequest(deliveries.GET <<? List("status" -> "LOST") <@ (user1))
+        badStatus.code should equal(400)
+        message(badStatus) should include(InvalidUrlParameters)
+
+        When("it is retried")
+        val retried = makePostRequest((deliveries / eventId / "retry").POST <@ (user1), "")
+        withClue(retried.body) { retried.code should equal(200) }
+        Then("it is PENDING again, with its attempts reset and the same event id")
+        (retried.body \ "status").extract[String] should equal("PENDING")
+        (retried.body \ "attempts").extract[Int] should equal(0)
+        (retried.body \ "event_id").extract[String] should equal(eventId)
+
+        Then("a delivery that is not STICKY cannot be retried")
+        // The relay running in the test server may have sent it again already; either way it is not STICKY
+        // until that attempt has been made and refused, so retry the row only while it is PENDING.
+        if (outboxRow(eventId).status == MessageOutbox.STATUS_PENDING) {
+          val again = makePostRequest((deliveries / eventId / "retry").POST <@ (user1), "")
+          again.code should equal(400)
+          message(again) should include(DynamicEntityWebhookDeliveryNotSticky)
+        }
+
+        And("an unknown delivery is a 404")
+        val unknown = makePostRequest((deliveries / "no-such-event" / "retry").POST <@ (user1), "")
+        unknown.code should equal(404)
+        message(unknown) should include(DynamicEntityWebhookDeliveryNotFound)
+      } finally refusing.stop()
     }
   }
 

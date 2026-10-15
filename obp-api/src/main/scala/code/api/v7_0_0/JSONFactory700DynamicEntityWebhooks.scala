@@ -103,6 +103,8 @@ case class DynamicEntityWebhookDeliveryJsonV700(
   updated_at: Date
 )
 
+case class DynamicEntityWebhookDeliveriesJsonV700(deliveries: List[DynamicEntityWebhookDeliveryJsonV700])
+
 object JSONFactory700DynamicEntityWebhooks {
 
   def toCondition(json: DynamicEntityWebhookFieldConditionJsonV700): DynamicEntityWebhookFieldCondition =
@@ -190,4 +192,15 @@ object JSONFactory700DynamicEntityWebhooks {
     created_at = new Date(),
     updated_at = new Date()
   )
+
+  val dynamicEntityWebhookDeliveriesJsonV700Example = DynamicEntityWebhookDeliveriesJsonV700(List(
+    dynamicEntityWebhookDeliveryJsonV700Example.copy(
+      event_name = "dynamic_entity.record.updated",
+      record_id = Some("a1b2c3d4-0000-4000-8000-000000000001"),
+      status = "STICKY",
+      attempts = 8,
+      last_http_status = Some(503),
+      last_error = Some("The receiver replied 503 Service Unavailable.")
+    )
+  ))
 }

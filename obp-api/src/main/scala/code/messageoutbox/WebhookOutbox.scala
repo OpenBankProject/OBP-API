@@ -36,7 +36,7 @@ import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jose.{JOSEObjectType, JWSAlgorithm, JWSHeader, JWSObject, Payload}
-import net.liftweb.mapper.By
+import net.liftweb.mapper.{By, Descending, MaxRows, OrderBy, QueryParam, StartAt}
 import okhttp3.{MediaType, OkHttpClient, Request, RequestBody}
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
@@ -134,6 +134,31 @@ object WebhookOutbox extends MdcLoggable {
       By(MessageOutbox.TargetId, webhookId),
       By(MessageOutbox.Status, MessageOutbox.STATUS_PENDING)
     ).count(_.delete_!)
+
+  /** A webhook's requests, newest first; `status` narrows them to PENDING, DELIVERED or STICKY. */
+  def deliveries(webhookId: String, status: Option[String], limit: Int, offset: Int): List[MessageOutbox] =
+    MessageOutbox.findAll(
+      List[QueryParam[MessageOutbox]](
+        By(MessageOutbox.OutboxType, MessageOutbox.TYPE_WEBHOOK),
+        By(MessageOutbox.TargetId, webhookId),
+        OrderBy(MessageOutbox.id, Descending),
+        StartAt(offset),
+        MaxRows(limit)
+      ) ++ status.map(By(MessageOutbox.Status, _)): _*)
+
+  /** One request of a webhook, by its event id. */
+  def delivery(webhookId: String, eventId: String): Option[MessageOutbox] =
+    MessageOutbox.find(
+      By(MessageOutbox.OutboxType, MessageOutbox.TYPE_WEBHOOK),
+      By(MessageOutbox.TargetId, webhookId),
+      By(MessageOutbox.SubjectId, eventId)).toOption
+
+  /**
+   * This sends a STICKY request again: it goes back to PENDING with its attempts reset, so it gets the
+   * full number of attempts again, and keeps its event id and body.
+   */
+  def requeue(row: MessageOutbox): MessageOutbox =
+    row.Status(MessageOutbox.STATUS_PENDING).Attempts(0).LastError("").saveMe()
 
   /** The reply a row last got, if it got one. */
   def lastReply(row: MessageOutbox): Option[OutboxWebhookReply] =

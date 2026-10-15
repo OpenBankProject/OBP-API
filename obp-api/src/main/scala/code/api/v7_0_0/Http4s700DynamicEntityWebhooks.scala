@@ -37,7 +37,7 @@ import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps
 import code.api.util.{CallContext, CustomJsonFormats, Glossary}
 import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
 import code.dynamicentitywebhook.{DynamicEntityWebhookConditions, DynamicEntityWebhookEvents, DynamicEntityWebhookFieldCondition, DynamicEntityWebhookTrait, DynamicEntityWebhooks}
-import code.messageoutbox.{WebhookOutbox, WebhookUrlCheck}
+import code.messageoutbox.{MessageOutbox, WebhookOutbox, WebhookUrlCheck}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -405,5 +405,97 @@ object Http4s700DynamicEntityWebhooks {
     apiTagManageDynamicEntity :: apiTagWebhook :: apiTagApi :: Nil,
     Some(canUpdateDynamicEntityWebhook :: Nil),
     http4sPartialFunction = Some(testDynamicEntityWebhook)
+  ).allowSystemSpace()
+
+  private val deliveryStatuses = List(MessageOutbox.STATUS_PENDING, MessageOutbox.STATUS_DELIVERED, MessageOutbox.STATUS_STICKY)
+
+  // Route: GET /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks/WEBHOOK_ID/deliveries
+  lazy val getDynamicEntityWebhookDeliveries: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case req @ GET -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId / "web-hooks" / webhookId / "deliveries" =>
+      EndpointHelpers.withUser(req) { (_, cc) =>
+        val query = req.uri.query.params
+        val limit = query.get("limit").flatMap(value => scala.util.Try(value.toInt).toOption).getOrElse(50).max(1).min(500)
+        val offset = query.get("offset").flatMap(value => scala.util.Try(value.toInt).toOption).getOrElse(0).max(0)
+        val status = query.get("status").map(_.trim.toUpperCase).filter(_.nonEmpty)
+        for {
+          _ <- Helper.booleanToFuture(s"$InvalidUrlParameters status must be one of ${deliveryStatuses.mkString(", ")}.", 400, Some(cc)) {
+            status.forall(deliveryStatuses.contains)
+          }
+          _ <- entityFound(bankIdInUrl, dynamicEntityId, cc)
+          _ <- webhookFound(space(bankIdInUrl), dynamicEntityId, webhookId, cc)
+          rows <- Future(WebhookOutbox.deliveries(webhookId, status, limit, offset))
+        } yield DynamicEntityWebhookDeliveriesJsonV700(rows.map(JSONFactory700DynamicEntityWebhooks.createDeliveryJson))
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(getDynamicEntityWebhookDeliveries),
+    "GET",
+    "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks/WEBHOOK_ID/deliveries",
+    "Get Dynamic Entity Webhook Deliveries",
+    s"""The requests queued for a webhook, newest first, and how sending each has gone, so its owner can see
+       |whether the receiver is getting them.
+       |
+       |Each delivery has its `event_id` and `event_name`, the `record_id` it is about (none for a `webhook.test`
+       |request), and its `status`: `PENDING` (not delivered yet; it is being retried), `DELIVERED` (the receiver
+       |replied 2xx) or `STICKY` (OBP has stopped trying; see `last_error`). `attempts` counts the attempts made,
+       |`last_http_status` is the status of the last reply, left out while no attempt has had one.
+       |
+       |Query parameters: `status` (one of `PENDING`, `DELIVERED`, `STICKY`), `limit` (default 50, at most 500)
+       |and `offset` (default 0).
+       |
+       |Delivered requests are kept, so this shows past deliveries as well as current ones.
+       |
+       |$webhooksDescription""".stripMargin,
+    EmptyBody,
+    JSONFactory700DynamicEntityWebhooks.dynamicEntityWebhookDeliveriesJsonV700Example,
+    List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidUrlParameters,
+      DynamicEntityNotFoundByDynamicEntityId, DynamicEntityWebhookNotFound, UnknownError),
+    apiTagManageDynamicEntity :: apiTagWebhook :: apiTagApi :: Nil,
+    Some(canGetDynamicEntityWebhooks :: Nil),
+    http4sPartialFunction = Some(getDynamicEntityWebhookDeliveries)
+  ).allowSystemSpace()
+
+  // Route: POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks/WEBHOOK_ID/deliveries/EVENT_ID/retry
+  lazy val retryDynamicEntityWebhookDelivery: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case req @ POST -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId / "web-hooks" / webhookId / "deliveries" / eventId / "retry" =>
+      EndpointHelpers.executeAndRespond(req) { implicit cc =>
+        for {
+          _ <- entityFound(bankIdInUrl, dynamicEntityId, cc)
+          _ <- webhookFound(space(bankIdInUrl), dynamicEntityId, webhookId, cc)
+          row <- Future(WebhookOutbox.delivery(webhookId, eventId)).map(found =>
+            code.api.util.APIUtil.unboxFullOrFail(Box(found), Some(cc), s"$DynamicEntityWebhookDeliveryNotFound Current EVENT_ID is $eventId.", 404))
+          _ <- Helper.booleanToFuture(s"$DynamicEntityWebhookDeliveryNotSticky Current status is ${row.status}.", 400, Some(cc)) {
+            row.status == MessageOutbox.STATUS_STICKY
+          }
+          requeued <- Future(WebhookOutbox.requeue(row))
+        } yield JSONFactory700DynamicEntityWebhooks.createDeliveryJson(requeued)
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(retryDynamicEntityWebhookDelivery),
+    "POST",
+    "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks/WEBHOOK_ID/deliveries/EVENT_ID/retry",
+    "Retry Dynamic Entity Webhook Delivery",
+    s"""Send a STICKY delivery again, once whatever stopped it has been fixed (the receiver was down for longer
+       |than the retries last, or refused the request). It goes back to `PENDING` with its `attempts` reset, so
+       |it gets the full number of attempts again, and keeps its `event_id` and its body, so a receiver that
+       |did get it before drops it as a duplicate.
+       |
+       |Only a STICKY delivery can be retried: a PENDING one is being retried already, and a DELIVERED one is done.
+       |
+       |The response is the delivery, now `PENDING`.
+       |
+       |$webhooksDescription""".stripMargin,
+    EmptyBody,
+    JSONFactory700DynamicEntityWebhooks.dynamicEntityWebhookDeliveryJsonV700Example,
+    List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicEntityNotFoundByDynamicEntityId,
+      DynamicEntityWebhookNotFound, DynamicEntityWebhookDeliveryNotFound, DynamicEntityWebhookDeliveryNotSticky, UnknownError),
+    apiTagManageDynamicEntity :: apiTagWebhook :: apiTagApi :: Nil,
+    Some(canUpdateDynamicEntityWebhook :: Nil),
+    http4sPartialFunction = Some(retryDynamicEntityWebhookDelivery)
   ).allowSystemSpace()
 }

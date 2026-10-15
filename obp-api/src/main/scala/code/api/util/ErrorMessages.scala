@@ -127,6 +127,8 @@ object ErrorMessages {
   val InvalidDynamicEntityWebhookUrl = "OBP-09037: Invalid url. A webhook url must be an absolute https URL with a host name, at most 1024 characters, and must not point at this OBP instance or at a loopback, private, link-local or cloud metadata address. "
   val DynamicEntityWebhookUrlAlreadyExists = "OBP-09038: This Dynamic Entity already has a webhook with this url. One webhook per url is enough, because a webhook fires when any of its field conditions matches; change that webhook instead. "
   val InvalidDynamicEntityWebhookDescription = "OBP-09039: Invalid description. description must be at most 2000 characters."
+  val DynamicEntityWebhookDeliveryNotFound = "OBP-09040: Dynamic Entity webhook delivery not found for this webhook. Please specify a valid value for EVENT_ID."
+  val DynamicEntityWebhookDeliveryNotSticky = "OBP-09041: Only a STICKY delivery can be retried. A PENDING delivery is retried automatically, and a DELIVERED one is done. "
 
 
   // General messages (OBP-10XXX)
