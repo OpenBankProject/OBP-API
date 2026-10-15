@@ -208,13 +208,18 @@ trait APIMethodsDynamicEndpoint {
                   dynamicData = DynamicDataProvider.connectorMethodProvider.vend.getAll(bankId, entityName, None, false)
                   dynamicJsonData = JArray(dynamicData.map(it => com.openbankproject.commons.util.JsonAliases.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
                   entityObject = DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
-                  _ <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
-                    val entityIdName = DynamicEntityHelper.createEntityId(entityName)
-                    val entityIdValue = (entityObject \ entityIdName).asInstanceOf[JString].s
-                    DynamicDataProvider.connectorMethodProvider.vend.delete(bankId, entityName, entityIdValue, None, false).head
+                  entityIdName = DynamicEntityHelper.createEntityId(entityName)
+                  entityIdValue <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
+                    (entityObject \ entityIdName).asInstanceOf[JString].s
                   }
-                  entityBody = JsonUtils.buildJson(json, requestMappingJvalue)
-                  (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(entityBody.asInstanceOf[JObject]), None, bankId, None, None, false, Some(cc))
+                  // The record keeps its id: a PUT changes the record the URL names, and it is an update, so
+                  // Dynamic Entity webhooks see UPDATED and can compare old and new values. The id field of the
+                  // body is set to the record's id, so the stored values can never name a different record.
+                  entityBody = JsonUtils.buildJson(json, requestMappingJvalue) match {
+                    case body: JObject => JObject(body.obj.filterNot(_.name == entityIdName) :+ JField(entityIdName, JString(entityIdValue)))
+                    case other => other
+                  }
+                  (box, _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(entityBody.asInstanceOf[JObject]), Some(entityIdValue), bankId, None, None, false, Some(cc))
                   singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
                   responseBodyScheme = DynamicEndpointHelper.prepareMappingFields(responseMappingJvalue)
                   responseBody = JsonUtils.buildJson(singleObject, responseBodyScheme)
