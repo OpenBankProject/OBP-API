@@ -40,8 +40,7 @@ import java.util.UUID
 /**
  * Standard HTTP response headers applied to every response.
  *
- * Extracted from Http4sLiftWebBridge so Http4sApp can apply them
- * without depending on the bridge at all.
+ * Http4sApp applies them to every response, whichever route served it.
  */
 object Http4sStandardHeaders {
 

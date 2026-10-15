@@ -2394,7 +2394,7 @@ object Http4s500 {
 
     // ─── path-rewriting bridge: /obp/v5.0.0/… → /obp/v4.0.0/… ─────────────
     // Cascades inherited (v1.2.1–v4.0.0) endpoints through the http4s versions
-    // instead of falling all the way through to Http4sLiftWebBridge.
+    // instead of falling all the way through to the JSON 404 catch-all.
     val v500ToV400Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       val rawPath = req.uri.path.renderString
       if (rawPath.startsWith("/obp/v5.0.0/")) {
