@@ -15,6 +15,7 @@ on:
         options:
           - h2
           - sqlserver
+          - sqlserver2017
           - postgres
 
 env:
@@ -133,7 +134,7 @@ jobs:
   test:
     needs: compile
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ (inputs.database == 'sqlserver' || inputs.database == 'postgres' || contains(github.event.pull_request.labels.*.name, 'test-sqlserver') || contains(github.event.pull_request.labels.*.name, 'test-postgres') || contains(github.event.head_commit.message, '[test-sqlserver]') || contains(github.event.head_commit.message, '[test-postgres]')) && 90 || 35 }}
+    timeout-minutes: ${{ (inputs.database == 'sqlserver' || inputs.database == 'sqlserver2017' || inputs.database == 'postgres' || contains(github.event.pull_request.labels.*.name, 'test-sqlserver') || contains(github.event.pull_request.labels.*.name, 'test-postgres') || contains(github.event.head_commit.message, '[test-sqlserver]') || contains(github.event.head_commit.message, '[test-postgres]')) && 90 || 35 }}
     strategy:
       fail-fast: false
       matrix:

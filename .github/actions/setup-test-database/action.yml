@@ -6,7 +6,7 @@ description: >
 
 inputs:
   database:
-    description: Database chosen on a manual run (h2, sqlserver or postgres); empty on other triggers.
+    description: Database chosen on a manual run (h2, sqlserver, sqlserver2017 or postgres); empty on other triggers.
     required: false
     default: ''
   pr-labels:
@@ -42,6 +42,17 @@ runs:
           fi
         fi
 
+        # sqlserver2017 is SQL Server 2017 (CU20, the build some deployments still run): the same
+        # tests and properties as sqlserver, a different image, and the 2017 image's own sqlcmd.
+        SQLCMD_BIN=/opt/mssql-tools18/bin/sqlcmd
+        SQLCMD_TRUST=(-No)
+        if [ "$DB_CHOICE" = "sqlserver2017" ]; then
+          DB_CHOICE="sqlserver"
+          MSSQL_IMAGE='mcr.microsoft.com/mssql/server:2017-CU20-ubuntu'
+          SQLCMD_BIN=/opt/mssql-tools/bin/sqlcmd
+          SQLCMD_TRUST=()
+        fi
+
         echo "TEST_DB=$DB_CHOICE" >> "$GITHUB_ENV"
         echo "Selected test database: $DB_CHOICE"
 
@@ -65,7 +76,7 @@ runs:
           docker run -d --name sqlserver -p 1433:1433 \
             -e ACCEPT_EULA=Y -e MSSQL_PID=Developer -e "MSSQL_SA_PASSWORD=$SA_PASSWORD" \
             "$MSSQL_IMAGE"
-          SQLCMD=(docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$SA_PASSWORD" -No -b)
+          SQLCMD=(docker exec sqlserver "$SQLCMD_BIN" -S localhost -U sa -P "$SA_PASSWORD" "${SQLCMD_TRUST[@]}" -b)
           wait_until_ready sqlserver 5 "${SQLCMD[@]}" -Q 'SELECT 1'
           "${SQLCMD[@]}" -Q "CREATE DATABASE obp_test_only"
           echo "TEST_DB_DRIVER=com.microsoft.sqlserver.jdbc.SQLServerDriver" >> "$GITHUB_ENV"
