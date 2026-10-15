@@ -33,6 +33,12 @@ import code.api.util.ErrorMessages._
 import code.api.v6_0_0.V600ServerSetup
 import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityProvider}
 import code.entitlement.Entitlement
+import code.messageoutbox.{MessageOutbox, MessageOutboxRelay, WebhookOutbox}
+import com.nimbusds.jose.crypto.RSASSAVerifier
+import com.nimbusds.jose.jwk.RSAKey
+import com.nimbusds.jose.{JWSObject, Payload}
+import com.sun.net.httpserver.{HttpExchange, HttpServer}
+import net.liftweb.mapper.By
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.JsonAST._
@@ -40,10 +46,19 @@ import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods.{compact, render}
 import org.scalatest.Tag
 
+import java.net.InetSocketAddress
+import java.nio.charset.StandardCharsets
+import java.security.KeyPairGenerator
+import java.security.interfaces.{RSAPrivateKey, RSAPublicKey}
+import scala.collection.JavaConverters._
+
 /**
  * This suite checks the v7.0.0 endpoints that manage Dynamic Entity webhooks: the Roles at SYS and at a
  * bank, create, read, list, update and delete, the checks on events, field conditions, description and url,
  * the one-webhook-per-url rule, and how `is_active` and `deactivated_reason` move together on update.
+ * It also delivers requests through the test endpoint and the message outbox to a receiver run by the
+ * suite on this machine, to check the request OBP sends and which replies are retried, and checks that a
+ * signature verifies against the public key the way a receiver would verify it.
  */
 class DynamicEntityWebhooksTest extends V600ServerSetup {
 
@@ -54,6 +69,7 @@ class DynamicEntityWebhooksTest extends V600ServerSetup {
   object ApiEndpoint4 extends Tag("getDynamicEntityWebhook")
   object ApiEndpoint5 extends Tag("updateDynamicEntityWebhook")
   object ApiEndpoint6 extends Tag("deleteDynamicEntityWebhook")
+  object ApiEndpoint7 extends Tag("testDynamicEntityWebhook")
 
   private val SYS = DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
   private val owner = "dynamic-entity-webhook-owner"
@@ -89,6 +105,58 @@ class DynamicEntityWebhooksTest extends V600ServerSetup {
                           isActive: Option[Boolean] = None, description: Option[String] = None): String =
     compact(render(("url" -> url) ~ ("events" -> events) ~ ("field_conditions" -> conditions) ~
       ("is_active" -> isActive) ~ ("description" -> description)))
+
+  /** A request the suite's receiver got. */
+  private case class Received(headers: Map[String, String], body: String)
+
+  /**
+   * A receiver on this machine that answers every request with `status` (and `location`, for a redirect)
+   * and keeps what it got. Webhooks may only reach it while `webhook.allow_http` and
+   * `webhook.allow_private_addresses` are set.
+   */
+  private class Receiver(status: Int, location: Option[String] = None) {
+    val received = new java.util.concurrent.ConcurrentLinkedQueue[Received]()
+    private val server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0)
+    server.createContext("/", (exchange: HttpExchange) => {
+      val body = new String(exchange.getRequestBody.readAllBytes(), StandardCharsets.UTF_8)
+      val headers = exchange.getRequestHeaders.asScala.map { case (name, values) => name.toLowerCase -> values.asScala.mkString(",") }.toMap
+      received.add(Received(headers, body))
+      location.foreach(exchange.getResponseHeaders.add("Location", _))
+      val reply = s"""{"answer":$status}""".getBytes(StandardCharsets.UTF_8)
+      exchange.sendResponseHeaders(status, reply.length.toLong)
+      exchange.getResponseBody.write(reply)
+      exchange.close()
+    })
+    server.start()
+    val url = s"http://127.0.0.1:${server.getAddress.getPort}/hooks/obp"
+    def stop(): Unit = server.stop(0)
+  }
+
+  private def allowLocalReceivers(): Unit =
+    setPropsValues("webhook.allow_http" -> "true", "webhook.allow_private_addresses" -> "true")
+
+  private def outboxRow(eventId: String): MessageOutbox =
+    MessageOutbox.find(By(MessageOutbox.SubjectId, eventId)).openOrThrowException(s"outbox row $eventId")
+
+  /**
+   * One delivery attempt of the row, as the relay makes it. The relay running in the test server may have
+   * made it already; the claim in the outbox lets only one of them send, so the result is the same.
+   */
+  private def deliverOnce(eventId: String): MessageOutbox = {
+    val row = outboxRow(eventId)
+    if (row.status == MessageOutbox.STATUS_PENDING && row.attempts == 0) MessageOutboxRelay.relayRow(row)
+    outboxRow(eventId)
+  }
+
+  /** A webhook at SYS sending to `url`, and the event id of the test request queued for it. */
+  private def webhookWithTestRequest(entityId: String, url: String): (String, String) = {
+    val created = makePostRequest(webhooks(SYS, entityId).POST <@ (user1), webhookBody(url, List("CREATED")))
+    withClue(created.body) { created.code should equal(201) }
+    val webhookId = (created.body \ "webhook_id").extract[String]
+    val queued = makePostRequest((webhooks(SYS, entityId) / webhookId / "test").POST <@ (user1), "")
+    withClue(queued.body) { queued.code should equal(201) }
+    (webhookId, (queued.body \ "event_id").extract[String])
+  }
 
   private val approvedCondition: JValue = JArray(List(("field" -> "approved") ~ ("from" -> false) ~ ("to" -> true)))
 
@@ -309,6 +377,140 @@ class DynamicEntityWebhooksTest extends V600ServerSetup {
         compact(render(("events" -> List("CREATED")) ~ ("field_conditions" -> JArray(Nil)))))
       withClue(cleared.body) { cleared.code should equal(200) }
       (cleared.body \ "field_conditions") should equal(JArray(Nil))
+    }
+  }
+  feature("Delivering Dynamic Entity webhook requests") {
+
+    scenario("the test endpoint queues a webhook.test request, which the relay posts with the OBP headers",
+      ApiEndpoint7, VersionOfApi) {
+      allowLocalReceivers()
+      grantAllAt(SYS)
+      val entityName = s"delivered_$suffix"
+      val entityId = entityIn(None, entityName)
+      val receiver = new Receiver(200)
+      try {
+        When("an anonymous caller asks for a test request")
+        val created = makePostRequest(webhooks(SYS, entityId).POST <@ (user1), webhookBody(receiver.url, List("CREATED")))
+        withClue(created.body) { created.code should equal(201) }
+        val webhookId = (created.body \ "webhook_id").extract[String]
+        makePostRequest((webhooks(SYS, entityId) / webhookId / "test").POST, "").code should equal(401)
+
+        When("user1 asks for one")
+        val queued = makePostRequest((webhooks(SYS, entityId) / webhookId / "test").POST <@ (user1), "")
+        withClue(queued.body) { queued.code should equal(201) }
+        val eventId = (queued.body \ "event_id").extract[String]
+        (queued.body \ "event_name").extract[String] should equal("webhook.test")
+        (queued.body \ "record_id") should equal(JNothing)
+
+        When("the relay sends it")
+        val row = deliverOnce(eventId)
+        Then("it is delivered, once")
+        withClue(row.LastError.get) { row.status should equal(MessageOutbox.STATUS_DELIVERED) }
+        row.attempts should equal(1)
+        WebhookOutbox.lastReply(row).map(_.http_status) should equal(Some(200))
+        receiver.received.size should equal(1)
+
+        And("the request carries the OBP headers and identifiers only")
+        val request = receiver.received.peek()
+        request.headers("obp-webhook-id") should equal(webhookId)
+        request.headers("obp-event-id") should equal(eventId)
+        request.headers("obp-delivery-attempt") should equal("1")
+        request.headers("obp-signature-status") should equal(WebhookOutbox.signatureStatus)
+        request.headers.get("obp-signature").isDefined should equal(WebhookOutbox.isSigningConfigured)
+        request.headers("content-type") should startWith("application/json")
+        val body = org.json4s.native.JsonMethods.parse(request.body)
+        (body \ "event_name").extract[String] should equal("webhook.test")
+        (body \ "event_id").extract[String] should equal(eventId)
+        (body \ "webhook_id").extract[String] should equal(webhookId)
+        (body \ "bank_id").extract[String] should equal(SYS)
+        (body \ "entity_name").extract[String] should equal(entityName)
+        (body \ "occurred_at").extract[String] should fullyMatch regex """\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z"""
+        (body \ "record_id") should equal(JNothing)
+      } finally receiver.stop()
+    }
+
+    scenario("a 503 reply is retried, and deleting the webhook drops the request", ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
+      allowLocalReceivers()
+      grantAllAt(SYS)
+      val entityId = entityIn(None, s"unavailable_$suffix")
+      val receiver = new Receiver(503)
+      try {
+        val (webhookId, eventId) = webhookWithTestRequest(entityId, receiver.url)
+        val row = deliverOnce(eventId)
+        Then("it stays PENDING, with the attempt and the reply recorded")
+        row.status should equal(MessageOutbox.STATUS_PENDING)
+        row.attempts should equal(1)
+        WebhookOutbox.lastReply(row).map(_.http_status) should equal(Some(503))
+        row.LastError.get should include("503")
+
+        When("the webhook is deleted")
+        makeDeleteRequest((webhooks(SYS, entityId) / webhookId).DELETE <@ (user1)).code should equal(204)
+        Then("the request is no longer queued")
+        MessageOutbox.find(By(MessageOutbox.SubjectId, eventId)).isDefined should equal(false)
+      } finally receiver.stop()
+    }
+
+    scenario("a 400 reply or a redirect is not retried", ApiEndpoint7, VersionOfApi) {
+      allowLocalReceivers()
+      grantAllAt(SYS)
+      val entityId = entityIn(None, s"refusing_$suffix")
+      val refusing = new Receiver(400)
+      val redirecting = new Receiver(302, location = Some("http://169.254.169.254/latest/meta-data"))
+      try {
+        val (_, refusedEventId) = webhookWithTestRequest(entityId, refusing.url)
+        val refused = deliverOnce(refusedEventId)
+        refused.status should equal(MessageOutbox.STATUS_STICKY)
+        WebhookOutbox.lastReply(refused).map(_.http_status) should equal(Some(400))
+
+        val (_, redirectedEventId) = webhookWithTestRequest(entityId, redirecting.url)
+        val redirected = deliverOnce(redirectedEventId)
+        redirected.status should equal(MessageOutbox.STATUS_STICKY)
+        WebhookOutbox.lastReply(redirected).map(_.http_status) should equal(Some(302))
+        Then("the redirect was not followed")
+        redirecting.received.size should equal(1)
+      } finally { refusing.stop(); redirecting.stop() }
+    }
+
+    scenario("a url that is refused by the time of delivery is not sent to", ApiEndpoint7, VersionOfApi) {
+      allowLocalReceivers()
+      grantAllAt(SYS)
+      val entityId = entityIn(None, s"refused_later_$suffix")
+      val receiver = new Receiver(200)
+      try {
+        val (_, eventId) = webhookWithTestRequest(entityId, receiver.url)
+        When("private addresses are no longer allowed when the request is sent")
+        setPropsValues("webhook.allow_private_addresses" -> "false")
+        val row = deliverOnce(eventId)
+        Then("the request is not sent, and is not retried")
+        row.status should equal(MessageOutbox.STATUS_STICKY)
+        row.LastError.get should include("refused")
+        receiver.received.size should equal(0)
+      } finally receiver.stop()
+    }
+  }
+
+  feature("Signing Dynamic Entity webhook requests") {
+
+    scenario("a signature verifies against the public key and the exact body, and nothing else", VersionOfApi) {
+      val generator = KeyPairGenerator.getInstance("RSA")
+      generator.initialize(2048)
+      val keyPair = generator.generateKeyPair()
+      val publicKey = keyPair.getPublic.asInstanceOf[RSAPublicKey]
+      val body = """{"event_name":"webhook.test","event_id":"e1"}""".getBytes(StandardCharsets.UTF_8)
+
+      val signature = WebhookOutbox.sign(body, keyPair.getPrivate.asInstanceOf[RSAPrivateKey], publicKey, 1760000000L)
+
+      Then("its payload part is empty: the body is the payload")
+      signature.split("\\.", -1).toList.map(_.isEmpty) should equal(List(false, true, false))
+      And("it verifies against the body, and names the key and its own type")
+      val verified = JWSObject.parse(signature, new Payload(body))
+      verified.verify(new RSASSAVerifier(publicKey)) should equal(true)
+      verified.getHeader.getKeyID should equal(new RSAKey.Builder(publicKey).keyIDFromThumbprint().build().getKeyID)
+      verified.getHeader.getType.getType should equal("obp-webhook+jwt")
+      verified.getHeader.getCustomParam("iat").toString should equal("1760000000")
+      And("it does not verify against any other body")
+      val tampered = JWSObject.parse(signature, new Payload("""{"event_name":"webhook.test","event_id":"e2"}"""))
+      tampered.verify(new RSASSAVerifier(publicKey)) should equal(false)
     }
   }
 }

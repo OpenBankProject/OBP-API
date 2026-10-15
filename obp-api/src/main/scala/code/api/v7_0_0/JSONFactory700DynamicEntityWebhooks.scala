@@ -28,7 +28,8 @@ package code.api.v7_0_0
 
 import java.util.Date
 
-import code.dynamicentitywebhook.{DynamicEntityWebhookFieldCondition, DynamicEntityWebhookSigning, DynamicEntityWebhookTrait}
+import code.dynamicentitywebhook.{DynamicEntityWebhookFieldCondition, DynamicEntityWebhookTrait}
+import code.messageoutbox.{MessageOutbox, WebhookOutbox}
 import org.json4s.{JBool, JValue}
 
 /*
@@ -85,6 +86,23 @@ case class DynamicEntityWebhookJsonV700(
 
 case class DynamicEntityWebhooksJsonV700(web_hooks: List[DynamicEntityWebhookJsonV700])
 
+/**
+ * One delivery of a webhook: one event queued for it, and how sending it has gone. `status` is the
+ * message outbox's own: PENDING, DELIVERED or STICKY. `last_http_status` is left out while no attempt
+ * has had a reply, `record_id` for the test endpoint's ping, and `last_error` while there is none.
+ */
+case class DynamicEntityWebhookDeliveryJsonV700(
+  event_id: String,
+  event_name: String,
+  record_id: Option[String],
+  status: String,
+  attempts: Int,
+  last_http_status: Option[Int],
+  last_error: Option[String],
+  created_at: Date,
+  updated_at: Date
+)
+
 object JSONFactory700DynamicEntityWebhooks {
 
   def toCondition(json: DynamicEntityWebhookFieldConditionJsonV700): DynamicEntityWebhookFieldCondition =
@@ -92,6 +110,19 @@ object JSONFactory700DynamicEntityWebhooks {
 
   def createConditionJson(condition: DynamicEntityWebhookFieldCondition): DynamicEntityWebhookFieldConditionJsonV700 =
     DynamicEntityWebhookFieldConditionJsonV700(condition.field, condition.from, condition.to)
+
+  def createDeliveryJson(row: MessageOutbox): DynamicEntityWebhookDeliveryJsonV700 = DynamicEntityWebhookDeliveryJsonV700(
+    event_id = row.subjectId,
+    event_name = row.operationName,
+    record_id = scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(row.payloadJson) \ "record_id")
+      .toOption.collect { case org.json4s.JString(id) => id },
+    status = row.status,
+    attempts = row.attempts,
+    last_http_status = WebhookOutbox.lastReply(row).map(_.http_status),
+    last_error = Option(row.LastError.get).filter(_.trim.nonEmpty),
+    created_at = row.CreatedAt.get,
+    updated_at = row.UpdatedAt.get
+  )
 
   def createWebhookJson(webhook: DynamicEntityWebhookTrait): DynamicEntityWebhookJsonV700 = DynamicEntityWebhookJsonV700(
     webhook_id = webhook.webhookId,
@@ -104,7 +135,7 @@ object JSONFactory700DynamicEntityWebhooks {
     is_active = webhook.isActive,
     deactivated_reason = webhook.deactivatedReason,
     description = webhook.description,
-    signature_status = DynamicEntityWebhookSigning.signatureStatus,
+    signature_status = WebhookOutbox.signatureStatus,
     created_by_user_id = webhook.createdByUserId,
     created_at = webhook.createdAt,
     updated_at = webhook.updatedAt
@@ -140,11 +171,23 @@ object JSONFactory700DynamicEntityWebhooks {
     is_active = true,
     deactivated_reason = None,
     description = "Tell the loan system when an application is approved or its amount changes",
-    signature_status = DynamicEntityWebhookSigning.Signed,
+    signature_status = WebhookOutbox.SignatureStatusSigned,
     created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
     created_at = new Date(),
     updated_at = new Date()
   )
 
   val dynamicEntityWebhooksJsonV700Example = DynamicEntityWebhooksJsonV700(List(dynamicEntityWebhookJsonV700Example))
+
+  val dynamicEntityWebhookDeliveryJsonV700Example = DynamicEntityWebhookDeliveryJsonV700(
+    event_id = "0f8e4a71-5ff1-4006-95bb-7fd9e4adaef9",
+    event_name = "webhook.test",
+    record_id = None,
+    status = "PENDING",
+    attempts = 0,
+    last_http_status = None,
+    last_error = None,
+    created_at = new Date(),
+    updated_at = new Date()
+  )
 }

@@ -204,8 +204,14 @@ object DynamicEntityWebhookDbProvider extends DynamicEntityWebhookProvider {
       }
     }
 
+  // Requests still waiting to be delivered go with the webhook: nobody asked for them any more.
   override def delete(bankId: String, dynamicEntityId: String, webhookId: String): Box[Boolean] =
-    find(bankId, dynamicEntityId, webhookId).flatMap(row => tryo(row.delete_!))
+    find(bankId, dynamicEntityId, webhookId).flatMap { row =>
+      tryo {
+        code.messageoutbox.WebhookOutbox.discardPending(webhookId)
+        row.delete_!
+      }
+    }
 }
 
 class DynamicEntityWebhook extends DynamicEntityWebhookTrait with LongKeyedMapper[DynamicEntityWebhook] with IdPK {

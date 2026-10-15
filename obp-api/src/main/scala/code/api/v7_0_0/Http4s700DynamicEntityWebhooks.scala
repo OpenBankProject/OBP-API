@@ -33,10 +33,11 @@ import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
+import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.{CallContext, CustomJsonFormats, Glossary}
 import code.dynamicEntity.{DynamicEntityProvider, DynamicEntityT}
-import code.dynamicentitywebhook.{DynamicEntityWebhookConditions, DynamicEntityWebhookFieldCondition, DynamicEntityWebhookSigning, DynamicEntityWebhookTrait, DynamicEntityWebhookUrlCheck, DynamicEntityWebhooks}
+import code.dynamicentitywebhook.{DynamicEntityWebhookConditions, DynamicEntityWebhookEvents, DynamicEntityWebhookFieldCondition, DynamicEntityWebhookTrait, DynamicEntityWebhooks}
+import code.messageoutbox.{WebhookOutbox, WebhookUrlCheck}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -98,7 +99,7 @@ object Http4s700DynamicEntityWebhooks {
   /**
    * The checks a webhook's settings must pass, on create and on update (`webhookId` is the one being
    * updated, which may keep its own URL): the events, the field conditions against the entity's current
-   * fields, the description's length, the URL (see DynamicEntityWebhookUrlCheck), and that no other webhook
+   * fields, the description's length, the URL (see WebhookUrlCheck), and that no other webhook
    * of the entity has the same URL.
    */
   private def check(spaceId: String, entity: DynamicEntityT, url: String, events: List[String],
@@ -107,7 +108,7 @@ object Http4s700DynamicEntityWebhooks {
     val trimmedUrl = Option(url).map(_.trim).getOrElse("")
     val eventsProblem = DynamicEntityWebhookConditions.eventsProblem(events)
     lazy val conditionsProblem = DynamicEntityWebhookConditions.conditionsProblem(conditions, events, entity)
-    lazy val urlProblem = DynamicEntityWebhookUrlCheck.problem(trimmedUrl)
+    lazy val urlProblem = WebhookUrlCheck.problem(trimmedUrl)
     lazy val sameUrl = provider.getByUrl(spaceId, entity.dynamicEntityId.getOrElse(""), trimmedUrl).toOption
       .filterNot(other => webhookId.contains(other.webhookId))
     for {
@@ -150,9 +151,16 @@ object Http4s700DynamicEntityWebhooks {
        |`url` must be an absolute `https` URL. It may not point at this OBP instance, nor at a loopback, private,
        |link-local or cloud metadata address. An entity has at most one webhook per URL.
        |
+       |Each request carries the headers `OBP-Webhook-Id`, `OBP-Event-Id`, `OBP-Delivery-Attempt` (1 on the
+       |first attempt) and `OBP-Signature-Status`. A 2xx reply counts as delivered. A 5xx, 408 or 429 reply, a
+       |timeout or a failed connection is retried with growing intervals, up to
+       |${WebhookOutbox.maxAttemptsInEffect} attempts on this instance; any other reply, a redirect included,
+       |is not retried.
+       |
        |`signature_status` says whether deliveries from this instance are signed: on this instance it is
-       |`${DynamicEntityWebhookSigning.signatureStatus}`. A signed delivery carries `OBP-Signature`, a JSON Web
-       |Signature over the request body made with the key published at `GET /obp/v3.1.0/certs`.
+       |`${WebhookOutbox.signatureStatus}`. A signed delivery carries `OBP-Signature`, a JSON Web Signature over
+       |the exact request body with a detached payload (RFC 7515, Appendix F), made with the key published at
+       |`GET /obp/v3.1.0/certs` and named by its `kid`. An unsigned one has `OBP-Signature-Status: not_configured`.
        |
        |`deactivated_reason` is present only while the webhook is not active: `TURNED_OFF` when someone set
        |`is_active` false, `CIRCUIT_BREAKER` when it fired too often, and `ENTITY_FIELD_REMOVED` or
@@ -360,5 +368,42 @@ object Http4s700DynamicEntityWebhooks {
     apiTagManageDynamicEntity :: apiTagWebhook :: apiTagApi :: Nil,
     Some(canDeleteDynamicEntityWebhook :: Nil),
     http4sPartialFunction = Some(deleteDynamicEntityWebhook)
+  ).allowSystemSpace()
+
+  // Route: POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks/WEBHOOK_ID/test (201)
+  lazy val testDynamicEntityWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case req @ POST -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId / "web-hooks" / webhookId / "test" =>
+      EndpointHelpers.executeFutureCreated(req) {
+        implicit val cc: CallContext = req.callContext
+        for {
+          _ <- entityFound(bankIdInUrl, dynamicEntityId, cc)
+          webhook <- webhookFound(space(bankIdInUrl), dynamicEntityId, webhookId, cc)
+          queued <- Future(DynamicEntityWebhookEvents.enqueueTest(webhook))
+        } yield JSONFactory700DynamicEntityWebhooks.createDeliveryJson(queued)
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(testDynamicEntityWebhook),
+    "POST",
+    "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks/WEBHOOK_ID/test",
+    "Test Dynamic Entity Webhook",
+    s"""Queue a test request for a webhook, so its owner can check that the receiver gets OBP's requests,
+       |and can verify their signature, before relying on it. The request is sent like any other: to the
+       |webhook's url, signed the same way, retried the same way. Its body has `event_name` `webhook.test` and
+       |no `record_id`. A webhook that is not active can be tested too.
+       |
+       |The response is the queued delivery. It is sent within moments; follow it with
+       |`GET .../web-hooks/WEBHOOK_ID/deliveries`.
+       |
+       |$webhooksDescription""".stripMargin,
+    EmptyBody,
+    JSONFactory700DynamicEntityWebhooks.dynamicEntityWebhookDeliveryJsonV700Example,
+    List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicEntityNotFoundByDynamicEntityId,
+      DynamicEntityWebhookNotFound, UnknownError),
+    apiTagManageDynamicEntity :: apiTagWebhook :: apiTagApi :: Nil,
+    Some(canUpdateDynamicEntityWebhook :: Nil),
+    http4sPartialFunction = Some(testDynamicEntityWebhook)
   ).allowSystemSpace()
 }

@@ -79,6 +79,9 @@ import scala.concurrent.duration._
  * several instances only one sends it. Sent → DELIVERED. Not sent → stays
  * PENDING and is retried with the same backoff, until maxEmailAttempts, then
  * STICKY (an address or mail server an operator must look at).
+ *
+ * WEBHOOK: claimed the same way, then posted by WebhookOutbox.deliver, which
+ * says which replies are retried and which go STICKY at once.
  */
 object MessageOutboxRelay extends MdcLoggable {
 
@@ -150,6 +153,7 @@ object MessageOutboxRelay extends MdcLoggable {
   def relayRow(row: MessageOutbox): Unit = row.outboxType match {
     case MessageOutbox.TYPE_OPEN_CORRIDOR => relayOpenCorridorRow(row)
     case MessageOutbox.TYPE_EMAIL => relayEmailRow(row)
+    case MessageOutbox.TYPE_WEBHOOK => WebhookOutbox.deliver(row)
     case other =>
       row.Status(MessageOutbox.STATUS_STICKY).Attempts(row.attempts + 1)
         .LastError(s"no publisher registered for outbox_type '$other'").saveMe()
