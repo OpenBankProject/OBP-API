@@ -133,7 +133,8 @@ class DynamicEndpointBackedByDynamicEntityTest extends V400ServerSetup {
       Given("a system level Dynamic Entity, and a webhook on it")
       val entityId = DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(DynamicEntityCommons(
         entityName,
-        s"""{"$entityName":{"properties":{"name":{"type":"string","example":"lamp"},"status":{"type":"string","example":"OPEN"}}}}""",
+        // With `required`, as every definition made through the API has it: record validation reads it.
+        s"""{"$entityName":{"required":[],"properties":{"name":{"type":"string","example":"lamp"},"status":{"type":"string","example":"OPEN"}}}}""",
         None, resourceUser1.userId, None, hasPersonalEntity = false)).openOrThrowException("entity").dynamicEntityId.get
       val webhook = DynamicEntityWebhooks.dynamicEntityWebhookProvider.vend.create(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID,
         entityId, entityName, s"https://receiver-$suffix.invalid/hook", List("CREATED", "UPDATED", "DELETED"), Nil,
