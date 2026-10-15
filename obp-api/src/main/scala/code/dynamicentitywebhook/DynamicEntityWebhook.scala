@@ -122,6 +122,14 @@ trait DynamicEntityWebhookProvider {
              fieldConditions: List[DynamicEntityWebhookFieldCondition], isActive: Boolean,
              deactivatedReason: Option[String], description: String): Box[DynamicEntityWebhookTrait]
   def delete(bankId: String, dynamicEntityId: String, webhookId: String): Box[Boolean]
+  /** The webhooks of a Dynamic Entity, by its id alone, which is unique across spaces. */
+  def getByDynamicEntityId(dynamicEntityId: String): Box[List[DynamicEntityWebhookTrait]]
+  /** This turns a webhook off for `reason`, without changing anything else about it. */
+  def deactivate(webhookId: String, reason: String): Box[DynamicEntityWebhookTrait]
+  /** This records a Dynamic Entity's new name on its webhooks, which look records up by name. */
+  def renameEntity(dynamicEntityId: String, entityName: String): Box[Int]
+  /** This deletes every webhook of a Dynamic Entity, with their undelivered requests. */
+  def deleteByDynamicEntityId(dynamicEntityId: String): Box[Int]
 }
 
 object DynamicEntityWebhookDbProvider extends DynamicEntityWebhookProvider {
@@ -212,6 +220,25 @@ object DynamicEntityWebhookDbProvider extends DynamicEntityWebhookProvider {
         row.delete_!
       }
     }
+  override def getByDynamicEntityId(dynamicEntityId: String): Box[List[DynamicEntityWebhookTrait]] =
+    tryo(DynamicEntityWebhook.findAll(By(DynamicEntityWebhook.DynamicEntityId, dynamicEntityId)))
+
+  override def deactivate(webhookId: String, reason: String): Box[DynamicEntityWebhookTrait] =
+    DynamicEntityWebhook.find(By(DynamicEntityWebhook.WebhookId, webhookId)).flatMap { row =>
+      tryo(row.IsActive(false).DeactivatedReason(reason).UpdatedAt(new Date()).saveMe())
+    }
+
+  override def renameEntity(dynamicEntityId: String, entityName: String): Box[Int] =
+    tryo(DynamicEntityWebhook.findAll(By(DynamicEntityWebhook.DynamicEntityId, dynamicEntityId))
+      .filter(_.entityName != entityName)
+      .map(_.EntityName(entityName).UpdatedAt(new Date()).saveMe())
+      .size)
+
+  override def deleteByDynamicEntityId(dynamicEntityId: String): Box[Int] =
+    tryo(DynamicEntityWebhook.findAll(By(DynamicEntityWebhook.DynamicEntityId, dynamicEntityId)).count { row =>
+      code.messageoutbox.WebhookOutbox.discardPending(row.webhookId)
+      row.delete_!
+    })
 }
 
 class DynamicEntityWebhook extends DynamicEntityWebhookTrait with LongKeyedMapper[DynamicEntityWebhook] with IdPK {

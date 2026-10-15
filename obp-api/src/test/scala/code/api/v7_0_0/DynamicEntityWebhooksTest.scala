@@ -551,6 +551,85 @@ class DynamicEntityWebhooksTest extends V600ServerSetup {
     }
   }
 
+  feature("Keeping webhooks in step with their Dynamic Entity's definition") {
+
+    /** This saves the definition `dynamicEntityId` again, as `entityName` with `properties`, as every definition endpoint does. */
+    def redefine(dynamicEntityId: String, entityName: String, properties: String): Unit =
+      DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(DynamicEntityCommons(
+        entityName, s"""{"$entityName":{"properties":$properties}}""", Some(dynamicEntityId), owner, None,
+        hasPersonalEntity = false)).openOrThrowException("redefinition")
+
+    def webhookAt(entityId: String, webhookId: String): JValue = {
+      val response = makeGetRequest((webhooks(SYS, entityId) / webhookId).GET <@ (user1))
+      withClue(response.body) { response.code should equal(200) }
+      response.body
+    }
+
+    def create(entityId: String, body: String): String = {
+      val created = makePostRequest(webhooks(SYS, entityId).POST <@ (user1), body)
+      withClue(created.body) { created.code should equal(201) }
+      (created.body \ "webhook_id").extract[String]
+    }
+
+    scenario("removing or retyping a field a condition names turns the webhook off; other webhooks are left alone",
+      ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+      grantAllAt(SYS)
+      val entityName = s"redefined_$suffix"
+      val entityId = entityIn(None, entityName)
+      val onApproved = create(entityId, webhookBody(receiverUrl("approved"), List("UPDATED"), Some(approvedCondition)))
+      val onAmount = create(entityId, webhookBody(receiverUrl("amount"), List("UPDATED"), Some(JArray(List("field" -> "amount")))))
+      val unconditional = create(entityId, webhookBody(receiverUrl("all"), List("CREATED", "UPDATED")))
+      val alreadyOff = create(entityId, webhookBody(receiverUrl("off"), List("UPDATED"), Some(approvedCondition), isActive = Some(false)))
+
+      When("the definition drops approved")
+      redefine(entityId, entityName, """{"amount":{"type":"number","example":"1"},"status":{"type":"string","example":"OPEN"}}""")
+      Then("the active webhook whose condition names approved is turned off, saying why")
+      (webhookAt(entityId, onApproved) \ "is_active").extract[Boolean] should equal(false)
+      (webhookAt(entityId, onApproved) \ "deactivated_reason").extract[String] should equal("ENTITY_FIELD_REMOVED")
+      And("the others are as they were")
+      (webhookAt(entityId, onAmount) \ "is_active").extract[Boolean] should equal(true)
+      (webhookAt(entityId, unconditional) \ "is_active").extract[Boolean] should equal(true)
+      (webhookAt(entityId, alreadyOff) \ "deactivated_reason").extract[String] should equal("TURNED_OFF")
+
+      When("the definition changes amount from a number to a string")
+      redefine(entityId, entityName, """{"amount":{"type":"string","example":"1"},"status":{"type":"string","example":"OPEN"}}""")
+      Then("the webhook whose condition names amount is turned off, saying why")
+      (webhookAt(entityId, onAmount) \ "deactivated_reason").extract[String] should equal("ENTITY_FIELD_TYPE_CHANGED")
+      (webhookAt(entityId, unconditional) \ "is_active").extract[Boolean] should equal(true)
+
+      When("the owner turns the first back on without fixing its condition")
+      val unfixed = makePutRequest((webhooks(SYS, entityId) / onApproved).PUT <@ (user1), compact(render("is_active" -> true)))
+      Then("it is refused")
+      unfixed.code should equal(400)
+      message(unfixed) should include(InvalidDynamicEntityWebhookFieldCondition)
+
+      When("the owner fixes the condition and turns it back on")
+      val fixed = makePutRequest((webhooks(SYS, entityId) / onApproved).PUT <@ (user1),
+        compact(render(("is_active" -> true) ~ ("field_conditions" -> JArray(List(("field" -> "status") ~ ("to" -> "CLOSED")))))))
+      withClue(fixed.body) { fixed.code should equal(200) }
+      (fixed.body \ "is_active").extract[Boolean] should equal(true)
+      (fixed.body \ "deactivated_reason") should equal(JNothing)
+    }
+
+    scenario("renaming an entity renames it on its webhooks, and deleting it deletes them", ApiEndpoint3, VersionOfApi) {
+      grantAllAt(SYS)
+      val entityId = entityIn(None, s"renamed_$suffix")
+      val webhookId = create(entityId, webhookBody(receiverUrl("renamed"), List("CREATED")))
+
+      When("the entity is renamed")
+      redefine(entityId, s"renamed_again_$suffix",
+        """{"approved":{"type":"boolean","example":"false"},"amount":{"type":"number","example":"1"},"status":{"type":"string","example":"OPEN"}}""")
+      Then("its webhook carries the new name")
+      (webhookAt(entityId, webhookId) \ "entity_name").extract[String] should equal(s"renamed_again_$suffix")
+
+      When("the entity is deleted")
+      val entity = DynamicEntityProvider.connectorMethodProvider.vend.getById(None, entityId).openOrThrowException("entity")
+      DynamicEntityProvider.connectorMethodProvider.vend.delete(entity).openOrThrowException("delete") should equal(true)
+      Then("its webhook is gone")
+      webhookIdsIn(makeGetRequest(webhooksAtBank(SYS).GET <@ (user1))) should not contain webhookId
+    }
+  }
+
   feature("Signing Dynamic Entity webhook requests") {
 
     scenario("a signature verifies against the public key and the exact body, and nothing else", VersionOfApi) {
