@@ -31,6 +31,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{canCreateDynamicEntityWebhook, canDeleteDynamicEntityWebhook, canGetDynamicEntityWebhooks, canUpdateDynamicEntityWebhook}
 import code.api.util.ErrorMessages._
 import code.api.v6_0_0.V600ServerSetup
+import code.DynamicData.DynamicDataProvider
 import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityProvider}
 import code.entitlement.Entitlement
 import code.messageoutbox.{MessageOutbox, MessageOutboxRelay, WebhookOutbox}
@@ -134,8 +135,9 @@ class DynamicEntityWebhooksTest extends V600ServerSetup {
     def stop(): Unit = server.stop(0)
   }
 
-  private def allowLocalReceivers(): Unit =
+  private def allowLocalReceivers(): Unit = {
     setPropsValues("webhook.allow_http" -> "true", "webhook.allow_private_addresses" -> "true")
+  }
 
   private def outboxRow(eventId: String): MessageOutbox =
     MessageOutbox.find(By(MessageOutbox.SubjectId, eventId)).openOrThrowException(s"outbox row $eventId")
@@ -627,6 +629,117 @@ class DynamicEntityWebhooksTest extends V600ServerSetup {
       DynamicEntityProvider.connectorMethodProvider.vend.delete(entity).openOrThrowException("delete") should equal(true)
       Then("its webhook is gone")
       webhookIdsIn(makeGetRequest(webhooksAtBank(SYS).GET <@ (user1))) should not contain webhookId
+    }
+  }
+
+  feature("Firing Dynamic Entity webhooks when records are written") {
+
+    def createWebhook(entityId: String, body: String): String = {
+      val created = makePostRequest(webhooks(SYS, entityId).POST <@ (user1), body)
+      withClue(created.body) { created.code should equal(201) }
+      (created.body \ "webhook_id").extract[String]
+    }
+
+    /** The requests queued for a webhook, oldest first, with their bodies parsed. */
+    def queuedFor(webhookId: String): List[(MessageOutbox, JValue)] =
+      MessageOutbox.findAll(By(MessageOutbox.OutboxType, MessageOutbox.TYPE_WEBHOOK), By(MessageOutbox.TargetId, webhookId))
+        .sortBy(_.id.get)
+        .map(row => row -> org.json4s.native.JsonMethods.parse(row.payloadJson))
+
+    def record(entityName: String, id: String, fields: (String, JValue)*): JObject =
+      JObject(JField(s"${entityName}_id", JString(id)) :: fields.map { case (name, value) => JField(name, value) }.toList)
+
+    def save(entityName: String, body: JObject): Unit =
+      DynamicDataProvider.connectorMethodProvider.vend.save(None, entityName, body, Some(resourceUser1.userId), false)
+        .openOrThrowException("save the record")
+
+    def update(entityName: String, id: String, body: JObject): Unit =
+      DynamicDataProvider.connectorMethodProvider.vend.update(None, entityName, body, id, Some(resourceUser1.userId), false)
+        .openOrThrowException("update the record")
+
+    scenario("creating, updating and deleting a record queues one request each, carrying identifiers only", VersionOfApi) {
+      grantAllAt(SYS)
+      val entityName = s"fired_$suffix"
+      val entityId = entityIn(None, entityName)
+      val webhookId = createWebhook(entityId, webhookBody(receiverUrl("fired"), List("CREATED", "UPDATED", "DELETED")))
+      val createdOnly = createWebhook(entityId, webhookBody(receiverUrl("created-only"), List("CREATED")))
+      val recordId = java.util.UUID.randomUUID().toString
+
+      When("a record is created, updated and deleted")
+      save(entityName, record(entityName, recordId, "status" -> JString("OPEN"), "amount" -> JDouble(10.5)))
+      update(entityName, recordId, record(entityName, recordId, "status" -> JString("CLOSED"), "amount" -> JDouble(10.5)))
+      DynamicDataProvider.connectorMethodProvider.vend.delete(None, entityName, recordId, Some(resourceUser1.userId), false)
+        .openOrThrowException("delete the record") should equal(true)
+
+      Then("the webhook subscribed to all three has one request for each, in order")
+      val queued = queuedFor(webhookId)
+      queued.map(_._1.operationName) should equal(List(
+        "dynamic_entity.record.created", "dynamic_entity.record.updated", "dynamic_entity.record.deleted"))
+      queued.map(_._1.status).distinct.foreach(status => List("PENDING", "STICKY") should contain(status))
+      And("each body names the record and carries none of its values")
+      queued.foreach { case (row, body) =>
+        (body \ "record_id").extract[String] should equal(recordId)
+        (body \ "event_id").extract[String] should equal(row.subjectId)
+        (body \ "entity_name").extract[String] should equal(entityName)
+        (body \ "bank_id").extract[String] should equal(SYS)
+        (body \ "record_updated_at").extract[String] should fullyMatch regex """\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z"""
+        row.payloadJson should not include "CLOSED"
+        row.payloadJson should not include "10.5"
+        (body \ "matched_conditions") should equal(JNothing)
+      }
+      And("the webhook subscribed to CREATED only has one request")
+      queuedFor(createdOnly).map(_._1.operationName) should equal(List("dynamic_entity.record.created"))
+    }
+
+    scenario("an update fires a webhook with field conditions only when one of them matches", VersionOfApi) {
+      grantAllAt(SYS)
+      val entityName = s"conditional_$suffix"
+      val entityId = entityIn(None, entityName)
+      val onApproval = createWebhook(entityId, webhookBody(receiverUrl("approval"), List("CREATED", "UPDATED"), Some(approvedCondition)))
+      val recordId = java.util.UUID.randomUUID().toString
+
+      When("a record is created")
+      save(entityName, record(entityName, recordId, "approved" -> JBool(false), "status" -> JString("OPEN")))
+      Then("it is a CREATED request, not a match")
+      queuedFor(onApproval).map(_._1.operationName) should equal(List("dynamic_entity.record.created"))
+
+      When("an update leaves approved false")
+      update(entityName, recordId, record(entityName, recordId, "approved" -> JBool(false), "status" -> JString("REVIEW")))
+      Then("nothing more is queued")
+      queuedFor(onApproval) should have size 1
+
+      When("an update turns approved from false to true, given as the string \"true\"")
+      update(entityName, recordId, record(entityName, recordId, "approved" -> JString("true"), "status" -> JString("REVIEW")))
+      Then("an UPDATED request is queued, naming the condition that matched")
+      val (row, body) = queuedFor(onApproval).last
+      row.operationName should equal("dynamic_entity.record.updated")
+      (body \ "matched_conditions") should equal(approvedCondition)
+
+      When("approved is set to true again")
+      update(entityName, recordId, record(entityName, recordId, "approved" -> JBool(true), "status" -> JString("DONE")))
+      Then("nothing more is queued: approved did not change")
+      queuedFor(onApproval) should have size 2
+    }
+
+    scenario("a webhook queued for more than the per-minute limit is turned off by the circuit breaker", VersionOfApi) {
+      grantAllAt(SYS)
+      setPropsValues("webhook.circuit_breaker_per_minute" -> "2")
+      val entityName = s"busy_$suffix"
+      val entityId = entityIn(None, entityName)
+      val webhookId = createWebhook(entityId, webhookBody(receiverUrl("busy"), List("CREATED")))
+
+      When("three records are created within the minute")
+      (1 to 3).foreach(_ => save(entityName, record(entityName, java.util.UUID.randomUUID().toString, "status" -> JString("OPEN"))))
+      Then("two requests are queued, and the webhook is off with reason CIRCUIT_BREAKER")
+      queuedFor(webhookId) should have size 2
+      val webhook = makeGetRequest((webhooks(SYS, entityId) / webhookId).GET <@ (user1))
+      (webhook.body \ "is_active").extract[Boolean] should equal(false)
+      (webhook.body \ "deactivated_reason").extract[String] should equal("CIRCUIT_BREAKER")
+
+      When("a fourth record is created")
+      save(entityName, record(entityName, java.util.UUID.randomUUID().toString, "status" -> JString("OPEN")))
+      Then("nothing more is queued for the webhook that is off")
+      queuedFor(webhookId) should have size 2
     }
   }
 

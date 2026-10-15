@@ -122,6 +122,12 @@ trait DynamicEntityWebhookProvider {
              fieldConditions: List[DynamicEntityWebhookFieldCondition], isActive: Boolean,
              deactivatedReason: Option[String], description: String): Box[DynamicEntityWebhookTrait]
   def delete(bankId: String, dynamicEntityId: String, webhookId: String): Box[Boolean]
+  /** The active webhooks of the entity named `entityName` in a space: what a record write fires. */
+  def getActiveByEntityName(bankId: String, entityName: String): Box[List[DynamicEntityWebhookTrait]]
+  /** The fields of a webhook's Dynamic Entity and their types, as its conditions are compared against. */
+  def entityFieldTypes(dynamicEntityId: String): Map[String, String] =
+    code.dynamicEntity.DynamicEntity.find(net.liftweb.mapper.By(code.dynamicEntity.DynamicEntity.DynamicEntityId, dynamicEntityId))
+      .map(DynamicEntityWebhookConditions.fieldTypes).openOr(Map.empty)
   /** The webhooks of a Dynamic Entity, by its id alone, which is unique across spaces. */
   def getByDynamicEntityId(dynamicEntityId: String): Box[List[DynamicEntityWebhookTrait]]
   /** This turns a webhook off for `reason`, without changing anything else about it. */
@@ -220,6 +226,12 @@ object DynamicEntityWebhookDbProvider extends DynamicEntityWebhookProvider {
         row.delete_!
       }
     }
+  override def getActiveByEntityName(bankId: String, entityName: String): Box[List[DynamicEntityWebhookTrait]] =
+    tryo(DynamicEntityWebhook.findAll(
+      By(DynamicEntityWebhook.BankId, bankId),
+      By(DynamicEntityWebhook.EntityName, entityName),
+      By(DynamicEntityWebhook.IsActive, true)))
+
   override def getByDynamicEntityId(dynamicEntityId: String): Box[List[DynamicEntityWebhookTrait]] =
     tryo(DynamicEntityWebhook.findAll(By(DynamicEntityWebhook.DynamicEntityId, dynamicEntityId)))
 

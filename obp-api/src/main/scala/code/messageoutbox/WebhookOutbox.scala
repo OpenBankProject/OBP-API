@@ -36,7 +36,7 @@ import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jose.{JOSEObjectType, JWSAlgorithm, JWSHeader, JWSObject, Payload}
-import net.liftweb.mapper.{By, Descending, MaxRows, OrderBy, QueryParam, StartAt}
+import net.liftweb.mapper.{By, By_>, Descending, MaxRows, OrderBy, QueryParam, StartAt}
 import okhttp3.{MediaType, OkHttpClient, Request, RequestBody}
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
@@ -145,6 +145,13 @@ object WebhookOutbox extends MdcLoggable {
         StartAt(offset),
         MaxRows(limit)
       ) ++ status.map(By(MessageOutbox.Status, _)): _*)
+
+  /** How many requests were queued for a webhook since `since`. */
+  def queuedSince(webhookId: String, since: java.util.Date): Long =
+    MessageOutbox.count(
+      By(MessageOutbox.OutboxType, MessageOutbox.TYPE_WEBHOOK),
+      By(MessageOutbox.TargetId, webhookId),
+      By_>(MessageOutbox.CreatedAt, since))
 
   /** One request of a webhook, by its event id. */
   def delivery(webhookId: String, eventId: String): Option[MessageOutbox] =

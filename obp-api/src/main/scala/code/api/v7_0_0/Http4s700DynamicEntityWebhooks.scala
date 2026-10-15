@@ -163,7 +163,8 @@ object Http4s700DynamicEntityWebhooks {
        |`GET /obp/v3.1.0/certs` and named by its `kid`. An unsigned one has `OBP-Signature-Status: not_configured`.
        |
        |`deactivated_reason` is present only while the webhook is not active: `TURNED_OFF` when someone set
-       |`is_active` false, `CIRCUIT_BREAKER` when it fired too often, and `ENTITY_FIELD_REMOVED` or
+       |`is_active` false, `CIRCUIT_BREAKER` when it had ${code.dynamicentitywebhook.DynamicEntityWebhookFiring.circuitBreakerPerMinute}
+       |requests queued within a minute, and `ENTITY_FIELD_REMOVED` or
        |`ENTITY_FIELD_TYPE_CHANGED` when the entity's definition changed under one of its field conditions.
        |
        |For more information see ${Glossary.getGlossaryItemLink("Dynamic Entity Webhooks")}""".stripMargin

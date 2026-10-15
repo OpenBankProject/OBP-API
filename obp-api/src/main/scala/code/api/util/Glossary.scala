@@ -4387,7 +4387,7 @@ object Glossary extends MdcLoggable  {
 |
 |**Where a webhook may send.** Only to an absolute `https` URL, never to this OBP instance, and never to a loopback, private, link-local or cloud metadata address, so that a webhook cannot be used to reach services inside OBP's own network. An entity has at most one webhook per URL.
 |
-|**Deactivation.** `is_active` false stops a webhook. `deactivated_reason` says why: `TURNED_OFF` when someone set it, `CIRCUIT_BREAKER` when it fired too often, `ENTITY_FIELD_REMOVED` or `ENTITY_FIELD_TYPE_CHANGED` when the entity's definition changed under one of its field conditions. Deleting a Dynamic Entity deletes its webhooks.
+|**Deactivation.** `is_active` false stops a webhook. `deactivated_reason` says why: `TURNED_OFF` when someone set it, `CIRCUIT_BREAKER` when it had ${code.dynamicentitywebhook.DynamicEntityWebhookFiring.circuitBreakerPerMinute} requests queued within a minute (on this instance), the backstop against a receiver whose reply fires the webhook again, `ENTITY_FIELD_REMOVED` or `ENTITY_FIELD_TYPE_CHANGED` when the entity's definition changed under one of its field conditions. Deleting a Dynamic Entity deletes its webhooks.
 |
 |**Managing.** `/obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks` creates and lists an entity's webhooks, and `.../web-hooks/WEBHOOK_ID` reads, updates and deletes one. `/obp/v7.0.0/management/banks/BANK_ID/dynamic-entity-web-hooks` lists every webhook of a space. BANK_ID is a bank's id or `SYS` for the system space. The Roles are CanCreateDynamicEntityWebhook, CanGetDynamicEntityWebhooks, CanUpdateDynamicEntityWebhook and CanDeleteDynamicEntityWebhook, held at that BANK_ID.
 |

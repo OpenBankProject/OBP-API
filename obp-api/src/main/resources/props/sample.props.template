@@ -167,6 +167,10 @@ long_endpoint_timeout = 55000
 ## 10.0.0.5. For local development and tests only: in production this would let a webhook reach
 ## services inside OBP's own network.
 #webhook.allow_private_addresses=false
+## A webhook that has had this many requests queued within one minute is turned off with
+## deactivated_reason CIRCUIT_BREAKER instead of firing again: the backstop against a receiver whose
+## reply writes a record that fires the same webhook again.
+#webhook.circuit_breaker_per_minute=60
 
 
 ## Enable user authentication via the connector
