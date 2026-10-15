@@ -133,7 +133,7 @@ jobs:
   test:
     needs: compile
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ (inputs.database == 'sqlserver' || contains(github.event.pull_request.labels.*.name, 'test-sqlserver') || contains(github.event.head_commit.message, '[test-sqlserver]')) && 60 || 35 }}
+    timeout-minutes: ${{ (inputs.database == 'sqlserver' || inputs.database == 'postgres' || contains(github.event.pull_request.labels.*.name, 'test-sqlserver') || contains(github.event.pull_request.labels.*.name, 'test-postgres') || contains(github.event.head_commit.message, '[test-sqlserver]') || contains(github.event.head_commit.message, '[test-postgres]')) && 60 || 35 }}
     strategy:
       fail-fast: false
       matrix:
@@ -465,7 +465,7 @@ jobs:
           # -pl obp-commons,obp-api: obp-commons' own 5 util suites run on whichever
           # shard's filter matches com.openbankproject.* (the catch-all shard); on every
           # other shard the filter matches nothing in obp-commons → 0 tests there.
-          # timeout $TEST_TIMEOUT_SECONDS (25 min, 50 on SQL Server): hard-kill to prevent Pekko non-daemon threads
+          # timeout $TEST_TIMEOUT_SECONDS (25 min on H2, 50 on SQL Server and PostgreSQL): hard-kill to prevent Pekko non-daemon threads
           # (ConsentScheduler etc.) from keeping the JVM alive after tests complete.
           # Exit code 124 (timeout) is treated as success — tests are done, JVM just hung.
           # set +e: GitHub Actions uses -eo pipefail by default; without it, a 124 exit from
