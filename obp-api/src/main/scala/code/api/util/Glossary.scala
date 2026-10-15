@@ -4379,6 +4379,26 @@ object Glossary extends MdcLoggable  {
 |
 |**Identifiers only.** The request names the event, the bank, the entity and the record, never the record's values or any user id. A receiver that needs the record fetches it with its own credentials, so the normal access checks apply when it reads.
 |
+|**The request.** One POST per event, with these headers: `OBP-Webhook-Id`, `OBP-Event-Id`, `OBP-Delivery-Attempt` (1 on the first attempt), `OBP-Signature-Status` and, when requests are signed, `OBP-Signature`. The body:
+|
+|```json
+|{
+|  "event_name": "dynamic_entity.record.updated",
+|  "event_id": "0f8e4a71-5ff1-4006-95bb-7fd9e4adaef9",
+|  "occurred_at": "2026-10-14T09:12:44Z",
+|  "webhook_id": "7d3c1c2e-5b7a-4f0e-9a51-2f1f6f0c9b11",
+|  "bank_id": "gh.29.uk",
+|  "entity_name": "loan_application",
+|  "record_id": "a1b2c3d4-0000-4000-8000-000000000001",
+|  "record_updated_at": "2026-10-14T09:12:44Z",
+|  "matched_conditions": [{"field": "approved", "from": false, "to": true}]
+|}
+|```
+|
+|`event_name` is `dynamic_entity.record.created`, `dynamic_entity.record.updated`, `dynamic_entity.record.deleted`, or `webhook.test` for a test request, which has no `record_id`. `bank_id` is `SYS` for an entity of the system space. `matched_conditions` is present only on an update sent because of field conditions, and lists the conditions that matched as the webhook's owner wrote them.
+|
+|**Receiving a request.** Reply 2xx as soon as the request is stored, and do the work afterwards: a slow reply is retried. Drop a request whose `event_id` was handled already, and one whose `record_updated_at` is older than the last handled for the same record, since requests can repeat and arrive out of order. To check a signature, read `kid` from the `OBP-Signature` header (a JSON Web Signature with a detached payload, RFC 7515 Appendix F), find the key with that `kid` at `GET /obp/v3.1.0/certs`, and verify the signature against the exact bytes of the body with any JOSE library. Then fetch the record, if it is needed, with the receiver's own credentials.
+|
 |**Events and field conditions.** A webhook subscribes to any of `CREATED`, `UPDATED` and `DELETED`. Its optional `field_conditions` narrow `UPDATED`: each names a field of the entity and, optionally, the value it must change `from` and the value it must change `to`. `{"field": "approved", "from": false, "to": true}` fires only on that change, `{"field": "status", "to": "CLOSED"}` on any change into `CLOSED`, and `{"field": "amount"}` on any change to `amount`. An update fires the webhook when at least one condition matches. The fields and values are checked against the entity's definition when the webhook is created or changed. A record created with `approved` already true is a `CREATED` event, not a match.
 |
 |**Delivery.** At least once, in no particular order. Each event carries an `event_id`, the same on every retry, to drop duplicates by, and the record's `record_updated_at`, to drop an event older than one already handled. Requests are queued in the same database transaction as the change, so a change that rolls back sends nothing, and are then sent by the message outbox. A 2xx reply counts as delivered; a 5xx, 408 or 429 reply, a timeout or a failed connection is retried with growing intervals; any other reply, a redirect included, is not retried. `POST .../web-hooks/WEBHOOK_ID/test` queues a `webhook.test` request, to check a receiver before relying on it. `GET .../web-hooks/WEBHOOK_ID/deliveries` lists a webhook's requests, newest first, each `PENDING`, `DELIVERED` or `STICKY` (no longer tried), with its attempts, the last reply's HTTP status and the last error; `POST .../deliveries/EVENT_ID/retry` sends a STICKY one again with the full number of attempts. Deleting a webhook drops its requests not yet delivered.
