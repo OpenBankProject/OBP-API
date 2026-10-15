@@ -120,6 +120,13 @@ object ErrorMessages {
   val DomainApiPathClash = "OBP-09031: Endpoints of this space are ambiguous with each other, so a Domain API cannot publish the space until one of them is renamed or removed: "
   val DynamicPathAmbiguous = "OBP-09032: This would make a path ambiguous in its space. The Dynamic Entities and Dynamic Resource Docs of a space share one set of paths, which a Domain API can publish under its base path at any time, and a Domain API reads a hyphen in an entity name as an underscore, so a Dynamic Resource Doc's path may not start with a path variable, with my, public, community, openapi.json or openapi.yaml, or with the name of one of the space's Dynamic Entities in either spelling (like-this or like_this); a Dynamic Entity may not be named my, public, community, openapi.json or openapi.yaml, nor after the first segment of one of the space's Dynamic Resource Docs, nor so that it differs from another of the space's Dynamic Entities only by hyphens for underscores; and two Dynamic Resource Docs of one verb may not both match one request. Rename one of them: "
   val DynamicEntityNameHasHyphenOrSpace = "OBP-09033: Invalid Dynamic Entity name. A Dynamic Entity name may not contain a hyphen or a space; use an underscore between words, e.g. 'customer_preferences'. A Domain API serves the entity at the hyphenated form of its name as well. "
+  // Dynamic Entity webhooks: requests OBP sends to a URL when records of a Dynamic Entity change.
+  val DynamicEntityWebhookNotFound = "OBP-09034: Dynamic Entity webhook not found for this Dynamic Entity. Please specify a valid value for WEBHOOK_ID."
+  val InvalidDynamicEntityWebhookEvents = "OBP-09035: Invalid events. events must name at least one of CREATED, UPDATED and DELETED, each at most once. "
+  val InvalidDynamicEntityWebhookFieldCondition = "OBP-09036: Invalid field_conditions. Field conditions apply to updates only, so events must include UPDATED; each condition must name a field of the Dynamic Entity, at most once, and its from and to values, where given, must fit that field's type and differ from each other. "
+  val InvalidDynamicEntityWebhookUrl = "OBP-09037: Invalid url. A webhook url must be an absolute https URL with a host name, at most 1024 characters, and must not point at this OBP instance or at a loopback, private, link-local or cloud metadata address. "
+  val DynamicEntityWebhookUrlAlreadyExists = "OBP-09038: This Dynamic Entity already has a webhook with this url. One webhook per url is enough, because a webhook fires when any of its field conditions matches; change that webhook instead. "
+  val InvalidDynamicEntityWebhookDescription = "OBP-09039: Invalid description. description must be at most 2000 characters."
 
 
   // General messages (OBP-10XXX)
