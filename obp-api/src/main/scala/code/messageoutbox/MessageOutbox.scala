@@ -66,6 +66,9 @@ case class OutboxEmailPayload(
  *                   SMTP by the relay. Queued rather than sent in the request
  *                   so that a rolled back request emails nobody, and so a burst
  *                   of emails never blocks request threads.
+ *   WEBHOOK       — a webhook request: `payload_json` is the body to POST,
+ *                   `metadata_json` the URL, `target_id` the webhook id and
+ *                   `subject_id` the event id. Sent by WebhookOutbox.
  *
  * Row lifecycle:
  *   PENDING   — not yet delivered; the relay keeps publishing with backoff.
@@ -125,7 +128,7 @@ class MessageOutbox extends LongKeyedMapper[MessageOutbox] with IdPK {
   object LastReplyJson extends MappedText(this) {
     override def dbColumnName = "last_reply_json"
   }
-  /** Per-type optional extras; empty for OPEN_CORRIDOR. */
+  /** Per-type optional extras; empty for OPEN_CORRIDOR, the URL for WEBHOOK. */
   object MetadataJson extends MappedText(this) {
     override def dbColumnName = "metadata_json"
   }
@@ -161,6 +164,7 @@ object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbo
 
   val TYPE_OPEN_CORRIDOR = "OPEN_CORRIDOR"
   val TYPE_EMAIL = "EMAIL"
+  val TYPE_WEBHOOK = "WEBHOOK"
 
   val OPERATION_ROLE_GRANTED_EMAIL = "role_granted_email"
 
@@ -176,7 +180,7 @@ object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbo
   override def dbTableName = "message_outbox"
 
   override def dbIndexes: List[BaseIndex[MessageOutbox]] =
-    Index(Status) :: Index(SubjectId) :: Index(OutboxType) :: super.dbIndexes
+    Index(Status) :: Index(SubjectId) :: Index(OutboxType) :: Index(TargetId) :: super.dbIndexes
 
   def enqueue(
     outboxType: String,
@@ -184,7 +188,8 @@ object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbo
     subjectIdType: String,
     operationName: String,
     targetId: String,
-    payloadJson: String
+    payloadJson: String,
+    metadataJson: String = ""
   ): MessageOutbox =
     MessageOutbox.create
       .OutboxType(outboxType)
@@ -193,6 +198,7 @@ object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbo
       .OperationName(operationName)
       .TargetId(targetId)
       .PayloadJson(payloadJson)
+      .MetadataJson(metadataJson)
       .Status(STATUS_PENDING)
       .saveMe()
 

@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication}
+import code.api.util.APIUtil.{Http4sRoute, EmptyBody, ResourceDoc, UserOrApplication}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -62,7 +62,7 @@ object Http4s700Grants {
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
   // Route: GET /obp/v7.0.0/scopes
-  lazy val getAllScopes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAllScopes: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "scopes" =>
       EndpointHelpers.executeFuture(req) {
         Scope.scope.vend.getScopesFuture().map(scopes => JSONFactory700.createAllScopesJsonV700(scopes.openOr(Nil)))
@@ -92,7 +92,7 @@ object Http4s700Grants {
   )
 
   // Route: GET /obp/v7.0.0/reachable-roles
-  lazy val getReachableRoles: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getReachableRoles: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "reachable-roles" =>
       EndpointHelpers.executeFuture(req) {
         for {

@@ -1168,6 +1168,7 @@ object ToSchemify extends MdcLoggable {
     code.platformapp.PlatformApp,
     code.platformapp.PlatformAppRequiredScope,
     code.domainapi.DomainApi,
+    code.dynamicentitywebhook.DynamicEntityWebhook,
     PayeeLookup,
     UtilityPaymentCallback,
     BulkPayment,

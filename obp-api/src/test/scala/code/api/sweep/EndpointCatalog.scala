@@ -102,10 +102,11 @@ object EndpointCatalog {
    * failure" that is entirely the sweep's own doing. The first run of AuthSweepTest hit exactly
    * that on nine endpoints across v2.1.0 and v3.1.0.
    *
-   * The production rule lives in ResourceDocMatcher.isTemplateVariable, which consults a private
-   * `literalAllCapsSegments` set. Copying that set here would give us a second copy to keep in
-   * sync, and a stale copy fails in the direction that is hardest to notice — a literal newly
-   * added there would be substituted here and the sweep would quietly stop covering that path.
+   * Production does not decide this from the template: ResourceDocMiddleware asks the routes which
+   * one serves a request, so a template's capitalised words are documentation. The sweep still has
+   * to decide which segments to fill in, and keeping a list of literals would give it a copy to
+   * keep in sync, which fails in the direction that is hardest to notice — a literal newly added
+   * would be substituted and the sweep would quietly stop covering that path.
    *
    * So this asks the opposite question: rather than "is it a literal", "do I have a value for
    * it". A segment is substituted only when its NAME says it is an id or a code. That happens to
@@ -141,8 +142,9 @@ object EndpointCatalog {
        // an accident of the present call sites, not the actual contract of the segment.
        seg == "PAYMENT_SERVICE" || seg == "PAYMENT_PRODUCT" || seg == "SCA_METHOD")
 
-  // Checked against Http4sSupport's literalAllCapsSegments: not one of the sixteen ends in ID,
-  // _CODE or _NAME, so the rule above separates the two sets cleanly.
+  // Checked against the TransactionRequestTypes and StrongCustomerAuthentication enum values, the fixed
+  // words these templates carry: not one of the sixteen ends in ID, _CODE or _NAME, so the rule above
+  // separates the two sets cleanly.
   //
   // CARDANO, MOBILE_WALLET and ETH_SEND_TRANSACTION are the remaining literals this list does
   // not carry, and they stay verbatim on purpose -- substituting over them would route to the

@@ -157,6 +157,21 @@ long_endpoint_timeout = 55000
 ## always runs. A message that cannot be delivered is retried with backoff, on top of this interval.
 #message_outbox.relay_interval_seconds=10
 
+## Webhook requests sent through the message outbox (Dynamic Entity webhooks).
+## Attempts after which a webhook request that keeps failing (5xx, 408, 429, timeout, no connection)
+## stops being retried and is left STICKY. With the relay's backoff, 144 is roughly a day.
+#webhook.outbox_max_attempts=144
+## Allow webhook URLs with plain http. For local development only.
+#webhook.allow_http=false
+## Allow webhook URLs whose host is a loopback, private or link-local address, such as localhost or
+## 10.0.0.5. For local development and tests only: in production this would let a webhook reach
+## services inside OBP's own network.
+#webhook.allow_private_addresses=false
+## A webhook that has had this many requests queued within one minute is turned off with
+## deactivated_reason CIRCUIT_BREAKER instead of firing again: the backstop against a receiver whose
+## reply writes a record that fires the same webhook again.
+#webhook.circuit_breaker_per_minute=60
+
 
 ## Enable user authentication via the connector
 #connector.user.authentication=true

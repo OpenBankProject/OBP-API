@@ -47,8 +47,7 @@ import scala.collection.mutable.ArrayBuffer
  * This aggregator is retained for ScannedApis registration (class-path scanning)
  * and so that external callers that access OBP_BERLIN_GROUP_1_3.apiVersion /
  * .allResourceDocs continue to compile.
- * Routes are served by Http4sBGv13.wrappedRoutes in Http4sApp (ahead of the
- * Lift bridge).
+ * Routes are served by Http4sBGv13.wrappedRoutes in Http4sApp.
  */
 object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedApis {
 

@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, Http4sRoute}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -61,7 +61,7 @@ object Http4s700DeploymentChecks {
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
   // Route: GET /obp/v7.0.0/management/system/diagnostics/deployment
-  lazy val getDeploymentChecks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDeploymentChecks: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "system" / "diagnostics" / "deployment" =>
       EndpointHelpers.withUser(req) { (_, _) =>
         Future(JSONFactory700Operations.createDeploymentChecksJson(DeploymentChecks.run()))

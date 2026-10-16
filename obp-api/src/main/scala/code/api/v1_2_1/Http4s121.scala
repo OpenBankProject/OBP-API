@@ -32,13 +32,13 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, _}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps, callContextKey}
 import code.api.util.http4s.Http4sCallContextBuilder
 import code.api.util.http4s.IdempotencyMiddleware
-import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{CallContext, CustomJsonFormats, NewStyle}
 import code.bankconnectors.Connector
@@ -149,7 +149,7 @@ object Http4s121 {
 
     // ─── root ───────────────────────────────────────────────────────────────
 
-    val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val root: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "root" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v1_2_1, "STABLE"))
@@ -176,7 +176,7 @@ object Http4s121 {
 
     // ─── getBanks ────────────────────────────────────────────────────────────
 
-    val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
@@ -212,7 +212,7 @@ object Http4s121 {
 
     // bankById runs outside ResourceDocMiddleware so it can return 400 (not 464) for unknown bank,
     // preserving the v1.2.1 Lift behavior.  Builds its own CallContext via Http4sCallContextBuilder.
-    val bankById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val bankById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankId =>
         Http4sCallContextBuilder.fromRequest(req, implementedInApiVersion.apiShortVersion).flatMap { cc =>
           val reqWithCc = req.withAttribute(callContextKey, cc)
@@ -245,7 +245,7 @@ object Http4s121 {
 
     // ─── getPrivateAccountsAllBanks ──────────────────────────────────────────
 
-    val getPrivateAccountsAllBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getPrivateAccountsAllBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "accounts" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           Future {
@@ -276,7 +276,7 @@ object Http4s121 {
 
     // ─── privateAccountsAllBanks ─────────────────────────────────────────────
 
-    val privateAccountsAllBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val privateAccountsAllBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "accounts" / "private" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           Future {
@@ -306,7 +306,7 @@ object Http4s121 {
 
     // ─── publicAccountsAllBanks ──────────────────────────────────────────────
 
-    val publicAccountsAllBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val publicAccountsAllBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "accounts" / "public" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           Future {
@@ -338,7 +338,7 @@ object Http4s121 {
 
     // ─── getPrivateAccountsAtOneBank ─────────────────────────────────────────
 
-    val getPrivateAccountsAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getPrivateAccountsAtOneBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           Future {
@@ -369,7 +369,7 @@ object Http4s121 {
 
     // ─── privateAccountsAtOneBank ────────────────────────────────────────────
 
-    val privateAccountsAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val privateAccountsAtOneBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / "private" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           Future {
@@ -400,7 +400,7 @@ object Http4s121 {
 
     // ─── publicAccountsAtOneBank ─────────────────────────────────────────────
 
-    val publicAccountsAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val publicAccountsAtOneBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / "public" =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           Future {
@@ -429,7 +429,7 @@ object Http4s121 {
 
     // ─── accountById ─────────────────────────────────────────────────────────
 
-    val accountById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val accountById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "account" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -475,7 +475,7 @@ object Http4s121 {
 
     // ─── updateAccountLabel ──────────────────────────────────────────────────
 
-    val updateAccountLabel: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateAccountLabel: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId =>
         EndpointHelpers.executeFuture(req) {
           val cc = req.callContext
@@ -521,7 +521,7 @@ object Http4s121 {
 
     // ─── getViewsForBankAccount ───────────────────────────────────────────────
 
-    val getViewsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getViewsForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" =>
         EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
           for {
@@ -577,7 +577,7 @@ object Http4s121 {
 
     // ─── createViewForBankAccount ─────────────────────────────────────────────
 
-    val createViewForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createViewForBankAccount: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" =>
         EndpointHelpers.executeFutureCreated(req) {
           val cc = req.callContext
@@ -642,7 +642,7 @@ object Http4s121 {
 
     // ─── updateViewForBankAccount ─────────────────────────────────────────────
 
-    val updateViewForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateViewForBankAccount: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId =>
         EndpointHelpers.executeFutureWithBody[UpdateViewJsonV121, ViewJSONV121](req) { (updateJsonV121, cc) =>
           for {
@@ -701,7 +701,7 @@ object Http4s121 {
 
     // ─── deleteViewForBankAccount ─────────────────────────────────────────────
 
-    val deleteViewForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteViewForBankAccount: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
@@ -736,7 +736,7 @@ object Http4s121 {
 
     // ─── getPermissionsForBankAccount ─────────────────────────────────────────
 
-    val getPermissionsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getPermissionsForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "permissions" =>
         EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
           val permissionBox = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)
@@ -769,7 +769,7 @@ object Http4s121 {
 
     // ─── getPermissionForUserForBankAccount ───────────────────────────────────
 
-    val getPermissionForUserForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getPermissionForUserForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "permissions" / provider / providerId =>
         EndpointHelpers.withBankAccount(req) { (loggedInUser, account, cc) =>
           val loggedInUserPermissionBox = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), loggedInUser)
@@ -809,7 +809,7 @@ object Http4s121 {
 
     // ─── addPermissionForUserForBankAccountForMultipleViews ───────────────────
 
-    val addPermissionForUserForBankAccountForMultipleViews: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addPermissionForUserForBankAccountForMultipleViews: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "permissions" / provider / providerId / "views" =>
         EndpointHelpers.executeFutureCreated(req) {
           val cc = req.callContext
@@ -855,7 +855,7 @@ object Http4s121 {
 
     // ─── addPermissionForUserForBankAccountForOneView ─────────────────────────
 
-    val addPermissionForUserForBankAccountForOneView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addPermissionForUserForBankAccountForOneView: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "permissions" / provider / providerId / "views" / viewId =>
         EndpointHelpers.executeFutureCreated(req) {
           val cc = req.callContext
@@ -894,7 +894,7 @@ object Http4s121 {
 
     // ─── removePermissionForUserForBankAccountForOneView ──────────────────────
 
-    val removePermissionForUserForBankAccountForOneView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val removePermissionForUserForBankAccountForOneView: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "permissions" / provider / providerId / "views" / viewId =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
@@ -925,7 +925,7 @@ object Http4s121 {
 
     // ─── removePermissionForUserForBankAccountForAllViews ────────────────────
 
-    val removePermissionForUserForBankAccountForAllViews: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val removePermissionForUserForBankAccountForAllViews: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "permissions" / provider / providerId / "views" =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
@@ -956,7 +956,7 @@ object Http4s121 {
 
     // ─── getOtherAccountsForBankAccount ──────────────────────────────────────
 
-    val getOtherAccountsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getOtherAccountsForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -983,7 +983,7 @@ object Http4s121 {
 
     // ─── getOtherAccountByIdForBankAccount ───────────────────────────────────
 
-    val getOtherAccountByIdForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getOtherAccountByIdForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -1012,7 +1012,7 @@ object Http4s121 {
 
     // ─── getOtherAccountMetadata ──────────────────────────────────────────────
 
-    val getOtherAccountMetadata: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getOtherAccountMetadata: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -1043,7 +1043,7 @@ object Http4s121 {
 
     // ─── getCounterpartyPublicAlias ───────────────────────────────────────────
 
-    val getCounterpartyPublicAlias: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCounterpartyPublicAlias: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "public_alias" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -1074,7 +1074,7 @@ object Http4s121 {
 
     // ─── addCounterpartyPublicAlias ───────────────────────────────────────────
 
-    val addCounterpartyPublicAlias: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addCounterpartyPublicAlias: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "public_alias" =>
         EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1118,7 +1118,7 @@ object Http4s121 {
 
     // ─── updateCounterpartyPublicAlias ────────────────────────────────────────
 
-    val updateCounterpartyPublicAlias: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCounterpartyPublicAlias: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "public_alias" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1148,7 +1148,7 @@ object Http4s121 {
 
     // ─── deleteCounterpartyPublicAlias ────────────────────────────────────────
 
-    val deleteCounterpartyPublicAlias: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCounterpartyPublicAlias: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "public_alias" =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
@@ -1185,7 +1185,7 @@ object Http4s121 {
 
     // ─── getOtherAccountPrivateAlias ──────────────────────────────────────────
 
-    val getOtherAccountPrivateAlias: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getOtherAccountPrivateAlias: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "private_alias" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -1211,7 +1211,7 @@ object Http4s121 {
 
     // ─── addOtherAccountPrivateAlias ──────────────────────────────────────────
 
-    val addOtherAccountPrivateAlias: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addOtherAccountPrivateAlias: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "private_alias" =>
         EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1241,7 +1241,7 @@ object Http4s121 {
 
     // ─── updateCounterpartyPrivateAlias ───────────────────────────────────────
 
-    val updateCounterpartyPrivateAlias: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCounterpartyPrivateAlias: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "private_alias" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1271,7 +1271,7 @@ object Http4s121 {
 
     // ─── deleteCounterpartyPrivateAlias ───────────────────────────────────────
 
-    val deleteCounterpartyPrivateAlias: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCounterpartyPrivateAlias: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "private_alias" =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
@@ -1301,7 +1301,7 @@ object Http4s121 {
 
     // ─── addCounterpartyMoreInfo ──────────────────────────────────────────────
 
-    val addCounterpartyMoreInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addCounterpartyMoreInfo: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "more_info" =>
         EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1339,7 +1339,7 @@ object Http4s121 {
 
     // ─── updateCounterpartyMoreInfo ───────────────────────────────────────────
 
-    val updateCounterpartyMoreInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCounterpartyMoreInfo: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "more_info" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1369,7 +1369,7 @@ object Http4s121 {
 
     // ─── deleteCounterpartyMoreInfo ───────────────────────────────────────────
 
-    val deleteCounterpartyMoreInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCounterpartyMoreInfo: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "more_info" =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
@@ -1396,7 +1396,7 @@ object Http4s121 {
 
     // ─── addCounterpartyUrl ───────────────────────────────────────────────────
 
-    val addCounterpartyUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addCounterpartyUrl: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "url" =>
         EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1423,7 +1423,7 @@ object Http4s121 {
 
     // ─── updateCounterpartyUrl ────────────────────────────────────────────────
 
-    val updateCounterpartyUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCounterpartyUrl: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "url" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1450,7 +1450,7 @@ object Http4s121 {
 
     // ─── deleteCounterpartyUrl ────────────────────────────────────────────────
 
-    val deleteCounterpartyUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCounterpartyUrl: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "url" =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
@@ -1477,7 +1477,7 @@ object Http4s121 {
 
     // ─── addCounterpartyImageUrl ──────────────────────────────────────────────
 
-    val addCounterpartyImageUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addCounterpartyImageUrl: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "image_url" =>
         EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1504,7 +1504,7 @@ object Http4s121 {
 
     // ─── updateCounterpartyImageUrl ───────────────────────────────────────────
 
-    val updateCounterpartyImageUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCounterpartyImageUrl: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "image_url" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1538,7 +1538,7 @@ object Http4s121 {
 
     // ─── deleteCounterpartyImageUrl ───────────────────────────────────────────
 
-    val deleteCounterpartyImageUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCounterpartyImageUrl: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "image_url" =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
@@ -1567,7 +1567,7 @@ object Http4s121 {
 
     // ─── addCounterpartyOpenCorporatesUrl ─────────────────────────────────────
 
-    val addCounterpartyOpenCorporatesUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addCounterpartyOpenCorporatesUrl: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "open_corporates_url" =>
         EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1601,7 +1601,7 @@ object Http4s121 {
 
     // ─── updateCounterpartyOpenCorporatesUrl ──────────────────────────────────
 
-    val updateCounterpartyOpenCorporatesUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCounterpartyOpenCorporatesUrl: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "open_corporates_url" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1628,7 +1628,7 @@ object Http4s121 {
 
     // ─── deleteCounterpartyOpenCorporatesUrl ──────────────────────────────────
 
-    val deleteCounterpartyOpenCorporatesUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCounterpartyOpenCorporatesUrl: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "open_corporates_url" =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
@@ -1655,7 +1655,7 @@ object Http4s121 {
 
     // ─── addCounterpartyCorporateLocation ────────────────────────────────────
 
-    val addCounterpartyCorporateLocation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addCounterpartyCorporateLocation: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "corporate_location" =>
         EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1683,7 +1683,7 @@ object Http4s121 {
 
     // ─── updateCounterpartyCorporateLocation ──────────────────────────────────
 
-    val updateCounterpartyCorporateLocation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCounterpartyCorporateLocation: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "corporate_location" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1711,7 +1711,7 @@ object Http4s121 {
 
     // ─── deleteCounterpartyCorporateLocation ──────────────────────────────────
 
-    val deleteCounterpartyCorporateLocation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCounterpartyCorporateLocation: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "corporate_location" =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
@@ -1738,7 +1738,7 @@ object Http4s121 {
 
     // ─── addCounterpartyPhysicalLocation ──────────────────────────────────────
 
-    val addCounterpartyPhysicalLocation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addCounterpartyPhysicalLocation: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "physical_location" =>
         EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1766,7 +1766,7 @@ object Http4s121 {
 
     // ─── updateCounterpartyPhysicalLocation ───────────────────────────────────
 
-    val updateCounterpartyPhysicalLocation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCounterpartyPhysicalLocation: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "physical_location" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           val bodyStr = cc.httpBody.getOrElse("")
@@ -1794,7 +1794,7 @@ object Http4s121 {
 
     // ─── deleteCounterpartyPhysicalLocation ───────────────────────────────────
 
-    val deleteCounterpartyPhysicalLocation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCounterpartyPhysicalLocation: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId / "metadata" / "physical_location" =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
@@ -1821,7 +1821,7 @@ object Http4s121 {
 
     // ─── getTransactionsForBankAccount ───────────────────────────────────────
 
-    val getTransactionsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getTransactionsForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / viewId / "transactions" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           val httpParams: List[HTTPParam] = req.headers.headers.toList.map(h => HTTPParam(h.name.toString, h.value))
@@ -1857,7 +1857,7 @@ object Http4s121 {
 
     // ─── getTransactionByIdForBankAccount ─────────────────────────────────────
 
-    val getTransactionByIdForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getTransactionByIdForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "transaction" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
@@ -1890,7 +1890,7 @@ object Http4s121 {
 
     // ─── getTransactionNarrative ──────────────────────────────────────────────
 
-    val getTransactionNarrative: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getTransactionNarrative: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "narrative" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -1922,7 +1922,7 @@ object Http4s121 {
 
     // ─── addTransactionNarrative ──────────────────────────────────────────────
 
-    val addTransactionNarrative: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addTransactionNarrative: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "narrative" =>
         EndpointHelpers.executeFutureCreated(req) {
           val cc = req.callContext
@@ -1985,7 +1985,7 @@ object Http4s121 {
 
     // ─── updateTransactionNarrative ───────────────────────────────────────────
 
-    val updateTransactionNarrative: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateTransactionNarrative: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "narrative" =>
         EndpointHelpers.executeFuture(req) {
           val cc = req.callContext
@@ -2038,7 +2038,7 @@ object Http4s121 {
 
     // ─── deleteTransactionNarrative ───────────────────────────────────────────
 
-    val deleteTransactionNarrative: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteTransactionNarrative: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "narrative" =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           val bankAccount = cc.bankAccount.get
@@ -2067,7 +2067,7 @@ object Http4s121 {
 
     // ─── getCommentsForViewOnTransaction ─────────────────────────────────────
 
-    val getCommentsForViewOnTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCommentsForViewOnTransaction: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "comments" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -2094,7 +2094,7 @@ object Http4s121 {
 
     // ─── addCommentForViewOnTransaction ───────────────────────────────────────
 
-    val addCommentForViewOnTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addCommentForViewOnTransaction: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "comments" =>
         EndpointHelpers.executeFutureCreated(req) {
           val cc = req.callContext
@@ -2143,7 +2143,7 @@ object Http4s121 {
 
     // ─── deleteCommentForViewOnTransaction ────────────────────────────────────
 
-    val deleteCommentForViewOnTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCommentForViewOnTransaction: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "comments" / commentId =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           val bankAccount = cc.bankAccount.get
@@ -2173,7 +2173,7 @@ object Http4s121 {
 
     // ─── getTagsForViewOnTransaction ─────────────────────────────────────────
 
-    val getTagsForViewOnTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getTagsForViewOnTransaction: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "tags" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -2205,7 +2205,7 @@ object Http4s121 {
 
     // ─── addTagForViewOnTransaction ───────────────────────────────────────────
 
-    val addTagForViewOnTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addTagForViewOnTransaction: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "tags" =>
         EndpointHelpers.executeFutureCreated(req) {
           val cc = req.callContext
@@ -2254,7 +2254,7 @@ object Http4s121 {
 
     // ─── deleteTagForViewOnTransaction ────────────────────────────────────────
 
-    val deleteTagForViewOnTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteTagForViewOnTransaction: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "tags" / tagId =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           val bankAccount = cc.bankAccount.get
@@ -2289,7 +2289,7 @@ object Http4s121 {
 
     // ─── getImagesForViewOnTransaction ────────────────────────────────────────
 
-    val getImagesForViewOnTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getImagesForViewOnTransaction: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "images" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -2315,7 +2315,7 @@ object Http4s121 {
 
     // ─── addImageForViewOnTransaction ─────────────────────────────────────────
 
-    val addImageForViewOnTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addImageForViewOnTransaction: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "images" =>
         EndpointHelpers.executeFutureCreated(req) {
           val cc = req.callContext
@@ -2373,7 +2373,7 @@ object Http4s121 {
 
     // ─── deleteImageForViewOnTransaction ─────────────────────────────────────
 
-    val deleteImageForViewOnTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteImageForViewOnTransaction: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "images" / imageId =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           val bankAccount = cc.bankAccount.get
@@ -2411,7 +2411,7 @@ object Http4s121 {
 
     // ─── getWhereTagForViewOnTransaction ─────────────────────────────────────
 
-    val getWhereTagForViewOnTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getWhereTagForViewOnTransaction: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "where" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -2447,7 +2447,7 @@ object Http4s121 {
 
     // ─── addWhereTagForViewOnTransaction ─────────────────────────────────────
 
-    val addWhereTagForViewOnTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addWhereTagForViewOnTransaction: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "where" =>
         EndpointHelpers.executeFutureCreated(req) {
           val cc = req.callContext
@@ -2499,7 +2499,7 @@ object Http4s121 {
 
     // ─── updateWhereTagForViewOnTransaction ───────────────────────────────────
 
-    val updateWhereTagForViewOnTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateWhereTagForViewOnTransaction: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "where" =>
         EndpointHelpers.executeFuture(req) {
           val cc = req.callContext
@@ -2551,7 +2551,7 @@ object Http4s121 {
 
     // ─── deleteWhereTagForViewOnTransaction ───────────────────────────────────
 
-    val deleteWhereTagForViewOnTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteWhereTagForViewOnTransaction: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "metadata" / "where" =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           val bankAccount = cc.bankAccount.get
@@ -2591,7 +2591,7 @@ object Http4s121 {
 
     // ─── getOtherAccountForTransaction ───────────────────────────────────────
 
-    val getOtherAccountForTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getOtherAccountForTransaction: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionId / "other_account" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -2622,82 +2622,87 @@ object Http4s121 {
 
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
-    val allRoutes: HttpRoutes[IO] =
-      Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-        root(req)
-          .orElse(getBanks(req))
-          // bankById is intentionally absent — it runs outside middleware (see allRoutesWithMiddleware)
-          .orElse(getPrivateAccountsAllBanks(req))
-          .orElse(privateAccountsAllBanks(req))
-          .orElse(publicAccountsAllBanks(req))
-          .orElse(getPrivateAccountsAtOneBank(req))
-          .orElse(privateAccountsAtOneBank(req))
-          .orElse(publicAccountsAtOneBank(req))
-          .orElse(accountById(req))
-          .orElse(updateAccountLabel(req))
-          .orElse(getViewsForBankAccount(req))
-          .orElse(createViewForBankAccount(req))
-          .orElse(updateViewForBankAccount(req))
-          .orElse(deleteViewForBankAccount(req))
-          .orElse(getPermissionsForBankAccount(req))
-          .orElse(getPermissionForUserForBankAccount(req))
-          .orElse(addPermissionForUserForBankAccountForMultipleViews(req))
-          .orElse(addPermissionForUserForBankAccountForOneView(req))
-          .orElse(removePermissionForUserForBankAccountForOneView(req))
-          .orElse(removePermissionForUserForBankAccountForAllViews(req))
-          .orElse(getOtherAccountsForBankAccount(req))
-          .orElse(getOtherAccountByIdForBankAccount(req))
-          .orElse(getOtherAccountMetadata(req))
-          .orElse(getCounterpartyPublicAlias(req))
-          .orElse(addCounterpartyPublicAlias(req))
-          .orElse(updateCounterpartyPublicAlias(req))
-          .orElse(deleteCounterpartyPublicAlias(req))
-          .orElse(getOtherAccountPrivateAlias(req))
-          .orElse(addOtherAccountPrivateAlias(req))
-          .orElse(updateCounterpartyPrivateAlias(req))
-          .orElse(deleteCounterpartyPrivateAlias(req))
-          .orElse(addCounterpartyMoreInfo(req))
-          .orElse(updateCounterpartyMoreInfo(req))
-          .orElse(deleteCounterpartyMoreInfo(req))
-          .orElse(addCounterpartyUrl(req))
-          .orElse(updateCounterpartyUrl(req))
-          .orElse(deleteCounterpartyUrl(req))
-          .orElse(addCounterpartyImageUrl(req))
-          .orElse(updateCounterpartyImageUrl(req))
-          .orElse(deleteCounterpartyImageUrl(req))
-          .orElse(addCounterpartyOpenCorporatesUrl(req))
-          .orElse(updateCounterpartyOpenCorporatesUrl(req))
-          .orElse(deleteCounterpartyOpenCorporatesUrl(req))
-          .orElse(addCounterpartyCorporateLocation(req))
-          .orElse(updateCounterpartyCorporateLocation(req))
-          .orElse(deleteCounterpartyCorporateLocation(req))
-          .orElse(addCounterpartyPhysicalLocation(req))
-          .orElse(updateCounterpartyPhysicalLocation(req))
-          .orElse(deleteCounterpartyPhysicalLocation(req))
-          .orElse(getTransactionsForBankAccount(req))
-          .orElse(getTransactionByIdForBankAccount(req))
-          .orElse(getTransactionNarrative(req))
-          .orElse(addTransactionNarrative(req))
-          .orElse(updateTransactionNarrative(req))
-          .orElse(deleteTransactionNarrative(req))
-          .orElse(getCommentsForViewOnTransaction(req))
-          .orElse(addCommentForViewOnTransaction(req))
-          .orElse(deleteCommentForViewOnTransaction(req))
-          .orElse(getTagsForViewOnTransaction(req))
-          .orElse(addTagForViewOnTransaction(req))
-          .orElse(deleteTagForViewOnTransaction(req))
-          .orElse(getImagesForViewOnTransaction(req))
-          .orElse(addImageForViewOnTransaction(req))
-          .orElse(deleteImageForViewOnTransaction(req))
-          .orElse(getWhereTagForViewOnTransaction(req))
-          .orElse(addWhereTagForViewOnTransaction(req))
-          .orElse(updateWhereTagForViewOnTransaction(req))
-          .orElse(deleteWhereTagForViewOnTransaction(req))
-          .orElse(getOtherAccountForTransaction(req))
-      }
+    // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
+    // route that serves a request, so it is given the docs in this same order.
+    lazy val routesInOrder: List[Http4sHandler] = List(
+      root,
+      getBanks,
+      // bankById is intentionally absent — it runs outside middleware (see allRoutesWithMiddleware)
+      getPrivateAccountsAllBanks,
+      privateAccountsAllBanks,
+      publicAccountsAllBanks,
+      getPrivateAccountsAtOneBank,
+      privateAccountsAtOneBank,
+      publicAccountsAtOneBank,
+      accountById,
+      updateAccountLabel,
+      getViewsForBankAccount,
+      createViewForBankAccount,
+      updateViewForBankAccount,
+      deleteViewForBankAccount,
+      getPermissionsForBankAccount,
+      getPermissionForUserForBankAccount,
+      addPermissionForUserForBankAccountForMultipleViews,
+      addPermissionForUserForBankAccountForOneView,
+      removePermissionForUserForBankAccountForOneView,
+      removePermissionForUserForBankAccountForAllViews,
+      getOtherAccountsForBankAccount,
+      getOtherAccountByIdForBankAccount,
+      getOtherAccountMetadata,
+      getCounterpartyPublicAlias,
+      addCounterpartyPublicAlias,
+      updateCounterpartyPublicAlias,
+      deleteCounterpartyPublicAlias,
+      getOtherAccountPrivateAlias,
+      addOtherAccountPrivateAlias,
+      updateCounterpartyPrivateAlias,
+      deleteCounterpartyPrivateAlias,
+      addCounterpartyMoreInfo,
+      updateCounterpartyMoreInfo,
+      deleteCounterpartyMoreInfo,
+      addCounterpartyUrl,
+      updateCounterpartyUrl,
+      deleteCounterpartyUrl,
+      addCounterpartyImageUrl,
+      updateCounterpartyImageUrl,
+      deleteCounterpartyImageUrl,
+      addCounterpartyOpenCorporatesUrl,
+      updateCounterpartyOpenCorporatesUrl,
+      deleteCounterpartyOpenCorporatesUrl,
+      addCounterpartyCorporateLocation,
+      updateCounterpartyCorporateLocation,
+      deleteCounterpartyCorporateLocation,
+      addCounterpartyPhysicalLocation,
+      updateCounterpartyPhysicalLocation,
+      deleteCounterpartyPhysicalLocation,
+      getTransactionsForBankAccount,
+      getTransactionByIdForBankAccount,
+      getTransactionNarrative,
+      addTransactionNarrative,
+      updateTransactionNarrative,
+      deleteTransactionNarrative,
+      getCommentsForViewOnTransaction,
+      addCommentForViewOnTransaction,
+      deleteCommentForViewOnTransaction,
+      getTagsForViewOnTransaction,
+      addTagForViewOnTransaction,
+      deleteTagForViewOnTransaction,
+      getImagesForViewOnTransaction,
+      addImageForViewOnTransaction,
+      deleteImageForViewOnTransaction,
+      getWhereTagForViewOnTransaction,
+      addWhereTagForViewOnTransaction,
+      updateWhereTagForViewOnTransaction,
+      deleteWhereTagForViewOnTransaction,
+      getOtherAccountForTransaction
+    )
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] = {
-      val middlewareWrapped = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
+    lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder, outsideTheChain = List(bankById))
+
+    lazy val allRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
+
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = {
+      val middlewareWrapped = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
       // bankById runs before middleware so it can return 400 (not 404) for unknown bank
       Kleisli[HttpF, Request[IO], Response[IO]] { req =>
         bankById.run(req).orElse(middlewareWrapped.run(req))

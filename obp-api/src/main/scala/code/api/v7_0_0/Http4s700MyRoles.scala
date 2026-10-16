@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.{ApiPathZero, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID}
-import code.api.util.APIUtil.{EmptyBody, _}
+import code.api.util.APIUtil.{Http4sRoute, EmptyBody, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
@@ -116,7 +116,7 @@ object Http4s700MyRoles {
     }
 
   // Route: GET /obp/v7.0.0/banks/BANK_ID/my/roles/ROLE_NAME (BANK_ID SYS for system Roles)
-  lazy val getMyRole: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getMyRole: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "banks" / bankId / "my" / "roles" / roleName =>
       EndpointHelpers.executeFuture(req) { myRole(roleName, bankId, req.callContext) }
   }

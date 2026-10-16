@@ -48,7 +48,7 @@ import scala.concurrent.Future
  * paths are served by per-version files (e.g. `Http4s600.directLoginEndpoint`).
  *
  * Adding this route lets us retire `LiftRules.statelessDispatch.append(DirectLogin)`
- * in `Boot.scala` — it was the last consumer of the bare path on the Lift bridge.
+ * in `Boot.scala` — it was the last Lift registration serving the bare path.
  */
 object DirectLoginRoutes {
 

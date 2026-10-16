@@ -40,7 +40,7 @@ import java.util.UUID
 /**
  * Standard HTTP response headers applied to every response.
  *
- * Http4sApp applies them to every response, whichever route served it.
+ * Http4sApp applies them to the response of every route in the chain.
  */
 object Http4sStandardHeaders {
 

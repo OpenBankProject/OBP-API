@@ -30,7 +30,7 @@ package code.api.UKOpenBanking.v3_1_0
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, mockedDataText}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, mockedDataText}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -60,7 +60,7 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
   private val tag = ApiTag("File Payments") :: apiTagMockedData :: Nil
 
   // Deeper path (/{id}/file) must come before single-wildcard (/{id}) in `routes`
-  lazy val createFilePaymentConsentsConsentIdFile: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createFilePaymentConsentsConsentIdFile: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV31Prefix` / "file-payment-consents" / _ / "file" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -78,7 +78,7 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
     http4sPartialFunction = Some(createFilePaymentConsentsConsentIdFile)
   )
 
-  lazy val createFilePaymentConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createFilePaymentConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV31Prefix` / "file-payment-consents" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -154,7 +154,7 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
     http4sPartialFunction = Some(createFilePaymentConsents)
   )
 
-  lazy val createFilePayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createFilePayments: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV31Prefix` / "file-payments" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -233,7 +233,7 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
     http4sPartialFunction = Some(createFilePayments)
   )
 
-  lazy val getFilePaymentConsentsConsentIdFile: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getFilePaymentConsentsConsentIdFile: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "file-payment-consents" / _ / "file" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -251,7 +251,7 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
     http4sPartialFunction = Some(getFilePaymentConsentsConsentIdFile)
   )
 
-  lazy val getFilePaymentConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getFilePaymentConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "file-payment-consents" / _ =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -327,7 +327,7 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
     http4sPartialFunction = Some(getFilePaymentConsentsConsentId)
   )
 
-  lazy val getFilePaymentsFilePaymentIdReportFile: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getFilePaymentsFilePaymentIdReportFile: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "file-payments" / _ / "report-file" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -345,7 +345,7 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
     http4sPartialFunction = Some(getFilePaymentsFilePaymentIdReportFile)
   )
 
-  lazy val getFilePaymentsFilePaymentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getFilePaymentsFilePaymentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "file-payments" / _ =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -425,13 +425,15 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
   )
 
   // Routes ordered deep-first: /{id}/file and /{id}/report-file before /{id}
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    createFilePaymentConsentsConsentIdFile(req)
-      .orElse(createFilePaymentConsents(req))
-      .orElse(createFilePayments(req))
-      .orElse(getFilePaymentConsentsConsentIdFile(req))
-      .orElse(getFilePaymentConsentsConsentId(req))
-      .orElse(getFilePaymentsFilePaymentIdReportFile(req))
-      .orElse(getFilePaymentsFilePaymentId(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    createFilePaymentConsentsConsentIdFile,
+    createFilePaymentConsents,
+    createFilePayments,
+    getFilePaymentConsentsConsentIdFile,
+    getFilePaymentConsentsConsentId,
+    getFilePaymentsFilePaymentIdReportFile,
+    getFilePaymentsFilePaymentId
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

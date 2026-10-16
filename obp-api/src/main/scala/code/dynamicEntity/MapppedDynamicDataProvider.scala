@@ -50,6 +50,13 @@ import java.util.Date
  * records belonging to the current user (filtered by UserId), regardless of IsPersonalEntity value.
  * This provides a unified view of a user's data whether it was created via /my/ or non-/my/ endpoints.
  */
+/*
+ * Every write below also fires the entity's Dynamic Entity webhooks (DynamicEntityWebhookFiring), in the
+ * write's own transaction. A write that is not made by a caller fires nothing without special handling:
+ * a backup writes into a ZZ_BAK_ entity it has just created, which has no webhooks, and a cascade delete
+ * deletes the definition in the same transaction as its records, which deletes the webhooks together
+ * with the requests just queued for them.
+ */
 object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonFormats{
 
   /**
@@ -182,6 +189,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       val result = d.asInstanceOf[DynamicData].delete_!
       // DE_indexing: remove the projection row in the same transaction (no-op unless projection enabled+ready).
       code.api.dynamic.entity.projection.ProjectionDualWrite.onDelete(bankId, entityName, id)
+      if (result) code.dynamicentitywebhook.DynamicEntityWebhookFiring.recordDeleted(bankId, entityName, id)
       result
     }
   }
@@ -235,6 +243,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       val result = d.asInstanceOf[DynamicData].delete_!
       // DE_indexing: remove the projection row in the same transaction (no-op unless projection enabled+ready).
       code.api.dynamic.entity.projection.ProjectionDualWrite.onDelete(bankId, entityName, id)
+      if (result) code.dynamicentitywebhook.DynamicEntityWebhookFiring.recordDeleted(bankId, entityName, id)
       result
     }
   }
@@ -274,6 +283,8 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     tryo {
       val dataStr = json.compactRender(requestBody)
       val isNew = !data.saved_?
+      // The stored values before this write, which webhook field conditions compare against.
+      val before = if (isNew) None else scala.util.Try(json.parse(data.DataJson.get).asInstanceOf[JObject]).toOption.orElse(Some(JObject(Nil)))
       val (writerUserId, writerOnBehalfOfUserId) = writersOf(callerUserId,
         if (isNew) code.users.UserReference.DynamicData_CreatedByUserId else code.users.UserReference.DynamicData_UpdatedByUserId)
       if (isNew) data.CreatedByUserId(writerUserId).CreatedByOnBehalfOfUserId(writerOnBehalfOfUserId)
@@ -286,6 +297,9 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
        .saveMe()
      // DE_indexing: keep the projection in sync in the same transaction (no-op unless projection enabled+ready).
      code.api.dynamic.entity.projection.ProjectionDualWrite.onSave(bankId, entityName, saved.DynamicDataId.get, requestBody)
+     // Dynamic Entity webhooks: queued in this same transaction, so they go out only if the write commits.
+     code.dynamicentitywebhook.DynamicEntityWebhookFiring.recordSaved(bankId, entityName, saved.DynamicDataId.get, before,
+       requestBody, Option(saved.updatedAt.get).getOrElse(new Date()))
      saved
     }
   }
