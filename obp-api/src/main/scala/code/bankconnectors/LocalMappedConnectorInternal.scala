@@ -729,7 +729,13 @@ object LocalMappedConnectorInternal extends MdcLoggable {
             json.extract[TransactionRequestBodyEthSendRawTransactionJsonV600]
           }
           // Decode raw transaction to extract 'from' address
-          decodedTx = DecodeRawTx.decodeRawTxToJson(transactionRequestBodyEthSendRawTransactionJsonV600.params)
+          decodedTx <- NewStyle.function.tryons(
+            s"$InvalidJsonValue params must be a valid signed raw Ethereum transaction",
+            400,
+            callContext
+          ) {
+            DecodeRawTx.decodeRawTxToJson(transactionRequestBodyEthSendRawTransactionJsonV600.params)
+          }
           from = decodedTx.from
           _ <- Helper.booleanToFuture(
             s"$BankAccountNotFoundByAccountId Ethereum 'from' address must be the same as the accountId",

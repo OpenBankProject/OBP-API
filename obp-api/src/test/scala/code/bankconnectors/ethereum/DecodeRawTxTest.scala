@@ -76,5 +76,23 @@ class DecodeRawTxTest extends FeatureSpec with Matchers with GivenWhenThen {
       response.estimatedFee shouldBe defined
       response.estimatedFee.get should startWith ("0x")
     }
+
+    scenario("Malformed input throws IllegalArgumentException instead of stopping the JVM") {
+      Given("inputs that are not valid signed raw transaction hex")
+      val malformedInputs = List(
+        "hello",              // no 0x prefix
+        "0xzz",               // non-hex characters
+        "0xabc",              // odd length
+        "0x",                 // empty body
+        "0x00ff00ff00ff",     // valid hex that does not decode as a transaction
+        null
+      )
+
+      malformedInputs.foreach { malformedInput =>
+        When(s"we decode '$malformedInput'")
+        Then("an IllegalArgumentException is thrown, so the caller can answer 400")
+        an [IllegalArgumentException] should be thrownBy DecodeRawTx.decodeRawTxToJson(malformedInput)
+      }
+    }
   }
 }
