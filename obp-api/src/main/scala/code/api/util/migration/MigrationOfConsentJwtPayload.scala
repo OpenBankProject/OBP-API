@@ -45,7 +45,7 @@ object MigrationOfConsentJwtPayload extends MdcLoggable {
     try {
       val consents = MappedConsent.findAll(
         NullRef(MappedConsent.mJsonWebTokenPayload),
-        By_>(MappedConsent.mJsonWebToken, "")
+        NotNullRef(MappedConsent.mJsonWebToken)
       )
       consents.foreach { consent =>
         val jwt = consent.mJsonWebToken.get

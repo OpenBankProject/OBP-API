@@ -174,7 +174,7 @@ class DynamicEntitySystemLevelBankIdTest extends ServerSetup {
       Given("a row whose bank id is a SQL NULL, as an instance written before the sentinel existed")
       DB.use(DefaultConnectionIdentifier) { connection =>
         val statement = connection.prepareStatement("UPDATE dynamicentity SET bankid = NULL WHERE dynamicentityid = ?")
-        try { statement.setString(1, id); statement.executeUpdate() } finally statement.close()
+        try { statement.setString(1, id); statement.executeUpdate(); connection.commit() } finally statement.close()
       }
       storedBankIdOf(id) should equal(None)
 

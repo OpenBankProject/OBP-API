@@ -50,8 +50,8 @@ object DoobieConsentStatusQueries {
     DoobieUtil.runUpdate(
       sql"""UPDATE mappedconsent
             SET mstatus = $newStatus,
-                mlastactiondate = NOW(),
-                updatedat = NOW()
+                mlastactiondate = CURRENT_TIMESTAMP,
+                updatedat = CURRENT_TIMESTAMP
             WHERE id = $consentPrimaryKey
               AND mstatus = $guardStatus""".update.run
     )
@@ -64,8 +64,8 @@ object DoobieConsentStatusQueries {
     DoobieUtil.runUpdate(
       sql"""UPDATE mappedconsent
             SET mstatus = $newStatus,
-                mlastactiondate = NOW(),
-                updatedat = NOW()
+                mlastactiondate = CURRENT_TIMESTAMP,
+                updatedat = CURRENT_TIMESTAMP
             WHERE mconsentid = $consentId
               AND mstatus = $guardStatus""".update.run
     )
@@ -75,8 +75,8 @@ object DoobieConsentStatusQueries {
     DoobieUtil.runUpdate(
       sql"""UPDATE mappedconsent
             SET mstatus = $revokedStatus,
-                mlastactiondate = NOW(),
-                updatedat = NOW()
+                mlastactiondate = CURRENT_TIMESTAMP,
+                updatedat = CURRENT_TIMESTAMP
             WHERE id = $consentPrimaryKey
               AND mstatus <> $revokedStatus""".update.run
     )

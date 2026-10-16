@@ -666,8 +666,18 @@ class Boot extends MdcLoggable {
 
   def schemifyAll() = {
     Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
+    if (code.api.util.DBUtil.isSqlServer) {
+      upgradeSqlServerDateTimeColumns()
+    }
     // Create default system-level "general" chat room (is_open_room = true)
     code.chat.ChatRoomTrait.chatRoomProvider.vend.getOrCreateDefaultRoom()
+  }
+
+  private def upgradeSqlServerDateTimeColumns(): Unit = {
+    val result = code.api.util.SqlServerDateTimeUpgrade.upgradeAll()
+    if (result.failed.nonEmpty) {
+      logger.warn(s"upgradeSqlServerDateTimeColumns: ${result.failed.size} DATETIME columns could not be altered to DATETIME2 and keep the 1753 date floor: ${result.failed.mkString("; ")}")
+    }
   }
 
   /**

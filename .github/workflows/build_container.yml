@@ -2,7 +2,20 @@ name: Build and publish container develop
 
 # read-write repo token
 # access to secrets
-on: [push]
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      database:
+        description: 'Database engine for tests (default: h2)'
+        required: false
+        default: 'h2'
+        type: choice
+        options:
+          - h2
+          - sqlserver
+          - sqlserver2017
+          - postgres
 
 env:
   DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
@@ -127,7 +140,7 @@ jobs:
   test:
     needs: compile
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: ${{ (inputs.database == 'sqlserver' || inputs.database == 'sqlserver2017' || inputs.database == 'postgres' || contains(github.event.pull_request.labels.*.name, 'test-sqlserver') || contains(github.event.pull_request.labels.*.name, 'test-postgres') || contains(github.event.head_commit.message, '[test-sqlserver]') || contains(github.event.head_commit.message, '[test-postgres]')) && 90 || 35 }}
     strategy:
       fail-fast: false
       matrix:
@@ -253,6 +266,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up the test database
+        uses: ./.github/actions/setup-test-database
+        with:
+          database: ${{ inputs.database }}
+          pr-labels: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          commit-message: ${{ github.event.head_commit.message }}
+
       - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
@@ -301,6 +321,15 @@ jobs:
           cp obp-api/src/main/resources/props/sample.props.template \
              obp-api/src/main/resources/props/production.default.props
           echo connector=star > obp-api/src/main/resources/props/test.default.props
+
+          if [ -n "$TEST_DB_URL" ]; then
+            echo "Configuring $TEST_DB connection properties..."
+            echo "db.driver=$TEST_DB_DRIVER" >> obp-api/src/main/resources/props/test.default.props
+            echo "db.url=$TEST_DB_URL" >> obp-api/src/main/resources/props/test.default.props
+          else
+            echo "Using default H2 database."
+          fi
+
           echo starConnector_supported_types=mapped,internal >> obp-api/src/main/resources/props/test.default.props
           echo hostname=http://localhost:8016 >> obp-api/src/main/resources/props/test.default.props
           echo tests.port=8016 >> obp-api/src/main/resources/props/test.default.props
@@ -433,14 +462,14 @@ jobs:
           # -pl obp-commons,obp-api: obp-commons' own 5 util suites run on whichever
           # shard's filter matches com.openbankproject.* (the catch-all shard); on every
           # other shard the filter matches nothing in obp-commons → 0 tests there.
-          # timeout 1500: hard-kill after 25 min to prevent Pekko non-daemon threads
+          # timeout $TEST_TIMEOUT_SECONDS (25 min on H2, 75 on SQL Server and PostgreSQL): hard-kill to prevent Pekko non-daemon threads
           # (ConsentScheduler etc.) from keeping the JVM alive after tests complete.
           # Exit code 124 (timeout) is treated as success — tests are done, JVM just hung.
           # set +e: GitHub Actions uses -eo pipefail by default; without it, a 124 exit from
           # timeout would abort the step before the rc check below can run.
           set +e
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
-            timeout 1500 mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
+            timeout "$TEST_TIMEOUT_SECONDS" mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
               -DwildcardSuites="$FILTER" $EXTRA_MVN_ARGS \
             > maven-build-shard${{ matrix.shard }}.log 2>&1
           rc=$?

@@ -1,0 +1,98 @@
+name: Set up the test database
+description: >
+  Selects the database the shards run against (H2 unless a manual run or a pull request label asks for
+  SQL Server or PostgreSQL), starts its container when one is needed and exports the settings the later
+  steps use: TEST_DB, TEST_DB_DRIVER, TEST_DB_URL and TEST_TIMEOUT_SECONDS.
+
+inputs:
+  database:
+    description: Database chosen on a manual run (h2, sqlserver, sqlserver2017 or postgres); empty on other triggers.
+    required: false
+    default: ''
+  pr-labels:
+    description: JSON list of the pull request labels; a test-sqlserver or test-postgres label opts in.
+    required: false
+    default: '[]'
+  commit-message:
+    description: Head commit message of a push; [test-sqlserver] or [test-postgres] in it opts in.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Start the selected database
+      shell: bash
+      env:
+        INPUT_DB: ${{ inputs.database }}
+        PR_LABELS_JSON: ${{ inputs.pr-labels }}
+        COMMIT_MSG: ${{ inputs.commit-message }}
+      run: |
+        # Test-only credentials of a throwaway container that lives for the length of the job.
+        SA_PASSWORD='ObpTests2026!Ci'
+        MSSQL_IMAGE='mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04'
+        POSTGRES_IMAGE='postgres:16-alpine'
+
+        DB_CHOICE="${INPUT_DB:-h2}"
+        if [ "$DB_CHOICE" = "h2" ]; then
+          if echo "$PR_LABELS_JSON" | grep -q "test-sqlserver" || echo "$COMMIT_MSG" | grep -q "\[test-sqlserver\]"; then
+            DB_CHOICE="sqlserver"
+          elif echo "$PR_LABELS_JSON" | grep -q "test-postgres" || echo "$COMMIT_MSG" | grep -q "\[test-postgres\]"; then
+            DB_CHOICE="postgres"
+          fi
+        fi
+
+        # sqlserver2017 is SQL Server 2017 (CU20, the build some deployments still run): the same
+        # tests and properties as sqlserver, a different image, and the 2017 image's own sqlcmd.
+        SQLCMD_BIN=/opt/mssql-tools18/bin/sqlcmd
+        SQLCMD_TRUST=(-No)
+        if [ "$DB_CHOICE" = "sqlserver2017" ]; then
+          DB_CHOICE="sqlserver"
+          MSSQL_IMAGE='mcr.microsoft.com/mssql/server:2017-CU20-ubuntu'
+          SQLCMD_BIN=/opt/mssql-tools/bin/sqlcmd
+          SQLCMD_TRUST=()
+        fi
+
+        echo "TEST_DB=$DB_CHOICE" >> "$GITHUB_ENV"
+        echo "Selected test database: $DB_CHOICE"
+
+        wait_until_ready() {
+          # $1 = name, $2 = seconds between tries, remaining args = readiness command
+          local name="$1" pause="$2"; shift 2
+          for i in $(seq 1 30); do
+            if "$@" >/dev/null 2>&1; then
+              echo "$name is ready"
+              return 0
+            fi
+            echo "Waiting for $name ($i/30)..."
+            sleep "$pause"
+          done
+          echo "::error::$name did not become ready"
+          docker logs "$name" 2>&1 | tail -50 || true
+          return 1
+        }
+
+        if [ "$DB_CHOICE" = "sqlserver" ]; then
+          docker run -d --name sqlserver -p 1433:1433 \
+            -e ACCEPT_EULA=Y -e MSSQL_PID=Developer -e "MSSQL_SA_PASSWORD=$SA_PASSWORD" \
+            "$MSSQL_IMAGE"
+          SQLCMD=(docker exec sqlserver "$SQLCMD_BIN" -S localhost -U sa -P "$SA_PASSWORD" "${SQLCMD_TRUST[@]}" -b)
+          wait_until_ready sqlserver 5 "${SQLCMD[@]}" -Q 'SELECT 1'
+          "${SQLCMD[@]}" -Q "CREATE DATABASE obp_test_only"
+          echo "TEST_DB_DRIVER=com.microsoft.sqlserver.jdbc.SQLServerDriver" >> "$GITHUB_ENV"
+          echo "TEST_DB_URL=jdbc:sqlserver://localhost:1433;databaseName=obp_test_only;user=sa;password=$SA_PASSWORD;encrypt=false" >> "$GITHUB_ENV"
+          # Shards on a server database run longer than on H2, and shard 6 (v7 + UK Open Banking) has taken
+          # from 30 to over 50 minutes on SQL Server depending on the runner, so it gets 75 minutes.
+          echo "TEST_TIMEOUT_SECONDS=4500" >> "$GITHUB_ENV"
+        elif [ "$DB_CHOICE" = "postgres" ]; then
+          docker run -d --name postgres -p 5432:5432 \
+            -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=obp_test \
+            "$POSTGRES_IMAGE"
+          wait_until_ready postgres 2 docker exec postgres pg_isready -U postgres
+          echo "TEST_DB_DRIVER=org.postgresql.Driver" >> "$GITHUB_ENV"
+          echo "TEST_DB_URL=jdbc:postgresql://localhost:5432/obp_test?user=postgres&password=password" >> "$GITHUB_ENV"
+          echo "TEST_TIMEOUT_SECONDS=4500" >> "$GITHUB_ENV"
+        else
+          echo "Running with the default H2 in-memory database; no container is started."
+          echo "TEST_TIMEOUT_SECONDS=1500" >> "$GITHUB_ENV"
+        fi

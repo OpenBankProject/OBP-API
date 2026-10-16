@@ -2294,7 +2294,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * this, so that SYS is accepted in all of them and not only in the versions written after it.
    */
   def isBankIdWhereRolesCanBeHeld(bankId: String, callContext: Option[CallContext]): Boolean =
-    bankId.isEmpty || bankId == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID || BankX(BankId(bankId), callContext).map(_._1).isDefined
+    bankId.isEmpty || bankId == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID || BankX(BankId(bankId), callContext).map(_._1).exists(_.bankId.value == bankId)
 
   def hasEntitlement(bankId: String, userId: String, apiRole: ApiRole): Boolean = apiRole match {
     case RoleCombination(roles) => roles.forall(hasEntitlement(bankId, userId, _))

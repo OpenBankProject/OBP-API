@@ -74,9 +74,37 @@ object MigrationOfRoleNameFieldLength {
           case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
             () =>
               """
-                |ALTER TABLE mappedentitlement ALTER COLUMN mrolename varchar(255);
-                |ALTER TABLE mappedentitlementrequest ALTER COLUMN mrolename varchar(255);
-                |ALTER TABLE mappedscope ALTER COLUMN mrolename varchar(255);
+                |IF EXISTS (
+                |  SELECT 1 FROM sys.columns c
+                |  JOIN sys.types t ON c.user_type_id = t.user_type_id
+                |  WHERE c.object_id = OBJECT_ID('mappedentitlement')
+                |    AND c.name = 'mrolename'
+                |    AND (t.name <> 'nvarchar' OR c.max_length < 510)
+                |)
+                |BEGIN
+                |  IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'mappedentitlement_mbankid_muserid_mrolename' AND object_id = OBJECT_ID('mappedentitlement'))
+                |    DROP INDEX mappedentitlement_mbankid_muserid_mrolename ON mappedentitlement;
+                |  ALTER TABLE mappedentitlement ALTER COLUMN mrolename NVARCHAR(255);
+                |  IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'mappedentitlement_mbankid_muserid_mrolename' AND object_id = OBJECT_ID('mappedentitlement'))
+                |    CREATE UNIQUE INDEX mappedentitlement_mbankid_muserid_mrolename
+                |      ON mappedentitlement (mbankid, muserid, mrolename);
+                |END;
+                |IF EXISTS (
+                |  SELECT 1 FROM sys.columns c
+                |  JOIN sys.types t ON c.user_type_id = t.user_type_id
+                |  WHERE c.object_id = OBJECT_ID('mappedentitlementrequest')
+                |    AND c.name = 'mrolename'
+                |    AND (t.name <> 'nvarchar' OR c.max_length < 510)
+                |)
+                |  ALTER TABLE mappedentitlementrequest ALTER COLUMN mrolename NVARCHAR(255);
+                |IF EXISTS (
+                |  SELECT 1 FROM sys.columns c
+                |  JOIN sys.types t ON c.user_type_id = t.user_type_id
+                |  WHERE c.object_id = OBJECT_ID('mappedscope')
+                |    AND c.name = 'mrolename'
+                |    AND (t.name <> 'nvarchar' OR c.max_length < 510)
+                |)
+                |  ALTER TABLE mappedscope ALTER COLUMN mrolename NVARCHAR(255);
                 |""".stripMargin
           case _ =>
             () =>

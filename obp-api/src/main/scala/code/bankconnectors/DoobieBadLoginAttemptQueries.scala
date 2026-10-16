@@ -33,17 +33,18 @@ import doobie.implicits._
 
 object DoobieBadLoginAttemptQueries {
 
-  private def atomicIncrement(provider: String, username: String): ConnectionIO[Int] =
+  private def atomicIncrement(provider: String, username: String): ConnectionIO[Int] = {
+    val selectLock =
+      fr"SELECT mbadattemptssincelastsuccessorreset FROM mappedbadloginattempt" ++ DoobieUtil.lockHint ++
+        fr"WHERE provider = $provider AND musername = $username" ++ DoobieUtil.forUpdate
     for {
-      _ <- sql"""SELECT mbadattemptssincelastsuccessorreset
-                 FROM mappedbadloginattempt
-                 WHERE provider = $provider AND musername = $username
-                 FOR UPDATE""".query[Int].option
+      _ <- selectLock.query[Int].option
       rows <- sql"""UPDATE mappedbadloginattempt
                     SET mbadattemptssincelastsuccessorreset = mbadattemptssincelastsuccessorreset + 1,
-                        mlastfailuredate = NOW()
+                        mlastfailuredate = CURRENT_TIMESTAMP
                     WHERE provider = $provider AND musername = $username""".update.run
     } yield rows
+  }
 
   def incrementBadLoginAttempts(provider: String, username: String): Int =
     DoobieUtil.runUpdate(atomicIncrement(provider, username))

@@ -114,7 +114,11 @@ object MigrationOfCurrencyCodesUpperCase extends MdcLoggable {
   private def runUpdate(sql: String): Int =
     DB.use(DefaultConnectionIdentifier) { connection =>
       val statement = connection.createStatement()
-      try statement.executeUpdate(sql) finally statement.close()
+      try {
+        val updated = statement.executeUpdate(sql)
+        connection.commit()
+        updated
+      } finally statement.close()
     }
 
   /**
@@ -177,8 +181,18 @@ object MigrationOfCurrencyCodesUpperCase extends MdcLoggable {
         missingColumns += s"$qualified (no such column)"
         logger.info(s"upperCaseEverywhere says: $qualified skipped, the column does not exist on this database")
       } else {
-        val needsChange = s"$column <> UPPER(TRIM($column))"
-        val twinExists = s"EXISTS (SELECT 1 FROM $table twin WHERE twin.$column = UPPER(TRIM($table.$column)))"
+        // SQL Server compares strings with trailing spaces ignored, whatever the collation, so `'EUR '`
+        // equals `'EUR'`. The byte length tells them apart. The binary collation makes the case count.
+        val needsChange = if (code.api.util.DBUtil.isSqlServer) {
+          s"($column COLLATE Latin1_General_BIN <> UPPER(TRIM($column)) OR DATALENGTH($column) <> DATALENGTH(TRIM($column)))"
+        } else {
+          s"$column <> UPPER(TRIM($column))"
+        }
+        val twinExists = if (code.api.util.DBUtil.isSqlServer) {
+          s"EXISTS (SELECT 1 FROM $table twin WHERE twin.$column COLLATE Latin1_General_BIN = UPPER(TRIM($table.$column)) AND DATALENGTH(twin.$column) = DATALENGTH(TRIM($table.$column)))"
+        } else {
+          s"EXISTS (SELECT 1 FROM $table twin WHERE twin.$column = UPPER(TRIM($table.$column)))"
+        }
         val toChangeCondition = if (currencyColumn.isPrimaryKey) s"$needsChange AND NOT $twinExists" else needsChange
         val toChange = valueCounts(table, column, toChangeCondition)
         val changed = if (toChange.isEmpty) 0 else runUpdate(s"UPDATE $table SET $column = UPPER(TRIM($column)) WHERE $toChangeCondition")

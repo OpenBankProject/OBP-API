@@ -39,7 +39,7 @@ import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
 import com.github.dwickern.macros.NameOf
 import com.openbankproject.commons.model.{User, _}
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.mapper.{By, MappedString,_}
 
@@ -200,7 +200,7 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
       case _       => CreditLimit(currency = "", amount = "")
     }
        
-    tryo { 
+    try { 
       val mappedCustomer = MappedCustomer
         .create
         .mBank(bankId.value)
@@ -235,7 +235,11 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
         CustomerDependants.CustomerDependants.vend
           .createCustomerDependants(mappedCustomer.id.get, dobOfDependents.map(CustomerDependant(_)))
     
-        mappedCustomer
+        Full(mappedCustomer)
+    } catch {
+      case scala.util.control.NonFatal(e) =>
+        logger.error(s"addCustomer failed for bank=$bankId, number=$number: ${e.getMessage}", e)
+        Failure(s"addCustomer failed: ${e.getMessage}", Full(e), Empty)
     }
 
   }

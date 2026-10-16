@@ -83,8 +83,10 @@ object DoobieChatMessageQueries extends MdcLoggable {
     val fromTs = new Timestamp(fromDate.getTime)
     val toTs = new Timestamp(toDate.getTime)
 
+    val pagination = DoobieUtil.pagination(limit, offset)
+
     val messagesQuery: ConnectionIO[List[ChatMessageRow]] =
-      sql"""SELECT m.chatmessageid, m.chatroomid, m.senderuserid, m.senderconsumerid,
+      (sql"""SELECT m.chatmessageid, m.chatroomid, m.senderuserid, m.senderconsumerid,
                    COALESCE(u.name_, ''), COALESCE(u.provider_, ''),
                    COALESCE(c.name, ''),
                    m.content, m.messagetype, m.mentioneduserids, m.replytomessageid,
@@ -95,8 +97,7 @@ object DoobieChatMessageQueries extends MdcLoggable {
             WHERE m.chatroomid = $chatRoomId
               AND m.createdat >= $fromTs
               AND m.createdat <= $toTs
-            ORDER BY m.id ASC
-            LIMIT $limit OFFSET $offset"""
+            ORDER BY m.id ASC """ ++ pagination)
         .query[ChatMessageRow]
         .to[List]
 

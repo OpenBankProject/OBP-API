@@ -2,6 +2,7 @@ package code.asset
 
 import code.api.util.APIUtil
 import code.api.util.migration.MigrationOfCurrencyCodesUpperCase
+import code.customer.MappedCustomer
 import code.fx.{MappedCurrency, MappedFXRate}
 import code.migration.MigrationScriptLog
 import code.setup.ServerSetup
@@ -81,7 +82,25 @@ class CurrencyCodesUpperCaseMigrationTest extends ServerSetup {
       secondRemark should not include ("mappedfxrate.mfromcurrencycode: ")
     }
 
+    scenario("A code with spaces around it is trimmed, including when it is already in upper case") {
+      Given("credit limit currencies stored as 'EUR ' (upper case, trailing space), ' usd' and 'gbp  '")
+      List("EUR " -> "1", " usd" -> "2", "gbp  " -> "3").foreach { case (currency, number) =>
+        MappedCustomer.create.mBank(bankId).mNumber(s"trim-$number").mCreditLimitCurrency(currency).saveMe()
+      }
+
+      When("the migration runs")
+      val migrationName = s"testTrimStoredCurrencyCodes_$bankId"
+      MigrationOfCurrencyCodesUpperCase.upperCaseEverywhere(migrationName) shouldBe true
+
+      Then("every code is trimmed and in upper case, and no row is lost")
+      MappedCustomer.findAll(By(MappedCustomer.mBank, bankId)).map(c => c.mNumber.get -> c.mCreditLimitCurrency.get).sorted shouldBe
+        List("trim-1" -> "EUR", "trim-2" -> "USD", "trim-3" -> "GBP")
+    }
+
     scenario("A currency row whose upper-case code already exists is left as it is") {
+      if (code.api.util.DBUtil.isSqlServer) {
+        cancel("SQL Server uses case-insensitive collation for primary keys, preventing duplicate-case rows")
+      }
       Given("a currency stored as qqa and as QQA, and another stored only as qqb")
       addCurrency("qqa")
       addCurrency("QQA")
@@ -104,6 +123,7 @@ class CurrencyCodesUpperCaseMigrationTest extends ServerSetup {
 
   override def afterAll(): Unit = {
     MappedFXRate.findAll(By(MappedFXRate.mBankId, bankId)).foreach(_.delete_!)
+    MappedCustomer.findAll(By(MappedCustomer.mBank, bankId)).foreach(_.delete_!)
     MappedCurrency.findAll().filter(currency => Set("qqa", "qqb").contains(currency.currencyCode.toLowerCase)).foreach(_.delete_!)
     super.afterAll()
   }

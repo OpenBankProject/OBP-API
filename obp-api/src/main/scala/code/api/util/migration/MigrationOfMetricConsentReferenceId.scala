@@ -63,7 +63,7 @@ object MigrationOfMetricConsentReferenceId {
           //    (MetricBatchWriter INSERT, DoobieMetricsQueries, MigrationOfMetricView) references it
           //    as lowercase unquoted `metric` — mirror that here. MSSQL is case-insensitive by default.
           val backupMetric = if (isMssql) {
-            "SELECT * INTO backup_2026_05_metric FROM metric;"
+            "IF OBJECT_ID('backup_2026_05_metric', 'U') IS NULL SELECT * INTO backup_2026_05_metric FROM metric;"
           } else {
             "CREATE TABLE backup_2026_05_metric AS SELECT * FROM metric;"
           }
@@ -71,7 +71,8 @@ object MigrationOfMetricConsentReferenceId {
 
           // 2. Add the new column to the live metric table.
           val addColumnMetric = if (isMssql) {
-            "ALTER TABLE metric ADD consent_reference_id VARCHAR(36) NULL;"
+            """IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('metric') AND name = 'consent_reference_id')
+              |  ALTER TABLE metric ADD consent_reference_id VARCHAR(36) NULL;""".stripMargin
           } else {
             "ALTER TABLE metric ADD COLUMN IF NOT EXISTS consent_reference_id VARCHAR(36);"
           }
@@ -79,7 +80,8 @@ object MigrationOfMetricConsentReferenceId {
 
           // 3. Add the new column to the archive table.
           val addColumnArchive = if (isMssql) {
-            "ALTER TABLE metricarchive ADD consent_reference_id VARCHAR(36) NULL;"
+            """IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('metricarchive') AND name = 'consent_reference_id')
+              |  ALTER TABLE metricarchive ADD consent_reference_id VARCHAR(36) NULL;""".stripMargin
           } else {
             "ALTER TABLE metricarchive ADD COLUMN IF NOT EXISTS consent_reference_id VARCHAR(36);"
           }
@@ -87,14 +89,16 @@ object MigrationOfMetricConsentReferenceId {
 
           // 4. Index for search-by-consent on both tables.
           val indexMetric = if (isMssql) {
-            "CREATE INDEX idx_metric_consent_reference_id ON metric(consent_reference_id);"
+            """IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_metric_consent_reference_id' AND object_id = OBJECT_ID('metric'))
+              |  CREATE INDEX idx_metric_consent_reference_id ON metric(consent_reference_id);""".stripMargin
           } else {
             "CREATE INDEX IF NOT EXISTS idx_metric_consent_reference_id ON metric(consent_reference_id);"
           }
           sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => indexMetric)).append("\n")
 
           val indexArchive = if (isMssql) {
-            "CREATE INDEX idx_metricarchive_consent_reference_id ON metricarchive(consent_reference_id);"
+            """IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_metricarchive_consent_reference_id' AND object_id = OBJECT_ID('metricarchive'))
+              |  CREATE INDEX idx_metricarchive_consent_reference_id ON metricarchive(consent_reference_id);""".stripMargin
           } else {
             "CREATE INDEX IF NOT EXISTS idx_metricarchive_consent_reference_id ON metricarchive(consent_reference_id);"
           }

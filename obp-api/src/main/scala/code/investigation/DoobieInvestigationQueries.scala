@@ -149,6 +149,8 @@ object DoobieInvestigationQueries extends MdcLoggable {
     val accountIdFragments = accountIds.map(id => fr"$id")
     val inClause = accountIdFragments.reduceLeft((a, b) => a ++ fr"," ++ b)
 
+    val pagination = DoobieUtil.pagination(limit, 0)
+
     val query: ConnectionIO[List[TransactionRow]] =
       (fr"""SELECT transactionid, bank, account, amount, currency, transactiontype,
                    description, tstartdate, tfinishdate,
@@ -160,8 +162,7 @@ object DoobieInvestigationQueries extends MdcLoggable {
               AND account IN (""" ++ inClause ++ fr""")
               AND tstartdate >= $fromDate
               AND tstartdate <= $toDate
-            ORDER BY tstartdate DESC
-            LIMIT $limit""")
+            ORDER BY tstartdate DESC """ ++ pagination)
         .query[TransactionRow]
         .to[List]
 
