@@ -623,6 +623,20 @@ object ApiRole extends MdcLoggable{
   case class CanDeleteDomainApi(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteDomainApi = CanDeleteDomainApi()
 
+  // Dynamic Entity webhooks: requests OBP sends to a URL when records of a Dynamic Entity change. Held at a
+  // bank id, or at SYS for the system space, like the other Roles of the dynamic spaces.
+  case class CanCreateDynamicEntityWebhook(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateDynamicEntityWebhook = CanCreateDynamicEntityWebhook()
+
+  case class CanGetDynamicEntityWebhooks(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetDynamicEntityWebhooks = CanGetDynamicEntityWebhooks()
+
+  case class CanUpdateDynamicEntityWebhook(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateDynamicEntityWebhook = CanUpdateDynamicEntityWebhook()
+
+  case class CanDeleteDynamicEntityWebhook(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteDynamicEntityWebhook = CanDeleteDynamicEntityWebhook()
+
   // Shows which Consumers and client IP addresses are sending the most traffic to the instance
   // (TrafficSources). About the instance, so held at the empty bank id. It names Consumers and IP
   // addresses, which is why it is a Role of its own and not part of CanGetTelemetry.

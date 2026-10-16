@@ -4368,6 +4368,52 @@ object Glossary extends MdcLoggable  {
 """.stripMargin)
 
 	glossaryItems += GlossaryItem(
+		title = "Dynamic Entity Webhooks",
+		description =
+			s"""
+|# Dynamic Entity Webhooks
+|
+|A **Dynamic Entity webhook** makes OBP send a POST request to a URL when records of one Dynamic Entity (${getGlossaryItemLink("Dynamic-Entities")}) are created, updated or deleted, so that a system outside OBP learns of a change without polling for it.
+|
+|**What fires.** A record written through the endpoints: the Dynamic Entity endpoints, Domain APIs (${getGlossaryItemLink("Domain APIs")}), Dynamic Endpoints backed by a Dynamic Entity, and Dynamic Resource Docs whose code writes records. Changes to an entity's definition, backups, restores and rows written straight into the database fire nothing. Neither do records a connector stores in a bank's own system instead of OBP's database.
+|
+|**Identifiers only.** The request names the event, the bank, the entity and the record, never the record's values or any user id. A receiver that needs the record fetches it with its own credentials, so the normal access checks apply when it reads.
+|
+|**The request.** One POST per event, with these headers: `OBP-Webhook-Id`, `OBP-Event-Id`, `OBP-Delivery-Attempt` (1 on the first attempt), `OBP-Signature-Status` and, when requests are signed, `OBP-Signature`. The body:
+|
+|```json
+|{
+|  "event_name": "dynamic_entity.record.updated",
+|  "event_id": "0f8e4a71-5ff1-4006-95bb-7fd9e4adaef9",
+|  "occurred_at": "2026-10-14T09:12:44Z",
+|  "webhook_id": "7d3c1c2e-5b7a-4f0e-9a51-2f1f6f0c9b11",
+|  "bank_id": "gh.29.uk",
+|  "entity_name": "loan_application",
+|  "record_id": "a1b2c3d4-0000-4000-8000-000000000001",
+|  "record_updated_at": "2026-10-14T09:12:44Z",
+|  "matched_conditions": [{"field": "approved", "from": false, "to": true}]
+|}
+|```
+|
+|`event_name` is `dynamic_entity.record.created`, `dynamic_entity.record.updated`, `dynamic_entity.record.deleted`, or `webhook.test` for a test request, which has no `record_id`. `bank_id` is `SYS` for an entity of the system space. `matched_conditions` is present only on an update sent because of field conditions, and lists the conditions that matched as the webhook's owner wrote them.
+|
+|**Receiving a request.** Reply 2xx as soon as the request is stored, and do the work afterwards: a slow reply is retried. Drop a request whose `event_id` was handled already, and one whose `record_updated_at` is older than the last handled for the same record, since requests can repeat and arrive out of order. To check a signature, read `kid` from the `OBP-Signature` header (a JSON Web Signature with a detached payload, RFC 7515 Appendix F), find the key with that `kid` at `GET /obp/v3.1.0/certs`, and verify the signature against the exact bytes of the body with any JOSE library. Then fetch the record, if it is needed, with the receiver's own credentials.
+|
+|**Events and field conditions.** A webhook subscribes to any of `CREATED`, `UPDATED` and `DELETED`. Its optional `field_conditions` narrow `UPDATED`: each names a field of the entity and, optionally, the value it must change `from` and the value it must change `to`. `{"field": "approved", "from": false, "to": true}` fires only on that change, `{"field": "status", "to": "CLOSED"}` on any change into `CLOSED`, and `{"field": "amount"}` on any change to `amount`. An update fires the webhook when at least one condition matches. The fields and values are checked against the entity's definition when the webhook is created or changed. A record created with `approved` already true is a `CREATED` event, not a match.
+|
+|**Delivery.** At least once, in no particular order. Each event carries an `event_id`, the same on every retry, to drop duplicates by, and the record's `record_updated_at`, to drop an event older than one already handled. Requests are queued in the same database transaction as the change, so a change that rolls back sends nothing, and are then sent by the message outbox. A 2xx reply counts as delivered; a 5xx, 408 or 429 reply, a timeout or a failed connection is retried with growing intervals; any other reply, a redirect included, is not retried. `POST .../web-hooks/WEBHOOK_ID/test` queues a `webhook.test` request, to check a receiver before relying on it. `GET .../web-hooks/WEBHOOK_ID/deliveries` lists a webhook's requests, newest first, each `PENDING`, `DELIVERED` or `STICKY` (no longer tried), with its attempts, the last reply's HTTP status and the last error; `POST .../deliveries/EVENT_ID/retry` sends a STICKY one again with the full number of attempts. Deleting a webhook drops its requests not yet delivered.
+|
+|**Signing.** When this instance has a stable server key (`jwt.use.ssl=true`), each request carries `OBP-Signature`, a JSON Web Signature over the exact request body made with the key published at `GET /obp/v3.1.0/certs`. Otherwise requests go out unsigned, with `OBP-Signature-Status: not_configured`. A webhook's `signature_status` says which; on this instance it is `${code.messageoutbox.WebhookOutbox.signatureStatus}`.
+|
+|**Where a webhook may send.** Only to an absolute `https` URL, never to this OBP instance, and never to a loopback, private, link-local or cloud metadata address, so that a webhook cannot be used to reach services inside OBP's own network. An entity has at most one webhook per URL.
+|
+|**Deactivation.** `is_active` false stops a webhook. `deactivated_reason` says why: `TURNED_OFF` when someone set it, `CIRCUIT_BREAKER` when it had ${code.dynamicentitywebhook.DynamicEntityWebhookFiring.circuitBreakerPerMinute} requests queued within a minute (on this instance), the backstop against a receiver whose reply fires the webhook again, `ENTITY_FIELD_REMOVED` or `ENTITY_FIELD_TYPE_CHANGED` when the entity's definition changed under one of its field conditions. Deleting a Dynamic Entity deletes its webhooks.
+|
+|**Managing.** `/obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks` creates and lists an entity's webhooks, and `.../web-hooks/WEBHOOK_ID` reads, updates and deletes one. `/obp/v7.0.0/management/banks/BANK_ID/dynamic-entity-web-hooks` lists every webhook of a space. BANK_ID is a bank's id or `SYS` for the system space. The Roles are CanCreateDynamicEntityWebhook, CanGetDynamicEntityWebhooks, CanUpdateDynamicEntityWebhook and CanDeleteDynamicEntityWebhook, held at that BANK_ID.
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
 		title = "Dynamic Code Paths",
 		description =
 			s"""

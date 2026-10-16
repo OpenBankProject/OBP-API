@@ -90,6 +90,8 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
     // §8.4: switching useRowLevelAccess on for an entity that already has rows makes those
     // rows admin-only (no backfill). Warn so the operator grants access deliberately.
     val wasRowLevel = existsDynamicEntity.map(_.useRowLevelAccess).getOrElse(false)
+    // Read before the save changes the row: the webhooks compare their field conditions against it.
+    val fieldTypesBefore = existsDynamicEntity.map(code.dynamicentitywebhook.DynamicEntityWebhookConditions.fieldTypes)
     if (!wasRowLevel && dynamicEntity.useRowLevelAccess) {
       // The data table stores the system space as the sentinel, never as a SQL NULL, so both spaces
       // are one comparison. Looking for NULL here counted zero rows for every system level entity,
@@ -120,6 +122,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           .AuthMode(DynamicEntityAuthMode.normalise(dynamicEntity.authMode))
           .saveMe()
         code.api.dynamic.entity.helper.DynamicEntityHelper.forgetDefinitions()
+        fieldTypesBefore.foreach(code.dynamicentitywebhook.DynamicEntityWebhookDefinitionChanges.afterUpdate(saved, _))
         // DE_indexing: provision/refresh the projection for this definition's indexed scalar fields.
         // Guarded by projectionEnabled (default off); best-effort (a failure leaves the definition saved
         // and queries reporting pending, not a broken create). Fields passed explicitly because the new
@@ -149,6 +152,13 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
 
 
   override def delete(dynamicEntity: DynamicEntityT): Box[Boolean] = Box.tryo{
+    // The entity's webhooks go with it, whichever branch below deletes it.
+    val dynamicEntityIds = dynamicEntity match {
+      case v: DynamicEntity => v.dynamicEntityId.toList
+      case v => DynamicEntity.findAll(By(DynamicEntity.BankId, storedBankId(v.bankId)), By(DynamicEntity.EntityName, v.entityName))
+        .flatMap(_.dynamicEntityId)
+    }
+    dynamicEntityIds.filter(_.nonEmpty).foreach(code.dynamicentitywebhook.DynamicEntityWebhookDefinitionChanges.beforeDelete)
     try dynamicEntity match {
       case v: DynamicEntity => DynamicEntity.delete_!(v)
       // Anything that is not one of our own rows is matched by name, and a name identifies an entity

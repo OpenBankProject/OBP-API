@@ -7775,6 +7775,9 @@ object Http4s700 {
     // Domain APIs: a space's Dynamic Entities and Dynamic Resource Docs published under a base path of its own.
     resourceDocs ++= Http4s700DomainApis.resourceDocs
 
+    // Dynamic Entity webhooks: URLs OBP sends a request to when records of a Dynamic Entity change.
+    resourceDocs ++= Http4s700DynamicEntityWebhooks.resourceDocs
+
     // Groups: bring the members of a Group in line with its current Roles.
     resourceDocs ++= Http4s700Groups.resourceDocs
 
