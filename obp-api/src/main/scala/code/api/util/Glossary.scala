@@ -3195,6 +3195,44 @@ object Glossary extends MdcLoggable  {
           ${getWebUiPropsValue("webui_sandbox_introduction", "")}
  """)
 
+	glossaryItems += GlossaryItem(
+		title = "Sandbox Populator",
+		description =
+			s"""|
+|The OBP Sandbox Populator is used to create bank level data for a logged in developer that needs test data.
+|
+|The User logs in to it via OAuth2, and it calls OBP endpoints on behalf of that User. Everything it creates is therefore normal OBP data that can be explored afterwards with the API Explorer, API Manager or any REST client.
+|
+|### What it creates
+|
+|* Banks
+|* Accounts (with Customer Account Links)
+|* Customers (individual and corporate), Customer Links and User Customer Links
+|* Counterparties
+|* FX Rates
+|* Transactions (via Transaction Requests or historical Transactions)
+|
+|Data sets are available for several countries (e.g. Botswana and Singapore) which determine the business names, customer templates, currencies and transaction patterns used.
+|
+|### How to use it
+|
+|* **Populate:** choose the number of Banks, the number of Accounts per Bank, a country, and which entities to create, then run. The results link to the API Explorer for verification.
+|* **CSV Import:** upload CSV files of Banks, Accounts, Customers and Transactions to create them in bulk.
+|
+|### Roles
+|
+|The logged in User needs the relevant Entitlements for the data being created, for instance CanCreateCustomer, CanCreateAccount, CanCreateCustomerAccountLink, CanCreateUserCustomerLink and CanCreateHistoricalTransactionAtBank. OBP error messages (including missing Role errors) are shown as returned by the API.
+|
+|### Running it
+|
+|The Sandbox Populator is a SvelteKit application that uses Redis for session storage. It can be run with Docker Compose alongside a local OBP API and Redis, or locally with Node.
+|
+|Source code and documentation: [OBP Sandbox Populator](https://github.com/OpenBankProject/OBP-Sandbox-Populator)
+|
+|See also: ${getGlossaryItemLink("Sandbox Introduction")}
+|
+""")
+
 
 	glossaryItems += GlossaryItem(
 		title = "Data Model Overview",
