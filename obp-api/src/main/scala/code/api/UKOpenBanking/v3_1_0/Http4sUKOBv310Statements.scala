@@ -30,7 +30,7 @@ package code.api.UKOpenBanking.v3_1_0
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, mockedDataText}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, mockedDataText}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -63,7 +63,7 @@ object Http4sUKOBv310Statements extends MdcLoggable {
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
   private val tag = ApiTag("Statements") :: apiTagMockedData :: Nil
 
-  lazy val getAccountsAccountIdStatements: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdStatements: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "accounts" / _ / "statements" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -273,7 +273,7 @@ object Http4sUKOBv310Statements extends MdcLoggable {
   )
 
   // Deeper paths must come before the single-segment path in `routes`
-  lazy val getAccountsAccountIdStatementsStatementIdFile: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdStatementsStatementIdFile: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "accounts" / _ / "statements" / _ / "file" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -291,7 +291,7 @@ object Http4sUKOBv310Statements extends MdcLoggable {
     http4sPartialFunction = Some(getAccountsAccountIdStatementsStatementIdFile)
   )
 
-  lazy val getAccountsAccountIdStatementsStatementIdTransactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdStatementsStatementIdTransactions: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "accounts" / _ / "statements" / _ / "transactions" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -532,7 +532,7 @@ object Http4sUKOBv310Statements extends MdcLoggable {
     http4sPartialFunction = Some(getAccountsAccountIdStatementsStatementIdTransactions)
   )
 
-  lazy val getAccountsAccountIdStatementsStatementId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdStatementsStatementId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "accounts" / _ / "statements" / _ =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -741,7 +741,7 @@ object Http4sUKOBv310Statements extends MdcLoggable {
     http4sPartialFunction = Some(getAccountsAccountIdStatementsStatementId)
   )
 
-  lazy val getStatements: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getStatements: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "statements" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -951,11 +951,13 @@ object Http4sUKOBv310Statements extends MdcLoggable {
   )
 
   // Routes ordered deep-first to avoid the single-wildcard pattern swallowing deeper paths
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    getAccountsAccountIdStatementsStatementIdFile(req)
-      .orElse(getAccountsAccountIdStatementsStatementIdTransactions(req))
-      .orElse(getAccountsAccountIdStatementsStatementId(req))
-      .orElse(getAccountsAccountIdStatements(req))
-      .orElse(getStatements(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    getAccountsAccountIdStatementsStatementIdFile,
+    getAccountsAccountIdStatementsStatementIdTransactions,
+    getAccountsAccountIdStatementsStatementId,
+    getAccountsAccountIdStatements,
+    getStatements
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

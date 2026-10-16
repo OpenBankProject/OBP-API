@@ -5,6 +5,7 @@ import code.api.util.ApiRole.CanGetTrafficSources
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.api.v6_0_0.V600ServerSetup
 import code.entitlement.Entitlement
+import code.telemetry.TrafficSources
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
@@ -40,6 +41,10 @@ class TrafficSourcesEndpointTest extends V600ServerSetup {
     }
 
     scenario("requests appear under their Consumer, their address, and their endpoint", ApiEndpoint, VersionOfApi) {
+      // The endpoint lists only the 50 busiest caller and endpoint pairs of the window, and the window
+      // is the current minute of this JVM. Pairs that other suites made in the same minute can crowd
+      // out the single request of each pair below, so start from an empty record.
+      TrafficSources.clear()
       makeGetRequest((v7_0_0_Request / "banks").GET <@ (user1)).code should equal(200)
       makeGetRequest((v7_0_0_Request / "banks").GET).code should equal(200)
       makeGetRequest((v7_0_0_Request / "no-such-endpoint-traffic-probe").GET).code should equal(404)

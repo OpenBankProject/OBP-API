@@ -113,7 +113,7 @@ jobs:
   #   Shard 3  ~250s  v6_0_0 (split from v2_x; v2_x moved to shard 7)
   #   Shard 4  ~232s  v5_1_0 + v5_0_0 + v3_0_0
   #   Shard 5  ~252s  ResourceDocs + v3_1_0 + v1_4_0 + v1_3_0
-  #   Shard 6  ~200s  v7_0_0 + http4sbridge + UKOpenBanking
+  #   Shard 6  ~200s  v7_0_0 + http4sserver + UKOpenBanking
   #   Shard 7  ~280s  model + views + customer + util + berlin + small data + v2_x
   #   Shard 8  ~240s  connector + auth + login + mgmt + metrics + catch-all
   #   Shard 9  ~300s  v4_0_0 Dynamic* (6 classes: 9 400+ lines each)
@@ -164,10 +164,10 @@ jobs:
               code.api.v1_4_0
               code.api.v1_3_0
           - shard: 6
-            name: "v7 + http4sbridge + UKOpenBanking"
+            name: "v7 + http4sserver + UKOpenBanking"
             test_filter: >-
               code.api.v7_0_0
-              code.api.http4sbridge
+              code.api.http4sserver
               code.api.UKOpenBanking
           - shard: 7
             name: "model + views + customer + util + small data + berlin + v2_x"
@@ -387,7 +387,7 @@ jobs:
             SHARD3="code.api.v6_0_0"
             SHARD4="code.api.v5_1_0 code.api.v5_0_0 code.api.v3_0_0"
             SHARD5="code.api.ResourceDocs1_4_0 code.api.v3_1_0 code.api.v1_4_0 code.api.v1_3_0"
-            SHARD6="code.api.v7_0_0 code.api.http4sbridge code.api.UKOpenBanking"
+            SHARD6="code.api.v7_0_0 code.api.http4sserver code.api.UKOpenBanking"
             SHARD7="code.model code.views code.customer code.usercustomerlinks \
                     code.api.util code.errormessages code.atms code.branches \
                     code.products code.crm code.accountHolder code.api.berlin \

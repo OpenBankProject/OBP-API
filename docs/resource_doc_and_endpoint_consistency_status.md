@@ -16,13 +16,17 @@ endpoint has one.
 endpoint discovery and the Glossary's endpoint links are all generated from ResourceDocs.
 
 **Building the routes.** In every versioned API group, the routes are built from the ResourceDocs
-themselves: `allRoutes` is the list of each doc's `http4sPartialFunction`, ordered by the number of
-path segments (for example `Http4s700.scala`, `val allRoutes`). So in those groups a route cannot
-exist without a ResourceDoc. The same construction is used in 11 route groups.
+themselves: each version lists its routes in `routesInOrder` (for example `Http4s700.scala`, which sorts
+them by the number of path segments; the other versions keep the order they were written in), and
+`ResourceDocMatcher.orderByRoutes` puts the docs in that same order. A doc whose route is missing from
+the list is an error at startup, so in those groups a route cannot exist without a ResourceDoc.
+Every versioned group is built this way: v1.2.1 to v7.0.0, Berlin Group v1.3 and v2, and UK Open
+Banking v2.0.0, v3.1.0 and v4.0.1.
 
 **Checking every request, in `ResourceDocMiddleware`.** Each versioned group is wrapped in
-`ResourceDocMiddleware.apply(resourceDocs)` (`obp-api/src/main/scala/code/api/util/http4s/ResourceDocMiddleware.scala`).
-For each request it finds the matching ResourceDoc and then, in this order
+`ResourceDocMiddleware.apply(orderedResourceDocs, ...)` (`obp-api/src/main/scala/code/api/util/http4s/ResourceDocMiddleware.scala`).
+For each request it asks the group's routes which one serves it (`ResourceDocMatcher.selectByRoute`),
+takes that route's ResourceDoc, and then, in this order
 (`validateOnly`, which follows the order Lift used):
 
 1. rejects duplicated query parameters;
@@ -55,11 +59,12 @@ Every group below builds its routes from its ResourceDocs and is wrapped by
 - Berlin Group v1.3 (and its alias path) and v2;
 - UK Open Banking v2.0, v3.1 and v4.0.1.
 
-One narrow exception inside these groups: when no ResourceDoc matches (for example a URL with an
-empty segment such as `/banks//accounts`), the middleware still lets the group's routes try the
-request, after resolving the caller but without the doc-based checks. That branch exists so a
-malformed URL gets 403 or 404 rather than a misleading 401. It is documented in `CLAUDE.md`
-("Empty path segments").
+There is no exception inside these groups. A request that none of a group's routes serves is passed
+on to the next link of the chain at once, without resolving the caller. A request a route does serve
+is validated under that route's ResourceDoc, including a URL with an empty segment such as
+`/banks//accounts`: the empty segment is read as an empty `BANK_ID`, so the Roles and the bank
+lookup are checked against it instead of the handler running unvalidated. It is documented in
+`CLAUDE.md` ("Empty path segments").
 
 ## 4. Where it does not hold
 
@@ -136,9 +141,9 @@ each of which changes what callers receive:
 2. The docs are declared once, at v1.4.0, but the routes answer under every version prefix, and
    the output depends on the prefix: v4.0.0 and later get the newer shape, v6.0.0 also adds the
    technology field (`Http4sResourceDocs.scala`, `includeTechnologyForPrefix` and the
-   `isVersion4OrHigher` choice in `routes`). The middleware matches a doc by the version in the
-   path, so it would need a copy of each doc in every version group, or a matcher that ignores
-   versions, and either change reaches beyond these routes.
+   `isVersion4OrHigher` choice in `routes`). The middleware selects a doc from the routes of the
+   version group in the path, so it would need a copy of each doc in every version group, or a
+   selection that ignores versions, and either change reaches beyond these routes.
 3. They are open by default and need a Role only when `resource_docs_requires_role=true`, checked
    inline (`withOptionalRoleCheck`). A doc can declare a Role conditionally, but the choice is
    fixed when the docs are built at start-up (see the shard 10 note in `CLAUDE.md`).
@@ -156,6 +161,3 @@ section 13).
 - `docs/telemetry_conventions.md`, section 13: which of these routes Telemetry does not time.
 - `CLAUDE.md`: the migration rules (ResourceDoc registration order, the middleware's handling of
   `BANK_ID`, `ACCOUNT_ID`, `VIEW_ID`, `COUNTERPARTY_ID`, and the gotchas).
-- Stale comment: `Http4sDynamicEndpoint.scala`'s header still says an unmatched request falls
-  through to "the Lift bridge"; since the bridge was removed it reaches `notFoundCatchAll` (JSON
-  404).

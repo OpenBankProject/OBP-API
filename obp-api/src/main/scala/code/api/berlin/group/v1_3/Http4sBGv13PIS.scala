@@ -34,7 +34,7 @@ import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.berlin.group.v1_3.model.TransactionStatus.mapTransactionStatus
 import code.api.berlin.group.v1_3.model._
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, getScaMethodAtInstance, getServerUrl, isValidCurrencyISOCode, mockedDataText, passesPsd2Pisp}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, UserOrApplication, getScaMethodAtInstance, getServerUrl, isValidCurrencyISOCode, mockedDataText, passesPsd2Pisp}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CustomJsonFormats
@@ -200,7 +200,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   // ── DELETE /{paymentService}/{paymentProduct}/{paymentId} ──────────────────────────────────────────────────────
   // Variable response: 202 (SCA required) with CancelPaymentResponseJson body, or 204 (direct cancel) with no body.
   // Custom IO handler to produce truly-empty 204 (NoContent) — executeFutureWithStatus would always add a body.
-  lazy val cancelPayment: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val cancelPayment: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `bgV13Prefix` / paymentService / paymentProduct / paymentId =>
       implicit val cc: CallContext = req.callContext
       val callContext = Some(cc)
@@ -276,7 +276,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   }
 
   // ── GET /{paymentService}/{paymentProduct}/{paymentId}/cancellation-authorisations/{cancellationId} ───
-  lazy val getPaymentCancellationScaStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getPaymentCancellationScaStatus: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / paymentService / paymentProduct / paymentId / "cancellation-authorisations" / cancellationId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -297,7 +297,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   }
 
   // ── GET /{paymentService}/{paymentProduct}/{paymentId} (with checkPaymentServiceType guard in Lift) ──
-  lazy val getPaymentInformation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getPaymentInformation: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / paymentService / paymentProduct / paymentId if checkPaymentServiceType(paymentService) =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -320,7 +320,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   }
 
   // ── GET /{paymentService}/{paymentProduct}/{paymentId}/authorisations ─────────────────────────────
-  lazy val getPaymentInitiationAuthorisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getPaymentInitiationAuthorisation: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / paymentService / paymentProduct / paymentId / "authorisations" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -341,7 +341,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   }
 
   // ── GET /{paymentService}/{paymentProduct}/{paymentId}/cancellation-authorisations ──────────────────
-  lazy val getPaymentInitiationCancellationAuthorisationInformation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getPaymentInitiationCancellationAuthorisationInformation: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / paymentService / paymentProduct / paymentId / "cancellation-authorisations" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -362,7 +362,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   }
 
   // ── GET /{paymentService}/{paymentProduct}/{paymentId}/authorisations/{authorisationId} ────────────
-  lazy val getPaymentInitiationScaStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getPaymentInitiationScaStatus: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / paymentService / paymentProduct / paymentId / "authorisations" / authorisationId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -383,7 +383,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   }
 
   // ── GET /{paymentService}/{paymentProduct}/{paymentId}/status ─────────────────────────────────────
-  lazy val getPaymentInitiationStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getPaymentInitiationStatus: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / paymentService / paymentProduct / paymentId / "status" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -428,7 +428,7 @@ object Http4sBGv13PIS extends MdcLoggable {
 
   // ── POST /payments/{paymentProduct} ──────────────────────────────────────────────────────────────
   // Auth: applicationAccess in Lift → authMode = UserOrApplication in ResourceDoc
-  lazy val initiatePayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val initiatePayments: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / "payments" / paymentProduct =>
       EndpointHelpers.executeFutureCreated(req) {
         initiatePaymentImpl("payments", paymentProduct, Some(req.callContext))
@@ -436,7 +436,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   }
 
   // ── POST /periodic-payments/{paymentProduct} ──────────────────────────────────────────────────────
-  lazy val initiatePeriodicPayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val initiatePeriodicPayments: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / "periodic-payments" / paymentProduct =>
       EndpointHelpers.executeFutureCreated(req) {
         initiatePaymentImpl("periodic-payments", paymentProduct, Some(req.callContext))
@@ -444,7 +444,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   }
 
   // ── POST /bulk-payments/{paymentProduct} ──────────────────────────────────────────────────────────
-  lazy val initiateBulkPayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val initiateBulkPayments: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / "bulk-payments" / paymentProduct =>
       EndpointHelpers.executeFutureCreated(req) {
         initiatePaymentImpl("bulk-payments", paymentProduct, Some(req.callContext))
@@ -457,7 +457,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   //   scaAuthenticationData → startPaymentAuthorisationTransactionAuthorisation (real SCA logic)
   //   psuData               → startPaymentAuthorisationUpdatePsuAuthentication   (mocked)
   //   authenticationMethodId → startPaymentAuthorisationSelectPsuAuthenticationMethod (mocked)
-  lazy val startPaymentAuthorisationAll: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val startPaymentAuthorisationAll: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / paymentService / paymentProduct / paymentId / "authorisations" =>
       EndpointHelpers.executeFutureCreated(req) {
         val cc          = req.callContext
@@ -519,7 +519,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   }
 
   // ── POST /{paymentService}/{paymentProduct}/{paymentId}/cancellation-authorisations (3 variants) ─
-  lazy val startPaymentInitiationCancellationAuthorisationAll: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val startPaymentInitiationCancellationAuthorisationAll: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / paymentService / paymentProduct / paymentId / "cancellation-authorisations" =>
       EndpointHelpers.executeFutureCreated(req) {
         val cc          = req.callContext
@@ -586,7 +586,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   }
 
   // ── PUT /{paymentService}/{paymentProduct}/{paymentId}/cancellation-authorisations/{authorisationId} (4 variants) ─
-  lazy val updatePaymentCancellationPsuDataAll: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val updatePaymentCancellationPsuDataAll: Http4sRoute = Http4sRoute {
     case req @ PUT -> `bgV13Prefix` / paymentService / paymentProduct / paymentId / "cancellation-authorisations" / authorisationId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -685,7 +685,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   }
 
   // ── PUT /{paymentService}/{paymentProduct}/{paymentId}/authorisations/{authorisationId} (4 variants) ─
-  lazy val updatePaymentPsuDataAll: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val updatePaymentPsuDataAll: Http4sRoute = Http4sRoute {
     case req @ PUT -> `bgV13Prefix` / paymentService / paymentProduct / paymentId / "authorisations" / authorisationId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -1344,20 +1344,22 @@ This method updates PSU data on the cancellation authorisation resource if neede
   initStartAuthorisationResourceDocs()
   initUpdatePsuDataResourceDocs()
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    cancelPayment(req)
-      .orElse(getPaymentCancellationScaStatus(req))
-      .orElse(getPaymentInformation(req))
-      .orElse(getPaymentInitiationAuthorisation(req))
-      .orElse(getPaymentInitiationCancellationAuthorisationInformation(req))
-      .orElse(getPaymentInitiationScaStatus(req))
-      .orElse(getPaymentInitiationStatus(req))
-      .orElse(initiatePayments(req))
-      .orElse(initiatePeriodicPayments(req))
-      .orElse(initiateBulkPayments(req))
-      .orElse(startPaymentAuthorisationAll(req))
-      .orElse(startPaymentInitiationCancellationAuthorisationAll(req))
-      .orElse(updatePaymentCancellationPsuDataAll(req))
-      .orElse(updatePaymentPsuDataAll(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    cancelPayment,
+    getPaymentCancellationScaStatus,
+    getPaymentInformation,
+    getPaymentInitiationAuthorisation,
+    getPaymentInitiationCancellationAuthorisationInformation,
+    getPaymentInitiationScaStatus,
+    getPaymentInitiationStatus,
+    initiatePayments,
+    initiatePeriodicPayments,
+    initiateBulkPayments,
+    startPaymentAuthorisationAll,
+    startPaymentInitiationCancellationAuthorisationAll,
+    updatePaymentCancellationPsuDataAll,
+    updatePaymentPsuDataAll
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

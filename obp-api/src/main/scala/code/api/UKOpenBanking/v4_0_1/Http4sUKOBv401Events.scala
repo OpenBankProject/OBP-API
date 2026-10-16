@@ -29,7 +29,7 @@ package code.api.UKOpenBanking.v4_0_1
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError}
@@ -84,7 +84,7 @@ object Http4sUKOBv401Events extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getEventSubscriptions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getEventSubscriptions: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "event-subscriptions" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getEventSubscriptions)) }
   }
@@ -133,7 +133,7 @@ object Http4sUKOBv401Events extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createEventSubscriptions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createEventSubscriptions: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "event-subscriptions" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createEventSubscriptions)))
   }
@@ -195,7 +195,7 @@ object Http4sUKOBv401Events extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val changeEventSubscriptionsEventSubscriptionId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val changeEventSubscriptionsEventSubscriptionId: Http4sRoute = Http4sRoute {
     case req @ PUT -> `ukV401Prefix` / "event-subscriptions" / eventSubscriptionId =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_changeEventSubscriptionsEventSubscriptionId)))
   }
@@ -214,7 +214,7 @@ object Http4sUKOBv401Events extends MdcLoggable {
   )
 
   private val EX_deleteEventSubscriptionsEventSubscriptionId: String = """{}"""
-  lazy val deleteEventSubscriptionsEventSubscriptionId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deleteEventSubscriptionsEventSubscriptionId: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `ukV401Prefix` / "event-subscriptions" / eventSubscriptionId =>
       EndpointHelpers.executeDelete(req) { cc => Future.successful(()) }
   }
@@ -244,7 +244,7 @@ object Http4sUKOBv401Events extends MdcLoggable {
   "moreAvailable": true,
   "sets": {}
 }"""
-  lazy val createEvents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createEvents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "events" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createEvents)))
   }
@@ -262,11 +262,13 @@ object Http4sUKOBv401Events extends MdcLoggable {
     http4sPartialFunction = Some(createEvents)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    getEventSubscriptions(req)
-      .orElse(createEventSubscriptions(req)
-      .orElse(changeEventSubscriptionsEventSubscriptionId(req)
-      .orElse(deleteEventSubscriptionsEventSubscriptionId(req)
-      .orElse(createEvents(req)))))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    getEventSubscriptions,
+    createEventSubscriptions,
+    changeEventSubscriptionsEventSubscriptionId,
+    deleteEventSubscriptionsEventSubscriptionId,
+    createEvents
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

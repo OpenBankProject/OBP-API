@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, Http4sRoute}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -103,7 +103,7 @@ object Http4s700PlatformApps {
        |For more information see ${Glossary.getGlossaryItemLink("Platform Apps")}""".stripMargin
 
   // Route: POST /obp/v7.0.0/management/platform-apps (201)
-  lazy val createPlatformApp: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createPlatformApp: Http4sRoute = Http4sRoute {
     case req @ POST -> `prefixPath` / "management" / "platform-apps" =>
       EndpointHelpers.withUserAndBodyCreated[PostPlatformAppJsonV700, PlatformAppJsonV700](req) { (user, body, cc) =>
         val label = Option(body.label).map(_.trim).getOrElse("")
@@ -144,7 +144,7 @@ object Http4s700PlatformApps {
   )
 
   // Route: GET /obp/v7.0.0/management/platform-apps
-  lazy val getPlatformApps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getPlatformApps: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "platform-apps" =>
       EndpointHelpers.withUser(req) { (_, cc) =>
         Future(provider.getPlatformApps()) map { x =>
@@ -175,7 +175,7 @@ object Http4s700PlatformApps {
   )
 
   // Route: DELETE /obp/v7.0.0/management/platform-apps/CONSUMER_ID (204)
-  lazy val deletePlatformApp: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deletePlatformApp: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `prefixPath` / "management" / "platform-apps" / consumerId =>
       EndpointHelpers.withUserDelete(req) { (_, cc) =>
         for {
@@ -209,7 +209,7 @@ object Http4s700PlatformApps {
   // Route: PUT /obp/v7.0.0/consumers/current/platform-app
   // No Role: an app may always say what it needs. It is refused for a Consumer an administrator has not
   // marked, so only the apps an administrator chose appear on the list.
-  lazy val updateCurrentConsumerPlatformApp: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val updateCurrentConsumerPlatformApp: Http4sRoute = Http4sRoute {
     case req @ PUT -> `prefixPath` / "consumers" / "current" / "platform-app" =>
       EndpointHelpers.executeFutureWithBody[PutPlatformAppDeclarationJsonV700, PlatformAppJsonV700](req) { (body, cc) =>
         for {

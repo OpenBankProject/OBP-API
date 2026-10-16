@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, Http4sRoute}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -65,7 +65,7 @@ object Http4s700TrafficSources {
   private val AllowedWindows = Set(1, 5, 15)
 
   // Route: GET /obp/v7.0.0/management/traffic/top-callers
-  lazy val getTrafficSources: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getTrafficSources: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "traffic" / "top-callers" =>
       EndpointHelpers.withUser(req) { (_, cc) =>
         val window = req.uri.query.params.get("window").map(_.trim).getOrElse("5")

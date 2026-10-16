@@ -29,7 +29,7 @@ package code.api.UKOpenBanking.v4_0_1
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError}
@@ -502,7 +502,7 @@ object Http4sUKOBv401Vrp extends MdcLoggable {
   },
   "Meta": {}
 }"""
-  lazy val domesticVrpConsentsPost: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val domesticVrpConsentsPost: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "domestic-vrp-consents" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_domesticVrpConsentsPost)))
   }
@@ -757,7 +757,7 @@ object Http4sUKOBv401Vrp extends MdcLoggable {
   },
   "Meta": {}
 }"""
-  lazy val domesticVrpConsentsGet: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val domesticVrpConsentsGet: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "domestic-vrp-consents" / consentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_domesticVrpConsentsGet)) }
   }
@@ -1219,7 +1219,7 @@ object Http4sUKOBv401Vrp extends MdcLoggable {
   },
   "Meta": {}
 }"""
-  lazy val domesticVrpConsentsPut: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val domesticVrpConsentsPut: Http4sRoute = Http4sRoute {
     case req @ PUT -> `ukV401Prefix` / "pisp" / "domestic-vrp-consents" / consentId =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_domesticVrpConsentsPut)))
   }
@@ -1240,7 +1240,7 @@ This endpoint **must** only be used for the migration of Domestic VRP Consent re
   )
 
   private val EX_domesticVrpConsentsDelete: String = """{}"""
-  lazy val domesticVrpConsentsDelete: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val domesticVrpConsentsDelete: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `ukV401Prefix` / "pisp" / "domestic-vrp-consents" / consentId =>
       EndpointHelpers.executeDelete(req) { cc => Future.successful(()) }
   }
@@ -1495,7 +1495,7 @@ This endpoint **must** only be used for the migration of Domestic VRP Consent re
   },
   "Meta": {}
 }"""
-  lazy val domesticVrpConsentsPatch: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val domesticVrpConsentsPatch: Http4sRoute = Http4sRoute {
     case req @ PATCH -> `ukV401Prefix` / "pisp" / "domestic-vrp-consents" / consentId =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_domesticVrpConsentsPatch)))
   }
@@ -1541,7 +1541,7 @@ This endpoint **must** only be used for the migration of Domestic VRP Consent re
     }
   }
 }"""
-  lazy val domesticVrpConsentsFundsConfirmation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val domesticVrpConsentsFundsConfirmation: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "domestic-vrp-consents" / consentId / "funds-confirmation" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_domesticVrpConsentsFundsConfirmation)))
   }
@@ -2164,7 +2164,7 @@ This endpoint **must** only be used for the migration of Domestic VRP Consent re
   },
   "Meta": {}
 }"""
-  lazy val domesticVrpPost: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val domesticVrpPost: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "domestic-vrps" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_domesticVrpPost)))
   }
@@ -2508,7 +2508,7 @@ This endpoint **must** only be used for the migration of Domestic VRP Consent re
   },
   "Meta": {}
 }"""
-  lazy val domesticVrpGet: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val domesticVrpGet: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "domestic-vrps" / domesticVRPId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_domesticVrpGet)) }
   }
@@ -2543,7 +2543,7 @@ This endpoint **must** only be used for the migration of Domestic VRP Consent re
     ]
   }
 }"""
-  lazy val domesticVrpPaymentDetailsGet: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val domesticVrpPaymentDetailsGet: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "domestic-vrps" / domesticVRPId / "payment-details" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_domesticVrpPaymentDetailsGet)) }
   }
@@ -2561,15 +2561,17 @@ This endpoint **must** only be used for the migration of Domestic VRP Consent re
     http4sPartialFunction = Some(domesticVrpPaymentDetailsGet)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    domesticVrpConsentsPost(req)
-      .orElse(domesticVrpConsentsGet(req)
-      .orElse(domesticVrpConsentsPut(req)
-      .orElse(domesticVrpConsentsDelete(req)
-      .orElse(domesticVrpConsentsPatch(req)
-      .orElse(domesticVrpConsentsFundsConfirmation(req)
-      .orElse(domesticVrpPost(req)
-      .orElse(domesticVrpGet(req)
-      .orElse(domesticVrpPaymentDetailsGet(req)))))))))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    domesticVrpConsentsPost,
+    domesticVrpConsentsGet,
+    domesticVrpConsentsPut,
+    domesticVrpConsentsDelete,
+    domesticVrpConsentsPatch,
+    domesticVrpConsentsFundsConfirmation,
+    domesticVrpPost,
+    domesticVrpGet,
+    domesticVrpPaymentDetailsGet
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

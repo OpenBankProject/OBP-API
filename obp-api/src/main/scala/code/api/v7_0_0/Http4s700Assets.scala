@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, unboxFullOrFail}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, unboxFullOrFail, Http4sRoute}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CustomJsonFormats
@@ -69,7 +69,7 @@ object Http4s700Assets {
   val MaxPageSize = 500
 
   // Route: GET /obp/v7.0.0/assets
-  lazy val getAssets: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAssets: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "assets" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val parameters = req.uri.query.params
@@ -137,7 +137,7 @@ object Http4s700Assets {
   )
 
   // Route: GET /obp/v7.0.0/assets/ASSET_CODE
-  lazy val getAsset: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAsset: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "assets" / assetCode if assetCode.nonEmpty =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         Future(Assets.getAsset(assetCode))
@@ -167,7 +167,7 @@ object Http4s700Assets {
   )
 
   // Route: GET /obp/v7.0.0/assets/chain/CHAIN_SCHEME/CHAIN_ASSET_ID
-  lazy val getAssetByChainIdentity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAssetByChainIdentity: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "assets" / "chain" / chainScheme / chainAssetId if chainScheme.nonEmpty && chainAssetId.nonEmpty =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         Future(Assets.getAssetByChainIdentity(chainScheme.toUpperCase, chainAssetId))

@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, unboxFullOrFail, userAuthenticationMessage}
+import code.api.util.APIUtil.{Http4sRoute, EmptyBody, ResourceDoc, UserOrApplication, unboxFullOrFail, userAuthenticationMessage}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -64,7 +64,7 @@ object Http4s700OpenIdConnect {
   // Route: GET /obp/v7.0.0/oidc/consents/CONSENT_ID
   // EndpointHelpers.executeAndRespond rather than withUser, so an OIDC provider can call this as an
   // application holding the Scope, without a User.
-  lazy val getOidcConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getOidcConsent: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "oidc" / "consents" / consentId =>
       EndpointHelpers.executeAndRespond(req) { implicit cc: CallContext =>
         for {
