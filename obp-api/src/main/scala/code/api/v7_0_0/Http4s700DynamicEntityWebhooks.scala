@@ -29,7 +29,7 @@ package code.api.v7_0_0
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
 import code.api.dynamic.entity.helper.DynamicEntitySpace
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{EmptyBody, Http4sRoute, ResourceDoc}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -174,7 +174,7 @@ object Http4s700DynamicEntityWebhooks {
     InvalidDynamicEntityWebhookDescription, InvalidDynamicEntityWebhookUrl, DynamicEntityWebhookUrlAlreadyExists, UnknownError)
 
   // Route: POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks (201)
-  lazy val createDynamicEntityWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createDynamicEntityWebhook: Http4sRoute = Http4sRoute {
     case req @ POST -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId / "web-hooks" =>
       EndpointHelpers.withUserAndBodyCreated[PostDynamicEntityWebhookJsonV700, DynamicEntityWebhookJsonV700](req) { (user, body, cc) =>
         val spaceId = space(bankIdInUrl)
@@ -211,7 +211,7 @@ object Http4s700DynamicEntityWebhooks {
   ).allowSystemSpace()
 
   // Route: GET /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks
-  lazy val getDynamicEntityWebhooks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDynamicEntityWebhooks: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId / "web-hooks" =>
       EndpointHelpers.withUser(req) { (_, cc) =>
         for {
@@ -239,7 +239,7 @@ object Http4s700DynamicEntityWebhooks {
   ).allowSystemSpace()
 
   // Route: GET /obp/v7.0.0/management/banks/BANK_ID/dynamic-entity-web-hooks
-  lazy val getDynamicEntityWebhooksAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDynamicEntityWebhooksAtBank: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entity-web-hooks" =>
       EndpointHelpers.withUser(req) { (_, cc) =>
         Future(provider.getByBank(space(bankIdInUrl))).map(box =>
@@ -265,7 +265,7 @@ object Http4s700DynamicEntityWebhooks {
   ).allowSystemSpace()
 
   // Route: GET /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks/WEBHOOK_ID
-  lazy val getDynamicEntityWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDynamicEntityWebhook: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId / "web-hooks" / webhookId =>
       EndpointHelpers.withUser(req) { (_, cc) =>
         for {
@@ -294,7 +294,7 @@ object Http4s700DynamicEntityWebhooks {
   ).allowSystemSpace()
 
   // Route: PUT /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks/WEBHOOK_ID
-  lazy val updateDynamicEntityWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val updateDynamicEntityWebhook: Http4sRoute = Http4sRoute {
     case req @ PUT -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId / "web-hooks" / webhookId =>
       EndpointHelpers.withUserAndBody[PutDynamicEntityWebhookJsonV700, DynamicEntityWebhookJsonV700](req) { (_, body, cc) =>
         val spaceId = space(bankIdInUrl)
@@ -341,7 +341,7 @@ object Http4s700DynamicEntityWebhooks {
   ).allowSystemSpace()
 
   // Route: DELETE /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks/WEBHOOK_ID (204)
-  lazy val deleteDynamicEntityWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deleteDynamicEntityWebhook: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId / "web-hooks" / webhookId =>
       EndpointHelpers.withUserDelete(req) { (_, cc) =>
         val spaceId = space(bankIdInUrl)
@@ -372,7 +372,7 @@ object Http4s700DynamicEntityWebhooks {
   ).allowSystemSpace()
 
   // Route: POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks/WEBHOOK_ID/test (201)
-  lazy val testDynamicEntityWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val testDynamicEntityWebhook: Http4sRoute = Http4sRoute {
     case req @ POST -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId / "web-hooks" / webhookId / "test" =>
       EndpointHelpers.executeFutureCreated(req) {
         implicit val cc: CallContext = req.callContext
@@ -411,7 +411,7 @@ object Http4s700DynamicEntityWebhooks {
   private val deliveryStatuses = List(MessageOutbox.STATUS_PENDING, MessageOutbox.STATUS_DELIVERED, MessageOutbox.STATUS_STICKY)
 
   // Route: GET /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks/WEBHOOK_ID/deliveries
-  lazy val getDynamicEntityWebhookDeliveries: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDynamicEntityWebhookDeliveries: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId / "web-hooks" / webhookId / "deliveries" =>
       EndpointHelpers.withUser(req) { (_, cc) =>
         val query = req.uri.query.params
@@ -459,7 +459,7 @@ object Http4s700DynamicEntityWebhooks {
   ).allowSystemSpace()
 
   // Route: POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks/WEBHOOK_ID/deliveries/EVENT_ID/retry
-  lazy val retryDynamicEntityWebhookDelivery: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val retryDynamicEntityWebhookDelivery: Http4sRoute = Http4sRoute {
     case req @ POST -> `prefixPath` / "management" / "banks" / bankIdInUrl / "dynamic-entities" / dynamicEntityId / "web-hooks" / webhookId / "deliveries" / eventId / "retry" =>
       EndpointHelpers.executeAndRespond(req) { implicit cc =>
         for {
