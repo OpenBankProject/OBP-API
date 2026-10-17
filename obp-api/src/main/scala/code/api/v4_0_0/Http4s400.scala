@@ -3089,10 +3089,8 @@ object Http4s400 {
     // `body.challenges.size != 0`.
     //
     // All v4 types delegate to the same connector helper —
-    // `LocalMappedConnectorInternal.createTransactionRequest` — which depends on
-    // `SS.user` (Lift's thread-globals). We wrap the call in `SS.init` so the helper's
-    // first synchronous read of `SS.user` captures the cc.user, then the Future chain
-    // runs normally on any thread.
+    // `LocalMappedConnectorInternal.createTransactionRequest` — which reads the
+    // authenticated user from the CallContext passed to it.
 
     // Resolves the view createTransactionRequest needs, unit-testable without a live Mapper
     // connection: `lookup` is production's real `Views.views.vend.systemView(...).or(...)` call
@@ -3167,15 +3165,9 @@ object Http4s400 {
               Views.views.vend.systemView(ViewId(viewIdStr))
                 .or(Views.views.vend.customView(ViewId(viewIdStr), BankIdAccountId(account.bankId, account.accountId)))
             )
-            // SS.init populates Lift thread-globals (used by `SS.user` inside the
-            // connector). The connector's first line `SS.user` resolves synchronously
-            // inside this block, capturing the user; subsequent flatMap stages run on
-            // other threads but the value is already bound.
-            innerResult <- APIUtil.SS.init(Full(user), bank, account, view, Some(cc)) {
-              code.bankconnectors.LocalMappedConnectorInternal.createTransactionRequest(
-                BankId(bankIdStr), AccountId(accountIdStr), ViewId(viewIdStr),
-                transactionRequestType, json)
-            }
+            innerResult <- code.bankconnectors.LocalMappedConnectorInternal.createTransactionRequest(
+              BankId(bankIdStr), AccountId(accountIdStr), ViewId(viewIdStr),
+              transactionRequestType, json, Some(cc))
           } yield innerResult._1
         }
     }
@@ -3486,8 +3478,8 @@ object Http4s400 {
 
     // createTransactionRequestCard uses a different URL pattern (no bank/account/view)
     // and the Lift body calls the connector with empty BankId/AccountId. Add as its own
-    // route + ResourceDoc. The connector reads the user via SS.user, so prime SS with
-    // the user only; bank/account/view are connector-resolved from card details.
+    // route + ResourceDoc. The connector reads the user from the CallContext;
+    // bank/account/view are connector-resolved from card details.
     lazy val createTransactionRequestCard: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "transaction-request-types" / "CARD" / "transaction-requests" =>
         implicit val cc: CallContext = req.callContext
@@ -3500,13 +3492,9 @@ object Http4s400 {
               com.openbankproject.commons.util.JsonAliases.parse(bodyStr)
             }
             transactionRequestType = TransactionRequestType("CARD")
-            innerResult <- APIUtil.SS.init(Full(user),
-              null.asInstanceOf[Bank], null.asInstanceOf[BankAccount],
-              null.asInstanceOf[View], Some(cc)) {
-              code.bankconnectors.LocalMappedConnectorInternal.createTransactionRequest(
-                BankId(""), AccountId(""), ViewId(Constant.SYSTEM_OWNER_VIEW_ID),
-                transactionRequestType, json)
-            }
+            innerResult <- code.bankconnectors.LocalMappedConnectorInternal.createTransactionRequest(
+              BankId(""), AccountId(""), ViewId(Constant.SYSTEM_OWNER_VIEW_ID),
+              transactionRequestType, json, Some(cc))
           } yield innerResult._1
         }
     }

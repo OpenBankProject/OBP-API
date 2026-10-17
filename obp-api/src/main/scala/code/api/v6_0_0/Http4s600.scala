@@ -4751,7 +4751,7 @@ object Http4s600 {
         for {
           json <- Future(com.openbankproject.commons.util.JsonAliases.parse(rawBody))
           (resp, _) <- code.bankconnectors.LocalMappedConnectorInternal
-            .createTransactionRequest(bankId, accountId, viewId, txType, json)
+            .createTransactionRequest(bankId, accountId, viewId, txType, json, Some(cc))
         } yield resp
       }
     }

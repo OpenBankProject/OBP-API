@@ -645,9 +645,10 @@ object LocalMappedConnectorInternal extends MdcLoggable {
 
   val sharedChargePolicy = ChargePolicy.withName("SHARED")
   
-  def createTransactionRequest(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType, json: JValue): Future[(TransactionRequestWithChargeJSON400, Option[CallContext])] = {
+  // The caller passes the request's CallContext, which must carry the authenticated user.
+  def createTransactionRequest(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType, json: JValue, callContext: Option[CallContext]): Future[(TransactionRequestWithChargeJSON400, Option[CallContext])] = {
     for {
-      (Full(u), callContext) <- SS.user
+      u <- Future(unboxFullOrFail(callContext.map(_.user).getOrElse(Empty), callContext, AuthenticatedUserIsRequired, 401))
 
       transactionRequestTypeValue <- NewStyle.function.tryons(s"$InvalidTransactionRequestType: '${transactionRequestType.value}'. OBP does not support it.", 400, callContext) {
         TransactionRequestTypes.withName(transactionRequestType.value)
