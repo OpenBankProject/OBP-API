@@ -2284,6 +2284,14 @@
       "http4s_digest": "a8bdac82543f60b89328544bdd0027259566919925b24729a7c84f30a795ca56"
     },
     {
+      "version": "v5_1_0",
+      "endpoint": "getAllBankAccountBalances",
+      "field": "errorResponseBodies",
+      "reason": "Added BankNotFound, BankAccountNotFound (middleware) and ViewDoesNotPermitAccess: the caller now needs a view with can_see_bank_account_balance on the account",
+      "lift_digest": "cb07b8a8074c71a21a64f9030e412d57858383e4f503c2444c6c7000be5f4030",
+      "http4s_digest": "95338e12a64f58edfdea236bf3ff5c9e7a2ee23446b662b6134809ce8782db6d"
+    },
+    {
       "version": "v6_0_0",
       "endpoint": "getConsumer",
       "field": "description",

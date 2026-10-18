@@ -966,7 +966,14 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           val accountId = AccountId(accountIdStr)
           for {
-            _ <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            // The caller needs a view on this account that can see balances, else any logged-in user reads any account's balances
+            _ <- Helper.booleanToFuture(
+              ViewDoesNotPermitAccess + s" You need the `${CAN_SEE_BANK_ACCOUNT_BALANCE}` permission on any of your views",
+              403, cc = Some(cc)) {
+              Views.views.vend.privateViewsUserCanAccessForAccount(user, BankIdAccountId(BankId(bankIdStr), accountId))
+                .exists(_.allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_BALANCE))
+            }
             (balances, _) <- code.api.util.newstyle.BankAccountBalanceNewStyle.getBankAccountBalances(accountId, Some(cc))
           } yield JSONFactory510.createBankAccountBalancesJson(balances)
         }
@@ -985,7 +992,8 @@ object Http4s510 {
       |""",
       EmptyBody,
       bankAccountBalancesJsonV510,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // BankNotFound / BankAccountNotFound come from the middleware; ViewDoesNotPermitAccess from the balance view check
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, ViewDoesNotPermitAccess, UserHasMissingRoles, UnknownError),
       List(apiTagAccount, apiTagBalance),
       None,
       http4sPartialFunction = Some(getAllBankAccountBalances)
