@@ -2196,6 +2196,14 @@
       "http4s_digest": "1769e014d63887938573f77828aaa7669b69c23f8c4de3bb286767aad5185754"
     },
     {
+      "version": "v3_1_0",
+      "endpoint": "updateCustomerAddress",
+      "field": "errorResponseBodies",
+      "reason": "Lists CustomerNotFoundByCustomerId (404: the customer is not at the BANK_ID in the URL) and CustomerAddressNotFound (404: the address is not one of the CUSTOMER_ID's), so a Role at one bank no longer lets the caller change addresses at another.",
+      "lift_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5",
+      "http4s_digest": "3a6402f32d558c47caf71d2eda8cf531d4e6a5228039bb567f09d57d66441cfa"
+    },
+    {
       "version": "v5_0_0",
       "endpoint": "createUserAuthContextUpdateRequest",
       "field": "description",

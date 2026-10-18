@@ -2325,7 +2325,19 @@ object Http4s310 {
         EndpointHelpers.withUserAndBankAndBody[PostCustomerAddressJsonV310, Any](req) { (user, bank, postedData, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canCreateCustomer, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // Keep the customer: its bank is checked next
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller change customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
+            // The address must be one of this customer's, else any address id could be overwritten
+            (addresses, _) <- NewStyle.function.getCustomerAddress(customerIdStr, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(CustomerAddressNotFound, 404, Some(cc)) {
+              addresses.exists(_.customerAddressId == customerAddressIdStr)
+            }
             (address, _) <- NewStyle.function.updateCustomerAddress(
               customerAddressIdStr,
               postedData.line_1, postedData.line_2, postedData.line_3,
@@ -2352,7 +2364,10 @@ object Http4s310 {
       |""",
       postCustomerAddressJsonV310,
       customerAddressJsonV310,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      // CustomerNotFoundByCustomerId and CustomerAddressNotFound: the customer is not at BANK_ID, or the address
+      // is not this customer's (the guards above)
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, CustomerNotFoundByCustomerId,
+        CustomerAddressNotFound, UnknownError),
       List(apiTagCustomer),
       Some(List(canCreateCustomer)),
       http4sPartialFunction = Some(updateCustomerAddress)

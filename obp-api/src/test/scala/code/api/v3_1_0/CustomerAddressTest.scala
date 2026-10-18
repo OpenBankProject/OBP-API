@@ -189,5 +189,49 @@ class CustomerAddressTest extends V310ServerSetup {
     }
   }
 
+  // The Update endpoint changes an address only of the customer in the path, and only at the bank in the path
+  feature("Update Customer Address v3.1.0 stays within the bank and the customer in the path") {
+    val bankA = testBankId1.value
+    val bankB = testBankId2.value
+
+    // Creates a customer at the bank, with one address, through the endpoints; returns their ids
+    def customerWithAddress(bank: String): (String, String) = {
+      val customer = makePostRequest((v3_1_0_Request / "banks" / bank / "customers").POST <@(user1), write(postCustomerJson))
+      customer.code should equal(201)
+      val customerId = customer.body.extract[CustomerJsonV310].customer_id
+      val address = makePostRequest((v3_1_0_Request / "banks" / bank / "customers" / customerId / "address").POST <@(user1),
+        write(postCustomerAddressJson))
+      address.code should equal(201)
+      (customerId, address.body.extract[CustomerAddressJsonV310].customer_address_id)
+    }
+
+    scenario("A customer at another bank than the one in the path is not found", ApiEndpoint4, VersionOfApi) {
+      for (bank <- List(bankA, bankB); role <- List(CanCreateCustomer, CanCreateCustomerAddress))
+        Entitlement.entitlement.vend.addEntitlement(bank, resourceUser1.userId, role.toString)
+      val (customerAtB, addressAtB) = customerWithAddress(bankB)
+      When("We update bank B's customer address through bank A's path")
+      val request310 = (v3_1_0_Request / "banks" / bankA / "customers" / customerAtB / "addresses" / addressAtB).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(postCustomerAddressJson.copy(city = "Elsewhere")))
+      Then("We should get a 404")
+      response310.code should equal(404)
+      And("error should be " + CustomerNotFoundByCustomerId)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
+    }
+
+    scenario("An address of another customer than the one in the path is not found", ApiEndpoint4, VersionOfApi) {
+      for (role <- List(CanCreateCustomer, CanCreateCustomerAddress))
+        Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, role.toString)
+      val (customer1, _) = customerWithAddress(bankA)
+      val (_, addressOfCustomer2) = customerWithAddress(bankA)
+      When("We update customer 2's address through customer 1's path")
+      val request310 = (v3_1_0_Request / "banks" / bankA / "customers" / customer1 / "addresses" / addressOfCustomer2).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(postCustomerAddressJson.copy(city = "Elsewhere")))
+      Then("We should get a 404")
+      response310.code should equal(404)
+      And("error should be " + CustomerAddressNotFound)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerAddressNotFound)
+    }
+  }
+
 
 }
