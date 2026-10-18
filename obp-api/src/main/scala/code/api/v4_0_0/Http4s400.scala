@@ -499,17 +499,24 @@ object Http4s400 {
               bank.bank_routings.filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
               bank.bank_routings.filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
               Some(cc))
-            entitlements <- NewStyle.function.getEntitlementsByUserId(cc.userId, Some(cc))
+            // Creator grants target the HUMAN (as v5.0.0 / v6.0.0 do): under a Consent the
+            // authenticated user is a per-consent shadow, and roles granted to it are stranded.
+            humanUserId = cc.onBehalfOfUserId
+            entitlements <- NewStyle.function.getEntitlementsByUserId(humanUserId, Some(cc))
             entitlementsByBank = entitlements.filter(_.bankId == bank.id)
             _ <- entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString()) match {
               case true  => Future.successful(())
+              // grant to the human, recording the authenticated caller as the granter
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                bank.id, cc.userId, CanCreateEntitlementAtOneBank.toString()))
+                bank.id, humanUserId, CanCreateEntitlementAtOneBank.toString(),
+                grantedByUserId = Some(cc.userId)))
             }
             _ <- entitlementsByBank.exists(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()) match {
               case true  => Future.successful(())
+              // grant to the human, recording the authenticated caller as the granter
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                bank.id, cc.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
+                bank.id, humanUserId, CanReadDynamicResourceDocsAtOneBank.toString(),
+                grantedByUserId = Some(cc.userId)))
             }
           } yield JSONFactory400.createBankJSON400(success)
         }
