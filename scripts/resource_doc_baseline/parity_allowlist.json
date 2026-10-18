@@ -1940,6 +1940,22 @@
       "http4s_digest": "5914176f0c140e0e56de59f39988dd4bd8312a0c873aa816729a12d5037ae936"
     },
     {
+      "version": "v2_2_0",
+      "endpoint": "createBank",
+      "field": "errorResponseBodies",
+      "reason": "Added bankIdAlreadyExists: createBank now refuses an existing BANK_ID instead of overwriting that bank and granting the caller CanCreateEntitlementAtOneBank there",
+      "lift_digest": "d9be7cb75e5f529810a1ba5852fa29f17b2137bc77c4dc7cd0c794b22fbd16bd",
+      "http4s_digest": "d21fc395f1489dfb4bf5b8cea84e210a92b642752e5dbaaa88791e4e5e709022"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createBank",
+      "field": "errorResponseBodies",
+      "reason": "Added bankIdAlreadyExists: createBank now refuses an existing BANK_ID instead of overwriting that bank and granting the caller CanCreateEntitlementAtOneBank there",
+      "lift_digest": "52de8e9110317d5430e3f54a267aa69b391f6dcddce3b99c8d40a7fee9ef0bc6",
+      "http4s_digest": "5d830c45b454632969c46172008000d36ffeb4e87afc980126f4d9d6e7955486"
+    },
+    {
       "version": "v4_0_0",
       "endpoint": "createConsumer",
       "field": "errorResponseBodies",

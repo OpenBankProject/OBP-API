@@ -470,6 +470,12 @@ object Http4s220 {
                 NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.get.toString, canCreateBank, Some(cc)),
                 Some(cc), UserHasMissingRoles + canCreateBank)
             }
+            // Refuse an existing BANK_ID (as v5.0.0 / v6.0.0 do): createOrUpdateBank would overwrite that
+            // bank and the grants below would make the caller entitlement admin at a bank they did not create.
+            (banks, _) <- NewStyle.function.getBanks(Some(cc))
+            _ <- code.util.Helper.booleanToFuture(bankIdAlreadyExists, cc = Some(cc)) {
+              !banks.exists(_.bankId.value == bank.id)
+            }
             (success, _) <- NewStyle.function.createOrUpdateBank(
               bank.id, bank.full_name, bank.short_name, bank.logo_url, bank.website_url,
               bank.swift_bic, bank.national_identifier,
@@ -501,7 +507,8 @@ object Http4s220 {
       s"""Create a new bank (Authenticated access).
          |${userAuthenticationMessage(true)}""",
       bankJSONV220, bankJSONV220,
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired, InsufficientAuthorisationToCreateBank, UnknownError),
+      // bankIdAlreadyExists: the BANK_ID in the body is already taken (400)
+      List(InvalidJsonFormat, AuthenticatedUserIsRequired, InsufficientAuthorisationToCreateBank, bankIdAlreadyExists, UnknownError),
       List(apiTagBank, apiTagOldStyle),
       Some(List(canCreateBank)),
       http4sPartialFunction = Some(createBank))

@@ -485,6 +485,13 @@ object Http4s400 {
             _ <- code.util.Helper.booleanToFuture(
               failMsg = s"$InvalidJsonFormat BANK_ID can not contain `::::` characters",
               cc = Some(cc)) { !APIUtil.`checkIfContains::::`(bank.id) }
+            // Refuse an existing BANK_ID (as v5.0.0 / v6.0.0 do): createOrUpdateBank would overwrite that
+            // bank and the grants below would make the caller entitlement admin at a bank they did not create.
+            (banks, _) <- NewStyle.function.getBanks(Some(cc))
+            _ <- code.util.Helper.booleanToFuture(
+              failMsg = bankIdAlreadyExists, cc = Some(cc)) {
+              !banks.exists(_.bankId.value == bank.id)
+            }
             (success, _) <- NewStyle.function.createOrUpdateBank(
               bank.id, bank.full_name, bank.short_name, bank.logo, bank.website,
               bank.bank_routings.find(_.scheme == "BIC").map(_.address).getOrElse(""),
@@ -529,6 +536,7 @@ object Http4s400 {
         InvalidJsonFormat,
         $AuthenticatedUserIsRequired,
         InsufficientAuthorisationToCreateBank,
+        bankIdAlreadyExists, // the BANK_ID in the body is already taken (400)
         UnknownError
       ),
       List(apiTagBank),
