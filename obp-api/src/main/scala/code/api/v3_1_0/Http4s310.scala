@@ -3348,7 +3348,14 @@ object Http4s310 {
               400, Some(cc)) { AccountAttributeType.withName(postedData.`type`) }
             (_, _) <- NewStyle.function.getBankAccount(BankId(bankIdStr), AccountId(accountIdStr), Some(cc))
             (_, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
-            (_, _) <- NewStyle.function.getAccountAttributeById(accountAttributeIdStr, Some(cc))
+            // keep the existing attribute so it can be checked against the path
+            (existingAttribute, _) <- NewStyle.function.getAccountAttributeById(accountAttributeIdStr, Some(cc))
+            // the attribute must belong to the bank, account and product in the path, else a role at one bank overwrites and moves any bank's attribute
+            _ <- code.util.Helper.booleanToFuture(AccountAttributeNotFound, 404, Some(cc)) {
+              existingAttribute.bankId.value == bankIdStr &&
+                existingAttribute.accountId.value == accountIdStr &&
+                existingAttribute.productCode.value == productCodeStr
+            }
             (accountAttribute, _) <- NewStyle.function.createOrUpdateAccountAttribute(
               BankId(bankIdStr), AccountId(accountIdStr), ProductCode(productCodeStr),
               Some(accountAttributeIdStr), postedData.name, accountAttributeType, postedData.value,
@@ -3385,7 +3392,8 @@ object Http4s310 {
       |""",
       accountAttributeJson,
       accountAttributeResponseJson,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      // AccountAttributeNotFound: the attribute is not under the BANK_ID / ACCOUNT_ID / PRODUCT_CODE in the path
+      List(AuthenticatedUserIsRequired, InvalidJsonFormat, AccountAttributeNotFound, UnknownError),
       List(apiTagAccount, apiTagAccountAttribute, apiTagAttribute),
       Some(List(canUpdateAccountAttribute)),
       http4sPartialFunction = Some(updateAccountAttribute)

@@ -501,6 +501,8 @@ object ErrorMessages {
   val InvestigationReportNotAvailable = "OBP-30150: Investigation Report is only available in mapped mode (connector=mapped)."
   val NotificationWebhookNotFound = "OBP-30151: Account Notification Webhook not found. Please specify a valid value for WEBHOOK_ID."
   val DeleteWebhookError = "OBP-30152: Could not delete the Webhook."
+  // an account attribute that does not exist, or does not belong to the BANK_ID / ACCOUNT_ID / PRODUCT_CODE in the path
+  val AccountAttributeNotFound = "OBP-30153: Account Attribute not found. Please specify a valid value for ACCOUNT_ATTRIBUTE_ID for this BANK_ID, ACCOUNT_ID and PRODUCT_CODE."
 
   val CreateWebhookError = "OBP-30047: Cannot create Webhook"
   val GetWebhooksError = "OBP-30048: Cannot get Webhooks"
