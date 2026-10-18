@@ -629,6 +629,14 @@
     },
     {
       "version": "v3_1_0",
+      "endpoint": "getCustomerByCustomerId",
+      "field": "errorResponseBodies",
+      "reason": "Added CustomerNotFoundByCustomerId: 404 when the customer does not exist or belongs to another bank than BANK_ID",
+      "lift_digest": "ae81ce0e83dc0ab8e4b334d14fbcc820c87319c8e7a77cc656f38b602732807d",
+      "http4s_digest": "562688c414d1fb8d3622b3ea3677c0b148549cb369f9f35e28c10bf8ff7a87f4"
+    },
+    {
+      "version": "v3_1_0",
       "endpoint": "getFirehoseCustomers",
       "field": "requestUrl",
       "reason": "BANK_ID -> FIREHOSE_BANK_ID, firehose bypass convention.",

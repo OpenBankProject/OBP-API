@@ -772,6 +772,12 @@ object Http4s310 {
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canGetCustomersAtOneBank, Some(cc))
             (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller read customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             (customerAttributes, _) <- NewStyle.function.getCustomerAttributes(
               bank.bankId, CustomerId(customerIdStr), Some(cc))
           } yield JSONFactory310.createCustomerWithAttributesJson(customer, customerAttributes)
@@ -796,6 +802,8 @@ object Http4s310 {
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserCustomerLinksNotFoundForUser,
+        // 404 when the customer does not exist or is at another bank than the one in the path
+        CustomerNotFoundByCustomerId,
         UnknownError
       ),
       List(apiTagCustomer),
