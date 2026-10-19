@@ -3991,15 +3991,19 @@ object Http4s600 {
     }
 
     lazy val deleteBankChatMessage: Http4sRoute = Http4sRoute {
-      case req @ DELETE -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
+      // bankIdStr is read so the room can be checked against the bank in the path
+      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.executeDelete(req) { cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
           for {
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
-            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            // the room must belong to the bank in the path, else it is treated as not found
+            _ <- Helper.booleanToFuture(ChatRoomNotFound, 404, cc = Some(cc)) { room.bankId == bankIdStr }
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else a participant of one room deletes messages of any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             msg <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
             _ <- if (msg.senderUserId == u.userId) Future.successful(())
             else Future(code.chat.ChatPermissions.checkParticipantPermission(
@@ -4023,7 +4027,8 @@ object Http4s600 {
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else a participant of one room deletes messages of any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             msg <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
             _ <- if (msg.senderUserId == u.userId) Future.successful(())
             else Future(code.chat.ChatPermissions.checkParticipantPermission(
