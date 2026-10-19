@@ -6511,7 +6511,9 @@ object Http4s400 {
                 (ucls, _) <- code.api.util.newstyle.UserCustomerLinkNewStyle
                   .getUserCustomerLinks(link.customerId, Some(cc))
                 (users, _) <- NewStyle.function.getUsersByUserIds(ucls.map(_.userId), Some(cc))
-                (attributes, _) <- NewStyle.function.getUserAttributesByUsers(ucls.map(_.userId), Some(cc))
+                (allAttributes, _) <- NewStyle.function.getUserAttributesByUsers(ucls.map(_.userId), Some(cc))
+                // personal attributes are only for their owner, so drop other users' personal ones, else co-users of the customer read them
+                attributes = allAttributes.filter(a => !a.isPersonal || a.userId == user.userId)
               } yield (customer, users, attributes)
             })
           } yield CorrelatedEntities(
