@@ -204,12 +204,36 @@
       "http4s_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd"
     },
     {
+      "version": "v1_2_1",
+      "endpoint": "removePermissionForUserForBankAccountForAllViews",
+      "field": "description",
+      "reason": "Added that nothing is revoked when the user is an account holder with owner view access, or the only user with owner view access (OwnerViewAccessMustRemain)",
+      "lift_digest": "f31da0343c89bc37150a06bc3d8a39ed4e8732a18df8b21e36fdda2bd79517c3",
+      "http4s_digest": "42437a8a9503f3b2b7a0baaa7103c9e17b1a0380f89c60128c8c408df2067946"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "removePermissionForUserForBankAccountForAllViews",
+      "field": "errorResponseBodies",
+      "reason": "Added OwnerViewAccessMustRemain (403): revoking all views no longer removes an account holder's or the last owner's owner view access",
+      "lift_digest": "b72cefb915c6af0190e4543aed820722db264a43a54247247d9a1fdb25321703",
+      "http4s_digest": "c7c4a40bf4a76ab083977ab386b6699136746f155c5749910f0b0edd2d77b35c"
+    },
+    {
       "version": "v4_0_0",
       "endpoint": "updateConsentStatus",
       "field": "errorResponseBodies",
       "reason": "Added ConsentNotFound (404): the consent must belong to the caller, else any user reads any consent's JWT and changes its status",
       "lift_digest": "cf8ea6cd85f19cc3b87dbeeeb4b6f41d2fd835c55e8bcfaec7e3459304a42ca4",
       "http4s_digest": "3bb23da885584fa6b1b72ac9914a533340b6a74dd1e57227fecb794c7369f547"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateConsentStatus",
+      "field": "description",
+      "reason": "Added that the consent must belong to the logged-in user, otherwise 404 ConsentNotFound",
+      "lift_digest": "72dc13245db8680613c4bfc56859b1b7ca4c10d35fb53f65b241c184ebf13827",
+      "http4s_digest": "2ab09de7128ff70488baf26b2fda2ab9f52df3565bf17644fedbc31b36e823ab"
     },
     {
       "version": "v4_0_0",

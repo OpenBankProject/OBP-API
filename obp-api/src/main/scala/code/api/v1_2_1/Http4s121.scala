@@ -944,12 +944,14 @@ object Http4s121 {
       "Revoke access to all Views on Account",
       s""""Revokes access to all Views on an Account for a certain User.
        |
+       |Nothing is revoked if the User is an account holder of the Account and has access to its owner view, or if the User is the only one with access to the owner view: the request is refused with $OwnerViewAccessMustRemain
+       |
        |$generalRevokeAccessToViewText
        |
       |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "user does not have access to owner view on account"),
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, OwnerViewAccessMustRemain, UnknownError, "user does not have access to owner view on account"),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
       http4sPartialFunction = Some(removePermissionForUserForBankAccountForAllViews)
     )

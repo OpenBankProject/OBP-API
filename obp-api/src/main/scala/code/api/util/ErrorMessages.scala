@@ -363,6 +363,7 @@ object ErrorMessages {
   val UserAlreadyValidated = "OBP-20107: User email is already validated."
   val InvalidRedirectUrl = "OBP-20108: Invalid redirect URL. Each redirect URL must use https, use http only for localhost, 127.0.0.1 or [::1], or use an app scheme in reverse-domain form such as com.example.app, and must not contain a wildcard, user information or a fragment. Rejected entry: "
   val RedirectUrlHostNotAllowed = "OBP-20109: Redirect URL host not allowed. This instance only accepts redirect URLs that point to the hosts listed for it. Rejected entry: "
+  val OwnerViewAccessMustRemain = "OBP-20110: Owner view access must remain. The user is an account holder of this account, or the only user with access to its owner view, so they keep their owner view access. No access has been revoked."
 
   // OAuth 2
   val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "

@@ -425,16 +425,30 @@ object MapperViews extends Views with MdcLoggable {
 
 
   /**
-   * remove all the accountAccess for one user and linked account.
-   * we already has the guard `canRevokeAccessToAllViews` on the top level.
+   * This removes every account access the user has to one account.
+   *
+   * The caller's right to revoke is checked at the top level (`canRevokeAccessToAllViews`); that check
+   * says nothing about the user losing the access. Here the same rule as revoking a single view applies
+   * (canRevokeOwnerAccess): an account holder keeps the owner view, and the account must keep at least one
+   * user with owner view access. If any of the user's accesses is protected by that rule, nothing is revoked,
+   * so the call never leaves the user with only part of their access removed.
    */
   def revokeAllAccountAccess(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
-    AccountAccess.find(
+    val accountAccesses = AccountAccess.findAll(
       By(AccountAccess.bank_id, bankId.value),
       By(AccountAccess.account_id, accountId.value),
       By(AccountAccess.user_fk, user.userPrimaryKey.value)
-    ).foreach(_.delete_!)
-    Full(true)
+    )
+    val everyAccessCanBeRevoked = accountAccesses.forall(accountAccess =>
+      ViewDefinition.findSystemView(accountAccess.view_id.get)
+        .forall(systemView => canRevokeOwnerAccess(bankId, accountId, systemView, user))
+    )
+    if (everyAccessCanBeRevoked) {
+      accountAccesses.foreach(_.delete_!)
+      Full(true)
+    } else {
+      Failure(OwnerViewAccessMustRemain)
+    }
   }
 
   def revokeAccountAccessByUser(bankId : BankId, accountId: AccountId, user : User, callContext: Option[CallContext]) : Box[Boolean] = {

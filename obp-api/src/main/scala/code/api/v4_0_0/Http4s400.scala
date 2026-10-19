@@ -5540,6 +5540,8 @@ object Http4s400 {
         |
         |This endpoint is used to update the Status of Consent.
         |
+        |The consent must belong to the logged-in user; another user's consent returns 404 $ConsentNotFound
+        |
         |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted
          .mkString(", ")}.
         |
