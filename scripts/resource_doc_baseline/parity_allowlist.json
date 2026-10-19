@@ -2324,6 +2324,14 @@
       "http4s_digest": "cae4be89c9ce78670b474a1cd141ae716a3156064734b11af0c5d223cb8f1043"
     },
     {
+      "version": "v2_1_0",
+      "endpoint": "answerTransactionRequestChallenge",
+      "field": "errorResponseBodies",
+      "reason": "Added InvalidTransactionRequestId (404 when the request does not pay from the account in the URL) and MakerCheckerSameUser/MakerCheckerUnknownMaker (maker-checker enforced as in v4.0.0)",
+      "lift_digest": "27cca89e482e0af6a8c21c03bf4729087cead31ee344683dcdcb803e51daf83f",
+      "http4s_digest": "b682cd279b9bc04570517e2e32fcb9b85b73ce9d89452454f5daddc48730a99a"
+    },
+    {
       "version": "v2_0_0",
       "endpoint": "createAccount",
       "field": "errorResponseBodies",
