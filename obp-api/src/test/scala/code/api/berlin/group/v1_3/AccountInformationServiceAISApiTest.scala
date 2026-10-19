@@ -432,6 +432,16 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       response2.code should equal(200)
       response2.body.extract[SingleTransactionJsonV13].value.transactionsDetails.transactionId should be (transactionId)
     }
+
+    // With PSD2 certificates required, a caller sending no TPP certificate is refused before the account is read
+    scenario("PSD2 certificate required but not sent, test failed", BerlinGroupV1_3, getTransactionDetails) {
+      setPropsValues("requirePsd2Certificates" -> "CERTIFICATE")
+      val requestGet = (V1_3_BG / "accounts" / testAccountId1.value / "transactions" / "whatever").GET <@ (user1)
+      val response: APIResponse = makeGetRequest(requestGet)
+      Then("We should get a 401 ")
+      response.code should equal(401)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should include(X509CannotGetCertificate)
+    }
   }
 
   feature(s"BG v1.3 - $getCardAccountTransactionList") {
