@@ -2404,6 +2404,14 @@
       "http4s_digest": "f32444f850ad7c50c97d8f9fa4e9aac93757d7b16e708393903ee64f4e0e7a76"
     },
     {
+      "version": "v3_1_0",
+      "endpoint": "deleteTaxResidence",
+      "field": "errorResponseBodies",
+      "reason": "Added CustomerNotFoundByCustomerId and TaxResidenceNotFound (404): the customer must be at the bank in the path and the tax residence must be the customer's, else a Role at one bank deletes any bank's tax residences",
+      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
+      "http4s_digest": "82d851ecfb266d07ca6bcd51e2de6fe66f14941401e4dabdf3a0d2617607b6f1"
+    },
+    {
       "version": "v5_0_0",
       "endpoint": "createUserAuthContextUpdateRequest",
       "field": "description",

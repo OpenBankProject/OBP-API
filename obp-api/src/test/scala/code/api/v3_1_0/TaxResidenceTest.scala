@@ -223,5 +223,47 @@ class TaxResidenceTest extends V310ServerSetup {
     }
   }
 
+  // The Delete endpoint deletes only a tax residence of the customer in the path, at the bank in the path
+  feature("Delete Tax Residence v3.1.0 stays within the bank and customer in the path") {
+    // Creates a customer at the bank with a tax residence, and returns (customer id, tax residence id)
+    def customerWithTaxResidence(bank: String): (String, String) = {
+      Entitlement.entitlement.vend.addEntitlement(bank, resourceUser1.userId, CanCreateCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(bank, resourceUser1.userId, CanCreateTaxResidence.toString)
+      val customer = makePostRequest((v3_1_0_Request / "banks" / bank / "customers").POST <@(user1), write(postCustomerJson))
+      customer.code should equal(201)
+      val customerId = customer.body.extract[CustomerJsonV310].customer_id
+      val taxResidence = makePostRequest((v3_1_0_Request / "banks" / bank / "customers" / customerId / "tax-residence").POST <@(user1), write(postTaxResidenceJson))
+      taxResidence.code should equal(201)
+      (customerId, taxResidence.body.extract[TaxResidenceV310].tax_residence_id)
+    }
+    scenario("A customer at another bank than the one in the path is not found", ApiEndpoint3, VersionOfApi) {
+      val bankA = testBankId1.value
+      val bankB = testBankId2.value
+      val (customerAtB, taxResidenceAtB) = customerWithTaxResidence(bankB)
+      Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, CanDeleteTaxResidence.toString)
+      When("We delete bank B's customer's tax residence through bank A's path")
+      val request310 = (v3_1_0_Request / "banks" / bankA / "customers" / customerAtB / "tax_residencies" / taxResidenceAtB).DELETE <@(user1)
+      val response310 = makeDeleteRequest(request310)
+      Then("We should get a 404")
+      response310.code should equal(404)
+      And("error should be " + CustomerNotFoundByCustomerId)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
+    }
+    scenario("A tax residence of another customer than the one in the path is not found", ApiEndpoint3, VersionOfApi) {
+      val bankA = testBankId1.value
+      val bankB = testBankId2.value
+      val (customerAtA, _) = customerWithTaxResidence(bankA)
+      val (_, taxResidenceAtB) = customerWithTaxResidence(bankB)
+      Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, CanDeleteTaxResidence.toString)
+      When("We delete bank B's tax residence through bank A's customer")
+      val request310 = (v3_1_0_Request / "banks" / bankA / "customers" / customerAtA / "tax_residencies" / taxResidenceAtB).DELETE <@(user1)
+      val response310 = makeDeleteRequest(request310)
+      Then("We should get a 404")
+      response310.code should equal(404)
+      And("error should be " + TaxResidenceNotFound)
+      response310.body.extract[ErrorMessage].message should startWith (TaxResidenceNotFound)
+    }
+  }
+
 
 }

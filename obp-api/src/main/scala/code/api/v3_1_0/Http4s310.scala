@@ -1951,7 +1951,19 @@ object Http4s310 {
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canDeleteTaxResidence, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // Keep the customer: its bank is checked next
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller delete tax residences of customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
+            // The tax residence must be one of this customer's, else any tax residence id could be deleted
+            (taxResidences, _) <- NewStyle.function.getTaxResidences(customerIdStr, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(TaxResidenceNotFound, 404, Some(cc)) {
+              taxResidences.exists(_.taxResidenceId == taxResidenceIdStr)
+            }
             (deleted, _) <- NewStyle.function.deleteTaxResidence(taxResidenceIdStr, Some(cc))
           } yield Full(deleted)
         }
@@ -1971,7 +1983,9 @@ object Http4s310 {
       |""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // CustomerNotFoundByCustomerId and TaxResidenceNotFound (404): the customer must be at the bank in the path,
+      // and the tax residence must be the customer's
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, CustomerNotFoundByCustomerId, TaxResidenceNotFound, UnknownError),
       List(apiTagCustomer, apiTagKyc),
       Some(List(canDeleteTaxResidence)),
       http4sPartialFunction = Some(deleteTaxResidence)
