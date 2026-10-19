@@ -2012,7 +2012,19 @@ object Http4s310 {
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canDeleteCustomerAddress, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // Keep the customer: its bank is checked next
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller delete addresses of customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
+            // The address must be one of this customer's, else any address id could be deleted
+            (addresses, _) <- NewStyle.function.getCustomerAddress(customerIdStr, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(CustomerAddressNotFound, 404, Some(cc)) {
+              addresses.exists(_.customerAddressId == customerAddressIdStr)
+            }
             (deleted, _) <- NewStyle.function.deleteCustomerAddress(customerAddressIdStr, Some(cc))
           } yield Full(deleted)
         }
@@ -2032,7 +2044,10 @@ object Http4s310 {
       |""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // CustomerNotFoundByCustomerId and CustomerAddressNotFound (404): the customer must be at the bank in the path,
+      // and the address must be the customer's
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, CustomerNotFoundByCustomerId, CustomerAddressNotFound,
+        UnknownError),
       List(apiTagCustomer, apiTagKyc),
       Some(List(canDeleteCustomerAddress)),
       http4sPartialFunction = Some(deleteCustomerAddress)

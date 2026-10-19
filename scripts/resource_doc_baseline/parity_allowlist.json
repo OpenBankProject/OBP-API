@@ -2444,6 +2444,14 @@
       "http4s_digest": "82d851ecfb266d07ca6bcd51e2de6fe66f14941401e4dabdf3a0d2617607b6f1"
     },
     {
+      "version": "v3_1_0",
+      "endpoint": "deleteCustomerAddress",
+      "field": "errorResponseBodies",
+      "reason": "Added CustomerNotFoundByCustomerId and CustomerAddressNotFound (404): the customer must be at BANK_ID and the address must be the customer's, else a bank-level Role deletes addresses at any bank",
+      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
+      "http4s_digest": "dd24b8929132c699a27a54ec97308a8aefe2c396aa0c03243d0051fe0ad6d730"
+    },
+    {
       "version": "v5_0_0",
       "endpoint": "createUserAuthContextUpdateRequest",
       "field": "description",
