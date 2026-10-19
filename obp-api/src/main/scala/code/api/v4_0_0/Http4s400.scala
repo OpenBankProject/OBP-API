@@ -6278,9 +6278,11 @@ object Http4s400 {
         |""",
         supportedCurrenciesJson,
         atmSupportedCurrenciesJson,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // a caller without the role is refused with 403 UserHasMissingRoles
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        None,
+        // changing a bank's ATM data is bank management: require the role, as updateAtm does, else any logged-in user edits any bank's ATM
+        Some(List(canUpdateAtm, canUpdateAtmAtAnyBank)),
         http4sPartialFunction = Some(updateAtmSupportedCurrencies)
       )
 
@@ -6294,9 +6296,11 @@ object Http4s400 {
         |""",
         supportedLanguagesJson,
         atmSupportedLanguagesJson,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // a caller without the role is refused with 403 UserHasMissingRoles
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        None,
+        // changing a bank's ATM data is bank management: require the role, as updateAtm does, else any logged-in user edits any bank's ATM
+        Some(List(canUpdateAtm, canUpdateAtmAtAnyBank)),
         http4sPartialFunction = Some(updateAtmSupportedLanguages)
       )
 
@@ -6310,9 +6314,11 @@ object Http4s400 {
         |""",
         accessibilityFeaturesJson,
         atmAccessibilityFeaturesJson,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // a caller without the role is refused with 403 UserHasMissingRoles
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        None,
+        // changing a bank's ATM data is bank management: require the role, as updateAtm does, else any logged-in user edits any bank's ATM
+        Some(List(canUpdateAtm, canUpdateAtmAtAnyBank)),
         http4sPartialFunction = Some(updateAtmAccessibilityFeatures)
       )
 
@@ -6326,9 +6332,11 @@ object Http4s400 {
         |""",
         atmServicesJson,
         atmServicesResponseJson,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // a caller without the role is refused with 403 UserHasMissingRoles
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        None,
+        // changing a bank's ATM data is bank management: require the role, as updateAtm does, else any logged-in user edits any bank's ATM
+        Some(List(canUpdateAtm, canUpdateAtmAtAnyBank)),
         http4sPartialFunction = Some(updateAtmServices)
       )
 
@@ -6342,9 +6350,11 @@ object Http4s400 {
         |""",
         atmNotesJson,
         atmNotesResponseJson,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // a caller without the role is refused with 403 UserHasMissingRoles
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        None,
+        // changing a bank's ATM data is bank management: require the role, as updateAtm does, else any logged-in user edits any bank's ATM
+        Some(List(canUpdateAtm, canUpdateAtmAtAnyBank)),
         http4sPartialFunction = Some(updateAtmNotes)
       )
 
@@ -6358,9 +6368,11 @@ object Http4s400 {
         |""",
         atmLocationCategoriesJsonV400,
         atmLocationCategoriesResponseJsonV400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // a caller without the role is refused with 403 UserHasMissingRoles
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        None,
+        // changing a bank's ATM data is bank management: require the role, as updateAtm does, else any logged-in user edits any bank's ATM
+        Some(List(canUpdateAtm, canUpdateAtmAtAnyBank)),
         http4sPartialFunction = Some(updateAtmLocationCategories)
       )
 
