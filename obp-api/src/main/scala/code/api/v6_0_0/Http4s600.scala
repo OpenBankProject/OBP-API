@@ -862,7 +862,9 @@ object Http4s600 {
           val params = req.uri.query.multiParams.toList.map { case (k, vs) => GetProductsParam(k, vs.toList) }
           for {
             (products, _) <- NewStyle.function.getProducts(bank.bankId, params, Some(cc))
-          } yield JSONFactory600.createProductsJsonV600(products, Map.empty)
+            // one batch lookup of every listed product's tags, as Lift did, so the documented tags field is filled
+            tagsByCode <- Future(code.products.ProductTagsProvider.getTagsByProductCodes(bank.bankId, products.map(_.code.value)))
+          } yield JSONFactory600.createProductsJsonV600(products, tagsByCode)
         }
     }
 
