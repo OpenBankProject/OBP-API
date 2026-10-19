@@ -207,17 +207,17 @@
       "version": "v1_2_1",
       "endpoint": "removePermissionForUserForBankAccountForAllViews",
       "field": "description",
-      "reason": "Added that nothing is revoked when the user is an account holder with owner view access, or the only user with owner view access (OwnerViewAccessMustRemain)",
+      "reason": "Added that every view is revoked, the owner view included, also from an account holder, and that a user cannot revoke their own access (CannotRevokeOwnAccountAccess)",
       "lift_digest": "f31da0343c89bc37150a06bc3d8a39ed4e8732a18df8b21e36fdda2bd79517c3",
-      "http4s_digest": "42437a8a9503f3b2b7a0baaa7103c9e17b1a0380f89c60128c8c408df2067946"
+      "http4s_digest": "5979c1675784d7512516a10805d8e57669ff941ccf8959ed73bd0ccf6d9e911a"
     },
     {
       "version": "v1_2_1",
       "endpoint": "removePermissionForUserForBankAccountForAllViews",
       "field": "errorResponseBodies",
-      "reason": "Added OwnerViewAccessMustRemain (403): revoking all views no longer removes an account holder's or the last owner's owner view access",
+      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to all views",
       "lift_digest": "b72cefb915c6af0190e4543aed820722db264a43a54247247d9a1fdb25321703",
-      "http4s_digest": "c7c4a40bf4a76ab083977ab386b6699136746f155c5749910f0b0edd2d77b35c"
+      "http4s_digest": "1504d43b14defdedbab99f5784e36dbc7d3c6e1eca29fddc41d81f43d3ae0bcd"
     },
     {
       "version": "v4_0_0",
@@ -2450,6 +2450,54 @@
       "reason": "States that the paying account is the card's account, that the User needs the owner view with permission to add transaction requests (or CanCreateAnyTransactionRequest), and that the payee must be a counterparty of that account.",
       "lift_digest": "b670d8181d5d2d563db3a015bb357107c827ad273e2097c4215032c07e39502b",
       "http4s_digest": "b60ff8942421ae14a3245bcc8625bac7409abef79994972c629d56dafc582840"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "removePermissionForUserForBankAccountForOneView",
+      "field": "description",
+      "reason": "Added that any view can be revoked, the owner view included, also from an account holder, and that a user cannot revoke their own access (CannotRevokeOwnAccountAccess)",
+      "lift_digest": "b19742add024159ef6d85db9e167ff2049110aa0e11e449fa05838bd2570f359",
+      "http4s_digest": "361d3ccf4787cc7c1715a9907c12970266ca09606c73cfde411772c8cc2d7094"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "removePermissionForUserForBankAccountForOneView",
+      "field": "errorResponseBodies",
+      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to a view",
+      "lift_digest": "56b707566120b88065477b5618fdc5886dc75f45b2e4b1053dd0bdbda41e2f8f",
+      "http4s_digest": "bbfff69a556f8601736d5ac6e63d20d0cd31b761b64b443e23082f81001bfcfb"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "revokeUserAccessToView",
+      "field": "description",
+      "reason": "Added that any view can be revoked, the owner view included, also from an account holder, and that a user cannot revoke their own access (CannotRevokeOwnAccountAccess)",
+      "lift_digest": "07f97f416e1380baf140efbc77647a2ef36937952c7238b79b03f184d241f3d9",
+      "http4s_digest": "554e40e9d4feffb8ea320c5d202bb00ba3b8d8c2c4daee055d07a1ad61c6a2a8"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "revokeUserAccessToView",
+      "field": "errorResponseBodies",
+      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to a view",
+      "lift_digest": "53e6dd5b338b2443d8084e1f3112e6f8ec63ef81faa21f9bcad879997dabacd9",
+      "http4s_digest": "81f765f4125feedda61e1d75adb8ae6929c71df660303e2eac0b64d6eec1de89"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "revokeUserAccessToViewById",
+      "field": "description",
+      "reason": "Added that any view can be revoked, the owner view included, also from an account holder, and that a user cannot revoke their own access (CannotRevokeOwnAccountAccess)",
+      "lift_digest": "5b65d5501056e25545dc7000a0b84e1d93de3a7a69fcd88e06afabeb03da0575",
+      "http4s_digest": "817a759ab7bde7501e16460d69e2b066fc124a682df74d38ead6adaf759ddc94"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "revokeUserAccessToViewById",
+      "field": "errorResponseBodies",
+      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to a view",
+      "lift_digest": "46a5a1e4ea4bcb0ccae8f5338b321f9684a6cc591b6cdf13f1a98a2582d4eb27",
+      "http4s_digest": "110c6fd1269109a3c11cce5d9b922de6c421d0335558791f9bcf521d400d7a57"
     }
   ]
 }

@@ -5217,6 +5217,9 @@ object Http4s400 {
               cc = Some(cc)) {
               APIUtil.canRevokeAccessToView(bankId, accountId, viewId, loggedInUser, Some(cc))
             }
+            _ <- code.util.Helper.booleanToFuture(CannotRevokeOwnAccountAccess, 403, cc = Some(cc)) {
+              postJson.user_id != loggedInUser.userId
+            }
             (targetUser, _) <- NewStyle.function.findByUserId(postJson.user_id, Some(cc))
             view <- if (postJson.view.is_system)
                       ViewNewStyle.systemView(viewId, Some(cc))
@@ -5435,6 +5438,8 @@ object Http4s400 {
         "Revoke User access to View",
         s"""Revoke the User identified by USER_ID access to the view identified by VIEW_ID.
          |
+         |Any view can be revoked, the owner view included, also from an account holder. A User cannot revoke their own access: that request is refused with $CannotRevokeOwnAccountAccess
+         |
          |${userAuthenticationMessage(
           true
         )} and the user needs to be account holder.
@@ -5442,7 +5447,7 @@ object Http4s400 {
          |""",
         postAccountAccessJsonV400, revokedJsonV400,
         List($AuthenticatedUserIsRequired,
-          UserLacksPermissionCanRevokeAccessToViewForTargetAccount,
+          UserLacksPermissionCanRevokeAccessToViewForTargetAccount, CannotRevokeOwnAccountAccess,
           InvalidJsonFormat, UserNotFoundById, SystemViewNotFound, ViewNotFound,
           CannotRevokeAccountAccess, CannotFindAccountAccess, UnknownError),
         List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired), None,

@@ -2077,6 +2077,26 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       viewsAfter should equal(viewsBefore -1)
     }
 
+    scenario("a user cannot revoke their own access to a view on a bank account, even if another user has access to it", API1_2_1, DeletePermission){
+      Given("The owner view of an account is held by the caller and by another user")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      grantUserAccessToView(bankId, bankAccount.id, resourceUser2.idGivenByProvider, SYSTEM_OWNER_VIEW_ID, user1).code should equal (201)
+
+      When("The caller tries to revoke their own access to the owner view")
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, resourceUser1.idGivenByProvider, SYSTEM_OWNER_VIEW_ID, user1)
+
+      Then("we should get a 403 code")
+      reply.code should equal (403)
+      reply.body.extract[ErrorMessage].message should include (CannotRevokeOwnAccountAccess)
+
+      And("The caller should still have access to the owner view")
+      AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(BankId(bankId), AccountId(bankAccount.id), ViewId(SYSTEM_OWNER_VIEW_ID), resourceUser1.userPrimaryKey).isDefined should equal (true)
+
+      //clean up: the later tests expect user2 to have no access to the test accounts
+      revokeUserAccessToAllViews(bankId, bankAccount.id, resourceUser2.idGivenByProvider, user1).code should equal (204)
+    }
+
     scenario("we cannot revoke the access to a user that does not exist", API1_2_1, DeletePermission){
       Given("We will use an access token with a random user Id")
       val bankId = randomBank
@@ -2180,9 +2200,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       viewsAfter should equal(viewsBefore)
     }
 
-    scenario("we cannot revoke the access to the owner view via a revoke all views call if there " +
-      "would then be no one with access to it", API1_2_1, DeletePermissions){
-      Given("The only user with access to the owner view of an account")
+    scenario("a user cannot revoke their own access to all the views on a bank account", API1_2_1, DeletePermissions){
+      Given("A user with access to the owner view of an account")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = resourceUser1.idGivenByProvider
@@ -2194,14 +2213,14 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
       Then("we should get a 403 code")
       reply.code should equal (403)
-      reply.body.extract[ErrorMessage].message should include (OwnerViewAccessMustRemain)
+      reply.body.extract[ErrorMessage].message should include (CannotRevokeOwnAccountAccess)
 
       And("None of the user's access to the account should have been revoked")
       AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(BankId(bankId), AccountId(bankAccount.id), ViewId(SYSTEM_OWNER_VIEW_ID), resourceUser1.userPrimaryKey).isDefined should equal (true)
       getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length should equal (viewsBefore)
     }
 
-    scenario("we cannot revoke the access of an account holder to the owner view on a bank account via a revoke all views call",
+    scenario("we can revoke the access of an account holder to the owner view on a bank account via a revoke all views call",
       API1_2_1, DeletePermissions){
       Given("A user is the account holder of an account (and has access to the owner view)")
       val bankId = randomBank
@@ -2215,16 +2234,14 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       When("We try to revoke this user's access to all views")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, resourceUser3.idGivenByProvider, user1)
 
-      Then("we should get a 403 code")
-      reply.code should equal (403)
-      reply.body.extract[ErrorMessage].message should include (OwnerViewAccessMustRemain)
+      Then("we should get a 204 code")
+      reply.code should equal (204)
 
-      And("The user should still have access to the owner view of this account")
-      AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(BankId(bankId), AccountId(bankAccount.id), ViewId(ownerViewId), resourceUser3.userPrimaryKey).isDefined should equal (true)
+      And("The user should no longer have access to the owner view of this account")
+      AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(BankId(bankId), AccountId(bankAccount.id), ViewId(ownerViewId), resourceUser3.userPrimaryKey).isDefined should equal (false)
 
-      //clean up: the later tests expect user3 to have no access to the test accounts
+      //clean up
       AccountHolders.accountHolders.vend.deleteAccountHolder(resourceUser3, BankIdAccountId(BankId(bankId), AccountId(bankAccount.id)))
-      revokeUserAccessToAllViews(bankId, bankAccount.id, resourceUser3.idGivenByProvider, user1).code should equal (204)
     }
   }
 

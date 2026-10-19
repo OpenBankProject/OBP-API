@@ -3418,6 +3418,9 @@ object Http4s510 {
             _ <- Helper.booleanToFuture(msg, 403, cc = Some(cc)) {
               APIUtil.canRevokeAccessToView(com.openbankproject.commons.model.BankIdAccountIdViewId(bankId, accountId, viewId), targetViewId, user, Some(cc))
             }
+            _ <- Helper.booleanToFuture(CannotRevokeOwnAccountAccess, 403, cc = Some(cc)) {
+              postJson.user_id != user.userId
+            }
             (targetUser, _) <- NewStyle.function.findByUserId(postJson.user_id, Some(cc))
             view <- if (isValidSystemViewId(targetViewId.value)) ViewNewStyle.systemView(targetViewId, Some(cc))
                     else ViewNewStyle.customView(targetViewId, BankIdAccountId(bankId, accountId), Some(cc))
@@ -3435,6 +3438,8 @@ object Http4s510 {
       "Revoke User access to View",
       s"""Revoke the User identified by USER_ID access to the view identified.
       |
+      |Any view can be revoked, the owner view included, also from an account holder. A User cannot revoke their own access: that request is refused with $CannotRevokeOwnAccountAccess
+      |
       |${userAuthenticationMessage(true)}.
       |
       |""",
@@ -3442,7 +3447,7 @@ object Http4s510 {
       revokedJsonV400,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
       UserLacksPermissionCanRevokeAccessToCustomViewForTargetAccount,
-      UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount,
+      UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount, CannotRevokeOwnAccountAccess,
       InvalidJsonFormat, UserNotFoundById, SystemViewNotFound, ViewNotFound,
       CannotRevokeAccountAccess, CannotFindAccountAccess, UnknownError),
       List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
