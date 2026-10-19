@@ -772,6 +772,12 @@ object Http4s310 {
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canGetCustomersAtOneBank, Some(cc))
             (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller read customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             (customerAttributes, _) <- NewStyle.function.getCustomerAttributes(
               bank.bankId, CustomerId(customerIdStr), Some(cc))
           } yield JSONFactory310.createCustomerWithAttributesJson(customer, customerAttributes)
@@ -796,6 +802,8 @@ object Http4s310 {
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserCustomerLinksNotFoundForUser,
+        // 404 when the customer does not exist or is at another bank than the one in the path
+        CustomerNotFoundByCustomerId,
         UnknownError
       ),
       List(apiTagCustomer),
@@ -1943,7 +1951,19 @@ object Http4s310 {
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canDeleteTaxResidence, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // Keep the customer: its bank is checked next
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller delete tax residences of customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
+            // The tax residence must be one of this customer's, else any tax residence id could be deleted
+            (taxResidences, _) <- NewStyle.function.getTaxResidences(customerIdStr, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(TaxResidenceNotFound, 404, Some(cc)) {
+              taxResidences.exists(_.taxResidenceId == taxResidenceIdStr)
+            }
             (deleted, _) <- NewStyle.function.deleteTaxResidence(taxResidenceIdStr, Some(cc))
           } yield Full(deleted)
         }
@@ -1963,7 +1983,9 @@ object Http4s310 {
       |""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // CustomerNotFoundByCustomerId and TaxResidenceNotFound (404): the customer must be at the bank in the path,
+      // and the tax residence must be the customer's
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, CustomerNotFoundByCustomerId, TaxResidenceNotFound, UnknownError),
       List(apiTagCustomer, apiTagKyc),
       Some(List(canDeleteTaxResidence)),
       http4sPartialFunction = Some(deleteTaxResidence)
@@ -2006,11 +2028,19 @@ object Http4s310 {
     // Note: this DELETE returns 204 (matches original v3.1.0 behavior).
 
     val deleteProductAttribute: Http4sRoute = Http4sRoute {
-      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "products" / _ / "attributes" / productAttributeIdStr =>
+      // productCodeStr is read so the attribute can be checked against the product in the path
+      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attributes" / productAttributeIdStr =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canDeleteProductAttribute, Some(cc))
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+            // load the attribute so it can be checked against the path
+            (existingAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // the attribute must belong to the bank and product in the path, else a role at one bank deletes any bank's attribute
+            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              existingAttribute.bankId.value == bankIdStr &&
+                existingAttribute.productCode.value == productCodeStr
+            }
             (deleted, _) <- NewStyle.function.deleteProductAttribute(productAttributeIdStr, Some(cc))
           } yield deleted
         }
@@ -2036,6 +2066,8 @@ object Http4s310 {
       List(
         UserHasMissingRoles,
         BankNotFound,
+        // the attribute is not at the bank and product in the path
+        ProductAttributeNotFound,
         UnknownError
       ),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
@@ -2251,7 +2283,14 @@ object Http4s310 {
         EndpointHelpers.withUserAndBankAndBodyCreated[PostTaxResidenceJsonV310, Any](req) { (user, bank, postedData, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canCreateTaxResidence, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // Keep the customer: its bank is checked next
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller add tax residences to customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             (taxResidence, _) <- NewStyle.function.createTaxResidence(
               customerIdStr, postedData.domain, postedData.tax_number, Some(cc))
           } yield JSONFactory310.createTaxResidence(taxResidence)
@@ -2272,7 +2311,9 @@ object Http4s310 {
       |""",
       postTaxResidenceJsonV310,
       taxResidenceV310,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      // CustomerNotFoundByCustomerId: the customer does not exist, or is not at BANK_ID (the guard above)
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, CustomerNotFoundByCustomerId,
+        UnknownError),
       List(apiTagCustomer, apiTagKyc),
       Some(List(canCreateTaxResidence)),
       http4sPartialFunction = Some(createTaxResidence)
@@ -2285,7 +2326,14 @@ object Http4s310 {
         EndpointHelpers.withUserAndBankAndBodyCreated[PostCustomerAddressJsonV310, Any](req) { (user, bank, postedData, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canCreateCustomerAddress, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // Keep the customer: its bank is checked next
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller add addresses to customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             (address, _) <- NewStyle.function.createCustomerAddress(
               customerIdStr,
               postedData.line_1, postedData.line_2, postedData.line_3,
@@ -2312,7 +2360,9 @@ object Http4s310 {
       |""",
       postCustomerAddressJsonV310,
       customerAddressJsonV310,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      // CustomerNotFoundByCustomerId: the customer does not exist, or is not at BANK_ID (the guard above)
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, CustomerNotFoundByCustomerId,
+        UnknownError),
       List(apiTagCustomer),
       Some(List(canCreateCustomerAddress)),
       http4sPartialFunction = Some(createCustomerAddress)
@@ -2325,7 +2375,19 @@ object Http4s310 {
         EndpointHelpers.withUserAndBankAndBody[PostCustomerAddressJsonV310, Any](req) { (user, bank, postedData, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canCreateCustomer, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // Keep the customer: its bank is checked next
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller change customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
+            // The address must be one of this customer's, else any address id could be overwritten
+            (addresses, _) <- NewStyle.function.getCustomerAddress(customerIdStr, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(CustomerAddressNotFound, 404, Some(cc)) {
+              addresses.exists(_.customerAddressId == customerAddressIdStr)
+            }
             (address, _) <- NewStyle.function.updateCustomerAddress(
               customerAddressIdStr,
               postedData.line_1, postedData.line_2, postedData.line_3,
@@ -2352,7 +2414,10 @@ object Http4s310 {
       |""",
       postCustomerAddressJsonV310,
       customerAddressJsonV310,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      // CustomerNotFoundByCustomerId and CustomerAddressNotFound: the customer is not at BANK_ID, or the address
+      // is not this customer's (the guards above)
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, CustomerNotFoundByCustomerId,
+        CustomerAddressNotFound, UnknownError),
       List(apiTagCustomer),
       Some(List(canCreateCustomer)),
       http4sPartialFunction = Some(updateCustomerAddress)
@@ -2717,7 +2782,13 @@ object Http4s310 {
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
                 AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
-            (_, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // keep the existing attribute so it can be checked against the path
+            (existingAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // the attribute must belong to the bank and product in the path, else a role at one bank overwrites and moves any bank's attribute
+            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              existingAttribute.bankId.value == bankIdStr &&
+                existingAttribute.productCode.value == productCodeStr
+            }
             (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankIdStr), ProductCode(productCodeStr), Some(productAttributeIdStr),
               postedData.name, productAttributeType, postedData.value, None, Some(cc))
@@ -2743,7 +2814,8 @@ object Http4s310 {
       |""",
       productAttributeJson,
       productAttributeResponseJson,
-      List(UserHasMissingRoles, UnknownError),
+      // ProductAttributeNotFound: the attribute is not at the bank and product in the path
+      List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canUpdateProductAttribute)),
       http4sPartialFunction = Some(updateProductAttribute)
@@ -3325,7 +3397,14 @@ object Http4s310 {
               400, Some(cc)) { AccountAttributeType.withName(postedData.`type`) }
             (_, _) <- NewStyle.function.getBankAccount(BankId(bankIdStr), AccountId(accountIdStr), Some(cc))
             (_, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
-            (_, _) <- NewStyle.function.getAccountAttributeById(accountAttributeIdStr, Some(cc))
+            // keep the existing attribute so it can be checked against the path
+            (existingAttribute, _) <- NewStyle.function.getAccountAttributeById(accountAttributeIdStr, Some(cc))
+            // the attribute must belong to the bank, account and product in the path, else a role at one bank overwrites and moves any bank's attribute
+            _ <- code.util.Helper.booleanToFuture(AccountAttributeNotFound, 404, Some(cc)) {
+              existingAttribute.bankId.value == bankIdStr &&
+                existingAttribute.accountId.value == accountIdStr &&
+                existingAttribute.productCode.value == productCodeStr
+            }
             (accountAttribute, _) <- NewStyle.function.createOrUpdateAccountAttribute(
               BankId(bankIdStr), AccountId(accountIdStr), ProductCode(productCodeStr),
               Some(accountAttributeIdStr), postedData.name, accountAttributeType, postedData.value,
@@ -3362,7 +3441,8 @@ object Http4s310 {
       |""",
       accountAttributeJson,
       accountAttributeResponseJson,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      // AccountAttributeNotFound: the attribute is not under the BANK_ID / ACCOUNT_ID / PRODUCT_CODE in the path
+      List(AuthenticatedUserIsRequired, InvalidJsonFormat, AccountAttributeNotFound, UnknownError),
       List(apiTagAccount, apiTagAccountAttribute, apiTagAttribute),
       Some(List(canUpdateAccountAttribute)),
       http4sPartialFunction = Some(updateAccountAttribute)
@@ -3726,9 +3806,11 @@ object Http4s310 {
       cardAttributeNameExample.value,
       CardAttributeType.DOUBLE,
       cardAttributeValueExample.value),
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      // UserHasMissingRoles: the middleware answers 403 without the role below
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       List(apiTagCard, apiTagCardAttribute, apiTagAttribute),
-      None,
+      // the role at BANK_ID is required, else any logged-in user writes attributes on any bank's cards
+      Some(List(canCreateCardsForBank)),
       http4sPartialFunction = Some(createCardAttribute)
     )
 
@@ -3779,9 +3861,11 @@ object Http4s310 {
       cardAttributeNameExample.value,
       CardAttributeType.DOUBLE,
       cardAttributeValueExample.value),
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      // UserHasMissingRoles: the middleware answers 403 without the role below
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       List(apiTagCard, apiTagCardAttribute, apiTagAttribute),
-      None,
+      // the role at BANK_ID is required, else any logged-in user overwrites attributes of any bank's cards
+      Some(List(canUpdateCardsForBank)),
       http4sPartialFunction = Some(updateCardAttribute)
     )
 

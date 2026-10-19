@@ -363,6 +363,8 @@ object ErrorMessages {
   val UserAlreadyValidated = "OBP-20107: User email is already validated."
   val InvalidRedirectUrl = "OBP-20108: Invalid redirect URL. Each redirect URL must use https, use http only for localhost, 127.0.0.1 or [::1], or use an app scheme in reverse-domain form such as com.example.app, and must not contain a wildcard, user information or a fragment. Rejected entry: "
   val RedirectUrlHostNotAllowed = "OBP-20109: Redirect URL host not allowed. This instance only accepts redirect URLs that point to the hosts listed for it. Rejected entry: "
+  // OBP-20110 (OwnerViewAccessMustRemain) is retired: account holders and the last owner can now lose their owner view access.
+  val CannotRevokeOwnAccountAccess = "OBP-20111: Cannot revoke your own account access. A user cannot revoke their own access to the views of an account; another user with permission to revoke access must do it."
 
   // OAuth 2
   val ApplicationNotIdentified = "OBP-20200: The application cannot be identified. "
@@ -501,6 +503,10 @@ object ErrorMessages {
   val InvestigationReportNotAvailable = "OBP-30150: Investigation Report is only available in mapped mode (connector=mapped)."
   val NotificationWebhookNotFound = "OBP-30151: Account Notification Webhook not found. Please specify a valid value for WEBHOOK_ID."
   val DeleteWebhookError = "OBP-30152: Could not delete the Webhook."
+  // an account attribute that does not exist, or does not belong to the BANK_ID / ACCOUNT_ID / PRODUCT_CODE in the path
+  val AccountAttributeNotFound = "OBP-30153: Account Attribute not found. Please specify a valid value for ACCOUNT_ATTRIBUTE_ID for this BANK_ID, ACCOUNT_ID and PRODUCT_CODE."
+  // a product attribute that does not exist, or does not belong to the BANK_ID / PRODUCT_CODE in the path
+  val ProductAttributeNotFound = "OBP-30154: Product Attribute not found. Please specify a valid value for PRODUCT_ATTRIBUTE_ID for this BANK_ID and PRODUCT_CODE."
 
   val CreateWebhookError = "OBP-30047: Cannot create Webhook"
   val GetWebhooksError = "OBP-30048: Cannot get Webhooks"

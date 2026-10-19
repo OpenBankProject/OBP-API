@@ -34,7 +34,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import com.openbankproject.commons.util.ApiVersion
-import code.api.util.ErrorMessages.AuthenticatedUserIsRequired
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, CannotRevokeOwnAccountAccess}
 import code.api.v3_0_0.ViewJsonV300
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
@@ -103,6 +103,23 @@ class AccountAccessTest extends V400ServerSetup {
   }
 
   feature(s"test $ApiEndpoint1 and $ApiEndpoint2 and $ApiEndpoint3 version $VersionOfApi - Authorized access") {
+    scenario("A user cannot revoke their own access", VersionOfApi, ApiEndpoint2) {
+      val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
+      val account = try {
+        createAnAccount(bankId, user1)
+      } finally {
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+
+      When("The caller asks to revoke their own access to the owner view")
+      val postJson = PostAccountAccessJsonV400(resourceUser1.userId, PostViewJsonV400(code.api.Constant.SYSTEM_OWNER_VIEW_ID, true))
+      val requestRevoke = (v4_0_0_Request / "banks" / bankId / "accounts" / account.account_id / "account-access" / "revoke").POST <@ (user1)
+      val responseRevoke = makePostRequest(requestRevoke, write(postJson))
+      Then("We should get a 403")
+      responseRevoke.code should equal(403)
+      responseRevoke.body.extract[ErrorMessage].message should include(CannotRevokeOwnAccountAccess)
+    }
+
     scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
 
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)

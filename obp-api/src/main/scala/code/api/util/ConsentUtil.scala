@@ -535,10 +535,6 @@ object Consent extends MdcLoggable {
     // no way back short of deleting rows by hand. The narrower reading is that the consent still
     // holds everything it declares, plus one view it should have lost; refusing everything is a
     // worse answer to that than serving it and saying so loudly.
-    //
-    // canRevokeOwnerAccess is the realistic trigger (MapperViews): it refuses to drop an `owner`
-    // row when no other principal holds one on that account, which an OBP-native consent can reach
-    // because createConsentJWT takes its views from whatever the PSU already holds, `owner` included.
     for {
       staleAccess <- held.filterNot(wantedSet.contains)
     } yield {
@@ -1031,9 +1027,9 @@ object Consent extends MdcLoggable {
         if (count > 0) {
           logger.info(s"revokeConsentAccountAccess: dropped $count account access rows for consent ${consent.consentId}")
         }
-        // revokeAccessToViewForUserAndConsumer can refuse -- canRevokeOwnerAccess will not drop the
-        // last `owner` row on an account -- so counting the attempts rather than the successes
-        // reported rows as gone while they were still there. On a revoked consent that is the worst
+        // revokeAccessToViewForUserAndConsumer can fail (for example when the row is not found), so
+        // counting the attempts rather than the successes would report rows as gone while they were
+        // still there. On a revoked consent that is the worst
         // version of this to get wrong: the access outlives the consent entirely, and nothing else
         // ever comes back for it.
         for ((access, outcome) <- stuck) {

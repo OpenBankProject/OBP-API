@@ -159,6 +159,14 @@ class BankAccountBalanceTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(401)
     }
 
+    // user2 has no view on user1's account, so it must not read that account's balances
+    scenario("403 Forbidden (no view that can see balances)", GetAll, VersionOfApi) {
+      val request = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "balances").GET <@ user2
+      val response = makeGetRequest(request)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(ErrorMessages.ViewDoesNotPermitAccess)
+    }
+
     scenario("200 Success", GetAll, VersionOfApi) {
       lazy val bankId = testBankId1.value
       lazy val accountId = testAccountId1.value

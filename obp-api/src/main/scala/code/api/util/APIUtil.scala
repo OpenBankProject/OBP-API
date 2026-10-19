@@ -1823,7 +1823,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      * runtime-compiled dynamic-endpoint dispatch. Runs the SAME ordered checks — authentication,
      * obp-id format, bank, roles, account, view, counterparty — with the same predicates and *Fun
      * helpers, returning the enriched CallContext (user set) for a native handler instead of
-     * wrapping a Lift OBPEndpoint. No S.init / SS / Box[JsonResponse]; the compiled native body
+     * wrapping a Lift OBPEndpoint. No S.init / Box[JsonResponse]; the compiled native body
      * looks up bank/account/view itself, so the entities validated here serve only 404/403 gating,
      * exactly as the Lift checks did. Auth/role/lookup failures fail the Future (the dispatcher
      * converts them to a response via ErrorResponseConverter).
@@ -1889,102 +1889,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     if(operationElements.length>1){
       s"${operationElements(0).replaceAll("_",".")}-${operationElements(1)}"
     }else operationId
-  }
-
-  /**
-   * Simulate S pass request and session, this object pass bank, account and view.
-   * This method invoke must fulfill three point:
-   *  1. be invoked at endpoint's body
-   *  2. be invoked out of for comprehension
-   *  3. endpoint's corresponding ResourceDoc.errorResponseBodies must contains $BankNotFound, $BankAccountNotFound or $UserNoPermissionAccessView
-   */
-  object SS {
-    private val _user = new ThreadGlobal[User]
-    private val _bank = new ThreadGlobal[Bank]
-    private val _bankAccount = new ThreadGlobal[BankAccount]
-    private val _view = new ThreadGlobal[View]
-    private val _callContext = new ThreadGlobal[Option[CallContext]]
-
-    def init[B](boxUser: Box[User], bank: Bank, bankAccount: BankAccount, view: View, callContext: Option[CallContext])(f: => B):B = {
-      _user.doWith(boxUser.orNull){
-        _bank.doWith(bank) {
-          _bankAccount.doWith(bankAccount) {
-            _view.doWith(view) {
-              _callContext.doWith(callContext){
-                f
-              }
-            }
-          }
-        }
-      }
-    }
-
-    private def bank: Bank = _bank.box.openOrThrowException(buildErrorMsg(nameOf($BankNotFound)))
-    private def bankAccount: BankAccount = _bankAccount.box.openOrThrowException(buildErrorMsg(nameOf($BankAccountNotFound)))
-    private def getView: View = _view.box.openOrThrowException(buildErrorMsg(nameOf($UserNoPermissionAccessView)))
-    private def callContext: Option[CallContext] = _callContext.box.orNull
-
-    /**
-     * Get current login user, recommend call cc.loggedInUser instead.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     * @return current login user
-     */
-    def user: Future[(Box[User], Option[CallContext])] = Future.successful(_user.box -> callContext)
-
-    /**
-     * Get current login user, and bank find by url /BANK_ID/.
-     * Validation of id exists passed.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     */
-    def userBank: Future[(Box[User], Bank, Option[CallContext])] = Future.successful((_user.box, bank, callContext))
-
-    def userBankView: Future[(Box[User], Bank, View, Option[CallContext])] = Future.successful((_user.box, bank, getView, callContext))
-
-    /**
-     * Get current login user and bank find by url /BANK_ID/ and account find by /ACCOUNT_ID/.
-     * Validation of id exists passed.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     */
-    def userBankAccount: Future[(Box[User], Bank, BankAccount, Option[CallContext])] = Future.successful {
-      (_user.box, bank, bankAccount, callContext)
-    }
-
-    /**
-     * Get current login user, and bank find by url /BANK_ID/, and account find by /ACCOUNT_ID/, and view find by  /VIEW_ID/.
-     * Validation of id exists passed.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     */
-    def userBankAccountView: Future[(Box[User], Bank, BankAccount, View, Option[CallContext])] = Future.successful {
-      (_user.box, bank, bankAccount, getView, callContext)
-    }
-
-    /**
-     * Get view find by  /VIEW_ID/.
-     * Validation of id exists passed.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     */
-    def view: Future[(View, Option[CallContext])] = Future.successful(getView -> callContext)
-    /**
-     * Get current login user, and view find by  /VIEW_ID/.
-     * Validation of id exists passed.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     */
-    def userView: Future[(Box[User], View, Option[CallContext])] = Future.successful((_user.box, getView, callContext))
-
-    /**
-     * Get current login user and account find by /ACCOUNT_ID/.
-     * Validation of id exists passed.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     */
-    def userAccount: Future[(Box[User], BankAccount, Option[CallContext])] = Future.successful((_user.box, bankAccount, callContext))
-
-    private def buildErrorMsg(msg: String) =
-      s"""
-         |This method invoke must fulfill three point:
-         | 1. be invoked at endpoint's body
-         | 2. be invoked out of for comprehension
-         | 3. endpoint's corresponding ResourceDoc.errorResponseBodies must contains $msg
-         |""".stripMargin
   }
 
   /**

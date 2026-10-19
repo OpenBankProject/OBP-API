@@ -19,8 +19,10 @@
          command-line -Dtest.tagsToExclude= override actually takes effect: Maven only lets
          -D override a POM-declared value when the config element is a ${property}
          expression, not a fixed string literal. Default excludes PropGatedPublicEndpoint
-         (see run_tests_parallel.sh / the CI job that overrides this to include it). -->
-    <test.tagsToExclude>code.external,GetBanksPerf,PropGatedPublicEndpoint</test.tagsToExclude>
+         (see run_tests_parallel.sh / the CI job that overrides this to include it), and
+         RequiresCardanoWallet, whose scenarios send real payments through a cardano-wallet
+         server that CI does not have (see CardanoTransactionRequestTest). -->
+    <test.tagsToExclude>code.external,GetBanksPerf,PropGatedPublicEndpoint,RequiresCardanoWallet</test.tagsToExclude>
   </properties>
 
   <dependencies>

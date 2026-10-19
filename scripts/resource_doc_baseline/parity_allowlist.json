@@ -140,6 +140,118 @@
       "http4s_digest": "a5655ec6126f28a76720a61f3e0a6eff066cff954c4003c3dc6def846451db76"
     },
     {
+      "version": "v4_0_0",
+      "endpoint": "deleteMyApiCollection",
+      "field": "errorResponseBodies",
+      "reason": "Added ApiCollectionNotFound: the endpoint now refuses, as not found, to delete an API collection owned by another user",
+      "lift_digest": "d70bf075f3595bea6dcb3581b21a21b49717cc52e5b327a7978e126132667fb4",
+      "http4s_digest": "fc6bd7923a89033d884757bbb99a57bedd121250f68876e3ffe24e32b6eda4ce"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteMyApiCollectionEndpointByOperationId",
+      "field": "errorResponseBodies",
+      "reason": "Added ApiCollectionNotFound: the endpoint now refuses with 404 a collection that belongs to another user",
+      "lift_digest": "d70bf075f3595bea6dcb3581b21a21b49717cc52e5b327a7978e126132667fb4",
+      "http4s_digest": "fc6bd7923a89033d884757bbb99a57bedd121250f68876e3ffe24e32b6eda4ce"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteMyApiCollectionEndpointById",
+      "field": "errorResponseBodies",
+      "reason": "Added ApiCollectionNotFound and ApiCollectionEndpointNotFound: the collection must be the caller's and the endpoint must be in it, else any user deletes endpoints from another user's collection",
+      "lift_digest": "d70bf075f3595bea6dcb3581b21a21b49717cc52e5b327a7978e126132667fb4",
+      "http4s_digest": "b5eb1f8977a5966b9b435c6a52b30ca7a7eed51efaaaa6bab5b63b213c03f931"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateAtmAccessibilityFeatures",
+      "field": "errorResponseBodies",
+      "reason": "Added UserHasMissingRoles: the endpoint now requires canUpdateAtm or canUpdateAtmAtAnyBank, so any logged-in user can no longer change any bank's ATM",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateAtmLocationCategories",
+      "field": "errorResponseBodies",
+      "reason": "Added UserHasMissingRoles: the endpoint now requires canUpdateAtm or canUpdateAtmAtAnyBank, so any logged-in user can no longer change any bank's ATM",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateAtmNotes",
+      "field": "errorResponseBodies",
+      "reason": "Added UserHasMissingRoles: the endpoint now requires canUpdateAtm or canUpdateAtmAtAnyBank, so any logged-in user can no longer change any bank's ATM",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateAtmServices",
+      "field": "errorResponseBodies",
+      "reason": "Added UserHasMissingRoles: the endpoint now requires canUpdateAtm or canUpdateAtmAtAnyBank, so any logged-in user can no longer change any bank's ATM",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateAtmSupportedCurrencies",
+      "field": "errorResponseBodies",
+      "reason": "Added UserHasMissingRoles: the endpoint now requires canUpdateAtm or canUpdateAtmAtAnyBank, so any logged-in user can no longer change any bank's ATM",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateAtmSupportedLanguages",
+      "field": "errorResponseBodies",
+      "reason": "Added UserHasMissingRoles: the endpoint now requires canUpdateAtm or canUpdateAtmAtAnyBank, so any logged-in user can no longer change any bank's ATM",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "removePermissionForUserForBankAccountForAllViews",
+      "field": "description",
+      "reason": "Added that every view is revoked, the owner view included, also from an account holder, and that a user cannot revoke their own access (CannotRevokeOwnAccountAccess)",
+      "lift_digest": "f31da0343c89bc37150a06bc3d8a39ed4e8732a18df8b21e36fdda2bd79517c3",
+      "http4s_digest": "5979c1675784d7512516a10805d8e57669ff941ccf8959ed73bd0ccf6d9e911a"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "removePermissionForUserForBankAccountForAllViews",
+      "field": "errorResponseBodies",
+      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to all views",
+      "lift_digest": "b72cefb915c6af0190e4543aed820722db264a43a54247247d9a1fdb25321703",
+      "http4s_digest": "1504d43b14defdedbab99f5784e36dbc7d3c6e1eca29fddc41d81f43d3ae0bcd"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateConsentStatus",
+      "field": "errorResponseBodies",
+      "reason": "Added ConsentNotFound (404): the consent must belong to the caller, else any user reads any consent's JWT and changes its status",
+      "lift_digest": "cf8ea6cd85f19cc3b87dbeeeb4b6f41d2fd835c55e8bcfaec7e3459304a42ca4",
+      "http4s_digest": "3bb23da885584fa6b1b72ac9914a533340b6a74dd1e57227fecb794c7369f547"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateConsentStatus",
+      "field": "description",
+      "reason": "Added that the consent must belong to the logged-in user, otherwise 404 ConsentNotFound",
+      "lift_digest": "72dc13245db8680613c4bfc56859b1b7ca4c10d35fb53f65b241c184ebf13827",
+      "http4s_digest": "2ab09de7128ff70488baf26b2fda2ab9f52df3565bf17644fedbc31b36e823ab"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateMyPersonalUserAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added UserAttributeNotFound (404): the attribute id must be one of the caller's personal attributes, else a user could take over another user's attribute",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "e6807a06ff3025c039b0402f9b51e6a08c093f831943f023172632f7289fdb4f"
+    },
+    {
       "version": "v5_1_0",
       "endpoint": "revokeMyConsent",
       "field": "requestVerb",
@@ -621,11 +733,35 @@
     },
     {
       "version": "v3_1_0",
+      "endpoint": "createCardAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added UserHasMissingRoles: canCreateCardsForBank is now required at BANK_ID so only bank staff can write card attributes",
+      "lift_digest": "ab6b9a504c9dafbcc134976d9f0b976cbe222c9054b9c811c5570adfb79ae6ce",
+      "http4s_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "updateCardAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added UserHasMissingRoles: canUpdateCardsForBank is now required at BANK_ID so only bank staff can overwrite card attributes",
+      "lift_digest": "ab6b9a504c9dafbcc134976d9f0b976cbe222c9054b9c811c5570adfb79ae6ce",
+      "http4s_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5"
+    },
+    {
+      "version": "v3_1_0",
       "endpoint": "deleteSystemView",
       "field": "requestUrl",
       "reason": "VIEW_ID -> SYS_VIEW_ID rename, same shape (system views have no per-account scoping).",
       "lift_digest": "0b18308242af8b26c8ed51c3dda373102a35ddc0fc88a0512f972788cc1c410c",
       "http4s_digest": "9a09487c0a48159914955edf656a8c22cd1b959f54216841b08dcc5bb7f56130"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getCustomerByCustomerId",
+      "field": "errorResponseBodies",
+      "reason": "Added CustomerNotFoundByCustomerId: 404 when the customer does not exist or belongs to another bank than BANK_ID",
+      "lift_digest": "ae81ce0e83dc0ab8e4b334d14fbcc820c87319c8e7a77cc656f38b602732807d",
+      "http4s_digest": "562688c414d1fb8d3622b3ea3677c0b148549cb369f9f35e28c10bf8ff7a87f4"
     },
     {
       "version": "v3_1_0",
@@ -1349,6 +1485,14 @@
     },
     {
       "version": "v4_0_0",
+      "endpoint": "createMyApiCollectionEndpointById",
+      "field": "errorResponseBodies",
+      "reason": "added ApiCollectionNotFound: the collection must belong to the caller, else any user adds endpoints to another user's collection by id",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "f0f3b033370c9a7624829ee507012e09385025c6ac7b77e3dd4b37b6ac18d299"
+    },
+    {
+      "version": "v4_0_0",
       "endpoint": "deleteMyApiCollection",
       "field": "description",
       "reason": "Documentation text only, reworded after the baseline was captured. URL, verb, request/response bodies, errors and tags are unchanged.",
@@ -1932,6 +2076,22 @@
       "http4s_digest": "5914176f0c140e0e56de59f39988dd4bd8312a0c873aa816729a12d5037ae936"
     },
     {
+      "version": "v2_2_0",
+      "endpoint": "createBank",
+      "field": "errorResponseBodies",
+      "reason": "Added bankIdAlreadyExists: createBank now refuses an existing BANK_ID instead of overwriting that bank and granting the caller CanCreateEntitlementAtOneBank there",
+      "lift_digest": "d9be7cb75e5f529810a1ba5852fa29f17b2137bc77c4dc7cd0c794b22fbd16bd",
+      "http4s_digest": "d21fc395f1489dfb4bf5b8cea84e210a92b642752e5dbaaa88791e4e5e709022"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createBank",
+      "field": "errorResponseBodies",
+      "reason": "Added bankIdAlreadyExists: createBank now refuses an existing BANK_ID instead of overwriting that bank and granting the caller CanCreateEntitlementAtOneBank there",
+      "lift_digest": "52de8e9110317d5430e3f54a267aa69b391f6dcddce3b99c8d40a7fee9ef0bc6",
+      "http4s_digest": "5d830c45b454632969c46172008000d36ffeb4e87afc980126f4d9d6e7955486"
+    },
+    {
       "version": "v4_0_0",
       "endpoint": "createConsumer",
       "field": "errorResponseBodies",
@@ -2196,6 +2356,62 @@
       "http4s_digest": "1769e014d63887938573f77828aaa7669b69c23f8c4de3bb286767aad5185754"
     },
     {
+      "version": "v3_1_0",
+      "endpoint": "updateCustomerAddress",
+      "field": "errorResponseBodies",
+      "reason": "Lists CustomerNotFoundByCustomerId (404: the customer is not at the BANK_ID in the URL) and CustomerAddressNotFound (404: the address is not one of the CUSTOMER_ID's), so a Role at one bank no longer lets the caller change addresses at another.",
+      "lift_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5",
+      "http4s_digest": "3a6402f32d558c47caf71d2eda8cf531d4e6a5228039bb567f09d57d66441cfa"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createCustomerAddress",
+      "field": "errorResponseBodies",
+      "reason": "Added CustomerNotFoundByCustomerId: the customer must be at BANK_ID, else a Role at one bank would add addresses to customers at any bank",
+      "lift_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5",
+      "http4s_digest": "3e88e7991ab67e6003f7b61db2d636c2d235017e02312ef328559958dc8dd1c3"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createTaxResidence",
+      "field": "errorResponseBodies",
+      "reason": "Added CustomerNotFoundByCustomerId: the customer in the path must be at BANK_ID, else 404, so the Role at one bank cannot add tax residences to customers at another bank",
+      "lift_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5",
+      "http4s_digest": "3e88e7991ab67e6003f7b61db2d636c2d235017e02312ef328559958dc8dd1c3"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "updateAccountAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added AccountAttributeNotFound (404): the attribute must belong to the BANK_ID, ACCOUNT_ID and PRODUCT_CODE in the path, else a role at one bank overwrites and moves another bank's attribute",
+      "lift_digest": "ab6b9a504c9dafbcc134976d9f0b976cbe222c9054b9c811c5570adfb79ae6ce",
+      "http4s_digest": "7c341afe281a974e145362105b5ad7be060660743ac6e3b064fdaa02e586c97b"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "updateProductAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added ProductAttributeNotFound (404): the attribute must belong to the BANK_ID and PRODUCT_CODE in the path, else a role at one bank could overwrite and move another bank's product attribute",
+      "lift_digest": "f0e3fc093d8749570c7520dabdb672bbb7a6f84d2f03fa9c138762e8c976981a",
+      "http4s_digest": "cbff97326a2c683036eca4d241b6bcc82b9a45d7cee49516184d63fc450c50b7"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "deleteProductAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added ProductAttributeNotFound (404): the attribute to delete must belong to the bank and product in the path, else a role at one bank deleted any bank's attribute",
+      "lift_digest": "e411ab351074a0055e9e38d197a6c0e27be6eddcc2158d1026e23c6735b9fbd9",
+      "http4s_digest": "f32444f850ad7c50c97d8f9fa4e9aac93757d7b16e708393903ee64f4e0e7a76"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "deleteTaxResidence",
+      "field": "errorResponseBodies",
+      "reason": "Added CustomerNotFoundByCustomerId and TaxResidenceNotFound (404): the customer must be at the bank in the path and the tax residence must be the customer's, else a Role at one bank deletes any bank's tax residences",
+      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
+      "http4s_digest": "82d851ecfb266d07ca6bcd51e2de6fe66f14941401e4dabdf3a0d2617607b6f1"
+    },
+    {
       "version": "v5_0_0",
       "endpoint": "createUserAuthContextUpdateRequest",
       "field": "description",
@@ -2260,6 +2476,14 @@
       "http4s_digest": "a8bdac82543f60b89328544bdd0027259566919925b24729a7c84f30a795ca56"
     },
     {
+      "version": "v5_1_0",
+      "endpoint": "getAllBankAccountBalances",
+      "field": "errorResponseBodies",
+      "reason": "Added BankNotFound, BankAccountNotFound (middleware) and ViewDoesNotPermitAccess: the caller now needs a view with can_see_bank_account_balance on the account",
+      "lift_digest": "cb07b8a8074c71a21a64f9030e412d57858383e4f503c2444c6c7000be5f4030",
+      "http4s_digest": "95338e12a64f58edfdea236bf3ff5c9e7a2ee23446b662b6134809ce8782db6d"
+    },
+    {
       "version": "v6_0_0",
       "endpoint": "getConsumer",
       "field": "description",
@@ -2274,6 +2498,62 @@
       "reason": "States that the paying account is the card's account, that the User needs the owner view with permission to add transaction requests (or CanCreateAnyTransactionRequest), and that the payee must be a counterparty of that account.",
       "lift_digest": "b670d8181d5d2d563db3a015bb357107c827ad273e2097c4215032c07e39502b",
       "http4s_digest": "b60ff8942421ae14a3245bcc8625bac7409abef79994972c629d56dafc582840"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "removePermissionForUserForBankAccountForOneView",
+      "field": "description",
+      "reason": "Added that any view can be revoked, the owner view included, also from an account holder, and that a user cannot revoke their own access (CannotRevokeOwnAccountAccess)",
+      "lift_digest": "b19742add024159ef6d85db9e167ff2049110aa0e11e449fa05838bd2570f359",
+      "http4s_digest": "361d3ccf4787cc7c1715a9907c12970266ca09606c73cfde411772c8cc2d7094"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "removePermissionForUserForBankAccountForOneView",
+      "field": "errorResponseBodies",
+      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to a view",
+      "lift_digest": "56b707566120b88065477b5618fdc5886dc75f45b2e4b1053dd0bdbda41e2f8f",
+      "http4s_digest": "bbfff69a556f8601736d5ac6e63d20d0cd31b761b64b443e23082f81001bfcfb"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "revokeUserAccessToView",
+      "field": "description",
+      "reason": "Added that any view can be revoked, the owner view included, also from an account holder, and that a user cannot revoke their own access (CannotRevokeOwnAccountAccess)",
+      "lift_digest": "07f97f416e1380baf140efbc77647a2ef36937952c7238b79b03f184d241f3d9",
+      "http4s_digest": "554e40e9d4feffb8ea320c5d202bb00ba3b8d8c2c4daee055d07a1ad61c6a2a8"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "revokeUserAccessToView",
+      "field": "errorResponseBodies",
+      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to a view",
+      "lift_digest": "53e6dd5b338b2443d8084e1f3112e6f8ec63ef81faa21f9bcad879997dabacd9",
+      "http4s_digest": "81f765f4125feedda61e1d75adb8ae6929c71df660303e2eac0b64d6eec1de89"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "revokeUserAccessToViewById",
+      "field": "description",
+      "reason": "Added that any view can be revoked, the owner view included, also from an account holder, and that a user cannot revoke their own access (CannotRevokeOwnAccountAccess)",
+      "lift_digest": "5b65d5501056e25545dc7000a0b84e1d93de3a7a69fcd88e06afabeb03da0575",
+      "http4s_digest": "817a759ab7bde7501e16460d69e2b066fc124a682df74d38ead6adaf759ddc94"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "revokeUserAccessToViewById",
+      "field": "errorResponseBodies",
+      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to a view",
+      "lift_digest": "46a5a1e4ea4bcb0ccae8f5338b321f9684a6cc591b6cdf13f1a98a2582d4eb27",
+      "http4s_digest": "110c6fd1269109a3c11cce5d9b922de6c421d0335558791f9bcf521d400d7a57"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "updateMyApiCollection",
+      "field": "errorResponseBodies",
+      "reason": "Added ApiCollectionNotFound: 404 when the collection does not exist or belongs to another user, so only its owner can update it",
+      "lift_digest": "ea8061d2189d61d4f84552f70fa4482c88aa1fb6d5f7692b7c3c6eae0b24f4e6",
+      "http4s_digest": "181a990959c91843d2617852d9247a24ae916364b5b3afa58fab87ddd6692130"
     }
   ]
 }

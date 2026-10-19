@@ -158,6 +158,23 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       And("error should be " + CustomerNotFoundByCustomerId)
       response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
     }
+    // The Role at bank A must not read a customer of bank B through bank A's path
+    scenario("A customer at another bank than the one in the path is not found", ApiEndpoint1, VersionOfApi) {
+      val bankA = testBankId1.value
+      val bankB = testBankId2.value
+      Entitlement.entitlement.vend.addEntitlement(bankB, resourceUser1.userId, CanCreateCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
+      val customerAtB = makePostRequest((v3_1_0_Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
+      customerAtB.code should equal(201)
+      val customerIdAtB = customerAtB.body.extract[CustomerJsonV310].customer_id
+      When("We get bank B's customer through bank A's path, holding " + canGetCustomersAtOneBank + " at bank A")
+      val request310 = (v3_1_0_Request / "banks" / bankA / "customers" / customerIdAtB).GET <@(user1)
+      val response310 = makeGetRequest(request310)
+      Then("We should get a 404")
+      response310.code should equal(404)
+      And("error should be " + CustomerNotFoundByCustomerId)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
+    }
   }
 
   feature("Get Customer by customer number v3.1.0 - Unauthorized access") {

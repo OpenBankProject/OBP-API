@@ -29,6 +29,8 @@ import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.berlin.group.v1_3.Http4sBGv13Alias
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ErrorMessages.{ApiCollectionEndpointNotFound, ApiCollectionNotFound}
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
@@ -52,6 +54,8 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getApiCollectionEndpoints))
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.createMyApiCollectionEndpointById))
   object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.getMyApiCollectionEndpointsById))
+  object ApiEndpoint8 extends Tag(nameOf(Implementations4_0_0.deleteMyApiCollectionEndpointByOperationId))
+  object ApiEndpoint9 extends Tag(nameOf(Implementations4_0_0.deleteMyApiCollectionEndpointById))
 
   feature("Test the apiCollection endpoints") {
     scenario("We create the apiCollection Endpoint", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
@@ -291,6 +295,100 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
         val expected = if (aliasOperationId.isDefined) 7 else 6
         apiCollectionsJsonGet400.api_collection_endpoints.length should be (expected)
       }
+    }
+
+    // another user must not add endpoints to user1's collection by its id
+    scenario(s"We try $ApiEndpoint6 on another user's collection", ApiEndpoint6, VersionOfApi) {
+      When("user1 creates an apiCollection")
+      val request = (v4_0_0_Request / "my" / "api-collections").POST <@ (user1)
+      val response = makePostRequest(request, write(SwaggerDefinitionsJSON.postApiCollectionJson400.copy(api_collection_name = "collection-of-user1")))
+      response.code should equal(201)
+      val apiCollectionId = response.body.extract[ApiCollectionJson400].api_collection_id
+
+      Then("user2 adds an endpoint to it by id")
+      val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user2)
+      val responseApiCollectionEndpoint = makePostRequest(requestApiCollectionEndpoint, write(SwaggerDefinitionsJSON.postApiCollectionEndpointJson400))
+      Then("We should get a 404")
+      responseApiCollectionEndpoint.code should equal(404)
+      responseApiCollectionEndpoint.body.extract[ErrorMessage].message should startWith(ApiCollectionNotFound)
+    }
+
+    // another user must not remove endpoints from user1's collection by its id and the operation id
+    scenario(s"We try $ApiEndpoint8 on another user's collection", ApiEndpoint8, VersionOfApi) {
+      When("user1 creates an apiCollection with one endpoint")
+      val request = (v4_0_0_Request / "my" / "api-collections").POST <@ (user1)
+      val response = makePostRequest(request, write(SwaggerDefinitionsJSON.postApiCollectionJson400.copy(api_collection_name = "collection-of-user1-to-delete-from")))
+      response.code should equal(201)
+      val apiCollectionId = response.body.extract[ApiCollectionJson400].api_collection_id
+      val requestAdd = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+      val responseAdd = makePostRequest(requestAdd, write(SwaggerDefinitionsJSON.postApiCollectionEndpointJson400))
+      responseAdd.code should equal(201)
+      val operationId = responseAdd.body.extract[ApiCollectionEndpointJson400].operation_id
+
+      Then("user2 deletes that endpoint from it")
+      val requestDelete = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints" / operationId).DELETE <@ (user2)
+      val responseDelete = makeDeleteRequest(requestDelete)
+      Then("We should get a 404")
+      responseDelete.code should equal(404)
+      responseDelete.body.extract[ErrorMessage].message should startWith(ApiCollectionNotFound)
+
+      And("the endpoint is still in user1's collection")
+      val requestGet = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").GET <@ (user1)
+      makeGetRequest(requestGet).body.extract[ApiCollectionEndpointsJson400].api_collection_endpoints.length should be (1)
+    }
+
+    // another user must not remove endpoints from user1's collection by the collection endpoint id
+    scenario(s"We try $ApiEndpoint9 on another user's collection", ApiEndpoint9, VersionOfApi) {
+      When("user1 creates an apiCollection with one endpoint")
+      val request = (v4_0_0_Request / "my" / "api-collections").POST <@ (user1)
+      val response = makePostRequest(request, write(SwaggerDefinitionsJSON.postApiCollectionJson400.copy(api_collection_name = "collection-of-user1-to-delete-from-by-id")))
+      response.code should equal(201)
+      val apiCollectionId = response.body.extract[ApiCollectionJson400].api_collection_id
+      val requestAdd = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+      val responseAdd = makePostRequest(requestAdd, write(SwaggerDefinitionsJSON.postApiCollectionEndpointJson400))
+      responseAdd.code should equal(201)
+      val apiCollectionEndpointId = responseAdd.body.extract[ApiCollectionEndpointJson400].api_collection_endpoint_id
+
+      Then("user2 deletes that endpoint from it")
+      val requestDelete = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoint-ids" / apiCollectionEndpointId).DELETE <@ (user2)
+      val responseDelete = makeDeleteRequest(requestDelete)
+      Then("We should get a 404")
+      responseDelete.code should equal(404)
+      responseDelete.body.extract[ErrorMessage].message should startWith(ApiCollectionNotFound)
+
+      And("the endpoint is still in user1's collection")
+      val requestGet = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").GET <@ (user1)
+      makeGetRequest(requestGet).body.extract[ApiCollectionEndpointsJson400].api_collection_endpoints.length should be (1)
+    }
+
+    // a user must not remove an endpoint of user1's collection by naming their own collection in the path
+    scenario(s"We try $ApiEndpoint9 with an endpoint of another collection", ApiEndpoint9, VersionOfApi) {
+      When("user1 creates an apiCollection with one endpoint")
+      val request = (v4_0_0_Request / "my" / "api-collections").POST <@ (user1)
+      val response = makePostRequest(request, write(SwaggerDefinitionsJSON.postApiCollectionJson400.copy(api_collection_name = "collection-of-user1-endpoint-elsewhere")))
+      response.code should equal(201)
+      val apiCollectionId = response.body.extract[ApiCollectionJson400].api_collection_id
+      val requestAdd = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user1)
+      val responseAdd = makePostRequest(requestAdd, write(SwaggerDefinitionsJSON.postApiCollectionEndpointJson400))
+      responseAdd.code should equal(201)
+      val apiCollectionEndpointId = responseAdd.body.extract[ApiCollectionEndpointJson400].api_collection_endpoint_id
+
+      And("user2 creates a collection of their own")
+      val request2 = (v4_0_0_Request / "my" / "api-collections").POST <@ (user2)
+      val response2 = makePostRequest(request2, write(SwaggerDefinitionsJSON.postApiCollectionJson400.copy(api_collection_name = "collection-of-user2")))
+      response2.code should equal(201)
+      val otherApiCollectionId = response2.body.extract[ApiCollectionJson400].api_collection_id
+
+      Then("user2 deletes user1's endpoint through their own collection")
+      val requestDelete = (v4_0_0_Request / "my" / "api-collection-ids" / otherApiCollectionId / "api-collection-endpoint-ids" / apiCollectionEndpointId).DELETE <@ (user2)
+      val responseDelete = makeDeleteRequest(requestDelete)
+      Then("We should get a 404")
+      responseDelete.code should equal(404)
+      responseDelete.body.extract[ErrorMessage].message should startWith(ApiCollectionEndpointNotFound)
+
+      And("the endpoint is still in user1's collection")
+      val requestGet = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").GET <@ (user1)
+      makeGetRequest(requestGet).body.extract[ApiCollectionEndpointsJson400].api_collection_endpoints.length should be (1)
     }
   }
 

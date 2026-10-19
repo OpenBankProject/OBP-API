@@ -117,5 +117,26 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
       responseGet.code should equal(200)
       (responseGet.body \ "conversion_value").extract[Double] should equal(1.5)
     }
+
+    // CanCreateFxRate at the path bank must not write another bank's rate through the body's bank_id
+    scenario("Create Fx writes the rate at the bank in the path, not at the body's bank_id", VersionOfApi, ApiEndpoint2) {
+      val pathBank = testBankId1
+      val otherBank = testBankId2
+      Entitlement.entitlement.vend.addEntitlement(pathBank.value, resourceUser1.userId, ApiRole.canCreateFxRate.toString())
+
+      When("We create an FX rate at the path bank, naming another bank in the body")
+      val body =
+        s"""{"bank_id":"${otherBank.value}","from_currency_code":"GBP","to_currency_code":"JPY",
+           |"conversion_value":190.0,"inverse_conversion_value":0.005263157894736842,"effective_date":"2026-10-06T00:00:00Z"}""".stripMargin
+      val responsePut = makePutRequest((v2_2Request / "banks" / pathBank.value / "fx").PUT <@ (user1), body)
+      Then("We should get a 201 for the path bank, and no rate at the other bank")
+      responsePut.code should equal(201)
+      (responsePut.body \ "bank_id").extract[String] should equal(pathBank.value)
+      code.fx.MappedFXRate.find(
+        net.liftweb.mapper.By(code.fx.MappedFXRate.mBankId, otherBank.value),
+        net.liftweb.mapper.By(code.fx.MappedFXRate.mFromCurrencyCode, "GBP"),
+        net.liftweb.mapper.By(code.fx.MappedFXRate.mToCurrencyCode, "JPY")
+      ).isDefined should equal(false)
+    }
   }
 }

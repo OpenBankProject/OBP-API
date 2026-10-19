@@ -78,7 +78,8 @@ class elasticsearch extends MdcLoggable {
       val httpHost = "http://" + esHost + ":" + esPortHTTP
       val esUrl = s"${httpHost}${uri.replaceAll("\"", "")}"
       logger.info(s"searchProxyV300 says esUrl is: $esUrl")
-      logger.info(s"searchProxyV300 says body is: $body")
+      // the query body can hold search terms about people, so it is only logged at DEBUG
+      logger.debug(s"searchProxyV300 says body is: $body")
       val response = getAPIResponse(esUrl, body)
       if (statsOnly) Full(privacyCheckStatistics(response.body))
       else Full(response.body)
@@ -91,10 +92,11 @@ class elasticsearch extends MdcLoggable {
     val httpHost = "http://" + esHost + ":" + esPortHTTP
     val esUrl = s"${httpHost}${uri.replaceAll("\"", "")}"
     logger.info(s"searchProxyAsyncV300 says esUrl is: $esUrl")
-    logger.info(s"searchProxyAsyncV300 says body is: $body")
+    // the query body can hold search terms about people, so it is only logged at DEBUG
+    logger.debug(s"searchProxyAsyncV300 says body is: $body")
     val response = getAPIResponseAsync(esUrl, body)
-    logger.info(s"searchProxyAsyncV300 says response follows:")
-    response foreach { msg => logger.info(msg.body) }
+    // log only the status code: the response body holds warehouse rows that must not reach the logs
+    response foreach { msg => logger.info(s"searchProxyAsyncV300 says response code is: ${msg.code}") }
     response
   }
 

@@ -900,6 +900,9 @@ object Http4s121 {
           for {
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), Some(cc))
             (account, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), callContext)
+            _ <- Helper.booleanToFuture(CannotRevokeOwnAccountAccess, 403, cc = callContext) {
+              !(user.provider == provider && user.idGivenByProvider == providerId)
+            }
             _ <- ViewNewStyle.revokeAccessToView(account, user, BankIdAccountIdViewId(BankId(bankId), AccountId(accountId), ViewId(viewId)), provider, providerId, callContext)
           } yield ()
         }
@@ -913,12 +916,14 @@ object Http4s121 {
       "Revoke access to one View",
       s"""Revokes access to a View on an Account for a certain User.
        |
+       |Any View can be revoked, the owner view included, also from an account holder. A User cannot revoke their own access: that request is refused with $CannotRevokeOwnAccountAccess
+       |
        |$generalRevokeAccessToViewText
       |
       |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, "could not save the privilege", "user does not have access to owner view on account", UnknownError),
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, CannotRevokeOwnAccountAccess, "could not save the privilege", "user does not have access to owner view on account", UnknownError),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagEntitlement, apiTagOwnerRequired),
       http4sPartialFunction = Some(removePermissionForUserForBankAccountForOneView)
     )
@@ -931,6 +936,9 @@ object Http4s121 {
           for {
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), Some(cc))
             (account, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), callContext)
+            _ <- Helper.booleanToFuture(CannotRevokeOwnAccountAccess, 403, cc = callContext) {
+              !(user.provider == provider && user.idGivenByProvider == providerId)
+            }
             _ <- NewStyle.function.revokeAllAccountAccess(account, user, provider, providerId, callContext)
           } yield ()
         }
@@ -944,12 +952,14 @@ object Http4s121 {
       "Revoke access to all Views on Account",
       s""""Revokes access to all Views on an Account for a certain User.
        |
+       |Every View is revoked, the owner view included, also from an account holder. A User cannot revoke their own access: that request is refused with $CannotRevokeOwnAccountAccess
+       |
        |$generalRevokeAccessToViewText
        |
       |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "user does not have access to owner view on account"),
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, CannotRevokeOwnAccountAccess, UnknownError, "user does not have access to owner view on account"),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
       http4sPartialFunction = Some(removePermissionForUserForBankAccountForAllViews)
     )

@@ -30,10 +30,13 @@ package code.api.v4_0_0
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
+import code.consent.Consents
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import org.json4s.JNothing
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 class ConsentTests extends V400ServerSetup with DefaultUsers {
@@ -55,6 +58,7 @@ class ConsentTests extends V400ServerSetup with DefaultUsers {
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.getConsents))
+  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.updateConsentStatus))
 
   feature("Assuring that endpoint createBank works as expected - v4.0.0") {
 
@@ -76,7 +80,24 @@ class ConsentTests extends V400ServerSetup with DefaultUsers {
       And("We should get a message: " + ErrorMessages.BankNotFound)
       responseGet.code should equal(404)
       responseGet.body.extract[ErrorMessage].message should startWith(ErrorMessages.BankNotFound)
-    } 
-    
+    }
+
+  }
+
+  feature(s"Assuring that endpoint $ApiEndpoint2 only serves the caller's own consent - v4.0.0") {
+
+    scenario(s"We try to update the status of another user's consent - $ApiEndpoint2", ApiEndpoint2, VersionOfApi) {
+      Given("A consent owned by user1")
+      val consent = Consents.consentProvider.vend.createObpConsent(resourceUser1, "12345678", None).openOrThrowException("consent")
+      When("user2 updates its status")
+      val request = (v4_0_0_Request / "banks" / testBankId1.value / "consents" / consent.consentId).PUT <@ (user2)
+      val response = makePutRequest(request, write(PutConsentStatusJsonV400(status = "REJECTED")))
+      Then("We should get a 404, as if the consent did not exist")
+      response.code should equal(404)
+      response.body.extract[ErrorMessage].message should startWith(ErrorMessages.ConsentNotFound)
+      And("The consent's JWT is not returned")
+      (response.body \ "jwt") should equal(JNothing)
+    }
+
   }
  }

@@ -470,6 +470,12 @@ object Http4s220 {
                 NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.get.toString, canCreateBank, Some(cc)),
                 Some(cc), UserHasMissingRoles + canCreateBank)
             }
+            // Refuse an existing BANK_ID (as v5.0.0 / v6.0.0 do): createOrUpdateBank would overwrite that
+            // bank and the grants below would make the caller entitlement admin at a bank they did not create.
+            (banks, _) <- NewStyle.function.getBanks(Some(cc))
+            _ <- code.util.Helper.booleanToFuture(bankIdAlreadyExists, cc = Some(cc)) {
+              !banks.exists(_.bankId.value == bank.id)
+            }
             (success, _) <- NewStyle.function.createOrUpdateBank(
               bank.id, bank.full_name, bank.short_name, bank.logo_url, bank.website_url,
               bank.swift_bic, bank.national_identifier,
@@ -501,7 +507,8 @@ object Http4s220 {
       s"""Create a new bank (Authenticated access).
          |${userAuthenticationMessage(true)}""",
       bankJSONV220, bankJSONV220,
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired, InsufficientAuthorisationToCreateBank, UnknownError),
+      // bankIdAlreadyExists: the BANK_ID in the body is already taken (400)
+      List(InvalidJsonFormat, AuthenticatedUserIsRequired, InsufficientAuthorisationToCreateBank, bankIdAlreadyExists, UnknownError),
       List(apiTagBank, apiTagOldStyle),
       Some(List(canCreateBank)),
       http4sPartialFunction = Some(createBank))
@@ -633,7 +640,8 @@ object Http4s220 {
             _ <- NewStyle.function.isValidCurrencyISOCode(body.from_currency_code, Some(cc))
             _ <- NewStyle.function.isValidCurrencyISOCode(body.to_currency_code, Some(cc))
             (fxRate, _) <- NewStyle.function.createOrUpdateFXRate(
-              bankId                = body.bank_id,
+              // the rate is written at the bank in the path, where the Role was checked, not at the body's bank_id, else CanCreateFxRate at one bank writes any bank's rates
+              bankId                = bank.bankId.value,
               fromCurrencyCode      = body.from_currency_code,
               toCurrencyCode        = body.to_currency_code,
               conversionValue       = body.conversion_value,

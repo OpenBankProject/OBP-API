@@ -265,6 +265,23 @@ class AccountAccessTest extends V510ServerSetup {
       response.body.extract[RevokedJsonV400].revoked should be (true)
     }
     
+    scenario("A user cannot revoke their own access", VersionOfApi, ApiEndpoint2) {
+      val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
+      val account = try {
+        createAnAccount(bankId, user1)
+      } finally {
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+
+      When("The caller asks to revoke their own access to the owner view")
+      val postJson = PostAccountAccessJsonV510(resourceUser1.userId, SYSTEM_OWNER_VIEW_ID)
+      val requestRevoke = (v5_1_0_Request / "banks" / bankId / "accounts" / account.account_id /"views"/ ownerView / "account-access" / "revoke").POST <@ (user1)
+      val response = makePostRequest(requestRevoke, write(postJson))
+      Then("We should get a 403")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should include(CannotRevokeOwnAccountAccess)
+    }
+
     scenario("We will call the endpoint with user credentials and custom view permission", VersionOfApi, ApiEndpoint1) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {

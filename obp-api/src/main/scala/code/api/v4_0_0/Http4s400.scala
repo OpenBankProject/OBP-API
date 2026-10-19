@@ -485,6 +485,13 @@ object Http4s400 {
             _ <- code.util.Helper.booleanToFuture(
               failMsg = s"$InvalidJsonFormat BANK_ID can not contain `::::` characters",
               cc = Some(cc)) { !APIUtil.`checkIfContains::::`(bank.id) }
+            // Refuse an existing BANK_ID (as v5.0.0 / v6.0.0 do): createOrUpdateBank would overwrite that
+            // bank and the grants below would make the caller entitlement admin at a bank they did not create.
+            (banks, _) <- NewStyle.function.getBanks(Some(cc))
+            _ <- code.util.Helper.booleanToFuture(
+              failMsg = bankIdAlreadyExists, cc = Some(cc)) {
+              !banks.exists(_.bankId.value == bank.id)
+            }
             (success, _) <- NewStyle.function.createOrUpdateBank(
               bank.id, bank.full_name, bank.short_name, bank.logo, bank.website,
               bank.bank_routings.find(_.scheme == "BIC").map(_.address).getOrElse(""),
@@ -492,17 +499,24 @@ object Http4s400 {
               bank.bank_routings.filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
               bank.bank_routings.filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
               Some(cc))
-            entitlements <- NewStyle.function.getEntitlementsByUserId(cc.userId, Some(cc))
+            // Creator grants target the HUMAN (as v5.0.0 / v6.0.0 do): under a Consent the
+            // authenticated user is a per-consent shadow, and roles granted to it are stranded.
+            humanUserId = cc.onBehalfOfUserId
+            entitlements <- NewStyle.function.getEntitlementsByUserId(humanUserId, Some(cc))
             entitlementsByBank = entitlements.filter(_.bankId == bank.id)
             _ <- entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString()) match {
               case true  => Future.successful(())
+              // grant to the human, recording the authenticated caller as the granter
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                bank.id, cc.userId, CanCreateEntitlementAtOneBank.toString()))
+                bank.id, humanUserId, CanCreateEntitlementAtOneBank.toString(),
+                grantedByUserId = Some(cc.userId)))
             }
             _ <- entitlementsByBank.exists(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()) match {
               case true  => Future.successful(())
+              // grant to the human, recording the authenticated caller as the granter
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                bank.id, cc.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
+                bank.id, humanUserId, CanReadDynamicResourceDocsAtOneBank.toString(),
+                grantedByUserId = Some(cc.userId)))
             }
           } yield JSONFactory400.createBankJSON400(success)
         }
@@ -529,6 +543,7 @@ object Http4s400 {
         InvalidJsonFormat,
         $AuthenticatedUserIsRequired,
         InsufficientAuthorisationToCreateBank,
+        bankIdAlreadyExists, // the BANK_ID in the body is already taken (400)
         UnknownError
       ),
       List(apiTagBank),
@@ -3089,10 +3104,8 @@ object Http4s400 {
     // `body.challenges.size != 0`.
     //
     // All v4 types delegate to the same connector helper —
-    // `LocalMappedConnectorInternal.createTransactionRequest` — which depends on
-    // `SS.user` (Lift's thread-globals). We wrap the call in `SS.init` so the helper's
-    // first synchronous read of `SS.user` captures the cc.user, then the Future chain
-    // runs normally on any thread.
+    // `LocalMappedConnectorInternal.createTransactionRequest` — which reads the
+    // authenticated user from the CallContext passed to it.
 
     // Resolves the view createTransactionRequest needs, unit-testable without a live Mapper
     // connection: `lookup` is production's real `Views.views.vend.systemView(...).or(...)` call
@@ -3167,15 +3180,9 @@ object Http4s400 {
               Views.views.vend.systemView(ViewId(viewIdStr))
                 .or(Views.views.vend.customView(ViewId(viewIdStr), BankIdAccountId(account.bankId, account.accountId)))
             )
-            // SS.init populates Lift thread-globals (used by `SS.user` inside the
-            // connector). The connector's first line `SS.user` resolves synchronously
-            // inside this block, capturing the user; subsequent flatMap stages run on
-            // other threads but the value is already bound.
-            innerResult <- APIUtil.SS.init(Full(user), bank, account, view, Some(cc)) {
-              code.bankconnectors.LocalMappedConnectorInternal.createTransactionRequest(
-                BankId(bankIdStr), AccountId(accountIdStr), ViewId(viewIdStr),
-                transactionRequestType, json)
-            }
+            innerResult <- code.bankconnectors.LocalMappedConnectorInternal.createTransactionRequest(
+              BankId(bankIdStr), AccountId(accountIdStr), ViewId(viewIdStr),
+              transactionRequestType, json, Some(cc))
           } yield innerResult._1
         }
     }
@@ -3486,8 +3493,8 @@ object Http4s400 {
 
     // createTransactionRequestCard uses a different URL pattern (no bank/account/view)
     // and the Lift body calls the connector with empty BankId/AccountId. Add as its own
-    // route + ResourceDoc. The connector reads the user via SS.user, so prime SS with
-    // the user only; bank/account/view are connector-resolved from card details.
+    // route + ResourceDoc. The connector reads the user from the CallContext;
+    // bank/account/view are connector-resolved from card details.
     lazy val createTransactionRequestCard: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "transaction-request-types" / "CARD" / "transaction-requests" =>
         implicit val cc: CallContext = req.callContext
@@ -3500,13 +3507,9 @@ object Http4s400 {
               com.openbankproject.commons.util.JsonAliases.parse(bodyStr)
             }
             transactionRequestType = TransactionRequestType("CARD")
-            innerResult <- APIUtil.SS.init(Full(user),
-              null.asInstanceOf[Bank], null.asInstanceOf[BankAccount],
-              null.asInstanceOf[View], Some(cc)) {
-              code.bankconnectors.LocalMappedConnectorInternal.createTransactionRequest(
-                BankId(""), AccountId(""), ViewId(Constant.SYSTEM_OWNER_VIEW_ID),
-                transactionRequestType, json)
-            }
+            innerResult <- code.bankconnectors.LocalMappedConnectorInternal.createTransactionRequest(
+              BankId(""), AccountId(""), ViewId(Constant.SYSTEM_OWNER_VIEW_ID),
+              transactionRequestType, json, Some(cc))
           } yield innerResult._1
         }
     }
@@ -4870,7 +4873,9 @@ object Http4s400 {
         EndpointHelpers.withUserAndBody[UserAttributeJsonV400, Any](req) { (user, postedData, cc) =>
           for {
             (attributes, _) <- NewStyle.function.getPersonalUserAttributes(user.userId, Some(cc))
-            _ <- NewStyle.function.tryons(UserAttributeNotFound, 400, Some(cc)) {
+            // the attribute must be one of the caller's personal ones, else any user takes over any user attribute
+            // (tryons only caught exceptions and let a false through, so this check never failed)
+            _ <- code.util.Helper.booleanToFuture(UserAttributeNotFound, 404, Some(cc)) {
               attributes.exists(_.userAttributeId == userAttributeId)
             }
             attrType <- NewStyle.function.tryons(
@@ -5148,7 +5153,8 @@ object Http4s400 {
         |""",
         userAttributeJsonV400,
         userAttributeResponseJson,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // UserAttributeNotFound (404): the id is not one of the caller's personal attributes
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserAttributeNotFound, UnknownError),
         List(apiTagUser),
         Some(List()),
         http4sPartialFunction = Some(updateMyPersonalUserAttribute)
@@ -5210,6 +5216,9 @@ object Http4s400 {
                 s"Current ViewId($viewId) and current UserId(${loggedInUser.userId})",
               cc = Some(cc)) {
               APIUtil.canRevokeAccessToView(bankId, accountId, viewId, loggedInUser, Some(cc))
+            }
+            _ <- code.util.Helper.booleanToFuture(CannotRevokeOwnAccountAccess, 403, cc = Some(cc)) {
+              postJson.user_id != loggedInUser.userId
             }
             (targetUser, _) <- NewStyle.function.findByUserId(postJson.user_id, Some(cc))
             view <- if (postJson.view.is_system)
@@ -5300,7 +5309,8 @@ object Http4s400 {
 
     lazy val createMyApiCollectionEndpointById: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "my" / "api-collection-ids" / apiCollectionIdStr / "api-collection-endpoints" =>
-        EndpointHelpers.withUserAndBodyCreated[PostApiCollectionEndpointJson400, Any](req) { (_, postJson, cc) =>
+        // take the logged-in user, so the collection can be checked to be theirs
+        EndpointHelpers.withUserAndBodyCreated[PostApiCollectionEndpointJson400, Any](req) { (user, postJson, cc) =>
           for {
             _ <- code.util.Helper.booleanToFuture(
               s"$InvalidOperationId Current OPERATION_ID(${postJson.operation_id})",
@@ -5308,6 +5318,12 @@ object Http4s400 {
               getAllResourceDocs.find(_.operationId == postJson.operation_id.trim).isDefined
             }
             (apiCollection, _) <- NewStyle.function.getApiCollectionById(apiCollectionIdStr, Some(cc))
+            // the collection must belong to the caller (a /my/ path), else any user adds endpoints to anyone's collection by id
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionIdStr) ",
+              404, cc = Some(cc)) {
+              apiCollection.userId == user.userId
+            }
             existing <- Future {
               code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
                 .getApiCollectionEndpointByApiCollectionIdAndOperationId(
@@ -5326,11 +5342,18 @@ object Http4s400 {
 
     lazy val updateConsentStatus: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "consents" / consentId =>
-        EndpointHelpers.withUserAndBankAndBody[PutConsentStatusJsonV400, Any](req) { (_, _, consentJson, cc) =>
+        // take the logged-in user, so the consent can be checked to be theirs
+        EndpointHelpers.withUserAndBankAndBody[PutConsentStatusJsonV400, Any](req) { (user, _, consentJson, cc) =>
           for {
             consent <- Future(
               code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId)
             ) map { box => connectorEmptyResponse(box, Some(cc)) }
+            // the consent must belong to the caller, else any user reads any consent's JWT and changes its status
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ConsentNotFound Current CONSENT_ID($consentId) ",
+              404, cc = Some(cc)) {
+              consent.userId == user.userId
+            }
             status = code.consent.ConsentStatus.withName(consentJson.status)
             updated <- APIUtil.getPropsAsBoolValue("consents.sca.enabled", true) match {
               case true =>
@@ -5415,6 +5438,8 @@ object Http4s400 {
         "Revoke User access to View",
         s"""Revoke the User identified by USER_ID access to the view identified by VIEW_ID.
          |
+         |Any view can be revoked, the owner view included, also from an account holder. A User cannot revoke their own access: that request is refused with $CannotRevokeOwnAccountAccess
+         |
          |${userAuthenticationMessage(
           true
         )} and the user needs to be account holder.
@@ -5422,7 +5447,7 @@ object Http4s400 {
          |""",
         postAccountAccessJsonV400, revokedJsonV400,
         List($AuthenticatedUserIsRequired,
-          UserLacksPermissionCanRevokeAccessToViewForTargetAccount,
+          UserLacksPermissionCanRevokeAccessToViewForTargetAccount, CannotRevokeOwnAccountAccess,
           InvalidJsonFormat, UserNotFoundById, SystemViewNotFound, ViewNotFound,
           CannotRevokeAccountAccess, CannotFindAccountAccess, UnknownError),
         List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired), None,
@@ -5502,7 +5527,8 @@ object Http4s400 {
         |""".stripMargin,
         postApiCollectionEndpointJson400,
         apiCollectionEndpointJson400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // ApiCollectionNotFound: the collection does not exist or is not the caller's
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, ApiCollectionNotFound, UnknownError),
         List(apiTagApiCollection),
         None,
         http4sPartialFunction = Some(createMyApiCollectionEndpointById)
@@ -5519,6 +5545,8 @@ object Http4s400 {
         |
         |This endpoint is used to update the Status of Consent.
         |
+        |The consent must belong to the logged-in user; another user's consent returns 404 $ConsentNotFound
+        |
         |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted
          .mkString(", ")}.
         |
@@ -5532,8 +5560,9 @@ object Http4s400 {
             "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
           status = "AUTHORISED"
         ),
+        // ConsentNotFound: the consent is not the caller's
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-        InvalidConnectorResponse, UnknownError),
+        InvalidConnectorResponse, ConsentNotFound, UnknownError),
         apiTagConsent :: apiTagPSD2AIS :: Nil,
         None,
         http4sPartialFunction = Some(updateConsentStatus)
@@ -6267,9 +6296,11 @@ object Http4s400 {
         |""",
         supportedCurrenciesJson,
         atmSupportedCurrenciesJson,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // a caller without the role is refused with 403 UserHasMissingRoles
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        None,
+        // changing a bank's ATM data is bank management: require the role, as updateAtm does, else any logged-in user edits any bank's ATM
+        Some(List(canUpdateAtm, canUpdateAtmAtAnyBank)),
         http4sPartialFunction = Some(updateAtmSupportedCurrencies)
       )
 
@@ -6283,9 +6314,11 @@ object Http4s400 {
         |""",
         supportedLanguagesJson,
         atmSupportedLanguagesJson,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // a caller without the role is refused with 403 UserHasMissingRoles
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        None,
+        // changing a bank's ATM data is bank management: require the role, as updateAtm does, else any logged-in user edits any bank's ATM
+        Some(List(canUpdateAtm, canUpdateAtmAtAnyBank)),
         http4sPartialFunction = Some(updateAtmSupportedLanguages)
       )
 
@@ -6299,9 +6332,11 @@ object Http4s400 {
         |""",
         accessibilityFeaturesJson,
         atmAccessibilityFeaturesJson,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // a caller without the role is refused with 403 UserHasMissingRoles
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        None,
+        // changing a bank's ATM data is bank management: require the role, as updateAtm does, else any logged-in user edits any bank's ATM
+        Some(List(canUpdateAtm, canUpdateAtmAtAnyBank)),
         http4sPartialFunction = Some(updateAtmAccessibilityFeatures)
       )
 
@@ -6315,9 +6350,11 @@ object Http4s400 {
         |""",
         atmServicesJson,
         atmServicesResponseJson,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // a caller without the role is refused with 403 UserHasMissingRoles
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        None,
+        // changing a bank's ATM data is bank management: require the role, as updateAtm does, else any logged-in user edits any bank's ATM
+        Some(List(canUpdateAtm, canUpdateAtmAtAnyBank)),
         http4sPartialFunction = Some(updateAtmServices)
       )
 
@@ -6331,9 +6368,11 @@ object Http4s400 {
         |""",
         atmNotesJson,
         atmNotesResponseJson,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // a caller without the role is refused with 403 UserHasMissingRoles
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        None,
+        // changing a bank's ATM data is bank management: require the role, as updateAtm does, else any logged-in user edits any bank's ATM
+        Some(List(canUpdateAtm, canUpdateAtmAtAnyBank)),
         http4sPartialFunction = Some(updateAtmNotes)
       )
 
@@ -6347,9 +6386,11 @@ object Http4s400 {
         |""",
         atmLocationCategoriesJsonV400,
         atmLocationCategoriesResponseJsonV400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // a caller without the role is refused with 403 UserHasMissingRoles
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
-        None,
+        // changing a bank's ATM data is bank management: require the role, as updateAtm does, else any logged-in user edits any bank's ATM
+        Some(List(canUpdateAtm, canUpdateAtmAtAnyBank)),
         http4sPartialFunction = Some(updateAtmLocationCategories)
       )
 
@@ -7053,9 +7094,16 @@ object Http4s400 {
 
     lazy val deleteMyApiCollection: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "my" / "api-collections" / apiCollectionId =>
-        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+        // bind the user so the collection's owner can be checked below
+        EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
-            (_, _) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            // keep the collection to compare its owner with the caller
+            (ac, _) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            // only the owner deletes it, else any user deletes any user's collection; answered as not found so nothing is told about other users' collections
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionId) ", 404, Some(cc)) {
+              ac.userId == user.userId
+            }
             (deleted, _) <- NewStyle.function.deleteApiCollectionById(apiCollectionId, Some(cc))
           } yield deleted
         }
@@ -7077,9 +7125,15 @@ object Http4s400 {
 
     lazy val deleteMyApiCollectionEndpointByOperationId: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints" / operationId =>
-        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+        // bind the user so the collection's owner can be checked below
+        EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
             (ac, _) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            // only the owner removes its endpoints, else any user edits any user's collection; answered as not found so nothing is told about other users' collections
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionId) ", 404, Some(cc)) {
+              ac.userId == user.userId
+            }
             (ace, _) <- NewStyle.function.getApiCollectionEndpointByApiCollectionIdAndOperationId(
               ac.apiCollectionId, operationId, Some(cc))
             (deleted, _) <- NewStyle.function.deleteApiCollectionEndpointById(
@@ -7089,9 +7143,23 @@ object Http4s400 {
     }
 
     lazy val deleteMyApiCollectionEndpointById: Http4sRoute = Http4sRoute {
-      case req @ DELETE -> `prefixPath` / "my" / "api-collection-ids" / _ / "api-collection-endpoint-ids" / apiCollectionEndpointId =>
-        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+      // bind the collection id so the endpoint can be checked to belong to it below
+      case req @ DELETE -> `prefixPath` / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoint-ids" / apiCollectionEndpointId =>
+        // bind the user so the collection's owner can be checked below
+        EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
+            (ac, _) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            // only the owner removes its endpoints, else any user edits any user's collection; answered as not found so nothing is told about other users' collections
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionId) ", 404, Some(cc)) {
+              ac.userId == user.userId
+            }
+            (ace, _) <- NewStyle.function.getApiCollectionEndpointById(apiCollectionEndpointId, Some(cc))
+            // the endpoint must be in the collection in the path, else the owner of any collection deletes endpoints of another user's collection
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionEndpointNotFound Please specify a valid value for API_COLLECTION_ENDPOINT_ID. Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointId) ", 404, Some(cc)) {
+              ace.apiCollectionId == ac.apiCollectionId
+            }
             (deleted, _) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpointId, Some(cc))
           } yield deleted
         }
@@ -7341,7 +7409,8 @@ object Http4s400 {
         |""",
         EmptyBody,
         Full(true),
-        List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
+        // ApiCollectionNotFound: an unknown id, or a collection of another user
+        List($AuthenticatedUserIsRequired, UserNotFoundByUserId, ApiCollectionNotFound, UnknownError),
         List(apiTagApiCollection),
         None,
         http4sPartialFunction = Some(deleteMyApiCollection)
@@ -7384,7 +7453,8 @@ object Http4s400 {
         |""",
         EmptyBody,
         Full(true),
-        List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
+        // ApiCollectionNotFound: the collection does not exist or is another user's
+        List($AuthenticatedUserIsRequired, UserNotFoundByUserId, ApiCollectionNotFound, UnknownError),
         List(apiTagApiCollection),
         None,
         http4sPartialFunction = Some(deleteMyApiCollectionEndpointByOperationId)
@@ -7405,7 +7475,8 @@ object Http4s400 {
         |""",
         EmptyBody,
         Full(true),
-        List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
+        // ApiCollectionNotFound: the collection does not exist or is another user's; ApiCollectionEndpointNotFound: the endpoint does not exist or is not in that collection
+        List($AuthenticatedUserIsRequired, UserNotFoundByUserId, ApiCollectionNotFound, ApiCollectionEndpointNotFound, UnknownError),
         List(apiTagApiCollection),
         None,
         http4sPartialFunction = Some(deleteMyApiCollectionEndpointById)

@@ -966,7 +966,14 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           val accountId = AccountId(accountIdStr)
           for {
-            _ <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            // The caller needs a view on this account that can see balances, else any logged-in user reads any account's balances
+            _ <- Helper.booleanToFuture(
+              ViewDoesNotPermitAccess + s" You need the `${CAN_SEE_BANK_ACCOUNT_BALANCE}` permission on any of your views",
+              403, cc = Some(cc)) {
+              Views.views.vend.privateViewsUserCanAccessForAccount(user, BankIdAccountId(BankId(bankIdStr), accountId))
+                .exists(_.allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_BALANCE))
+            }
             (balances, _) <- code.api.util.newstyle.BankAccountBalanceNewStyle.getBankAccountBalances(accountId, Some(cc))
           } yield JSONFactory510.createBankAccountBalancesJson(balances)
         }
@@ -985,7 +992,8 @@ object Http4s510 {
       |""",
       EmptyBody,
       bankAccountBalancesJsonV510,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // BankNotFound / BankAccountNotFound come from the middleware; ViewDoesNotPermitAccess from the balance view check
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, ViewDoesNotPermitAccess, UserHasMissingRoles, UnknownError),
       List(apiTagAccount, apiTagBalance),
       None,
       http4sPartialFunction = Some(getAllBankAccountBalances)
@@ -1958,7 +1966,15 @@ object Http4s510 {
             putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[code.api.v4_0_0.PostApiCollectionJson400].getSimpleName}", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[code.api.v4_0_0.PostApiCollectionJson400]
             }
-            (_, _) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            // the caller, to compare with the collection's owner below
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            // keep the collection to compare its owner with the caller
+            (existing, _) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            // only the owner updates it, else any user renames or shares any user's collection; answered as not found so nothing is told about other users' collections
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionId) ", 404, Some(cc)) {
+              existing.userId == user.userId
+            }
             (apiCollection, _) <- NewStyle.function.updateApiCollection(
               apiCollectionId, putJson.api_collection_name, putJson.is_sharable, putJson.description.getOrElse(""), Some(cc))
           } yield JSONFactory400.createApiCollectionJsonV400(apiCollection)
@@ -1976,7 +1992,8 @@ object Http4s510 {
       |""".stripMargin,
       postApiCollectionJson400,
       apiCollectionJson400,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserNotFoundByUserId, UnknownError),
+      // ApiCollectionNotFound: no such collection, or it belongs to another user
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserNotFoundByUserId, ApiCollectionNotFound, UnknownError),
       List(apiTagApiCollection),
       None,
       http4sPartialFunction = Some(updateMyApiCollection)
@@ -3410,6 +3427,9 @@ object Http4s510 {
             _ <- Helper.booleanToFuture(msg, 403, cc = Some(cc)) {
               APIUtil.canRevokeAccessToView(com.openbankproject.commons.model.BankIdAccountIdViewId(bankId, accountId, viewId), targetViewId, user, Some(cc))
             }
+            _ <- Helper.booleanToFuture(CannotRevokeOwnAccountAccess, 403, cc = Some(cc)) {
+              postJson.user_id != user.userId
+            }
             (targetUser, _) <- NewStyle.function.findByUserId(postJson.user_id, Some(cc))
             view <- if (isValidSystemViewId(targetViewId.value)) ViewNewStyle.systemView(targetViewId, Some(cc))
                     else ViewNewStyle.customView(targetViewId, BankIdAccountId(bankId, accountId), Some(cc))
@@ -3427,6 +3447,8 @@ object Http4s510 {
       "Revoke User access to View",
       s"""Revoke the User identified by USER_ID access to the view identified.
       |
+      |Any view can be revoked, the owner view included, also from an account holder. A User cannot revoke their own access: that request is refused with $CannotRevokeOwnAccountAccess
+      |
       |${userAuthenticationMessage(true)}.
       |
       |""",
@@ -3434,7 +3456,7 @@ object Http4s510 {
       revokedJsonV400,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
       UserLacksPermissionCanRevokeAccessToCustomViewForTargetAccount,
-      UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount,
+      UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount, CannotRevokeOwnAccountAccess,
       InvalidJsonFormat, UserNotFoundById, SystemViewNotFound, ViewNotFound,
       CannotRevokeAccountAccess, CannotFindAccountAccess, UnknownError),
       List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
