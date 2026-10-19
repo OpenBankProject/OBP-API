@@ -1808,6 +1808,63 @@ object Glossary extends MdcLoggable  {
 				|<img width="468" alt="OBP Access Control Image" src="$getServerUrl/media/images/glossary/OBP_Consent_Request__3_.png"></img>
 				|""".stripMargin)
 
+	glossaryItems += GlossaryItem(
+		title = "On Behalf Of",
+		description = onBehalfOfDescription
+	)
+
+	/**
+	 * This builds the "On Behalf Of" description. The table is rendered from UserReference, which
+	 * holds the policy of every column that stores a user id and which of them are applied yet, so
+	 * the Glossary cannot drift from the code. The table is appended after stripMargin, because its
+	 * rows start with "|" and stripMargin would eat that.
+	 */
+	private def onBehalfOfDescription: String = {
+		import code.users.{AttributionPolicy, UserReference}
+		import code.users.UserReference.NotYetWired
+
+		def policyText(policy: AttributionPolicy): String = policy match {
+			case AttributionPolicy.UseAuthenticatedUserId => "the caller"
+			case AttributionPolicy.UseOnBehalfOfUserId    => "the User acted for"
+			case AttributionPolicy.Reject                 => "refused"
+		}
+		def todayText(ref: UserReference): String = UserReference.notYetWired.get(ref) match {
+			case None                                                                => policyText(ref.policy)
+			case Some(NotYetWired.StoresCaller(_)) if ref.policy == AttributionPolicy.Reject => "the caller (not refused)"
+			case Some(NotYetWired.StoresCaller(_))                                   => "the caller"
+			case Some(NotYetWired.NotReachedByConsentUser(_))                        => "not written by a consent user"
+		}
+		def cell(text: String): String = text.replace("|", "\\|")
+
+		val rows = UserReference.all.map { ref =>
+			s"| ${ref.name.takeWhile(_ != '_')} | ${ref.fields.map(field => s"`$field`").mkString(", ")} | " +
+			s"${policyText(ref.policy)} | ${todayText(ref)} | ${cell(ref.note)} |"
+		}
+		val delegated = UserReference.all.filter(ref => ref.policy != AttributionPolicy.UseAuthenticatedUserId)
+		val applied = delegated.count(UserReference.isWired)
+
+		s"""When a User grants a ${getGlossaryItemLink("Consent")} to an application, such as an AI agent, the application calls OBP under an identity of its own: a consent user, which OBP creates for that Consent. A call made that way has two Users behind it. `user_id` is the caller, the consent user that authenticated. `on_behalf_of_user_id` is the User the call was made for, the one who granted the Consent. When a User calls OBP for themselves, the two are the same User.
+			 |
+			 |OBP finds the User acted for itself, from the Consent the caller authenticated with. It never takes it from a request body, header or query parameter, so a caller cannot name somebody else to act for.
+			 |
+			 |This matters whenever OBP stores a user id. A consent user belongs to its Consent, so a row stored against it, such as an account holder, belongs to an identity that ends with the Consent, and the User who asked for it can no longer see it. So every database column that stores a user id has a policy, which says whose id to store when a consent user makes the call:
+			 |
+			 |* **the caller**: store the consent user's own id. This suits audit records of who acted, and the rows that carry a Consent's own permissions, which are meant to end with it.
+			 |* **the User acted for**: store the id of the User who granted the Consent, so the row outlives the Consent. A few tables keep both ids, for example a counterparty or a transaction request, where who made the call is worth keeping too; the Note column says so.
+			 |* **refused**: a consent user must not do this at all, because what it would create (a Consent, a Consumer or a token) outlives the Consent and would let the delegation extend itself.
+			 |
+			 |A request that explicitly names a consent user as the target User, for example in a `user_id` field or a `USER_ID` path segment, is answered with 400 `InvalidUserId`.
+			 |
+			 |Where a v7.0.0 response publishes both ids, it names them `user_id` and `on_behalf_of_user_id`, as in the record metadata of a ${getGlossaryItemLink("Dynamic-Entities")} record.
+			 |
+			 |**Every column that stores a user id**
+			 |
+			 |Policy is whose id the column should hold when a consent user makes the call. Today is whose id it holds on this instance now. Of the ${delegated.size} columns whose policy is "the User acted for" or "refused", ${applied} apply it today. "Not written by a consent user" means no API call writes that column with a consent user's id, because the endpoint refuses the consent user first or no endpoint writes the table.
+			 |
+			 |""".stripMargin +
+		(List("| Record | Column | Policy | Today | Note |", "|---|---|---|---|---|") ++ rows).mkString("\n") + "\n"
+	}
+
 
 	glossaryItems += GlossaryItem(
 		title = "Authentication: Consent OBP Flow Example",

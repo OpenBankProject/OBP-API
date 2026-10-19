@@ -144,7 +144,8 @@ class ModeratedTransactionMetadata(
       u <- Box(user) ?~ { AuthenticatedUserIsRequired}
       imageList <- Box(images) ?~ { s"$NoViewPermission can_delete_image." }
       image <- Box(imageList.find(image => image.id_ == imageId)) ?~ {"Image with id " + imageId + "not found for this transaction"}
-      deleteFunc <- if(image.postedBy == user || view.allowed_actions.exists(_ ==CAN_DELETE_IMAGE))
+      // the poster may delete their own image: compare user keys, as postedBy is a Box and user an Option, which never compare equal
+      deleteFunc <- if(image.postedBy.exists(poster => user.exists(_.userPrimaryKey == poster.userPrimaryKey)) || view.allowed_actions.exists(_ ==CAN_DELETE_IMAGE))
     	                Box(deleteImage) ?~ "Deleting images not permitted for this view"
                     else
                       Failure("Deleting images not permitted for the current user")
@@ -158,7 +159,8 @@ class ModeratedTransactionMetadata(
       u <- Box(user) ?~ { AuthenticatedUserIsRequired}
       commentList <- Box(comments) ?~ { s"$NoViewPermission can_delete_comment." }
       comment <- Box(commentList.find(comment => comment.id_ == commentId)) ?~ {"Comment with id "+commentId+" not found for this transaction"}
-      deleteFunc <- if(comment.postedBy == user || view.allowed_actions.exists(_ ==CAN_DELETE_COMMENT))
+      // the poster may delete their own comment: compare user keys, as postedBy is a Box and user an Option, which never compare equal
+      deleteFunc <- if(comment.postedBy.exists(poster => user.exists(_.userPrimaryKey == poster.userPrimaryKey)) || view.allowed_actions.exists(_ ==CAN_DELETE_COMMENT))
                     Box(deleteComment) ?~ "Deleting comments not permitted for this view"
                   else
                     Failure("Deleting comments not permitted for the current user")

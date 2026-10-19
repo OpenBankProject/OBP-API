@@ -337,6 +337,122 @@ object UserReference {
     Token_UserForeignKey
   )
 
+  /**
+   * This class says why a reference's provider does not apply its policy yet, and what that means
+   * for a consent user's call in the meantime. Each value is one entry of notYetWired below.
+   */
+  sealed abstract class NotYetWired(val reason: String)
+  object NotYetWired {
+    /** This means the provider stores the caller's own id, so a row written by an agent is stored
+     *  against the agent, and a Reject reference is not refused. */
+    final case class StoresCaller(override val reason: String) extends NotYetWired(reason)
+    /** This means no API call reaches the provider with a consent user's id, so there is nothing
+     *  for the policy to act on: the endpoint refuses first, or no endpoint writes the table. */
+    final case class NotReachedByConsentUser(override val reason: String) extends NotYetWired(reason)
+  }
+
+  private val mechanicalBatch = NotYetWired.StoresCaller(
+    "Phase 2 mechanical batch: the provider does not call attributionOf yet, so a consent user's " +
+    "row is stored against the consent user and dies with the Consent.")
+
+  private val webhookDeferred = NotYetWired.StoresCaller(
+    "deferred 2026-09-16, not mechanical: agreed as record-both (like Counterparty), but the webhook " +
+    "code has two dead paths already and is not to be touched in a hurry. todo/webhook_attribution.md.")
+
+  private val filesNotYetServed = NotYetWired.NotReachedByConsentUser(
+    "the Files tables (code.files) exist but no endpoint writes them yet. The endpoints must store " +
+    "cc.onBehalfOfUserId as the owner (ideas/ogcr_file_storage.md) and reject a consent user as grantee.")
+
+  private val rejectNotEnforced = NotYetWired.StoresCaller(
+    "Reject, not yet enforced: attributionOf already returns Failure for it (AgentDelegationTest pins " +
+    "that), but no caller consults it.")
+
+  /**
+   * This lists the UseOnBehalfOfUserId and Reject references whose provider does not apply the
+   * policy yet, because Phase 2 of ON_BEHALF_OF_USER_ID_PLAN.md is done a table at a time. Every
+   * other reference in `all` is applied. Together with `all` this is the state of on-behalf-of
+   * attribution, and the "On Behalf Of" Glossary item renders it.
+   *
+   * It is written out by hand rather than derived from what the main sources mention.
+   * OnBehalfOfOwnershipSweepTest checks it against those sources: a UseOnBehalfOfUserId or Reject
+   * reference that is neither mentioned nor listed fails, and so does one that is listed but now
+   * mentioned. So wiring a provider forces its entry out of this list, and the list may only shrink.
+   */
+  lazy val notYetWired: Map[UserReference, NotYetWired] = Map(
+    AccountApplication_UserId              -> mechanicalBatch,
+    AccountAccessRequest_RequestorUserId   -> mechanicalBatch,
+    AccountAccessRequest_CheckerUserId     -> mechanicalBatch,
+    DynamicChangeRequest_RequestorUserId   -> mechanicalBatch,
+    DynamicChangeRequest_CheckerUserId     -> mechanicalBatch,
+    EntitlementRequest_UserId              -> mechanicalBatch,
+    UserScope_UserId                       -> mechanicalBatch,
+    ApiCollection_UserId                   -> mechanicalBatch,
+    UserAttribute_UserId                   -> mechanicalBatch,
+    UserAgreement_UserId                   -> mechanicalBatch,
+    UserInitAction_UserId                  -> mechanicalBatch,
+    UserAuthContext_UserId                 -> mechanicalBatch,
+    UserAuthContextUpdate_UserId           -> mechanicalBatch,
+    DynamicDataAccess_UserId               -> mechanicalBatch,
+    DynamicEndpoint_UserId                 -> mechanicalBatch,
+    DynamicResourceDoc_CreatedByUserId     -> mechanicalBatch,
+    DynamicMessageDoc_CreatedByUserId      -> mechanicalBatch,
+    ConnectorMethod_CreatedByUserId        -> mechanicalBatch,
+    AbacRule_CreatedByUserId               -> mechanicalBatch,
+    CounterpartyWhereTag_User              -> mechanicalBatch,
+    ApiProductSubscription_CreatedByUserId -> mechanicalBatch,
+    DynamicGlossaryItem_CreatedByUserId    -> mechanicalBatch,
+    Organisation_CreatedByUserId           -> mechanicalBatch,
+    Asset_CreatedByUserId                  -> NotYetWired.NotReachedByConsentUser(
+      "no endpoint writes the asset registry yet; only the boot seed does. Wire it with the asset write endpoints."),
+    File_UserId                            -> filesNotYetServed,
+    FileAttachment_UserId                  -> filesNotYetServed,
+    FileAccess_GrantedByUserId             -> filesNotYetServed,
+    FileAccess_GranteeUserId               -> filesNotYetServed,
+    PayeeLookup_CreatedByUserId            -> mechanicalBatch,
+    RoutingScheme_CreatedByUserId          -> mechanicalBatch,
+    UtilityPaymentCallback_CreatedByUserId -> mechanicalBatch,
+    StandingOrder_UserId                   -> mechanicalBatch,
+    DirectDebit_UserId                     -> mechanicalBatch,
+    Mandate_CreatedByUserId                -> mechanicalBatch,
+    SignatoryPanel_UserIds                 -> mechanicalBatch,
+    AccountWebhook_CreatedByUserId                   -> webhookDeferred,
+    SystemAccountNotificationWebhook_CreatedByUserId -> webhookDeferred,
+    BankAccountNotificationWebhook_CreatedByUserId   -> webhookDeferred,
+    ChatRoom_CreatedByUserId               -> mechanicalBatch,
+    Participant_UserId                     -> mechanicalBatch,
+    Reaction_UserId                        -> mechanicalBatch,
+    ChatEmailDigestState_UserId            -> mechanicalBatch,
+    ChatMessage_MentionedUserIds           -> mechanicalBatch,
+    CrmEvent_UserId                        -> mechanicalBatch,
+    KycCheck_User                          -> mechanicalBatch,
+    KycCheck_StaffUserId                   -> mechanicalBatch,
+    KycDocument_User                       -> mechanicalBatch,
+    KycStatus_User                         -> mechanicalBatch,
+    SocialMedia_User                       -> mechanicalBatch,
+    CustomerMessage_User                   -> mechanicalBatch,
+    Meeting_CustomerUserId                 -> mechanicalBatch,
+    Meeting_StaffUserId                    -> mechanicalBatch,
+    Tag_User                               -> mechanicalBatch,
+    WhereTag_User                          -> mechanicalBatch,
+    TransactionImage_User                  -> mechanicalBatch,
+    AccountAccessRequest_TargetUserId      -> NotYetWired.NotReachedByConsentUser(
+      "explicit target, so the endpoint refuses a consent user rather than redirecting -- covered " +
+      "by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),
+    GroupMembership_UserId                 -> NotYetWired.NotReachedByConsentUser(
+      "the member is never the caller: the Group member sync endpoint reads each member's user id " +
+      "from the Group's existing Entitlements and membership rows, so there is nothing to redirect."),
+    Consent_UserId                         -> NotYetWired.StoresCaller(
+      "Reject, not yet enforced: a consent user can still create a Consent (nested delegation). " +
+      "attributionOf already returns Failure for it -- AgentDelegationTest pins that -- but no " +
+      "caller consults it. ON_BEHALF_OF_USER_ID_PLAN.md Phase 3, still open."),
+    Consumer_CreatedByUserId               -> rejectNotEnforced,
+    Token_UserForeignKey                   -> rejectNotEnforced
+  )
+
+  /** This is true when the reference's provider applies its policy. A UseAuthenticatedUserId
+   *  reference needs no resolver, so it is always applied. */
+  def isWired(ref: UserReference): Boolean = !notYetWired.contains(ref)
+
   /** This lists the columns whose names look like user ids to UserReferenceAttributionPolicyTest
    *  but which do not in fact hold one, so no policy applies. Each entry is the Mapper class, the
    *  field, and why it is excluded.
