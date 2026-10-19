@@ -2378,7 +2378,8 @@ object Http4s310 {
               postedData.line_1, postedData.line_2, postedData.line_3,
               postedData.city, postedData.county, postedData.state,
               postedData.postcode, postedData.country_code,
-              postedData.state,
+              // The status parameter takes the posted status, so the address keeps the status the caller sent
+              postedData.status,
               postedData.tags.mkString(","),
               Some(cc))
           } yield JSONFactory310.createAddress(address)
