@@ -640,7 +640,8 @@ object Http4s220 {
             _ <- NewStyle.function.isValidCurrencyISOCode(body.from_currency_code, Some(cc))
             _ <- NewStyle.function.isValidCurrencyISOCode(body.to_currency_code, Some(cc))
             (fxRate, _) <- NewStyle.function.createOrUpdateFXRate(
-              bankId                = body.bank_id,
+              // the rate is written at the bank in the path, where the Role was checked, not at the body's bank_id, else CanCreateFxRate at one bank writes any bank's rates
+              bankId                = bank.bankId.value,
               fromCurrencyCode      = body.from_currency_code,
               toCurrencyCode        = body.to_currency_code,
               conversionValue       = body.conversion_value,
