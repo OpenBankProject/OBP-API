@@ -245,7 +245,8 @@ object Http4s220 {
       |The json sent is the same as during view creation (above), with one difference: the 'name' field
       |of a view is not editable (it is only set when a view is created)""",
       updateViewJsonV121, viewJSONV220,
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
+      // SourceViewHasLessPermission: the body asks for actions none of the caller's views on the account has
+      List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, SourceViewHasLessPermission, UnknownError),
       List(apiTagAccount, apiTagView, apiTagOldStyle), None,
       http4sPartialFunction = Some(updateViewForBankAccount))
 
@@ -265,6 +266,11 @@ object Http4s220 {
         _ <- code.util.Helper.booleanToFuture(
           s"${CreateCustomViewError} You need the `${CAN_UPDATE_CUSTOM_VIEW}` permission on any your views",
           cc = Some(cc)) { anyCanUpdate }
+        // the view may only get actions the caller already has on one of their views of this account, else they grant themselves more (as v5.1.0 does)
+        callerActions = permission.views.flatMap(_.allowed_actions).toSet
+        _ <- code.util.Helper.booleanToFuture(
+          s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${updateBodyJson.allowed_actions})",
+          failCode = 403, cc = Some(cc)) { updateBodyJson.allowed_actions.toSet.subsetOf(callerActions) }
         updateViewJson = UpdateViewJSON(
           description                = updateBodyJson.description,
           metadata_view              = view.metadataView,

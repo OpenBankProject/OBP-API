@@ -628,6 +628,14 @@
       "http4s_digest": "04e78c3b02fef79fb86ea5555090669801dc4b0dec7ea8fdb1d95de1553d472b"
     },
     {
+      "version": "v1_2_1",
+      "endpoint": "updateViewForBankAccount",
+      "field": "errorResponseBodies",
+      "reason": "Added SourceViewHasLessPermission (403): the updated view may only get actions the caller already has on one of their views of the account, as v5.1.0 does",
+      "lift_digest": "4e76cff480673ec28f47a65e0c4b12813faf2f4908ed9db4289b69d82cd415a8",
+      "http4s_digest": "d9336c4032a9807b5124b916d49a67e156cac3705b15d8e9406af542570ed2d1"
+    },
+    {
       "version": "v1_4_0",
       "endpoint": "getTransactionRequestTypes",
       "field": "errorResponseBodies",
@@ -684,6 +692,14 @@
       "http4s_digest": "cf5294172b6fea51500e1502a5dcb8efc1818f5c5216d0eb022e2fce18149f92"
     },
     {
+      "version": "v2_2_0",
+      "endpoint": "updateViewForBankAccount",
+      "field": "errorResponseBodies",
+      "reason": "Added SourceViewHasLessPermission (403): the updated view may only get actions the caller already has on one of their views of the account, as v5.1.0 does",
+      "lift_digest": "6c121e45a137edd8e68f1b7446a0482718dea19bcf5889f42dcff4bf01b7dd91",
+      "http4s_digest": "d146b526eaa03066229214dbe23bdc7e4e751f3c4029839962006f09d68d9ea7"
+    },
+    {
       "version": "v3_0_0",
       "endpoint": "createViewForBankAccount",
       "field": "requestUrl",
@@ -722,6 +738,14 @@
       "reason": "VIEW_ID -> UPD_VIEW_ID convention.",
       "lift_digest": "7ff8ab9d5f5380b422cd7e8e46bc1a4beaa86e5eec2aea467285384a2593404a",
       "http4s_digest": "cf5294172b6fea51500e1502a5dcb8efc1818f5c5216d0eb022e2fce18149f92"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "updateViewForBankAccount",
+      "field": "errorResponseBodies",
+      "reason": "Added SourceViewHasLessPermission (403): the updated view may only get actions the caller already has on one of their views of the account, as v5.1.0 does",
+      "lift_digest": "6c121e45a137edd8e68f1b7446a0482718dea19bcf5889f42dcff4bf01b7dd91",
+      "http4s_digest": "d146b526eaa03066229214dbe23bdc7e4e751f3c4029839962006f09d68d9ea7"
     },
     {
       "version": "v3_1_0",

@@ -335,7 +335,24 @@ class ViewsTests extends V300ServerSetup {
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
-  
+
+    // the view may only get actions the caller already has on one of their views of the account
+    scenario("we will not give a view an action that none of the caller's views has") {
+      Given("A view exists")
+      val bankId = randomBankId
+      val bankAccountId = randomPrivateAccountId(bankId)
+      val creationReply = postView(bankId, bankAccountId, postBodyViewJson, user1)
+      creationReply.code should equal (201)
+      val createdView : ViewJsonV300 = creationReply.body.extract[ViewJsonV300]
+
+      When("we ask for an action that no view of the caller has")
+      val reply = putView(bankId, bankAccountId, createdView.id,
+        viewUpdateJson(createdView).copy(allowed_actions = allowedActions :+ "can_do_what_no_view_of_the_caller_can"), user1)
+      Then("we should get a 403 and the SourceViewHasLessPermission message")
+      reply.code should equal (403)
+      reply.body.extract[ErrorMessage].message should startWith (code.api.util.ErrorMessages.SourceViewHasLessPermission)
+    }
+
     scenario("we can not update a System view on a bank account") {
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
