@@ -725,6 +725,14 @@
     },
     {
       "version": "v3_1_0",
+      "endpoint": "getAccountApplication",
+      "field": "errorResponseBodies",
+      "reason": "Added AccountApplicationNotFound: the application is answered as not found when its customer is at another bank than BANK_ID",
+      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
+      "http4s_digest": "a2e469898f8038fa40a0400093a93eb90c53622ae413dffe76a4be561177bbcc"
+    },
+    {
+      "version": "v3_1_0",
       "endpoint": "createAccount",
       "field": "requestUrl",
       "reason": "ACCOUNT_ID -> NEW_ACCOUNT_ID, PUT-creates-account convention.",

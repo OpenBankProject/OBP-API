@@ -1038,13 +1038,22 @@ object Http4s310 {
 
     val getAccountApplication: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "account-applications" / accountApplicationIdStr =>
-        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+        EndpointHelpers.withUserAndBank(req) { (loggedInUser, bank, cc) =>
           for {
             (accountApplication, _) <- NewStyle.function.getAccountApplicationById(accountApplicationIdStr, Some(cc))
+            // only the applicant, or a holder of canGetAccountApplications (the role the list endpoint requires), may read an application
+            _ <- if (accountApplication.userId == loggedInUser.userId) Future.successful(Full(()))
+                 else code.util.Helper.booleanToFuture(s"$UserHasMissingRoles$canGetAccountApplications", failCode = 403, cc = Some(cc)) {
+                   APIUtil.hasEntitlement("", loggedInUser.userId, canGetAccountApplications)
+                 }
             userId = Option(accountApplication.userId)
             customerId = Option(accountApplication.customerId)
             user <- unboxOptionOBPReturnType(userId.map(NewStyle.function.findByUserId(_, Some(cc))))
             customer <- unboxOptionOBPReturnType(customerId.map(NewStyle.function.getCustomerByCustomerId(_, Some(cc))))
+            // an application has no bank of its own: its customer must be at the bank in the path, else answer as if it did not exist
+            _ <- code.util.Helper.booleanToFuture(AccountApplicationNotFound, 404, Some(cc)) {
+                   customer.forall(_.bankId == bank.bankId.value)
+                 }
           } yield createAccountApplicationJson(accountApplication, user, customer)
         }
     }
@@ -1063,7 +1072,8 @@ object Http4s310 {
       |""",
       EmptyBody,
       accountApplicationResponseJson,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // AccountApplicationNotFound: the application is not found, or its customer is at another bank than the one in the path
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, AccountApplicationNotFound, UnknownError),
       List(apiTagAccountApplication, apiTagAccount),
       None,
       http4sPartialFunction = Some(getAccountApplication)
