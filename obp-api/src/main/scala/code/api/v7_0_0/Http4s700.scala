@@ -2445,6 +2445,25 @@ object Http4s700 {
             // Validate bank and account
             (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
 
+            // Look up the trade; a missing one is refused below as not found
+            (tradeBox, _) <- BankConnector.connector.vend.getMarketTrade(BankId(bankId), AccountId(accountId), requestJson.trade_id, callContext)
+
+            // the trade belongs to the account in the path when its buy or sell order does (getMarketOrder only finds orders of that account)
+            tradeIsOfThisAccount <- tradeBox match {
+              case Full(trade) =>
+                Future.sequence(List(trade.buyOrderId, trade.sellOrderId).map(orderId =>
+                  BankConnector.connector.vend.getMarketOrder(BankId(bankId), AccountId(accountId), orderId, callContext).map(_._1.isDefined)
+                )).map(_.contains(true))
+              case _ => Future.successful(false)
+            }
+
+            // the trade must exist and be of the account in the path, else anyone with a view on one account settles any trade
+            _ <- Helper.booleanToFuture(
+              failMsg = TradeNotFound,
+              failCode = 404,
+              cc = callContext
+            )(tradeIsOfThisAccount)
+
             // Invoke connector
             (settlement, callContext2) <- NewStyle.function.requestSettlement(
               BankId(bankId),
@@ -2482,7 +2501,8 @@ object Http4s700 {
         created_at = "2026-04-16T00:45:00Z",
         completed_at = None
       ),
-      List(InvalidJsonFormat, SettlementFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      // TradeNotFound: the trade_id is unknown or no side of the trade is an order of the account in the path
+      List(InvalidJsonFormat, TradeNotFound, SettlementFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
       apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(requestSettlement)
     )

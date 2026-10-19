@@ -657,6 +657,16 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       statusCode shouldBe 200
       (json \ "status") shouldBe JString("cancelled")
     }
+
+    // a settlement needs a trade of the account in the path, so an unknown trade_id is refused as not found
+    scenario("Refuse to request settlement of an unknown trade (404 TradeNotFound)", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        s"/obp/v7.0.0/banks/${testBankId1.value}/accounts/${testAccountId0.value}/views/$SYSTEM_OWNER_VIEW_ID/market/settlements",
+        s"""{"trade_id": "${APIUtil.generateUUID()}", "step": "step1"}""", headers)
+      statusCode shouldBe 404
+      messageOf(json) should include(code.api.util.ErrorMessages.TradeNotFound)
+    }
   }
 
   // ─── message outbox (operator) ────────────────────────────────────────────────
