@@ -851,7 +851,13 @@ object Http4s310 {
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canGetTaxResidence, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller read tax residences of customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             (taxResidences, _) <- NewStyle.function.getTaxResidences(customerIdStr, Some(cc))
           } yield JSONFactory310.createTaxResidences(taxResidences)
         }
@@ -871,7 +877,8 @@ object Http4s310 {
       |""",
       EmptyBody,
       taxResidencesJsonV310,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // CustomerNotFoundByCustomerId: the customer is not found, or is at another bank than the one in the path
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, CustomerNotFoundByCustomerId, UnknownError),
       List(apiTagCustomer, apiTagKyc),
       Some(List(canGetTaxResidence)),
       http4sPartialFunction = Some(getTaxResidence)

@@ -2381,6 +2381,14 @@
     },
     {
       "version": "v3_1_0",
+      "endpoint": "getTaxResidence",
+      "field": "errorResponseBodies",
+      "reason": "Added CustomerNotFoundByCustomerId (404): the customer must be at BANK_ID, else a Role at one bank reads tax residences of customers at any bank",
+      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
+      "http4s_digest": "8923a626c8aa4e1bc5ac5399e873623126f9fd0cf38da3d11b320d01033719fc"
+    },
+    {
+      "version": "v3_1_0",
       "endpoint": "createTaxResidence",
       "field": "errorResponseBodies",
       "reason": "Added CustomerNotFoundByCustomerId: the customer in the path must be at BANK_ID, else 404, so the Role at one bank cannot add tax residences to customers at another bank",
