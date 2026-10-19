@@ -233,5 +233,25 @@ class CustomerAddressTest extends V310ServerSetup {
     }
   }
 
+  // The Create endpoint adds an address only to a customer at the bank in the path
+  feature("Create Customer Address v3.1.0 stays within the bank in the path") {
+    scenario("A customer at another bank than the one in the path is not found", ApiEndpoint1, VersionOfApi) {
+      val bankA = testBankId1.value
+      val bankB = testBankId2.value
+      Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, CanCreateCustomerAddress.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankB, resourceUser1.userId, CanCreateCustomer.toString)
+      val customer = makePostRequest((v3_1_0_Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
+      customer.code should equal(201)
+      val customerAtB = customer.body.extract[CustomerJsonV310].customer_id
+      When("We add an address to bank B's customer through bank A's path")
+      val request310 = (v3_1_0_Request / "banks" / bankA / "customers" / customerAtB / "address").POST <@(user1)
+      val response310 = makePostRequest(request310, write(postCustomerAddressJson))
+      Then("We should get a 404")
+      response310.code should equal(404)
+      And("error should be " + CustomerNotFoundByCustomerId)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
+    }
+  }
+
 
 }

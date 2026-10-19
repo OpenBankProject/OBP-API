@@ -2293,7 +2293,14 @@ object Http4s310 {
         EndpointHelpers.withUserAndBankAndBodyCreated[PostCustomerAddressJsonV310, Any](req) { (user, bank, postedData, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canCreateCustomerAddress, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // Keep the customer: its bank is checked next
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller add addresses to customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             (address, _) <- NewStyle.function.createCustomerAddress(
               customerIdStr,
               postedData.line_1, postedData.line_2, postedData.line_3,
@@ -2320,7 +2327,9 @@ object Http4s310 {
       |""",
       postCustomerAddressJsonV310,
       customerAddressJsonV310,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      // CustomerNotFoundByCustomerId: the customer does not exist, or is not at BANK_ID (the guard above)
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, CustomerNotFoundByCustomerId,
+        UnknownError),
       List(apiTagCustomer),
       Some(List(canCreateCustomerAddress)),
       http4sPartialFunction = Some(createCustomerAddress)

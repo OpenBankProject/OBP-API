@@ -2365,6 +2365,14 @@
     },
     {
       "version": "v3_1_0",
+      "endpoint": "createCustomerAddress",
+      "field": "errorResponseBodies",
+      "reason": "Added CustomerNotFoundByCustomerId: the customer must be at BANK_ID, else a Role at one bank would add addresses to customers at any bank",
+      "lift_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5",
+      "http4s_digest": "3e88e7991ab67e6003f7b61db2d636c2d235017e02312ef328559958dc8dd1c3"
+    },
+    {
+      "version": "v3_1_0",
       "endpoint": "updateAccountAttribute",
       "field": "errorResponseBodies",
       "reason": "Added AccountAttributeNotFound (404): the attribute must belong to the BANK_ID, ACCOUNT_ID and PRODUCT_CODE in the path, else a role at one bank overwrites and moves another bank's attribute",
