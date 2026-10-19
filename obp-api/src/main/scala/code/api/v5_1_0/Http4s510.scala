@@ -3992,7 +3992,8 @@ object Http4s510 {
               permissionsFromTarget.toSet.subsetOf(permissionsFromSource)
             }
             _ <- Helper.booleanToFuture(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${CAN_UPDATE_CUSTOM_VIEW}` permission on VIEW_ID(${viewId.value})", cc = Some(cc)) {
-              view.allowed_actions.exists(_ == CAN_CREATE_CUSTOM_VIEW)
+              // updating needs the update permission, so a view that may only create custom views cannot change them
+              view.allowed_actions.exists(_ == CAN_UPDATE_CUSTOM_VIEW)
             }
             (updatedView, _) <- ViewNewStyle.updateCustomView(BankIdAccountId(bankId, accountId), targetViewId, updateJson.toUpdateViewJson, Some(cc))
           } yield JSONFactory510.createViewJson(updatedView)

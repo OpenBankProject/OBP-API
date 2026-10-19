@@ -28,12 +28,13 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v5_1_0
 
 import org.json4s._
-import code.api.Constant.{SYSTEM_AUDITOR_VIEW_ID, SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID, SYSTEM_OWNER_VIEW_ID, SYSTEM_STAGE_ONE_VIEW_ID}
+import code.api.Constant.{CAN_CREATE_CUSTOM_VIEW, SYSTEM_AUDITOR_VIEW_ID, SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID, SYSTEM_OWNER_VIEW_ID, SYSTEM_STAGE_ONE_VIEW_ID}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
 import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.ErrorMessage
+import code.views.Views
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, CreateViewJson, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.native.Serialization.write
 import net.liftweb.util.StringHelpers
@@ -181,6 +182,33 @@ class CustomViewTest extends V510ServerSetup {
       }
     }
     
+    // a source view that may create custom views but not update them must not be able to update one
+    scenario(s"We will call the update endpoint from a view with only can_create_custom_view, $ViewDoesNotPermitAccess", ApiEndpoint2, VersionOfApi) {
+      Given("a custom source view holding can_create_custom_view and the target permissions, but not can_update_custom_view")
+      val createOnlyViewName = "_create_only"
+      val createOnlyView = Views.views.vend.createCustomView(
+        BankIdAccountId(BankId(bankId), AccountId(accountId)),
+        CreateViewJson(
+          name = createOnlyViewName,
+          description = "create only",
+          metadata_view = createOnlyViewName,
+          is_public = false,
+          which_alias_to_use = "",
+          hide_metadata_if_alias_used = false,
+          allowed_actions = CAN_CREATE_CUSTOM_VIEW :: putCustomViewJson.allowed_permissions
+        )
+      ).openOrThrowException(attemptedToOpenAnEmptyBox)
+      Views.views.vend.grantAccessToCustomView(createOnlyView.uid, resourceUser1)
+
+      When("We update a custom view through it")
+      val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "views" / createOnlyView.viewId.value / "target-views" / targetViewId).PUT <@ (user1)
+      val response510 = makePutRequest(request510, write(putCustomViewJson))
+      Then("We should get a 400 naming can_update_custom_view")
+      response510.code should equal(400)
+      response510.body.extract[ErrorMessage].message contains (ViewDoesNotPermitAccess) shouldBe (true)
+      response510.body.extract[ErrorMessage].message contains ("can_update_custom_view") shouldBe (true)
+    }
+
     scenario("We will call the endpoint with user credentials", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       
       When("We make a request v5.1.0")

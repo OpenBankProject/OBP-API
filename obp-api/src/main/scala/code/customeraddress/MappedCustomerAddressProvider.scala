@@ -156,7 +156,7 @@ class MappedCustomerAddress extends CustomerAddress with LongKeyedMapper[MappedC
   override def state: String = mState.get
   override def postcode: String = mPostCode.get
   override def countryCode: String = mCountryCode.get
-  override def status: String = mState.get
+  override def status: String = mStatus.get
   override def tags: String = mTags.get
   override def insertDate: Date = createdAt.get
 
