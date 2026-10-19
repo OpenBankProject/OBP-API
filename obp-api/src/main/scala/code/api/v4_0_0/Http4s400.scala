@@ -7143,9 +7143,23 @@ object Http4s400 {
     }
 
     lazy val deleteMyApiCollectionEndpointById: Http4sRoute = Http4sRoute {
-      case req @ DELETE -> `prefixPath` / "my" / "api-collection-ids" / _ / "api-collection-endpoint-ids" / apiCollectionEndpointId =>
-        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+      // bind the collection id so the endpoint can be checked to belong to it below
+      case req @ DELETE -> `prefixPath` / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoint-ids" / apiCollectionEndpointId =>
+        // bind the user so the collection's owner can be checked below
+        EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
+            (ac, _) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            // only the owner removes its endpoints, else any user edits any user's collection; answered as not found so nothing is told about other users' collections
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionId) ", 404, Some(cc)) {
+              ac.userId == user.userId
+            }
+            (ace, _) <- NewStyle.function.getApiCollectionEndpointById(apiCollectionEndpointId, Some(cc))
+            // the endpoint must be in the collection in the path, else the owner of any collection deletes endpoints of another user's collection
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionEndpointNotFound Please specify a valid value for API_COLLECTION_ENDPOINT_ID. Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointId) ", 404, Some(cc)) {
+              ace.apiCollectionId == ac.apiCollectionId
+            }
             (deleted, _) <- NewStyle.function.deleteApiCollectionEndpointById(apiCollectionEndpointId, Some(cc))
           } yield deleted
         }
@@ -7461,7 +7475,8 @@ object Http4s400 {
         |""",
         EmptyBody,
         Full(true),
-        List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
+        // ApiCollectionNotFound: the collection does not exist or is another user's; ApiCollectionEndpointNotFound: the endpoint does not exist or is not in that collection
+        List($AuthenticatedUserIsRequired, UserNotFoundByUserId, ApiCollectionNotFound, ApiCollectionEndpointNotFound, UnknownError),
         List(apiTagApiCollection),
         None,
         http4sPartialFunction = Some(deleteMyApiCollectionEndpointById)
