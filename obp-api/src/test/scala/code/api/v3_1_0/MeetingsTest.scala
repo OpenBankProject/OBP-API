@@ -30,7 +30,7 @@ import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import com.openbankproject.commons.util.ApiVersion
-import code.api.util.ErrorMessages.{InvalidJsonFormat, AuthenticatedUserIsRequired}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, AuthenticatedUserIsRequired, MeetingNotFound}
 import code.api.v2_0_0.CreateMeetingJson
 import code.api.v3_1_0.Http4s310.Implementations3_1_0
 import com.github.dwickern.macros.NameOf.nameOf
@@ -105,6 +105,27 @@ class MeetingsTest extends V310ServerSetup {
       responseGetOne310.code should equal(200)
       val meetingGetJsonV310: MeetingJsonV310 = responseGetOne310.body.extract[MeetingJsonV310]
       meetingGetJsonV310 shouldBe meetingJsonV310
+    }
+
+    // Another user at the bank neither lists nor gets a meeting they do not take part in
+    scenario("We will Create a Meeting and another user cannot list or get it", ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+      val bankId = randomBankId
+      val request310 = (v3_1_0_Request / "banks" / bankId / "meetings" ).POST<@(user1)
+      val response310 = makePostRequest(request310, write(SwaggerDefinitionsJSON.createMeetingJsonV310))
+      response310.code should equal(201)
+      val meetingId = response310.body.extract[MeetingJsonV310].meeting_id
+
+      Then("user2 does not see the meeting of user1 in getMeetings")
+      val requestGetAll310 = (v3_1_0_Request / "banks" / bankId / "meetings" ).GET<@(user2)
+      val responseGetAll310 = makeGetRequest(requestGetAll310)
+      responseGetAll310.code should equal(200)
+      responseGetAll310.body.extract[MeetingsJsonV310].meetings.map(_.meeting_id) should not contain (meetingId)
+
+      Then("user2 gets a 400 MeetingNotFound for the meeting of user1")
+      val requestGetOne310 = (v3_1_0_Request / "banks" / bankId / "meetings" / meetingId ).GET<@(user2)
+      val responseGetOne310 = makeGetRequest(requestGetOne310)
+      responseGetOne310.code should equal(400)
+      responseGetOne310.body.extract[ErrorMessage].message should startWith (MeetingNotFound)
     }
   }
 
