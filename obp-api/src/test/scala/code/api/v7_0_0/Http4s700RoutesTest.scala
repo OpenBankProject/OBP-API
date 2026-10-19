@@ -619,6 +619,46 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
   }
 
+  // ─── market orders scoped to the account in the path ─────────────────────────
+
+  /** Store a market order straight in the connector, settled on `settlementAccountId`. Returns its id. */
+  private def createTestMarketOrder(settlementAccountId: String): String =
+    scala.concurrent.Await.result(
+      code.bankconnectors.Connector.connector.vend.createMarketOrder(
+        testBankId1, testAccountId0, "BUY", BigDecimal("25.0"), BigDecimal("10.0"), settlementAccountId, None),
+      scala.concurrent.duration.Duration(10, "seconds")
+    )._1.openOrThrowException("Expected market order to be created").orderId
+
+  private def marketOrderPath(orderId: String): String =
+    s"/obp/v7.0.0/banks/${testBankId1.value}/accounts/${testAccountId0.value}/views/$SYSTEM_OWNER_VIEW_ID/market/orders/$orderId"
+
+  feature("Http4s700 market orders are scoped to the account in the path") {
+
+    scenario("Refuse to cancel an order of another account (404 OrderNotFound)", Http4s700RoutesTag) {
+      val orderId = createTestMarketOrder(settlementAccountId = "another-account")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithMethod("DELETE", marketOrderPath(orderId), headers)
+      statusCode shouldBe 404
+      messageOf(json) should include(code.api.util.ErrorMessages.OrderNotFound)
+    }
+
+    scenario("Refuse to get an order of another account (404 OrderNotFound)", Http4s700RoutesTag) {
+      val orderId = createTestMarketOrder(settlementAccountId = "another-account")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(marketOrderPath(orderId), headers)
+      statusCode shouldBe 404
+      messageOf(json) should include(code.api.util.ErrorMessages.OrderNotFound)
+    }
+
+    scenario("Cancel an order of the account in the path", Http4s700RoutesTag) {
+      val orderId = createTestMarketOrder(settlementAccountId = testAccountId0.value)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithMethod("DELETE", marketOrderPath(orderId), headers)
+      statusCode shouldBe 200
+      (json \ "status") shouldBe JString("cancelled")
+    }
+  }
+
   // ─── message outbox (operator) ────────────────────────────────────────────────
 
   private def seedOutboxRow(status: String): code.messageoutbox.MessageOutbox = {

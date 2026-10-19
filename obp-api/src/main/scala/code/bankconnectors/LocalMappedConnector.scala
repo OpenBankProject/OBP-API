@@ -6398,7 +6398,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     orderId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketOrder]] = Future {
-    val order = Option(marketOrders.get(orderId))
+    // the order must belong to the account in the path, else anyone with access to one account reads any order
+    val order = Option(marketOrders.get(orderId)).filter(_.accountId == accountId.value)
     (Box(order), callContext)
   }
 
@@ -6408,7 +6409,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     orderId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketOrder]] = Future {
-    val order = Option(marketOrders.get(orderId))
+    // the order must belong to the account in the path, else anyone with access to one account cancels any order
+    val order = Option(marketOrders.get(orderId)).filter(_.accountId == accountId.value)
 
     order match {
       case Some(o) =>

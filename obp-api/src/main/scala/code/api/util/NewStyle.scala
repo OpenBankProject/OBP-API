@@ -5103,7 +5103,8 @@ object NewStyle extends MdcLoggable{
       callContext: Option[CallContext]
     ): OBPReturnType[com.openbankproject.commons.model.MarketOrder] = {
       Connector.connector.vend.getMarketOrder(bankId, accountId, orderId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound"), i._2)
+        // 404: a missing order and another account's order look the same
+        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound", 404), i._2)
       }
     }
 
@@ -5114,7 +5115,8 @@ object NewStyle extends MdcLoggable{
       callContext: Option[CallContext]
     ): OBPReturnType[com.openbankproject.commons.model.MarketOrder] = {
       Connector.connector.vend.cancelMarketOrder(bankId, accountId, orderId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound"), i._2)
+        // 404: a missing order and another account's order look the same
+        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound", 404), i._2)
       }
     }
 
