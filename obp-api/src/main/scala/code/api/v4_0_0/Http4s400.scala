@@ -739,6 +739,10 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
+            // with apiOptions.getProductsIsPublic=false the product needs a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read it
+            _ <- if (!getProductsIsPublic)
+                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 else Future.unit
             (product, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
             (productAttributes, _) <- NewStyle.function.getProductAttributesByBankAndCode(
               BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
