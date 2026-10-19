@@ -4873,7 +4873,9 @@ object Http4s400 {
         EndpointHelpers.withUserAndBody[UserAttributeJsonV400, Any](req) { (user, postedData, cc) =>
           for {
             (attributes, _) <- NewStyle.function.getPersonalUserAttributes(user.userId, Some(cc))
-            _ <- NewStyle.function.tryons(UserAttributeNotFound, 400, Some(cc)) {
+            // the attribute must be one of the caller's personal ones, else any user takes over any user attribute
+            // (tryons only caught exceptions and let a false through, so this check never failed)
+            _ <- code.util.Helper.booleanToFuture(UserAttributeNotFound, 404, Some(cc)) {
               attributes.exists(_.userAttributeId == userAttributeId)
             }
             attrType <- NewStyle.function.tryons(
@@ -5151,7 +5153,8 @@ object Http4s400 {
         |""",
         userAttributeJsonV400,
         userAttributeResponseJson,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // UserAttributeNotFound (404): the id is not one of the caller's personal attributes
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserAttributeNotFound, UnknownError),
         List(apiTagUser),
         Some(List()),
         http4sPartialFunction = Some(updateMyPersonalUserAttribute)

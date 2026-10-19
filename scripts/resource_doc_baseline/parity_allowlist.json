@@ -204,6 +204,14 @@
       "http4s_digest": "160f3a99ccf321a6af0129ef59ea81b833b7ff8f636a6557c8fa22a69ef726fd"
     },
     {
+      "version": "v4_0_0",
+      "endpoint": "updateMyPersonalUserAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added UserAttributeNotFound (404): the attribute id must be one of the caller's personal attributes, else a user could take over another user's attribute",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "e6807a06ff3025c039b0402f9b51e6a08c093f831943f023172632f7289fdb4f"
+    },
+    {
       "version": "v5_1_0",
       "endpoint": "revokeMyConsent",
       "field": "requestVerb",
