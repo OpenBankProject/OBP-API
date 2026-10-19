@@ -878,6 +878,14 @@ object Http4s210 {
             _ <- code.util.Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionType, failCode = 400, cc = Some(cc)) {
               APIUtil.hasEntitlement(bank.bankId.value, user.userId, canCreateTransactionType)
             }
+            // the Role is checked at BANK_ID, so the body may only write to that bank, else it creates types at any bank
+            _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body", failCode = 400, cc = Some(cc)) {
+              body.bank_id == bank.bankId.value
+            }
+            // an existing type with this id is updated in place, so it must be at BANK_ID, else another bank's type is rewritten or moved
+            _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue id is already used by a Transaction Type that is not at this BANK_ID.", failCode = 400, cc = Some(cc)) {
+              TransactionType.TransactionTypeProvider.vend.getTransactionType(body.id).forall(_.bankId == bank.bankId)
+            }
             returnTransactionType <- Future {
               TransactionType.TransactionTypeProvider.vend.createOrUpdateTransactionType(body) match {
                 case Full(t) => t
@@ -907,8 +915,9 @@ object Http4s210 {
          |
          |${userAuthenticationMessage(true)}""".stripMargin,
       transactionTypeJsonV200, transactionType,
+      // InvalidJsonValue: bank_id not the BANK_ID, or id used by a type at another bank
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
-        InsufficientAuthorisationToCreateTransactionType, UnknownError),
+        InsufficientAuthorisationToCreateTransactionType, InvalidJsonValue, UnknownError),
       List(apiTagBank),
       None,
       http4sPartialFunction = Some(createTransactionType))

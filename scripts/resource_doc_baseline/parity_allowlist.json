@@ -2308,6 +2308,14 @@
       "http4s_digest": "d11d7022ff409e6f65b2d8fe4f56b8dd54bfd7744dd946806347c91d3ed355b6"
     },
     {
+      "version": "v2_1_0",
+      "endpoint": "createTransactionType",
+      "field": "errorResponseBodies",
+      "reason": "Added InvalidJsonValue: 400 when body bank_id is not BANK_ID, or body id is a Transaction Type at another bank, so the BANK_ID role cannot write other banks' types",
+      "lift_digest": "61eb67f7b7bd4520f770bd0981aeb6f4a138f6b1fba1f7b31a5d97c83d0e6c0d",
+      "http4s_digest": "cae4be89c9ce78670b474a1cd141ae716a3156064734b11af0c5d223cb8f1043"
+    },
+    {
       "version": "v2_0_0",
       "endpoint": "createAccount",
       "field": "errorResponseBodies",
