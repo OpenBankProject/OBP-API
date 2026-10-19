@@ -27,11 +27,14 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v2_0_0
 
+import java.util.Date
 import org.json4s._
-import com.openbankproject.commons.model.ErrorMessage
+import com.openbankproject.commons.model.{BankId, CustomerFaceImage, ErrorMessage}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{ApiRole, ErrorMessages}
+import code.api.util.{APIUtil, ApiRole, ErrorMessages}
+import code.customer.CustomerX
+import code.socialmedia.SocialMediaHandle
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerJsonV140
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
@@ -130,6 +133,35 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       And("User is linked to 3 customers")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(customerPostJSON.user_id).size should equal(3)
 
+    }
+  }
+
+  // a customer created straight through the provider, at the given bank
+  private def createCustomerAtBank(bankId: String) =
+    CustomerX.customerProvider.vend.addCustomer(
+      BankId(bankId), APIUtil.generateUUID(), "Social Media Test", "+49 123 456", "social-media-test@example.com",
+      CustomerFaceImage(new Date(), "http://example.com/face.png"),
+      new Date(), "single", 0, Nil, "Bachelor", "employed", true, new Date(),
+      None, None, "", "", ""
+    ).openOrThrowException("expected the customer to be created")
+
+  feature("Create Customer Social Media Handle only writes to a customer of the bank in the path - v2.0.0") {
+
+    scenario("The CUSTOMER_ID in the path belongs to another bank - v2.0.0") {
+      Given("A customer at the second bank, and the Role at the first bank only")
+      val otherBankCustomer = createCustomerAtBank(testBankId2.value)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanAddSocialMediaHandle.toString)
+
+      When("We post a handle for that customer at the first bank")
+      val request = (v2_0Request / "banks" / testBankId1.value / "customers" / otherBankCustomer.customerId / "social_media_handles").POST <@ (user1)
+      val response = makePostRequest(request, write(SwaggerDefinitionsJSON.socialMediaJSON.copy(customer_number = otherBankCustomer.number)))
+
+      Then("We should get a 404")
+      response.code should equal(404)
+      And("We should get a message: " + ErrorMessages.CustomerNotFoundByCustomerId)
+      response.body.extract[ErrorMessage].message should startWith (ErrorMessages.CustomerNotFoundByCustomerId)
+      And("No handle is stored for that customer")
+      SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(otherBankCustomer.number) should equal(Nil)
     }
   }
 
