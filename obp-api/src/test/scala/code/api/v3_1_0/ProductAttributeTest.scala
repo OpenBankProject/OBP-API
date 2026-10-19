@@ -270,6 +270,42 @@ class ProductAttributeTest extends V310ServerSetup {
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canDeleteProductAttribute.toString()) should be (true)
     }
+    // a role at one bank must not delete a product attribute of another bank or another product
+    scenario("We will call the Delete endpoint with an attribute of another bank or another product", ApiEndpoint4, VersionOfApi) {
+      // an attribute owned by another bank, created directly so no role at that bank is needed
+      val otherBankAttribute = Await.result(
+        ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
+          BankId("other-bank-for-product-attribute-delete"), ProductCode("PRODUCT_CODE"), None,
+          "other bank attribute", ProductAttributeType.STRING, "12345678", None),
+        Duration.Inf).openOrThrowException("could not create the test attribute")
+      // an attribute of another product at the bank in the path
+      val otherProductAttribute = Await.result(
+        ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
+          BankId(testBankId), ProductCode("OTHER_PRODUCT_CODE"), None,
+          "other product attribute", ProductAttributeType.STRING, "12345678", None),
+        Duration.Inf).openOrThrowException("could not create the test attribute")
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanDeleteProductAttribute.toString)
+      When("We delete the other bank's attribute through the bank in the path")
+      val requestOtherBank = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherBankAttribute.productAttributeId).DELETE <@(user1)
+      val responseOtherBank = makeDeleteRequest(requestOtherBank)
+      Then("We should get a 404")
+      responseOtherBank.code should equal(404)
+      responseOtherBank.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
+      And("The attribute is still there")
+      Await.result(
+        ProductAttributeX.productAttributeProvider.vend.getProductAttributeById(otherBankAttribute.productAttributeId),
+        Duration.Inf).isDefined should be (true)
+      When("We delete an attribute of another product through the product in the path")
+      val requestOtherProduct = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherProductAttribute.productAttributeId).DELETE <@(user1)
+      val responseOtherProduct = makeDeleteRequest(requestOtherProduct)
+      Then("We should get a 404")
+      responseOtherProduct.code should equal(404)
+      responseOtherProduct.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
+      And("The attribute is still there")
+      Await.result(
+        ProductAttributeX.productAttributeProvider.vend.getProductAttributeById(otherProductAttribute.productAttributeId),
+        Duration.Inf).isDefined should be (true)
+    }
   }
 
 }

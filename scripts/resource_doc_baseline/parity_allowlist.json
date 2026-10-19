@@ -2388,6 +2388,14 @@
       "http4s_digest": "cbff97326a2c683036eca4d241b6bcc82b9a45d7cee49516184d63fc450c50b7"
     },
     {
+      "version": "v3_1_0",
+      "endpoint": "deleteProductAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added ProductAttributeNotFound (404): the attribute to delete must belong to the bank and product in the path, else a role at one bank deleted any bank's attribute",
+      "lift_digest": "e411ab351074a0055e9e38d197a6c0e27be6eddcc2158d1026e23c6735b9fbd9",
+      "http4s_digest": "f32444f850ad7c50c97d8f9fa4e9aac93757d7b16e708393903ee64f4e0e7a76"
+    },
+    {
       "version": "v5_0_0",
       "endpoint": "createUserAuthContextUpdateRequest",
       "field": "description",

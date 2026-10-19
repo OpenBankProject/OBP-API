@@ -2014,11 +2014,19 @@ object Http4s310 {
     // Note: this DELETE returns 204 (matches original v3.1.0 behavior).
 
     val deleteProductAttribute: Http4sRoute = Http4sRoute {
-      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "products" / _ / "attributes" / productAttributeIdStr =>
+      // productCodeStr is read so the attribute can be checked against the product in the path
+      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attributes" / productAttributeIdStr =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canDeleteProductAttribute, Some(cc))
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+            // load the attribute so it can be checked against the path
+            (existingAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // the attribute must belong to the bank and product in the path, else a role at one bank deletes any bank's attribute
+            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              existingAttribute.bankId.value == bankIdStr &&
+                existingAttribute.productCode.value == productCodeStr
+            }
             (deleted, _) <- NewStyle.function.deleteProductAttribute(productAttributeIdStr, Some(cc))
           } yield deleted
         }
@@ -2044,6 +2052,8 @@ object Http4s310 {
       List(
         UserHasMissingRoles,
         BankNotFound,
+        // the attribute is not at the bank and product in the path
+        ProductAttributeNotFound,
         UnknownError
       ),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
