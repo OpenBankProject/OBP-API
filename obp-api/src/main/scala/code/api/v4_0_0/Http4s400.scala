@@ -5303,7 +5303,8 @@ object Http4s400 {
 
     lazy val createMyApiCollectionEndpointById: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "my" / "api-collection-ids" / apiCollectionIdStr / "api-collection-endpoints" =>
-        EndpointHelpers.withUserAndBodyCreated[PostApiCollectionEndpointJson400, Any](req) { (_, postJson, cc) =>
+        // take the logged-in user, so the collection can be checked to be theirs
+        EndpointHelpers.withUserAndBodyCreated[PostApiCollectionEndpointJson400, Any](req) { (user, postJson, cc) =>
           for {
             _ <- code.util.Helper.booleanToFuture(
               s"$InvalidOperationId Current OPERATION_ID(${postJson.operation_id})",
@@ -5311,6 +5312,12 @@ object Http4s400 {
               getAllResourceDocs.find(_.operationId == postJson.operation_id.trim).isDefined
             }
             (apiCollection, _) <- NewStyle.function.getApiCollectionById(apiCollectionIdStr, Some(cc))
+            // the collection must belong to the caller (a /my/ path), else any user adds endpoints to anyone's collection by id
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionIdStr) ",
+              404, cc = Some(cc)) {
+              apiCollection.userId == user.userId
+            }
             existing <- Future {
               code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
                 .getApiCollectionEndpointByApiCollectionIdAndOperationId(
@@ -5505,7 +5512,8 @@ object Http4s400 {
         |""".stripMargin,
         postApiCollectionEndpointJson400,
         apiCollectionEndpointJson400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // ApiCollectionNotFound: the collection does not exist or is not the caller's
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, ApiCollectionNotFound, UnknownError),
         List(apiTagApiCollection),
         None,
         http4sPartialFunction = Some(createMyApiCollectionEndpointById)

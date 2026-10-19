@@ -29,6 +29,8 @@ import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.berlin.group.v1_3.Http4sBGv13Alias
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ErrorMessages.ApiCollectionNotFound
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
@@ -291,6 +293,22 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
         val expected = if (aliasOperationId.isDefined) 7 else 6
         apiCollectionsJsonGet400.api_collection_endpoints.length should be (expected)
       }
+    }
+
+    // another user must not add endpoints to user1's collection by its id
+    scenario(s"We try $ApiEndpoint6 on another user's collection", ApiEndpoint6, VersionOfApi) {
+      When("user1 creates an apiCollection")
+      val request = (v4_0_0_Request / "my" / "api-collections").POST <@ (user1)
+      val response = makePostRequest(request, write(SwaggerDefinitionsJSON.postApiCollectionJson400.copy(api_collection_name = "collection-of-user1")))
+      response.code should equal(201)
+      val apiCollectionId = response.body.extract[ApiCollectionJson400].api_collection_id
+
+      Then("user2 adds an endpoint to it by id")
+      val requestApiCollectionEndpoint = (v4_0_0_Request / "my" / "api-collection-ids" / apiCollectionId / "api-collection-endpoints").POST <@ (user2)
+      val responseApiCollectionEndpoint = makePostRequest(requestApiCollectionEndpoint, write(SwaggerDefinitionsJSON.postApiCollectionEndpointJson400))
+      Then("We should get a 404")
+      responseApiCollectionEndpoint.code should equal(404)
+      responseApiCollectionEndpoint.body.extract[ErrorMessage].message should startWith(ApiCollectionNotFound)
     }
   }
 

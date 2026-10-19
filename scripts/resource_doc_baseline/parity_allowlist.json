@@ -1357,6 +1357,14 @@
     },
     {
       "version": "v4_0_0",
+      "endpoint": "createMyApiCollectionEndpointById",
+      "field": "errorResponseBodies",
+      "reason": "added ApiCollectionNotFound: the collection must belong to the caller, else any user adds endpoints to another user's collection by id",
+      "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
+      "http4s_digest": "f0f3b033370c9a7624829ee507012e09385025c6ac7b77e3dd4b37b6ac18d299"
+    },
+    {
+      "version": "v4_0_0",
       "endpoint": "deleteMyApiCollection",
       "field": "description",
       "reason": "Documentation text only, reworded after the baseline was captured. URL, verb, request/response bodies, errors and tags are unchanged.",
