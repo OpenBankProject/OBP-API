@@ -3115,7 +3115,8 @@ object Http4s510 {
             (consumer, _) <- createConsumerNewStyle(
               key = Some(Helpers.randomString(40).toLowerCase),
               secret = Some(Helpers.randomString(40).toLowerCase),
-              isActive = Some(postedJson.enabled),
+              // enabled only if asked for and consumers_enabled_by_default allows it, else any logged-in user gets a working key without an admin
+              isActive = Some(postedJson.enabled && APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", defaultValue = false)),
               name = Some(postedJson.app_name),
               appType = Some(appType),
               description = Some(postedJson.description),
