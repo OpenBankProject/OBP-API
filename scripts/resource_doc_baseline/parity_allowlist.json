@@ -140,6 +140,14 @@
       "http4s_digest": "a5655ec6126f28a76720a61f3e0a6eff066cff954c4003c3dc6def846451db76"
     },
     {
+      "version": "v4_0_0",
+      "endpoint": "deleteMyApiCollection",
+      "field": "errorResponseBodies",
+      "reason": "Added ApiCollectionNotFound: the endpoint now refuses, as not found, to delete an API collection owned by another user",
+      "lift_digest": "d70bf075f3595bea6dcb3581b21a21b49717cc52e5b327a7978e126132667fb4",
+      "http4s_digest": "fc6bd7923a89033d884757bbb99a57bedd121250f68876e3ffe24e32b6eda4ce"
+    },
+    {
       "version": "v5_1_0",
       "endpoint": "revokeMyConsent",
       "field": "requestVerb",

@@ -29,7 +29,7 @@ import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
-import code.api.util.ErrorMessages.{ApiCollectionEndpointNotFound, UserHasMissingRoles, AuthenticatedUserIsRequired}
+import code.api.util.ErrorMessages.{ApiCollectionEndpointNotFound, ApiCollectionNotFound, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
@@ -172,7 +172,27 @@ class ApiCollectionTest extends V400ServerSetup {
 
       apiCollectionsJsonGetAfterDelete.api_collections.length should be (0)
     }
-    
+
+    // a user must not delete another user's api collection: it is answered as not found and stays
+    scenario("We try to delete another user's apiCollection", ApiEndpoint4, VersionOfApi) {
+      When("user1 creates an apiCollection")
+      val request = (v4_0_0_Request / "my" / "api-collections").POST <@ (user1)
+      val response = makePostRequest(request, write(SwaggerDefinitionsJSON.postApiCollectionJson400))
+      response.code should equal(201)
+      val apiCollectionJson400 = response.body.extract[ApiCollectionJson400]
+
+      Then("user2 deletes it and gets a 404")
+      val requestDelete = (v4_0_0_Request / "my" / "api-collections" / apiCollectionJson400.api_collection_id).DELETE <@ (user2)
+      val responseDelete = makeDeleteRequest(requestDelete)
+      responseDelete.code should equal(404)
+      responseDelete.body.toString contains(s"$ApiCollectionNotFound") should be (true)
+
+      Then("user1 still has the apiCollection")
+      val responseGet = makeGetRequest((v4_0_0_Request / "my" / "api-collections").GET <@ (user1))
+      responseGet.code should equal(200)
+      responseGet.body.extract[ApiCollectionsJson400].api_collections should contain (apiCollectionJson400)
+    }
+
     scenario("We create the apiCollection and get sharable api collection",  ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
       When("We make a request v4.0.0")
       

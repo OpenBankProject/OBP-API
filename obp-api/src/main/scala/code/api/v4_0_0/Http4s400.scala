@@ -7064,9 +7064,16 @@ object Http4s400 {
 
     lazy val deleteMyApiCollection: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "my" / "api-collections" / apiCollectionId =>
-        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+        // bind the user so the collection's owner can be checked below
+        EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
-            (_, _) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            // keep the collection to compare its owner with the caller
+            (ac, _) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            // only the owner deletes it, else any user deletes any user's collection; answered as not found so nothing is told about other users' collections
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionId) ", 404, Some(cc)) {
+              ac.userId == user.userId
+            }
             (deleted, _) <- NewStyle.function.deleteApiCollectionById(apiCollectionId, Some(cc))
           } yield deleted
         }
@@ -7352,7 +7359,8 @@ object Http4s400 {
         |""",
         EmptyBody,
         Full(true),
-        List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
+        // ApiCollectionNotFound: an unknown id, or a collection of another user
+        List($AuthenticatedUserIsRequired, UserNotFoundByUserId, ApiCollectionNotFound, UnknownError),
         List(apiTagApiCollection),
         None,
         http4sPartialFunction = Some(deleteMyApiCollection)
