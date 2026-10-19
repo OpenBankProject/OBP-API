@@ -1966,7 +1966,15 @@ object Http4s510 {
             putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[code.api.v4_0_0.PostApiCollectionJson400].getSimpleName}", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[code.api.v4_0_0.PostApiCollectionJson400]
             }
-            (_, _) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            // the caller, to compare with the collection's owner below
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            // keep the collection to compare its owner with the caller
+            (existing, _) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            // only the owner updates it, else any user renames or shares any user's collection; answered as not found so nothing is told about other users' collections
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionId) ", 404, Some(cc)) {
+              existing.userId == user.userId
+            }
             (apiCollection, _) <- NewStyle.function.updateApiCollection(
               apiCollectionId, putJson.api_collection_name, putJson.is_sharable, putJson.description.getOrElse(""), Some(cc))
           } yield JSONFactory400.createApiCollectionJsonV400(apiCollection)
@@ -1984,7 +1992,8 @@ object Http4s510 {
       |""".stripMargin,
       postApiCollectionJson400,
       apiCollectionJson400,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserNotFoundByUserId, UnknownError),
+      // ApiCollectionNotFound: no such collection, or it belongs to another user
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserNotFoundByUserId, ApiCollectionNotFound, UnknownError),
       List(apiTagApiCollection),
       None,
       http4sPartialFunction = Some(updateMyApiCollection)

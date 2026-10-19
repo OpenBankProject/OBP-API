@@ -2498,6 +2498,14 @@
       "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to a view",
       "lift_digest": "46a5a1e4ea4bcb0ccae8f5338b321f9684a6cc591b6cdf13f1a98a2582d4eb27",
       "http4s_digest": "110c6fd1269109a3c11cce5d9b922de6c421d0335558791f9bcf521d400d7a57"
+    },
+    {
+      "version": "v5_1_0",
+      "endpoint": "updateMyApiCollection",
+      "field": "errorResponseBodies",
+      "reason": "Added ApiCollectionNotFound: 404 when the collection does not exist or belongs to another user, so only its owner can update it",
+      "lift_digest": "ea8061d2189d61d4f84552f70fa4482c88aa1fb6d5f7692b7c3c6eae0b24f4e6",
+      "http4s_digest": "181a990959c91843d2617852d9247a24ae916364b5b3afa58fab87ddd6692130"
     }
   ]
 }
