@@ -1750,8 +1750,8 @@ object JSONFactory400 {
           country = i.country,
           attributes = List(
             AttributeJsonV400("country_iso", i.countryIso),
-            AttributeJsonV400("sepa_credit_transfer", i.sepaDirectDebit),
-            AttributeJsonV400("sepa_direct_debit", i.sepaSddCore),
+            AttributeJsonV400("sepa_credit_transfer", i.sepaCreditTransfer), // each name reads its own field, else credit transfer showed the direct debit value
+            AttributeJsonV400("sepa_direct_debit", i.sepaDirectDebit), // and direct debit showed the SDD core value
             AttributeJsonV400("sepa_sdd_core", i.sepaSddCore),
             AttributeJsonV400("sepa_b2b", i.sepaB2b),
             AttributeJsonV400("sepa_card_clearing", i.sepaCardClearing),
