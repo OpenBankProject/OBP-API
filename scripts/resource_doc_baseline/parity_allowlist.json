@@ -2364,6 +2364,14 @@
       "http4s_digest": "7c341afe281a974e145362105b5ad7be060660743ac6e3b064fdaa02e586c97b"
     },
     {
+      "version": "v3_1_0",
+      "endpoint": "updateProductAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added ProductAttributeNotFound (404): the attribute must belong to the BANK_ID and PRODUCT_CODE in the path, else a role at one bank could overwrite and move another bank's product attribute",
+      "lift_digest": "f0e3fc093d8749570c7520dabdb672bbb7a6f84d2f03fa9c138762e8c976981a",
+      "http4s_digest": "cbff97326a2c683036eca4d241b6bcc82b9a45d7cee49516184d63fc450c50b7"
+    },
+    {
       "version": "v5_0_0",
       "endpoint": "createUserAuthContextUpdateRequest",
       "field": "description",

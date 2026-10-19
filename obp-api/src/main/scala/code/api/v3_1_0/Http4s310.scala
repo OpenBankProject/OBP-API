@@ -2740,7 +2740,13 @@ object Http4s310 {
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
                 AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
-            (_, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // keep the existing attribute so it can be checked against the path
+            (existingAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // the attribute must belong to the bank and product in the path, else a role at one bank overwrites and moves any bank's attribute
+            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              existingAttribute.bankId.value == bankIdStr &&
+                existingAttribute.productCode.value == productCodeStr
+            }
             (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankIdStr), ProductCode(productCodeStr), Some(productAttributeIdStr),
               postedData.name, productAttributeType, postedData.value, None, Some(cc))
@@ -2766,7 +2772,8 @@ object Http4s310 {
       |""",
       productAttributeJson,
       productAttributeResponseJson,
-      List(UserHasMissingRoles, UnknownError),
+      // ProductAttributeNotFound: the attribute is not at the bank and product in the path
+      List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canUpdateProductAttribute)),
       http4sPartialFunction = Some(updateProductAttribute)

@@ -505,6 +505,8 @@ object ErrorMessages {
   val DeleteWebhookError = "OBP-30152: Could not delete the Webhook."
   // an account attribute that does not exist, or does not belong to the BANK_ID / ACCOUNT_ID / PRODUCT_CODE in the path
   val AccountAttributeNotFound = "OBP-30153: Account Attribute not found. Please specify a valid value for ACCOUNT_ATTRIBUTE_ID for this BANK_ID, ACCOUNT_ID and PRODUCT_CODE."
+  // a product attribute that does not exist, or does not belong to the BANK_ID / PRODUCT_CODE in the path
+  val ProductAttributeNotFound = "OBP-30154: Product Attribute not found. Please specify a valid value for PRODUCT_ATTRIBUTE_ID for this BANK_ID and PRODUCT_CODE."
 
   val CreateWebhookError = "OBP-30047: Cannot create Webhook"
   val GetWebhooksError = "OBP-30048: Cannot get Webhooks"
