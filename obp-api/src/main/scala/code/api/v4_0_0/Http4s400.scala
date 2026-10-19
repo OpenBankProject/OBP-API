@@ -5339,11 +5339,18 @@ object Http4s400 {
 
     lazy val updateConsentStatus: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "consents" / consentId =>
-        EndpointHelpers.withUserAndBankAndBody[PutConsentStatusJsonV400, Any](req) { (_, _, consentJson, cc) =>
+        // take the logged-in user, so the consent can be checked to be theirs
+        EndpointHelpers.withUserAndBankAndBody[PutConsentStatusJsonV400, Any](req) { (user, _, consentJson, cc) =>
           for {
             consent <- Future(
               code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId)
             ) map { box => connectorEmptyResponse(box, Some(cc)) }
+            // the consent must belong to the caller, else any user reads any consent's JWT and changes its status
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ConsentNotFound Current CONSENT_ID($consentId) ",
+              404, cc = Some(cc)) {
+              consent.userId == user.userId
+            }
             status = code.consent.ConsentStatus.withName(consentJson.status)
             updated <- APIUtil.getPropsAsBoolValue("consents.sca.enabled", true) match {
               case true =>
@@ -5546,8 +5553,9 @@ object Http4s400 {
             "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
           status = "AUTHORISED"
         ),
+        // ConsentNotFound: the consent is not the caller's
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-        InvalidConnectorResponse, UnknownError),
+        InvalidConnectorResponse, ConsentNotFound, UnknownError),
         apiTagConsent :: apiTagPSD2AIS :: Nil,
         None,
         http4sPartialFunction = Some(updateConsentStatus)

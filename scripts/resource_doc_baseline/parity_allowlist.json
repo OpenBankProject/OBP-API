@@ -205,6 +205,14 @@
     },
     {
       "version": "v4_0_0",
+      "endpoint": "updateConsentStatus",
+      "field": "errorResponseBodies",
+      "reason": "Added ConsentNotFound (404): the consent must belong to the caller, else any user reads any consent's JWT and changes its status",
+      "lift_digest": "cf8ea6cd85f19cc3b87dbeeeb4b6f41d2fd835c55e8bcfaec7e3459304a42ca4",
+      "http4s_digest": "3bb23da885584fa6b1b72ac9914a533340b6a74dd1e57227fecb794c7369f547"
+    },
+    {
+      "version": "v4_0_0",
       "endpoint": "updateMyPersonalUserAttribute",
       "field": "errorResponseBodies",
       "reason": "Added UserAttributeNotFound (404): the attribute id must be one of the caller's personal attributes, else a user could take over another user's attribute",
