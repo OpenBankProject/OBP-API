@@ -231,6 +231,22 @@ class CustomerAddressTest extends V310ServerSetup {
       And("error should be " + CustomerAddressNotFound)
       response310.body.extract[ErrorMessage].message should startWith (CustomerAddressNotFound)
     }
+
+    // The update stores the posted status and the posted state, each in its own field
+    scenario("The posted status is stored as the status, not the state", ApiEndpoint4, VersionOfApi) {
+      for (role <- List(CanCreateCustomer, CanCreateCustomerAddress))
+        Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, role.toString)
+      val (customerId, addressId) = customerWithAddress(bankA)
+      When("We update the address with a status different from the state")
+      val request310 = (v3_1_0_Request / "banks" / bankA / "customers" / customerId / "addresses" / addressId).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(postCustomerAddressJson.copy(state = "Some State", status = "inactive")))
+      Then("We should get a 200")
+      response310.code should equal(200)
+      And("the address should keep the posted status and state")
+      val address = response310.body.extract[CustomerAddressJsonV310]
+      address.status shouldBe "inactive"
+      address.state shouldBe "Some State"
+    }
   }
 
   // The Delete endpoint deletes an address only of the customer in the path, and only at the bank in the path
