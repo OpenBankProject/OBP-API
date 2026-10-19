@@ -2053,6 +2053,33 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case _ => fail("Expected JSON object")
       }
     }
+
+    // The rail filter must apply before paging, so every page holds matches and total counts only that rail.
+    scenario("With rail set, pages and total count only schemes of that rail", Http4s700RoutesTag) {
+      val rail = s"RAIL_${APIUtil.generateUUID().take(6).toUpperCase}"
+      (1 to 3).foreach { i =>
+        RoutingSchemes.routingScheme.vend.createRoutingScheme(
+          scheme = freshSchemeName(s"RL$i"), country = "TZ", category = "ACCOUNT",
+          addressPattern = "^[0-9]{3,20}$", secondaryAddressPattern = None, exampleAddress = "12345678",
+          description = "Rail paging test", downstreamRails = List(rail), status = "ACTIVE",
+          createdByUserId = resourceUser1.userId
+        )
+      }
+      (0 to 2).foreach { offset =>
+        val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/routing-schemes?rail=$rail&limit=1&offset=$offset")
+        statusCode shouldBe 200
+        json match {
+          case JObject(fields) =>
+            val map = toFieldMap(fields)
+            map.get("routing_schemes") match {
+              case Some(JArray(items)) => items.size shouldBe 1
+              case _ => fail("Expected routing_schemes array")
+            }
+            (json \ "pagination" \ "total") shouldBe JInt(3)
+          case _ => fail("Expected JSON object")
+        }
+      }
+    }
   }
 
   feature("Http4s700 getRoutingScheme endpoint") {

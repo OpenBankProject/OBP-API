@@ -83,16 +83,20 @@ object MappedRoutingSchemeProvider extends RoutingSchemeProvider {
         country.map(c => By(RoutingScheme.Country, c)).toList :::
         category.map(c => By(RoutingScheme.Category, c)).toList :::
         status.map(s => By(RoutingScheme.Status, s)).toList
-      // Count BEFORE applying limit/offset for total
-      val total: Int = RoutingScheme.count(baseQuery: _*).toInt
-      val rows: List[RoutingScheme] =
-        RoutingScheme.findAll((baseQuery :+ OrderBy(RoutingScheme.Scheme, Ascending) :+ StartAt[RoutingScheme](offset) :+ MaxRows[RoutingScheme](limit)): _*)
-      // Rail is a free-text tag list (CSV); filter in-memory after the SQL pass.
-      val filtered = rail match {
-        case Some(r) => rows.filter(_.downstreamRails.contains(r))
-        case None    => rows
+      rail match {
+        // Rail is a free-text tag list (CSV) so it is filtered in memory; filter all SQL matches
+        // first, then count and page, so pages are not cut short and total counts only this rail.
+        case Some(r) =>
+          val matching = RoutingScheme.findAll((baseQuery :+ OrderBy(RoutingScheme.Scheme, Ascending)): _*)
+            .filter(_.downstreamRails.contains(r))
+          (matching.drop(offset).take(limit).asInstanceOf[List[RoutingSchemeTrait]], matching.size)
+        case None =>
+          // Count BEFORE applying limit/offset for total
+          val total: Int = RoutingScheme.count(baseQuery: _*).toInt
+          val rows: List[RoutingScheme] =
+            RoutingScheme.findAll((baseQuery :+ OrderBy(RoutingScheme.Scheme, Ascending) :+ StartAt[RoutingScheme](offset) :+ MaxRows[RoutingScheme](limit)): _*)
+          (rows.asInstanceOf[List[RoutingSchemeTrait]], total)
       }
-      (filtered.asInstanceOf[List[RoutingSchemeTrait]], total)
     }
   }
 
