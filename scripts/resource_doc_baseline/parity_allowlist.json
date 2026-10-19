@@ -2196,6 +2196,14 @@
       "http4s_digest": "26b2f283fe3019f4c20bec2d8666686efcc376f0250fcfe43933a1c4236c2747"
     },
     {
+      "version": "v1_4_0",
+      "endpoint": "addCustomerMessage",
+      "field": "errorResponseBodies",
+      "reason": "Added UserHasMissingRoles (now requires CanCreateCustomerMessage, as v4.0.0), CustomerNotFoundByCustomerId (also for a customer at another bank) and UserCustomerLinksNotFoundForUser, which the handler returns",
+      "lift_digest": "2c2d0133f9eb6a9b028b5019313ddc8b0a33581a972270282862500abd5485ea",
+      "http4s_digest": "e7397945e5480fb1ddab83233c7561b3bb52a7933f0cd653b655911f49b37c71"
+    },
+    {
       "version": "v2_0_0",
       "endpoint": "getTransactionTypes",
       "field": "errorResponseBodies",
