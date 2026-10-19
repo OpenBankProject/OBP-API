@@ -32,9 +32,13 @@ import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole
+import code.api.util.{APIUtil, ApiRole}
 import com.openbankproject.commons.util.ApiVersion
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, CannotRevokeOwnAccountAccess}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, CannotRevokeOwnAccountAccess, UserLacksPermissionCanGrantAccessToViewForTargetAccount, ViewNotFound}
+import code.views.Views
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, View}
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import code.api.v3_0_0.ViewJsonV300
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
@@ -59,6 +63,7 @@ class AccountAccessTest extends V400ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.grantUserAccessToView))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.revokeUserAccessToView))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.createUserWithAccountAccess))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.revokeGrantUserAccessToViews))
 
   
   lazy val bankId = randomBankId
@@ -79,6 +84,18 @@ class AccountAccessTest extends V400ServerSetup {
   
   def createViewForAnAccount(bankId: String, accountId: String): ViewJsonV300 = {
     createViewViaEndpoint(bankId, accountId, postBodyViewJson, user1)
+  }
+
+  // gives resourceUser2 only a new system view, which may revoke itself and grant just the views in canGrant
+  def grantUser2ALimitedSystemView(bankId: String, accountId: String, canGrant: List[String]): View = {
+    val name = "limited" + APIUtil.generateUUID().replace("-", "").toLowerCase
+    val view = Await.result(Views.views.vend.createSystemView(postBodyViewJson.copy(
+      name = name, is_public = false,
+      allowed_actions = (postBodyViewJson.allowed_actions ++ List(code.api.Constant.CAN_GRANT_ACCESS_TO_VIEWS, code.api.Constant.CAN_REVOKE_ACCESS_TO_VIEWS)).distinct,
+      can_grant_access_to_views = Some(canGrant), can_revoke_access_to_views = Some(List(name)))), Duration(30, TimeUnit.SECONDS))
+      .openOrThrowException("the limited system view should be created")
+    Views.views.vend.grantAccessToSystemView(BankId(bankId), AccountId(accountId), view, resourceUser2)
+    view
   }
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
@@ -153,8 +170,49 @@ class AccountAccessTest extends V400ServerSetup {
         Then("We should get a 201 and check the response body")
         response.code should equal(201)
         val views = response.body.extract[List[ViewJsonV300]]
-        views.length 
+        views.length
       }
+    }
+  }
+
+  feature(s"test $ApiEndpoint4 version $VersionOfApi - views the caller may not grant, or that do not exist") {
+    scenario("A user with a limited view cannot swap it for the owner view", VersionOfApi, ApiEndpoint4) {
+      val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
+      val account = try {
+        createAnAccount(bankId, user1)
+      } finally {
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+      val limitedView = grantUser2ALimitedSystemView(bankId, account.account_id, Nil)
+
+      When("The holder of the limited view asks for the owner view instead")
+      val request = (v4_0_0_Request / "banks" / bankId / "accounts" / account.account_id / "account-access").PUT <@ (user2)
+      val response = makePutRequest(request, write(PostRevokeGrantAccountAccessJsonV400(List(code.api.Constant.SYSTEM_OWNER_VIEW_ID))))
+      Then("We should get a 403, and the user keeps only the limited view")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should include(UserLacksPermissionCanGrantAccessToViewForTargetAccount)
+      Views.views.vend.permission(BankIdAccountId(BankId(bankId), AccountId(account.account_id)), resourceUser2)
+        .map(_.views.map(_.viewId.value)).openOr(Nil) should equal(List(limitedView.viewId.value))
+    }
+
+    scenario("An unknown view id is refused before the caller's access is revoked", VersionOfApi, ApiEndpoint4) {
+      val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
+      val account = try {
+        createAnAccount(bankId, user1)
+      } finally {
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+      val missingViewId = "missing" + APIUtil.generateUUID().replace("-", "").toLowerCase
+      val limitedView = grantUser2ALimitedSystemView(bankId, account.account_id, List(missingViewId))
+
+      When("The user asks for a view that does not exist")
+      val request = (v4_0_0_Request / "banks" / bankId / "accounts" / account.account_id / "account-access").PUT <@ (user2)
+      val response = makePutRequest(request, write(PostRevokeGrantAccountAccessJsonV400(List(missingViewId))))
+      Then("We should get a 404, and the user keeps the limited view")
+      response.code should equal(404)
+      response.body.extract[ErrorMessage].message should include(ViewNotFound)
+      Views.views.vend.permission(BankIdAccountId(BankId(bankId), AccountId(account.account_id)), resourceUser2)
+        .map(_.views.map(_.viewId.value)).openOr(Nil) should equal(List(limitedView.viewId.value))
     }
   }
 

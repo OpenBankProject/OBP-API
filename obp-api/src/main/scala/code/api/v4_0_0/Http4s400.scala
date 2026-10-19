@@ -5245,6 +5245,20 @@ object Http4s400 {
               cc = Some(cc)) {
               APIUtil.canRevokeAccessToAllViews(bankId, accountId, loggedInUser, Some(cc))
             }
+            // the caller may only grant themselves views their held views can grant, else a limited view could be swapped for owner
+            _ <- code.util.Helper.booleanToFuture(
+              UserLacksPermissionCanGrantAccessToViewForTargetAccount +
+                s"Current ViewIds(${postJson.views.mkString}) and current UserId(${loggedInUser.userId})",
+              failCode = 403, cc = Some(cc)) {
+              APIUtil.canGrantAccessToMultipleViews(bankId, accountId, postJson.views.map(ViewId(_)), loggedInUser, Some(cc))
+            }
+            // every view must exist before the revoke runs, else an unknown view id removes all the caller's access and then fails
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ViewNotFound Current ViewIds(${postJson.views.mkString(",")})", failCode = 404, cc = Some(cc)) {
+              postJson.views.forall(viewIdStr =>
+                Views.views.vend.customView(ViewId(viewIdStr), BankIdAccountId(bankId, accountId))
+                  .or(Views.views.vend.systemView(ViewId(viewIdStr))).isDefined)
+            }
             _ <- Future(
               Views.views.vend.revokeAccountAccessByUser(bankId, accountId, loggedInUser, Some(cc))
             ) map { box => unboxFullOrFail(box, Some(cc), "Cannot revoke") }
