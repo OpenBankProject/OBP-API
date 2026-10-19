@@ -967,12 +967,18 @@ object Http4s310 {
     // ─── getProductAttribute ─────────────────────────────────────────────────
 
     val getProductAttribute: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / _ / "attributes" / productAttributeIdStr =>
+      // productCodeStr is read so the attribute can be checked against the product in the path
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attributes" / productAttributeIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canGetProductAttribute, Some(cc))
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
             (productAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // the attribute must belong to the bank and product in the path, else a role at one bank reads any bank's attribute
+            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              productAttribute.bankId.value == bankIdStr &&
+                productAttribute.productCode.value == productCodeStr
+            }
           } yield createProductAttributeJson(productAttribute)
         }
     }
@@ -994,7 +1000,8 @@ object Http4s310 {
       |""",
       EmptyBody,
       productAttributeResponseJson,
-      List(UserHasMissingRoles, UnknownError),
+      // ProductAttributeNotFound: the attribute is not at the bank and product in the path
+      List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canGetProductAttribute)),
       http4sPartialFunction = Some(getProductAttribute)

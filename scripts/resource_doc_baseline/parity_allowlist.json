@@ -2477,6 +2477,14 @@
     },
     {
       "version": "v3_1_0",
+      "endpoint": "getProductAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added ProductAttributeNotFound (404): the attribute must belong to the BANK_ID and PRODUCT_CODE in the path, else a role at one bank reads any bank's product attribute",
+      "lift_digest": "f0e3fc093d8749570c7520dabdb672bbb7a6f84d2f03fa9c138762e8c976981a",
+      "http4s_digest": "cbff97326a2c683036eca4d241b6bcc82b9a45d7cee49516184d63fc450c50b7"
+    },
+    {
+      "version": "v3_1_0",
       "endpoint": "deleteTaxResidence",
       "field": "errorResponseBodies",
       "reason": "Added CustomerNotFoundByCustomerId and TaxResidenceNotFound (404): the customer must be at the bank in the path and the tax residence must be the customer's, else a Role at one bank deletes any bank's tax residences",
