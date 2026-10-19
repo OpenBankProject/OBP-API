@@ -594,6 +594,10 @@ object Http4s400 {
           val limit = req.uri.query.params.get("limit").map(Full(_)).getOrElse(net.liftweb.common.Empty)
           val offset = req.uri.query.params.get("offset").map(Full(_)).getOrElse(net.liftweb.common.Empty)
           for {
+            // with apiOptions.getAtmsIsPublic=false the ATM list needs a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read it
+            _ <- if (!getAtmsIsPublic)
+                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 else Future.unit
             _ <- code.util.Helper.booleanToFuture(
               failMsg = s"$InvalidNumber limit:${limit.getOrElse("")}", cc = Some(cc)) {
               limit match {
@@ -634,6 +638,7 @@ object Http4s400 {
       EmptyBody,
       atmsJsonV400,
       List(
+        $AuthenticatedUserIsRequired, // 401 when apiOptions.getAtmsIsPublic=false and no user; dropped from the list while ATMs are public
         $BankNotFound,
         UnknownError
       ),

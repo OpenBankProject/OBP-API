@@ -133,6 +133,14 @@
   "field_mismatches": [
     {
       "version": "v4_0_0",
+      "endpoint": "getAtms",
+      "field": "errorResponseBodies",
+      "reason": "Adds $AuthenticatedUserIsRequired: with apiOptions.getAtmsIsPublic=false the ATM list needs a logged-in user (401), as Lift's inline authenticatedAccess did",
+      "lift_digest": "ad61d5a742fbbdb23c6f9c1b5a094c268b229b3489f9a36a5d38c24a42e7b39d",
+      "http4s_digest": "8ffb72b0f6f2bd94179e19b1bd970a051ad05b0f6bf0050671b0e87026f74da4"
+    },
+    {
+      "version": "v4_0_0",
       "endpoint": "deleteExplicitCounterparty",
       "field": "requestVerb",
       "reason": "Lift's doc wrongly listed POST for a delete operation; http4s DELETE is the correct verb (RESTful bug fix)",
