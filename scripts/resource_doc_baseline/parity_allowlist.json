@@ -725,6 +725,22 @@
     },
     {
       "version": "v3_1_0",
+      "endpoint": "createCardAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added UserHasMissingRoles: canCreateCardsForBank is now required at BANK_ID so only bank staff can write card attributes",
+      "lift_digest": "ab6b9a504c9dafbcc134976d9f0b976cbe222c9054b9c811c5570adfb79ae6ce",
+      "http4s_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "updateCardAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added UserHasMissingRoles: canUpdateCardsForBank is now required at BANK_ID so only bank staff can overwrite card attributes",
+      "lift_digest": "ab6b9a504c9dafbcc134976d9f0b976cbe222c9054b9c811c5570adfb79ae6ce",
+      "http4s_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5"
+    },
+    {
+      "version": "v3_1_0",
       "endpoint": "deleteSystemView",
       "field": "requestUrl",
       "reason": "VIEW_ID -> SYS_VIEW_ID rename, same shape (system views have no per-account scoping).",

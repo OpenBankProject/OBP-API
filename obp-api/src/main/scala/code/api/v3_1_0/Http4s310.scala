@@ -3757,9 +3757,11 @@ object Http4s310 {
       cardAttributeNameExample.value,
       CardAttributeType.DOUBLE,
       cardAttributeValueExample.value),
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      // UserHasMissingRoles: the middleware answers 403 without the role below
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       List(apiTagCard, apiTagCardAttribute, apiTagAttribute),
-      None,
+      // the role at BANK_ID is required, else any logged-in user writes attributes on any bank's cards
+      Some(List(canCreateCardsForBank)),
       http4sPartialFunction = Some(createCardAttribute)
     )
 
@@ -3810,9 +3812,11 @@ object Http4s310 {
       cardAttributeNameExample.value,
       CardAttributeType.DOUBLE,
       cardAttributeValueExample.value),
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      // UserHasMissingRoles: the middleware answers 403 without the role below
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       List(apiTagCard, apiTagCardAttribute, apiTagAttribute),
-      None,
+      // the role at BANK_ID is required, else any logged-in user overwrites attributes of any bank's cards
+      Some(List(canUpdateCardsForBank)),
       http4sPartialFunction = Some(updateCardAttribute)
     )
 

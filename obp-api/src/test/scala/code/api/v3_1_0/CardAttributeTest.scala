@@ -34,6 +34,9 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createPhysicalCardJsonV
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateCustomer
 import code.api.util.ApiRole
+// for the 403 scenarios: the error body and its message
+import code.api.util.ErrorMessages.UserHasMissingRoles
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.v3_1_0.Http4s310.Implementations3_1_0
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
@@ -127,7 +130,30 @@ class CardAttributeTest extends V310ServerSetup with DefaultUsers {
       responseForCreateCardAttribute.body.toString contains (properCreateCardAttributeJson.name) should be (true)
       responseForCreateCardAttribute.body.toString contains (properCreateCardAttributeJson.value) should be (true)
       responseForCreateCardAttribute.body.toString contains (properCreateCardAttributeJson.`type`) should be (true)
-      
+
+    }
+  }
+
+  // a logged-in user with no card role at the bank must not write or overwrite that bank's card attributes
+  feature("Card attributes need a card role at the bank") {
+    val cardAttributeJson = CardAttributeJson("TAX_NUMBER", "STRING", "123")
+
+    scenario("Create Card Attribute without CanCreateCardsForBank", ApiEndpointDeleteCardForBank, VersionOfApi) {
+      When("user2, who has no role at the bank, posts a card attribute")
+      val request = (v3_1_0_Request / "management" / "banks" / testBankId1.value / "cards" / "any-card-id" / "attribute").POST <@ (user2)
+      val response = makePostRequest(request, write(cardAttributeJson))
+      Then("We should get a 403 naming the missing role")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + ApiRole.canCreateCardsForBank)
+    }
+
+    scenario("Update Card Attribute without CanUpdateCardsForBank", VersionOfApi) {
+      When("user2, who has no role at the bank, puts a card attribute")
+      val request = (v3_1_0_Request / "management" / "banks" / testBankId1.value / "cards" / "any-card-id" / "attributes" / "any-attribute-id").PUT <@ (user2)
+      val response = makePutRequest(request, write(cardAttributeJson))
+      Then("We should get a 403 naming the missing role")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + ApiRole.canUpdateCardsForBank)
     }
   }
 
