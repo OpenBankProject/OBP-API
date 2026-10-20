@@ -5923,6 +5923,16 @@ object Http4s600 {
             existing <- Future(code.group.GroupTrait.group.vend.getGroup(groupId))
               .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Group not found", 404))
             _ <- groupRoleCheck(existing.bankId, user.userId, canDeleteGroupAtOneBank, canDeleteGroupAtAllBanks, cc)
+            // The Entitlements this Group granted, loaded while the Group still exists, so its members do not keep its Roles after the delete.
+            groupEntitlements <- Entitlement.entitlement.vend.getEntitlementsByGroupId(groupId)
+              .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot get entitlements", 400))
+            // As in removeUserFromGroup: a Role another of the member's Groups also grants is kept and recorded against that Group, any other is revoked.
+            _ <- Future.sequence(groupEntitlements.map(e => Future {
+              code.group.GroupMemberships.otherGroupGranting(e.userId, e.bankId, e.roleName, groupId) match {
+                case Some(other) => Entitlement.entitlement.vend.setEntitlementGroupId(e.entitlementId, other.groupId)
+                case None => Entitlement.entitlement.vend.deleteEntitlement(Full(e))
+              }
+            }))
             _ <- Future(code.group.GroupTrait.group.vend.deleteGroup(groupId))
               .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot delete group", 400))
             _ <- Future(code.group.GroupMemberships.removeMembershipsOfGroup(groupId))

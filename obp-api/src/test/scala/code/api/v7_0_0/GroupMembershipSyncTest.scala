@@ -54,6 +54,7 @@ class GroupMembershipSyncTest extends V600ServerSetup {
   object SyncGroupMember extends Tag("syncGroupMember")
   object SyncUserGroups extends Tag("syncUserGroups")
   object AddEntitlement extends Tag("addEntitlement")
+  object DeleteGroup extends Tag("deleteGroup")
 
   private def bankId = testBankId1.value
   private def grant(role: ApiRole, bank: String = "") =
@@ -173,6 +174,31 @@ class GroupMembershipSyncTest extends V600ServerSetup {
       roleGroup(r2) should equal(Some(b.groupId))
       roleGroup(r1) should equal(None)
       roleGroup(r3) should equal(None)
+    }
+  }
+
+  // Deleting a Group takes back the Roles it granted, so its former members cannot keep them.
+  feature("Delete Group") {
+    scenario("a Role only the deleted Group granted is revoked, a Role another Group grants is kept", DeleteGroup, VersionOfApi) {
+      grant(canAddUserToGroupAtAllBanks)
+      grant(canDeleteGroupAtAllBanks)
+      val d1 = "CanTestDeleteGroupRole1"
+      val d2 = "CanTestDeleteGroupRole2"
+      val f = GroupTrait.group.vend.createGroup(Some(bankId), "delete-F", "", List(d1, d2), isEnabled = true).openOrThrowException("F")
+      val h = GroupTrait.group.vend.createGroup(Some(bankId), "delete-H", "", List(d2), isEnabled = true).openOrThrowException("H")
+      val addUser2 = (v6_0_0_Request / "users" / resourceUser2.userId / "group-entitlements").POST <@ (user1)
+      makePostRequest(addUser2, membership(f.groupId)).code should equal(201)
+      makePostRequest(addUser2, membership(h.groupId)).code should equal(201)
+      roleGroup(d2) should equal(Some(f.groupId))
+
+      When("F is deleted")
+      makeDeleteRequest((v6_0_0_Request / "management" / "groups" / f.groupId) <@ (user1))
+        .code should (equal(200) or equal(204))
+      Then("d1, which only F granted, is gone, and d2 is kept, now recorded against H")
+      roleGroup(d1) should equal(None)
+      roleGroup(d2) should equal(Some(h.groupId))
+      Entitlement.entitlement.vend.getEntitlementsByUserId(resourceUser2.userId).toList.flatten
+        .flatMap(_.groupId) should not contain f.groupId
     }
   }
 
