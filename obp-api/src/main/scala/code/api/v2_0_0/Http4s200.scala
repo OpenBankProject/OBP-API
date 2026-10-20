@@ -497,6 +497,10 @@ object Http4s200 {
               APIUtil.hasEntitlement(bank.bankId.value, user.userId, canGetSocialMediaHandles)
             }
             (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerId, Some(cc))
+            // the customer must be at the bank in the path, else a Role at one bank reads another bank's customers' handles
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
           } yield {
             val socialMedias = SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(customer.number)
             createSocialMediasJSON(socialMedias)

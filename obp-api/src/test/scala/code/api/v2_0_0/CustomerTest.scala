@@ -165,4 +165,23 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
     }
   }
 
+  feature("Get Customer Social Media Handles only reads a customer of the bank in the path - v2.0.0") {
+
+    scenario("The CUSTOMER_ID in the path belongs to another bank - v2.0.0") {
+      Given("A customer at the second bank with a handle, and the Role at the first bank only")
+      val otherBankCustomer = createCustomerAtBank(testBankId2.value)
+      SocialMediaHandle.socialMediaHandleProvider.vend.addSocialMedias(otherBankCustomer.number, "twitter", "@other-bank-customer", new Date(), new Date())
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanGetSocialMediaHandles.toString)
+
+      When("We get the handles of that customer at the first bank")
+      val request = (v2_0Request / "banks" / testBankId1.value / "customers" / otherBankCustomer.customerId / "social_media_handles").GET <@ (user1)
+      val response = makeGetRequest(request)
+
+      Then("We should get a 404")
+      response.code should equal(404)
+      And("We should get a message: " + ErrorMessages.CustomerNotFoundByCustomerId)
+      response.body.extract[ErrorMessage].message should startWith (ErrorMessages.CustomerNotFoundByCustomerId)
+    }
+  }
+
 }
