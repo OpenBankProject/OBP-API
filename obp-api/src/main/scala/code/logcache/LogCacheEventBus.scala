@@ -133,14 +133,10 @@ object LogCacheEventBus extends MdcLoggable {
     }
 
     subscriberThread = new Thread(() => {
-      try {
-        subscriberJedis = Redis.newSubscriberConnection()
+      // reopens the subscriber connection after a Redis disconnect, so log streams keep getting lines until stop()
+      Redis.runSubscriber("LogCacheEventBus", running, subscriberJedis = _) { jedis =>
         logger.info(s"LogCacheEventBus says: Redis subscriber started, pattern-subscribing to ${CHANNEL_PREFIX}*")
-        subscriberJedis.psubscribe(pubSub, s"${CHANNEL_PREFIX}*")
-      } catch {
-        case e: Throwable if running =>
-          logger.error(s"LogCacheEventBus says: Redis subscriber thread died: ${e.getMessage}")
-        case _: Throwable => // shutting down
+        jedis.psubscribe(pubSub, s"${CHANNEL_PREFIX}*")
       }
     }, "log-cache-event-bus-subscriber")
     subscriberThread.setDaemon(true)

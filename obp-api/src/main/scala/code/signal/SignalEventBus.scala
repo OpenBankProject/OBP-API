@@ -108,15 +108,11 @@ object SignalEventBus extends MdcLoggable {
     }
 
     subscriberThread = new Thread(() => {
-      try {
-        // Dedicated connection: a subscribing Jedis cannot be returned to the pool.
-        subscriberJedis = Redis.newSubscriberConnection()
+      // Dedicated connection: a subscribing Jedis cannot be returned to the pool.
+      // It is reopened after a Redis disconnect, so signal streams keep getting messages until stop().
+      Redis.runSubscriber("SignalEventBus", running, subscriberJedis = _) { jedis =>
         logger.info(s"SignalEventBus says: Redis subscriber started, pattern-subscribing to ${CHANNEL_PREFIX}*")
-        subscriberJedis.psubscribe(pubSub, s"${CHANNEL_PREFIX}*")
-      } catch {
-        case e: Throwable if running =>
-          logger.error(s"SignalEventBus says: Redis subscriber thread died: ${e.getMessage}")
-        case _: Throwable => // shutting down, ignore
+        jedis.psubscribe(pubSub, s"${CHANNEL_PREFIX}*")
       }
     }, "signal-event-bus-subscriber")
     subscriberThread.setDaemon(true)

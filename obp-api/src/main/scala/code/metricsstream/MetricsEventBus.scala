@@ -128,14 +128,10 @@ object MetricsEventBus extends MdcLoggable {
     }
 
     subscriberThread = new Thread(() => {
-      try {
-        subscriberJedis = Redis.newSubscriberConnection()
+      // reopens the subscriber connection after a Redis disconnect, so metrics streams keep getting events until stop()
+      Redis.runSubscriber("MetricsEventBus", running, subscriberJedis = _) { jedis =>
         logger.info(s"MetricsEventBus says: Redis subscriber started, subscribing to $ALL_CHANNEL")
-        subscriberJedis.subscribe(pubSub, ALL_CHANNEL)
-      } catch {
-        case e: Throwable if running =>
-          logger.error(s"MetricsEventBus says: Redis subscriber thread died: ${e.getMessage}")
-        case _: Throwable => // shutting down
+        jedis.subscribe(pubSub, ALL_CHANNEL)
       }
     }, "metrics-event-bus-subscriber")
     subscriberThread.setDaemon(true)
