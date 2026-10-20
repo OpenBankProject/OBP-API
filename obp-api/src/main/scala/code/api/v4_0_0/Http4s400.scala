@@ -6451,6 +6451,10 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "fees" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
+            // with apiOptions.getProductsIsPublic=false the fees need a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read them
+            _ <- if (!getProductsIsPublic)
+                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 else Future.unit
             (productFees, _) <- NewStyle.function.getProductFeesFromProvider(
               BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
           } yield JSONFactory400.createProductFeesJson(productFees)
@@ -6667,12 +6671,13 @@ object Http4s400 {
         "Get Product Fees",
         s"""Get Product Fees
         |
-        |${userAuthenticationMessage(false)}
+        |${userAuthenticationMessage(!getProductsIsPublic)}
         |
         |""",
         EmptyBody,
         productFeesResponseJsonV400,
-        List($BankNotFound, UnknownError),
+        // the description says login is required when apiOptions.getProductsIsPublic=false; AuthenticatedUserIsRequired is then returned to anonymous callers
+        List(AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagProduct),
         None,
         http4sPartialFunction = Some(getProductFees)

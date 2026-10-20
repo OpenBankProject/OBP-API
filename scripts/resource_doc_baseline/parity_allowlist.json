@@ -141,6 +141,22 @@
     },
     {
       "version": "v4_0_0",
+      "endpoint": "getProductFees",
+      "field": "description",
+      "reason": "Description uses userAuthenticationMessage(!getProductsIsPublic), as getProduct does, so it says login is required when apiOptions.getProductsIsPublic=false",
+      "lift_digest": "2be1d91bf1dfb9a6360bd5df2d2f23fd87dfa1dc7c904fec19c9d62dde91a131",
+      "http4s_digest": "f59874a7284aa07461182a2a5022edc026149daf084a550491fbae61f1c7fbb3"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getProductFees",
+      "field": "errorResponseBodies",
+      "reason": "Added AuthenticatedUserIsRequired: the fees need a logged-in user when apiOptions.getProductsIsPublic=false, as Lift's authenticatedAccess required",
+      "lift_digest": "ad61d5a742fbbdb23c6f9c1b5a094c268b229b3489f9a36a5d38c24a42e7b39d",
+      "http4s_digest": "258e59c1dbd6bc624b2c26bc1db7b62eedebccc8a159cc0446075809fbe9fc71"
+    },
+    {
+      "version": "v4_0_0",
       "endpoint": "deleteExplicitCounterparty",
       "field": "requestVerb",
       "reason": "Lift's doc wrongly listed POST for a delete operation; http4s DELETE is the correct verb (RESTful bug fix)",
