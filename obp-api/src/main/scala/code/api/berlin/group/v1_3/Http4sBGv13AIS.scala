@@ -265,7 +265,9 @@ object Http4sBGv13AIS extends MdcLoggable {
         val u = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
         for {
           _ <- passesPsd2Aisp(callContext)
-          availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+          // only accounts the user reaches through the ReadAccountsBerlinGroup view (403 if none), as getAccountList
+          // and readCardAccount do, else any private view (owner, accountant, ...) would list a card account
+          (availablePrivateAccounts, callContext) <- NewStyle.function.getAccountListOfBerlinGroup(u, callContext)
           (_, callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)
           (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
           (canReadBalancesAccounts, callContext) <- NewStyle.function.getAccountCanReadBalancesOfBerlinGroup(u, callContext)
@@ -1248,7 +1250,8 @@ respectively the OAuth2 access token.
     }
   ]
 }""")),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      // 403 NoViewReadAccountsBerlinGroup when the user has no account through the ReadAccountsBerlinGroup view
+      List(AuthenticatedUserIsRequired, NoViewReadAccountsBerlinGroup, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagMockedData :: Nil,
       http4sPartialFunction = Some(getCardAccounts)
     )

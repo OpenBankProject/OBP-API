@@ -74,6 +74,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
 
   object getCardAccountTransactionList extends Tag(nameOf(Http4sBGv13AIS.getCardAccountTransactionList))
 
+  object getCardAccounts extends Tag(nameOf(Http4sBGv13AIS.getCardAccounts))
+
   object createConsent extends Tag(nameOf(Http4sBGv13AIS.createConsent))
 
   object deleteConsent extends Tag(nameOf(Http4sBGv13AIS.deleteConsent))
@@ -108,6 +110,18 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
 
     scenario("Authentication User, test failed", BerlinGroupV1_3, getAccountList) {
       val requestGet = (V1_3_BG / "accounts").GET <@ (user1)
+      val response = makeGetRequest(requestGet)
+
+      Then("We should get a 403 ")
+      response.code should equal(403)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(NoViewReadAccountsBerlinGroup)
+    }
+  }
+
+  feature(s"BG v1.3 - $getCardAccounts") {
+    // user1 holds the owner view on the test accounts but not ReadAccountsBerlinGroup, so no card account is listed
+    scenario("Authentication User with only non Berlin Group views, test failed", BerlinGroupV1_3, getCardAccounts) {
+      val requestGet = (V1_3_BG / "card-accounts").GET <@ (user1)
       val response = makeGetRequest(requestGet)
 
       Then("We should get a 403 ")
