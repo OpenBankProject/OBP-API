@@ -6480,7 +6480,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     tradeId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketTrade]] = Future {
-    val trade = Option(marketTrades.get(tradeId))
+    // the trade's buy or sell order must belong to the account in the path, else anyone with access to one account reads any trade
+    val trade = Option(marketTrades.get(tradeId)).filter(t =>
+      List(t.buyOrderId, t.sellOrderId).exists(orderId => Option(marketOrders.get(orderId)).exists(_.accountId == accountId.value))
+    )
     (Box(trade), callContext)
   }
 

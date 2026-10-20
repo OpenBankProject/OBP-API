@@ -658,6 +658,42 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       (json \ "status") shouldBe JString("cancelled")
     }
 
+    /** Store a trade straight in the connector between two orders settled on `settlementAccountId`. Returns its id. */
+    def createTestMarketTrade(settlementAccountId: String): String = {
+      val buyOrderId = createTestMarketOrder(settlementAccountId)
+      val sellOrderId = createTestMarketOrder(settlementAccountId)
+      scala.concurrent.Await.result(
+        code.bankconnectors.Connector.connector.vend.createMarketMatch(
+          testBankId1, testAccountId0, buyOrderId, sellOrderId, BigDecimal("5.0"), BigDecimal("25.0"), None),
+        scala.concurrent.duration.Duration(10, "seconds")
+      )
+      // the trade is stored with the match but its id is not returned, so find it by its buy order in the connector's in-memory store
+      val field = code.bankconnectors.LocalMappedConnector.getClass.getDeclaredFields.find(_.getName.endsWith("marketTrades")).get
+      field.setAccessible(true)
+      val trades = field.get(code.bankconnectors.LocalMappedConnector)
+        .asInstanceOf[java.util.concurrent.ConcurrentHashMap[String, com.openbankproject.commons.model.MarketTrade]]
+      trades.values.toArray(Array.empty[com.openbankproject.commons.model.MarketTrade]).find(_.buyOrderId == buyOrderId).get.tradeId
+    }
+
+    def marketTradePath(tradeId: String): String =
+      s"/obp/v7.0.0/banks/${testBankId1.value}/accounts/${testAccountId0.value}/views/$SYSTEM_OWNER_VIEW_ID/market/trades/$tradeId"
+
+    scenario("Refuse to get a trade of another account (404 TradeNotFound)", Http4s700RoutesTag) {
+      val tradeId = createTestMarketTrade(settlementAccountId = "another-account")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(marketTradePath(tradeId), headers)
+      statusCode shouldBe 404
+      messageOf(json) should include(code.api.util.ErrorMessages.TradeNotFound)
+    }
+
+    scenario("Get a trade of the account in the path", Http4s700RoutesTag) {
+      val tradeId = createTestMarketTrade(settlementAccountId = testAccountId0.value)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(marketTradePath(tradeId), headers)
+      statusCode shouldBe 200
+      (json \ "trade_id") shouldBe JString(tradeId)
+    }
+
     // a settlement needs a trade of the account in the path, so an unknown trade_id is refused as not found
     scenario("Refuse to request settlement of an unknown trade (404 TradeNotFound)", Http4s700RoutesTag) {
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
