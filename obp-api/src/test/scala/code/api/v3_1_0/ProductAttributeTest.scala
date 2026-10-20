@@ -188,6 +188,34 @@ class ProductAttributeTest extends V310ServerSetup {
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canGetProductAttribute.toString()) should be (true)
     }
+    // a role at one bank must not read a product attribute of another bank or another product
+    scenario("We will call the Get endpoint with an attribute of another bank or another product", ApiEndpoint2, VersionOfApi) {
+      // an attribute owned by another bank, created directly so no role at that bank is needed
+      val otherBankAttribute = Await.result(
+        ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
+          BankId("other-bank-for-product-attribute-get"), ProductCode("PRODUCT_CODE"), None,
+          "other bank attribute", ProductAttributeType.STRING, "12345678", None),
+        Duration.Inf).openOrThrowException("could not create the test attribute")
+      // an attribute of another product at the bank in the path
+      val otherProductAttribute = Await.result(
+        ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
+          BankId(testBankId), ProductCode("OTHER_PRODUCT_CODE"), None,
+          "other product attribute", ProductAttributeType.STRING, "12345678", None),
+        Duration.Inf).openOrThrowException("could not create the test attribute")
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanGetProductAttribute.toString)
+      When("We get the other bank's attribute through the bank in the path")
+      val requestOtherBank = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherBankAttribute.productAttributeId).GET <@(user1)
+      val responseOtherBank = makeGetRequest(requestOtherBank)
+      Then("We should get a 404")
+      responseOtherBank.code should equal(404)
+      responseOtherBank.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
+      When("We get an attribute of another product through the product in the path")
+      val requestOtherProduct = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherProductAttribute.productAttributeId).GET <@(user1)
+      val responseOtherProduct = makeGetRequest(requestOtherProduct)
+      Then("We should get a 404")
+      responseOtherProduct.code should equal(404)
+      responseOtherProduct.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
+    }
   }
   
   feature("Update Product Attribute v3.1.0") {

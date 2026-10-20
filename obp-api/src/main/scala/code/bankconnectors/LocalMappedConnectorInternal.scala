@@ -661,7 +661,14 @@ object LocalMappedConnectorInternal extends MdcLoggable {
               json.extract[TransactionRequestBodyCardJsonV400]
             }
             //   1.1 get Card from card_number
-            (cardFromCbs,callContext) <- NewStyle.function.getPhysicalCardByCardNumber(transactionRequestBodyCard.card.card_number, callContext)
+            (cardBox, callContext) <- Connector.connector.vend.getPhysicalCardByCardNumber(transactionRequestBodyCard.card.card_number, callContext)
+            // the caller must be allowed to pay from the card's account before any card field is compared, and an unknown
+            // card number gets the same 403, else any logged-in user learns which cards exist and guesses their details field by field
+            _ <- Helper.booleanToFuture(s"$InsufficientAuthorisationToCreateTransactionRequest Current ViewId(${viewId.value}), current UserId(${u.userId})", 403, callContext) {
+              cardBox.exists(card => APIUtil.checkAuthorisationToCreateTransactionRequest(viewId, BankIdAccountId(card.account.bankId, card.account.accountId), u, callContext).isDefined)
+            }
+            // the card was found just above
+            cardFromCbs = cardBox.openOrThrowException(InvalidCardNumber)
 
             // 1.2 check card name/expire month. year.
             calendar = Calendar.getInstance

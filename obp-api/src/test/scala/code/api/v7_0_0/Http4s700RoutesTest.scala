@@ -619,6 +619,92 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
   }
 
+  // ─── market orders scoped to the account in the path ─────────────────────────
+
+  /** Store a market order straight in the connector, settled on `settlementAccountId`. Returns its id. */
+  private def createTestMarketOrder(settlementAccountId: String): String =
+    scala.concurrent.Await.result(
+      code.bankconnectors.Connector.connector.vend.createMarketOrder(
+        testBankId1, testAccountId0, "BUY", BigDecimal("25.0"), BigDecimal("10.0"), settlementAccountId, None),
+      scala.concurrent.duration.Duration(10, "seconds")
+    )._1.openOrThrowException("Expected market order to be created").orderId
+
+  private def marketOrderPath(orderId: String): String =
+    s"/obp/v7.0.0/banks/${testBankId1.value}/accounts/${testAccountId0.value}/views/$SYSTEM_OWNER_VIEW_ID/market/orders/$orderId"
+
+  feature("Http4s700 market orders are scoped to the account in the path") {
+
+    scenario("Refuse to cancel an order of another account (404 OrderNotFound)", Http4s700RoutesTag) {
+      val orderId = createTestMarketOrder(settlementAccountId = "another-account")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithMethod("DELETE", marketOrderPath(orderId), headers)
+      statusCode shouldBe 404
+      messageOf(json) should include(code.api.util.ErrorMessages.OrderNotFound)
+    }
+
+    scenario("Refuse to get an order of another account (404 OrderNotFound)", Http4s700RoutesTag) {
+      val orderId = createTestMarketOrder(settlementAccountId = "another-account")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(marketOrderPath(orderId), headers)
+      statusCode shouldBe 404
+      messageOf(json) should include(code.api.util.ErrorMessages.OrderNotFound)
+    }
+
+    scenario("Cancel an order of the account in the path", Http4s700RoutesTag) {
+      val orderId = createTestMarketOrder(settlementAccountId = testAccountId0.value)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithMethod("DELETE", marketOrderPath(orderId), headers)
+      statusCode shouldBe 200
+      (json \ "status") shouldBe JString("cancelled")
+    }
+
+    /** Store a trade straight in the connector between two orders settled on `settlementAccountId`. Returns its id. */
+    def createTestMarketTrade(settlementAccountId: String): String = {
+      val buyOrderId = createTestMarketOrder(settlementAccountId)
+      val sellOrderId = createTestMarketOrder(settlementAccountId)
+      scala.concurrent.Await.result(
+        code.bankconnectors.Connector.connector.vend.createMarketMatch(
+          testBankId1, testAccountId0, buyOrderId, sellOrderId, BigDecimal("5.0"), BigDecimal("25.0"), None),
+        scala.concurrent.duration.Duration(10, "seconds")
+      )
+      // the trade is stored with the match but its id is not returned, so find it by its buy order in the connector's in-memory store
+      val field = code.bankconnectors.LocalMappedConnector.getClass.getDeclaredFields.find(_.getName.endsWith("marketTrades")).get
+      field.setAccessible(true)
+      val trades = field.get(code.bankconnectors.LocalMappedConnector)
+        .asInstanceOf[java.util.concurrent.ConcurrentHashMap[String, com.openbankproject.commons.model.MarketTrade]]
+      trades.values.toArray(Array.empty[com.openbankproject.commons.model.MarketTrade]).find(_.buyOrderId == buyOrderId).get.tradeId
+    }
+
+    def marketTradePath(tradeId: String): String =
+      s"/obp/v7.0.0/banks/${testBankId1.value}/accounts/${testAccountId0.value}/views/$SYSTEM_OWNER_VIEW_ID/market/trades/$tradeId"
+
+    scenario("Refuse to get a trade of another account (404 TradeNotFound)", Http4s700RoutesTag) {
+      val tradeId = createTestMarketTrade(settlementAccountId = "another-account")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(marketTradePath(tradeId), headers)
+      statusCode shouldBe 404
+      messageOf(json) should include(code.api.util.ErrorMessages.TradeNotFound)
+    }
+
+    scenario("Get a trade of the account in the path", Http4s700RoutesTag) {
+      val tradeId = createTestMarketTrade(settlementAccountId = testAccountId0.value)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(marketTradePath(tradeId), headers)
+      statusCode shouldBe 200
+      (json \ "trade_id") shouldBe JString(tradeId)
+    }
+
+    // a settlement needs a trade of the account in the path, so an unknown trade_id is refused as not found
+    scenario("Refuse to request settlement of an unknown trade (404 TradeNotFound)", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        s"/obp/v7.0.0/banks/${testBankId1.value}/accounts/${testAccountId0.value}/views/$SYSTEM_OWNER_VIEW_ID/market/settlements",
+        s"""{"trade_id": "${APIUtil.generateUUID()}", "step": "step1"}""", headers)
+      statusCode shouldBe 404
+      messageOf(json) should include(code.api.util.ErrorMessages.TradeNotFound)
+    }
+  }
+
   // ─── message outbox (operator) ────────────────────────────────────────────────
 
   private def seedOutboxRow(status: String): code.messageoutbox.MessageOutbox = {
@@ -2011,6 +2097,33 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
             case _ => fail("Expected routing_schemes array")
           }
         case _ => fail("Expected JSON object")
+      }
+    }
+
+    // The rail filter must apply before paging, so every page holds matches and total counts only that rail.
+    scenario("With rail set, pages and total count only schemes of that rail", Http4s700RoutesTag) {
+      val rail = s"RAIL_${APIUtil.generateUUID().take(6).toUpperCase}"
+      (1 to 3).foreach { i =>
+        RoutingSchemes.routingScheme.vend.createRoutingScheme(
+          scheme = freshSchemeName(s"RL$i"), country = "TZ", category = "ACCOUNT",
+          addressPattern = "^[0-9]{3,20}$", secondaryAddressPattern = None, exampleAddress = "12345678",
+          description = "Rail paging test", downstreamRails = List(rail), status = "ACTIVE",
+          createdByUserId = resourceUser1.userId
+        )
+      }
+      (0 to 2).foreach { offset =>
+        val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/routing-schemes?rail=$rail&limit=1&offset=$offset")
+        statusCode shouldBe 200
+        json match {
+          case JObject(fields) =>
+            val map = toFieldMap(fields)
+            map.get("routing_schemes") match {
+              case Some(JArray(items)) => items.size shouldBe 1
+              case _ => fail("Expected routing_schemes array")
+            }
+            (json \ "pagination" \ "total") shouldBe JInt(3)
+          case _ => fail("Expected JSON object")
+        }
       }
     }
   }

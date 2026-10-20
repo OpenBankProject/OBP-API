@@ -265,7 +265,9 @@ object Http4sBGv13AIS extends MdcLoggable {
         val u = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
         for {
           _ <- passesPsd2Aisp(callContext)
-          availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+          // only accounts the user reaches through the ReadAccountsBerlinGroup view (403 if none), as getAccountList
+          // and readCardAccount do, else any private view (owner, accountant, ...) would list a card account
+          (availablePrivateAccounts, callContext) <- NewStyle.function.getAccountListOfBerlinGroup(u, callContext)
           (_, callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)
           (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
           (canReadBalancesAccounts, callContext) <- NewStyle.function.getAccountCanReadBalancesOfBerlinGroup(u, callContext)
@@ -422,6 +424,9 @@ object Http4sBGv13AIS extends MdcLoggable {
         val callContext = Some(cc)
         val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
         for {
+          // The calling TPP must hold a PSD2 certificate with the PSP_AI role, as for the transaction
+          // list of the same account; else a consumer without it could still read single transactions.
+          _ <- passesPsd2Aisp(callContext)
           (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
           viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
           bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
@@ -1245,7 +1250,8 @@ respectively the OAuth2 access token.
     }
   ]
 }""")),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      // 403 NoViewReadAccountsBerlinGroup when the user has no account through the ReadAccountsBerlinGroup view
+      List(AuthenticatedUserIsRequired, NoViewReadAccountsBerlinGroup, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagMockedData :: Nil,
       http4sPartialFunction = Some(getCardAccounts)
     )
@@ -1396,7 +1402,8 @@ of the "Read Transaction List" call within the _links subfield.
     }
   }
 }""")),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      // The X509 / regulated-entity errors come from passesPsd2Aisp, when PSD2 certificates are required
+      List(AuthenticatedUserIsRequired, X509CannotGetCertificate, RegulatedEntityNotFoundByCertificate, X509ActionIsNotAllowed, X509GeneralError, UnknownError),
       ApiTag("Account Information Service (AIS)") :: Nil,
       http4sPartialFunction = Some(getTransactionDetails)
     )

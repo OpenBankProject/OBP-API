@@ -34,6 +34,7 @@ import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
+import com.openbankproject.commons.model.enums.UserAttributeType
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 
@@ -134,6 +135,30 @@ class CorrelatedUserInfoTest extends V400ServerSetup {
       val correlatedEntities = response400.body.extract[CorrelatedEntities]
       correlatedEntities.correlated_entities.head.customer.bank_id should be (bankId)
       correlatedEntities.correlated_entities.head.users.length should be (1)
+    }
+
+    // another user linked to the same customer must not see the caller's co-user's personal attributes
+    scenario("We will not get other users' personal attributes", ApiEndpoint2, VersionOfApi) {
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      createUserCustomerLink(bankId, resourceUser1.userId, customerId)
+      createUserCustomerLink(bankId, resourceUser2.userId, customerId)
+      val provider = code.users.UserAttributeProvider.userAttributeProvider.vend
+      def addAttribute(userId: String, name: String, isPersonal: Boolean) = scala.concurrent.Await.result(
+        provider.createOrUpdateUserAttribute(userId, None, name, UserAttributeType.STRING, "value", isPersonal),
+        scala.concurrent.duration.Duration(10, "seconds"))
+      addAttribute(resourceUser2.userId, "OTHER_PERSONAL", isPersonal = true)
+      addAttribute(resourceUser2.userId, "OTHER_PUBLIC", isPersonal = false)
+      addAttribute(resourceUser1.userId, "OWN_PERSONAL", isPersonal = true)
+      When("We make a request v4.0.0")
+      val request400 = (v4_0_0_Request / "my" / "correlated-entities").GET <@(user1)
+      val response400 = makeGetRequest(request400)
+      Then("We should get a 200 without the other user's personal attribute")
+      response400.code should equal(200)
+      val entity = response400.body.extract[CorrelatedEntities].correlated_entities.find(_.customer.customer_id == customerId).get
+      val names = entity.users.flatMap(_.user_attributes.map(_.name))
+      names should contain ("OTHER_PUBLIC")
+      names should contain ("OWN_PERSONAL")
+      names should not contain ("OTHER_PERSONAL")
     }
   }
 

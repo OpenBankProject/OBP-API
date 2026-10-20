@@ -64,12 +64,9 @@ import scala.io.Source
  *
  * The plan says: "call every UseOnBehalfOfUserId create endpoint with the consent JWT; assert no
  * row in any such table references the consent user's id". Taken literally that suite is red on the
- * day it is written and stays red for months: of the 62 references this scenario covers (the 59
- * UseOnBehalfOfUserId ones and the 3 Reject ones), EIGHT are wired today (TransactionRequest_UserId,
- * Entitlement_UserId, AccountHolders_User, UserCustomerLink_UserId,
- * DynamicEntity_UserId/DynamicData_UserId, Bank_CreatedByUserId, Counterparty_CreatedByUserId --
- * Phase 2 rows 1 to 5), and the other 54 are the notYetWired list below.
- * A permanently
+ * day it is written and stays red for months, because Phase 2 wires the providers a table at a
+ * time and most UseOnBehalfOfUserId and Reject references are still in UserReference.notYetWired
+ * (the first scenario logs the current counts). A permanently
  * red suite is one people learn to ignore, which is the same reasoning AuthSweepTest's
  * expectedAuthDeviation records for its own two entries.
  *
@@ -96,101 +93,20 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
 
   implicit val runtime: IORuntime = IORuntime.global
 
-  private val webhookDeferred =
-    "deferred 2026-09-16, not mechanical: agreed as record-both (like Counterparty), but the webhook " +
-    "code has two dead paths already and is not to be touched in a hurry. todo/webhook_attribution.md."
-
-  private val filesNotYetServed =
-    "the Files tables (code.files) exist but no endpoint writes them yet. The endpoints must store " +
-    "cc.onBehalfOfUserId as the owner (ideas/ogcr_file_storage.md) and reject a consent user as grantee."
-
-  private val mechanicalBatch =
-    "Phase 2 mechanical batch: the provider does not call attributionOf yet, so a consent user's " +
-    "row is stored against the consent user and dies with the Consent."
-
   /**
-   * This lists the references whose provider does not consult the resolver yet, because Phase 2 is
-   * being done a table at a time rather than all at once.
+   * This is UserReference.notYetWired keyed by reference name, the form the source scan produces.
    *
-   * Written out by hand rather than derived from "what main does not reference". A derived list
-   * would agree with reality by construction: the undecided check could never fail, because
-   * anything missing would be added to the list at the same moment; and the staleness check could
-   * never fail either. Both assertions would be checking the list against a copy of itself, which
-   * is the failure mode SweepCoverageDriftCheckTest exists to prevent elsewhere in this package.
-   * Spelling the names out is what makes adding a table a decision somebody has to take.
-   *
-   * This list may only shrink.
+   * The list itself lives in UserReference, next to the policies, so that the "On Behalf Of"
+   * Glossary item can render it. It is still written out by hand there rather than derived from
+   * "what main does not reference". A derived list would agree with reality by construction: the
+   * undecided check could never fail, because anything missing would be added to the list at the
+   * same moment; and the staleness check could never fail either. Both assertions would be
+   * checking the list against a copy of itself, which is the failure mode
+   * SweepCoverageDriftCheckTest exists to prevent elsewhere in this package. Spelling the names
+   * out is what makes adding a table a decision somebody has to take.
    */
-  private val notYetWired: Map[String, String] = Map(
-    "AccountApplication_UserId"                  -> mechanicalBatch,
-    "AccountAccessRequest_RequestorUserId"           -> mechanicalBatch,
-    "AccountAccessRequest_CheckerUserId"             -> mechanicalBatch,
-    "DynamicChangeRequest_RequestorUserId"           -> mechanicalBatch,
-    "DynamicChangeRequest_CheckerUserId"             -> mechanicalBatch,
-    "EntitlementRequest_UserId"                  -> mechanicalBatch,
-    "UserScope_UserId"                           -> mechanicalBatch,
-    "ApiCollection_UserId"                       -> mechanicalBatch,
-    "UserAttribute_UserId"                       -> mechanicalBatch,
-    "UserAgreement_UserId"                       -> mechanicalBatch,
-    "UserInitAction_UserId"                      -> mechanicalBatch,
-    "UserAuthContext_UserId"                     -> mechanicalBatch,
-    "UserAuthContextUpdate_UserId"               -> mechanicalBatch,
-    "DynamicDataAccess_UserId"                   -> mechanicalBatch,
-    "DynamicEndpoint_UserId"                     -> mechanicalBatch,
-    "DynamicResourceDoc_CreatedByUserId"               -> mechanicalBatch,
-    "DynamicMessageDoc_CreatedByUserId"                -> mechanicalBatch,
-    "ConnectorMethod_CreatedByUserId"                  -> mechanicalBatch,
-    "AbacRule_CreatedByUserId"                         -> mechanicalBatch,
-    "CounterpartyWhereTag_User"                -> mechanicalBatch,
-    "ApiProductSubscription_CreatedByUserId"           -> mechanicalBatch,
-    "DynamicGlossaryItem_CreatedByUserId"              -> mechanicalBatch,
-    "Organisation_CreatedByUserId"                     -> mechanicalBatch,
-    "Asset_CreatedByUserId" ->
-      "no endpoint writes the asset registry yet; only the boot seed does. Wire it with the asset write endpoints.",
-    "File_UserId"                -> filesNotYetServed,
-    "FileAttachment_UserId"      -> filesNotYetServed,
-    "FileAccess_GrantedByUserId" -> filesNotYetServed,
-    "FileAccess_GranteeUserId"   -> filesNotYetServed,
-    "PayeeLookup_CreatedByUserId"                      -> mechanicalBatch,
-    "RoutingScheme_CreatedByUserId"                    -> mechanicalBatch,
-    "UtilityPaymentCallback_CreatedByUserId"           -> mechanicalBatch,
-    "StandingOrder_UserId"                       -> mechanicalBatch,
-    "DirectDebit_UserId"                         -> mechanicalBatch,
-    "Mandate_CreatedByUserId"                          -> mechanicalBatch,
-    "SignatoryPanel_UserIds"                     -> mechanicalBatch,
-    "AccountWebhook_CreatedByUserId" -> webhookDeferred,
-    "SystemAccountNotificationWebhook_CreatedByUserId" -> webhookDeferred,
-    "BankAccountNotificationWebhook_CreatedByUserId" -> webhookDeferred,
-    "ChatRoom_CreatedByUserId"                         -> mechanicalBatch,
-    "Participant_UserId"                     -> mechanicalBatch,
-    "Reaction_UserId"                        -> mechanicalBatch,
-    "ChatEmailDigestState_UserId"                -> mechanicalBatch,
-    "ChatMessage_MentionedUserIds"               -> mechanicalBatch,
-    "CrmEvent_UserId"                            -> mechanicalBatch,
-    "KycCheck_User"                            -> mechanicalBatch,
-    "KycCheck_StaffUserId"                           -> mechanicalBatch,
-    "KycDocument_User"                         -> mechanicalBatch,
-    "KycStatus_User"                           -> mechanicalBatch,
-    "SocialMedia_User"                         -> mechanicalBatch,
-    "CustomerMessage_User"                     -> mechanicalBatch,
-    "Meeting_CustomerUserId"                     -> mechanicalBatch,
-    "Meeting_StaffUserId"                        -> mechanicalBatch,
-    "Tag_User"                                 -> mechanicalBatch,
-    "WhereTag_User"                            -> mechanicalBatch,
-    "TransactionImage_User"                    -> mechanicalBatch,
-    "AccountAccessRequest_TargetUserId" ->
-      ("explicit target, so the endpoint refuses a consent user rather than redirecting -- covered " +
-       "by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),
-    "GroupMembership_UserId" ->
-      ("the member is never the caller: the Group member sync endpoint reads each member's user id " +
-       "from the Group's existing Entitlements and membership rows, so there is nothing to redirect."),
-    "Consent_UserId" ->
-      ("Reject, not yet enforced: a consent user can still create a Consent (nested delegation). " +
-       "attributionOf already returns Failure for it -- AgentDelegationTest pins that -- but no " +
-       "caller consults it. ON_BEHALF_OF_USER_ID_PLAN.md Phase 3, still open."),
-    "Consumer_CreatedByUserId" -> "Reject, not yet enforced: no caller consults attributionOf.",
-    "Token_UserForeignKey"       -> "Reject, not yet enforced: no caller consults attributionOf."
-  )
+  private val notYetWired: Map[String, String] =
+    UserReference.notYetWired.map { case (ref, why) => ref.name -> why.reason }
 
   // ── which references main actually uses ────────────────────────────────────
 

@@ -673,6 +673,13 @@ object Http4s121 {
               s"${CreateCustomViewError} You need the `${CAN_UPDATE_CUSTOM_VIEW}` permission on any your views",
               cc = Some(cc)
             )(anyViewContainsPermission)
+            // the view may only get actions the caller already has on one of their views of this account, else they grant themselves more (as v5.1.0 does)
+            callerActions = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)
+              .map(_.views.flatMap(_.allowed_actions)).getOrElse(Nil).toSet
+            _ <- Helper.booleanToFuture(
+              s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${updateJsonV121.allowed_actions})",
+              failCode = 403, cc = Some(cc)
+            )(updateJsonV121.allowed_actions.toSet.subsetOf(callerActions))
             updatedView <- Future(Views.views.vend.updateCustomView(BankIdAccountId(account.bankId, account.accountId), ViewId(viewId), updateViewJson)) map {
               unboxFullOrFail(_, Some(cc), CreateCustomViewError)
             }
@@ -694,7 +701,8 @@ object Http4s121 {
       |of a view is not editable (it is only set when a view is created)""",
       updateViewJsonV121,
       viewJSONV121,
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, ViewNotFound, UnknownError, "user does not have owner access"),
+      // SourceViewHasLessPermission: the body asks for actions none of the caller's views on the account has
+      List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, ViewNotFound, SourceViewHasLessPermission, UnknownError, "user does not have owner access"),
       List(apiTagAccount, apiTagView, apiTagOldStyle),
       http4sPartialFunction = Some(updateViewForBankAccount)
     )

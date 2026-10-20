@@ -170,8 +170,8 @@ object JSONFactory_UKOpenBanking_200 extends CustomJsonFormats {
     )
   }
   
-  def createTransactionsJson(transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : TransactionsJsonUKV200 = {
-    val accountId = transactions.head.bankAccount.get.accountId.value
+  // The caller passes the account id from the path, so an account with no transactions gives an empty list, not an exception.
+  def createTransactionsJson(accountId: String, transactions: List[ModeratedTransaction], transactionRequests: List[TransactionRequest]) : TransactionsJsonUKV200 = {
     val transactionsInnerJson = transactions.map(
       transaction=>TransactionInnerJson(
         AccountId = accountId,

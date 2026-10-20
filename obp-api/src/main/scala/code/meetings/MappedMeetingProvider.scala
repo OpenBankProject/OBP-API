@@ -42,22 +42,28 @@ import scala.collection.immutable.List
 object MappedMeetingProvider extends MeetingProvider {
 
 
+  // The user takes part in the meeting as its customer or staff user, else it is none of their business
+  private def isParticipant(meeting: MappedMeeting, user: User): Boolean =
+    meeting.mCustomerUserId.get == user.userPrimaryKey.value || meeting.mStaffUserId.get == user.userPrimaryKey.value
+
   override def getMeeting(bankId : BankId, user: User, meetingId : String): Box[Meeting] = {
     // Return a Box so we can handle errors later.
     MappedMeeting.find(
-      // TODO Need to check permissions (user)
       By(MappedMeeting.mBankId, bankId.toString),
       By(MappedMeeting.mMeetingId, meetingId)
       , OrderBy(MappedMeeting.mWhen, Descending))
+      // Only a meeting the user takes part in is found, so nobody reads other people's contact details or meeting keys
+      .filter(isParticipant(_, user))
   }
 
 
   override def getMeetings(bankId : BankId, user: User): Box[List[Meeting]] = {
     // Return a Box so we can handle errors later.
    tryo{MappedMeeting.findAll(By(
-//      TODO Need to check permissions (user)
      MappedMeeting.mBankId, bankId.toString),
-     OrderBy(MappedMeeting.mWhen, Descending))}
+     OrderBy(MappedMeeting.mWhen, Descending))
+     // Only the meetings the user takes part in, so nobody lists other people's contact details or meeting keys
+     .filter(isParticipant(_, user))}
   }
 
 

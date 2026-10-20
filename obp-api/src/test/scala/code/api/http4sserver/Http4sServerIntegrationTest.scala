@@ -295,6 +295,33 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
         pending
       }
     }
+
+    // The v6.0.0 product list documents a tags field
+    scenario("GET /obp/v6.0.0/banks/BANK_ID/products returns each product's tags", Http4sServerIntegrationTag) {
+      Given("A product of the bank carries tags")
+      val productCode = "tagged-product-v600"
+      val bankId = com.openbankproject.commons.model.BankId("testBank0")
+      val product = code.products.MappedProduct.create
+        .mBankId("testBank0")
+        .mCode(productCode)
+        .mName("Tagged Product")
+        .mLicenseId("some-license")
+        .mLicenseName("Some License")
+        .saveMe()
+      code.products.ProductTagsProvider.setTags(bankId, com.openbankproject.commons.model.ProductCode(productCode), List("savings", "green"))
+
+      When("We request the products of the bank")
+      val (status, body) = makeHttp4sGetRequest(s"/obp/v6.0.0/banks/testBank0/products")
+      code.products.ProductTagsProvider.setTags(bankId, com.openbankproject.commons.model.ProductCode(productCode), Nil)
+      product.delete_!
+
+      Then("We should get a 200 response")
+      status should equal(200)
+
+      And("That product should list its tags")
+      val listed = (parse(body) \ "products").children.find(p => (p \ "product_code").extract[String] == productCode)
+      listed.map(p => (p \ "tags").extract[List[String]]) should equal(Some(List("green", "savings")))
+    }
   }
 
   feature("HTTP4S version-cascade fallback") {

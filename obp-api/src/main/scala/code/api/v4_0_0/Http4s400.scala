@@ -594,6 +594,10 @@ object Http4s400 {
           val limit = req.uri.query.params.get("limit").map(Full(_)).getOrElse(net.liftweb.common.Empty)
           val offset = req.uri.query.params.get("offset").map(Full(_)).getOrElse(net.liftweb.common.Empty)
           for {
+            // with apiOptions.getAtmsIsPublic=false the ATM list needs a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read it
+            _ <- if (!getAtmsIsPublic)
+                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 else Future.unit
             _ <- code.util.Helper.booleanToFuture(
               failMsg = s"$InvalidNumber limit:${limit.getOrElse("")}", cc = Some(cc)) {
               limit match {
@@ -634,6 +638,7 @@ object Http4s400 {
       EmptyBody,
       atmsJsonV400,
       List(
+        $AuthenticatedUserIsRequired, // 401 when apiOptions.getAtmsIsPublic=false and no user; dropped from the list while ATMs are public
         $BankNotFound,
         UnknownError
       ),
@@ -687,6 +692,10 @@ object Http4s400 {
             case (k, vs) => vs.map(v => com.openbankproject.commons.dto.GetProductsParam(k, List(v)))
           }
           for {
+            // with apiOptions.getProductsIsPublic=false the product list needs a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read it
+            _ <- if (!getProductsIsPublic)
+                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 else Future.unit
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
             (products, _) <- NewStyle.function.getProducts(BankId(bankIdStr), params, Some(cc))
           } yield JSONFactory400.createProductsJson(products)
@@ -734,6 +743,10 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
+            // with apiOptions.getProductsIsPublic=false the product needs a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read it
+            _ <- if (!getProductsIsPublic)
+                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 else Future.unit
             (product, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
             (productAttributes, _) <- NewStyle.function.getProductAttributesByBankAndCode(
               BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
@@ -5245,6 +5258,20 @@ object Http4s400 {
               cc = Some(cc)) {
               APIUtil.canRevokeAccessToAllViews(bankId, accountId, loggedInUser, Some(cc))
             }
+            // the caller may only grant themselves views their held views can grant, else a limited view could be swapped for owner
+            _ <- code.util.Helper.booleanToFuture(
+              UserLacksPermissionCanGrantAccessToViewForTargetAccount +
+                s"Current ViewIds(${postJson.views.mkString}) and current UserId(${loggedInUser.userId})",
+              failCode = 403, cc = Some(cc)) {
+              APIUtil.canGrantAccessToMultipleViews(bankId, accountId, postJson.views.map(ViewId(_)), loggedInUser, Some(cc))
+            }
+            // every view must exist before the revoke runs, else an unknown view id removes all the caller's access and then fails
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ViewNotFound Current ViewIds(${postJson.views.mkString(",")})", failCode = 404, cc = Some(cc)) {
+              postJson.views.forall(viewIdStr =>
+                Views.views.vend.customView(ViewId(viewIdStr), BankIdAccountId(bankId, accountId))
+                  .or(Views.views.vend.systemView(ViewId(viewIdStr))).isDefined)
+            }
             _ <- Future(
               Views.views.vend.revokeAccountAccessByUser(bankId, accountId, loggedInUser, Some(cc))
             ) map { box => unboxFullOrFail(box, Some(cc), "Cannot revoke") }
@@ -6428,6 +6455,10 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "fees" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
+            // with apiOptions.getProductsIsPublic=false the fees need a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read them
+            _ <- if (!getProductsIsPublic)
+                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 else Future.unit
             (productFees, _) <- NewStyle.function.getProductFeesFromProvider(
               BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
           } yield JSONFactory400.createProductFeesJson(productFees)
@@ -6511,7 +6542,9 @@ object Http4s400 {
                 (ucls, _) <- code.api.util.newstyle.UserCustomerLinkNewStyle
                   .getUserCustomerLinks(link.customerId, Some(cc))
                 (users, _) <- NewStyle.function.getUsersByUserIds(ucls.map(_.userId), Some(cc))
-                (attributes, _) <- NewStyle.function.getUserAttributesByUsers(ucls.map(_.userId), Some(cc))
+                (allAttributes, _) <- NewStyle.function.getUserAttributesByUsers(ucls.map(_.userId), Some(cc))
+                // personal attributes are only for their owner, so drop other users' personal ones, else co-users of the customer read them
+                attributes = allAttributes.filter(a => !a.isPersonal || a.userId == user.userId)
               } yield (customer, users, attributes)
             })
           } yield CorrelatedEntities(
@@ -6642,12 +6675,13 @@ object Http4s400 {
         "Get Product Fees",
         s"""Get Product Fees
         |
-        |${userAuthenticationMessage(false)}
+        |${userAuthenticationMessage(!getProductsIsPublic)}
         |
         |""",
         EmptyBody,
         productFeesResponseJsonV400,
-        List($BankNotFound, UnknownError),
+        // the description says login is required when apiOptions.getProductsIsPublic=false; AuthenticatedUserIsRequired is then returned to anonymous callers
+        List(AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagProduct),
         None,
         http4sPartialFunction = Some(getProductFees)

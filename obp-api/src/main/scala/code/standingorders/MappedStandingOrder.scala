@@ -60,6 +60,8 @@ object MappedStandingOrderProvider extends StandingOrderProvider {
       .AmountValue(convertToSmallestCurrencyUnits(amountValue, amountCurrency))
       .AmountCurrency(amountCurrency)
       .WhenFrequency(whenFrequency)
+      // store the schedule detail the caller posted (e.g. day of the month), so the response and later reads return it
+      .WhenDetail(whenDetail)
       .DateSigned(dateSigned)
       .DateStarts(dateStarts)
       .DateExpires(if (dateExpires.isDefined) dateExpires.get else null)

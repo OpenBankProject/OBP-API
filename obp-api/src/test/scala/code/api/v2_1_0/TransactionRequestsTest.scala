@@ -915,6 +915,63 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
   }
 
+  feature("Answer Transaction Request Challenge -- SEPA: account and maker-checker checks") {
+
+    // Creates a SEPA request with a challenge from accountId1 and returns its id and challenge id
+    def createSepaRequestWithChallenge(helper: DefaultSetup): (String, String) = {
+      helper.setCurrencyAndAmt("EUR", "EUR", "9000.00")
+      helper.bodyValue = AmountOfMoneyJsonV121("EUR", "9000.00")
+      helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
+      val createResponse = helper.makeCreateTransReqRequestSEPA
+      createResponse.code should equal(201)
+      ((createResponse.body \ "id").values.toString, (createResponse.body \ "challenge" \ "id").values.toString)
+    }
+
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("Answering a request through an account it does not pay from", TransactionRequest) {}
+    } else {
+      scenario("Answering a request through an account it does not pay from", TransactionRequest) {
+        val helper = defaultSetup(SEPA.toString)
+        val (transRequestId, challengeId) = createSepaRequestWithChallenge(helper)
+
+        When("user1 answers the challenge through accountId2, which the request does not pay from")
+        val request = (v2_1Request / "banks" / helper.bankId.value / "accounts" / helper.accountId2.value /
+          SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / SEPA.toString / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
+        val response = makePostRequest(request, write(ChallengeAnswerJSON(id = challengeId, answer = "123")))
+
+        Then("we get 404 and the request is not paid")
+        response.code should equal(404)
+        response.body.extract[ErrorMessage].message should startWith(InvalidTransactionRequestId)
+        helper.checkBankAccountBalance(false)
+      }
+    }
+
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("The maker answers their own challenge on a view without the maker-checker bypass", TransactionRequest) {}
+    } else {
+      scenario("The maker answers their own challenge on a view without the maker-checker bypass", TransactionRequest) {
+        val helper = defaultSetup(SEPA.toString)
+        val (transRequestId, challengeId) = createSepaRequestWithChallenge(helper)
+
+        Given("a custom view that may add transaction requests but not bypass maker-checker, granted to user1")
+        val view = createCustomRandomView(helper.bankId, helper.accountId1)
+        code.views.system.ViewPermission.resetViewPermissions(view, List(CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT))
+        code.views.Views.views.vend.grantAccessToCustomView(
+          com.openbankproject.commons.model.BankIdAccountIdViewId(helper.bankId, helper.accountId1, view.viewId), resourceUser1)
+
+        When("user1, the maker, answers the challenge through that view")
+        val request = (v2_1Request / "banks" / helper.bankId.value / "accounts" / helper.accountId1.value /
+          view.viewId.value / "transaction-request-types" / SEPA.toString / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
+        val response = makePostRequest(request, write(ChallengeAnswerJSON(id = challengeId, answer = "123")))
+
+        Then("we get 400 MakerCheckerSameUser and the request is not paid")
+        response.code should equal(400)
+        response.body.extract[ErrorMessage].message should include(MakerCheckerSameUser)
+        helper.checkBankAccountBalance(false)
+      }
+    }
+  }
+
   feature("we can create transaction requests -- COUNTERPARTY") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {

@@ -38,6 +38,7 @@ import code.api.util.ErrorMessages.InvalidUserId
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
 import code.api.v2_0_0.{CreateAccountJSON, CreateCustomerJson, CreateEntitlementJSON, CreateUserCustomerLinkJson}
 import code.api.v2_1_0.{CustomerCreditRatingJSON, PostCustomerJsonV210}
+import code.api.v2_2_0.CreateAccountJSONV220
 import code.api.v3_1_0.{AccountApplicationJson, AccountApplicationUpdateStatusJson, CreateAccountRequestJsonV310}
 import code.api.v4_0_0.SettlementAccountRequestJson
 import code.api.v5_0_0.CreateAccountRequestJsonV500
@@ -47,7 +48,7 @@ import code.api.v7_0_0.JSONFactory700.CreateAccountRequestJsonV700
 import code.model.dataAccess.ResourceUser
 import code.setup.{DefaultUsers, ServerSetupWithTestData}
 import code.users.Users
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ProductCode}
+import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, ProductCode}
 import org.json4s.{Extraction, JValue}
 import org.json4s.native.JsonMethods.{compact, render}
 import org.scalatest.Tag
@@ -66,9 +67,9 @@ import scala.io.Source
  * would be wrong: the caller asked for a specific target, and if that target is an agent identity
  * the request is a mistake the caller needs told about. So the endpoint answers 400 OBP-30107.
  *
- * Why a sweep and not a scenario per version file: the guard is nineteen near-identical three-line
+ * Why a sweep and not a scenario per version file: the guard is twenty near-identical three-line
  * blocks spread over ten Http4s objects, and the failure mode that matters is not one of them
- * being wrong -- it is a twentieth being added, or an existing one being dropped, with nobody
+ * being wrong -- it is a twenty-first being added, or an existing one being dropped, with nobody
  * noticing. So this suite pairs each probe with a source scan (the last scenario) that counts the
  * guards in main and fails if the count and this table disagree.
  *
@@ -97,7 +98,7 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
   implicit val runtime: IORuntime = IORuntime.global
 
   /**
-   * The phrase every one of the nineteen guard messages shares.
+   * The phrase every one of the twenty guard messages shares.
    *
    * The messages differ in their subject ("user_id", "target_user_id", "USER_ID", "The
    * application's user") and in the sentence that follows, so the assertion anchors on the part
@@ -234,6 +235,10 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
       sweep(List(
         Probe("OBPv2.0.0-createAccount", "PUT", s"/obp/v2.0.0/banks/$bankId/accounts/${generateUUID()}",
           CreateAccountJSON(user_id = agentId, label = "explicit target sweep", `type` = "CURRENT", balance = money)),
+        Probe("OBPv2.2.0-createAccount", "PUT", s"/obp/v2.2.0/banks/$bankId/accounts/${generateUUID()}",
+          CreateAccountJSONV220(
+            user_id = agentId, label = "explicit target sweep", `type` = "CURRENT", balance = money,
+            branch_id = "", account_routing = AccountRoutingJsonV121(scheme = "OBP", address = generateUUID()))),
         Probe("OBPv3.1.0-createAccount", "PUT", s"/obp/v3.1.0/banks/$bankId/accounts/${generateUUID()}", v310Body),
         Probe("OBPv4.0.0-addAccount", "POST", s"/obp/v4.0.0/banks/$bankId/accounts", v310Body),
         Probe("OBPv4.0.0-createSettlementAccount", "POST", s"/obp/v4.0.0/banks/$bankId/settlement-accounts",
@@ -310,8 +315,8 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
   feature("Every explicit-target guard in the codebase is probed above") {
 
     /**
-     * The scenarios above are a hand-written table, and a hand-written table of nineteen
-     * near-identical things drifts. A twentieth guard added next month is not covered by
+     * The scenarios above are a hand-written table, and a hand-written table of twenty
+     * near-identical things drifts. A twenty-first guard added next month is not covered by
      * anything here, and nothing says so -- the suite stays green while its subject grows.
      *
      * So the guards are counted at their source. Every one is a booleanToFuture whose message
@@ -339,11 +344,11 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
         finally source.close()
       }
 
-      // Twenty probes cover nineteen guards: v7.0.0 registers createAccountV700 (POST) and
+      // Twenty-one probes cover twenty guards: v7.0.0 registers createAccountV700 (POST) and
       // createAccountWithIdV700 (PUT) over one shared createAccountCommon, so the two probes
       // reach the same guard by two different routes -- the PUT arm validates the account id
       // first, which is the part worth probing separately.
-      val guardsInMain = 19
+      val guardsInMain = 20
 
       withClue(s"found ${guardLines.size} explicit-target guards in main, but this suite is " +
                s"written against $guardsInMain. A guard added without a probe is untested; a " +

@@ -231,6 +231,67 @@ class CustomerAddressTest extends V310ServerSetup {
       And("error should be " + CustomerAddressNotFound)
       response310.body.extract[ErrorMessage].message should startWith (CustomerAddressNotFound)
     }
+
+    // The update stores the posted status and the posted state, each in its own field
+    scenario("The posted status is stored as the status, not the state", ApiEndpoint4, VersionOfApi) {
+      for (role <- List(CanCreateCustomer, CanCreateCustomerAddress))
+        Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, role.toString)
+      val (customerId, addressId) = customerWithAddress(bankA)
+      When("We update the address with a status different from the state")
+      val request310 = (v3_1_0_Request / "banks" / bankA / "customers" / customerId / "addresses" / addressId).PUT <@(user1)
+      val response310 = makePutRequest(request310, write(postCustomerAddressJson.copy(state = "Some State", status = "inactive")))
+      Then("We should get a 200")
+      response310.code should equal(200)
+      And("the address should keep the posted status and state")
+      val address = response310.body.extract[CustomerAddressJsonV310]
+      address.status shouldBe "inactive"
+      address.state shouldBe "Some State"
+    }
+  }
+
+  // The Delete endpoint deletes an address only of the customer in the path, and only at the bank in the path
+  feature("Delete Customer Address v3.1.0 stays within the bank and the customer in the path") {
+    val bankA = testBankId1.value
+    val bankB = testBankId2.value
+
+    // Creates a customer at the bank, with one address, through the endpoints; returns their ids
+    def customerWithAddress(bank: String): (String, String) = {
+      val customer = makePostRequest((v3_1_0_Request / "banks" / bank / "customers").POST <@(user1), write(postCustomerJson))
+      customer.code should equal(201)
+      val customerId = customer.body.extract[CustomerJsonV310].customer_id
+      val address = makePostRequest((v3_1_0_Request / "banks" / bank / "customers" / customerId / "address").POST <@(user1),
+        write(postCustomerAddressJson))
+      address.code should equal(201)
+      (customerId, address.body.extract[CustomerAddressJsonV310].customer_address_id)
+    }
+
+    scenario("A customer at another bank than the one in the path is not found", ApiEndpoint3, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, CanDeleteCustomerAddress.toString)
+      for (role <- List(CanCreateCustomer, CanCreateCustomerAddress))
+        Entitlement.entitlement.vend.addEntitlement(bankB, resourceUser1.userId, role.toString)
+      val (customerAtB, addressAtB) = customerWithAddress(bankB)
+      When("We delete bank B's customer address through bank A's path")
+      val request310 = (v3_1_0_Request / "banks" / bankA / "customers" / customerAtB / "addresses" / addressAtB).DELETE <@(user1)
+      val response310 = makeDeleteRequest(request310)
+      Then("We should get a 404")
+      response310.code should equal(404)
+      And("error should be " + CustomerNotFoundByCustomerId)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
+    }
+
+    scenario("An address of another customer than the one in the path is not found", ApiEndpoint3, VersionOfApi) {
+      for (role <- List(CanCreateCustomer, CanCreateCustomerAddress, CanDeleteCustomerAddress))
+        Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, role.toString)
+      val (customer1, _) = customerWithAddress(bankA)
+      val (_, addressOfCustomer2) = customerWithAddress(bankA)
+      When("We delete customer 2's address through customer 1's path")
+      val request310 = (v3_1_0_Request / "banks" / bankA / "customers" / customer1 / "addresses" / addressOfCustomer2).DELETE <@(user1)
+      val response310 = makeDeleteRequest(request310)
+      Then("We should get a 404")
+      response310.code should equal(404)
+      And("error should be " + CustomerAddressNotFound)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerAddressNotFound)
+    }
   }
 
   // The Create endpoint adds an address only to a customer at the bank in the path
@@ -246,6 +307,26 @@ class CustomerAddressTest extends V310ServerSetup {
       When("We add an address to bank B's customer through bank A's path")
       val request310 = (v3_1_0_Request / "banks" / bankA / "customers" / customerAtB / "address").POST <@(user1)
       val response310 = makePostRequest(request310, write(postCustomerAddressJson))
+      Then("We should get a 404")
+      response310.code should equal(404)
+      And("error should be " + CustomerNotFoundByCustomerId)
+      response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
+    }
+  }
+
+  // The Get endpoint reads addresses only of a customer at the bank in the path
+  feature("Get Customer Addresses v3.1.0 stays within the bank in the path") {
+    scenario("A customer at another bank than the one in the path is not found", ApiEndpoint2, VersionOfApi) {
+      val bankA = testBankId1.value
+      val bankB = testBankId2.value
+      Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, CanGetCustomerAddress.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankB, resourceUser1.userId, CanCreateCustomer.toString)
+      val customer = makePostRequest((v3_1_0_Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
+      customer.code should equal(201)
+      val customerAtB = customer.body.extract[CustomerJsonV310].customer_id
+      When("We get the addresses of bank B's customer through bank A's path")
+      val request310 = (v3_1_0_Request / "banks" / bankA / "customers" / customerAtB / "addresses").GET <@(user1)
+      val response310 = makeGetRequest(request310)
       Then("We should get a 404")
       response310.code should equal(404)
       And("error should be " + CustomerNotFoundByCustomerId)

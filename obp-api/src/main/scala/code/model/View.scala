@@ -74,8 +74,10 @@ case class ViewExtended(val view: View) extends MdcLoggable {
               Some(transaction.metadata.comments(view.viewId))
             else None
           val addCommentFunc= if(viewPermissions.exists(_ == CAN_ADD_COMMENT)) Some(transaction.metadata.addComment) else None
+          // a view that can add comments also offers delete, so the poster can delete their own comment;
+          // ModeratedTransactionMetadata.deleteComment still lets only the poster or a can_delete_comment view use it
           val deleteCommentFunc =
-            if(viewPermissions.exists(_ == CAN_DELETE_COMMENT))
+            if(viewPermissions.exists(_ == CAN_DELETE_COMMENT) || viewPermissions.exists(_ == CAN_ADD_COMMENT))
               Some(transaction.metadata.deleteComment)
             else
               None
@@ -102,8 +104,10 @@ case class ViewExtended(val view: View) extends MdcLoggable {
             if(viewPermissions.exists(_ == CAN_ADD_IMAGE)) Some(transaction.metadata.addImage)
             else None
 
+          // a view that can add images also offers delete, so the poster can delete their own image;
+          // ModeratedTransactionMetadata.deleteImage still lets only the poster or a can_delete_image view use it
           val deleteImageFunc =
-            if(viewPermissions.exists(_ == CAN_DELETE_IMAGE)) Some(transaction.metadata.deleteImage)
+            if(viewPermissions.exists(_ == CAN_DELETE_IMAGE) || viewPermissions.exists(_ == CAN_ADD_IMAGE)) Some(transaction.metadata.deleteImage)
             else None
 
           val whereTag =

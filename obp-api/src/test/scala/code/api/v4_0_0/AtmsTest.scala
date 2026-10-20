@@ -114,6 +114,19 @@ class AtmsTest extends V400ServerSetup {
         response.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + List(canUpdateAtm, canUpdateAtmAtAnyBank).mkString(" or "))
       }
     }
+
+    // with apiOptions.getAtmsIsPublic=false the ATM list refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
+    scenario("Get Atms - no authentication", ApiEndpoint10, VersionOfApi) {
+      When(" Get Atms - no authentication")
+      val requestGetAtmsNoAuth = (v4_0_0_Request / "banks" / bankId.value / "atms").GET
+      val responseGetAtmsNoAuth = makeGetRequest(requestGetAtmsNoAuth)
+      if (code.api.util.APIUtil.getAtmsIsPublic) {
+        responseGetAtmsNoAuth.code should be (200)
+      } else {
+        responseGetAtmsNoAuth.code should be (401)
+        responseGetAtmsNoAuth.body.extract[ErrorMessage].message should equal ($AuthenticatedUserIsRequired)
+      }
+    }
   }
   
   feature("Test Create/Update/Get -- successful cases") {

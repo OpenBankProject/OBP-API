@@ -3115,7 +3115,8 @@ object Http4s510 {
             (consumer, _) <- createConsumerNewStyle(
               key = Some(Helpers.randomString(40).toLowerCase),
               secret = Some(Helpers.randomString(40).toLowerCase),
-              isActive = Some(postedJson.enabled),
+              // enabled only if asked for and consumers_enabled_by_default allows it, else any logged-in user gets a working key without an admin
+              isActive = Some(postedJson.enabled && APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", defaultValue = false)),
               name = Some(postedJson.app_name),
               appType = Some(appType),
               description = Some(postedJson.description),
@@ -3991,7 +3992,8 @@ object Http4s510 {
               permissionsFromTarget.toSet.subsetOf(permissionsFromSource)
             }
             _ <- Helper.booleanToFuture(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${CAN_UPDATE_CUSTOM_VIEW}` permission on VIEW_ID(${viewId.value})", cc = Some(cc)) {
-              view.allowed_actions.exists(_ == CAN_CREATE_CUSTOM_VIEW)
+              // updating needs the update permission, so a view that may only create custom views cannot change them
+              view.allowed_actions.exists(_ == CAN_UPDATE_CUSTOM_VIEW)
             }
             (updatedView, _) <- ViewNewStyle.updateCustomView(BankIdAccountId(bankId, accountId), targetViewId, updateJson.toUpdateViewJson, Some(cc))
           } yield JSONFactory510.createViewJson(updatedView)

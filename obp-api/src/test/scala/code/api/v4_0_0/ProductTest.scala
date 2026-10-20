@@ -132,6 +132,38 @@ class ProductTest extends V400ServerSetup {
       products.products.size shouldBe 3
 
     }
+    // with apiOptions.getProductsIsPublic=false the product refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
+    scenario("We will call the Get Product endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
+      val product: ProductJsonV400 = createProduct(code = "ANONYMOUS_GET_CODE", json = parentPutProductJsonV400)
+      When("We get the product with no authentication")
+      val requestGet400 = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code).GET
+      val responseGet400 = makeGetRequest(requestGet400)
+      if (code.api.util.APIUtil.getProductsIsPublic) {
+        Then("We should get a 200")
+        responseGet400.code should equal(200)
+      } else {
+        Then("We should get a 401")
+        responseGet400.code should equal(401)
+        And("error should be " + AuthenticatedUserIsRequired)
+        responseGet400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+      }
+    }
+    // with apiOptions.getProductsIsPublic=false the product list refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
+    scenario("We will call the Get Products endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+      When("We get the products with no authentication")
+      val requestGetAll400 = (v4_0_0_Request / "banks" / testBankId / "products").GET
+      val responseGetAll400 = makeGetRequest(requestGetAll400)
+      if (code.api.util.APIUtil.getProductsIsPublic) {
+        Then("We should get a 200")
+        responseGetAll400.code should equal(200)
+      } else {
+        Then("We should get a 401")
+        responseGetAll400.code should equal(401)
+        And("error should be " + AuthenticatedUserIsRequired)
+        responseGetAll400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+      }
+    }
     scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
 
       When("We need to first create the products ")

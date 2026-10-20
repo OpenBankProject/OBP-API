@@ -35,7 +35,9 @@ import code.api.v2_0_0.{TransactionTypeJsonV200, TransactionTypesJsonV200}
 import code.api.v2_0_0.Http4s200.Implementations2_0_0
 import code.api.v2_1_0.Http4s210.Implementations2_1_0
 import code.setup.DefaultUsers
+import code.TransactionTypes.TransactionType.TransactionTypeProvider
 import code.transaction_types.MappedTransactionType
+import net.liftweb.mapper.By
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage, TransactionTypeId}
 import com.openbankproject.commons.util.ApiVersion
@@ -163,7 +165,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       Then("insert new data and We make the request")
       lazy val transactionTypeJSON2 = TransactionTypeJsonV200(
         TransactionTypeId("1"), //mockTransactionTypeId,
-        "1", //mockBankId.value,
+        testBankId1.value, // the BANK_ID in the URL, so the bad currency, not the bank check, makes the update fail
         "1", //short_code
         "1  ", //summary,
         "1", //description,
@@ -176,6 +178,44 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       responsePut3.code should equal(400)
       And("We should get a message: " + ErrorMessages.CreateTransactionTypeUpdateError)
       responsePut3.body.extract[ErrorMessage].message should startWith (ErrorMessages.CreateTransactionTypeUpdateError)
+    }
+
+    // the Role is at the BANK_ID in the URL, so a body naming another bank must be refused
+    scenario("We try to create a Transaction Type at another bank than the one in the URL", VersionOfApi210, ApiEndpoint2) {
+      Given("The Authentication at testBankId1 only")
+      setCanCreateTransactionType
+
+      When("We make the request with testBankId2 in the body")
+      val otherBankJSON = transactionTypeJSON.copy(id = TransactionTypeId("other-bank-new"), bank_id = testBankId2.value)
+      val requestPut = (v2_1Request / "banks" / testBankId1.value / "transaction-types").PUT <@ (user1)
+      val responsePut = makePutRequest(requestPut, write(otherBankJSON))
+
+      Then("We should get a 400")
+      responsePut.code should equal(400)
+      responsePut.body.extract[ErrorMessage].message should startWith (ErrorMessages.InvalidJsonValue)
+      And("No Transaction Type was created")
+      MappedTransactionType.count(By(MappedTransactionType.mTransactionTypeId, "other-bank-new")) should equal(0)
+    }
+
+    // an existing type is updated by id, so the id of another bank's type must be refused
+    scenario("We try to overwrite a Transaction Type of another bank by its id", VersionOfApi210, ApiEndpoint2) {
+      Given("A Transaction Type at testBankId2, and the Authentication at testBankId1 only")
+      val otherBankType = transactionTypeJSON.copy(id = TransactionTypeId("other-bank-existing"), bank_id = testBankId2.value, short_code = "other")
+      TransactionTypeProvider.vend.createOrUpdateTransactionType(otherBankType).isDefined should equal(true)
+      setCanCreateTransactionType
+
+      When("We make the request at testBankId1 with that id")
+      val takeOver = otherBankType.copy(bank_id = testBankId1.value, summary = "taken over")
+      val requestPut = (v2_1Request / "banks" / testBankId1.value / "transaction-types").PUT <@ (user1)
+      val responsePut = makePutRequest(requestPut, write(takeOver))
+
+      Then("We should get a 400")
+      responsePut.code should equal(400)
+      responsePut.body.extract[ErrorMessage].message should startWith (ErrorMessages.InvalidJsonValue)
+      And("The other bank's Transaction Type is unchanged")
+      val stored = TransactionTypeProvider.vend.getTransactionType(otherBankType.id).openOrThrowException("type exists")
+      stored.bankId.value should equal(testBankId2.value)
+      stored.summary should equal(otherBankType.summary)
     }
   }
   /**

@@ -168,7 +168,11 @@ object Http4s140 {
       case req @ POST -> `prefixPath` / "banks" / _ / "customer" / customerId / "messages" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[JSONFactory1_4_0.AddCustomerMessageJson, SuccessMessage](req) { (_, bank, body, cc) =>
           for {
-            (_, cc2)          <- NewStyle.function.getCustomerByCustomerId(customerId, Some(cc))
+            (customer, cc2)   <- NewStyle.function.getCustomerByCustomerId(customerId, Some(cc))
+            // the customer must be at the bank in the path, else a caller at one bank messages another bank's customers
+            _                 <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             (ucl, cc3)        <- NewStyle.function.getUserCustomerLinkByCustomerId(customerId, cc2)
             (targetUser, cc4) <- NewStyle.function.findByUserId(ucl.userId, cc3)
             (_, _)            <- NewStyle.function.createMessage(targetUser, bank.bankId, body.message, body.from_department, body.from_person, cc4)
@@ -185,9 +189,11 @@ object Http4s140 {
       "Create a message for the customer specified by CUSTOMER_ID",
       addCustomerMessageJson,
       successMessage,
-      List(AuthenticatedUserIsRequired, UnknownError),
+      // the role, customer and user-link errors this endpoint can return
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, CustomerNotFoundByCustomerId, UserCustomerLinksNotFoundForUser, UnknownError),
       List(apiTagMessage, apiTagCustomer, apiTagPerson),
-      None,
+      // the caller needs CanCreateCustomerMessage, as in v4.0.0, else any logged-in user writes to any customer's inbox
+      Some(List(canCreateCustomerMessage)),
       http4sPartialFunction = Some(addCustomerMessage)
     )
 

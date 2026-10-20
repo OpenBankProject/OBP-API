@@ -102,6 +102,46 @@ object Redis extends MdcLoggable {
     jedis
   }
 
+  private val SubscriberMinBackoffMs = 1000L  // first wait after a lost subscriber connection
+  private val SubscriberMaxBackoffMs = 30000L // longest wait between reconnect attempts while Redis is down
+
+  /**
+   * Run an event bus's blocking subscribe on a dedicated connection for as long as `running` is true.
+   *
+   * When the connection fails (e.g. Redis restarts or drops the socket) the subscribe call throws;
+   * this closes that connection, waits (1s, doubling up to 30s) and subscribes again on a new one,
+   * so the bus's gRPC streams get messages again once Redis is back, without restarting OBP-API.
+   * `onConnection` hands each new connection to the bus, so its stop() can close the current one.
+   */
+  def runSubscriber(busName: String, running: => Boolean, onConnection: Jedis => Unit)(subscribe: Jedis => Unit): Unit = {
+    var backoffMs = SubscriberMinBackoffMs // wait before the next attempt; doubles per failure, capped
+    var failed = false // set after a failure, so the next connection is logged as a reconnect
+    while (running) { // keep subscribing until stop() clears running
+      var jedis: Jedis = null
+      val startedAt = System.currentTimeMillis() // how long this subscription lasted decides the next backoff
+      try {
+        jedis = newSubscriberConnection()
+        onConnection(jedis)
+        if (failed) logger.info(s"$busName says: Redis subscriber reconnected") // shows streaming resumed after an outage
+        subscribe(jedis) // blocks until unsubscribed by stop() or the connection fails
+      } catch {
+        case e: Throwable if running =>
+          // a subscription that lasted a while means Redis was up: start again from the shortest wait
+          if (System.currentTimeMillis() - startedAt >= SubscriberMaxBackoffMs) backoffMs = SubscriberMinBackoffMs
+          // the connection is gone but the bus is still meant to run: log and retry below
+          logger.error(s"$busName says: Redis subscriber connection lost, reconnecting in ${backoffMs}ms: ${e.getMessage}")
+          failed = true
+        case _: Throwable => // shutting down, ignore
+      } finally {
+        try { if (jedis != null) jedis.close() } catch { case _: Throwable => } // release the dead socket before opening a new one
+      }
+      if (running) { // wait before retrying, so a Redis outage is not hammered with reconnects
+        try Thread.sleep(backoffMs) catch { case _: InterruptedException => return } // interrupted: the JVM is shutting down
+        backoffMs = math.min(backoffMs * 2, SubscriberMaxBackoffMs) // wait longer each time Redis is still down
+      }
+    }
+  }
+
   // Redis startup health check
   private def performStartupHealthCheck(): Unit = {
     try {

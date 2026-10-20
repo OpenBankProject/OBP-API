@@ -497,6 +497,10 @@ object Http4s200 {
               APIUtil.hasEntitlement(bank.bankId.value, user.userId, canGetSocialMediaHandles)
             }
             (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerId, Some(cc))
+            // the customer must be at the bank in the path, else a Role at one bank reads another bank's customers' handles
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
           } yield {
             val socialMedias = SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(customer.number)
             createSocialMediasJSON(socialMedias)
@@ -644,10 +648,15 @@ object Http4s200 {
             _ <- code.util.Helper.booleanToFuture(UserHasMissingRoles + canAddSocialMediaHandle, failCode = 403, cc = Some(cc)) {
               APIUtil.hasEntitlement(bank.bankId.value, user.userId, canAddSocialMediaHandle)
             }
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerId, Some(cc))
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerId, Some(cc))
+            // the customer must be at the bank in the path, else the Role at one bank writes to any bank's customer
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             _ <- code.util.Helper.booleanToFuture("Server error: could not add", cc = Some(cc)) {
               SocialMediaHandle.socialMediaHandleProvider.vend.addSocialMedias(
-                body.customer_number, body.`type`, body.handle,
+                // stored against the number of the customer in the path, not the body's customer_number, so it cannot target another customer
+                customer.number, body.`type`, body.handle,
                 body.date_added, body.date_activated)
             }
           } yield SuccessMessage("Success")

@@ -148,15 +148,11 @@ object ChatEventBus extends MdcLoggable {
     }
 
     subscriberThread = new Thread(() => {
-      try {
-        // Dedicated connection for the subscriber (not from the pool)
-        subscriberJedis = Redis.newSubscriberConnection()
+      // Dedicated connection for the subscriber (not from the pool), reopened after a Redis disconnect
+      // so chat streams keep getting messages until stop()
+      Redis.runSubscriber("ChatEventBus", running, subscriberJedis = _) { jedis =>
         logger.info(s"ChatEventBus says: Redis subscriber started, pattern-subscribing to ${CHANNEL_PREFIX}*")
-        subscriberJedis.psubscribe(pubSub, s"${CHANNEL_PREFIX}*")
-      } catch {
-        case e: Throwable if running =>
-          logger.error(s"ChatEventBus says: Redis subscriber thread died: ${e.getMessage}")
-        case _: Throwable => // shutting down, ignore
+        jedis.psubscribe(pubSub, s"${CHANNEL_PREFIX}*")
       }
     }, "chat-event-bus-subscriber")
     subscriberThread.setDaemon(true)

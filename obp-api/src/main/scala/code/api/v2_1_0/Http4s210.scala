@@ -492,6 +492,9 @@ object Http4s210 {
           InvalidTransactionRequestChallengeId,
           AllowedAttemptsUsedUp,
           TransactionDisabled,
+          InvalidTransactionRequestId, // the request does not pay from the account in the URL
+          MakerCheckerSameUser, // the maker answers their own challenge on a view without the bypass
+          MakerCheckerUnknownMaker, // maker-checker is required but the request has no maker recorded
           UnknownError
         ), List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(answerTransactionRequestChallenge))
@@ -521,9 +524,19 @@ object Http4s210 {
         }
         _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, user, Some(cc))
         (existingTransactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(transReqId, Some(cc))
+        // The request is found by its id alone, but the caller was authorised only on the account in the
+        // URL, so it must pay from that account, else it is treated as not found (404).
+        _ <- code.util.Helper.booleanToFuture(s"$InvalidTransactionRequestId Current TRANSACTION_REQUEST_ID(${transReqId.value})", 404, cc = Some(cc)) {
+          existingTransactionRequest.from.bank_id == fromAccount.bankId.value &&
+            existingTransactionRequest.from.account_id == fromAccount.accountId.value
+        }
         _ <- code.util.Helper.booleanToFuture(TransactionRequestStatusNotInitiated, cc = Some(cc)) {
           existingTransactionRequest.status.equals("INITIATED")
         }
+        // Enforce maker-checker as v4.0.0 does, so the maker cannot answer their own challenge on a view
+        // without can_bypass_maker_checker_separation by switching to this version in the URL.
+        _ <- NewStyle.function.checkMakerCheckerForTransactionRequest(
+          fromAccount.bankId, fromAccount.accountId, viewId, transReqId, challengeAnswerJson.id, user.userId, Some(cc))
         existingType = existingTransactionRequest.`type`
         _ <- code.util.Helper.booleanToFuture(
           s"${TransactionRequestTypeHasChanged} It should be: '$existingType', but current value ($transactionRequestTypeStr)",
@@ -878,6 +891,14 @@ object Http4s210 {
             _ <- code.util.Helper.booleanToFuture(InsufficientAuthorisationToCreateTransactionType, failCode = 400, cc = Some(cc)) {
               APIUtil.hasEntitlement(bank.bankId.value, user.userId, canCreateTransactionType)
             }
+            // the Role is checked at BANK_ID, so the body may only write to that bank, else it creates types at any bank
+            _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body", failCode = 400, cc = Some(cc)) {
+              body.bank_id == bank.bankId.value
+            }
+            // an existing type with this id is updated in place, so it must be at BANK_ID, else another bank's type is rewritten or moved
+            _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue id is already used by a Transaction Type that is not at this BANK_ID.", failCode = 400, cc = Some(cc)) {
+              TransactionType.TransactionTypeProvider.vend.getTransactionType(body.id).forall(_.bankId == bank.bankId)
+            }
             returnTransactionType <- Future {
               TransactionType.TransactionTypeProvider.vend.createOrUpdateTransactionType(body) match {
                 case Full(t) => t
@@ -907,8 +928,9 @@ object Http4s210 {
          |
          |${userAuthenticationMessage(true)}""".stripMargin,
       transactionTypeJsonV200, transactionType,
+      // InvalidJsonValue: bank_id not the BANK_ID, or id used by a type at another bank
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
-        InsufficientAuthorisationToCreateTransactionType, UnknownError),
+        InsufficientAuthorisationToCreateTransactionType, InvalidJsonValue, UnknownError),
       List(apiTagBank),
       None,
       http4sPartialFunction = Some(createTransactionType))

@@ -47,6 +47,13 @@ import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 import org.json4s.native.Serialization.write
+import code.api.attributedefinition.AttributeDefinitionDI
+import code.api.util.APIUtil
+import code.transactionattribute.TransactionAttributeX
+import com.openbankproject.commons.model.{BankId, TransactionId}
+import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType, TransactionAttributeType}
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 class TransactionTest extends V310ServerSetup {
 
@@ -101,6 +108,31 @@ class TransactionTest extends V310ServerSetup {
       Then("We should get a 200")
       response310.code should equal(200)
       response310.body.extract[TransactionRequestWithChargeJSONs210]
+    }
+    // an attribute is shown on a view only when its Attribute Definition lists that view
+    scenario("We will Get Transaction by Id - only attributes defined as seen on the view are returned", ApiEndpoint4, VersionOfApi) {
+      val bankId = randomBankId
+      val bankAccount = randomPrivateAccount(bankId)
+      val transaction = randomTransaction(bankId, bankAccount.id, SYSTEM_OWNER_VIEW_ID)
+      val hiddenName = "HIDDEN_" + APIUtil.generateUUID().take(8)
+      val shownName = "SHOWN_" + APIUtil.generateUUID().take(8)
+      Given("two attributes on the transaction, one defined as seen on another view, one on the owner view")
+      Await.result(AttributeDefinitionDI.attributeDefinition.vend.createOrUpdateAttributeDefinition(
+        BankId(bankId), hiddenName, AttributeCategory.Transaction, AttributeType.STRING, "", "", List("accountant"), true), 10.seconds)
+      Await.result(AttributeDefinitionDI.attributeDefinition.vend.createOrUpdateAttributeDefinition(
+        BankId(bankId), shownName, AttributeCategory.Transaction, AttributeType.STRING, "", "", List(SYSTEM_OWNER_VIEW_ID), true), 10.seconds)
+      Await.result(TransactionAttributeX.transactionAttributeProvider.vend.createOrUpdateTransactionAttribute(
+        BankId(bankId), TransactionId(transaction.id), None, hiddenName, TransactionAttributeType.STRING, "secret"), 10.seconds)
+      Await.result(TransactionAttributeX.transactionAttributeProvider.vend.createOrUpdateTransactionAttribute(
+        BankId(bankId), TransactionId(transaction.id), None, shownName, TransactionAttributeType.STRING, "visible"), 10.seconds)
+      When("We get the transaction through the owner view")
+      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / SYSTEM_OWNER_VIEW_ID / "transactions" / transaction.id / "transaction").GET <@(user1)
+      val response310 = makeGetRequest(request310)
+      Then("We should get a 200 with only the attribute defined for the owner view")
+      response310.code should equal(200)
+      val attributeNames = response310.body.extract[TransactionJsonV300].transaction_attributes.map(_.name)
+      attributeNames should contain (shownName)
+      attributeNames should not contain (hiddenName)
     }
   }
 

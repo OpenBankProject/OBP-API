@@ -1675,7 +1675,25 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
-  
+
+    // the view may only get actions the caller already has on one of their views of the account
+    scenario("we will not give a view an action that none of the caller's views has", API1_2_1, PutView){
+      Given("A view exists")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomView(true, "")
+      val creationReply = postView(bankId, bankAccount.id, view, user1)
+      creationReply.code should equal (201)
+      val createdView : ViewJSONV121 = creationReply.body.extract[ViewJSONV121]
+
+      When("we ask for an action that no view of the caller has")
+      val reply = putView(bankId, bankAccount.id, createdView.id,
+        viewUpdateJson(createdView).copy(allowed_actions = allowedActions :+ "can_do_what_no_view_of_the_caller_can"), user1)
+      Then("we should get a 403 and the SourceViewHasLessPermission message")
+      reply.code should equal (403)
+      reply.body.extract[ErrorMessage].message should startWith (code.api.util.ErrorMessages.SourceViewHasLessPermission)
+    }
+
     scenario("we can not update a System view on a bank account") {
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -5348,6 +5366,22 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       deleteReply.code should equal (400)
     }
 
+    // the public view has can_add_comment but not can_delete_comment, so only the poster check lets the poster delete it
+    scenario("we will delete a comment we posted for one random transaction through a view without can_delete_comment", API1_2_1, DeleteComment){
+      Given("We will use an access token and will set a comment first through the public view")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = CUSTOM_PUBLIC_VIEW_ID
+      val transaction = randomTransaction(bankId, bankAccount.id, view)
+      val randomComment = PostTransactionCommentJSON(randomString(20))
+      val postedReply = postCommentForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomComment, user2)
+      val postedComment = postedReply.body.extract[TransactionCommentJSON]
+      When("the poster sends the delete request")
+      val deleteReply = deleteCommentForOneTransaction(bankId, bankAccount.id, view, transaction.id, postedComment.id, user2)
+      Then("we should get a 204 code")
+      deleteReply.code should equal (204)
+    }
+
     scenario("we will not delete a comment for one random transaction because the comment does not exist", API1_2_1, DeleteComment){
       Given("We will use an access token")
       val bankId = randomBank
@@ -6027,6 +6061,22 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val deleteReply = deleteImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, postedImage.id, user3)
       Then("we should get a 400 code")
       deleteReply.code should equal (400)
+    }
+
+    // the public view has can_add_image but not can_delete_image, so only the poster check lets the poster delete it
+    scenario("we will delete an image we posted for one random transaction through a view without can_delete_image", API1_2_1, DeleteImage){
+      Given("We will use an access token and will set an image first through the public view")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = CUSTOM_PUBLIC_VIEW_ID
+      val transaction = randomTransaction(bankId, bankAccount.id, view)
+      val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
+      val postedReply = postImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomImage, user1)
+      val postedImage = postedReply.body.extract[TransactionImageJSON]
+      When("the poster sends the delete request")
+      val deleteReply = deleteImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, postedImage.id, user1)
+      Then("we should get a 204 code")
+      deleteReply.code should equal (204)
     }
 
     scenario("we will not delete an image for one random transaction because the image does not exist", API1_2_1, DeleteImage){

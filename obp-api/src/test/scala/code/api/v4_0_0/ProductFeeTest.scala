@@ -201,10 +201,16 @@ class ProductFeeTest extends V400ServerSetup {
             
 
       // then we getProductFees
-      val requestGetProductFees = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code / "fees").GET 
+      val requestGetProductFees = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code / "fees").GET
       val responseGetProductFees = makeGetRequest(requestGetProductFees)
-      responseGetProductFees.code should equal(200)
-      
+      // with apiOptions.getProductsIsPublic=false the fees refuse anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
+      if (code.api.util.APIUtil.getProductsIsPublic) {
+        responseGetProductFees.code should equal(200)
+      } else {
+        responseGetProductFees.code should equal(401)
+        responseGetProductFees.body.toString contains(AuthenticatedUserIsRequired) should be (true)
+      }
+
 
       // then we getProductFee
       val productFeeId = "xxx"

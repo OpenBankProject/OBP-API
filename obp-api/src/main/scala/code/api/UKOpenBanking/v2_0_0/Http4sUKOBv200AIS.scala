@@ -189,7 +189,8 @@ object Http4sUKOBv200AIS extends MdcLoggable {
           (transactions, _) <- Future {
             BankAccountExtended(account).getModeratedTransactions(bank, Full(u), view, BankIdAccountId(account.bankId, account.accountId), Some(cc), params)
           } map { x => unboxFull(fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))) }
-        } yield JSONFactory_UKOpenBanking_200.createTransactionsJson(transactions, Nil)
+          // The account id comes from the account looked up above, not from the first transaction, which an empty result does not have.
+        } yield JSONFactory_UKOpenBanking_200.createTransactionsJson(account.accountId.value, transactions, Nil)
       }
   }
   resourceDocs += ResourceDoc(

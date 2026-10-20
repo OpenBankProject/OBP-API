@@ -264,6 +264,8 @@ class ConsumerTest extends V510ServerSetup {
       // A Consumer name that is already taken gets a random suffix, and the Consumer table survives
       // between runs, so this Consumer gets a name no earlier run can have used.
       val myConsumerRequestJson = createConsumerRequestJsonV510.copy(app_name = "myConsumer" + java.util.UUID.randomUUID.toString)
+      // only an instance that enables consumers by default lets the creator ask for an enabled Consumer
+      setPropsValues("consumers_enabled_by_default" -> "true")
       val requestApiEndpoint6 = (v5_1_0_Request / "my" / "consumers").POST<@ (user1)
       val responseApiEndpoint6 = makePostRequest(requestApiEndpoint6, write(myConsumerRequestJson))
       val consumerJson6 = responseApiEndpoint6.body.extract[ConsumerJsonOnlyForPostResponseV510]
@@ -275,6 +277,19 @@ class ConsumerTest extends V510ServerSetup {
       consumerJson6.enabled shouldBe createConsumerRequestJsonV510.enabled
       consumerJson6.certificate_pem shouldBe createConsumerRequestJsonV510.client_certificate.head
 
+    }
+
+    scenario("A user creates their own Consumer asking for it enabled, on an instance that does not enable consumers by default", CreateMyConsumer, VersionOfApi) {
+      // the body's enabled flag used to be taken as is, so any logged-in user got a working key without an admin
+      setPropsValues("consumers_enabled_by_default" -> "false")
+      val myConsumerRequestJson = SwaggerDefinitionsJSON.createConsumerRequestJsonV510.copy(
+        app_name = "myConsumer" + java.util.UUID.randomUUID.toString, enabled = true)
+      When("We create the Consumer with POST /my/consumers")
+      val request = (v5_1_0_Request / "my" / "consumers").POST <@ (user1)
+      val response = makePostRequest(request, write(myConsumerRequestJson))
+      Then("The Consumer is created but stays disabled until an admin enables it")
+      response.code should equal(201)
+      response.body.extract[ConsumerJsonOnlyForPostResponseV510].enabled shouldBe false
     }
   }
 

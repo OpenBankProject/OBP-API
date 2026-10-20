@@ -101,5 +101,21 @@ class StandingOrderTest extends V400ServerSetup {
       errorMessage contains (CanCreateStandingOrderAtOneBank.toString()) should be (true)
     }
   }
-  
+
+  // the mapped provider behind both endpoints must store when.detail, so the response and later reads return it
+  feature(s"test $ApiEndpoint1 version $VersionOfApi - when.detail is stored") {
+    scenario("We create a standing order with a when detail and read it back", ApiEndpoint1, VersionOfApi) {
+      When("We create a standing order through the mapped provider")
+      val created = code.standingorders.MappedStandingOrderProvider.createStandingOrder(
+        bankId, bankAccount.id, "customer-id", "user-id", "counterparty-id",
+        BigDecimal("10"), "EUR", "MONTHLY", "15",
+        new java.util.Date(), new java.util.Date(), None)
+      Then("The created and the stored standing order both carry the when detail")
+      created.map(_.whenDetail) should equal(net.liftweb.common.Full("15"))
+      code.standingorders.MappedStandingOrderProvider.getStandingOrdersByBankAccount(bankId, bankAccount.id)
+        .find(_.standingOrderId == created.map(_.standingOrderId).openOr(""))
+        .map(_.whenDetail) should equal(Some("15"))
+    }
+  }
+
 }

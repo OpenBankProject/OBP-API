@@ -256,4 +256,33 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
       holderUserIds should not contain(resourceUser2.userId)
     }
   }
+
+  feature("Create Account refuses a consent user as the account holder - v2.2.0") {
+
+    scenario("a User with CanCreateAccount naming a consent user's USER_ID gets 400 InvalidUserId and no account is created") {
+      // A consent user: an agent identity minted by a Consent, which disappears with the Consent.
+      val consentUser = code.users.Users.users.vend.createResourceUser(
+        provider = "create-account-consent-user-test",
+        providerId = Some(code.api.util.APIUtil.generateUUID()),
+        createdByConsentId = Some(code.api.util.APIUtil.generateUUID()),
+        name = Some("consent-user"),
+        email = None,
+        userId = None,
+        createdByUserInvitationId = None,
+        company = None,
+        lastMarketingAgreementSignedDate = None
+      ).openOrThrowException("Expected resource user to be created")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canCreateAccount.toString)
+      val accountIdForConsentUser = "CONSENT_USER_ACCOUNT_ID_V220"
+      val response = makePutRequest(
+        (v2_2Request / "banks" / testBankId1.value / "accounts" / accountIdForConsentUser).PUT <@ (user1),
+        write(createAccountBodyFor(consentUser.userId)))
+      response.code should equal(400)
+      (response.body \ "message").extract[String] should include(ErrorMessages.InvalidUserId)
+      (response.body \ "message").extract[String] should include("consent user")
+
+      AccountHolders.accountHolders.vend
+        .getAccountHolders(testBankId1, AccountId(accountIdForConsentUser)) should be (empty)
+    }
+  }
 }
