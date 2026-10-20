@@ -702,8 +702,14 @@ object Http4s220 {
             (existingAccount, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, accountId, Some(cc))
             _ <- code.util.Helper.booleanToFuture(AccountIdAlreadyExists, failCode = 409, cc = Some(cc)) { existingAccount.isEmpty }
             loggedInUserId = user.userId
-            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else loggedInUserId
+            // Implicit owner resolves to the HUMAN: under a Consent the caller is the
+            // per-consent shadow, and an account held by it strands when the consent dies.
+            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.onBehalfOfUserId
             (postedOrLoggedInUser, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
+            // Explicit target: a consent user named in user_id is refused, so no account is held by an agent identity.
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+              failCode = 400, cc = Some(cc))(!postedOrLoggedInUser.isConsentUser)
             _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
                  else code.util.Helper.booleanToFuture(
                    s"$UserHasMissingRoles $canCreateAccount", failCode = 403, cc = Some(cc)) {
