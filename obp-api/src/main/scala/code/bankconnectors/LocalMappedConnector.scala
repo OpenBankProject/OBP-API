@@ -2734,15 +2734,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         By(MappedProduct.mCode, productCode.value)
       )
     
-    def getProductTre(bankId : BankId, productCode : ProductCode): List[Product] = {
+    // visited holds the codes already in the tree, so a product that is its own (or a cyclic) parent ends the walk instead of recursing until the stack overflows
+    def getProductTre(bankId : BankId, productCode : ProductCode, visited: Set[String]): List[Product] = {
       getProduct(bankId, productCode) match {
-        case Full(p) if p.parentProductCode.value.nonEmpty => p :: getProductTre(p.bankId, p.parentProductCode)
+        case Full(p) if visited.contains(p.code.value) => List() // code already in the tree: a parent cycle, stop here
+        case Full(p) if p.parentProductCode.value.nonEmpty => p :: getProductTre(p.bankId, p.parentProductCode, visited + p.code.value)
         case Full(p) => List(p)
         case _ => List()
       }
     }
 
-    Full(getProductTre(bankId : BankId, productCode : ProductCode))
+    Full(getProductTre(bankId : BankId, productCode : ProductCode, Set.empty[String]))
     
   }.map(product => (product, callContext))
 

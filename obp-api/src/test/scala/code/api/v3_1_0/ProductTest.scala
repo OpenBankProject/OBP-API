@@ -153,6 +153,35 @@ class ProductTest extends V310ServerSetup {
       responseGetTree310.code should equal(200)
       val productTree: ProductTreeJsonV310 = responseGetTree310.body.extract[ProductTreeJsonV310]
     }
+    scenario("We get the product tree of products that are their own or each other's parent", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
+
+      // CYCLE_A -> CYCLE_B -> CYCLE_A: create both, then point CYCLE_A at CYCLE_B
+      createProduct(code = "CYCLE_A", json = parentPostPutProductJsonV310)
+      createProduct(code = "CYCLE_B", json = parentPostPutProductJsonV310.copy(parent_product_code = "CYCLE_A"))
+      createProduct(code = "CYCLE_A", json = parentPostPutProductJsonV310.copy(parent_product_code = "CYCLE_B"))
+
+      When("We get the tree of CYCLE_A")
+      val responseCycle = makeGetRequest((v3_1_0_Request / "banks" / testBankId / "product-tree" / "CYCLE_A").GET <@(user1))
+      Then("We should get a 200 with each product once, and the nesting ending at the repeat")
+      responseCycle.code should equal(200)
+      val cycleTree = responseCycle.body.extract[ProductTreeJsonV310]
+      cycleTree.code shouldBe "CYCLE_A"
+      cycleTree.parent_product.map(_.code) shouldBe Some("CYCLE_B")
+      cycleTree.parent_product.flatMap(_.parent_product) shouldBe None
+
+      // SELF_PARENT -> SELF_PARENT
+      createProduct(code = "SELF_PARENT", json = parentPostPutProductJsonV310)
+      createProduct(code = "SELF_PARENT", json = parentPostPutProductJsonV310.copy(parent_product_code = "SELF_PARENT"))
+
+      When("We get the tree of SELF_PARENT")
+      val responseSelf = makeGetRequest((v3_1_0_Request / "banks" / testBankId / "product-tree" / "SELF_PARENT").GET <@(user1))
+      Then("We should get a 200 with the product and no parent")
+      responseSelf.code should equal(200)
+      val selfTree = responseSelf.body.extract[ProductTreeJsonV310]
+      selfTree.code shouldBe "SELF_PARENT"
+      selfTree.parent_product shouldBe None
+    }
     scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
 
       When("We need to first create the products ")

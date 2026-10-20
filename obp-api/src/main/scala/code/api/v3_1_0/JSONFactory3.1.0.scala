@@ -1190,14 +1190,15 @@ object JSONFactory310{
   }
 
   def createProductTreeJson(productsList: List[Product], rootProductCode: String): ProductTreeJsonV310 = {
+    // each step searches only the products not yet placed in the tree, so a product that is its own (or a cyclic) parent ends the nesting instead of recursing forever
     def getProductTree(list: List[Product], code: String): Option[ProductTreeJsonV310] = {
-      productsList.filter(_.code.value == code) match {
+      list.filter(_.code.value == code) match {
        case x :: _ =>
          Some(
            ProductTreeJsonV310(
              bank_id = x.bankId.toString,
              code = x.code.value,
-             parent_product = getProductTree(productsList, x.parentProductCode.value),
+             parent_product = getProductTree(list.filterNot(_.code.value == x.code.value), x.parentProductCode.value), // drop x, so it cannot be its own ancestor
              name = x.name,
              category = x.category,
              family = x.family,
@@ -1217,7 +1218,7 @@ object JSONFactory310{
     ProductTreeJsonV310(
       bank_id = rootElement.bankId.toString,
       code = rootElement.code.value,
-      parent_product = getProductTree(productsList, rootElement.parentProductCode.value),
+      parent_product = getProductTree(productsList.filterNot(_.code.value == rootProductCode), rootElement.parentProductCode.value), // the root is not searched again, so it cannot be its own ancestor
       name = rootElement.name,
       category = rootElement.category,
       family = rootElement.family,
