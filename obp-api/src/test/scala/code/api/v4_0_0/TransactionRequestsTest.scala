@@ -1595,7 +1595,46 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         val response = makePostRequest(requestByUser2, write(helper.transactionRequestBodyCard))
 
         Then("it is refused and no money moves")
-        response.code should equal(400)
+        response.code should equal(403)
+        (response.body \ "message").extract[String] should include(InsufficientAuthorisationToCreateTransactionRequest)
+        helper.checkBankAccountBalance(false)
+      }
+    }
+
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("A User with no access to the card's account learns nothing from a wrong card field", ApiEndpoint10) {}
+    } else {
+      scenario("A User with no access to the card's account learns nothing from a wrong card field", ApiEndpoint10) {
+        setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
+        setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
+        val helper = defaultSetup(CARD.toString)
+
+        When("a User with no view on the card's account presents the right card number with a wrong cvv")
+        val requestByUser2 = (v4_0_0_Request / "transaction-request-types" / "CARD" / "transaction-requests").POST <@ (user2)
+        val wrongCvv = helper.transactionRequestBodyCard.copy(card = helper.transactionRequestBodyCard.card.copy(cvv = "000x"))
+        val response = makePostRequest(requestByUser2, write(wrongCvv))
+
+        Then("it is refused for the missing access, not for the cvv, and no money moves")
+        response.code should equal(403)
+        (response.body \ "message").extract[String] should include(InsufficientAuthorisationToCreateTransactionRequest)
+        helper.checkBankAccountBalance(false)
+      }
+    }
+
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("An unknown card number is refused like a card of another User", ApiEndpoint10) {}
+    } else {
+      scenario("An unknown card number is refused like a card of another User", ApiEndpoint10) {
+        setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
+        setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
+        val helper = defaultSetup(CARD.toString)
+
+        When("a card number that no card has is presented")
+        val unknownCard = helper.transactionRequestBodyCard.copy(card = helper.transactionRequestBodyCard.card.copy(card_number = UUID.randomUUID.toString))
+        val response = makePostRequest(helper.createTransReqRequestCard, write(unknownCard))
+
+        Then("it is refused with the same error as a card of another User, and no money moves")
+        response.code should equal(403)
         (response.body \ "message").extract[String] should include(InsufficientAuthorisationToCreateTransactionRequest)
         helper.checkBankAccountBalance(false)
       }
