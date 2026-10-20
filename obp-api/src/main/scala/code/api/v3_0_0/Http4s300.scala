@@ -629,7 +629,8 @@ object Http4s300 {
             }
             moderatedTransactionsWithAttributes <- Future.sequence(
               transactions.map(transaction =>
-                NewStyle.function.getTransactionAttributes(account.bankId, transaction.id, Some(cc))
+                // only the attributes whose Attribute Definition lists this view, so a limited view does not see attributes meant for other views
+                NewStyle.function.getModeratedTransactionAttributes(account.bankId, transaction.id, view.viewId, Some(cc))
                   .map(attributes => ModeratedTransactionWithAttributes(transaction, attributes._1))
               )
             )
@@ -683,7 +684,8 @@ object Http4s300 {
             }
             moderatedTransactionsCoreWithAttributes <- Future.sequence(
               transactionsCore.map(transaction =>
-                NewStyle.function.getTransactionAttributes(account.bankId, transaction.id, Some(cc))
+                // only the attributes whose Attribute Definition lists the owner view used here, as for the other transaction endpoints
+                NewStyle.function.getModeratedTransactionAttributes(account.bankId, transaction.id, view.viewId, Some(cc))
                   .map(attributes => ModeratedTransactionCoreWithAttributes(transaction, attributes._1))
               )
             )
@@ -727,7 +729,8 @@ object Http4s300 {
             }
             moderatedTransactionsWithAttributes <- Future.sequence(
               transactions.map(transaction =>
-                NewStyle.function.getTransactionAttributes(account.bankId, transaction.id, Some(cc))
+                // only the attributes whose Attribute Definition lists this view, so a limited view does not see attributes meant for other views
+                NewStyle.function.getModeratedTransactionAttributes(account.bankId, transaction.id, view.viewId, Some(cc))
                   .map(attributes => ModeratedTransactionWithAttributes(transaction, attributes._1))
               )
             )

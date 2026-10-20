@@ -1485,8 +1485,9 @@ object Http4s310 {
               TransactionId(transactionIdStr), view, Full(user), Some(cc)) map {
               unboxFullOrFail(_, Some(cc), GetTransactionsException)
             }
-            (transactionAttributes, _) <- NewStyle.function.getTransactionAttributes(
-              account.bankId, TransactionId(transactionIdStr), Some(cc))
+            // only the attributes whose Attribute Definition lists this view, so a limited view does not see attributes meant for other views
+            (transactionAttributes, _) <- NewStyle.function.getModeratedTransactionAttributes(
+              account.bankId, TransactionId(transactionIdStr), view.viewId, Some(cc))
           } yield JSONFactory300.createTransactionJSON(moderatedTransaction, transactionAttributes)
         }
     }
