@@ -149,6 +149,21 @@ class ProductTest extends V400ServerSetup {
         responseGet400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
       }
     }
+    // with apiOptions.getProductsIsPublic=false the product list refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
+    scenario("We will call the Get Products endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+      When("We get the products with no authentication")
+      val requestGetAll400 = (v4_0_0_Request / "banks" / testBankId / "products").GET
+      val responseGetAll400 = makeGetRequest(requestGetAll400)
+      if (code.api.util.APIUtil.getProductsIsPublic) {
+        Then("We should get a 200")
+        responseGetAll400.code should equal(200)
+      } else {
+        Then("We should get a 401")
+        responseGetAll400.code should equal(401)
+        And("error should be " + AuthenticatedUserIsRequired)
+        responseGetAll400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+      }
+    }
     scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
 
       When("We need to first create the products ")

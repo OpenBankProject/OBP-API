@@ -692,6 +692,10 @@ object Http4s400 {
             case (k, vs) => vs.map(v => com.openbankproject.commons.dto.GetProductsParam(k, List(v)))
           }
           for {
+            // with apiOptions.getProductsIsPublic=false the product list needs a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read it
+            _ <- if (!getProductsIsPublic)
+                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 else Future.unit
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
             (products, _) <- NewStyle.function.getProducts(BankId(bankIdStr), params, Some(cc))
           } yield JSONFactory400.createProductsJson(products)
