@@ -589,10 +589,14 @@ object ErrorMessages {
   val GlossaryItemShadowsStaticItem = "OBP-30577: A static Glossary Item with this title already exists. Creating this item would override it in the Glossary. Set overrides_static_item to true if that is intended, or choose a different title."
   val InvalidGlossarySource = "OBP-30578: Invalid source. Please specify all, static or dynamic."
 
-  // Asset registry (OBP-30579 .. OBP-30581)
+  // Asset registry (OBP-30579 .. OBP-30585)
   val AssetNotFound = "OBP-30579: Asset not found. Please specify a valid value for ASSET_CODE."
   val AssetNotFoundByChainIdentity = "OBP-30580: No asset has this chain identity. Please specify a registered CHAIN_SCHEME and CHAIN_ASSET_ID."
   val InvalidAssetQueryParameter = "OBP-30581: Invalid query parameter for assets."
+  val InvalidAsset = "OBP-30582: Invalid asset."
+  val AssetAlreadyExists = "OBP-30583: An asset with this code already exists. Please specify a different value for asset_code."
+  val AssetChainIdentityAlreadyExists = "OBP-30584: Another asset already has this chain identity. Please specify a different chain_scheme and chain_asset_id."
+  val AssetDtiAlreadyExists = "OBP-30585: Another asset already has this DTI. Please specify a different value for dti."
 
   val OrganisationNotFound = "OBP-30506: Organisation not found. Please specify a valid value for ORGANISATION_ID."
   val OrganisationAlreadyExists = "OBP-30507: Organisation already exists. Please specify a different value for ORGANISATION_ID."

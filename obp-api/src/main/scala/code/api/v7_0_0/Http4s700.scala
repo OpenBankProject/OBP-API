@@ -35,10 +35,11 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{Http4sRoute, EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateGlossaryItem, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteGlossaryItem, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateGlossaryItem, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateGlossaryItem, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteGlossaryItem, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canGetAccountAccessTrace, canGetAccountDirectoryAtOneBank, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateGlossaryItem, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
 import code.model.dataAccess.{AuthUser, BankAccountCreation, MappedBank, ResourceUser}
 import code.consent.Consents
+import code.accountcreation.AccountCreations
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware, ResourceDocMatcher}
@@ -5268,7 +5269,12 @@ object Http4s700 {
         (accountAttributes, _) <- NewStyle.function.createAccountAttributes(
           bankId, accountId, ProductCode(body.product_code), productAttributes, None, Some(cc))
         _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, owner, Some(cc))
-      } yield JSONFactory700.createAccountJsonV700(ownerId, bankAccount, accountAttributes)
+        // Who made the call (user.userId, the agent under a Consent) and for whom: kept in OBP, because
+        // the account itself may live behind the Connector. AccountCreation_CreatedByUserId.
+        creation <- Future(AccountCreations.accountCreationProvider.vend.record(bankId.value, accountId.value, user.userId)) map {
+          x => unboxFullOrFail(x, Some(cc), s"$UnknownError The account ${accountId.value} was created, but who created it could not be recorded.", 500)
+        }
+      } yield JSONFactory700.createAccountJsonV700(ownerId, bankAccount, accountAttributes, creation)
     }
 
     val createAccountV700: Http4sRoute = Http4sRoute {
@@ -5305,7 +5311,12 @@ object Http4s700 {
         AccountRoutingJsonV121("OBP", "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"),
         AccountRoutingJsonV121("IBAN", "DE91100000000123456789")
       ),
-      account_attributes = Nil
+      account_attributes = Nil,
+      metadata = JSONFactory700.AccountMetadataJsonV700(JSONFactory700.AccountCreatedJsonV700(
+        at = "2026-09-30T10:12:00Z",
+        user_id = "a9f2c7e1-3d4b-4a5c-8e6f-7a8b9c0d1e2f",
+        on_behalf_of_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        consent_reference_id = Some("4c7e8f2a-1b3d-4e5f-9a6b-7c8d9e0f1a2b")))
     )
 
     val createAccountDescriptionV700 =
@@ -5320,6 +5331,8 @@ object Http4s700 {
         |`account_routings` carries external routings only (e.g. IBAN). The OBP-family schemes (`OBP`, `OBP_ACCOUNT_ID`) are refused: the canonical `{"scheme": "OBP", "address": "<account_id>"}` routing is implicit and included in every response, never stored. One routing per scheme; a routing address already registered at the bank is refused.
         |
         |The balance amount MUST be zero.
+        |
+        |The response `metadata.created` says who created the Account and for whom: `user_id` is the User who made the call and `on_behalf_of_user_id` the User it was made for. They differ when an application acting for a User, such as an AI agent, calls with a Consent; see [On Behalf Of](/glossary#On-Behalf-Of). `consent_reference_id` is then the Consent's reference id, the one Metrics record for the same call; it is omitted when the caller acted for themselves. OBP keeps this record itself, whichever Connector holds the Account.
         |
         |Authentication is Required.""".stripMargin
 
@@ -5360,6 +5373,63 @@ object Http4s700 {
       apiTagAccount :: apiTagOnboarding :: Nil,
       Some(List(canCreateAccount)),
       http4sPartialFunction = Some(createAccountWithIdV700)
+    )
+
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/account-directory
+    // The v6.0.0 Account Directory plus, for each account created through v7.0.0 Create Account,
+    // who created it and for whom (metadata.created, read from AccountCreations).
+    val getAccountDirectory: Http4sRoute = Http4sRoute {
+      case req @ GET -> `prefixPath` / "banks" / _ / "account-directory" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          val allowedParams = List("limit", "offset", "sort_direction")
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, _) <- NewStyle.function.createObpParams(httpParams, allowedParams, Some(cc))
+            (accounts, _) <- NewStyle.function.getAccountDirectory(bank.bankId, obpQueryParams, Some(cc))
+            creations <- Future(AccountCreations.accountCreationProvider.vend.getForAccounts(bank.bankId.value, accounts.map(_.id)))
+          } yield {
+            val viewsPerAccount: Map[BankIdAccountId, List[String]] = accounts.map { account =>
+              val bankIdAccountId = BankIdAccountId(BankId(account.bankId), AccountId(account.id))
+              bankIdAccountId -> Views.views.vend.availableViewsForAccount(bankIdAccountId).map(_.viewId.value)
+            }.toMap
+            JSONFactory700.createAccountDirectoryJsonV700(accounts, viewsPerAccount, creations.map(c => c.accountId -> c).toMap)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getAccountDirectory),
+      "GET",
+      "/banks/BANK_ID/account-directory",
+      "Get Account Directory at Bank",
+      s"""Returns the accounts at the bank with their identifiers, for management UIs that need to list accounts without exposing sensitive data: balances and owners are not included.
+        |
+        |Each account has account_id, bank_id, label, account_number, account_type, branch_id, account_routings, account_attributes and view_ids, as in v6.0.0.
+        |
+        |An account created through v7.0.0 Create Account also has `metadata.created`, the same object Create Account returned: `at` is when it was created, `user_id` the User who made the call and `on_behalf_of_user_id` the User it was made for. They differ when an application acting for a User, such as an AI agent, called with a Consent; see [On Behalf Of](/glossary#On-Behalf-Of). `consent_reference_id` is then the Consent's reference id, and is omitted when the caller acted for themselves. `metadata` is omitted for an account OBP holds no creation record for, such as one created by an earlier API version, by the Connector, or the settlement accounts created with the bank.
+        |
+        |${urlParametersDocument(true, false)}
+        |
+        |Authentication is Required
+        |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.AccountDirectoryJsonV700(List(JSONFactory700.AccountDirectoryItemJsonV700(
+        account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+        bank_id = "gh.29.uk",
+        label = "My Account",
+        account_number = "123456789",
+        account_type = "CURRENT",
+        branch_id = "BRANCH_1",
+        account_routings = List(AccountRoutingJsonV121("OBP", "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0")),
+        account_attributes = List(com.openbankproject.commons.model.FastFirehoseAttributes(`type` = "STRING", code = "OVERDRAFT_LIMIT", value = "1000")),
+        view_ids = List("owner"),
+        metadata = Some(createAccountResponseExampleV700.metadata)
+      ))),
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagAccount :: Nil,
+      Some(List(canGetAccountDirectoryAtOneBank)),
+      http4sPartialFunction = Some(getAccountDirectory)
     )
 
     // ── OPEN_CORRIDOR per-bank broker registry (admin) ────────────────────────

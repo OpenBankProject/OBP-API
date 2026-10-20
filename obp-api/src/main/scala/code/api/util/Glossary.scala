@@ -1843,23 +1843,19 @@ object Glossary extends MdcLoggable  {
 		val delegated = UserReference.all.filter(ref => ref.policy != AttributionPolicy.UseAuthenticatedUserId)
 		val applied = delegated.count(UserReference.isWired)
 
-		s"""When a User grants a ${getGlossaryItemLink("Consent")} to an application, such as an AI agent, the application calls OBP under an identity of its own: a consent user, which OBP creates for that Consent. A call made that way has two Users behind it. `user_id` is the caller, the consent user that authenticated. `on_behalf_of_user_id` is the User the call was made for, the one who granted the Consent. When a User calls OBP for themselves, the two are the same User.
+		s"""An application acting for a User, such as an AI agent, calls OBP with a [Consent](/glossary#Consent) and authenticates as a consent user, an identity OBP creates for that Consent. `user_id` is the caller (the consent user); `on_behalf_of_user_id` is the User who granted the Consent. OBP derives the latter from the Consent, never from the request.
 			 |
-			 |OBP finds the User acted for itself, from the Consent the caller authenticated with. It never takes it from a request body, header or query parameter, so a caller cannot name somebody else to act for.
+			 |Rows stored against a consent user would end with its Consent, so each column that stores a user id has a policy for calls made by a consent user:
 			 |
-			 |This matters whenever OBP stores a user id. A consent user belongs to its Consent, so a row stored against it, such as an account holder, belongs to an identity that ends with the Consent, and the User who asked for it can no longer see it. So every database column that stores a user id has a policy, which says whose id to store when a consent user makes the call:
+			 |* **the caller**: store the consent user (audit records, and the Consent's own permissions).
+			 |* **the User acted for**: store the User who granted the Consent. Some tables keep both ids; see Note.
+			 |* **refused**: a consent user may not do this (create a Consent, a Consumer or a token).
 			 |
-			 |* **the caller**: store the consent user's own id. This suits audit records of who acted, and the rows that carry a Consent's own permissions, which are meant to end with it.
-			 |* **the User acted for**: store the id of the User who granted the Consent, so the row outlives the Consent. A few tables keep both ids, for example a counterparty or a transaction request, where who made the call is worth keeping too; the Note column says so.
-			 |* **refused**: a consent user must not do this at all, because what it would create (a Consent, a Consumer or a token) outlives the Consent and would let the delegation extend itself.
+			 |A request naming a consent user as its target User gets 400 `InvalidUserId`. v7.0.0 responses that show both ids use `user_id` and `on_behalf_of_user_id`, e.g. [Dynamic Entity](/glossary#Dynamic-Entities) record metadata.
 			 |
-			 |A request that explicitly names a consent user as the target User, for example in a `user_id` field or a `USER_ID` path segment, is answered with 400 `InvalidUserId`.
+			 |**Columns that store a user id**
 			 |
-			 |Where a v7.0.0 response publishes both ids, it names them `user_id` and `on_behalf_of_user_id`, as in the record metadata of a ${getGlossaryItemLink("Dynamic-Entities")} record.
-			 |
-			 |**Every column that stores a user id**
-			 |
-			 |Policy is whose id the column should hold when a consent user makes the call. Today is whose id it holds on this instance now. Of the ${delegated.size} columns whose policy is "the User acted for" or "refused", ${applied} apply it today. "Not written by a consent user" means no API call writes that column with a consent user's id, because the endpoint refuses the consent user first or no endpoint writes the table.
+			 |Today is what this instance stores now: ${applied} of the ${delegated.size} columns whose policy is "the User acted for" or "refused" apply it. "Not written by a consent user" means no endpoint writes that column with a consent user's id.
 			 |
 			 |""".stripMargin +
 		(List("| Record | Column | Policy | Today | Note |", "|---|---|---|---|---|") ++ rows).mkString("\n") + "\n"
@@ -7585,6 +7581,10 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |Every Asset is administered at exactly one bank: the issuer for the types a bank issues, and the `SYS` bank for everything else.
 				 |
+				 |## Adding an Asset
+				 |
+				 |A bank adds an Asset it issues with Create Asset at that bank, and the bank is recorded as its issuer. A crypto asset with no issuer is added at the `SYS` bank. Either way the caller needs the CanCreateAsset Role at that bank. Currencies, precious metals and accounting units come from ISO 4217 and cannot be added. The code of an Asset a bank issues is 4 to 10 letters or digits, so it can never be mistaken for an ISO 4217 code, which is always 3. Once added, the code is accepted in `currency` fields at once, with the Asset's own decimal places.
+				 |
 				 |## Codes OBP accepts
 				 |
 				 |The registry decides which currency codes OBP accepts and how many decimal places each one has. OBP also accepts `lovelace` and `wei`, the smallest units of ADA and ETH, which are not Assets of their own.
@@ -7599,8 +7599,9 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |## Endpoints
 				 |
-				 |These need no authentication.
+				 |The three reads need no authentication.
 				 |
+				 |- [Create Asset](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createAsset): `POST /obp/v7.0.0/banks/BANK_ID/assets`
 				 |- [Get Assets](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAssets): `GET /obp/v7.0.0/assets`
 				 |- [Get Asset](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAsset): `GET /obp/v7.0.0/assets/ASSET_CODE`
 				 |- [Get Asset by Chain Identity](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAssetByChainIdentity): `GET /obp/v7.0.0/assets/chain/CHAIN_SCHEME/CHAIN_ASSET_ID`

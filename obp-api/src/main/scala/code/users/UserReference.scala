@@ -201,6 +201,7 @@ object UserReference {
   case object DynamicGlossaryItem_CreatedByUserId              extends UserReference(UseOnBehalfOfUserId   , "code.glossaryitem.DynamicGlossaryItem", List("CreatedByUserId"), "outlives the Consent that created it")
   case object DomainApi_CreatedByUserId                        extends UserReference(UseOnBehalfOfUserId   , "code.domainapi.DomainApi", List("CreatedByUserId"), "the Domain API's creator; a published API outlives the Consent that created it")
   case object DynamicEntityWebhook_CreatedByUserId             extends UserReference(UseOnBehalfOfUserId   , "code.dynamicentitywebhook.DynamicEntityWebhook", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: a webhook sends data out of OBP and outlives the Consent that made it, so the agent stays on CreatedByUserId (published as created_by_user_id) and the person it acted for goes to CreatedByOnBehalfOfUserId")
+  case object AccountCreation_CreatedByUserId                   extends UserReference(UseOnBehalfOfUserId   , "code.accountcreation.AccountCreation", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: who made the call that created the account, agent included, and the person it was made for; published in the v7.0.0 Create Account metadata. The holder is AccountHolders_User")
   case object Bank_CreatedByUserId                             extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.MappedBank", List("CreatedByUserId"), "creator grant already resolved at the endpoint")
   case object Organisation_CreatedByUserId                     extends UserReference(UseOnBehalfOfUserId   , "code.organisation.Organisation", List("CreatedByUserId"), "outlives the Consent that created it")
   case object Asset_CreatedByUserId                            extends UserReference(UseOnBehalfOfUserId   , "code.asset.Asset", List("CreatedByUserId"), "outlives the Consent that created it, as RoutingScheme_CreatedByUserId; seeded rows hold system:asset-seed")
@@ -298,6 +299,7 @@ object UserReference {
     DynamicGlossaryItem_CreatedByUserId,
     DomainApi_CreatedByUserId,
     DynamicEntityWebhook_CreatedByUserId,
+    AccountCreation_CreatedByUserId,
     Bank_CreatedByUserId,
     Organisation_CreatedByUserId,
     Asset_CreatedByUserId,
@@ -402,8 +404,6 @@ object UserReference {
     ApiProductSubscription_CreatedByUserId -> mechanicalBatch,
     DynamicGlossaryItem_CreatedByUserId    -> mechanicalBatch,
     Organisation_CreatedByUserId           -> mechanicalBatch,
-    Asset_CreatedByUserId                  -> NotYetWired.NotReachedByConsentUser(
-      "no endpoint writes the asset registry yet; only the boot seed does. Wire it with the asset write endpoints."),
     File_UserId                            -> filesNotYetServed,
     FileAttachment_UserId                  -> filesNotYetServed,
     FileAccess_GrantedByUserId             -> filesNotYetServed,

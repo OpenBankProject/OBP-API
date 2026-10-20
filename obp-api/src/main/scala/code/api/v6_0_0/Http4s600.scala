@@ -4059,7 +4059,8 @@ object Http4s600 {
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else a participant of one room reads threads of any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             _ <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
             repliesBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getThreadReplies(chatMessageId))
             replies <- Future(unboxFullOrFail(repliesBox, Some(cc),
@@ -4082,7 +4083,8 @@ object Http4s600 {
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else a participant of one room reads threads of any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             _ <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
             repliesBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getThreadReplies(chatMessageId))
             replies <- Future(unboxFullOrFail(repliesBox, Some(cc),
@@ -4317,9 +4319,10 @@ object Http4s600 {
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else a participant of one room reads reactions of any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             _ <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
-            reactionsBox <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId))
+            reactionsBox <-Future(code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId))
             reactions <- Future(unboxFullOrFail(reactionsBox, Some(cc),
               s"$UnknownError Cannot get reactions", 400))
           } yield JSONFactory600.createReactionsJson(reactions)
@@ -4334,9 +4337,10 @@ object Http4s600 {
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else a participant of one room reads reactions of any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             _ <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
-            reactionsBox <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId))
+            reactionsBox <-Future(code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId))
             reactions <- Future(unboxFullOrFail(reactionsBox, Some(cc),
               s"$UnknownError Cannot get reactions", 400))
           } yield JSONFactory600.createReactionsJson(reactions)

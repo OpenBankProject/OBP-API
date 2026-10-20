@@ -34,7 +34,7 @@ import code.api.util.http4s.Http4sStandardHeaders
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canUpdateSystemView, canGetAccountAccessTrace, canGetAccountDirectoryAtOneBank, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
 import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, DuplicateUsername, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidPhoneNumber, InvalidRoutingSchemeName, UserFilterParametersNotSupported, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, NotificationWebhookNotFound, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
 import code.utilitypayment.{UtilityCallbackStatus, UtilityPaymentCallbacks}
 import code.scheduler.JobScheduler
@@ -59,7 +59,7 @@ import org.typelevel.ci.CIString
 import java.util.Date
 import code.setup.ServerSetupWithTestData
 import org.json4s.JValue
-import org.json4s.JsonAST.{JArray, JBool, JField, JInt, JNull, JObject, JString}
+import org.json4s.JsonAST.{JArray, JBool, JField, JInt, JNothing, JNull, JObject, JString}
 import com.openbankproject.commons.util.JsonAliases.parse
 import org.scalatest.Tag
 import com.openbankproject.commons.util.JsonAliases.RichJField
@@ -586,6 +586,55 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case JString(msg) => msg should include(AccountIdAlreadyExists)
         case _ => fail("Expected message field")
       }
+    }
+  }
+
+  // ─── getAccountDirectory ──────────────────────────────────────────────────────
+
+  feature("Http4s700 getAccountDirectory endpoint") {
+
+    def accountDirectoryPath = s"/obp/v7.0.0/banks/${testBankId1.value}/account-directory"
+
+    scenario("Reject an unauthenticated request", Http4s700RoutesTag) {
+      val (statusCode, json, _) = makeHttpRequest(accountDirectoryPath)
+      statusCode shouldBe 401
+      messageOf(json) should include(AuthenticatedUserIsRequired)
+    }
+
+    scenario("Return 403 without CanGetAccountDirectoryAtOneBank", Http4s700RoutesTag) {
+      val (statusCode, json, _) = makeHttpRequest(accountDirectoryPath, Map("DirectLogin" -> s"token=${token2.value}"))
+      statusCode shouldBe 403
+      messageOf(json) should include(UserHasMissingRoles)
+      messageOf(json) should include(canGetAccountDirectoryAtOneBank.toString)
+    }
+
+    scenario("List an account created through v7.0.0 with who created it, and one without a creation record without metadata", Http4s700RoutesTag) {
+      Given("resourceUser1 creates an account through v7.0.0 Create Account, and holds CanGetAccountDirectoryAtOneBank")
+      addEntitlement(testBankId1.value, resourceUser1.userId, canCreateAccount.toString)
+      addEntitlement(testBankId1.value, resourceUser1.userId, canGetAccountDirectoryAtOneBank.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val createdId = s"v7-directory-${APIUtil.generateUUID().take(12)}"
+      val (createStatus, _, _) = makeHttpRequestWithBody(
+        "PUT", s"/obp/v7.0.0/banks/${testBankId1.value}/accounts/$createdId", createAccountBody(), headers)
+      createStatus shouldBe 201
+
+      When("GET /banks/BANK_ID/account-directory")
+      val (statusCode, json, _) = makeHttpRequest(s"$accountDirectoryPath?limit=1000", headers)
+
+      Then("The created account carries metadata.created naming resourceUser1 as caller and as the User it was for")
+      statusCode shouldBe 200
+      val accounts = (json \ "accounts").children
+      val created = accounts.find(a => (a \ "account_id") == JString(createdId))
+        .getOrElse(fail(s"Expected $createdId in the directory"))
+      (created \ "bank_id") shouldBe JString(testBankId1.value)
+      (created \ "metadata" \ "created" \ "user_id") shouldBe JString(resourceUser1.userId)
+      (created \ "metadata" \ "created" \ "on_behalf_of_user_id") shouldBe JString(resourceUser1.userId)
+      (created \ "metadata" \ "created" \ "consent_reference_id") shouldBe JNothing
+
+      And("An account set up by the test fixture, with no creation record, has no metadata")
+      val fixtureAccount = accounts.find(a => (a \ "account_id") == JString(testAccountId0.value))
+        .getOrElse(fail(s"Expected ${testAccountId0.value} in the directory"))
+      (fixtureAccount \ "metadata") shouldBe JNothing
     }
   }
 

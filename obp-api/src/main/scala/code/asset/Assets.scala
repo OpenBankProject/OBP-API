@@ -80,6 +80,22 @@ object AssetStatuses {
   val all: Set[String] = Set(ACTIVE, SUSPENDED, RETIRED)
 }
 
+/**
+ * This object lists the chains and networks an asset can be recorded on. Each value names the network
+ * as well as the chain, because the same token identity can be a different token on another network,
+ * and OBP cannot tell which network a node it talks to is on. The list grows when OBP supports
+ * another network.
+ */
+object ChainSchemes {
+  val CARDANO_MAINNET = "CARDANO_MAINNET"
+  val CARDANO_PREPROD = "CARDANO_PREPROD"
+  val CARDANO_PREVIEW = "CARDANO_PREVIEW"
+  val ETHEREUM_MAINNET = "ETHEREUM_MAINNET"
+  val ETHEREUM_SEPOLIA = "ETHEREUM_SEPOLIA"
+
+  val all: Set[String] = Set(CARDANO_MAINNET, CARDANO_PREPROD, CARDANO_PREVIEW, ETHEREUM_MAINNET, ETHEREUM_SEPOLIA)
+}
+
 /** This trait is the set of operations on the asset registry. */
 trait AssetProvider {
   /** Finds an asset by its code, ignoring case: `eur` finds `EUR`. */
@@ -99,6 +115,8 @@ trait AssetProvider {
   ): (List[AssetTrait], Int)
   /** Finds the asset with this on-chain identity, for example a Cardano token's policy id and asset name. */
   def getAssetByChainIdentity(chainScheme: String, chainAssetId: String): Box[AssetTrait]
+  /** Finds the asset with this ISO 24165 Digital Token Identifier. */
+  def getAssetByDti(dti: String): Box[AssetTrait]
   def createAsset(
     assetCode: String,
     assetType: String,
@@ -106,7 +124,11 @@ trait AssetProvider {
     decimalPlaces: Int,
     issuerBankId: Option[String],
     status: String,
-    createdByUserId: String
+    createdByUserId: String,
+    issuerProductCode: Option[String] = None,
+    chainScheme: Option[String] = None,
+    chainAssetId: Option[String] = None,
+    dti: Option[String] = None
   ): Box[AssetTrait]
 }
 
@@ -119,6 +141,18 @@ object Assets extends AssetProvider {
 
   /** Codes are 3 to 10 upper case letters or digits once upper-cased. */
   private val AssetCodePattern = "^[A-Z0-9]{3,10}$".r
+
+  /**
+   * A bank-issued asset's code is 4 to 10 characters, so it can never collide with a current or
+   * future ISO 4217 code, which is always 3.
+   */
+  private val IssuedAssetCodePattern = "^[A-Z0-9]{4,10}$".r
+
+  /** A Digital Token Identifier is 9 upper case letters or digits. */
+  private val DtiPattern = "^[A-Z0-9]{9}$".r
+
+  /** The longest name the Name column holds. */
+  val MaxNameLength = 125
 
   /**
    * Amounts will be stored as DECIMAL(38, 18) (ideas/ASSET_REGISTRY.md, section 5), so no asset can
@@ -156,6 +190,13 @@ object Assets extends AssetProvider {
     if (chainScheme.isEmpty || chainAssetId.isEmpty) Failure("A chain identity needs both a chain scheme and a chain asset id.")
     else Asset.find(By(Asset.ChainScheme, chainScheme), By(Asset.ChainAssetId, chainAssetId))
 
+  override def getAssetByDti(dti: String): Box[AssetTrait] =
+    if (dti.isEmpty) Failure("A DTI must not be empty.")
+    else Asset.find(By(Asset.Dti, dti))
+
+  /** Treats a missing, empty or blank optional value as not set. */
+  private def given(value: Option[String]): Option[String] = value.map(_.trim).filter(_.nonEmpty)
+
   override def createAsset(
     assetCode: String,
     assetType: String,
@@ -163,12 +204,24 @@ object Assets extends AssetProvider {
     decimalPlaces: Int,
     issuerBankId: Option[String],
     status: String,
-    createdByUserId: String
+    createdByUserId: String,
+    issuerProductCode: Option[String],
+    chainScheme: Option[String],
+    chainAssetId: Option[String],
+    dti: Option[String]
   ): Box[AssetTrait] = {
     val code = normaliseCode(assetCode)
-    val issuer = issuerBankId.map(_.trim).filter(_.nonEmpty)
+    val issuer = given(issuerBankId)
+    val productCode = given(issuerProductCode)
+    val scheme = given(chainScheme).map(_.toUpperCase)
+    val chainId = given(chainAssetId)
+    val tokenIdentifier = given(dti).map(_.toUpperCase)
     if (AssetCodePattern.findFirstIn(code).isEmpty)
       Failure(s"Asset code '$assetCode' must be 3 to 10 letters or digits.")
+    else if (AssetTypes.issued.contains(assetType) && IssuedAssetCodePattern.findFirstIn(code).isEmpty)
+      Failure(s"Asset code '$assetCode' of a bank-issued asset must be 4 to 10 letters or digits, so it cannot be mistaken for an ISO 4217 currency code.")
+    else if (Option(name).forall(_.trim.isEmpty) || name.trim.length > MaxNameLength)
+      Failure(s"Name must not be empty and must be at most $MaxNameLength characters.")
     else if (!AssetTypes.all.contains(assetType))
       Failure(s"Asset type '$assetType' must be one of ${AssetTypes.all.toList.sorted.mkString(", ")}.")
     else if (decimalPlaces < 0 || decimalPlaces > MaxDecimalPlaces)
@@ -179,16 +232,28 @@ object Assets extends AssetProvider {
       Failure(s"An asset of type $assetType has no issuer bank; it is administered at the SYS bank.")
     else if (!AssetStatuses.all.contains(status))
       Failure(s"Status '$status' must be one of ${AssetStatuses.all.toList.sorted.mkString(", ")}.")
+    else if (productCode.nonEmpty && issuer.isEmpty)
+      Failure("An issuer product code needs an issuer bank, where the product is.")
+    else if (scheme.isDefined != chainId.isDefined)
+      Failure("A chain identity needs both a chain scheme and a chain asset id, or neither.")
+    else if (scheme.exists(value => !ChainSchemes.all.contains(value)))
+      Failure(s"Chain scheme '${scheme.getOrElse("")}' must be one of ${ChainSchemes.all.toList.sorted.mkString(", ")}.")
+    else if (tokenIdentifier.exists(value => DtiPattern.findFirstIn(value).isEmpty))
+      Failure(s"DTI '${tokenIdentifier.getOrElse("")}' must be 9 letters or digits.")
     else
       tryo {
         Asset.create
           .AssetCode(code)
           .AssetType(assetType)
-          .Name(name)
+          .Name(name.trim)
           .DecimalPlaces(decimalPlaces)
           .IssuerBankId(issuer.getOrElse(""))
+          .IssuerProductCode(productCode.getOrElse(""))
+          .ChainScheme(scheme.getOrElse(""))
+          .ChainAssetId(chainId.getOrElse(""))
+          .Dti(tokenIdentifier.getOrElse(""))
           .Status(status)
-          .CreatedByUserId(createdByUserId)
+          .CreatedByUserId(creatorToStore(createdByUserId))
           .saveMe()
       } match {
         case created @ Full(_) =>
@@ -197,4 +262,14 @@ object Assets extends AssetProvider {
         case other => other
       }
   }
+
+  /**
+   * Returns the user id to store as the asset's creator. An asset outlives the Consent of a consent
+   * user that created it, so the creator is the person that user acts for. The boot seed is not a
+   * user and is stored as it is.
+   */
+  private def creatorToStore(createdByUserId: String): String =
+    if (createdByUserId == AssetSeed.SeedActor) createdByUserId
+    else code.users.Users.users.vend.attributedUserId(createdByUserId, code.users.UserReference.Asset_CreatedByUserId)
+      .openOr(createdByUserId)
 }
