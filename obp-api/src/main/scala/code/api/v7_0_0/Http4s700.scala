@@ -6989,7 +6989,8 @@ object Http4s700 {
       payload_hash = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
       current_payload_hash = "",
       proposed_payload = Extraction.decompose(jsonDynamicResourceDoc),
-      current_payload = JNothing,
+      // A CREATE has nothing to replace. The swagger export needs an object here, not JNothing.
+      current_payload = JObject(Nil),
       requestor_user_id = code.api.util.ExampleValue.userIdExample.value,
       business_justification = "Expose the new loan quote endpoint for the mobile app.",
       checker_user_id = "",
