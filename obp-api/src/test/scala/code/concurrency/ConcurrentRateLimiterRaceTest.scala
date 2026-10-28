@@ -85,10 +85,11 @@ class ConcurrentRateLimiterRaceTest extends ConcurrentRaceSetup {
       val passedCount = passed.get()
       withClue(
         s"passedCount=$passedCount limit=$limit (results.size=${results.size}): " +
-        s"RateLimitingUtil checks the counter (GET) and increments it (INCR) as two separate Redis " +
-        s"round-trips. Under concurrency, many callers read the same low count, all pass `count+1 <= limit`, " +
-        s"then all increment — far more than `limit` requests slip through (rate-limit bypass). " +
-        s"Fix: a single atomic Lua `INCR + compare` so the gate and the increment cannot interleave — "
+        s"the gate and the increment must be one atomic Redis operation. RateLimitingUtil used to check " +
+        s"the counter (GET) and increment it (INCR) as two separate round-trips, so many callers read the " +
+        s"same low count, all passed `count+1 <= limit`, then all incremented (rate-limit bypass). " +
+        s"The consumer quota now runs check and count in one script (Redis.quotaCheckAndCount, see " +
+        s"ConcurrentConsumerQuotaScriptTest Q6); this primitive must stay atomic too — "
       ) {
         passedCount.toLong should be <= limit
       }
