@@ -268,6 +268,29 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
       resultGetMyUserALl.entitlement_requests.length should be (0)
     }
 
+    scenario("a super admin sees and deletes entitlement requests without stored Entitlements", VersionOfApi,
+      ApiEndpoint1, ApiEndpoint2, ApiEndpoint3) {
+      Given("user1 is listed in super_admin_user_ids and holds no Entitlements")
+      setPropsValues("super_admin_user_ids" -> resourceUser1.userId)
+      Entitlement.entitlement.vend.getEntitlementsByUserId(resourceUser1.userId).map(_.size).openOr(0) should equal(0)
+
+      val postJson = s"""{"bank_id":"${testBankId1.value}", "role_name":"CanCreateBankLevelEndpointTag"}"""
+      val response300 = makePostRequest((v3_0Request / "entitlement-requests").POST <@(user1), postJson)
+      response300.code should equal(201)
+      val entitlementRequestId = response300.body.extract[EntitlementRequestJSON].entitlement_request_id
+
+      When("they list every entitlement request")
+      val responseGetAll = makeGetRequest((v3_0Request / "entitlement-requests").GET <@(user1))
+      Then("the virtual CanGetEntitlementRequestsAtAnyBank lets them")
+      responseGetAll.code should equal(200)
+      responseGetAll.body.extract[EntitlementRequestsJSON].entitlement_requests.map(_.entitlement_request_id) should contain (entitlementRequestId)
+
+      When("they delete the request, as accepting one does")
+      val deleteResponse = makeDeleteRequest((v3_0Request / "entitlement-requests" / entitlementRequestId).DELETE <@(user1))
+      Then("the virtual CanDeleteEntitlementRequestsAtAnyBank lets them")
+      deleteResponse.code should equal(200)
+    }
+
   }
 
   feature(s"Pagination and sorting for entitlement request endpoints") {

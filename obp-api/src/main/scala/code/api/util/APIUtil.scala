@@ -2155,8 +2155,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     user_ids.filter(_ == user_id).length > 0
   }
 
-  // Virtual roles granted by super_admin_user_ids prop
-  val superAdminVirtualRoles: List[String] = List("CanCreateEntitlementAtOneBank", "CanCreateEntitlementAtAnyBank", "CanGetAnyUser")
+  // Virtual roles granted by super_admin_user_ids prop. The entitlement request Roles let a super admin see
+  // and accept requests (accepting deletes the request) on a fresh instance, where nobody holds them yet;
+  // they add no power, since a super admin can grant themselves any Role.
+  val superAdminVirtualRoles: List[String] = List("CanCreateEntitlementAtOneBank", "CanCreateEntitlementAtAnyBank", "CanGetAnyUser",
+    "CanGetEntitlementRequestsAtAnyBank", "CanDeleteEntitlementRequestsAtAnyBank")
   // Virtual roles granted by oidc_operator_user_ids prop
   val oidcOperatorVirtualRoles: List[String] = List("CanGetAnyUser", "CanVerifyUserCredentials", "CanVerifyOidcClient", "CanGetOidcClient", "CanGetOidcConsent", "CanGetConsumers", "CanCreateConsumer")
 
@@ -2263,7 +2266,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // when roles is empty, that means no access control, treat as pass auth check
   @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
-    roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
+    roles.isEmpty || roles.exists(role => holdsVirtualRole(userId, role) || hasEntitlement(bankId, userId, role))
+
+  /** True when the User holds `role` virtually, through super_admin_user_ids or oidc_operator_user_ids. The
+   *  inline checks (hasAtLeastOneEntitlement, hasAllEntitlements) honour these as the middleware's check does,
+   *  so an endpoint that checks its Roles again in its handler doesn't refuse what its ResourceDoc allowed. */
+  def holdsVirtualRole(userId: String, role: ApiRole): Boolean = {
+    val virtualRoles = if (isSuperAdmin(userId)) superAdminVirtualRoles
+                       else if (isOidcOperator(userId)) oidcOperatorVirtualRoles
+                       else List.empty
+    virtualRoles.contains(role.toString)
+  }
   
   /**
    * Grant a caller the Roles they are missing, at the moment they first need them.
@@ -2456,7 +2469,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // TODO Should we accept Option[BankId] for bankId  instead of String ?
   @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
-    roles.forall(hasEntitlement(bankId, userId, _))
+    roles.forall(role => holdsVirtualRole(userId, role) || hasEntitlement(bankId, userId, role))
 
   def getCustomers(ids: List[String]): List[Customer] = {
     val customers = {

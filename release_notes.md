@@ -3,6 +3,16 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+29/10/2026    TBD           CHANGED: Super admins (super_admin_user_ids) also hold the virtual Roles
+                            CanGetEntitlementRequestsAtAnyBank and CanDeleteEntitlementRequestsAtAnyBank,
+                            so on a fresh instance they can see and accept entitlement requests (accepting
+                            deletes the request) without first granting themselves those Roles. No new
+                            power: a super admin could already grant themselves any Role.
+29/10/2026    TBD           FIXED: Endpoints that check their Roles again in the handler
+                            (hasAtLeastOneEntitlement, hasAllEntitlements, NewStyle hasEntitlement; e.g. Get
+                            Entitlement Requests, v3.0.0 Get User by id / email / username, v3.1.0 Get Consumers)
+                            now honour the virtual Roles of super_admin_user_ids and oidc_operator_user_ids,
+                            as the ResourceDoc Role check already did, instead of answering 403.
 29/10/2026    TBD           ADDED: Files in v7.0.0: documents and photographs stored in a space (a bank, or
                             SYS) and attached to records. POST /banks/BANK_ID/files stores one, base64 in
                             JSON (Role CanCreateFileAtOneBank; is_public true also needs
