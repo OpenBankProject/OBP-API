@@ -105,7 +105,7 @@ class GrantsEndpointTest extends V600ServerSetup {
       Given("user1 holds CanGetTelemetry as an Entitlement, and testConsumer2 holds it and CanGetReachableRoles as Scopes")
       val response = withEntitlement(CanGetTelemetry.toString) {
         withScope(CanGetTelemetry.toString) {
-          withScope(CanGetReachableRoles.toString) { makeGetRequest(reachableRequest.GET <@ (user2)) }
+          withScope(CanGetReachableRoles.toString) { makeGetRequest(reachableRequest.GET <@ (application2)) }
         }
       }
 

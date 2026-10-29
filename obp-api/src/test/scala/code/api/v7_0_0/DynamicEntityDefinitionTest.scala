@@ -205,8 +205,9 @@ class DynamicEntityDefinitionTest extends ServerSetupWithTestData {
 
     scenario("a Consumer holding the Role as a Scope may list and update definitions", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
       // A service (the Portal, the API Manager) ensures its entities at startup with a client-credentials
-      // token: no User, so the Roles must be accepted as Scopes on its Consumer (auth mode UserOrApplication).
-      // user2 holds none of these Roles and signs with testConsumer2, which gets the Scopes.
+      // token: no User, so the Roles must be accepted as Scopes on its Consumer (auth mode UserXORApplication).
+      // user2 holds none of these Roles and signs with testConsumer2, which gets the Scopes; application2 is
+      // testConsumer2 acting as itself.
       val entityName = newEntityName()
       val dynamicEntityId = createdAt(SYS, entityName)
       try {
@@ -220,15 +221,19 @@ class DynamicEntityDefinitionTest extends ServerSetupWithTestData {
         val scopes = List(canGetDynamicEntityDefinitions, canUpdateDynamicEntityDefinition).map(role =>
           Scope.scope.vend.addScope(SYS, testConsumer2.id.get.toString, role.toString))
         try {
-          When("user2 lists them again")
-          val listed = makeGetRequest(definitionsAt(SYS).GET <@ (user2))
+          When("user2, a person, lists them again through testConsumer2")
+          Then("the Consumer's Scope is not theirs to use")
+          makeGetRequest(definitionsAt(SYS).GET <@ (user2)).code should equal(403)
+
+          When("testConsumer2 lists them as itself")
+          val listed = makeGetRequest(definitionsAt(SYS).GET <@ (application2))
           Then("the Scope is enough")
           listed.code should equal(200)
           (listed.body \ "dynamic_entities").extract[List[JObject]]
             .map(e => (e \ "entity_name").extract[String]) should contain(entityName)
 
-          When("user2 updates the definition")
-          val updated = makePutRequest((definitionsAt(SYS) / dynamicEntityId).PUT <@ (user2), write(definition(entityName)))
+          When("testConsumer2 updates the definition as itself")
+          val updated = makePutRequest((definitionsAt(SYS) / dynamicEntityId).PUT <@ (application2), write(definition(entityName)))
           Then("the Scope is enough for that too")
           updated.code should equal(200)
         } finally scopes.foreach(scope => Scope.scope.vend.deleteScope(scope))

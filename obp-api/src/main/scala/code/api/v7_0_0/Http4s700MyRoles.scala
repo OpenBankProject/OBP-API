@@ -74,7 +74,7 @@ object Http4s700MyRoles {
 
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
-  private val authModes: List[EndpointAuthMode] = List(UserOnly, ApplicationOnly, UserOrApplication, UserAndApplication)
+  private val authModes: List[EndpointAuthMode] = List(UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication)
 
   /** The same decision as handleAccessControlWithAuthMode, for each auth mode, without granting
    *  just-in-time Entitlements: a GET must not create them. */
@@ -93,7 +93,7 @@ object Http4s700MyRoles {
       val user = cc.user.toOption
       val userId = user.map(_.userId).getOrElse("")
       // A client-credentials token still brings a pseudo-user, named after the Consumer's client id.
-      val applicationOnly = user.forall(u => Set(Option(consumer.key.get), Option(consumer.azp.get)).flatten.contains(u.idGivenByProvider))
+      val applicationOnly = user.forall(u => isApplicationsOwnUser(u, consumer))
       val virtualRoles = if (userId.isEmpty) Nil
                          else if (isSuperAdmin(userId)) superAdminVirtualRoles
                          else if (isOidcOperator(userId)) oidcOperatorVirtualRoles
@@ -104,10 +104,13 @@ object Http4s700MyRoles {
       val listed = getPropsValue("require_scopes_for_listed_roles", "").split(",").contains(role.toString)
       val scopesRequired = ApiPropsWithAlias.requireScopesForAllRoles || listed
       val allowed = authModes.filter { mode =>
-        virtual || (if (scopesRequired) heldByUser && heldByConsumer else mode match {
+        virtual || (if (scopesRequired) mode match {
+          case ApplicationOnly | UserXORApplication if applicationOnly => heldByConsumer
+          case _ => heldByUser && heldByConsumer
+        } else mode match {
           case UserOnly => heldByUser
           case ApplicationOnly => heldByConsumer
-          case UserOrApplication => heldByUser || heldByConsumer
+          case UserXORApplication => if (applicationOnly) heldByConsumer else heldByUser
           case UserAndApplication => heldByUser && heldByConsumer
         })
       }
@@ -127,7 +130,7 @@ object Http4s700MyRoles {
     caller = MyRoleCallerJsonV700(user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1", consumer_id = "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", application_only = true),
     held_by = MyRoleHeldByJsonV700(user = false, consumer = true),
     scopes_required = false,
-    allowed_for_auth_modes = List("ApplicationOnly", "UserOrApplication")
+    allowed_for_auth_modes = List("ApplicationOnly", "UserXORApplication")
   )
 
   resourceDocs += ResourceDoc(
@@ -151,7 +154,7 @@ object Http4s700MyRoles {
        |* `held_by.consumer`: the Consumer holds the Role as a Scope.
        |* `scopes_required`: the props `require_scopes_for_all_roles` or `require_scopes_for_listed_roles` make
        |  every endpoint need both.
-       |* `allowed_for_auth_modes`: the endpoint auth modes (`UserOnly`, `ApplicationOnly`, `UserOrApplication`,
+       |* `allowed_for_auth_modes`: the endpoint auth modes (`UserOnly`, `ApplicationOnly`, `UserXORApplication`,
        |  `UserAndApplication`) under which an endpoint that needs this Role would let the caller in.
        |  An endpoint that accepts several Roles lets the caller in if any one of them is allowed.
        |
@@ -166,7 +169,7 @@ object Http4s700MyRoles {
     List(ApplicationNotIdentified, BankNotFound, IncorrectRoleName, EntitlementIsSystemRole, UnknownError),
     List(apiTagRole, apiTagEntitlement, apiTagScope),
     None,
-    authMode = UserOrApplication,
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(getMyRole)
   ).allowSystemSpace()
 }

@@ -3065,6 +3065,43 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       messageOf(json) should include("CanAttachOpenCorridorPromise")
     }
 
+    scenario("A Consumer holding CanAttachOpenCorridorPromise as a Scope may attach evidence as itself; its own User is recorded", Http4s700RoutesTag) {
+      Given("testConsumer2 holds the Scope at the bank; user2, a person, signs with it but holds no Entitlement")
+      val transactionRequestId = createPendingPromise()
+      val granted = code.scope.Scope.scope.vend.addScope(
+        testBankId1.value, testConsumer2.id.get.toString, canAttachOpenCorridorPromise.toString)
+      val path = promiseEvidencePath(testBankId1.value, testAccountId0.value, transactionRequestId)
+      val ((personCode, _, _), (statusCode, json, _)) = try {
+        (makeHttpRequestWithBody("POST", path, promiseEvidenceBody(), Map("DirectLogin" -> s"token=${token2.value}")),
+         makeHttpRequestWithBody("POST", path, promiseEvidenceBody(), Map("DirectLogin" -> s"token=${tokenApplication2.value}")))
+      } finally code.scope.Scope.scope.vend.deleteScope(granted)
+
+      Then("user2 does not get the Consumer's Scope")
+      personCode shouldBe 403
+
+      And("testConsumer2 acting as itself attaches the evidence, recorded as its own User")
+      statusCode shouldBe 201
+      val applicationsOwnUserId = code.model.UserX.findByProviderId(
+        code.api.OAuth2Login.OBPOIDC.clientCredentialsProvider, testConsumer2.key.get).map(_.userId).openOrThrowException("own User")
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("reported_by_user_id") shouldBe Some(JString(applicationsOwnUserId))
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("A CanAttachOpenCorridorPromise Scope at another bank does not authorize this bank's URL", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${tokenApplication2.value}")
+      val granted = code.scope.Scope.scope.vend.addScope(
+        testBankId2.value, testConsumer2.id.get.toString, canAttachOpenCorridorPromise.toString)
+      val (statusCode, json, _) = try makeHttpRequestWithBody("POST",
+        promiseEvidencePath(testBankId1.value, testAccountId0.value, "some-tr-id"),
+        promiseEvidenceBody(), headers)
+      finally code.scope.Scope.scope.vend.deleteScope(granted)
+      statusCode shouldBe 403
+      messageOf(json) should include("CanAttachOpenCorridorPromise")
+    }
+
     scenario("Attach evidence: 201, idempotent re-post, conflict refused", Http4s700RoutesTag) {
       Given("A PENDING OPEN_CORRIDOR_PROMISE and the role granted")
       addEntitlement(testBankId1.value, resourceUser1.userId, canAttachOpenCorridorPromise.toString)
@@ -3342,6 +3379,36 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     scenario("Return 403 without CanSettleOpenCorridor", Http4s700RoutesTag) {
       val headers = Map("DirectLogin" -> s"token=${token2.value}")
       val (statusCode, json, _) = makeHttpRequestWithBody("POST", settlementsPath(testBankId1.value), settleBody("EUR"), headers)
+      statusCode shouldBe 403
+      messageOf(json) should include("CanSettleOpenCorridor")
+    }
+
+    scenario("A Consumer holding CanSettleOpenCorridor as a Scope at the bank passes the Role check as itself", Http4s700RoutesTag) {
+      Given("testConsumer2 holds the Scope at the bank; user2, a person, signs with it but holds no Entitlement")
+      val granted = code.scope.Scope.scope.vend.addScope(
+        testBankId1.value, testConsumer2.id.get.toString, canSettleOpenCorridor.toString)
+      val ((personCode, _, _), (statusCode, json, _)) = try {
+        (makeHttpRequestWithBody("POST", settlementsPath(testBankId1.value), settleBody("EUR"),
+           Map("DirectLogin" -> s"token=${token2.value}")),
+         makeHttpRequestWithBody("POST", settlementsPath(testBankId1.value), settleBody("EUR"),
+           Map("DirectLogin" -> s"token=${tokenApplication2.value}")))
+      } finally code.scope.Scope.scope.vend.deleteScope(granted)
+
+      Then("user2 does not get the Consumer's Scope")
+      personCode shouldBe 403
+
+      And("testConsumer2 acting as itself gets past the Role check and stops at open_corridor_enabled, which this test leaves off")
+      statusCode shouldBe 400
+      messageOf(json) should include(OpenCorridorDisabled)
+    }
+
+    scenario("A CanSettleOpenCorridor Scope at another bank does not authorize this bank's URL", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${tokenApplication2.value}")
+      val granted = code.scope.Scope.scope.vend.addScope(
+        testBankId2.value, testConsumer2.id.get.toString, canSettleOpenCorridor.toString)
+      val (statusCode, json, _) = try makeHttpRequestWithBody("POST",
+        settlementsPath(testBankId1.value), settleBody("EUR"), headers)
+      finally code.scope.Scope.scope.vend.deleteScope(granted)
       statusCode shouldBe 403
       messageOf(json) should include("CanSettleOpenCorridor")
     }

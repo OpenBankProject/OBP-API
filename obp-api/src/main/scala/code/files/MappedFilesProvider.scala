@@ -41,7 +41,7 @@ object MappedFilesProvider extends FilesProvider {
   /** Where the bytes go. Replaced by an object storage implementation when the volume calls for it. */
   val store: FileStore = PostgresFileStore
 
-  override def createFile(bankId: String, sha256: String, mediaType: String, fileName: String,
+  override def createFile(bankId: String, sha256: String, mediaType: String, fileName: String, isPublic: Boolean,
                           userId: String, onBehalfOfUserId: String, bytes: Array[Byte]): Box[FileT] = {
     val fileId = UUID.randomUUID().toString
     for {
@@ -54,6 +54,7 @@ object MappedFilesProvider extends FilesProvider {
           .SizeInBytes(bytes.length.toLong)
           .MediaType(mediaType)
           .FileName(fileName)
+          .IsPublic(isPublic)
           .UserId(userId)
           .OnBehalfOfUserId(onBehalfOfUserId)
           .CreatedAt(new Date())
@@ -66,6 +67,17 @@ object MappedFilesProvider extends FilesProvider {
     File.find(By(File.BankId, bankId), By(File.FileId, fileId))
 
   override def getContent(fileId: String): Box[Array[Byte]] = store.read(fileId)
+
+  override def setPublic(bankId: String, fileId: String, isPublic: Boolean): Box[FileT] =
+    File.find(By(File.BankId, bankId), By(File.FileId, fileId)).flatMap(file => tryo(file.IsPublic(isPublic).saveMe()))
+
+  override def getFilesOwnedOrSharedWith(bankId: String, userId: String): List[FileT] = {
+    val uploaded = File.findAll(By(File.BankId, bankId), By(File.UserId, userId), By(File.OnBehalfOfUserId, ""))
+    val uploadedFor = File.findAll(By(File.BankId, bankId), By(File.OnBehalfOfUserId, userId))
+    val sharedFileIds = FileAccess.findAll(By(FileAccess.GranteeUserId, userId)).map(_.FileId.get).distinct
+    val shared = if (sharedFileIds.isEmpty) Nil else File.findAll(By(File.BankId, bankId), ByList(File.FileId, sharedFileIds))
+    (uploaded ++ uploadedFor ++ shared).groupBy(_.fileId).values.map(_.head).toList.sortBy(_.createdAt.getTime)
+  }
 
   override def createAttachment(file: FileT, recordType: String, recordId: String,
                                 userId: String, onBehalfOfUserId: String): Box[FileAttachmentT] = tryo {
@@ -83,6 +95,10 @@ object MappedFilesProvider extends FilesProvider {
   override def getAttachment(bankId: String, fileId: String, fileAttachmentId: String): Box[FileAttachmentT] =
     FileAttachment.find(By(FileAttachment.BankId, bankId), By(FileAttachment.FileId, fileId),
       By(FileAttachment.FileAttachmentId, fileAttachmentId))
+
+  override def getAttachments(bankId: String, fileId: String): List[FileAttachmentT] =
+    FileAttachment.findAll(By(FileAttachment.BankId, bankId), By(FileAttachment.FileId, fileId),
+      OrderBy(FileAttachment.CreatedAt, Ascending))
 
   override def attachmentExists(fileId: String, recordType: String, recordId: String): Boolean =
     FileAttachment.find(By(FileAttachment.FileId, fileId), By(FileAttachment.RecordType, recordType),
@@ -150,6 +166,9 @@ class File extends FileT with LongKeyedMapper[File] with IdPK {
   object FileName extends MappedString(this, 255)
   object UserId extends MappedString(this, 255)
   object OnBehalfOfUserId extends MappedString(this, 255)
+  object IsPublic extends MappedBoolean(this) {
+    override def defaultValue = false
+  }
   object CreatedAt extends MappedDateTime(this)
 
   override def fileId: String = FileId.get
@@ -160,6 +179,7 @@ class File extends FileT with LongKeyedMapper[File] with IdPK {
   override def fileName: String = FileName.get
   override def userId: String = UserId.get
   override def onBehalfOfUserId: String = Option(OnBehalfOfUserId.get).getOrElse("")
+  override def isPublic: Boolean = IsPublic.get
   override def createdAt: Date = CreatedAt.get
 }
 
@@ -171,7 +191,13 @@ class FileContent extends LongKeyedMapper[FileContent] with IdPK {
   override def getSingleton = FileContent
 
   object FileId extends MappedString(this, 36)
-  object Content extends MappedBinary(this)
+  object Content extends MappedBinary(this) {
+    // Lift creates a binary column as BINARY on H2, which H2 2.x reads as BINARY(1): one byte. Use VARBINARY
+    // there (not BLOB, which Mapper reads back as a Blob, not bytes). Other databases keep Lift's type
+    // (BYTEA on PostgreSQL).
+    override def fieldCreatorString(dbType: net.liftweb.db.DriverType, colName: String): String =
+      if (dbType == net.liftweb.db.H2Driver) colName + " VARBINARY" else super.fieldCreatorString(dbType, colName)
+  }
 }
 
 object FileContent extends FileContent with LongKeyedMetaMapper[FileContent] {

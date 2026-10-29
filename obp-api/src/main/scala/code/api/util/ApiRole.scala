@@ -488,6 +488,16 @@ object ApiRole extends MdcLoggable{
   case class CanCreateAsset(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAsset = CanCreateAsset()
 
+  // Files: held at a bank or at SYS (the system space). There are deliberately no AtAnyBank versions.
+  case class CanCreateFileAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateFileAtOneBank = CanCreateFileAtOneBank()
+
+  case class CanCreatePublicFileAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreatePublicFileAtOneBank = CanCreatePublicFileAtOneBank()
+
+  case class CanGetFileAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetFileAtOneBank = CanGetFileAtOneBank()
+
   case class CanCreateFxRate(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateFxRate = CanCreateFxRate()
 

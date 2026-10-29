@@ -1081,7 +1081,8 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
   /** The entity's auth mode as the framework type; unknown or empty values read as UserOnly. */
   val endpointAuthMode: code.api.util.APIUtil.EndpointAuthMode = authMode match {
     case code.dynamicEntity.DynamicEntityAuthMode.ApplicationOnly => code.api.util.APIUtil.ApplicationOnly
-    case code.dynamicEntity.DynamicEntityAuthMode.UserOrApplication => code.api.util.APIUtil.UserOrApplication
+    case code.dynamicEntity.DynamicEntityAuthMode.UserXORApplication | code.dynamicEntity.DynamicEntityAuthMode.LegacyUserOrApplication =>
+      code.api.util.APIUtil.UserXORApplication
     case code.dynamicEntity.DynamicEntityAuthMode.UserAndApplication => code.api.util.APIUtil.UserAndApplication
     case _ => code.api.util.APIUtil.UserOnly
   }

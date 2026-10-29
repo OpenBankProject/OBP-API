@@ -817,7 +817,7 @@ object Http4s700 {
       List(ApplicationNotIdentified, UnknownError),
       apiTagConsumer :: apiTagApi :: Nil,
       None,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getCurrentConsumerIdentity)
     )
 
@@ -855,7 +855,7 @@ object Http4s700 {
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       apiTagConsumer :: Nil,
       Some(List(ApiRole.canGetConsumers)),
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsumers)
     )
 
@@ -1086,7 +1086,7 @@ object Http4s700 {
       List(ApplicationNotIdentified, UnknownError),
       apiTagConsumer :: apiTagScope :: apiTagApi :: Nil,
       None,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getCurrentConsumerScopes)
     )
 
@@ -5076,6 +5076,12 @@ object Http4s700 {
         |
         |This call is idempotent: re-posting identical evidence returns the stored record. Posting different evidence for a Transaction Request that already has evidence attached is refused — evidence is append-once and cannot be overwritten.
         |
+        |**Who may call it.** A person with the Role CanAttachOpenCorridorPromise at BANK_ID, or an application whose Consumer holds it
+        |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
+        |Such a token gives the application a User of its own (provider obp-oidc#client), so `reported_by_user_id` is
+        |the application's own User when it acted, or the person's when a person did.
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |
         |Authentication is Required.""".stripMargin,
       openCorridorPromiseBodyExample,
       JSONFactory700.OpenCorridorPromiseJsonV700(
@@ -5095,6 +5101,7 @@ object Http4s700 {
            OpenCorridorPromiseEvidenceConflict, TransactionRequestLockFailed, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canAttachOpenCorridorPromise)),
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(attachOpenCorridorPromise)
     )
 
@@ -5608,6 +5615,10 @@ object Http4s700 {
         |
         |Requires `open_corridor_enabled=true` on this instance and the `CanSettleOpenCorridor` role at BANK_ID.
         |
+        |**Who may call it.** A person with the Role CanSettleOpenCorridor at BANK_ID, or an application whose Consumer holds it
+        |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |
         |Authentication is Required.""".stripMargin,
       JSONFactory700.PostOpenCorridorSettlementJsonV700(other_bank_id = "ke.01.kcs", currency = "KES"),
       JSONFactory700.OpenCorridorSettleResultJsonV700(
@@ -5627,6 +5638,7 @@ object Http4s700 {
            $BankNotFound, AmqpBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(createOpenCorridorSettlement)
     )
 
@@ -5665,6 +5677,10 @@ object Http4s700 {
         |
         |Requires `open_corridor_enabled=true` and the `CanSettleOpenCorridor` role at BANK_ID (interim — a platform-operator role may replace this).
         |
+        |**Who may call it.** A person with the Role CanSettleOpenCorridor at BANK_ID, or an application whose Consumer holds it
+        |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |
         |Authentication is Required.""".stripMargin,
       JSONFactory700.PostOpenCorridorFeeSettlementJsonV700(currency = "KES"),
       code.opencorridorfees.OpenCorridorFeeSweepResultJsonV700(
@@ -5680,6 +5696,7 @@ object Http4s700 {
            $BankNotFound, AmqpBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(createOpenCorridorFeeSettlement)
     )
 
@@ -5716,6 +5733,10 @@ object Http4s700 {
         |
         |Requires `open_corridor_enabled=true` on this instance and the `CanSettleOpenCorridor` role at BANK_ID.
         |
+        |**Who may call it.** A person with the Role CanSettleOpenCorridor at BANK_ID, or an application whose Consumer holds it
+        |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |
         |Authentication is Required.""".stripMargin,
       EmptyBody,
       JSONFactory700.OpenCorridorSettlementStatusJsonV700(
@@ -5741,6 +5762,7 @@ object Http4s700 {
            OpenCorridorSettlementNotFound, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getOpenCorridorSettlement)
     )
 
@@ -7879,6 +7901,9 @@ object Http4s700 {
 
     // The asset registry: the currencies, metals, accounting units, crypto assets and bank-issued assets amounts are held in.
     resourceDocs ++= Http4s700Assets.resourceDocs
+
+    // Files: documents and photographs stored in a space and attached to records, and the public ones served without login.
+    resourceDocs ++= Http4s700Files.resourceDocs
 
     // What an OIDC provider reads from OBP-API to finish signing a User in for a Consumer.
     resourceDocs ++= Http4s700OpenIdConnect.resourceDocs

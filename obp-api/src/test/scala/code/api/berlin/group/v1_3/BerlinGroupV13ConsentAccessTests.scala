@@ -727,7 +727,7 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
     }
   }
 
-  // The GET siblings were brought to UserOrApplication on their own; these two were held back
+  // The GET siblings were brought to UserXORApplication on their own; these two were held back
   // because a doc's auth mode says nothing useful until the handler has an answer to which PSU an
   // authorisation is for. They now do, and the answer does not come from the session, so the docs
   // can state what these calls have always been: the TPP acting as itself.
@@ -746,11 +746,11 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
       "updateConsentsPsuDataUpdateAuthorisationConfirmation"
     )
     for (name <- authorisationDocs) {
-      scenario(s"$name declares UserOrApplication", BerlinGroupV13ConsentAccess) {
+      scenario(s"$name declares UserXORApplication", BerlinGroupV13ConsentAccess) {
         val docs = APIUtil.ResourceDoc.getResourceDocs(
           List(APIUtil.buildOperationId(ConstantsBG.berlinGroupVersion1, name)))
         docs should not be empty
-        docs.foreach(_.authMode should equal(APIUtil.UserOrApplication))
+        docs.foreach(_.authMode should equal(APIUtil.UserXORApplication))
       }
     }
   }

@@ -598,6 +598,19 @@ object ErrorMessages {
   val AssetChainIdentityAlreadyExists = "OBP-30584: Another asset already has this chain identity. Please specify a different chain_scheme and chain_asset_id."
   val AssetDtiAlreadyExists = "OBP-30585: Another asset already has this DTI. Please specify a different value for dti."
 
+  // Files (OBP-30586 .. OBP-30596)
+  val FileNotFound = "OBP-30586: File not found. Please specify a valid value for FILE_ID."
+  val InvalidFile = "OBP-30587: Invalid file."
+  val FileTooLarge = "OBP-30588: The file is larger than this instance allows."
+  val FileMediaTypeNotAllowed = "OBP-30589: This media type is not allowed for files."
+  val FileSha256Mismatch = "OBP-30590: The sha256 given does not match the content of the file."
+  val FileAttachmentAlreadyExists = "OBP-30591: The file is already attached to this record."
+  val FileAttachmentNotFound = "OBP-30592: File attachment not found. Please specify a valid value for FILE_ATTACHMENT_ID."
+  val FileAccessAlreadyExists = "OBP-30593: This User already has access to the file."
+  val FileAccessNotFound = "OBP-30594: This User has not been given access to the file."
+  val InvalidFileQueryParameter = "OBP-30595: Invalid query parameter for files."
+  val FileOwnerRequired = "OBP-30596: Only the file's owner may do this."
+
   val OrganisationNotFound = "OBP-30506: Organisation not found. Please specify a valid value for ORGANISATION_ID."
   val OrganisationAlreadyExists = "OBP-30507: Organisation already exists. Please specify a different value for ORGANISATION_ID."
   val InvalidOrganisationIdFormat = "OBP-30508: Invalid Organisation Id. The ORGANISATION_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', and be between 2 and 64 characters in length."

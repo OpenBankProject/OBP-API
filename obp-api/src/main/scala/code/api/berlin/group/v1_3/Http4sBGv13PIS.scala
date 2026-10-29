@@ -34,7 +34,7 @@ import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.berlin.group.v1_3.model.TransactionStatus.mapTransactionStatus
 import code.api.berlin.group.v1_3.model._
-import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, UserOrApplication, getScaMethodAtInstance, getServerUrl, isValidCurrencyISOCode, mockedDataText, passesPsd2Pisp}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, UserXORApplication, getScaMethodAtInstance, getServerUrl, isValidCurrencyISOCode, mockedDataText, passesPsd2Pisp}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CustomJsonFormats
@@ -143,7 +143,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   /**
    * Shared business logic for all three initiate-payment variants (payments / periodic-payments /
    * bulk-payments). Mirrors `initiatePaymentImplementation` from the Lift builder; auth is handled
-   * by middleware (authMode = UserOrApplication), so no inline applicationAccess call.
+   * by middleware (authMode = UserXORApplication), so no inline applicationAccess call.
    */
   private def initiatePaymentImpl(
     paymentService: String,
@@ -427,7 +427,7 @@ object Http4sBGv13PIS extends MdcLoggable {
   }
 
   // ── POST /payments/{paymentProduct} ──────────────────────────────────────────────────────────────
-  // Auth: applicationAccess in Lift → authMode = UserOrApplication in ResourceDoc
+  // Auth: applicationAccess in Lift → authMode = UserXORApplication in ResourceDoc
   lazy val initiatePayments: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / "payments" / paymentProduct =>
       EndpointHelpers.executeFutureCreated(req) {
@@ -1042,7 +1042,7 @@ $generalPaymentSummaryText""",
       initiatePaymentResponseBody,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(initiatePayments)
     )
 
@@ -1075,7 +1075,7 @@ $generalPaymentSummaryText""",
       }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(initiatePeriodicPayments)
     )
 
@@ -1111,7 +1111,7 @@ $generalPaymentSummaryText""",
       }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(initiateBulkPayments)
     )
   }

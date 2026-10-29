@@ -3,6 +3,47 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+29/10/2026    TBD           ADDED: Files in v7.0.0: documents and photographs stored in a space (a bank, or
+                            SYS) and attached to records. POST /banks/BANK_ID/files stores one, base64 in
+                            JSON (Role CanCreateFileAtOneBank; is_public true also needs
+                            CanCreatePublicFileAtOneBank). GET .../files/FILE_ID, .../content (the bytes,
+                            with the file's Content-Type, ETag and Content-Disposition), .../attachments,
+                            GET .../files?record_type=&record_id= and GET .../my/files, for the owner, a
+                            User given access, or CanGetFileAtOneBank. PUT .../files/FILE_ID/is-public
+                            (CanCreatePublicFileAtOneBank). POST/DELETE .../attachments and .../access.
+                            Public files are served without login by GET .../public-files,
+                            .../public-files/FILE_ID and .../public-files/FILE_ID/content, which serve
+                            public files only. No AtAnyBank Roles; a Role at SYS covers the system space.
+                            Media types are at most image/jpeg, image/png, image/webp, application/pdf
+                            (files.allowed_media_types can narrow them); size limit files.max_size_in_bytes
+                            (default 10 MB). New column File.IsPublic, new Roles, new tag File, new errors
+                            OBP-30586 to OBP-30596, new Glossary item Files.
+29/10/2026    TBD           CHANGED: the endpoint auth mode UserOrApplication is replaced by UserXORApplication.
+                            A request is either a person acting or an application acting as itself,
+                            never a mix. The application acts as itself when there is no User, or the User
+                            is its own, the one an OBP-OIDC client-credentials token resolves to (provider
+                            obp-oidc#client, named after the client id): then only its Consumer's Scopes
+                            count. Otherwise only the User's Entitlements count; a person calling through a
+                            Consumer that holds a Scope no longer gets it (DirectLogin needs only the
+                            consumer key, so anyone with an account and the key could). Who is let in is
+                            now who is recorded as acting. Applies to every endpoint that was
+                            UserOrApplication (log cache, telemetry, Platform Apps, Grants, OIDC / Consumer
+                            bootstrap, Dynamic Entity definitions, Get My Role, verify credentials, ...).
+                            require_scopes_for_all_roles / require_scopes_for_listed_roles no longer make
+                            an application acting as itself on an ApplicationOnly or UserXORApplication
+                            endpoint also need Entitlements. Dynamic Entity auth_mode accepts the former
+                            value UserOrApplication and stores and returns it as UserXORApplication; rows
+                            already stored with it read as UserXORApplication. Get My Role's
+                            allowed_for_auth_modes names UserXORApplication, and application_only is true
+                            only for a User of provider obp-oidc#client.
+29/10/2026    TBD           CHANGED: v7.0.0 Attach Open Corridor Promise Evidence, Create Open Corridor
+                            Settlement, Create Open Corridor Fee Settlement and Get Open Corridor
+                            Settlement are UserXORApplication: a person with the Role at BANK_ID as an
+                            Entitlement, or an application acting as itself whose Consumer holds it as a
+                            Scope at BANK_ID, such as a bank's Bank Node with a client-credentials token.
+                            reported_by_user_id is the application's own User when it acted. A call with no
+                            credentials still gets 401, now with ApplicationNotIdentified instead of
+                            AuthenticatedUserIsRequired. Response bodies are unchanged.
 13/10/2026    TBD           ADDED: Domain APIs have is_publicly_discoverable (new column
                             domain_api.is_publicly_discoverable, false by default). The new public
                             GET /obp/v7.0.0/banks/BANK_ID/domain-apis lists, without authentication, the

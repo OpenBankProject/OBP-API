@@ -168,7 +168,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |
        |### Client Credentials Flow (2-legged / Application Only)
        |
-       |Use this flow for endpoints with authMode ApplicationOnly or UserOrApplication.
+       |Use this flow for endpoints with authMode ApplicationOnly or UserXORApplication.
        |The application authenticates itself using its client_id and client_secret without a user login.
        |
        |    POST $oidcTokenEndpoint

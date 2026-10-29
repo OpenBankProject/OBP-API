@@ -1263,11 +1263,11 @@ object Glossary extends MdcLoggable  {
 |
 |* **ApplicationOnly**: Only the Consumer's Scopes are checked. No User is required.
 |
-|* **UserOrApplication**: Access is granted if the Consumer has the required Scope **OR** the User has the required Entitlement. This effectively gives the union of both.
+|* **UserXORApplication**: Either a person or the Application acting as itself, never a mix. When the Application acts as itself (there is no User, or the User is the Application's own, the one an OBP-OIDC client-credentials token resolves to: provider *obp-oidc#client*, named after the client id), only the Consumer's Scopes are checked. Otherwise a person is acting, and only the User's Entitlements are checked: the Consumer's Scopes are ignored. It was called *UserOrApplication* until October 2026, when it granted access if either held the Role.
 |
 |* **UserAndApplication**: Access is granted only if the Consumer has the required Scope **AND** the User has the required Entitlement. Both are required.
 |
-|For example, if a User logs in via DirectLogin with a Consumer that has the Scope *CanGetConsumers*, and the endpoint's authMode is *UserOrApplication*, the User can access the endpoint even without a personal *CanGetConsumers* Entitlement (because the Consumer's Scope is sufficient).
+|For example, if a User logs in via DirectLogin with a Consumer that has the Scope *CanGetConsumers*, and the endpoint's authMode is *UserXORApplication*, the User still needs a personal *CanGetConsumers* Entitlement: a person never acts on the Consumer's Scopes. The same Consumer calling with a client-credentials token, as itself, is let in on its Scope. So whoever is let in is also who is recorded as acting.
 |
 |The authMode is set in the ResourceDoc definition for each endpoint, for example:
 |
@@ -1281,13 +1281,13 @@ object Glossary extends MdcLoggable  {
 |  "Get Consumers",
 |  ...,
 |  Some(List(canGetConsumers)),
-|  authMode = UserOrApplication
+|  authMode = UserXORApplication
 |)
 |```
 |
 |If authMode is not specified, it defaults to UserOnly.
 |
-|Note: If the property *require_scopes_for_all_roles* is set to true, all endpoints behave as *UserAndApplication* regardless of their configured authMode.
+|Note: If the property *require_scopes_for_all_roles* is set to true (or *require_scopes_for_listed_roles* lists the Role), endpoints behave as *UserAndApplication* regardless of their configured authMode, except that an Application acting as itself on an *ApplicationOnly* or *UserXORApplication* endpoint still needs only its Scopes: it has no Entitlements to add.
 |
 |See also: [Access Control](/index#API.Access-Control), [Scopes](/index#group-Scope), [Roles](/index#group-Role)
 |
@@ -4087,7 +4087,7 @@ object Glossary extends MdcLoggable  {
 |
 |Two settings apply on top of the routes:
 |
-|* `authMode` says which credential satisfies the role checks on the System route: `UserOnly` (Entitlements), `ApplicationOnly` (Consumer Scopes), `UserOrApplication`, `UserAndApplication`. The Personal and Row level routes always need a User; `ApplicationOnly` is refused on an entity with `hasPersonalEntity`.
+|* `authMode` says which credential satisfies the role checks on the System route: `UserOnly` (Entitlements), `ApplicationOnly` (Consumer Scopes), `UserXORApplication` (Scopes for the Application acting as itself, Entitlements for a person; `UserOrApplication` is accepted as its former name), `UserAndApplication`. The Personal and Row level routes always need a User; `ApplicationOnly` is refused on an entity with `hasPersonalEntity`.
 |* Field roles: a field with a `read_role` is omitted from every response unless the caller holds that role; a field with a `write_role` is only changed by PATCH from a holder (POST ignores it, PUT preserves its value).
 |
 |**Managing a record's access list (row level)**
@@ -7605,6 +7605,61 @@ object Glossary extends MdcLoggable  {
 				 |- [Get Assets](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAssets): `GET /obp/v7.0.0/assets`
 				 |- [Get Asset](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAsset): `GET /obp/v7.0.0/assets/ASSET_CODE`
 				 |- [Get Asset by Chain Identity](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAssetByChainIdentity): `GET /obp/v7.0.0/assets/chain/CHAIN_SCHEME/CHAIN_ASSET_ID`
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Files",
+		description =
+			s"""
+				 |# Files
+				 |
+				 |A **File** is a document such as a PDF or a photograph, stored in a space: a bank, or `SYS` for the system space. A file can be attached to records, such as a Customer or a Dynamic Entity record, and can be shared with Users.
+				 |
+				 |## A file never changes
+				 |
+				 |A file's content never changes once stored, and OBP keeps its SHA-256. A new version of a document is a new file. What can change is which records the file is attached to, which Users have been given access to it, and whether it is public. Files are not deleted.
+				 |
+				 |## Storing a file
+				 |
+				 |Create File takes the file base64 encoded in JSON, with its name and media type. It needs the Role CanCreateFileAtOneBank at the space (granted at `SYS` for the system space; there is no AtAnyBank version). The caller becomes the file's owner: the User an agent acts for, when one does.
+				 |
+				 |At most these media types are ever accepted: image/jpeg, image/png, image/webp and application/pdf. The prop `files.allowed_media_types` can narrow that list but never extend it, and the content must really be of the type it claims. The prop `files.max_size_in_bytes` limits the size (10 MB by default).
+				 |
+				 |## Who may read a file
+				 |
+				 |A logged-in caller may read a file they own, a file its owner has given them access to, or any file of a space where they hold the Role CanGetFileAtOneBank. Only the owner gives and takes access. The owner, or a holder of CanCreateFileAtOneBank, attaches a file to records and detaches it.
+				 |
+				 |These endpoints are UserXORApplication: an application acting as itself, with a client-credentials token, may hold the Roles as Scopes on its Consumer. A person calling through a Consumer still needs their own Entitlements.
+				 |
+				 |## Public files
+				 |
+				 |A file can be public, so anyone can read it without logging in. Storing a public file, or making a file public or not later, also needs the Role CanCreatePublicFileAtOneBank. Public files are served by their own endpoints under `public-files`, which serve nothing that is not public and say nothing of who stored the file. Their content may be cached for an hour, so a withdrawn file may still be served from a cache for that long.
+				 |
+				 |## Content
+				 |
+				 |The content endpoints return the file itself, not JSON, with its own `Content-Type`, its SHA-256 as the `ETag`, and `Content-Disposition` naming it (`?inline=true` to show it in a browser). So that a file can never run as a page of this site, they also send `X-Content-Type-Options: nosniff` and a sandbox `Content-Security-Policy`.
+				 |
+				 |## Storage
+				 |
+				 |The bytes are kept apart from what is known about the file. Today they are stored in the database; they can be moved to object storage without changing the API.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Create File](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createFile): `POST /obp/v7.0.0/banks/BANK_ID/files`
+				 |- [Get File](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFile): `GET /obp/v7.0.0/banks/BANK_ID/files/FILE_ID`
+				 |- [Get File Content](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFileContent): `GET /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/content`
+				 |- [Get Files Attached to a Record](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFilesAttachedToRecord): `GET /obp/v7.0.0/banks/BANK_ID/files?record_type=&record_id=`
+				 |- [Get My Files](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyFiles): `GET /obp/v7.0.0/banks/BANK_ID/my/files`
+				 |- [Update File Is Public](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateFileIsPublic): `PUT /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/is-public`
+				 |- [Create File Attachment](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createFileAttachment): `POST /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/attachments`
+				 |- [Get File Attachments](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFileAttachments): `GET /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/attachments`
+				 |- [Delete File Attachment](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteFileAttachment): `DELETE /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/attachments/FILE_ATTACHMENT_ID`
+				 |- [Create File Access](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createFileAccess): `POST /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/access`
+				 |- [Get File Access](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFileAccess): `GET /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/access`
+				 |- [Delete File Access](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteFileAccess): `DELETE /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/access/USER_ID`
+				 |- [Get Public Files Attached to a Record](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPublicFilesAttachedToRecord): `GET /obp/v7.0.0/banks/BANK_ID/public-files?record_type=&record_id=`
+				 |- [Get Public File](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPublicFile): `GET /obp/v7.0.0/banks/BANK_ID/public-files/FILE_ID`
+				 |- [Get Public File Content](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPublicFileContent): `GET /obp/v7.0.0/banks/BANK_ID/public-files/FILE_ID/content`
 				 |""".stripMargin)
 
 	///////////////////////////////////////////////////////////////////

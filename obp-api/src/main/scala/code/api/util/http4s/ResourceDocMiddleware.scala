@@ -349,14 +349,14 @@ object ResourceDocMiddleware extends MdcLoggable {
     logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
 
     // Dispatch on authMode the same way Lift's wrappedWithAuthCheck (APIUtil.scala:1783-1788) does:
-    //   ApplicationOnly | UserOrApplication → applicationAccess (returns ApplicationNotIdentified
+    //   ApplicationOnly | UserXORApplication → applicationAccess (returns ApplicationNotIdentified
     //     when neither user nor consumer credentials are valid; also accepts consumer-only).
     //   UserOnly | UserAndApplication       → anonymousAccess  (returns AuthenticatedUserIsRequired
     //     when needsAuth is true and user is missing).
     // Without this dispatch, every endpoint behaved as UserOnly — breaking
     // ApplicationNotIdentified semantics for v5.1.0 createConsumer / getConsumers.
     val isAppMode = resourceDoc.authMode match {
-      case APIUtil.ApplicationOnly | APIUtil.UserOrApplication => true
+      case APIUtil.ApplicationOnly | APIUtil.UserXORApplication => true
       case _ => false
     }
     val io = IO.fromFuture(IO(
@@ -372,7 +372,7 @@ object ResourceDocMiddleware extends MdcLoggable {
         case Right((Full(user), None)) =>
           IO.pure(Right(ctx.copy(user = Full(user))))
         // Empty box — no valid credentials provided, and auth is required.
-        // For UserOrApplication / ApplicationOnly: applicationAccess already returned
+        // For UserXORApplication / ApplicationOnly: applicationAccess already returned
         // successfully because the consumer is valid (just no user). Pass through.
         case Right((_, optCC)) if needsAuth && !isAppMode =>
           val cc2 = optCC.getOrElse(ctx.callContext)
@@ -417,10 +417,10 @@ object ResourceDocMiddleware extends MdcLoggable {
           case Full(user) =>
             val bankId = pathParams.getOrElse("BANK_ID", "")
             val consumerId = APIUtil.getConsumerPrimaryKey(Some(ctx.callContext))
-            // Use handleAccessControlWithAuthMode so authMode = UserOrApplication
-            // accepts consumer-scope-only requests (the auth-only handleAccess...
+            // Use handleAccessControlWithAuthMode so authMode = UserXORApplication
+            // accepts an application acting as itself on its Scopes (the auth-only handleAccess...
             // function checks user-entitlements + scopes ANDed and rejects pure
-            // consumer-scope requests with 403 even under UserOrApplication).
+            // consumer-scope requests with 403 even under UserXORApplication).
             val ok = APIUtil.handleAccessControlWithAuthMode(bankId, user.userId, consumerId, roles, resourceDoc.authMode)
             if (ok) success(ctx)
             else EitherT[IO, Response[IO], ValidationContext](
@@ -749,9 +749,10 @@ object ResourceDocMiddleware extends MdcLoggable {
     )
   }
 
-  /** Ensure the response has JSON content type */
+  /** Ensure the response has JSON content type, unless its body is a file's bytes with the file's own type */
   private def ensureJsonContentType(response: Response[IO]): Response[IO] = {
-    response.contentType match {
+    if (response.attributes.contains(Http4sRequestAttributes.fileContentResponseKey)) response
+    else response.contentType match {
       case Some(contentType) if contentType.mediaType == MediaType.application.json => response
       case _ => response.withContentType(jsonContentType)
     }

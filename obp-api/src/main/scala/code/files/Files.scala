@@ -61,6 +61,8 @@ trait FileT {
   def userId: String
   /** The User an agent uploaded the file for. Empty when nobody was delegating. */
   def onBehalfOfUserId: String
+  /** Anyone may read a public file, without logging in, through the public file endpoints. */
+  def isPublic: Boolean
   def createdAt: Date
 
   /** The file's owner: the User an agent acted for, or else the User who uploaded it. */
@@ -103,14 +105,19 @@ trait FileStore {
 
 trait FilesProvider {
   /** Store the bytes and the metadata of a new file, together. */
-  def createFile(bankId: String, sha256: String, mediaType: String, fileName: String,
+  def createFile(bankId: String, sha256: String, mediaType: String, fileName: String, isPublic: Boolean,
                  userId: String, onBehalfOfUserId: String, bytes: Array[Byte]): Box[FileT]
   def getFile(bankId: String, fileId: String): Box[FileT]
   def getContent(fileId: String): Box[Array[Byte]]
+  /** Whether the file is public is the one thing about it that can change; its bytes never do. */
+  def setPublic(bankId: String, fileId: String, isPublic: Boolean): Box[FileT]
+  /** The files of a space that the User owns or has been given access to, oldest first. */
+  def getFilesOwnedOrSharedWith(bankId: String, userId: String): List[FileT]
 
   def createAttachment(file: FileT, recordType: String, recordId: String,
                        userId: String, onBehalfOfUserId: String): Box[FileAttachmentT]
   def getAttachment(bankId: String, fileId: String, fileAttachmentId: String): Box[FileAttachmentT]
+  def getAttachments(bankId: String, fileId: String): List[FileAttachmentT]
   def attachmentExists(fileId: String, recordType: String, recordId: String): Boolean
   def deleteAttachment(fileAttachmentId: String): Box[Boolean]
   /** The files attached to one record of a space. */
