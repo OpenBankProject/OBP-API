@@ -52,11 +52,12 @@ import org.json4s.Formats
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
+import scala.util.Try
 
 /**
  * This object holds the v7.0.0 file endpoints: documents such as PDFs and photographs that belong to a
- * space (a bank, or SYS) and can be attached to records. See [[code.files.Files]], the Glossary item
- * "Files" and ideas/ogcr_file_storage.md.
+ * space (a bank, or SYS) and can be attached to records. See [[code.files.Files]] and the Glossary item
+ * "Files".
  *
  * Uploading needs CanCreateFileAtOneBank at the space, and making a file public also needs
  * CanCreatePublicFileAtOneBank. There are no AtAnyBank Roles: a Role at SYS covers the system space.
@@ -110,10 +111,6 @@ object Http4s700Files {
   /** The ids the caller acts as: their own, and the User an agent acts for. */
   private def actingUserIds(user: User, cc: CallContext): Set[String] =
     Set(user.userId, cc.onBehalfOfUserId).filter(_.nonEmpty)
-
-  /** The User an agent acts for, or empty when the caller acts for themselves. */
-  private def onBehalfOfUserId(user: User, cc: CallContext): String =
-    Option(cc.onBehalfOfUserId).filter(id => id.nonEmpty && id != user.userId).getOrElse("")
 
   private def holdsRole(bankId: String, user: User, cc: CallContext, role: ApiRole): Boolean =
     APIUtil.handleAccessControlWithAuthMode(bankId, user.userId, APIUtil.getConsumerPrimaryKey(Some(cc)), List(role), UserXORApplication)
@@ -202,7 +199,7 @@ object Http4s700Files {
             body.sha256.map(_.trim).filter(_.nonEmpty).forall(_.equalsIgnoreCase(sha256))
           }
           file <- Future(Files.provider.vend.createFile(bankIdInUrl, sha256, mediaType, fileName, isPublic,
-            user.userId, onBehalfOfUserId(user, cc), bytes))
+            user.userId, bytes))
             .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Could not store the file.", 400))
         } yield JSONFactory700Files.createFileJson(file)
       }
@@ -281,6 +278,58 @@ object Http4s700Files {
     None,
     authMode = UserXORApplication,
     http4sPartialFunction = Some(getFilesAttachedToRecord)
+  ).allowSystemSpace()
+
+  /** The most files one page of Get Files of a Space returns, and the default page size. */
+  val MaxPageSize = 500
+
+  // Route: GET /obp/v7.0.0/management/banks/BANK_ID/files
+  lazy val getFilesOfSpace: Http4sRoute = Http4sRoute {
+    case req @ GET -> `prefixPath` / "management" / "banks" / bankIdInUrl / "files" =>
+      EndpointHelpers.withUser(req) { (_, cc) =>
+        val parameters = req.uri.query.params
+        def number(name: String, default: Int): Int =
+          parameters.get(name).map(_.trim).filter(_.nonEmpty).map(value => Try(value.toInt).getOrElse(-1)).getOrElse(default)
+        val limit = number("limit", MaxPageSize)
+        val offset = number("offset", 0)
+        for {
+          _ <- Helper.booleanToFuture(s"$InvalidFileQueryParameter limit must be a whole number from 1 to $MaxPageSize.", 400, Some(cc)) {
+            limit >= 1 && limit <= MaxPageSize
+          }
+          _ <- Helper.booleanToFuture(s"$InvalidFileQueryParameter offset must be a whole number, 0 or more.", 400, Some(cc)) {
+            offset >= 0
+          }
+          (files, total) <- Future(Files.provider.vend.getFiles(bankIdInUrl, limit, offset))
+        } yield JSONFactory700Files.createFilesPageJson(files, total, limit, offset)
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(getFilesOfSpace),
+    "GET",
+    "/management/banks/BANK_ID/files",
+    "Get Files of a Space",
+    s"""Lists all the files of a space (a bank, or `SYS` for the system space), newest first, whoever owns them.
+       |
+       |Query parameters, both optional:
+       |
+       |- `limit`: the most files to return, from 1 to $MaxPageSize (default $MaxPageSize)
+       |- `offset`: how many files to skip (default 0)
+       |
+       |`pagination.total` is the number of files in the space.
+       |
+       |**Who may call it.** A User with the Role CanGetFileAtOneBank at BANK_ID, or an application acting as itself
+       |whose Consumer holds it as a Scope.
+       |
+       |Authentication is Required.""".stripMargin,
+    EmptyBody,
+    JSONFactory700Files.filesPageJsonExample,
+    List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidFileQueryParameter, UnknownError),
+    List(apiTagFile),
+    Some(List(canGetFileAtOneBank)),
+    authMode = UserXORApplication,
+    http4sPartialFunction = Some(getFilesOfSpace)
   ).allowSystemSpace()
 
   // Route: GET /obp/v7.0.0/banks/BANK_ID/my/files
@@ -427,7 +476,7 @@ object Http4s700Files {
           _ <- Helper.booleanToFuture(s"$FileAttachmentAlreadyExists Current record is $recordType $recordId.", 409, Some(cc)) {
             !Files.provider.vend.attachmentExists(fileId, recordType, recordId)
           }
-          attachment <- Future(Files.provider.vend.createAttachment(file, recordType, recordId, user.userId, onBehalfOfUserId(user, cc)))
+          attachment <- Future(Files.provider.vend.createAttachment(file, recordType, recordId, user.userId))
             .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Could not attach the file.", 400))
         } yield JSONFactory700Files.createFileAttachmentJson(attachment)
       }
@@ -542,12 +591,16 @@ object Http4s700Files {
         val granteeUserId = Option(body.user_id).map(_.trim).getOrElse("")
         for {
           file <- ownedFile(bankIdInUrl, fileId, user, cc)
-          _ <- Future(code.users.Users.users.vend.getUserByUserId(granteeUserId))
+          grantee <- Future(code.users.Users.users.vend.getUserByUserId(granteeUserId))
             .map(unboxFullOrFail(_, Some(cc), s"$UserNotFoundByUserId Current user_id is $granteeUserId", 404))
+          // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+          _ <- Helper.booleanToFuture(
+            s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Access to a file is given to humans - use the granting user's USER_ID.",
+            400, Some(cc))(!grantee.isConsentUser)
           _ <- Helper.booleanToFuture(s"$FileAccessAlreadyExists Current user_id is $granteeUserId.", 409, Some(cc)) {
             Files.provider.vend.getAccess(file.fileId, granteeUserId).isEmpty
           }
-          access <- Future(Files.provider.vend.grantAccess(file.fileId, granteeUserId, user.userId, onBehalfOfUserId(user, cc)))
+          access <- Future(Files.provider.vend.grantAccess(file.fileId, granteeUserId, user.userId))
             .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Could not give access to the file.", 400))
         } yield JSONFactory700Files.createFileAccessJson(access)
       }
@@ -560,7 +613,8 @@ object Http4s700Files {
     "/banks/BANK_ID/files/FILE_ID/access",
     "Create File Access",
     s"""Gives a User read access to a file: they can then see it with Get File, Get File Content, Get File
-       |Attachments and Get My Files.
+       |Attachments and Get My Files. The User must be a person: a consent user is refused, since access given to
+       |one would end with its Consent.
        |
        |**Who may call it.** The file's owner only.
        |
@@ -568,7 +622,7 @@ object Http4s700Files {
     JSONFactory700Files.postFileAccessJsonExample,
     JSONFactory700Files.fileAccessJsonExample,
     List($BankNotFound, $AuthenticatedUserIsRequired, InvalidJsonFormat, FileNotFound, FileOwnerRequired,
-      UserNotFoundByUserId, FileAccessAlreadyExists, UnknownError),
+      UserNotFoundByUserId, InvalidUserId, FileAccessAlreadyExists, UnknownError),
     List(apiTagFile),
     None,
     authMode = UserXORApplication,

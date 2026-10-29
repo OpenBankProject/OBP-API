@@ -251,6 +251,34 @@ class FilesTest extends V600ServerSetup {
     }
   }
 
+  feature(s"Get Files of a Space - GET /management/banks/BANK_ID/files - $VersionOfApi") {
+
+    scenario("Lists every file of the space, newest first, for a holder of CanGetFileAtOneBank only", Files, VersionOfApi) {
+      val older = uploaded()
+      val newer = uploaded()
+      val request = v7_0_0_Request / "management" / "banks" / bankId / "files"
+
+      makeGetRequest(request.GET).code should equal(401)
+      val refused = makeGetRequest(request.GET <@ (user2))
+      refused.code should equal(403)
+      message(refused) should include(CanGetFileAtOneBank.toString)
+
+      withEntitlements((bankId, resourceUser2.userId, CanGetFileAtOneBank.toString)) {
+        val page = makeGetRequest(request.GET <@ (user2)).body.extract[FilesPageJsonV700]
+        val ids = page.files.map(_.file_id)
+        ids should contain allOf (older.file_id, newer.file_id)
+        ids.indexOf(newer.file_id) should be < ids.indexOf(older.file_id)
+        page.pagination.total should be >= 2L
+
+        val first = makeGetRequest(request.GET <@ (user2) <<? List("limit" -> "1")).body.extract[FilesPageJsonV700]
+        first.files.size should equal(1)
+        first.pagination.limit should equal(1)
+
+        message(makeGetRequest(request.GET <@ (user2) <<? List("limit" -> "0"))) should include(InvalidFileQueryParameter)
+      }
+    }
+  }
+
   feature(s"Public files - $VersionOfApi") {
 
     scenario("A public file is served without logging in, and says nothing of who stored it", Files, VersionOfApi) {
@@ -330,6 +358,12 @@ class FilesTest extends V600ServerSetup {
 
       message(makePostRequest(access.POST <@ (user2), write(PostFileAccessJsonV700(resourceUser2.userId)))) should include(FileOwnerRequired)
       message(makePostRequest(access.POST <@ (user1), write(PostFileAccessJsonV700("no-such-user")))) should include(UserNotFoundByUserId)
+
+      And("a consent user is refused: access given to one would end with its Consent")
+      resourceUser4.isConsentUser should equal(true)
+      val consentUser = makePostRequest(access.POST <@ (user1), write(PostFileAccessJsonV700(resourceUser4.userId)))
+      consentUser.code should equal(400)
+      message(consentUser) should include(InvalidUserId)
 
       makePostRequest(access.POST <@ (user1), write(PostFileAccessJsonV700(resourceUser2.userId))).code should equal(201)
       message(makePostRequest(access.POST <@ (user1), write(PostFileAccessJsonV700(resourceUser2.userId)))) should include(FileAccessAlreadyExists)

@@ -28,6 +28,7 @@ package code.files
 
 import java.util.{Date, UUID}
 
+import code.users.{UserReference, Users}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -41,10 +42,16 @@ object MappedFilesProvider extends FilesProvider {
   /** Where the bytes go. Replaced by an object storage implementation when the volume calls for it. */
   val store: FileStore = PostgresFileStore
 
+  /** The caller and, when an agent called for somebody, that somebody (empty otherwise), by the
+   *  reference's attribution policy: these tables record both. */
+  private def attributed(userId: String, ref: UserReference): Box[(String, String)] =
+    Users.users.vend.attributionOf(userId, ref).map(a => (a.userId, if (a.isDelegated) a.onBehalfOfUserId else ""))
+
   override def createFile(bankId: String, sha256: String, mediaType: String, fileName: String, isPublic: Boolean,
-                          userId: String, onBehalfOfUserId: String, bytes: Array[Byte]): Box[FileT] = {
+                          userId: String, bytes: Array[Byte]): Box[FileT] = {
     val fileId = UUID.randomUUID().toString
     for {
+      (callerId, onBehalfOfUserId) <- attributed(userId, UserReference.File_UserId)
       _ <- store.write(fileId, bytes)
       file <- tryo {
         File.create
@@ -55,7 +62,7 @@ object MappedFilesProvider extends FilesProvider {
           .MediaType(mediaType)
           .FileName(fileName)
           .IsPublic(isPublic)
-          .UserId(userId)
+          .UserId(callerId)
           .OnBehalfOfUserId(onBehalfOfUserId)
           .CreatedAt(new Date())
           .saveMe()
@@ -71,6 +78,10 @@ object MappedFilesProvider extends FilesProvider {
   override def setPublic(bankId: String, fileId: String, isPublic: Boolean): Box[FileT] =
     File.find(By(File.BankId, bankId), By(File.FileId, fileId)).flatMap(file => tryo(file.IsPublic(isPublic).saveMe()))
 
+  override def getFiles(bankId: String, limit: Int, offset: Int): (List[FileT], Long) =
+    (File.findAll(By(File.BankId, bankId), OrderBy(File.CreatedAt, Descending), MaxRows(limit), StartAt(offset)),
+      File.count(By(File.BankId, bankId)))
+
   override def getFilesOwnedOrSharedWith(bankId: String, userId: String): List[FileT] = {
     val uploaded = File.findAll(By(File.BankId, bankId), By(File.UserId, userId), By(File.OnBehalfOfUserId, ""))
     val uploadedFor = File.findAll(By(File.BankId, bankId), By(File.OnBehalfOfUserId, userId))
@@ -79,18 +90,20 @@ object MappedFilesProvider extends FilesProvider {
     (uploaded ++ uploadedFor ++ shared).groupBy(_.fileId).values.map(_.head).toList.sortBy(_.createdAt.getTime)
   }
 
-  override def createAttachment(file: FileT, recordType: String, recordId: String,
-                                userId: String, onBehalfOfUserId: String): Box[FileAttachmentT] = tryo {
-    FileAttachment.create
-      .FileId(file.fileId)
-      .BankId(file.bankId)
-      .RecordType(recordType)
-      .RecordId(recordId)
-      .UserId(userId)
-      .OnBehalfOfUserId(onBehalfOfUserId)
-      .CreatedAt(new Date())
-      .saveMe()
-  }
+  override def createAttachment(file: FileT, recordType: String, recordId: String, userId: String): Box[FileAttachmentT] =
+    attributed(userId, UserReference.FileAttachment_UserId).flatMap { case (callerId, onBehalfOfUserId) =>
+      tryo {
+        FileAttachment.create
+          .FileId(file.fileId)
+          .BankId(file.bankId)
+          .RecordType(recordType)
+          .RecordId(recordId)
+          .UserId(callerId)
+          .OnBehalfOfUserId(onBehalfOfUserId)
+          .CreatedAt(new Date())
+          .saveMe()
+      }
+    }
 
   override def getAttachment(bankId: String, fileId: String, fileAttachmentId: String): Box[FileAttachmentT] =
     FileAttachment.find(By(FileAttachment.BankId, bankId), By(FileAttachment.FileId, fileId),
@@ -118,15 +131,20 @@ object MappedFilesProvider extends FilesProvider {
     }
   }
 
-  override def grantAccess(fileId: String, granteeUserId: String, grantedByUserId: String, onBehalfOfUserId: String): Box[FileAccessT] = tryo {
-    FileAccess.create
-      .FileId(fileId)
-      .GranteeUserId(granteeUserId)
-      .GrantedByUserId(grantedByUserId)
-      .OnBehalfOfUserId(onBehalfOfUserId)
-      .CreatedAt(new Date())
-      .saveMe()
-  }
+  // The grantee is an explicit target named in the request: the endpoint refuses a consent user rather
+  // than redirecting, since access given to one would die with its Consent.
+  override def grantAccess(fileId: String, granteeUserId: String, grantedByUserId: String): Box[FileAccessT] =
+    attributed(grantedByUserId, UserReference.FileAccess_GrantedByUserId).flatMap { case (callerId, onBehalfOfUserId) =>
+      tryo {
+        FileAccess.create
+          .FileId(fileId)
+          .GranteeUserId(granteeUserId)
+          .GrantedByUserId(callerId)
+          .OnBehalfOfUserId(onBehalfOfUserId)
+          .CreatedAt(new Date())
+          .saveMe()
+      }
+    }
 
   override def getAccess(fileId: String, granteeUserId: String): Box[FileAccessT] =
     FileAccess.find(By(FileAccess.FileId, fileId), By(FileAccess.GranteeUserId, granteeUserId))

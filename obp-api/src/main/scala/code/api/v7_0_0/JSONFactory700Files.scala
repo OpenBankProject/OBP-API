@@ -52,6 +52,11 @@ case class FileJsonV700(
 
 case class FilesJsonV700(files: List[FileJsonV700])
 
+case class FilesPaginationJsonV700(total: Long, limit: Int, offset: Int)
+
+/** One page of all the files of a space, for administrators. */
+case class FilesPageJsonV700(files: List[FileJsonV700], pagination: FilesPaginationJsonV700)
+
 /**
  * A public file as anyone may see it, without logging in: what it is, but not who uploaded it.
  */
@@ -127,6 +132,9 @@ object JSONFactory700Files {
 
   def createFilesJson(files: List[FileT]): FilesJsonV700 = FilesJsonV700(files.map(createFileJson))
 
+  def createFilesPageJson(files: List[FileT], total: Long, limit: Int, offset: Int): FilesPageJsonV700 =
+    FilesPageJsonV700(files.map(createFileJson), FilesPaginationJsonV700(total, limit, offset))
+
   def createPublicFileJson(file: FileT): PublicFileJsonV700 =
     PublicFileJsonV700(
       file_id = file.fileId,
@@ -184,6 +192,9 @@ object JSONFactory700Files {
   )
 
   val filesJsonExample: FilesJsonV700 = FilesJsonV700(List(fileJsonExample))
+
+  val filesPageJsonExample: FilesPageJsonV700 =
+    FilesPageJsonV700(List(fileJsonExample), FilesPaginationJsonV700(total = 1, limit = 500, offset = 0))
 
   val publicFileJsonExample: PublicFileJsonV700 = PublicFileJsonV700(
     file_id = "c4b3b2f5-6d7e-4f80-9bac-1d2e3f4a5b6c",

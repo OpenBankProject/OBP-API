@@ -361,9 +361,6 @@ object UserReference {
     "deferred 2026-09-16, not mechanical: agreed as record-both (like Counterparty), but the webhook " +
     "code has two dead paths already and is not to be touched in a hurry. todo/webhook_attribution.md.")
 
-  private val filesNotYetServed = NotYetWired.NotReachedByConsentUser(
-    "the Files tables (code.files) exist but no endpoint writes them yet. The endpoints must store " +
-    "cc.onBehalfOfUserId as the owner (ideas/ogcr_file_storage.md) and reject a consent user as grantee.")
 
   private val rejectNotEnforced = NotYetWired.StoresCaller(
     "Reject, not yet enforced: attributionOf already returns Failure for it (AgentDelegationTest pins " +
@@ -404,10 +401,6 @@ object UserReference {
     ApiProductSubscription_CreatedByUserId -> mechanicalBatch,
     DynamicGlossaryItem_CreatedByUserId    -> mechanicalBatch,
     Organisation_CreatedByUserId           -> mechanicalBatch,
-    File_UserId                            -> filesNotYetServed,
-    FileAttachment_UserId                  -> filesNotYetServed,
-    FileAccess_GrantedByUserId             -> filesNotYetServed,
-    FileAccess_GranteeUserId               -> filesNotYetServed,
     PayeeLookup_CreatedByUserId            -> mechanicalBatch,
     RoutingScheme_CreatedByUserId          -> mechanicalBatch,
     UtilityPaymentCallback_CreatedByUserId -> mechanicalBatch,

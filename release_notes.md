@@ -9,7 +9,8 @@ Date          Commit        Action
                             CanCreatePublicFileAtOneBank). GET .../files/FILE_ID, .../content (the bytes,
                             with the file's Content-Type, ETag and Content-Disposition), .../attachments,
                             GET .../files?record_type=&record_id= and GET .../my/files, for the owner, a
-                            User given access, or CanGetFileAtOneBank. PUT .../files/FILE_ID/is-public
+                            User given access, or CanGetFileAtOneBank. GET /management/banks/BANK_ID/files
+                            lists every file of a space, paginated (CanGetFileAtOneBank). PUT .../files/FILE_ID/is-public
                             (CanCreatePublicFileAtOneBank). POST/DELETE .../attachments and .../access.
                             Public files are served without login by GET .../public-files,
                             .../public-files/FILE_ID and .../public-files/FILE_ID/content, which serve

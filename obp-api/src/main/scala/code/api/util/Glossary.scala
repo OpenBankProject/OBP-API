@@ -7627,7 +7627,11 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |## Who may read a file
 				 |
-				 |A logged-in caller may read a file they own, a file its owner has given them access to, or any file of a space where they hold the Role CanGetFileAtOneBank. Only the owner gives and takes access. The owner, or a holder of CanCreateFileAtOneBank, attaches a file to records and detaches it.
+				 |A logged-in caller may read a file they own, a file its owner has given them access to, or any file of a space where they hold the Role CanGetFileAtOneBank. Only the owner gives and takes access, and only to a person: a consent user is refused, since access given to one would end with its Consent. Get Files of a Space lists every file of a space for holders of CanGetFileAtOneBank.
+				 |
+				 |## Attaching files to records
+				 |
+				 |The owner, or a holder of CanCreateFileAtOneBank, attaches a file to a record and detaches it. A record is named by `record_type` (e.g. `customer`, or a Dynamic Entity's name) and `record_id`, and a file is attached to a record at most once. OBP does not look the record up, so access to a file never follows from access to a record: it comes only from owning the file, being given access to it, or the Role CanGetFileAtOneBank.
 				 |
 				 |These endpoints are UserXORApplication: an application acting as itself, with a client-credentials token, may hold the Roles as Scopes on its Consumer. A person calling through a Consumer still needs their own Entitlements.
 				 |
@@ -7650,6 +7654,7 @@ object Glossary extends MdcLoggable  {
 				 |- [Get File Content](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFileContent): `GET /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/content`
 				 |- [Get Files Attached to a Record](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFilesAttachedToRecord): `GET /obp/v7.0.0/banks/BANK_ID/files?record_type=&record_id=`
 				 |- [Get My Files](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyFiles): `GET /obp/v7.0.0/banks/BANK_ID/my/files`
+				 |- [Get Files of a Space](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFilesOfSpace): `GET /obp/v7.0.0/management/banks/BANK_ID/files`, every file of a space, for administrators
 				 |- [Update File Is Public](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateFileIsPublic): `PUT /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/is-public`
 				 |- [Create File Attachment](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createFileAttachment): `POST /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/attachments`
 				 |- [Get File Attachments](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFileAttachments): `GET /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/attachments`
