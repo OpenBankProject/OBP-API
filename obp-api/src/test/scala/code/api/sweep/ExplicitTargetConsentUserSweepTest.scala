@@ -227,6 +227,19 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
       ))
     }
 
+    scenario("file access", ExplicitTargetGuard) {
+      val agentId = newConsentUser().userId
+      // Only a file's owner gives access to it, so the file is stored for the caller (resourceUser1).
+      val fileId = code.files.Files.provider.vend.createFile(
+        bankId, "0" * 64, "image/png", "explicit-target-sweep.png", isPublic = false,
+        resourceUser1.userId, Array[Byte](1, 2, 3)
+      ).openOrThrowException("expected the file to be stored").fileId
+      sweep(List(
+        Probe("OBPv7.0.0-createFileAccess", "POST", s"/obp/v7.0.0/banks/$bankId/files/$fileId/access",
+          code.api.v7_0_0.PostFileAccessJsonV700(user_id = agentId))
+      ))
+    }
+
     scenario("account creation", ExplicitTargetGuard) {
       val agentId = newConsentUser().userId
       def v310Body = CreateAccountRequestJsonV310(
@@ -344,11 +357,11 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
         finally source.close()
       }
 
-      // Twenty-one probes cover twenty guards: v7.0.0 registers createAccountV700 (POST) and
+      // Twenty-two probes cover twenty-one guards: v7.0.0 registers createAccountV700 (POST) and
       // createAccountWithIdV700 (PUT) over one shared createAccountCommon, so the two probes
       // reach the same guard by two different routes -- the PUT arm validates the account id
       // first, which is the part worth probing separately.
-      val guardsInMain = 20
+      val guardsInMain = 21
 
       withClue(s"found ${guardLines.size} explicit-target guards in main, but this suite is " +
                s"written against $guardsInMain. A guard added without a probe is untested; a " +

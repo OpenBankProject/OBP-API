@@ -225,6 +225,8 @@ object Http4s700Assets {
         val chainScheme = given(body.chain_scheme).map(_.toUpperCase)
         val chainAssetId = given(body.chain_asset_id)
         val dti = given(body.dti).map(_.toUpperCase)
+        lazy val whyInvalid = Assets.whyInvalid(assetCode, assetType, Option(body.name).getOrElse(""), body.decimal_places,
+          if (atSystemBank) None else Some(bankIdInUrl), AssetStatuses.ACTIVE, issuerProductCode, chainScheme, chainAssetId, dti)
         for {
           _ <- Helper.booleanToFuture(s"$InvalidAsset At the SYS bank only an asset of type ${AssetTypes.CRYPTO} can be created. Current asset_type is $assetType.", 400, Some(cc)) {
             !atSystemBank || assetType == AssetTypes.CRYPTO
@@ -235,6 +237,9 @@ object Http4s700Assets {
           _ <- Helper.booleanToFuture(s"$InvalidAsset An asset at the SYS bank has no issuer, so it has no issuer_product_code.", 400, Some(cc)) {
             !atSystemBank || issuerProductCode.isEmpty
           }
+          // The registry's own rules before anything is looked up: an asset that could never be created
+          // is a 400 even if its code happens to be taken (a three-letter code is often an ISO currency)
+          _ <- Helper.booleanToFuture(s"$InvalidAsset ${whyInvalid.getOrElse("")}", 400, Some(cc)) { whyInvalid.isEmpty }
           // The issuer's product describes the instrument, so it must exist at the issuing bank
           _ <- issuerProductCode match {
             case Some(productCode) => NewStyle.function.getProduct(BankId(bankIdInUrl), ProductCode(productCode), Some(cc))

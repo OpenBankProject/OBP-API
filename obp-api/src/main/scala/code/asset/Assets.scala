@@ -197,6 +197,57 @@ object Assets extends AssetProvider {
   /** Treats a missing, empty or blank optional value as not set. */
   private def given(value: Option[String]): Option[String] = value.map(_.trim).filter(_.nonEmpty)
 
+  /**
+   * The first rule of the registry that this asset breaks, or None when it breaks none. createAsset
+   * checks it before writing, and the Create Asset endpoint checks it before looking for a taken code,
+   * chain identity or DTI, so an asset that could never be created is a 400, never a 409.
+   */
+  def whyInvalid(
+    assetCode: String,
+    assetType: String,
+    name: String,
+    decimalPlaces: Int,
+    issuerBankId: Option[String],
+    status: String,
+    issuerProductCode: Option[String],
+    chainScheme: Option[String],
+    chainAssetId: Option[String],
+    dti: Option[String]
+  ): Option[String] = {
+    val code = normaliseCode(assetCode)
+    val issuer = given(issuerBankId)
+    val productCode = given(issuerProductCode)
+    val scheme = given(chainScheme).map(_.toUpperCase)
+    val chainId = given(chainAssetId)
+    val tokenIdentifier = given(dti).map(_.toUpperCase)
+    if (AssetCodePattern.findFirstIn(code).isEmpty)
+      Some(s"Asset code '$assetCode' must be 3 to 10 letters or digits.")
+    else if (AssetTypes.issued.contains(assetType) && IssuedAssetCodePattern.findFirstIn(code).isEmpty)
+      Some(s"Asset code '$assetCode' of a bank-issued asset must be 4 to 10 letters or digits, so it cannot be mistaken for an ISO 4217 currency code.")
+    else if (Option(name).forall(_.trim.isEmpty) || name.trim.length > MaxNameLength)
+      Some(s"Name must not be empty and must be at most $MaxNameLength characters.")
+    else if (!AssetTypes.all.contains(assetType))
+      Some(s"Asset type '$assetType' must be one of ${AssetTypes.all.toList.sorted.mkString(", ")}.")
+    else if (decimalPlaces < 0 || decimalPlaces > MaxDecimalPlaces)
+      Some(s"Decimal places $decimalPlaces must be between 0 and $MaxDecimalPlaces.")
+    else if (AssetTypes.issued.contains(assetType) && issuer.isEmpty)
+      Some(s"An asset of type $assetType must have an issuer bank.")
+    else if (AssetTypes.withoutIssuer.contains(assetType) && issuer.nonEmpty)
+      Some(s"An asset of type $assetType has no issuer bank; it is administered at the SYS bank.")
+    else if (!AssetStatuses.all.contains(status))
+      Some(s"Status '$status' must be one of ${AssetStatuses.all.toList.sorted.mkString(", ")}.")
+    else if (productCode.nonEmpty && issuer.isEmpty)
+      Some("An issuer product code needs an issuer bank, where the product is.")
+    else if (scheme.isDefined != chainId.isDefined)
+      Some("A chain identity needs both a chain scheme and a chain asset id, or neither.")
+    else if (scheme.exists(value => !ChainSchemes.all.contains(value)))
+      Some(s"Chain scheme '${scheme.getOrElse("")}' must be one of ${ChainSchemes.all.toList.sorted.mkString(", ")}.")
+    else if (tokenIdentifier.exists(value => DtiPattern.findFirstIn(value).isEmpty))
+      Some(s"DTI '${tokenIdentifier.getOrElse("")}' must be 9 letters or digits.")
+    else
+      None
+  }
+
   override def createAsset(
     assetCode: String,
     assetType: String,
@@ -216,51 +267,30 @@ object Assets extends AssetProvider {
     val scheme = given(chainScheme).map(_.toUpperCase)
     val chainId = given(chainAssetId)
     val tokenIdentifier = given(dti).map(_.toUpperCase)
-    if (AssetCodePattern.findFirstIn(code).isEmpty)
-      Failure(s"Asset code '$assetCode' must be 3 to 10 letters or digits.")
-    else if (AssetTypes.issued.contains(assetType) && IssuedAssetCodePattern.findFirstIn(code).isEmpty)
-      Failure(s"Asset code '$assetCode' of a bank-issued asset must be 4 to 10 letters or digits, so it cannot be mistaken for an ISO 4217 currency code.")
-    else if (Option(name).forall(_.trim.isEmpty) || name.trim.length > MaxNameLength)
-      Failure(s"Name must not be empty and must be at most $MaxNameLength characters.")
-    else if (!AssetTypes.all.contains(assetType))
-      Failure(s"Asset type '$assetType' must be one of ${AssetTypes.all.toList.sorted.mkString(", ")}.")
-    else if (decimalPlaces < 0 || decimalPlaces > MaxDecimalPlaces)
-      Failure(s"Decimal places $decimalPlaces must be between 0 and $MaxDecimalPlaces.")
-    else if (AssetTypes.issued.contains(assetType) && issuer.isEmpty)
-      Failure(s"An asset of type $assetType must have an issuer bank.")
-    else if (AssetTypes.withoutIssuer.contains(assetType) && issuer.nonEmpty)
-      Failure(s"An asset of type $assetType has no issuer bank; it is administered at the SYS bank.")
-    else if (!AssetStatuses.all.contains(status))
-      Failure(s"Status '$status' must be one of ${AssetStatuses.all.toList.sorted.mkString(", ")}.")
-    else if (productCode.nonEmpty && issuer.isEmpty)
-      Failure("An issuer product code needs an issuer bank, where the product is.")
-    else if (scheme.isDefined != chainId.isDefined)
-      Failure("A chain identity needs both a chain scheme and a chain asset id, or neither.")
-    else if (scheme.exists(value => !ChainSchemes.all.contains(value)))
-      Failure(s"Chain scheme '${scheme.getOrElse("")}' must be one of ${ChainSchemes.all.toList.sorted.mkString(", ")}.")
-    else if (tokenIdentifier.exists(value => DtiPattern.findFirstIn(value).isEmpty))
-      Failure(s"DTI '${tokenIdentifier.getOrElse("")}' must be 9 letters or digits.")
-    else
-      tryo {
-        Asset.create
-          .AssetCode(code)
-          .AssetType(assetType)
-          .Name(name.trim)
-          .DecimalPlaces(decimalPlaces)
-          .IssuerBankId(issuer.getOrElse(""))
-          .IssuerProductCode(productCode.getOrElse(""))
-          .ChainScheme(scheme.getOrElse(""))
-          .ChainAssetId(chainId.getOrElse(""))
-          .Dti(tokenIdentifier.getOrElse(""))
-          .Status(status)
-          .CreatedByUserId(creatorToStore(createdByUserId))
-          .saveMe()
-      } match {
-        case created @ Full(_) =>
-          AssetLookup.invalidate()
-          created
-        case other => other
-      }
+    whyInvalid(assetCode, assetType, name, decimalPlaces, issuerBankId, status, issuerProductCode, chainScheme, chainAssetId, dti) match {
+      case Some(rule) => Failure(rule)
+      case None =>
+        tryo {
+          Asset.create
+            .AssetCode(code)
+            .AssetType(assetType)
+            .Name(name.trim)
+            .DecimalPlaces(decimalPlaces)
+            .IssuerBankId(issuer.getOrElse(""))
+            .IssuerProductCode(productCode.getOrElse(""))
+            .ChainScheme(scheme.getOrElse(""))
+            .ChainAssetId(chainId.getOrElse(""))
+            .Dti(tokenIdentifier.getOrElse(""))
+            .Status(status)
+            .CreatedByUserId(creatorToStore(createdByUserId))
+            .saveMe()
+        } match {
+          case created @ Full(_) =>
+            AssetLookup.invalidate()
+            created
+          case other => other
+        }
+    }
   }
 
   /**

@@ -290,7 +290,8 @@ class AssetsEndpointTest extends V600ServerSetup with RestoresSeededAssetRegistr
         }
       }
       Assets.getAsset("BANKBOND30").isEmpty shouldBe true
-      Assets.getAsset("BND").isEmpty shouldBe true
+      // BND is in the registry already, as the seeded Brunei dollar: it must still be that, not a bank's bond
+      Assets.getAsset("BND").map(_.issuerBankId) should equal(net.liftweb.common.Full(None))
     }
 
     scenario("an issuer product must exist at the issuing bank", CreateAssetEndpoint, VersionOfApi) {

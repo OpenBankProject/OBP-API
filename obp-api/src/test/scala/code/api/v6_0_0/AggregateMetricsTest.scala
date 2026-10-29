@@ -128,16 +128,18 @@ class AggregateMetricsTest extends V600ServerSetup {
   }
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Application access with a Scope") {
-    scenario("A Consumer holding the Role as a Scope may read aggregate metrics without an Entitlement", ApiEndpoint1, VersionOfApi) {
-      val request = (v6_0_0_Request / "management" / "aggregate-metrics").GET <@ (user2)
-      Given("user2 holds no CanReadAggregateMetrics Entitlement and testConsumer2 no Scope")
-      makeGetRequest(request).code should equal(403)
+    scenario("A Consumer holding the Role as a Scope reads aggregate metrics as itself, but a person calling through it does not", ApiEndpoint1, VersionOfApi) {
+      val aggregateMetrics = v6_0_0_Request / "management" / "aggregate-metrics"
+      Given("testConsumer2 holds no CanReadAggregateMetrics Scope")
+      makeGetRequest(aggregateMetrics.GET <@ (application2)).code should equal(403)
 
-      When("testConsumer2, which user2 signs with, is granted CanReadAggregateMetrics as a Scope")
+      When("testConsumer2 is granted CanReadAggregateMetrics as a Scope")
       val granted = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, CanReadAggregateMetrics.toString)
       try {
-        Then("aggregate metrics are returned")
-        makeGetRequest(request).code should equal(200)
+        Then("the application acting as itself gets aggregate metrics")
+        makeGetRequest(aggregateMetrics.GET <@ (application2)).code should equal(200)
+        And("user2, a person signing with testConsumer2, still needs an Entitlement of their own (UserXORApplication)")
+        makeGetRequest(aggregateMetrics.GET <@ (user2)).code should equal(403)
       } finally Scope.scope.vend.deleteScope(granted)
     }
   }

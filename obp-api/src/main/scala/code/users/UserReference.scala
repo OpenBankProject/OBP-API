@@ -431,7 +431,10 @@ object UserReference {
     AccountAccessRequest_TargetUserId      -> NotYetWired.NotReachedByConsentUser(
       "explicit target, so the endpoint refuses a consent user rather than redirecting -- covered " +
       "by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),
-    GroupMembership_UserId                 -> NotYetWired.NotReachedByConsentUser(
+    FileAccess_GranteeUserId               -> NotYetWired.NotReachedByConsentUser(
+      "explicit target: Create File Access refuses a consent user as grantee rather than redirecting -- " +
+      "covered by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),
+    GroupMembership_UserId                -> NotYetWired.NotReachedByConsentUser(
       "the member is never the caller: the Group member sync endpoint reads each member's user id " +
       "from the Group's existing Entitlements and membership rows, so there is nothing to redirect."),
     Consent_UserId                         -> NotYetWired.StoresCaller(
