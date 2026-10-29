@@ -110,6 +110,15 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       errors.isEmpty should be (true)
     }
     
+    scenario(s"We will test ${ApiEndpoint1.name} Api - v7.0.0 swagger export succeeds", ApiEndpoint1, VersionOfApi) {
+      val requestGetSwagger = (ResourceDocsV5_1Request / "resource-docs" / "v7.0.0" / "swagger").GET
+      val responseGetSwagger = makeGetRequest(requestGetSwagger)
+      And("We should get 200, not OBP-50000 because one entity has no example")
+      withClue(responseGetSwagger.body.toString) {
+        responseGetSwagger.code should equal(200)
+      }
+    }
+
     scenario(s"We will test ${ApiEndpoint1.name} Api - v4.0.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v4.0.0" / "swagger").GET
       val responseGetObp = makeGetRequest(requestGetObp)

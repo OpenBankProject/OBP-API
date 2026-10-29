@@ -707,7 +707,13 @@ object SwaggerJSONFactory extends MdcLoggable {
         case _ => paramValue
       }
 
-      val definition = buildSwaggerSchema(paramType, exampleValue)
+      // Name the entity and field, so an unusable example can be found from the message alone.
+      val definition =
+        try buildSwaggerSchema(paramType, exampleValue)
+        catch {
+          case e: RuntimeException =>
+            throw new RuntimeException(s"${entityType.typeSymbol.name}.$paramName: ${e.getMessage}", e)
+        }
 
       s""" "$paramName": $definition """
     })
