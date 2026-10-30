@@ -3,6 +3,26 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+30/10/2026    TBD           ADDED: v7.0.0 Organisation members. POST/GET /banks/BANK_ID/organisations/
+                            ORGANISATION_ID/members and GET/PUT/DELETE .../members/USER_ID link Users to an
+                            Organisation with a member_role (owner, admin, member), an optional title, a status
+                            (invited, active, suspended, left) and is_primary. New Roles, granted at the space:
+                            CanCreateOrganisationMember, CanGetOrganisationMembers, CanUpdateOrganisationMember,
+                            CanDeleteOrganisationMember. An active owner or admin member manages members without a
+                            Role, any active member reads the list, and a member may accept, leave and change their
+                            own title. GET /my/organisations lists the current User's memberships. Each write
+                            records both the caller and the person it acted for. New table: OrganisationMember.
+30/10/2026    TBD           CHANGED: v7.0.0 Organisations live in a space. The endpoints moved from
+                            /obp/v7.0.0/organisations[/ORGANISATION_ID] to
+                            /obp/v7.0.0/banks/BANK_ID/organisations[/ORGANISATION_ID], where BANK_ID is a bank or
+                            SYS for the system space; responses carry bank_id, and an optional organisation_type
+                            can be set. The four Roles now name a space (requiresBankId = true), and
+                            CanGetAnyOrganisation is renamed CanGetOrganisation. The migration
+                            moveOrganisationsIntoSpaces puts every existing Organisation in SYS and moves the
+                            Roles' Entitlements, Entitlement Requests, Consumer Scopes and Groups from the empty
+                            bank id to SYS, so existing grants keep exactly the access they had. A Group that also
+                            holds non-Organisation Roles stays at the empty bank id and is named in the
+                            migration log: grant its Organisation Roles at SYS another way.
 29/10/2026    TBD           CHANGED: Super admins (super_admin_user_ids) also hold the virtual Roles
                             CanGetEntitlementRequestsAtAnyBank and CanDeleteEntitlementRequestsAtAnyBank,
                             so on a fresh instance they can see and accept entitlement requests (accepting

@@ -619,6 +619,14 @@ object ErrorMessages {
   val CreateOrganisationError = "OBP-30511: Could not create Organisation."
   val UpdateOrganisationError = "OBP-30512: Could not update Organisation."
   val DeleteOrganisationError = "OBP-30513: Could not delete Organisation."
+  val InvalidOrganisationType = "OBP-30597: Invalid Organisation type. The organisation_type must be at most 64 characters."
+  val OrganisationMemberNotFound = "OBP-30553: Organisation Member not found. The USER_ID is not a member of this Organisation."
+  val OrganisationMemberAlreadyExists = "OBP-30554: Organisation Member already exists. This User is already a member of this Organisation."
+  val InvalidOrganisationMemberRole = "OBP-30555: Invalid Organisation member_role. Allowed values are: owner, admin, member."
+  val InvalidOrganisationMemberStatus = "OBP-30556: Invalid Organisation member status. Allowed values are: invited, active, suspended, left."
+  val InvalidOrganisationMemberTitle = "OBP-30557: Invalid Organisation member title. The title must be at most 255 characters."
+  val OrganisationMemberSelfChangeNotAllowed = "OBP-30558: A member may only accept an invitation (status active), leave (status left), or change their own title and is_primary."
+  val CreateOrganisationMemberError = "OBP-30559: Could not save the Organisation Member."
 
   // Routing Scheme registry (OBP-30514 .. OBP-30525)
   val RoutingSchemeNotFound = "OBP-30514: Routing Scheme not found. Please specify a valid value for SCHEME."

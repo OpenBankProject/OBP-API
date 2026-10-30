@@ -1544,15 +1544,26 @@ object ApiRole extends MdcLoggable{
   case class CanGetGroupsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetGroupsAtOneBank = CanGetGroupsAtOneBank()
 
-  // Organisation management roles
-  case class CanCreateOrganisation(requiresBankId: Boolean = false) extends ApiRole
+  // Organisation management roles. An Organisation lives in a space (a bank, or SYS), and each Role is
+  // granted at that space. CanGetOrganisation was CanGetAnyOrganisation; see MigrationOfOrganisationSpace.
+  case class CanCreateOrganisation(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateOrganisation = CanCreateOrganisation()
-  case class CanGetAnyOrganisation(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canGetAnyOrganisation = CanGetAnyOrganisation()
-  case class CanUpdateOrganisation(requiresBankId: Boolean = false) extends ApiRole
+  case class CanGetOrganisation(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetOrganisation = CanGetOrganisation()
+  case class CanUpdateOrganisation(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateOrganisation = CanUpdateOrganisation()
-  case class CanDeleteOrganisation(requiresBankId: Boolean = false) extends ApiRole
+  case class CanDeleteOrganisation(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteOrganisation = CanDeleteOrganisation()
+  // Organisation member roles, granted at the Organisation's space. An active owner or admin member of
+  // an Organisation manages its members without them, and any active member may read the member list.
+  case class CanCreateOrganisationMember(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateOrganisationMember = CanCreateOrganisationMember()
+  case class CanGetOrganisationMembers(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetOrganisationMembers = CanGetOrganisationMembers()
+  case class CanUpdateOrganisationMember(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateOrganisationMember = CanUpdateOrganisationMember()
+  case class CanDeleteOrganisationMember(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canDeleteOrganisationMember = CanDeleteOrganisationMember()
 
   // Routing Scheme registry roles (system-scoped: schemes are global infrastructure)
   case class CanCreateRoutingScheme(requiresBankId: Boolean = false) extends ApiRole

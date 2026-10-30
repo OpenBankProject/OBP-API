@@ -790,12 +790,13 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     abac_trace: AbacEvaluationTraceJsonV700
   )
 
-  // Organisation JSON case classes
+  // Organisation JSON case classes. The space (bank_id) comes from the URL on writes.
   case class PostOrganisationJsonV700(
       organisation_id: String,
       name: String,
       website: Option[String],
       logo_url: Option[String],
+      organisation_type: Option[String],
       status: Option[String],
       visibility: Option[String]
   )
@@ -804,15 +805,18 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       name: Option[String],
       website: Option[String],
       logo_url: Option[String],
+      organisation_type: Option[String],
       status: Option[String],
       visibility: Option[String]
   )
 
   case class OrganisationJsonV700(
       organisation_id: String,
+      bank_id: String,
       name: String,
       website: Option[String],
       logo_url: Option[String],
+      organisation_type: Option[String],
       status: String,
       visibility: String,
       created_by_user_id: String,
@@ -822,12 +826,28 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   case class OrganisationsJsonV700(organisations: List[OrganisationJsonV700])
 
+  lazy val organisationJsonV700Example: OrganisationJsonV700 = OrganisationJsonV700(
+    organisation_id = "tesobe",
+    bank_id = "SYS",
+    name = "TESOBE GmbH",
+    website = Some("https://www.tesobe.com"),
+    logo_url = None,
+    organisation_type = Some("startup"),
+    status = "active",
+    visibility = "public",
+    created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+    created_at = new java.util.Date(),
+    updated_at = new java.util.Date()
+  )
+
   def createOrganisationJsonV700(o: code.organisation.OrganisationTrait): OrganisationJsonV700 = {
     OrganisationJsonV700(
       organisation_id = o.organisationId,
+      bank_id = o.bankId,
       name = o.name,
       website = o.website,
       logo_url = o.logoUrl,
+      organisation_type = o.organisationType,
       status = o.status,
       visibility = o.visibility,
       created_by_user_id = o.createdByUserId,

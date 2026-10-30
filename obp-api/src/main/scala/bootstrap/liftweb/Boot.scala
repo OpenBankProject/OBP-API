@@ -1160,6 +1160,7 @@ object ToSchemify extends MdcLoggable {
     Group,
     code.group.GroupMembership,
     Organisation,
+    code.organisation.OrganisationMember,
     RoutingScheme,
     BankSupportedRoutingScheme,
     code.asset.Asset,
