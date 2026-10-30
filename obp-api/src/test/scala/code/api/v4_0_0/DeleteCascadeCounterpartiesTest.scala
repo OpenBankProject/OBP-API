@@ -35,15 +35,16 @@ import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.counterpartyattribute.{CounterpartyAttribute, CounterpartyAttributeX}
 import code.counterpartylimit.{CounterpartyLimit, CounterpartyLimitProvider}
 import code.entitlement.Entitlement
-import code.metadata.counterparties.{Counterparties, MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata}
+import code.metadata.counterparties.{Counterparties, MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.CounterpartyAttributeType
 import com.openbankproject.commons.model.{AccountId, BankId, CounterpartyBespoke, CounterpartyId, CounterpartyTrait}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.By
+import net.liftweb.mapper.{By, ByList}
 import net.liftweb.util.Helpers.randomString
 import org.scalatest.Tag
 
+import java.util.Date
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -55,8 +56,10 @@ class DeleteCascadeCounterpartiesTest extends V400ServerSetup {
 
   private val ownerView = Constant.SYSTEM_OWNER_VIEW_ID
 
-  /** A counterparty on the given account, with one row in every table that hangs off it. */
-  private def createCounterpartyWithChildren(bankId: BankId, accountId: AccountId): CounterpartyTrait = {
+  private case class Seeded(bankId: BankId, accountId: AccountId, counterparty: CounterpartyTrait, locationIds: List[Long])
+
+  /** A counterparty on the given account, with rows in every table that hangs off it. */
+  private def createCounterpartyWithChildren(bankId: BankId, accountId: AccountId): Seeded = {
     val counterparty = Counterparties.counterparties.vend.createCounterparty(
       createdByUserId = resourceUser1.userId,
       thisBankId = bankId.value,
@@ -77,9 +80,11 @@ class DeleteCascadeCounterpartiesTest extends V400ServerSetup {
       bespoke = List(CounterpartyBespoke("key", "value"))
     ).openOrThrowException(attemptedToOpenAnEmptyBox)
 
-    Counterparties.counterparties.vend
+    val metadata = Counterparties.counterparties.vend
       .getOrCreateMetadata(bankId, accountId, counterparty.counterpartyId, counterparty.name)
       .openOrThrowException(attemptedToOpenAnEmptyBox)
+    metadata.addPhysicalLocation(resourceUser1.userPrimaryKey, new Date(), 13.4, 52.5) should be(true)
+    metadata.addCorporateLocation(resourceUser1.userPrimaryKey, new Date(), 11.6, 48.1) should be(true)
     Await.result(
       CounterpartyAttributeX.counterpartyAttributeProvider.vend.createOrUpdateCounterpartyAttribute(
         CounterpartyId(counterparty.counterpartyId), None, "TAX_NUMBER", CounterpartyAttributeType.STRING, "123", Some(true)),
@@ -92,11 +97,14 @@ class DeleteCascadeCounterpartiesTest extends V400ServerSetup {
       10.seconds
     ).openOrThrowException(attemptedToOpenAnEmptyBox)
 
-    counterparty
+    val storedMetadata = MappedCounterpartyMetadata.find(By(MappedCounterpartyMetadata.counterpartyId, counterparty.counterpartyId))
+      .openOrThrowException(attemptedToOpenAnEmptyBox)
+    Seeded(bankId, accountId, counterparty, List(storedMetadata.physicalLocation.get, storedMetadata.corporateLocation.get))
   }
 
-  /** Rows left in each counterparty table for one counterparty. */
-  private def remainingRows(bankId: BankId, accountId: AccountId, counterparty: CounterpartyTrait): Map[String, Long] = {
+  /** Rows left in each counterparty table for one seeded counterparty. */
+  private def remainingRows(seeded: Seeded): Map[String, Long] = {
+    val Seeded(bankId, accountId, counterparty, locationIds) = seeded
     val counterpartyId = counterparty.counterpartyId
     val primaryKey = counterparty.asInstanceOf[MappedCounterparty].id.get
     Map(
@@ -107,12 +115,15 @@ class DeleteCascadeCounterpartiesTest extends V400ServerSetup {
         By(MappedCounterpartyMetadata.thisAccountId, accountId.value),
         By(MappedCounterpartyMetadata.counterpartyId, counterpartyId)),
       "attribute" -> CounterpartyAttribute.count(By(CounterpartyAttribute.CounterpartyId_, counterpartyId)),
-      "limit" -> CounterpartyLimit.count(By(CounterpartyLimit.CounterpartyId, counterpartyId))
+      "limit" -> CounterpartyLimit.count(By(CounterpartyLimit.CounterpartyId, counterpartyId)),
+      "location" -> MappedCounterpartyWhereTag.count(ByList(MappedCounterpartyWhereTag.id, locationIds))
     )
   }
 
-  private def allDeleted(rows: Map[String, Long]) = rows.values.forall(_ == 0L)
-  private def allPresent(rows: Map[String, Long]) = rows.values.forall(_ == 1L)
+  private val nothingLeft =
+    Map("counterparty" -> 0L, "bespoke" -> 0L, "metadata" -> 0L, "attribute" -> 0L, "limit" -> 0L, "location" -> 0L)
+  private val untouched =
+    Map("counterparty" -> 1L, "bespoke" -> 1L, "metadata" -> 1L, "attribute" -> 1L, "limit" -> 1L, "location" -> 2L)
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - counterparties") {
     scenario("Deleting an account deletes its own counterparties and leaves other accounts' counterparties alone", ApiEndpoint1, VersionOfApi) {
@@ -127,11 +138,11 @@ class DeleteCascadeCounterpartiesTest extends V400ServerSetup {
       createAccountRelevantResource(Some(resourceUser1), otherBankId, accountId, "EUR")
       createAccountRelevantResource(Some(resourceUser1), bankId, siblingAccountId, "EUR")
 
-      And("A counterparty with bespoke fields, metadata, an attribute and a limit on each account")
+      And("A counterparty with bespoke fields, metadata with two locations, an attribute and a limit on each account")
       val target = createCounterpartyWithChildren(bankId, accountId)
       val sameIdOtherBank = createCounterpartyWithChildren(otherBankId, accountId)
       val sibling = createCounterpartyWithChildren(bankId, siblingAccountId)
-      allPresent(remainingRows(bankId, accountId, target)) should be(true)
+      remainingRows(target) should equal(untouched)
 
       When("We delete the first account with the cascading endpoint")
       Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
@@ -143,14 +154,13 @@ class DeleteCascadeCounterpartiesTest extends V400ServerSetup {
       response.code should equal(200)
 
       And("The account's counterparty and every row that hangs off it are gone")
-      remainingRows(bankId, accountId, target) should equal(
-        Map("counterparty" -> 0L, "bespoke" -> 0L, "metadata" -> 0L, "attribute" -> 0L, "limit" -> 0L))
+      remainingRows(target) should equal(nothingLeft)
 
       And("The counterparty of the same ACCOUNT_ID at another bank is untouched")
-      allPresent(remainingRows(otherBankId, accountId, sameIdOtherBank)) should be(true)
+      remainingRows(sameIdOtherBank) should equal(untouched)
 
       And("The counterparty of the other account at the same bank is untouched")
-      allPresent(remainingRows(bankId, siblingAccountId, sibling)) should be(true)
+      remainingRows(sibling) should equal(untouched)
     }
   }
 
@@ -180,11 +190,11 @@ class DeleteCascadeCounterpartiesTest extends V400ServerSetup {
       response.code should equal(200)
 
       And("The counterparties of both accounts and their child rows are gone")
-      allDeleted(remainingRows(bankId, accountId, first)) should be(true)
-      allDeleted(remainingRows(bankId, secondAccountId, second)) should be(true)
+      remainingRows(first) should equal(nothingLeft)
+      remainingRows(second) should equal(nothingLeft)
 
       And("The counterparty at the other bank is untouched")
-      allPresent(remainingRows(otherBankId, accountId, otherBank)) should be(true)
+      remainingRows(otherBank) should equal(untouched)
     }
   }
 
