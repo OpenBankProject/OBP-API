@@ -109,7 +109,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
 
       Then("We should get a 401")
       response.code should equal(401)
-      And("The error message should indicate application not identified (UserOrApplication mode requires at least app auth)")
+      And("The error message should indicate application not identified (UserXORApplication mode requires at least app auth)")
       response.body.extract[ErrorMessage].message should include("OBP-20200")
     }
 
@@ -129,8 +129,8 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanVerifyUserCredentials)
     }
 
-    scenario("Successfully verify valid credentials with consumer scope (no user entitlement)", ApiEndpoint, VersionOfApi) {
-      // Add scope to consumer instead of entitlement to user — UserOrApplication should accept this
+    scenario("Successfully verify valid credentials with consumer scope, the Consumer acting as itself (no user entitlement)", ApiEndpoint, VersionOfApi) {
+      // Add scope to consumer instead of entitlement to user — UserXORApplication accepts it when the Consumer acts as itself
       val addedScope = Scope.scope.vend.addScope("", testConsumer.id.get.toString, ApiRole.CanVerifyUserCredentials.toString)
 
       When("We verify valid credentials using consumer with scope")
@@ -139,12 +139,16 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
         "password" -> testPassword,
         "provider" -> Constant.localIdentityProvider
       )
-      val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
-      val response = try {
-        makePostRequest(request, write(postJson))
+      val request = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (application1)
+      val personRequest = (v6_0_0_Request / "users" / "verify-credentials").POST <@ (user1)
+      val (response, personResponse) = try {
+        (makePostRequest(request, write(postJson)), makePostRequest(personRequest, write(postJson)))
       } finally {
         Scope.scope.vend.deleteScope(addedScope)
       }
+
+      And("a person calling through the same Consumer, without an Entitlement, is refused")
+      personResponse.code should equal(403)
 
       Then("We should get a 200")
       response.code should equal(200)

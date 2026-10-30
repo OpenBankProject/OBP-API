@@ -265,6 +265,36 @@ trait DefaultUsers {
   // prepare the OAuth users to login 
   lazy val user1 = Some(consumer, token1)
   lazy val user2 = Some(consumer2, token2)
+
+  // A Consumer acting as itself: the User an OBP-OIDC client-credentials token resolves to (provider
+  // obp-oidc#client, named after the client id), and a token for that User and the Consumer.
+  private def applicationToken(application: code.model.Consumer): Token = {
+    val ownUser = getOrCreateResourceUser(
+      provider = code.api.OAuth2Login.OBPOIDC.clientCredentialsProvider,
+      providerId = application.key.get,
+      createdByConsentId = None,
+      name = application.key.get,
+      email = "",
+      userId = None,
+      company = ""
+    )
+    val token = Tokens.tokens.vend.createToken(
+      Access,
+      Some(application.id.get),
+      Some(ownUser.id.get),
+      Some(randomString(40).toLowerCase),
+      Some(randomString(40).toLowerCase),
+      Some(tokenDuration),
+      Some(TimeSpan(tokenDuration + System.currentTimeMillis())),
+      Some(new Date(System.currentTimeMillis())),
+      None
+    ).openOrThrowException(attemptedToOpenAnEmptyBox)
+    Token(token.key.get, token.secret.get)
+  }
+  lazy val tokenApplication1 = applicationToken(testConsumer)
+  lazy val tokenApplication2 = applicationToken(testConsumer2)
+  lazy val application1 = Some(consumer, tokenApplication1)
+  lazy val application2 = Some(consumer2, tokenApplication2)
   lazy val user3 = Some(consumer3, token3)
   lazy val userGatewayLogin = Some(consumer4, token4)
 

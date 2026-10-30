@@ -274,21 +274,24 @@ class LogCacheEndpointTest extends V510ServerSetup {
   }
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Application access with a Scope") {
-    scenario("A Consumer holding the Role as a Scope may read the log cache without an Entitlement", ApiEndpoint1, VersionOfApi) {
-      val request = (v5_1_0_Request / "system" / "log-cache" / "error").GET <@(user2)
-      Given("user2 holds no log cache Entitlement and testConsumer2 no Scope")
+    scenario("A Consumer holding the Role as a Scope may read the log cache as itself, without an Entitlement", ApiEndpoint1, VersionOfApi) {
+      val request = (v5_1_0_Request / "system" / "log-cache" / "error").GET <@(application2)
+      Given("testConsumer2 holds no Scope")
       makeGetRequest(request).code should equal(403)
 
-      When("testConsumer2, which user2 signs with, is granted CanGetSystemLogCacheError as a Scope")
+      When("testConsumer2 is granted CanGetSystemLogCacheError as a Scope")
       val granted = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, CanGetSystemLogCacheError.toString)
       try {
         val response = makeGetRequest(request)
-        Then("the error level log cache is returned")
+        Then("the error level log cache is returned to the Consumer acting as itself")
         response.code should equal(200)
         (response.body \ "entries") shouldBe a[JArray]
 
         And("the Scope covers only its own level")
-        makeGetRequest((v5_1_0_Request / "system" / "log-cache" / "info").GET <@(user2)).code should equal(403)
+        makeGetRequest((v5_1_0_Request / "system" / "log-cache" / "info").GET <@(application2)).code should equal(403)
+
+        And("a person calling through testConsumer2 does not get its Scope")
+        makeGetRequest((v5_1_0_Request / "system" / "log-cache" / "error").GET <@(user2)).code should equal(403)
       } finally Scope.scope.vend.deleteScope(granted)
     }
   }

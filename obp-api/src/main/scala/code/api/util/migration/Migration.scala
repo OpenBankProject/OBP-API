@@ -194,6 +194,7 @@ object Migration extends MdcLoggable {
       renameDynamicEntityRoles()
       renameDynamicEntityDefinitionRoles()
       upperCaseStoredCurrencyCodes()
+      moveOrganisationsIntoSpaces(startedBeforeSchemifier)
       ensureConsentViewExists()
     }
 
@@ -958,6 +959,23 @@ object Migration extends MdcLoggable {
      * `eur`, would otherwise be missed by database queries that select by currency. The columns, and
      * what is deliberately left alone, are in [[MigrationOfCurrencyCodesUpperCase]].
      */
+    /**
+     * Put every stored Organisation in the system space, and move its Roles from the empty bank id to SYS,
+     * renaming CanGetAnyOrganisation to CanGetOrganisation. It must run after Schemifier, which adds the
+     * bank id column. The details are in [[MigrationOfOrganisationSpace]].
+     */
+    private def moveOrganisationsIntoSpaces(startedBeforeSchemifier: Boolean): Boolean = {
+      if (startedBeforeSchemifier) {
+        logger.warn(s"Migration.database.moveOrganisationsIntoSpaces(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(moveOrganisationsIntoSpaces(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfOrganisationSpace.moveEverything(name)
+        }
+      }
+    }
+
     private def upperCaseStoredCurrencyCodes(): Boolean = {
       val name = nameOf(upperCaseStoredCurrencyCodes)
       runOnce(name) {

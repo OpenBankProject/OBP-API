@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.UKOpenBanking.v3_1_0
 
-import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, UserOrApplication, buildOperationId}
+import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, UserXORApplication, buildOperationId}
 import code.api.util.ErrorMessages.ConsentNotFound
 import code.consent.Consents
 import com.openbankproject.commons.model.ErrorMessage
@@ -82,11 +82,11 @@ class UKOpenBankingV310AisTests extends UKOpenBankingV310ServerSetup {
     // See the twin scenario in UKOpenBankingV401AccountInfoTests for why this is pinned: lodging is
     // a client-credentials call with no PSU, and the ResourceDoc default (UserOnly) would 401 it as
     // soon as a client-credentials token stops auto-vivifying a user.
-    scenario("ResourceDoc declares UserOrApplication so a PSU-less TPP call is not rejected", UKOpenBankingV310) {
+    scenario("ResourceDoc declares UserXORApplication so a PSU-less TPP call is not rejected", UKOpenBankingV310) {
       val docs = ResourceDoc.getResourceDocs(
         List(buildOperationId(ApiVersion.ukOpenBankingV31, "createAccountAccessConsents")))
       docs should not be empty
-      docs.foreach(_.authMode should equal(UserOrApplication))
+      docs.foreach(_.authMode should equal(UserXORApplication))
     }
   }
   feature("UKOB v3.1 DELETE /account-access-consents/CONSENT_ID") {

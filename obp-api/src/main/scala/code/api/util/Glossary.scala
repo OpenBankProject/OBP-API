@@ -1263,11 +1263,11 @@ object Glossary extends MdcLoggable  {
 |
 |* **ApplicationOnly**: Only the Consumer's Scopes are checked. No User is required.
 |
-|* **UserOrApplication**: Access is granted if the Consumer has the required Scope **OR** the User has the required Entitlement. This effectively gives the union of both.
+|* **UserXORApplication**: Either a person or the Application acting as itself, never a mix. When the Application acts as itself (there is no User, or the User is the Application's own, the one an OBP-OIDC client-credentials token resolves to: provider *obp-oidc#client*, named after the client id), only the Consumer's Scopes are checked. Otherwise a person is acting, and only the User's Entitlements are checked: the Consumer's Scopes are ignored. It was called *UserOrApplication* until October 2026, when it granted access if either held the Role.
 |
 |* **UserAndApplication**: Access is granted only if the Consumer has the required Scope **AND** the User has the required Entitlement. Both are required.
 |
-|For example, if a User logs in via DirectLogin with a Consumer that has the Scope *CanGetConsumers*, and the endpoint's authMode is *UserOrApplication*, the User can access the endpoint even without a personal *CanGetConsumers* Entitlement (because the Consumer's Scope is sufficient).
+|For example, if a User logs in via DirectLogin with a Consumer that has the Scope *CanGetConsumers*, and the endpoint's authMode is *UserXORApplication*, the User still needs a personal *CanGetConsumers* Entitlement: a person never acts on the Consumer's Scopes. The same Consumer calling with a client-credentials token, as itself, is let in on its Scope. So whoever is let in is also who is recorded as acting.
 |
 |The authMode is set in the ResourceDoc definition for each endpoint, for example:
 |
@@ -1281,13 +1281,13 @@ object Glossary extends MdcLoggable  {
 |  "Get Consumers",
 |  ...,
 |  Some(List(canGetConsumers)),
-|  authMode = UserOrApplication
+|  authMode = UserXORApplication
 |)
 |```
 |
 |If authMode is not specified, it defaults to UserOnly.
 |
-|Note: If the property *require_scopes_for_all_roles* is set to true, all endpoints behave as *UserAndApplication* regardless of their configured authMode.
+|Note: If the property *require_scopes_for_all_roles* is set to true (or *require_scopes_for_listed_roles* lists the Role), endpoints behave as *UserAndApplication* regardless of their configured authMode, except that an Application acting as itself on an *ApplicationOnly* or *UserXORApplication* endpoint still needs only its Scopes: it has no Entitlements to add.
 |
 |See also: [Access Control](/index#API.Access-Control), [Scopes](/index#group-Scope), [Roles](/index#group-Role)
 |
@@ -1843,23 +1843,19 @@ object Glossary extends MdcLoggable  {
 		val delegated = UserReference.all.filter(ref => ref.policy != AttributionPolicy.UseAuthenticatedUserId)
 		val applied = delegated.count(UserReference.isWired)
 
-		s"""When a User grants a ${getGlossaryItemLink("Consent")} to an application, such as an AI agent, the application calls OBP under an identity of its own: a consent user, which OBP creates for that Consent. A call made that way has two Users behind it. `user_id` is the caller, the consent user that authenticated. `on_behalf_of_user_id` is the User the call was made for, the one who granted the Consent. When a User calls OBP for themselves, the two are the same User.
+		s"""An application acting for a User, such as an AI agent, calls OBP with a [Consent](/glossary#Consent) and authenticates as a consent user, an identity OBP creates for that Consent. `user_id` is the caller (the consent user); `on_behalf_of_user_id` is the User who granted the Consent. OBP derives the latter from the Consent, never from the request.
 			 |
-			 |OBP finds the User acted for itself, from the Consent the caller authenticated with. It never takes it from a request body, header or query parameter, so a caller cannot name somebody else to act for.
+			 |Rows stored against a consent user would end with its Consent, so each column that stores a user id has a policy for calls made by a consent user:
 			 |
-			 |This matters whenever OBP stores a user id. A consent user belongs to its Consent, so a row stored against it, such as an account holder, belongs to an identity that ends with the Consent, and the User who asked for it can no longer see it. So every database column that stores a user id has a policy, which says whose id to store when a consent user makes the call:
+			 |* **the caller**: store the consent user (audit records, and the Consent's own permissions).
+			 |* **the User acted for**: store the User who granted the Consent. Some tables keep both ids; see Note.
+			 |* **refused**: a consent user may not do this (create a Consent, a Consumer or a token).
 			 |
-			 |* **the caller**: store the consent user's own id. This suits audit records of who acted, and the rows that carry a Consent's own permissions, which are meant to end with it.
-			 |* **the User acted for**: store the id of the User who granted the Consent, so the row outlives the Consent. A few tables keep both ids, for example a counterparty or a transaction request, where who made the call is worth keeping too; the Note column says so.
-			 |* **refused**: a consent user must not do this at all, because what it would create (a Consent, a Consumer or a token) outlives the Consent and would let the delegation extend itself.
+			 |A request naming a consent user as its target User gets 400 `InvalidUserId`. v7.0.0 responses that show both ids use `user_id` and `on_behalf_of_user_id`, e.g. [Dynamic Entity](/glossary#Dynamic-Entities) record metadata.
 			 |
-			 |A request that explicitly names a consent user as the target User, for example in a `user_id` field or a `USER_ID` path segment, is answered with 400 `InvalidUserId`.
+			 |**Columns that store a user id**
 			 |
-			 |Where a v7.0.0 response publishes both ids, it names them `user_id` and `on_behalf_of_user_id`, as in the record metadata of a ${getGlossaryItemLink("Dynamic-Entities")} record.
-			 |
-			 |**Every column that stores a user id**
-			 |
-			 |Policy is whose id the column should hold when a consent user makes the call. Today is whose id it holds on this instance now. Of the ${delegated.size} columns whose policy is "the User acted for" or "refused", ${applied} apply it today. "Not written by a consent user" means no API call writes that column with a consent user's id, because the endpoint refuses the consent user first or no endpoint writes the table.
+			 |Today is what this instance stores now: ${applied} of the ${delegated.size} columns whose policy is "the User acted for" or "refused" apply it. "Not written by a consent user" means no endpoint writes that column with a consent user's id.
 			 |
 			 |""".stripMargin +
 		(List("| Record | Column | Policy | Today | Note |", "|---|---|---|---|---|") ++ rows).mkString("\n") + "\n"
@@ -4091,7 +4087,7 @@ object Glossary extends MdcLoggable  {
 |
 |Two settings apply on top of the routes:
 |
-|* `authMode` says which credential satisfies the role checks on the System route: `UserOnly` (Entitlements), `ApplicationOnly` (Consumer Scopes), `UserOrApplication`, `UserAndApplication`. The Personal and Row level routes always need a User; `ApplicationOnly` is refused on an entity with `hasPersonalEntity`.
+|* `authMode` says which credential satisfies the role checks on the System route: `UserOnly` (Entitlements), `ApplicationOnly` (Consumer Scopes), `UserXORApplication` (Scopes for the Application acting as itself, Entitlements for a person; `UserOrApplication` is accepted as its former name), `UserAndApplication`. The Personal and Row level routes always need a User; `ApplicationOnly` is refused on an entity with `hasPersonalEntity`.
 |* Field roles: a field with a `read_role` is omitted from every response unless the caller holds that role; a field with a `write_role` is only changed by PATCH from a holder (POST ignores it, PUT preserves its value).
 |
 |**Managing a record's access list (row level)**
@@ -7585,6 +7581,10 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |Every Asset is administered at exactly one bank: the issuer for the types a bank issues, and the `SYS` bank for everything else.
 				 |
+				 |## Adding an Asset
+				 |
+				 |A bank adds an Asset it issues with Create Asset at that bank, and the bank is recorded as its issuer. A crypto asset with no issuer is added at the `SYS` bank. Either way the caller needs the CanCreateAsset Role at that bank. Currencies, precious metals and accounting units come from ISO 4217 and cannot be added. The code of an Asset a bank issues is 4 to 10 letters or digits, so it can never be mistaken for an ISO 4217 code, which is always 3. Once added, the code is accepted in `currency` fields at once, with the Asset's own decimal places.
+				 |
 				 |## Codes OBP accepts
 				 |
 				 |The registry decides which currency codes OBP accepts and how many decimal places each one has. OBP also accepts `lovelace` and `wei`, the smallest units of ADA and ETH, which are not Assets of their own.
@@ -7599,11 +7599,72 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |## Endpoints
 				 |
-				 |These need no authentication.
+				 |The three reads need no authentication.
 				 |
+				 |- [Create Asset](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createAsset): `POST /obp/v7.0.0/banks/BANK_ID/assets`
 				 |- [Get Assets](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAssets): `GET /obp/v7.0.0/assets`
 				 |- [Get Asset](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAsset): `GET /obp/v7.0.0/assets/ASSET_CODE`
 				 |- [Get Asset by Chain Identity](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getAssetByChainIdentity): `GET /obp/v7.0.0/assets/chain/CHAIN_SCHEME/CHAIN_ASSET_ID`
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Files",
+		description =
+			s"""
+				 |# Files
+				 |
+				 |A **File** is a document such as a PDF or a photograph, stored in a space: a bank, or `SYS` for the system space. A file can be attached to records, such as a Customer or a Dynamic Entity record, and can be shared with Users.
+				 |
+				 |## A file never changes
+				 |
+				 |A file's content never changes once stored, and OBP keeps its SHA-256. A new version of a document is a new file. What can change is which records the file is attached to, which Users have been given access to it, and whether it is public. Files are not deleted.
+				 |
+				 |## Storing a file
+				 |
+				 |Create File takes the file base64 encoded in JSON, with its name and media type. It needs the Role CanCreateFileAtOneBank at the space (granted at `SYS` for the system space; there is no AtAnyBank version). The caller becomes the file's owner: the User an agent acts for, when one does.
+				 |
+				 |At most these media types are ever accepted: image/jpeg, image/png, image/webp and application/pdf. The prop `files.allowed_media_types` can narrow that list but never extend it, and the content must really be of the type it claims. The prop `files.max_size_in_bytes` limits the size (10 MB by default).
+				 |
+				 |## Who may read a file
+				 |
+				 |A logged-in caller may read a file they own, a file its owner has given them access to, or any file of a space where they hold the Role CanGetFileAtOneBank. Only the owner gives and takes access, and only to a person: a consent user is refused, since access given to one would end with its Consent. Get Files of a Space lists every file of a space for holders of CanGetFileAtOneBank.
+				 |
+				 |## Attaching files to records
+				 |
+				 |The owner, or a holder of CanCreateFileAtOneBank, attaches a file to a record and detaches it. A record is named by `record_type` (e.g. `customer`, or a Dynamic Entity's name) and `record_id`, and a file is attached to a record at most once. OBP does not look the record up, so access to a file never follows from access to a record: it comes only from owning the file, being given access to it, or the Role CanGetFileAtOneBank.
+				 |
+				 |These endpoints are UserXORApplication: an application acting as itself, with a client-credentials token, may hold the Roles as Scopes on its Consumer. A person calling through a Consumer still needs their own Entitlements.
+				 |
+				 |## Public files
+				 |
+				 |A file can be public, so anyone can read it without logging in. Storing a public file, or making a file public or not later, also needs the Role CanCreatePublicFileAtOneBank. Public files are served by their own endpoints under `public-files`, which serve nothing that is not public and say nothing of who stored the file. Their content may be cached for an hour, so a withdrawn file may still be served from a cache for that long.
+				 |
+				 |## Content
+				 |
+				 |The content endpoints return the file itself, not JSON, with its own `Content-Type`, its SHA-256 as the `ETag`, and `Content-Disposition` naming it (`?inline=true` to show it in a browser). So that a file can never run as a page of this site, they also send `X-Content-Type-Options: nosniff` and a sandbox `Content-Security-Policy`.
+				 |
+				 |## Storage
+				 |
+				 |The bytes are kept apart from what is known about the file. Today they are stored in the database; they can be moved to object storage without changing the API.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Create File](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createFile): `POST /obp/v7.0.0/banks/BANK_ID/files`
+				 |- [Get File](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFile): `GET /obp/v7.0.0/banks/BANK_ID/files/FILE_ID`
+				 |- [Get File Content](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFileContent): `GET /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/content`
+				 |- [Get Files Attached to a Record](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFilesAttachedToRecord): `GET /obp/v7.0.0/banks/BANK_ID/files?record_type=&record_id=`
+				 |- [Get My Files](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyFiles): `GET /obp/v7.0.0/banks/BANK_ID/my/files`
+				 |- [Get Files of a Space](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFilesOfSpace): `GET /obp/v7.0.0/management/banks/BANK_ID/files`, every file of a space, for administrators
+				 |- [Update File Is Public](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateFileIsPublic): `PUT /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/is-public`
+				 |- [Create File Attachment](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createFileAttachment): `POST /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/attachments`
+				 |- [Get File Attachments](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFileAttachments): `GET /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/attachments`
+				 |- [Delete File Attachment](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteFileAttachment): `DELETE /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/attachments/FILE_ATTACHMENT_ID`
+				 |- [Create File Access](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createFileAccess): `POST /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/access`
+				 |- [Get File Access](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFileAccess): `GET /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/access`
+				 |- [Delete File Access](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteFileAccess): `DELETE /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/access/USER_ID`
+				 |- [Get Public Files Attached to a Record](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPublicFilesAttachedToRecord): `GET /obp/v7.0.0/banks/BANK_ID/public-files?record_type=&record_id=`
+				 |- [Get Public File](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPublicFile): `GET /obp/v7.0.0/banks/BANK_ID/public-files/FILE_ID`
+				 |- [Get Public File Content](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPublicFileContent): `GET /obp/v7.0.0/banks/BANK_ID/public-files/FILE_ID/content`
 				 |""".stripMargin)
 
 	///////////////////////////////////////////////////////////////////

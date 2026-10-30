@@ -137,17 +137,22 @@ class TelemetryEndpointTest extends V600ServerSetup {
       all(names) should startWith("jvm.memory")
     }
 
-    scenario("A Consumer holding CanGetTelemetry as a Scope may read Telemetry without an Entitlement", ApiEndpoint, VersionOfApi) {
-      Given("user2 holds no CanGetTelemetry Entitlement and testConsumer2 no Scope")
-      makeGetRequest(telemetryRequest.GET <@ (user2)).code should equal(403)
+    scenario("A Consumer holding CanGetTelemetry as a Scope may read Telemetry as itself, without an Entitlement", ApiEndpoint, VersionOfApi) {
+      Given("testConsumer2 holds no CanGetTelemetry Scope")
+      makeGetRequest(telemetryRequest.GET <@ (application2)).code should equal(403)
 
-      When("testConsumer2, which user2 signs with, is granted CanGetTelemetry as a Scope")
+      When("testConsumer2 is granted CanGetTelemetry as a Scope")
       val granted = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, CanGetTelemetry.toString)
-      val response = try makeGetRequest(telemetryRequest.GET <@ (user2)) finally Scope.scope.vend.deleteScope(granted)
+      val (response, personResponse) = try {
+        (makeGetRequest(telemetryRequest.GET <@ (application2)), makeGetRequest(telemetryRequest.GET <@ (user2)))
+      } finally Scope.scope.vend.deleteScope(granted)
 
-      Then("Telemetry is returned")
+      Then("Telemetry is returned to the Consumer acting as itself")
       response.code should equal(200)
       response.body.extract[TelemetryJsonV700].api_instance_id should equal(Constant.ApiInstanceId)
+
+      And("a person calling through testConsumer2, without an Entitlement, is refused")
+      personResponse.code should equal(403)
     }
   }
 }

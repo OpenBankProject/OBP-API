@@ -34,7 +34,7 @@ import cats.effect.IO
 import code.api.APIFailureNewStyle
 import code.api.Constant
 import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBodyUKV310
-import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, HTTPParam, UserOrApplication, connectorEmptyResponse, createQueriesByHttpParams, defaultBankId, fullBoxOrException, passesPsd2Aisp, unboxFull, unboxFullOrFail, parseIso8601OrDayDate}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, HTTPParam, UserXORApplication, connectorEmptyResponse, createQueriesByHttpParams, defaultBankId, fullBoxOrException, passesPsd2Aisp, unboxFull, unboxFullOrFail, parseIso8601OrDayDate}
 import code.api.util.ApiTag
 import code.api.util.CallContext
 import code.api.util.CustomJsonFormats
@@ -209,8 +209,8 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     // Without it the doc defaults to UserOnly, which sends the middleware down anonymousAccess and
     // 401s any request that carries no user -- so the endpoint only works today because OAuth2
     // token parsing auto-vivifies a user for a client-credentials token. Matches the Berlin Group
-    // twin (Http4sBGv13AIS.createConsent), which has always been UserOrApplication.
-    authMode = UserOrApplication,
+    // twin (Http4sBGv13AIS.createConsent), which has always been UserXORApplication.
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(createAccountAccessConsents)
   )
 
@@ -290,7 +290,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     ApiTag("Account Access Consents") :: Nil,
     // Same reasoning as the POST that lodges the consent: the AISP polls it with a
     // client-credentials token, so a PSU cannot be required. See Consent.checkUKConsentAccess.
-    authMode = UserOrApplication,
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(getAccountAccessConsentsConsentId)
   )
 
@@ -323,7 +323,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Account Access Consents") :: Nil,
     // As above: revoking is a client-credentials call in the standard's AISP flow.
-    authMode = UserOrApplication,
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(deleteAccountAccessConsentsConsentId)
   )
 

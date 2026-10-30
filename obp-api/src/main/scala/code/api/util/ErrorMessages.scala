@@ -589,10 +589,27 @@ object ErrorMessages {
   val GlossaryItemShadowsStaticItem = "OBP-30577: A static Glossary Item with this title already exists. Creating this item would override it in the Glossary. Set overrides_static_item to true if that is intended, or choose a different title."
   val InvalidGlossarySource = "OBP-30578: Invalid source. Please specify all, static or dynamic."
 
-  // Asset registry (OBP-30579 .. OBP-30581)
+  // Asset registry (OBP-30579 .. OBP-30585)
   val AssetNotFound = "OBP-30579: Asset not found. Please specify a valid value for ASSET_CODE."
   val AssetNotFoundByChainIdentity = "OBP-30580: No asset has this chain identity. Please specify a registered CHAIN_SCHEME and CHAIN_ASSET_ID."
   val InvalidAssetQueryParameter = "OBP-30581: Invalid query parameter for assets."
+  val InvalidAsset = "OBP-30582: Invalid asset."
+  val AssetAlreadyExists = "OBP-30583: An asset with this code already exists. Please specify a different value for asset_code."
+  val AssetChainIdentityAlreadyExists = "OBP-30584: Another asset already has this chain identity. Please specify a different chain_scheme and chain_asset_id."
+  val AssetDtiAlreadyExists = "OBP-30585: Another asset already has this DTI. Please specify a different value for dti."
+
+  // Files (OBP-30586 .. OBP-30596)
+  val FileNotFound = "OBP-30586: File not found. Please specify a valid value for FILE_ID."
+  val InvalidFile = "OBP-30587: Invalid file."
+  val FileTooLarge = "OBP-30588: The file is larger than this instance allows."
+  val FileMediaTypeNotAllowed = "OBP-30589: This media type is not allowed for files."
+  val FileSha256Mismatch = "OBP-30590: The sha256 given does not match the content of the file."
+  val FileAttachmentAlreadyExists = "OBP-30591: The file is already attached to this record."
+  val FileAttachmentNotFound = "OBP-30592: File attachment not found. Please specify a valid value for FILE_ATTACHMENT_ID."
+  val FileAccessAlreadyExists = "OBP-30593: This User already has access to the file."
+  val FileAccessNotFound = "OBP-30594: This User has not been given access to the file."
+  val InvalidFileQueryParameter = "OBP-30595: Invalid query parameter for files."
+  val FileOwnerRequired = "OBP-30596: Only the file's owner may do this."
 
   val OrganisationNotFound = "OBP-30506: Organisation not found. Please specify a valid value for ORGANISATION_ID."
   val OrganisationAlreadyExists = "OBP-30507: Organisation already exists. Please specify a different value for ORGANISATION_ID."
@@ -602,6 +619,14 @@ object ErrorMessages {
   val CreateOrganisationError = "OBP-30511: Could not create Organisation."
   val UpdateOrganisationError = "OBP-30512: Could not update Organisation."
   val DeleteOrganisationError = "OBP-30513: Could not delete Organisation."
+  val InvalidOrganisationType = "OBP-30597: Invalid Organisation type. The organisation_type must be at most 64 characters."
+  val OrganisationMemberNotFound = "OBP-30553: Organisation Member not found. The USER_ID is not a member of this Organisation."
+  val OrganisationMemberAlreadyExists = "OBP-30554: Organisation Member already exists. This User is already a member of this Organisation."
+  val InvalidOrganisationMemberRole = "OBP-30555: Invalid Organisation member_role. Allowed values are: owner, admin, member."
+  val InvalidOrganisationMemberStatus = "OBP-30556: Invalid Organisation member status. Allowed values are: invited, active, suspended, left."
+  val InvalidOrganisationMemberTitle = "OBP-30557: Invalid Organisation member title. The title must be at most 255 characters."
+  val OrganisationMemberSelfChangeNotAllowed = "OBP-30558: A member may only accept an invitation (status active), leave (status left), or change their own title and is_primary."
+  val CreateOrganisationMemberError = "OBP-30559: Could not save the Organisation Member."
 
   // Routing Scheme registry (OBP-30514 .. OBP-30525)
   val RoutingSchemeNotFound = "OBP-30514: Routing Scheme not found. Please specify a valid value for SCHEME."

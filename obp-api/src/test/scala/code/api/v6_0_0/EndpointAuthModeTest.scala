@@ -45,7 +45,7 @@ class EndpointAuthModeTest extends V600ServerSetup {
     scenario("All four auth modes should be defined", VersionOfApi) {
       val userOnly: EndpointAuthMode = UserOnly
       val appOnly: EndpointAuthMode = ApplicationOnly
-      val userOrApp: EndpointAuthMode = UserOrApplication
+      val userOrApp: EndpointAuthMode = UserXORApplication
       val userAndApp: EndpointAuthMode = UserAndApplication
 
       userOnly shouldBe a[EndpointAuthMode]
@@ -54,13 +54,13 @@ class EndpointAuthModeTest extends V600ServerSetup {
       userAndApp shouldBe a[EndpointAuthMode]
     }
 
-    scenario("verifyUserCredentials ResourceDoc should have UserOrApplication authMode", VersionOfApi) {
+    scenario("verifyUserCredentials ResourceDoc should have UserXORApplication authMode", VersionOfApi) {
       val operationId = buildOperationId(ApiVersion.v6_0_0, "verifyUserCredentials")
       val docs = ResourceDoc.getResourceDocs(List(operationId))
 
       docs should not be empty
       docs.foreach { doc =>
-        doc.authMode should equal(UserOrApplication)
+        doc.authMode should equal(UserXORApplication)
         doc.errorResponseBodies should contain(ApplicationNotIdentified)
       }
     }

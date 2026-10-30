@@ -201,8 +201,12 @@ object UserReference {
   case object DynamicGlossaryItem_CreatedByUserId              extends UserReference(UseOnBehalfOfUserId   , "code.glossaryitem.DynamicGlossaryItem", List("CreatedByUserId"), "outlives the Consent that created it")
   case object DomainApi_CreatedByUserId                        extends UserReference(UseOnBehalfOfUserId   , "code.domainapi.DomainApi", List("CreatedByUserId"), "the Domain API's creator; a published API outlives the Consent that created it")
   case object DynamicEntityWebhook_CreatedByUserId             extends UserReference(UseOnBehalfOfUserId   , "code.dynamicentitywebhook.DynamicEntityWebhook", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: a webhook sends data out of OBP and outlives the Consent that made it, so the agent stays on CreatedByUserId (published as created_by_user_id) and the person it acted for goes to CreatedByOnBehalfOfUserId")
+  case object AccountCreation_CreatedByUserId                   extends UserReference(UseOnBehalfOfUserId   , "code.accountcreation.AccountCreation", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: who made the call that created the account, agent included, and the person it was made for; published in the v7.0.0 Create Account metadata. The holder is AccountHolders_User")
   case object Bank_CreatedByUserId                             extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.MappedBank", List("CreatedByUserId"), "creator grant already resolved at the endpoint")
   case object Organisation_CreatedByUserId                     extends UserReference(UseOnBehalfOfUserId   , "code.organisation.Organisation", List("CreatedByUserId"), "outlives the Consent that created it")
+  case object OrganisationMember_UserId                       extends UserReference(UseOnBehalfOfUserId   , "code.organisation.OrganisationMember", List("UserId"), "explicit target: the member is named in the request; a membership given to a consent user would die with its Consent")
+  case object OrganisationMember_CreatedByUserId              extends UserReference(UseOnBehalfOfUserId   , "code.organisation.OrganisationMember", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both: who made the call that added the member, agent included, and the person it was made for; a membership says who may act for an Organisation and outlives the Consent")
+  case object OrganisationMember_UpdatedByUserId              extends UserReference(UseOnBehalfOfUserId   , "code.organisation.OrganisationMember", List("UpdatedByUserId", "UpdatedByOnBehalfOfUserId"), "record both: as OrganisationMember_CreatedByUserId, for the call that last changed the membership")
   case object Asset_CreatedByUserId                            extends UserReference(UseOnBehalfOfUserId   , "code.asset.Asset", List("CreatedByUserId"), "outlives the Consent that created it, as RoutingScheme_CreatedByUserId; seeded rows hold system:asset-seed")
   case object File_UserId                                      extends UserReference(UseOnBehalfOfUserId   , "code.files.File", List("UserId", "OnBehalfOfUserId"), "record both: UserId = who uploaded (the agent), OnBehalfOfUserId = the human, who owns the file")
   case object FileAttachment_UserId                            extends UserReference(UseOnBehalfOfUserId   , "code.files.FileAttachment", List("UserId", "OnBehalfOfUserId"), "record both: UserId = who attached (the agent), OnBehalfOfUserId = the human")
@@ -298,8 +302,12 @@ object UserReference {
     DynamicGlossaryItem_CreatedByUserId,
     DomainApi_CreatedByUserId,
     DynamicEntityWebhook_CreatedByUserId,
+    AccountCreation_CreatedByUserId,
     Bank_CreatedByUserId,
     Organisation_CreatedByUserId,
+    OrganisationMember_UserId,
+    OrganisationMember_CreatedByUserId,
+    OrganisationMember_UpdatedByUserId,
     Asset_CreatedByUserId,
     File_UserId,
     FileAttachment_UserId,
@@ -359,9 +367,6 @@ object UserReference {
     "deferred 2026-09-16, not mechanical: agreed as record-both (like Counterparty), but the webhook " +
     "code has two dead paths already and is not to be touched in a hurry. todo/webhook_attribution.md.")
 
-  private val filesNotYetServed = NotYetWired.NotReachedByConsentUser(
-    "the Files tables (code.files) exist but no endpoint writes them yet. The endpoints must store " +
-    "cc.onBehalfOfUserId as the owner (ideas/ogcr_file_storage.md) and reject a consent user as grantee.")
 
   private val rejectNotEnforced = NotYetWired.StoresCaller(
     "Reject, not yet enforced: attributionOf already returns Failure for it (AgentDelegationTest pins " +
@@ -402,12 +407,6 @@ object UserReference {
     ApiProductSubscription_CreatedByUserId -> mechanicalBatch,
     DynamicGlossaryItem_CreatedByUserId    -> mechanicalBatch,
     Organisation_CreatedByUserId           -> mechanicalBatch,
-    Asset_CreatedByUserId                  -> NotYetWired.NotReachedByConsentUser(
-      "no endpoint writes the asset registry yet; only the boot seed does. Wire it with the asset write endpoints."),
-    File_UserId                            -> filesNotYetServed,
-    FileAttachment_UserId                  -> filesNotYetServed,
-    FileAccess_GrantedByUserId             -> filesNotYetServed,
-    FileAccess_GranteeUserId               -> filesNotYetServed,
     PayeeLookup_CreatedByUserId            -> mechanicalBatch,
     RoutingScheme_CreatedByUserId          -> mechanicalBatch,
     UtilityPaymentCallback_CreatedByUserId -> mechanicalBatch,
@@ -438,7 +437,13 @@ object UserReference {
     AccountAccessRequest_TargetUserId      -> NotYetWired.NotReachedByConsentUser(
       "explicit target, so the endpoint refuses a consent user rather than redirecting -- covered " +
       "by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),
-    GroupMembership_UserId                 -> NotYetWired.NotReachedByConsentUser(
+    FileAccess_GranteeUserId               -> NotYetWired.NotReachedByConsentUser(
+      "explicit target: Create File Access refuses a consent user as grantee rather than redirecting -- " +
+      "covered by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),
+    OrganisationMember_UserId             -> NotYetWired.NotReachedByConsentUser(
+      "explicit target: Create Organisation Member refuses a consent user as the member rather than " +
+      "redirecting -- covered by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),
+    GroupMembership_UserId                -> NotYetWired.NotReachedByConsentUser(
       "the member is never the caller: the Group member sync endpoint reads each member's user id " +
       "from the Group's existing Entitlements and membership rows, so there is nothing to redirect."),
     Consent_UserId                         -> NotYetWired.StoresCaller(

@@ -343,7 +343,7 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def entityAccess(cc: CallContext, bankId: Option[String], entityName: String, isPersonalEntity: Boolean): Future[(Box[User], Option[CallContext])] =
     if (isPersonalEntity || isRowLevel(bankId, entityName)) authenticatedAccess(cc)
     else authModeOf(bankId, entityName) match {
-      case ApplicationOnly | UserOrApplication => applicationAccess(cc)
+      case ApplicationOnly | UserXORApplication => applicationAccess(cc)
       case _ => authenticatedAccess(cc)
     }
 

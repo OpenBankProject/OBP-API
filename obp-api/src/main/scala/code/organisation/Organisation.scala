@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.organisation
 
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -37,20 +38,24 @@ import scala.concurrent.Future
 object MappedOrganisationProvider extends OrganisationProvider {
 
   override def createOrganisation(
+    bankId: String,
     organisationId: String,
     name: String,
     website: Option[String],
     logoUrl: Option[String],
+    organisationType: Option[String],
     status: String,
     visibility: String,
     createdByUserId: String
   ): Box[OrganisationTrait] = {
     tryo {
       Organisation.create
+        .BankId(bankId)
         .OrganisationId(organisationId)
         .Name(name)
         .Website(website.getOrElse(""))
         .LogoUrl(logoUrl.getOrElse(""))
+        .OrganisationType(organisationType.getOrElse(""))
         .Status(status)
         .Visibility(visibility)
         .CreatedByUserId(createdByUserId)
@@ -62,25 +67,32 @@ object MappedOrganisationProvider extends OrganisationProvider {
     Organisation.find(By(Organisation.OrganisationId, organisationId))
   }
 
-  override def getAllOrganisations(): Future[Box[List[OrganisationTrait]]] = {
+  override def getOrganisation(bankId: String, organisationId: String): Box[OrganisationTrait] = {
+    Organisation.find(By(Organisation.BankId, bankId), By(Organisation.OrganisationId, organisationId))
+  }
+
+  override def getOrganisations(bankId: String): Future[Box[List[OrganisationTrait]]] = {
     Future {
-      tryo { Organisation.findAll() }
+      tryo { Organisation.findAll(By(Organisation.BankId, bankId)) }
     }
   }
 
   override def updateOrganisation(
+    bankId: String,
     organisationId: String,
     name: Option[String],
     website: Option[String],
     logoUrl: Option[String],
+    organisationType: Option[String],
     status: Option[String],
     visibility: Option[String]
   ): Box[OrganisationTrait] = {
-    Organisation.find(By(Organisation.OrganisationId, organisationId)).flatMap { org =>
+    Organisation.find(By(Organisation.BankId, bankId), By(Organisation.OrganisationId, organisationId)).flatMap { org =>
       tryo {
         name.foreach(v => org.Name(v))
         website.foreach(v => org.Website(v))
         logoUrl.foreach(v => org.LogoUrl(v))
+        organisationType.foreach(v => org.OrganisationType(v))
         status.foreach(v => org.Status(v))
         visibility.foreach(v => org.Visibility(v))
         org.LastUpdate(new java.util.Date())
@@ -89,9 +101,12 @@ object MappedOrganisationProvider extends OrganisationProvider {
     }
   }
 
-  override def deleteOrganisation(organisationId: String): Box[Boolean] = {
-    Organisation.find(By(Organisation.OrganisationId, organisationId)).flatMap { org =>
-      tryo { org.delete_! }
+  override def deleteOrganisation(bankId: String, organisationId: String): Box[Boolean] = {
+    Organisation.find(By(Organisation.BankId, bankId), By(Organisation.OrganisationId, organisationId)).flatMap { org =>
+      tryo {
+        OrganisationMember.bulkDelete_!!(By(OrganisationMember.OrganisationId, organisationId))
+        org.delete_!
+      }
     }
   }
 }
@@ -101,9 +116,15 @@ class Organisation extends OrganisationTrait with LongKeyedMapper[Organisation] 
   def getSingleton = Organisation
 
   object OrganisationId extends MappedString(this, 64)
+  // SYS for the system space, never NULL: rows written before the column existed are moved there by
+  // MigrationOfOrganisationSpace.
+  object BankId extends MappedString(this, 255) {
+    override def defaultValue = DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
+  }
   object Name extends MappedString(this, 255)
   object Website extends MappedString(this, 1024)
   object LogoUrl extends MappedString(this, 1024)
+  object OrganisationType extends MappedString(this, 64)
   object Status extends MappedString(this, 32)
   object Visibility extends MappedString(this, 32)
   object CreatedByUserId extends MappedString(this, 255)
@@ -115,6 +136,7 @@ class Organisation extends OrganisationTrait with LongKeyedMapper[Organisation] 
   }
 
   override def organisationId: String = OrganisationId.get
+  override def bankId: String = BankId.get
   override def name: String = Name.get
   override def website: Option[String] = {
     val v = Website.get
@@ -122,6 +144,10 @@ class Organisation extends OrganisationTrait with LongKeyedMapper[Organisation] 
   }
   override def logoUrl: Option[String] = {
     val v = LogoUrl.get
+    if (v == null || v.isEmpty) None else Some(v)
+  }
+  override def organisationType: Option[String] = {
+    val v = OrganisationType.get
     if (v == null || v.isEmpty) None else Some(v)
   }
   override def status: String = Status.get
@@ -133,5 +159,5 @@ class Organisation extends OrganisationTrait with LongKeyedMapper[Organisation] 
 
 object Organisation extends Organisation with LongKeyedMetaMapper[Organisation] {
   override def dbTableName = "Organisation"
-  override def dbIndexes = UniqueIndex(OrganisationId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(OrganisationId) :: Index(BankId) :: super.dbIndexes
 }

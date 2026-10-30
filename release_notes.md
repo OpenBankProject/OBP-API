@@ -3,6 +3,78 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+30/10/2026    TBD           ADDED: v7.0.0 Organisation members. POST/GET /banks/BANK_ID/organisations/
+                            ORGANISATION_ID/members and GET/PUT/DELETE .../members/USER_ID link Users to an
+                            Organisation with a member_role (owner, admin, member), an optional title, a status
+                            (invited, active, suspended, left) and is_primary. New Roles, granted at the space:
+                            CanCreateOrganisationMember, CanGetOrganisationMembers, CanUpdateOrganisationMember,
+                            CanDeleteOrganisationMember. An active owner or admin member manages members without a
+                            Role, any active member reads the list, and a member may accept, leave and change their
+                            own title. GET /my/organisations lists the current User's memberships. Each write
+                            records both the caller and the person it acted for. New table: OrganisationMember.
+30/10/2026    TBD           CHANGED: v7.0.0 Organisations live in a space. The endpoints moved from
+                            /obp/v7.0.0/organisations[/ORGANISATION_ID] to
+                            /obp/v7.0.0/banks/BANK_ID/organisations[/ORGANISATION_ID], where BANK_ID is a bank or
+                            SYS for the system space; responses carry bank_id, and an optional organisation_type
+                            can be set. The four Roles now name a space (requiresBankId = true), and
+                            CanGetAnyOrganisation is renamed CanGetOrganisation. The migration
+                            moveOrganisationsIntoSpaces puts every existing Organisation in SYS and moves the
+                            Roles' Entitlements, Entitlement Requests, Consumer Scopes and Groups from the empty
+                            bank id to SYS, so existing grants keep exactly the access they had. A Group that also
+                            holds non-Organisation Roles stays at the empty bank id and is named in the
+                            migration log: grant its Organisation Roles at SYS another way.
+29/10/2026    TBD           CHANGED: Super admins (super_admin_user_ids) also hold the virtual Roles
+                            CanGetEntitlementRequestsAtAnyBank and CanDeleteEntitlementRequestsAtAnyBank,
+                            so on a fresh instance they can see and accept entitlement requests (accepting
+                            deletes the request) without first granting themselves those Roles. No new
+                            power: a super admin could already grant themselves any Role.
+29/10/2026    TBD           FIXED: Endpoints that check their Roles again in the handler
+                            (hasAtLeastOneEntitlement, hasAllEntitlements, NewStyle hasEntitlement; e.g. Get
+                            Entitlement Requests, v3.0.0 Get User by id / email / username, v3.1.0 Get Consumers)
+                            now honour the virtual Roles of super_admin_user_ids and oidc_operator_user_ids,
+                            as the ResourceDoc Role check already did, instead of answering 403.
+29/10/2026    TBD           ADDED: Files in v7.0.0: documents and photographs stored in a space (a bank, or
+                            SYS) and attached to records. POST /banks/BANK_ID/files stores one, base64 in
+                            JSON (Role CanCreateFileAtOneBank; is_public true also needs
+                            CanCreatePublicFileAtOneBank). GET .../files/FILE_ID, .../content (the bytes,
+                            with the file's Content-Type, ETag and Content-Disposition), .../attachments,
+                            GET .../files?record_type=&record_id= and GET .../my/files, for the owner, a
+                            User given access, or CanGetFileAtOneBank. GET /management/banks/BANK_ID/files
+                            lists every file of a space, paginated (CanGetFileAtOneBank). PUT .../files/FILE_ID/is-public
+                            (CanCreatePublicFileAtOneBank). POST/DELETE .../attachments and .../access.
+                            Public files are served without login by GET .../public-files,
+                            .../public-files/FILE_ID and .../public-files/FILE_ID/content, which serve
+                            public files only. No AtAnyBank Roles; a Role at SYS covers the system space.
+                            Media types are at most image/jpeg, image/png, image/webp, application/pdf
+                            (files.allowed_media_types can narrow them); size limit files.max_size_in_bytes
+                            (default 10 MB). New column File.IsPublic, new Roles, new tag File, new errors
+                            OBP-30586 to OBP-30596, new Glossary item Files.
+29/10/2026    TBD           CHANGED: the endpoint auth mode UserOrApplication is replaced by UserXORApplication.
+                            A request is either a person acting or an application acting as itself,
+                            never a mix. The application acts as itself when there is no User, or the User
+                            is its own, the one an OBP-OIDC client-credentials token resolves to (provider
+                            obp-oidc#client, named after the client id): then only its Consumer's Scopes
+                            count. Otherwise only the User's Entitlements count; a person calling through a
+                            Consumer that holds a Scope no longer gets it (DirectLogin needs only the
+                            consumer key, so anyone with an account and the key could). Who is let in is
+                            now who is recorded as acting. Applies to every endpoint that was
+                            UserOrApplication (log cache, telemetry, Platform Apps, Grants, OIDC / Consumer
+                            bootstrap, Dynamic Entity definitions, Get My Role, verify credentials, ...).
+                            require_scopes_for_all_roles / require_scopes_for_listed_roles no longer make
+                            an application acting as itself on an ApplicationOnly or UserXORApplication
+                            endpoint also need Entitlements. Dynamic Entity auth_mode accepts the former
+                            value UserOrApplication and stores and returns it as UserXORApplication; rows
+                            already stored with it read as UserXORApplication. Get My Role's
+                            allowed_for_auth_modes names UserXORApplication, and application_only is true
+                            only for a User of provider obp-oidc#client.
+29/10/2026    TBD           CHANGED: v7.0.0 Attach Open Corridor Promise Evidence, Create Open Corridor
+                            Settlement, Create Open Corridor Fee Settlement and Get Open Corridor
+                            Settlement are UserXORApplication: a person with the Role at BANK_ID as an
+                            Entitlement, or an application acting as itself whose Consumer holds it as a
+                            Scope at BANK_ID, such as a bank's Bank Node with a client-credentials token.
+                            reported_by_user_id is the application's own User when it acted. A call with no
+                            credentials still gets 401, now with ApplicationNotIdentified instead of
+                            AuthenticatedUserIsRequired. Response bodies are unchanged.
 13/10/2026    TBD           ADDED: Domain APIs have is_publicly_discoverable (new column
                             domain_api.is_publicly_discoverable, false by default). The new public
                             GET /obp/v7.0.0/banks/BANK_ID/domain-apis lists, without authentication, the

@@ -38,38 +38,55 @@ object Organisations extends SimpleInjector {
   def buildOne: OrganisationProvider = MappedOrganisationProvider
 }
 
+/**
+ * Organisations live in a space: a bank, or SYS (Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) for the
+ * system space. The organisation_id is unique across all spaces, so a reference to an Organisation needs
+ * only its id.
+ */
 trait OrganisationProvider {
   def createOrganisation(
+    bankId: String,
     organisationId: String,
     name: String,
     website: Option[String],
     logoUrl: Option[String],
+    organisationType: Option[String],
     status: String,
     visibility: String,
     createdByUserId: String
   ): Box[OrganisationTrait]
 
+  /** The Organisation with this id, in whichever space it lives. */
   def getOrganisation(organisationId: String): Box[OrganisationTrait]
 
-  def getAllOrganisations(): Future[Box[List[OrganisationTrait]]]
+  /** The Organisation with this id, only if it lives in the space `bankId`. */
+  def getOrganisation(bankId: String, organisationId: String): Box[OrganisationTrait]
+
+  def getOrganisations(bankId: String): Future[Box[List[OrganisationTrait]]]
 
   def updateOrganisation(
+    bankId: String,
     organisationId: String,
     name: Option[String],
     website: Option[String],
     logoUrl: Option[String],
+    organisationType: Option[String],
     status: Option[String],
     visibility: Option[String]
   ): Box[OrganisationTrait]
 
-  def deleteOrganisation(organisationId: String): Box[Boolean]
+  def deleteOrganisation(bankId: String, organisationId: String): Box[Boolean]
 }
 
 trait OrganisationTrait {
   def organisationId: String
+  /** A bank id, or SYS for the system space. */
+  def bankId: String
   def name: String
   def website: Option[String]
   def logoUrl: Option[String]
+  /** Free text, e.g. startup, bank, university, regulator, partner. */
+  def organisationType: Option[String]
   def status: String
   def visibility: String
   def createdByUserId: String

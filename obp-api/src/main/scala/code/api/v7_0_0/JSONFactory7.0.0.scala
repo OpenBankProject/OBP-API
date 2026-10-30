@@ -790,12 +790,13 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     abac_trace: AbacEvaluationTraceJsonV700
   )
 
-  // Organisation JSON case classes
+  // Organisation JSON case classes. The space (bank_id) comes from the URL on writes.
   case class PostOrganisationJsonV700(
       organisation_id: String,
       name: String,
       website: Option[String],
       logo_url: Option[String],
+      organisation_type: Option[String],
       status: Option[String],
       visibility: Option[String]
   )
@@ -804,15 +805,18 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       name: Option[String],
       website: Option[String],
       logo_url: Option[String],
+      organisation_type: Option[String],
       status: Option[String],
       visibility: Option[String]
   )
 
   case class OrganisationJsonV700(
       organisation_id: String,
+      bank_id: String,
       name: String,
       website: Option[String],
       logo_url: Option[String],
+      organisation_type: Option[String],
       status: String,
       visibility: String,
       created_by_user_id: String,
@@ -822,12 +826,28 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   case class OrganisationsJsonV700(organisations: List[OrganisationJsonV700])
 
+  lazy val organisationJsonV700Example: OrganisationJsonV700 = OrganisationJsonV700(
+    organisation_id = "tesobe",
+    bank_id = "SYS",
+    name = "TESOBE GmbH",
+    website = Some("https://www.tesobe.com"),
+    logo_url = None,
+    organisation_type = Some("startup"),
+    status = "active",
+    visibility = "public",
+    created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+    created_at = new java.util.Date(),
+    updated_at = new java.util.Date()
+  )
+
   def createOrganisationJsonV700(o: code.organisation.OrganisationTrait): OrganisationJsonV700 = {
     OrganisationJsonV700(
       organisation_id = o.organisationId,
+      bank_id = o.bankId,
       name = o.name,
       website = o.website,
       logo_url = o.logoUrl,
+      organisation_type = o.organisationType,
       status = o.status,
       visibility = o.visibility,
       created_by_user_id = o.createdByUserId,
@@ -1545,13 +1565,27 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     balance: AmountOfMoneyJsonV121,
     branch_id: String,
     account_routings: List[AccountRoutingJsonV121],
-    account_attributes: List[AccountAttributeResponseJson]
+    account_attributes: List[AccountAttributeResponseJson],
+    metadata: AccountMetadataJsonV700
   )
+
+  /** Who created the account and for whom, as in a Dynamic Entity record's metadata: `user_id` made
+    * the call (an agent's own id under a Consent), `on_behalf_of_user_id` is the person it was for. */
+  case class AccountCreatedJsonV700(at: String, user_id: String, on_behalf_of_user_id: String, consent_reference_id: Option[String])
+  case class AccountMetadataJsonV700(created: AccountCreatedJsonV700)
+
+  def accountMetadataJsonV700(creation: code.accountcreation.AccountCreationTrait): AccountMetadataJsonV700 =
+    AccountMetadataJsonV700(AccountCreatedJsonV700(
+      at = java.time.format.DateTimeFormatter.ISO_INSTANT.format(creation.createdAt.toInstant.truncatedTo(java.time.temporal.ChronoUnit.SECONDS)),
+      user_id = creation.createdByUserId,
+      on_behalf_of_user_id = creation.createdByOnBehalfOfUserId,
+      consent_reference_id = creation.consentReferenceId))
 
   def createAccountJsonV700(
     userId: String,
     account: BankAccount,
-    accountAttributes: List[AccountAttribute]
+    accountAttributes: List[AccountAttribute],
+    creation: code.accountcreation.AccountCreationTrait
   ): CreateAccountResponseJsonV700 =
     CreateAccountResponseJsonV700(
       account_id = account.accountId.value,
@@ -1565,8 +1599,49 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         account.accountId.value,
         account.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address))
       ),
-      account_attributes = accountAttributes.map(JSONFactory310.createAccountAttributeJson)
+      account_attributes = accountAttributes.map(JSONFactory310.createAccountAttributeJson),
+      metadata = accountMetadataJsonV700(creation)
     )
+
+  /** One account in the v7.0.0 Account Directory: the v6.0.0 fields plus `metadata.created`, which
+    * is present only for an account created through v7.0.0 Create Account (see AccountCreations). */
+  case class AccountDirectoryItemJsonV700(
+    account_id: String,
+    bank_id: String,
+    label: String,
+    account_number: String,
+    account_type: String,
+    branch_id: String,
+    account_routings: List[AccountRoutingJsonV121],
+    account_attributes: List[com.openbankproject.commons.model.FastFirehoseAttributes],
+    view_ids: List[String],
+    metadata: Option[AccountMetadataJsonV700]
+  )
+
+  case class AccountDirectoryJsonV700(accounts: List[AccountDirectoryItemJsonV700])
+
+  def createAccountDirectoryJsonV700(
+    accounts: List[com.openbankproject.commons.model.AccountDirectoryItem],
+    viewsPerAccount: Map[BankIdAccountId, List[String]],
+    creationPerAccountId: Map[String, code.accountcreation.AccountCreationTrait]
+  ): AccountDirectoryJsonV700 =
+    AccountDirectoryJsonV700(accounts.map { account =>
+      AccountDirectoryItemJsonV700(
+        account_id = account.id,
+        bank_id = account.bankId,
+        label = account.label,
+        account_number = account.number,
+        account_type = account.productCode,
+        branch_id = account.branchId,
+        account_routings = Constant.accountRoutingsWithImplicitOBP(
+          account.id,
+          account.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address))
+        ),
+        account_attributes = account.accountAttributes,
+        view_ids = viewsPerAccount.getOrElse(BankIdAccountId(BankId(account.bankId), AccountId(account.id)), Nil),
+        metadata = creationPerAccountId.get(account.id).map(accountMetadataJsonV700)
+      )
+    })
 
   // ─── OPEN_CORRIDOR per-bank broker registry (admin) ────────────────────────
 

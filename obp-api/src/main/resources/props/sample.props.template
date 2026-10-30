@@ -914,6 +914,8 @@ defaultBank.bank_id=OBP
 ## CanCreateEntitlementAtAnyBank
 ## CanCreateEntitlementAtOneBank
 ## CanGetAnyUser
+## CanGetEntitlementRequestsAtAnyBank
+## CanDeleteEntitlementRequestsAtAnyBank
 ## After they have granted these roles, they can grant further roles and remove their
 # user_id from the super_admin_user_ids list because its redundant.
 ## Once you have the roles above you can grant any other system or bank related roles to yourself.

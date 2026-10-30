@@ -34,7 +34,7 @@ import net.liftweb.util.SimpleInjector
 /**
  * This file holds the model for Files: documents such as PDFs and photographs that belong to a space
  * (a bank, or SYS for the system space) and can be attached to OBP records. See the Glossary item
- * "Files" and ideas/ogcr_file_storage.md.
+ * "Files".
  *
  * A file's bytes never change once stored. A new version of a document is a new file. What can
  * change is which records the file is attached to and which Users have been given access to it.
@@ -61,6 +61,8 @@ trait FileT {
   def userId: String
   /** The User an agent uploaded the file for. Empty when nobody was delegating. */
   def onBehalfOfUserId: String
+  /** Anyone may read a public file, without logging in, through the public file endpoints. */
+  def isPublic: Boolean
   def createdAt: Date
 
   /** The file's owner: the User an agent acted for, or else the User who uploaded it. */
@@ -102,21 +104,28 @@ trait FileStore {
 }
 
 trait FilesProvider {
-  /** Store the bytes and the metadata of a new file, together. */
-  def createFile(bankId: String, sha256: String, mediaType: String, fileName: String,
-                 userId: String, onBehalfOfUserId: String, bytes: Array[Byte]): Box[FileT]
+  /** Store the bytes and the metadata of a new file, together. userId is the caller; the provider records
+   *  the User an agent acted for, by the attribution policy of File_UserId. */
+  def createFile(bankId: String, sha256: String, mediaType: String, fileName: String, isPublic: Boolean,
+                 userId: String, bytes: Array[Byte]): Box[FileT]
   def getFile(bankId: String, fileId: String): Box[FileT]
   def getContent(fileId: String): Box[Array[Byte]]
+  /** Whether the file is public is the one thing about it that can change; its bytes never do. */
+  def setPublic(bankId: String, fileId: String, isPublic: Boolean): Box[FileT]
+  /** One page of all the files of a space, newest first, and how many there are in all. */
+  def getFiles(bankId: String, limit: Int, offset: Int): (List[FileT], Long)
+  /** The files of a space that the User owns or has been given access to, oldest first. */
+  def getFilesOwnedOrSharedWith(bankId: String, userId: String): List[FileT]
 
-  def createAttachment(file: FileT, recordType: String, recordId: String,
-                       userId: String, onBehalfOfUserId: String): Box[FileAttachmentT]
+  def createAttachment(file: FileT, recordType: String, recordId: String, userId: String): Box[FileAttachmentT]
   def getAttachment(bankId: String, fileId: String, fileAttachmentId: String): Box[FileAttachmentT]
+  def getAttachments(bankId: String, fileId: String): List[FileAttachmentT]
   def attachmentExists(fileId: String, recordType: String, recordId: String): Boolean
   def deleteAttachment(fileAttachmentId: String): Box[Boolean]
   /** The files attached to one record of a space. */
   def getFilesAttachedTo(bankId: String, recordType: String, recordId: String): List[FileT]
 
-  def grantAccess(fileId: String, granteeUserId: String, grantedByUserId: String, onBehalfOfUserId: String): Box[FileAccessT]
+  def grantAccess(fileId: String, granteeUserId: String, grantedByUserId: String): Box[FileAccessT]
   def getAccess(fileId: String, granteeUserId: String): Box[FileAccessT]
   def getAccessList(fileId: String): List[FileAccessT]
   def revokeAccess(fileId: String, granteeUserId: String): Box[Boolean]

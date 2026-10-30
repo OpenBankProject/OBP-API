@@ -38,7 +38,7 @@ import code.api.berlin.group.v1_3.model._
 import code.api.berlin.group.v1_3.{BgSpecValidation, JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass}
 import code.api.RequestHeader
 import code.api.util.APIUtil
-import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, UserOrApplication, connectorEmptyResponse, createQueriesByHttpParams, fullBoxOrException, getHttpRequestUrlParam, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Aisp, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, UserXORApplication, connectorEmptyResponse, createQueriesByHttpParams, fullBoxOrException, getHttpRequestUrlParam, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Aisp, unboxFull, unboxFullOrFail}
 import code.api.util.CallContext
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -847,7 +847,7 @@ recurringIndicator:
       ),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(createConsent)
     )
 
@@ -863,7 +863,7 @@ recurringIndicator:
       EmptyBody,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(deleteConsent)
     )
 
@@ -901,7 +901,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
                   }""")),
       List(AuthenticatedUserIsRequired, ConsentNotFound, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsentInformation)
     )
 
@@ -919,7 +919,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
                    }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsentStatus)
     )
 
@@ -980,7 +980,7 @@ using the extended forms as indicated above.
       // so the doc can now say what the call actually is, as its GET siblings already do. Left on
       // the UserOnly default it would 401 a client-credentials caller the day OAuth2 token parsing
       // stops auto-vivifying a user.
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -995,7 +995,7 @@ using the extended forms as indicated above.
       startConsentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -1010,7 +1010,7 @@ using the extended forms as indicated above.
       startConsentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -1057,7 +1057,7 @@ Maybe in a later version the access path will change.
       ),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -1077,7 +1077,7 @@ Maybe in a later version the access path will change.
          |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -1105,7 +1105,7 @@ Maybe in a later version the access path will change.
                    |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -1125,7 +1125,7 @@ Maybe in a later version the access path will change.
                    |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
   }
@@ -1347,8 +1347,8 @@ This function returns an array of hyperlinks to all generated authorisation sub-
       // Embedded. The handler already reflects that, taking no user; only the doc disagreed, and a
       // doc left on the UserOnly default sends the middleware down anonymousAccess, which 401s a
       // request carrying no user. Brings these into line with the consent endpoints in this same
-      // file, which have been UserOrApplication all along.
-      authMode = UserOrApplication,
+      // file, which have been UserXORApplication all along.
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsentAuthorisation)
     )
 
@@ -1368,7 +1368,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       // As above -- reading the SCA status is the TPP polling its own authorisation sub-resource.
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsentScaStatus)
     )
 

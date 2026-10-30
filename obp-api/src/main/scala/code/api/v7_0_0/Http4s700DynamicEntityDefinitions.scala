@@ -30,7 +30,7 @@ import cats.effect.IO
 import code.DynamicData.DynamicData
 import code.api.dynamic.entity.helper.DynamicEntitySpace
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, Http4sRoute}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserXORApplication, Http4sRoute}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -161,7 +161,7 @@ object Http4s700DynamicEntityDefinitions {
     List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
     apiTagManageDynamicEntity :: apiTagApi :: Nil,
     Some(canGetDynamicEntityDefinitions :: Nil),
-    authMode = UserOrApplication,
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(getDynamicEntityDefinitions)
   ).allowSystemSpace()
 
@@ -212,7 +212,7 @@ object Http4s700DynamicEntityDefinitions {
     List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
     apiTagManageDynamicEntity :: apiTagApi :: Nil,
     Some(canCreateDynamicEntityDefinition :: Nil),
-    authMode = UserOrApplication,
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(createDynamicEntityDefinition)
   ).allowSystemSpace()
 
@@ -255,7 +255,7 @@ object Http4s700DynamicEntityDefinitions {
       DynamicEntityNotFoundByDynamicEntityId, UnknownError),
     apiTagManageDynamicEntity :: apiTagApi :: Nil,
     Some(canUpdateDynamicEntityDefinition :: Nil),
-    authMode = UserOrApplication,
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(updateDynamicEntityDefinition)
   ).allowSystemSpace()
 

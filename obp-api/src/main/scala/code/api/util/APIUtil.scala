@@ -1587,7 +1587,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   sealed trait EndpointAuthMode
   case object UserOnly extends EndpointAuthMode
   case object ApplicationOnly extends EndpointAuthMode
-  case object UserOrApplication extends EndpointAuthMode
+  /** Either a person or the application acting as itself, never a mix: when the application acts as itself
+   *  (see isApplicationActingAsItself) only its Consumer's Scopes count; otherwise only the User's Entitlements. */
+  case object UserXORApplication extends EndpointAuthMode
   case object UserAndApplication extends EndpointAuthMode
 
   // Used to document the API calls
@@ -1622,7 +1624,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           specialInstructions: Option[String] = None,
                           var specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
                           createdByBankId: Option[String] = None, //we need to filter the resource Doc by BankId
-                          authMode: EndpointAuthMode = UserOnly, // Per-endpoint auth mode: UserOnly, ApplicationOnly, UserOrApplication, UserAndApplication
+                          authMode: EndpointAuthMode = UserOnly, // Per-endpoint auth mode: UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication
                           http4sPartialFunction: Http4sEndpoint = None, // http4s endpoint handler
                           // Native http4s handler for runtime-compiled dynamic endpoints (Piece C). Defaulted to None so
                           // no existing construction site changes. Set by DynamicResourceDocsEndpointGroup / practise group
@@ -1663,16 +1665,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
       // Auth-mode-aware error message adjustments
       authMode match {
-        case ApplicationOnly | UserOrApplication =>
+        case ApplicationOnly | UserXORApplication =>
           errorResponseBodies ?+= ApplicationNotIdentified
           if (authMode == ApplicationOnly) {
             errorResponseBodies ?-= AuthenticatedUserIsRequired
           }
-          if (authMode == UserOrApplication) {
+          if (authMode == UserXORApplication) {
             description +=
               s"""
                  |
-                 |This endpoint supports **User OR Application** authentication. You can authenticate either as a logged-in User (with Entitlements) or as an Application using a Consumer Key (with Scopes).
+                 |This endpoint supports **User XOR Application** authorisation: either a person acting on their own Entitlements, or an Application acting as itself (e.g. with an OAuth2 client-credentials token) on its Consumer's Scopes. A person calling through a Consumer does not get that Consumer's Scopes.
                  |See ${Glossary.getGlossaryItemLink("API.Endpoint Auth Modes")} for more information.
                  |"""
           }
@@ -1840,7 +1842,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
       def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] = authMode match {
         case UserOnly | UserAndApplication => if (AuthCheckIsRequired) authenticatedAccessFun(cc) else anonymousAccessFun(cc)
-        case ApplicationOnly | UserOrApplication => applicationAccessFun(cc)
+        case ApplicationOnly | UserXORApplication => applicationAccessFun(cc)
       }
       def checkObpIds(pairs: List[(String, String)], callContext: Option[CallContext]): Future[Option[CallContext]] = Future {
         val invalid = pairs.filter(p => !checkObpId(p._2).equals(SILENCE_IS_GOLDEN))
@@ -2153,14 +2155,32 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     user_ids.filter(_ == user_id).length > 0
   }
 
-  // Virtual roles granted by super_admin_user_ids prop
-  val superAdminVirtualRoles: List[String] = List("CanCreateEntitlementAtOneBank", "CanCreateEntitlementAtAnyBank", "CanGetAnyUser")
+  // Virtual roles granted by super_admin_user_ids prop. The entitlement request Roles let a super admin see
+  // and accept requests (accepting deletes the request) on a fresh instance, where nobody holds them yet;
+  // they add no power, since a super admin can grant themselves any Role.
+  val superAdminVirtualRoles: List[String] = List("CanCreateEntitlementAtOneBank", "CanCreateEntitlementAtAnyBank", "CanGetAnyUser",
+    "CanGetEntitlementRequestsAtAnyBank", "CanDeleteEntitlementRequestsAtAnyBank")
   // Virtual roles granted by oidc_operator_user_ids prop
   val oidcOperatorVirtualRoles: List[String] = List("CanGetAnyUser", "CanVerifyUserCredentials", "CanVerifyOidcClient", "CanGetOidcClient", "CanGetOidcConsent", "CanGetConsumers", "CanCreateConsumer")
 
   def hasScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
     !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
   }
+  /** True when no person is behind the call: there is no User, or the User is the application's own, the one an
+   *  OBP-OIDC client-credentials token resolves to (provider obp-oidc#client, named after the Consumer's client id).
+   *  consumerId is the Consumer's primary key, as from getConsumerPrimaryKey. */
+  def isApplicationActingAsItself(userId: String, consumerId: String): Boolean =
+    if (userId.isEmpty) consumerId.nonEmpty
+    else (for {
+      user <- Users.users.vend.getUserByUserId(userId)
+      primaryKey <- tryo(consumerId.toLong)
+      consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(primaryKey)
+    } yield isApplicationsOwnUser(user, consumer)).openOr(false)
+
+  def isApplicationsOwnUser(user: User, consumer: code.model.Consumer): Boolean =
+    user.provider == code.api.OAuth2Login.OBPOIDC.clientCredentialsProvider &&
+      Set(Option(consumer.key.get), Option(consumer.azp.get)).flatten.filter(_.nonEmpty).contains(user.idGivenByProvider)
+
   def getConsumerPrimaryKey(callContext: Option[CallContext]): String = {
     callContext match {
       case Some(cc) =>
@@ -2246,7 +2266,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // when roles is empty, that means no access control, treat as pass auth check
   @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
-    roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
+    roles.isEmpty || roles.exists(role => holdsVirtualRole(userId, role) || hasEntitlement(bankId, userId, role))
+
+  /** True when the User holds `role` virtually, through super_admin_user_ids or oidc_operator_user_ids. The
+   *  inline checks (hasAtLeastOneEntitlement, hasAllEntitlements) honour these as the middleware's check does,
+   *  so an endpoint that checks its Roles again in its handler doesn't refuse what its ResourceDoc allowed. */
+  def holdsVirtualRole(userId: String, role: ApiRole): Boolean = {
+    val virtualRoles = if (isSuperAdmin(userId)) superAdminVirtualRoles
+                       else if (isOidcOperator(userId)) oidcOperatorVirtualRoles
+                       else List.empty
+    virtualRoles.contains(role.toString)
+  }
   
   /**
    * Grant a caller the Roles they are missing, at the moment they first need them.
@@ -2383,9 +2413,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * Per-endpoint auth mode access control. Checks virtual roles first, then matches on authMode:
    * - UserOnly: user entitlements only (includes just-in-time entitlements)
    * - ApplicationOnly: consumer scopes only
-   * - UserOrApplication: scopes OR entitlements
+   * - UserXORApplication: consumer scopes when the application acts as itself, otherwise user entitlements
    * - UserAndApplication: scopes AND entitlements
-   * Global overrides (require_scopes_for_all_roles, require_scopes_for_listed_roles) force UserAndApplication behavior.
+   * Global overrides (require_scopes_for_all_roles, require_scopes_for_listed_roles) force UserAndApplication behavior,
+   * except for an application acting as itself on an ApplicationOnly or UserXORApplication endpoint: it has no
+   * Entitlements to add, so it keeps needing only its Scopes.
    */
   def handleAccessControlWithAuthMode(bankId: String, userId: String, consumerId: String, roles: List[ApiRole], authMode: EndpointAuthMode): Boolean = {
     if (roles.isEmpty) {
@@ -2411,14 +2443,19 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         def consumerHasTheScopes: Boolean =
           roles.exists(role => hasScope(if (role.requiresBankId) bankId else "", consumerId, role))
 
+        lazy val applicationActsAsItself = isApplicationActingAsItself(userId, consumerId)
+
         if (globalOverrideToUserAndApp) {
-          // Global config forces both scopes AND entitlements
-          userHasTheRoles && roles.exists(hasScope(bankId, consumerId, _))
+          authMode match {
+            case ApplicationOnly | UserXORApplication if applicationActsAsItself => consumerHasTheScopes
+            // Global config forces both scopes AND entitlements
+            case _ => userHasTheRoles && roles.exists(hasScope(bankId, consumerId, _))
+          }
         } else {
           authMode match {
             case UserOnly => userHasTheRoles
             case ApplicationOnly => consumerHasTheScopes
-            case UserOrApplication => consumerHasTheScopes || userHasTheRoles
+            case UserXORApplication => if (applicationActsAsItself) consumerHasTheScopes else userHasTheRoles
             case UserAndApplication => userHasTheRoles && consumerHasTheScopes
           }
         }
@@ -2432,7 +2469,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // TODO Should we accept Option[BankId] for bankId  instead of String ?
   @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
-    roles.forall(hasEntitlement(bankId, userId, _))
+    roles.forall(role => holdsVirtualRole(userId, role) || hasEntitlement(bankId, userId, role))
 
   def getCustomers(ids: List[String]): List[Customer] = {
     val customers = {
