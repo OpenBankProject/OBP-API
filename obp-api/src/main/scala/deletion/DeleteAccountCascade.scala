@@ -33,7 +33,10 @@ import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.bankconnectors.Connector
 import code.cards.MappedPhysicalCard
+import code.counterpartyattribute.CounterpartyAttribute
+import code.counterpartylimit.CounterpartyLimit
 import code.entitlement.MappedEntitlement
+import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount, MappedBankAccountData}
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.MappedAccountWebhook
@@ -59,6 +62,8 @@ object DeleteAccountCascade {
         deleteBankAccountData(bankId, accountId) ::
         deleteCards(accountId) ::
         deleteAccountRoutings(bankId, accountId) ::
+        deleteCounterparties(bankId, accountId) ::
+        deleteCounterpartyMetadata(bankId, accountId) ::
         deleteAccount(bankId, accountId) ::
         Nil
     doneTasks.forall(_ == true)
@@ -134,6 +139,46 @@ object DeleteAccountCascade {
       By(BankAccountRouting.BankId, bankId.value),
       By(BankAccountRouting.AccountId, accountId.value)
     )
+  }
+
+  // The counterparties this account created, with the rows that hang off each of them.
+  // Counterparties of other accounts that point at this account are theirs and are kept.
+  private def deleteCounterparties(bankId: BankId, accountId: AccountId): Boolean = {
+    val counterparties = MappedCounterparty.findAll(
+      By(MappedCounterparty.mThisBankId, bankId.value),
+      By(MappedCounterparty.mThisAccountId, accountId.value)
+    )
+    val primaryKeys = counterparties.map(_.id.get)
+    val counterpartyIds = counterparties.map(_.counterpartyId)
+    val bespokesDeleted = primaryKeys.isEmpty ||
+      MappedCounterpartyBespoke.bulkDelete_!!(ByList(MappedCounterpartyBespoke.mCounterparty, primaryKeys))
+    val attributesDeleted = counterpartyIds.isEmpty ||
+      CounterpartyAttribute.bulkDelete_!!(ByList(CounterpartyAttribute.CounterpartyId_, counterpartyIds))
+    val limitsDeleted = CounterpartyLimit.bulkDelete_!!(
+      By(CounterpartyLimit.BankId, bankId.value),
+      By(CounterpartyLimit.AccountId, accountId.value)
+    )
+    val counterpartiesDeleted = MappedCounterparty.bulkDelete_!!(
+      By(MappedCounterparty.mThisBankId, bankId.value),
+      By(MappedCounterparty.mThisAccountId, accountId.value)
+    )
+    bespokesDeleted && attributesDeleted && limitsDeleted && counterpartiesDeleted
+  }
+
+  // Metadata covers both the counterparties created on this account and the ones derived from its transactions.
+  private def deleteCounterpartyMetadata(bankId: BankId, accountId: AccountId): Boolean = {
+    val metadata = MappedCounterpartyMetadata.findAll(
+      By(MappedCounterpartyMetadata.thisBankId, bankId.value),
+      By(MappedCounterpartyMetadata.thisAccountId, accountId.value)
+    )
+    val locationIds = metadata.flatMap(m => List(m.physicalLocation.get, m.corporateLocation.get)).filter(_ > 0)
+    val locationsDeleted = locationIds.isEmpty ||
+      MappedCounterpartyWhereTag.bulkDelete_!!(ByList(MappedCounterpartyWhereTag.id, locationIds))
+    val metadataDeleted = MappedCounterpartyMetadata.bulkDelete_!!(
+      By(MappedCounterpartyMetadata.thisBankId, bankId.value),
+      By(MappedCounterpartyMetadata.thisAccountId, accountId.value)
+    )
+    locationsDeleted && metadataDeleted
   }
 
   private def deleteTransactions(bankId: BankId, accountId: AccountId): Boolean = {
