@@ -617,7 +617,7 @@ object ErrorMessages {
   val FileNotYetScanned = "OBP-30602: The file has not been scanned yet. Its content is served once its scan status is clean."
   val FileScanRejected = "OBP-30603: The file was rejected by its scan. Its content is not served."
   val InvalidFileScanStatus = "OBP-30604: Invalid scan_status. Allowed values are: pending, clean, rejected."
-  val CustomerEmailsNotEnabled = "OBP-30605: Sending emails to Customers is not enabled in this space. See the prop customer_emails.enabled_bank_ids."
+  val CustomerEmailsNotInSelfServiceBank = "OBP-30605: Customers of a self-service bank cannot be emailed."
   val CustomerEmailSenderNotConfigured = "OBP-30606: No From address is set for emails to Customers. Set the prop customer_emails.sender_address."
   val CustomerHasNoEmail = "OBP-30607: The Customer has no usable email address."
   val CustomerEmailLimitReached = "OBP-30608: Too many emails have been sent to this Customer today."

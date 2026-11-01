@@ -25,8 +25,8 @@ Date          Commit        Action
                             queues a plain-text email (subject, text, optional reference) to one of the bank's
                             Customers, at the address on the Customer record, through the message outbox; the
                             address is never returned. Needs the new Role CanSendEmailToCustomerAtOneBank (or the
-                            Scope, for an application acting as itself). Only a Customer of BANK_ID is emailed. Off
-                            unless the space is in customer_emails.enabled_bank_ids; at most
+                            Scope, for an application acting as itself). Only a Customer of BANK_ID is emailed, and
+                            not in a self-service bank (made with Create My Bank); at most
                             customer_emails.max_per_customer_per_day (default 20) per Customer in 24 hours. From:
                             customer_emails.sender_address, else mail.api.consumer.registered.sender.address.
                             MessageOutbox.enqueueEmail takes optional metadata.

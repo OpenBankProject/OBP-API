@@ -57,7 +57,7 @@ class CustomerOnboardingTest extends V600ServerSetup {
   feature("An application onboards a person as a Customer, and emails them") {
 
     scenario("With the Scopes, an application acting as itself creates a Customer, links a User, and emails the Customer", Onboarding, VersionOfApi) {
-      setPropsValues("customer_emails.enabled_bank_ids" -> bankId, "customer_emails.sender_address" -> "cohort@example.com")
+      setPropsValues("customer_emails.sender_address" -> "cohort@example.com")
       val body = write(PostCustomerJsonV600(legal_name = "Ali Example", mobile_phone_number = "+968 9000 0000",
         email = Some("ali@example.com")))
       makePostRequest((v6 / "banks" / bankId / "customers").POST <@ (application2), body).code should equal(403)

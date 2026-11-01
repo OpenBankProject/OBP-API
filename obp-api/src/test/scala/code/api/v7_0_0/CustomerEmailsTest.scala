@@ -36,6 +36,7 @@ import code.api.v6_0_0.V600ServerSetup
 import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.messageoutbox.MessageOutbox
+import code.model.dataAccess.SelfServiceBank
 import code.setup.APIResponse
 import com.openbankproject.commons.model.{BankId, CustomerFaceImage, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
@@ -57,7 +58,7 @@ class CustomerEmailsTest extends V600ServerSetup {
   private lazy val bankId = testBankId1.value
 
   private def enable(extra: (String, String)*): Unit =
-    setPropsValues((List("customer_emails.enabled_bank_ids" -> bankId, "customer_emails.sender_address" -> "cohort@example.com") ++ extra): _*)
+    setPropsValues((List("customer_emails.sender_address" -> "cohort@example.com") ++ extra): _*)
 
   private def withRole[T](f: => T): T = {
     val grant = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanSendEmailToCustomerAtOneBank.toString)
@@ -83,12 +84,14 @@ class CustomerEmailsTest extends V600ServerSetup {
 
   feature(s"Send Email to Customer - POST /banks/BANK_ID/customers/CUSTOMER_ID/emails - $VersionOfApi") {
 
-    scenario("It is off unless the space is listed", CustomerEmails, VersionOfApi) {
-      setPropsValues("customer_emails.enabled_bank_ids" -> "some-other-bank")
+    scenario("Customers of a self-service bank are not emailed", CustomerEmails, VersionOfApi) {
+      enable()
       val (customerId, _) = customer()
-      val response = withRole { makePostRequest(emails(customerId).POST <@ (user1), body()) }
+      SelfServiceBank.record(bankId, resourceUser1.userId)
+      val response = try withRole { makePostRequest(emails(customerId).POST <@ (user1), body()) }
+        finally SelfServiceBank.findAll(By(SelfServiceBank.BankId, bankId)).foreach(_.delete_!)
       response.code should equal(403)
-      message(response) should include(CustomerEmailsNotEnabled)
+      message(response) should include(CustomerEmailsNotInSelfServiceBank)
     }
 
     scenario("It needs the Role", CustomerEmails, VersionOfApi) {

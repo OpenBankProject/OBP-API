@@ -37,6 +37,7 @@ import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
 import code.api.util.{APIUtil, CommonsEmailWrapper, CustomJsonFormats}
 import code.customer.CustomerX
 import code.messageoutbox.MessageOutbox
+import code.model.dataAccess.SelfServiceBank
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -77,9 +78,6 @@ object Http4s700CustomerEmails {
   object CustomerEmails {
     val DefaultMaxPerCustomerPerDay: Int = 20
 
-    def enabledIn(bankId: String): Boolean =
-      APIUtil.getPropsValue("customer_emails.enabled_bank_ids").toOption.toList
-        .flatMap(_.split(",").map(_.trim).filter(_.nonEmpty)).contains(bankId)
     def maxPerCustomerPerDay: Int =
       APIUtil.getPropsAsIntValue("customer_emails.max_per_customer_per_day").openOr(DefaultMaxPerCustomerPerDay)
     /** The From address: its own prop, else the one the "role granted" email uses. */
@@ -112,8 +110,9 @@ object Http4s700CustomerEmails {
         val reference = body.reference.map(_.trim).filter(_.nonEmpty)
         val sender = cc.consumer.map(_.name.get).toOption.filter(_.trim.nonEmpty).getOrElse("an application")
         for {
-          _ <- Helper.booleanToFuture(s"$CustomerEmailsNotEnabled Current bank_id is $bankIdInUrl.", 403, Some(cc)) {
-            CustomerEmails.enabledIn(bankIdInUrl)
+          // Anyone can make a self-service bank, hold the Role there and give its Customers any address.
+          _ <- Helper.booleanToFuture(s"$CustomerEmailsNotInSelfServiceBank Current bank_id is $bankIdInUrl.", 403, Some(cc)) {
+            !SelfServiceBank.isSelfService(bankIdInUrl)
           }
           from <- Future(CustomerEmails.senderAddress)
             .map(unboxFullOrFail(_, Some(cc), CustomerEmailSenderNotConfigured, 503))
@@ -167,8 +166,8 @@ object Http4s700CustomerEmails {
        |and an optional `reference` (at most $MaxReferenceLength characters), for example the record the email is about,
        |kept with the queued message. A line saying which application sent the email is added to the text.
        |
-       |**Limits.** Off unless BANK_ID is in the prop `customer_emails.enabled_bank_ids`. Only a Customer of BANK_ID is
-       |emailed. At most `customer_emails.max_per_customer_per_day` (default ${CustomerEmails.DefaultMaxPerCustomerPerDay})
+       |**Limits.** Only a Customer of BANK_ID is emailed, and not in a self-service bank (one made with Create My Bank),
+       |where anyone could hold the Role and give Customers any address. At most `customer_emails.max_per_customer_per_day` (default ${CustomerEmails.DefaultMaxPerCustomerPerDay})
        |emails are queued for a Customer in 24 hours, by all applications together. The From address is
        |`customer_emails.sender_address`, else `mail.api.consumer.registered.sender.address`.
        |
@@ -178,7 +177,7 @@ object Http4s700CustomerEmails {
        |Authentication is Required.""".stripMargin,
     JSONFactory700CustomerEmails.postCustomerEmailJsonExample,
     JSONFactory700CustomerEmails.customerEmailJsonExample,
-    List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, CustomerEmailsNotEnabled,
+    List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, CustomerEmailsNotInSelfServiceBank,
       CustomerEmailSenderNotConfigured, CustomerNotFoundByCustomerId, CustomerHasNoEmail, CustomerEmailLimitReached,
       UnknownError),
     List(apiTagCustomer),
