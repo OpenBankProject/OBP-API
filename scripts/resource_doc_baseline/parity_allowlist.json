@@ -2666,6 +2666,22 @@
       "reason": "Added ApiCollectionNotFound: 404 when the collection does not exist or belongs to another user, so only its owner can update it",
       "lift_digest": "ea8061d2189d61d4f84552f70fa4482c88aa1fb6d5f7692b7c3c6eae0b24f4e6",
       "http4s_digest": "181a990959c91843d2617852d9247a24ae916364b5b3afa58fab87ddd6692130"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createUserCustomerLinks",
+      "field": "description",
+      "reason": "Says who may call it: an application acting as itself may link a User to a Customer with CanCreateUserCustomerLink as a Scope (UserXORApplication)",
+      "lift_digest": "a8a1007d01ccd9676513bfbb2bcd793671473041930bcd25489f8e1a8bf37b02",
+      "http4s_digest": "6125d4f8108dda68e7c88dc280d2807534972e43d51728df40c705bc78ed0c02"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createCustomer",
+      "field": "description",
+      "reason": "Says who may call it: an application acting as itself may create a Customer with CanCreateCustomer as a Scope (UserXORApplication)",
+      "lift_digest": "56f72c04242cf24d496141ac1a6665508ae086553eaabd51c6064dad5b149a7d",
+      "http4s_digest": "f128cd0805126f789fa5c23585276034b7fc630570c34f5daa27c514e0a1dacd"
     }
   ]
 }

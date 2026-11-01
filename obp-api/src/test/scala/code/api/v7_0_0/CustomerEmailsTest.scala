@@ -57,8 +57,9 @@ class CustomerEmailsTest extends V600ServerSetup {
 
   private lazy val bankId = testBankId1.value
 
-  private def enable(extra: (String, String)*): Unit =
+  private def enable(extra: (String, String)*): Unit = {
     setPropsValues((List("customer_emails.sender_address" -> "cohort@example.com") ++ extra): _*)
+  }
 
   private def withRole[T](f: => T): T = {
     val grant = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanSendEmailToCustomerAtOneBank.toString)
