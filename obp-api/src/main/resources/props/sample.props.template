@@ -271,6 +271,13 @@ jwt.use.ssl=false
 ## Unit is a second
 # obp_expired_consents_interval_in_seconds =
 
+## Reject OBP consents still "INITIATED" (their challenge was never answered) after a defined time.
+## They never granted access; rejecting them stops an app that reuses a pending consent from being stuck on one.
+## Both have defaults: the task runs every 593 seconds, and rejects consents unchanged for 21600 seconds (6 hours).
+## Set the interval to 0 to stop the task.
+# obp_unfinished_consents_time_in_seconds = 21600
+# obp_unfinished_consents_interval_in_seconds = 593
+
 ## Expire UK Open Banking consents with status "Authorised"
 ## Unlike the three keys above this one HAS a default (601 seconds, a prime near 10 minutes, so the
 ## sweep does not settle into step with other periodic schedulers). Set it to 0 to stop the task.
@@ -1438,7 +1445,8 @@ database_messages_scheduler_interval=3600
 # ---------------------------------------------------
 
 # -- Consents ---------------------------------------------
-# In case isn't defined default value is "false"
+# In case isn't defined default value is "false". While false, no consent is accepted as a login (OBP-35007)
+# and none is created either: every endpoint that creates a consent or a consent request answers OBP-35007.
 # consents.allowed=true
 #
 # In order to pin a consent to a consumer we can use the property consumer_validation_method_for_consent

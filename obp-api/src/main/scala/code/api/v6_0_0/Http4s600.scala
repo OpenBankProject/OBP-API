@@ -1328,6 +1328,7 @@ object Http4s600 {
           implicit val cc: code.api.util.CallContext = req.callContext
           val callContextOpt = Some(cc)
           for {
+            _ <- code.api.util.Consent.checkConsentsAllowed(callContextOpt)
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc = callContextOpt) {
               List(StrongCustomerAuthentication.SMS.toString(),

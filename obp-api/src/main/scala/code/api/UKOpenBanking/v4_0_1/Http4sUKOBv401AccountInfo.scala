@@ -124,6 +124,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
       EndpointHelpers.executeFutureCreated(req) {
         implicit val cc: CallContext = req.callContext
         for {
+          _ <- code.api.util.Consent.checkConsentsAllowed(Some(cc))
           // Spec Step 2: the TPP lodges the consent via a client-credentials grant -- authenticated
           // as an app (consumer) but with no PSU yet. Require some authentication (a consumer or a
           // user) but not a PSU specifically; reject only a fully anonymous request. The PSU is

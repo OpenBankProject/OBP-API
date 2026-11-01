@@ -874,6 +874,7 @@ object Http4s500 {
           implicit val cc: code.api.util.CallContext = req.callContext
           val rawBody = cc.httpBody.getOrElse("")
           for {
+            _ <- code.api.util.Consent.checkConsentsAllowed(Some(cc))
             (_, callContextOpt) <- APIUtil.applicationAccess(cc)
             _ <- APIUtil.passesPsd2Aisp(callContextOpt)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
@@ -1093,6 +1094,7 @@ object Http4s500 {
           implicit val cc: code.api.util.CallContext = req.callContext
           val callContextOpt = Some(cc)
           for {
+            _ <- code.api.util.Consent.checkConsentsAllowed(callContextOpt)
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.getConsentRequestById(consentRequestId))
               .map(i => unboxFullOrFail(i, callContextOpt, ConsentRequestNotFound))

@@ -3,6 +3,18 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+01/11/2026    TBD           CHANGED: with consents.allowed false (the default) consents are now refused when they are
+                            created, not only when they are used: every endpoint that creates a consent or a consent
+                            request (OBP v3.1.0, v5.0.0, v5.1.0 and v6.0.0, Berlin Group v1.3, UK Open Banking v3.1 and
+                            v4.0.1) answers 401 OBP-35007 first, before a challenge is sent or anything is stored.
+                            Before, such consents were created (and could even be accepted) but could never be used.
+01/11/2026    TBD           ADDED: OBP consents left INITIATED (their challenge never answered) are now rejected by
+                            a new ConsentScheduler task, unfinishedObpConsents, once unchanged for
+                            obp_unfinished_consents_time_in_seconds (default 21600, 6 hours). It runs every
+                            obp_unfinished_consents_interval_in_seconds (default 593; 0 stops it) and notes the reason
+                            on the consent. Before, an INITIATED OBP consent stayed INITIATED forever, so an app that
+                            reuses a pending consent (as the Portal and other OBP-Frontend apps do for Opey) could be
+                            stuck on one. Berlin Group consents already had the equivalent task.
 01/11/2026    TBD           CHANGED: v7.0.0 Organisation is now Tenant: a customer of the operator of this OBP
                             instance, which belongs to no bank (banks will later name their Tenant). The endpoints
                             move from /banks/BANK_ID/organisations[/ORGANISATION_ID] to /tenants[/TENANT_ID]. JSON

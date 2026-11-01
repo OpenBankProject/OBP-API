@@ -110,6 +110,7 @@ object Http4sBGv13AIS extends MdcLoggable {
         val createdByUser: Option[User] = cc.user.toOption
           .filterNot(u => cc.consumer.map(_.key.get).contains(u.idGivenByProvider))
         for {
+          _ <- code.api.util.Consent.checkConsentsAllowed(callContext)
           _ <- passesPsd2Aisp(callContext)
           failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJson "
           consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {

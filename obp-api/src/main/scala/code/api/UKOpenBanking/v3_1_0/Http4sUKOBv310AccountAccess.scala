@@ -75,6 +75,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
       EndpointHelpers.executeFutureCreated(req) {
         implicit val cc: CallContext = req.callContext
         for {
+          _ <- code.api.util.Consent.checkConsentsAllowed(Some(cc))
           // Client-credentials lodging: require some authentication (consumer or user) but not a
           // PSU specifically; reject only a fully anonymous request. The PSU is bound later at
           // authorise time. Mirrors the Berlin Group native consent flow and the v4.0.1 handler.
