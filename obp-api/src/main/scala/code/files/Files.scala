@@ -67,6 +67,27 @@ trait FileT {
 
   /** The file's owner: the User an agent acted for, or else the User who uploaded it. */
   def ownerUserId: String = if (onBehalfOfUserId.nonEmpty) onBehalfOfUserId else userId
+  /** Uploaded by a person through Create My File, within the personal files limits, rather than with a Role. */
+  def isPersonal: Boolean
+  /** pending, clean or rejected (see [[ScanStatus]]). The content is served to everyone allowed only when clean. */
+  def scanStatus: String
+  /** Why the status was set, e.g. the signature a scanner matched. Empty when no reason was given. */
+  def scanStatusReason: String
+  def scanStatusUpdatedAt: Option[Date]
+  /** Who last set the status: the scanner's or the staff member's own id. Empty while nobody has. */
+  def scanStatusUpdatedByUserId: String
+}
+
+/**
+ * Whether a file's content may be served. A personal file starts pending and waits for a scanner or a member
+ * of staff; a file uploaded with a Role starts clean. Until a file is clean its content is served only to its
+ * owner and to holders of CanUpdateFileScanStatusAtOneBank; a rejected file is not served at all.
+ */
+object ScanStatus {
+  val Pending = "pending"
+  val Clean = "clean"
+  val Rejected = "rejected"
+  val all: List[String] = List(Pending, Clean, Rejected)
 }
 
 /** A link between a file and one record, such as a Customer or a Dynamic Entity record. */
@@ -107,13 +128,19 @@ trait FilesProvider {
   /** Store the bytes and the metadata of a new file, together. userId is the caller; the provider records
    *  the User an agent acted for, by the attribution policy of File_UserId. */
   def createFile(bankId: String, sha256: String, mediaType: String, fileName: String, isPublic: Boolean,
-                 userId: String, bytes: Array[Byte]): Box[FileT]
+                 userId: String, bytes: Array[Byte], isPersonal: Boolean = false,
+                 scanStatus: String = ScanStatus.Clean): Box[FileT]
   def getFile(bankId: String, fileId: String): Box[FileT]
   def getContent(fileId: String): Box[Array[Byte]]
   /** Whether the file is public is the one thing about it that can change; its bytes never do. */
   def setPublic(bankId: String, fileId: String, isPublic: Boolean): Box[FileT]
-  /** One page of all the files of a space, newest first, and how many there are in all. */
-  def getFiles(bankId: String, limit: Int, offset: Int): (List[FileT], Long)
+  /** One page of the files of a space, newest first, and how many there are in all; only those with
+   *  scanStatus when it is given (pending or rejected, which are always stored explicitly). */
+  def getFiles(bankId: String, limit: Int, offset: Int, scanStatus: Option[String] = None): (List[FileT], Long)
+  /** Set the scan status. userId is the caller, recorded as it is (an audit of who decided). */
+  def setScanStatus(bankId: String, fileId: String, scanStatus: String, reason: String, userId: String): Box[FileT]
+  /** How many personal files a User owns in a space, and their total size in bytes. */
+  def personalUsage(bankId: String, ownerUserId: String): (Int, Long)
   /** The files of a space that the User owns or has been given access to, oldest first. */
   def getFilesOwnedOrSharedWith(bankId: String, userId: String): List[FileT]
 

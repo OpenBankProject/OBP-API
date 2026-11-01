@@ -35,9 +35,9 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{Http4sRoute, EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateGlossaryItem, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteGlossaryItem, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canGetAccountAccessTrace, canGetAccountDirectoryAtOneBank, canGetOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateGlossaryItem, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateGlossaryItem, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteGlossaryItem, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canGetAccountAccessTrace, canGetAccountDirectoryAtOneBank, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateGlossaryItem, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
-import code.model.dataAccess.{AuthUser, BankAccountCreation, MappedBank, ResourceUser}
+import code.model.dataAccess.{AuthUser, BankAccountCreation, MappedBank, ResourceUser, SelfServiceBank}
 import code.consent.Consents
 import code.accountcreation.AccountCreations
 import code.api.util.ApiTag._
@@ -58,7 +58,6 @@ import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.migration.MigrationScriptLogProvider
 import code.bankconnectors.{Connector => BankConnector}
 import code.entitlement.Entitlement
-import code.organisation.Organisations
 import code.glossaryitem.DynamicGlossaryItems
 import code.routingscheme.{RoutingSchemes, RoutingSchemeValidation}
 import code.payeelookup.PayeeLookups
@@ -373,8 +372,9 @@ object Http4s700 {
               // Quota binds to the human: banks created by the human directly or by any
               // of their consent-agents count toward the same limit — otherwise every
               // new consent would arrive with a fresh quota.
+              // Counted in OBP's record of self-service banks; banks made with CanCreateBank do not count.
               val creatorUserIds = humanAndAgentUserIds(cc.onBehalfOfUserId)
-              MappedBank.count(ByList(MappedBank.CreatedByUserId, creatorUserIds))
+              SelfServiceBank.count(ByList(SelfServiceBank.CreatedByUserId, creatorUserIds))
             }
             _ <- Helper.booleanToFuture(SelfServiceBankLimitReached, failCode = 403, cc = Some(cc)) {
               banksCreatedByUser < selfServiceBankLimit
@@ -386,6 +386,12 @@ object Http4s700 {
                 Some(cc), UnknownError, 500
               )
             }
+            // A self-service bank gives a developer a space of their own without CanCreateBank. A User must
+            // never create a bank on a backend system, so it is refused unless banks are stored by OBP itself
+            // (the mapped connector, or a star connector routing this bank's creation to mapped).
+            _ <- Helper.booleanToFuture(SelfServiceBankNeedsMappedConnector, cc = Some(cc)) {
+              APIUtil.isDataFromOBPSide("createOrUpdateBank", Array(("bankId", generatedName.bankId)))
+            }
             (bank, _) <- NewStyle.function.createOrUpdateBank(
               generatedName.bankId,
               generatedName.fullName,
@@ -393,6 +399,9 @@ object Http4s700 {
               "", "", "", "", "", "",
               Some(cc)
             )
+            // Recorded so that what Roles normally vouch for (e.g. files stored with CanCreateFileAtOneBank
+            // starting clean) does not apply in a bank anyone could make and grant themselves Roles in.
+            _ <- Future(SelfServiceBank.record(bank.bankId.value, cc.onBehalfOfUserId))
             // Creator grant targets the HUMAN (see v6.0.0 createBank): under a Consent the
             // authenticated user is a per-consent shadow, and roles granted to it are stranded.
             _ <- Future(Entitlement.entitlement.vend.addEntitlement(
@@ -411,9 +420,14 @@ object Http4s700 {
       s"""Create a bank for the current User without requiring the role CanCreateBank.
       |
       |This is the self-service flavour of Create Bank, intended for
-      |sandbox instances.
+      |sandbox instances: it gives a developer a space of their own without the role CanCreateBank.
       |
       |$selfServiceBankCreationStatusText
+      |
+      |It is refused unless OBP stores banks itself (the mapped connector, or a star connector routing
+      |createOrUpdateBank to mapped): a User may never create a bank on a backend system. Anyone can grant
+      |themselves Roles in such a bank, so they vouch for nothing there; for example, files stored in it
+      |start pending until they are scanned.
       |
       |When the limit is reached, further banks require the role CanCreateBank
       |(see POST /banks). The limit binds to the human User: banks created by the User
@@ -441,6 +455,7 @@ object Http4s700 {
         $AuthenticatedUserIsRequired,
         SelfServiceBankCreationDisabled,
         SelfServiceBankLimitReached,
+        SelfServiceBankNeedsMappedConnector,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -3249,241 +3264,6 @@ object Http4s700 {
       http4sPartialFunction = Some(createValidationEmail)
     )
 
-    // ── Organisations ─────────────────────────────────────────────────────────
-    // CRUD for the Organisation resource. An Organisation lives in a space: BANK_ID is a bank's id, or SYS
-    // for the system space, so the ResourceDocs declare allowSystemSpace() and the middleware checks each
-    // Role at the BANK_ID in the URL. ORGANISATION_ID is not resolved by middleware, so endpoints fetch
-    // it via Organisations.organisation.vend, and one living in another space answers 404.
-
-    private val ValidOrganisationStatuses    = Set("active", "suspended", "archived")
-    private val ValidOrganisationVisibilities = Set("public", "unlisted", "private")
-    private val OrganisationIdRegex          = "^[a-zA-Z0-9._-]{2,64}$".r
-    private val MaxOrganisationTypeLength    = 64
-
-    private val organisationSpaceDescription =
-      s"""An Organisation lives in a space: BANK_ID is a bank's id, or $DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID for the system space.
-         |Roles are granted at that space. The organisation_id is unique across all spaces.""".stripMargin
-
-    private def organisationInSpace(bankIdInUrl: String, organisationId: String, cc: CallContext) =
-      Future(Organisations.organisation.vend.getOrganisation(bankIdInUrl, organisationId))
-        .map(unboxFullOrFail(_, Some(cc), OrganisationNotFound, 404))
-
-    val createOrganisation: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / bankIdInUrl / "organisations" =>
-        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.PostOrganisationJsonV700, JSONFactory700.OrganisationJsonV700](req) { (user, body, cc) =>
-          for {
-            _ <- Helper.booleanToFuture(InvalidOrganisationIdFormat, 400, Some(cc)) {
-              OrganisationIdRegex.findFirstIn(body.organisation_id).isDefined
-            }
-            status     = body.status.getOrElse("active")
-            visibility = body.visibility.getOrElse("public")
-            _ <- Helper.booleanToFuture(InvalidOrganisationStatus, 400, Some(cc)) {
-              ValidOrganisationStatuses.contains(status)
-            }
-            _ <- Helper.booleanToFuture(InvalidOrganisationVisibility, 400, Some(cc)) {
-              ValidOrganisationVisibilities.contains(visibility)
-            }
-            _ <- Helper.booleanToFuture(InvalidOrganisationType, 400, Some(cc)) {
-              body.organisation_type.forall(_.length <= MaxOrganisationTypeLength)
-            }
-            existing <- Future(Organisations.organisation.vend.getOrganisation(body.organisation_id))
-            _ <- Helper.booleanToFuture(OrganisationAlreadyExists, 409, Some(cc))(existing.isEmpty)
-            created <- Future {
-              Organisations.organisation.vend.createOrganisation(
-                bankIdInUrl, body.organisation_id, body.name, body.website, body.logo_url,
-                body.organisation_type, status, visibility, user.userId
-              )
-            }.map(unboxFullOrFail(_, Some(cc), CreateOrganisationError, 400))
-          } yield JSONFactory700.createOrganisationJsonV700(created)
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(createOrganisation),
-      "POST",
-      "/banks/BANK_ID/organisations",
-      "Create Organisation",
-      s"""Create an Organisation in the space BANK_ID.
-        |
-        |$organisationSpaceDescription
-        |
-        |The organisation_id must be a URL-safe string (a-z, A-Z, 0-9, '-', '.', '_'), between 2 and 64 characters in length, and is immutable.
-        |
-        |Optional fields:
-        |- organisation_type: free text of up to $MaxOrganisationTypeLength characters, e.g. startup, bank, university, regulator, partner
-        |- status: one of active, suspended, archived (defaults to active)
-        |- visibility: one of public, unlisted, private (defaults to public)
-        |- website, logo_url
-        |
-        |Authentication is Required.""".stripMargin,
-      JSONFactory700.PostOrganisationJsonV700(
-        organisation_id = "tesobe",
-        name = "TESOBE GmbH",
-        website = Some("https://www.tesobe.com"),
-        logo_url = None,
-        organisation_type = Some("startup"),
-        status = Some("active"),
-        visibility = Some("public")
-      ),
-      JSONFactory700.organisationJsonV700Example,
-      List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
-           InvalidOrganisationIdFormat, InvalidOrganisationStatus,
-           InvalidOrganisationVisibility, InvalidOrganisationType, OrganisationAlreadyExists,
-           CreateOrganisationError, UnknownError),
-      apiTagOrganisation :: Nil,
-      Some(List(canCreateOrganisation)),
-      http4sPartialFunction = Some(createOrganisation)
-    ).allowSystemSpace()
-
-    val getOrganisations: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / bankIdInUrl / "organisations" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            orgs <- Organisations.organisation.vend.getOrganisations(bankIdInUrl)
-              .map(unboxFullOrFail(_, Some(cc), UnknownError, 500))
-            hasGetRole = APIUtil.hasAtLeastOneEntitlement(bankIdInUrl, user.userId, List(canGetOrganisation))
-            visible    = if (hasGetRole) orgs else orgs.filter(_.visibility == "public")
-          } yield JSONFactory700.createOrganisationsJsonV700(visible)
-        }
-    }
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getOrganisations),
-      "GET",
-      "/banks/BANK_ID/organisations",
-      "Get Organisations",
-      s"""Returns the Organisations of the space BANK_ID.
-        |
-        |$organisationSpaceDescription
-        |
-        |By default returns only Organisations whose visibility is `public`. Users granted CanGetOrganisation at BANK_ID see all of its Organisations, including unlisted and private ones.
-        |
-        |Authentication is Required.""".stripMargin,
-      EmptyBody,
-      JSONFactory700.OrganisationsJsonV700(organisations = List(JSONFactory700.organisationJsonV700Example)),
-      List($BankNotFound, $AuthenticatedUserIsRequired, UnknownError),
-      apiTagOrganisation :: Nil,
-      None,
-      http4sPartialFunction = Some(getOrganisations)
-    ).allowSystemSpace()
-
-    val getOrganisation: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / bankIdInUrl / "organisations" / organisationId =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            org <- organisationInSpace(bankIdInUrl, organisationId, cc)
-            _ <- if (org.visibility == "private")
-                   NewStyle.function.hasEntitlement(bankIdInUrl, user.userId, canGetOrganisation, Some(cc))
-                 else Future.successful(())
-          } yield JSONFactory700.createOrganisationJsonV700(org)
-        }
-    }
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getOrganisation),
-      "GET",
-      "/banks/BANK_ID/organisations/ORGANISATION_ID",
-      "Get Organisation",
-      s"""Returns the Organisation specified by ORGANISATION_ID in the space BANK_ID.
-        |
-        |$organisationSpaceDescription
-        |
-        |Organisations with visibility `public` or `unlisted` are visible to any authenticated user. Organisations with visibility `private` require CanGetOrganisation at BANK_ID.
-        |
-        |Authentication is Required.""".stripMargin,
-      EmptyBody,
-      JSONFactory700.organisationJsonV700Example,
-      List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, OrganisationNotFound, UnknownError),
-      apiTagOrganisation :: Nil,
-      None,
-      http4sPartialFunction = Some(getOrganisation)
-    ).allowSystemSpace()
-
-    val updateOrganisation: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "banks" / bankIdInUrl / "organisations" / organisationId =>
-        EndpointHelpers.withUserAndBody[JSONFactory700.PutOrganisationJsonV700, JSONFactory700.OrganisationJsonV700](req) { (_, body, cc) =>
-          for {
-            _ <- organisationInSpace(bankIdInUrl, organisationId, cc)
-            _ <- Helper.booleanToFuture(InvalidOrganisationStatus, 400, Some(cc)) {
-              body.status.forall(ValidOrganisationStatuses.contains)
-            }
-            _ <- Helper.booleanToFuture(InvalidOrganisationVisibility, 400, Some(cc)) {
-              body.visibility.forall(ValidOrganisationVisibilities.contains)
-            }
-            _ <- Helper.booleanToFuture(InvalidOrganisationType, 400, Some(cc)) {
-              body.organisation_type.forall(_.length <= MaxOrganisationTypeLength)
-            }
-            updated <- Future {
-              Organisations.organisation.vend.updateOrganisation(
-                bankIdInUrl, organisationId, body.name, body.website, body.logo_url,
-                body.organisation_type, body.status, body.visibility
-              )
-            }.map(unboxFullOrFail(_, Some(cc), UpdateOrganisationError, 400))
-          } yield JSONFactory700.createOrganisationJsonV700(updated)
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(updateOrganisation),
-      "PUT",
-      "/banks/BANK_ID/organisations/ORGANISATION_ID",
-      "Update Organisation",
-      s"""Update an Organisation in the space BANK_ID. All body fields are optional. The organisation_id and the space are immutable.
-        |
-        |$organisationSpaceDescription
-        |
-        |Authentication is Required.""".stripMargin,
-      JSONFactory700.PutOrganisationJsonV700(
-        name = Some("TESOBE GmbH"),
-        website = Some("https://www.tesobe.com"),
-        logo_url = None,
-        organisation_type = Some("startup"),
-        status = Some("active"),
-        visibility = Some("public")
-      ),
-      JSONFactory700.organisationJsonV700Example,
-      List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
-           OrganisationNotFound, InvalidOrganisationStatus,
-           InvalidOrganisationVisibility, InvalidOrganisationType, UpdateOrganisationError, UnknownError),
-      apiTagOrganisation :: Nil,
-      Some(List(canUpdateOrganisation)),
-      http4sPartialFunction = Some(updateOrganisation)
-    ).allowSystemSpace()
-
-    val deleteOrganisation: Http4sRoute = Http4sRoute {
-      case req @ DELETE -> `prefixPath` / "banks" / bankIdInUrl / "organisations" / organisationId =>
-        EndpointHelpers.withUserDelete(req) { (_, cc) =>
-          for {
-            _ <- organisationInSpace(bankIdInUrl, organisationId, cc)
-            _ <- Future(Organisations.organisation.vend.deleteOrganisation(bankIdInUrl, organisationId))
-              .map(unboxFullOrFail(_, Some(cc), DeleteOrganisationError, 400))
-          } yield ()
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(deleteOrganisation),
-      "DELETE",
-      "/banks/BANK_ID/organisations/ORGANISATION_ID",
-      "Delete Organisation",
-      s"""Delete the Organisation specified by ORGANISATION_ID in the space BANK_ID.
-        |
-        |$organisationSpaceDescription
-        |
-        |Authentication is Required.""".stripMargin,
-      EmptyBody,
-      EmptyBody,
-      List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, OrganisationNotFound,
-           DeleteOrganisationError, UnknownError),
-      apiTagOrganisation :: Nil,
-      Some(List(canDeleteOrganisation)),
-      http4sPartialFunction = Some(deleteOrganisation)
-    ).allowSystemSpace()
-
-    // ── End Organisations ─────────────────────────────────────────────────────
 
     // ── Routing Schemes ───────────────────────────────────────────────────────
     // A registry of country-qualified routing scheme names (e.g. TZ.MSISDN,
@@ -7887,8 +7667,11 @@ object Http4s700 {
     // Files: documents and photographs stored in a space and attached to records, and the public ones served without login.
     resourceDocs ++= Http4s700Files.resourceDocs
 
-    // The members of an Organisation, and the Organisations the current User belongs to.
-    resourceDocs ++= Http4s700OrganisationMembers.resourceDocs
+    // Send Email to Customer: a bank, or an application for it, tells one of its Customers about something.
+    resourceDocs ++= Http4s700CustomerEmails.resourceDocs
+
+    // Tenants: the customers of the operator of this instance.
+    resourceDocs ++= Http4s700Tenants.resourceDocs
 
     // What an OIDC provider reads from OBP-API to finish signing a User in for a Consumer.
     resourceDocs ++= Http4s700OpenIdConnect.resourceDocs

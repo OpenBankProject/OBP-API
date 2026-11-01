@@ -35,6 +35,8 @@ import code.api.util.ApiRole.{CanCreateFileAtOneBank, CanCreatePublicFileAtOneBa
 import code.api.util.ErrorMessages._
 import code.api.v6_0_0.V600ServerSetup
 import code.entitlement.Entitlement
+import code.model.dataAccess.SelfServiceBank
+import net.liftweb.mapper.By
 import code.scope.Scope
 import code.setup.{APIResponse, OBPReq}
 import com.openbankproject.commons.model.ErrorMessage
@@ -120,6 +122,13 @@ class FilesTest extends V600ServerSetup {
       file.sha256 should equal(sha256Hex(pngBytes))
       file.is_public should equal(false)
       file.owner_user_id should equal(resourceUser1.userId)
+    }
+
+    scenario("In a self-service bank a file stored with the Role starts pending: the Role vouches for nothing there", Files, VersionOfApi) {
+      uploaded().scan_status should equal("clean")
+      SelfServiceBank.record(bankId, resourceUser1.userId)
+      try uploaded().scan_status should equal("pending")
+      finally SelfServiceBank.findAll(By(SelfServiceBank.BankId, bankId)).foreach(_.delete_!)
     }
 
     scenario("The Role at another bank does not cover this bank, and there is no any-bank Role", Files, VersionOfApi) {

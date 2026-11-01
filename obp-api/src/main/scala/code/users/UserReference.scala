@@ -162,6 +162,7 @@ object UserReference {
   case object PlatformApp_MarkedByUserId                       extends UserReference(UseAuthenticatedUserId, "code.platformapp.PlatformApp", List("MarkedByUserId"), "audit: who marked the Consumer as a platform app")
   case object GroupMembership_CreatedByUserId                  extends UserReference(UseAuthenticatedUserId, "code.group.GroupMembership", List("CreatedByUserId"), "audit: who added the member, as Entitlement_GrantedByUserId")
   case object AssetStatusHistory_ChangedByUserId              extends UserReference(UseAuthenticatedUserId, "code.asset.AssetStatusHistory", List("ChangedByUserId"), "audit: who changed the asset's status, the question a regulator asks")
+  case object File_ScanStatusUpdatedByUserId                   extends UserReference(UseAuthenticatedUserId, "code.files.File", List("ScanStatusUpdatedByUserId"), "audit: who set the scan status, the scanner or the staff member who decided")
 
   // ---- UseOnBehalfOfUserId: the row belongs to the person, so it must outlive the Consent that
   // ---- created it. A handful of these tables keep both ids, and those name two fields.
@@ -203,10 +204,7 @@ object UserReference {
   case object DynamicEntityWebhook_CreatedByUserId             extends UserReference(UseOnBehalfOfUserId   , "code.dynamicentitywebhook.DynamicEntityWebhook", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: a webhook sends data out of OBP and outlives the Consent that made it, so the agent stays on CreatedByUserId (published as created_by_user_id) and the person it acted for goes to CreatedByOnBehalfOfUserId")
   case object AccountCreation_CreatedByUserId                   extends UserReference(UseOnBehalfOfUserId   , "code.accountcreation.AccountCreation", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: who made the call that created the account, agent included, and the person it was made for; published in the v7.0.0 Create Account metadata. The holder is AccountHolders_User")
   case object Bank_CreatedByUserId                             extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.MappedBank", List("CreatedByUserId"), "creator grant already resolved at the endpoint")
-  case object Organisation_CreatedByUserId                     extends UserReference(UseOnBehalfOfUserId   , "code.organisation.Organisation", List("CreatedByUserId"), "outlives the Consent that created it")
-  case object OrganisationMember_UserId                       extends UserReference(UseOnBehalfOfUserId   , "code.organisation.OrganisationMember", List("UserId"), "explicit target: the member is named in the request; a membership given to a consent user would die with its Consent")
-  case object OrganisationMember_CreatedByUserId              extends UserReference(UseOnBehalfOfUserId   , "code.organisation.OrganisationMember", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both: who made the call that added the member, agent included, and the person it was made for; a membership says who may act for an Organisation and outlives the Consent")
-  case object OrganisationMember_UpdatedByUserId              extends UserReference(UseOnBehalfOfUserId   , "code.organisation.OrganisationMember", List("UpdatedByUserId", "UpdatedByOnBehalfOfUserId"), "record both: as OrganisationMember_CreatedByUserId, for the call that last changed the membership")
+  case object Tenant_CreatedByUserId                     extends UserReference(UseOnBehalfOfUserId   , "code.tenant.Tenant", List("CreatedByUserId"), "outlives the Consent that created it")
   case object Asset_CreatedByUserId                            extends UserReference(UseOnBehalfOfUserId   , "code.asset.Asset", List("CreatedByUserId"), "outlives the Consent that created it, as RoutingScheme_CreatedByUserId; seeded rows hold system:asset-seed")
   case object File_UserId                                      extends UserReference(UseOnBehalfOfUserId   , "code.files.File", List("UserId", "OnBehalfOfUserId"), "record both: UserId = who uploaded (the agent), OnBehalfOfUserId = the human, who owns the file")
   case object FileAttachment_UserId                            extends UserReference(UseOnBehalfOfUserId   , "code.files.FileAttachment", List("UserId", "OnBehalfOfUserId"), "record both: UserId = who attached (the agent), OnBehalfOfUserId = the human")
@@ -304,12 +302,10 @@ object UserReference {
     DynamicEntityWebhook_CreatedByUserId,
     AccountCreation_CreatedByUserId,
     Bank_CreatedByUserId,
-    Organisation_CreatedByUserId,
-    OrganisationMember_UserId,
-    OrganisationMember_CreatedByUserId,
-    OrganisationMember_UpdatedByUserId,
+    Tenant_CreatedByUserId,
     Asset_CreatedByUserId,
     File_UserId,
+    File_ScanStatusUpdatedByUserId,
     FileAttachment_UserId,
     FileAccess_GrantedByUserId,
     FileAccess_GranteeUserId,
@@ -406,7 +402,7 @@ object UserReference {
     CounterpartyWhereTag_User              -> mechanicalBatch,
     ApiProductSubscription_CreatedByUserId -> mechanicalBatch,
     DynamicGlossaryItem_CreatedByUserId    -> mechanicalBatch,
-    Organisation_CreatedByUserId           -> mechanicalBatch,
+    Tenant_CreatedByUserId           -> mechanicalBatch,
     PayeeLookup_CreatedByUserId            -> mechanicalBatch,
     RoutingScheme_CreatedByUserId          -> mechanicalBatch,
     UtilityPaymentCallback_CreatedByUserId -> mechanicalBatch,
@@ -440,9 +436,6 @@ object UserReference {
     FileAccess_GranteeUserId               -> NotYetWired.NotReachedByConsentUser(
       "explicit target: Create File Access refuses a consent user as grantee rather than redirecting -- " +
       "covered by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),
-    OrganisationMember_UserId             -> NotYetWired.NotReachedByConsentUser(
-      "explicit target: Create Organisation Member refuses a consent user as the member rather than " +
-      "redirecting -- covered by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),
     GroupMembership_UserId                -> NotYetWired.NotReachedByConsentUser(
       "the member is never the caller: the Group member sync endpoint reads each member's user id " +
       "from the Group's existing Entitlements and membership rows, so there is nothing to redirect."),

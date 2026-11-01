@@ -8339,6 +8339,9 @@ object Http4s600 {
         |
         |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.
         |
+        |**Who may call it.** A User with the Role CanCreateCustomer at BANK_ID, or an application acting as itself whose
+        |Consumer holds it as a Scope (for example a website that onboards its applicants as Customers).
+        |
         |${userAuthenticationMessage(true)}
         |""",
         postCustomerJsonV600,
@@ -8359,6 +8362,7 @@ object Http4s600 {
         ),
         List(apiTagCustomer, apiTagPerson),
         Some(canCreateCustomer :: Nil),
+        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(createCustomer)
       )
       resourceDocs += ResourceDoc(

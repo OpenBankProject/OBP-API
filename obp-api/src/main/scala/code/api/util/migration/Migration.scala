@@ -194,7 +194,8 @@ object Migration extends MdcLoggable {
       renameDynamicEntityRoles()
       renameDynamicEntityDefinitionRoles()
       upperCaseStoredCurrencyCodes()
-      moveOrganisationsIntoSpaces(startedBeforeSchemifier)
+      renameOrganisationsToTenants(startedBeforeSchemifier)
+      markSelfServiceBanks(startedBeforeSchemifier)
       ensureConsentViewExists()
     }
 
@@ -960,18 +961,35 @@ object Migration extends MdcLoggable {
      * what is deliberately left alone, are in [[MigrationOfCurrencyCodesUpperCase]].
      */
     /**
-     * Put every stored Organisation in the system space, and move its Roles from the empty bank id to SYS,
-     * renaming CanGetAnyOrganisation to CanGetOrganisation. It must run after Schemifier, which adds the
-     * bank id column. The details are in [[MigrationOfOrganisationSpace]].
+     * Copy stored Organisations and their members into the Tenant tables, and make their Roles the Tenant system
+     * Roles. It must run after Schemifier, which creates the Tenant tables. The details are in
+     * [[MigrationOfOrganisationToTenant]].
      */
-    private def moveOrganisationsIntoSpaces(startedBeforeSchemifier: Boolean): Boolean = {
+    private def renameOrganisationsToTenants(startedBeforeSchemifier: Boolean): Boolean = {
       if (startedBeforeSchemifier) {
-        logger.warn(s"Migration.database.moveOrganisationsIntoSpaces(true) cannot be run before Schemifier.")
+        logger.warn(s"Migration.database.renameOrganisationsToTenants(true) cannot be run before Schemifier.")
         true
       } else {
-        val name = nameOf(moveOrganisationsIntoSpaces(startedBeforeSchemifier))
+        val name = nameOf(renameOrganisationsToTenants(startedBeforeSchemifier))
         runOnce(name) {
-          MigrationOfOrganisationSpace.moveEverything(name)
+          MigrationOfOrganisationToTenant.migrate(name)
+        }
+      }
+    }
+
+    /**
+     * Mark the banks made with Create My Bank, and hold the unscanned files stored in them as pending. It must run
+     * after Schemifier, which creates SelfServiceBank and adds the ScanStatus column. The details are in
+     * [[MigrationOfSelfServiceBanks]].
+     */
+    private def markSelfServiceBanks(startedBeforeSchemifier: Boolean): Boolean = {
+      if (startedBeforeSchemifier) {
+        logger.warn(s"Migration.database.markSelfServiceBanks(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(markSelfServiceBanks(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfSelfServiceBanks.markAndHoldFiles(name)
         }
       }
     }

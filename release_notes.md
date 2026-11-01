@@ -3,6 +3,56 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+01/11/2026    TBD           CHANGED: v7.0.0 Organisation is now Tenant: a customer of the operator of this OBP
+                            instance, which belongs to no bank (banks will later name their Tenant). The endpoints
+                            move from /banks/BANK_ID/organisations[/ORGANISATION_ID] to /tenants[/TENANT_ID]. JSON
+                            field organisation_id becomes tenant_id; bank_id and organisation_type are gone. The
+                            Roles become system Roles: CanCreateTenant, CanGetTenant, CanUpdateTenant,
+                            CanDeleteTenant. REMOVED: Organisation members (/banks/BANK_ID/organisations/
+                            ORGANISATION_ID/members[/USER_ID], GET /my/organisations), their four Roles and the
+                            OrganisationMember table's use. Error codes OBP-30506..30513 keep their numbers with
+                            Tenant wording; OBP-30553..30559 and OBP-30597 are gone. New table Tenant; the
+                            migration renameOrganisationsToTenants copies the rows of Organisation (left in place,
+                            unread) and moves the old Roles held at SYS or the empty bank id to the new system
+                            Roles. This replaces moveOrganisationsIntoSpaces.
+01/11/2026    TBD           CHANGED: Create Customer (v6.0.0 POST /banks/BANK_ID/customers) and Create User Customer
+                            Link (v4.0.0 POST /banks/BANK_ID/user_customer_links) are UserXORApplication: an
+                            application acting as itself may call them with CanCreateCustomer and
+                            CanCreateUserCustomerLink as Scopes. Called with no credentials at all, Create User
+                            Customer Link now answers 401 OBP-20200 (application not identified) instead of 401
+                            OBP-20001.
+01/11/2026    TBD           ADDED: v7.0.0 Send Email to Customer. POST /banks/BANK_ID/customers/CUSTOMER_ID/emails
+                            queues a plain-text email (subject, text, optional reference) to one of the bank's
+                            Customers, at the address on the Customer record, through the message outbox; the
+                            address is never returned. Needs the new Role CanSendEmailToCustomerAtOneBank (or the
+                            Scope, for an application acting as itself). Only a Customer of BANK_ID is emailed. Off
+                            unless the space is in customer_emails.enabled_bank_ids; at most
+                            customer_emails.max_per_customer_per_day (default 20) per Customer in 24 hours. From:
+                            customer_emails.sender_address, else mail.api.consumer.registered.sender.address.
+                            MessageOutbox.enqueueEmail takes optional metadata.
+31/10/2026    TBD           ADDED: v7.0.0 personal files and scan status. POST /banks/BANK_ID/my/files stores a
+                            file in the caller's own name without a Role, attached to one of their own personal
+                            Dynamic Entity records. Off unless the space is in files.personal.enabled_bank_ids;
+                            needs the owner's email address validated (a User of another identity provider
+                            needs only to have one); limited by
+                            files.personal.allowed_media_types, files.personal.max_size_in_bytes,
+                            files.personal.max_files_per_user and files.personal.max_total_bytes_per_user; never
+                            public. Every file now has scan_status (pending, clean, rejected): personal files start
+                            pending, files stored with CanCreateFileAtOneBank and existing files count as clean,
+                            except in self-service banks (made with Create My Bank), where every file starts
+                            pending. CHANGED: Create My Bank (POST /my/banks), still enabled by
+                            self_service_bank_creation.limit > 0, is refused with OBP-30232 unless OBP stores banks
+                            itself (the mapped connector, or star routing createOrUpdateBank to mapped), so a User
+                            never creates a bank on a backend system. It records each bank in the new table
+                            SelfServiceBank; its quota counts those rows, so banks made with CanCreateBank no longer
+                            count. The migration markSelfServiceBanks records existing banks whose id has the
+                            generated shape, and sets unscanned files in those banks to pending.
+                            Until clean, content is served only to the owner and holders of the new Role
+                            CanUpdateFileScanStatusAtOneBank, which PUT /banks/BANK_ID/files/FILE_ID/scan-status
+                            needs; rejected content is not served. Get Files of a Space takes scan_status=pending.
+                            File responses gain is_personal, scan_status, scan_status_reason and
+                            scan_status_updated_at. New File columns: IsPersonal, ScanStatus, ScanStatusReason,
+                            ScanStatusUpdatedAt, ScanStatusUpdatedByUserId.
 30/10/2026    TBD           ADDED: v7.0.0 Organisation members. POST/GET /banks/BANK_ID/organisations/
                             ORGANISATION_ID/members and GET/PUT/DELETE .../members/USER_ID link Users to an
                             Organisation with a member_role (owner, admin, member), an optional title, a status

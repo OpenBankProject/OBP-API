@@ -48,7 +48,7 @@ object MappedFilesProvider extends FilesProvider {
     Users.users.vend.attributionOf(userId, ref).map(a => (a.userId, if (a.isDelegated) a.onBehalfOfUserId else ""))
 
   override def createFile(bankId: String, sha256: String, mediaType: String, fileName: String, isPublic: Boolean,
-                          userId: String, bytes: Array[Byte]): Box[FileT] = {
+                          userId: String, bytes: Array[Byte], isPersonal: Boolean, scanStatus: String): Box[FileT] = {
     val fileId = UUID.randomUUID().toString
     for {
       (callerId, onBehalfOfUserId) <- attributed(userId, UserReference.File_UserId)
@@ -62,6 +62,8 @@ object MappedFilesProvider extends FilesProvider {
           .MediaType(mediaType)
           .FileName(fileName)
           .IsPublic(isPublic)
+          .IsPersonal(isPersonal)
+          .ScanStatus(scanStatus)
           .UserId(callerId)
           .OnBehalfOfUserId(onBehalfOfUserId)
           .CreatedAt(new Date())
@@ -78,9 +80,22 @@ object MappedFilesProvider extends FilesProvider {
   override def setPublic(bankId: String, fileId: String, isPublic: Boolean): Box[FileT] =
     File.find(By(File.BankId, bankId), By(File.FileId, fileId)).flatMap(file => tryo(file.IsPublic(isPublic).saveMe()))
 
-  override def getFiles(bankId: String, limit: Int, offset: Int): (List[FileT], Long) =
-    (File.findAll(By(File.BankId, bankId), OrderBy(File.CreatedAt, Descending), MaxRows(limit), StartAt(offset)),
-      File.count(By(File.BankId, bankId)))
+  override def getFiles(bankId: String, limit: Int, offset: Int, scanStatus: Option[String]): (List[FileT], Long) = {
+    val where: List[QueryParam[File]] = By(File.BankId, bankId) :: scanStatus.map(By(File.ScanStatus, _)).toList
+    (File.findAll(where ++ List(OrderBy(File.CreatedAt, Descending), MaxRows[File](limit), StartAt[File](offset)): _*),
+      File.count(where: _*))
+  }
+
+  override def setScanStatus(bankId: String, fileId: String, scanStatus: String, reason: String, userId: String): Box[FileT] =
+    File.find(By(File.BankId, bankId), By(File.FileId, fileId)).flatMap { file =>
+      tryo(file.ScanStatus(scanStatus).ScanStatusReason(reason).ScanStatusUpdatedAt(new Date())
+        .ScanStatusUpdatedByUserId(userId).saveMe())
+    }
+
+  override def personalUsage(bankId: String, ownerUserId: String): (Int, Long) = {
+    val owned = File.findAll(By(File.BankId, bankId), By(File.IsPersonal, true)).filter(_.ownerUserId == ownerUserId)
+    (owned.size, owned.map(_.sizeInBytes).sum)
+  }
 
   override def getFilesOwnedOrSharedWith(bankId: String, userId: String): List[FileT] = {
     val uploaded = File.findAll(By(File.BankId, bankId), By(File.UserId, userId), By(File.OnBehalfOfUserId, ""))
@@ -188,6 +203,14 @@ class File extends FileT with LongKeyedMapper[File] with IdPK {
     override def defaultValue = false
   }
   object CreatedAt extends MappedDateTime(this)
+  object IsPersonal extends MappedBoolean(this) {
+    override def defaultValue = false
+  }
+  // NULL on rows written before scanning existed, which count as clean.
+  object ScanStatus extends MappedString(this, 20)
+  object ScanStatusReason extends MappedString(this, 1000)
+  object ScanStatusUpdatedAt extends MappedDateTime(this)
+  object ScanStatusUpdatedByUserId extends MappedString(this, 255)
 
   override def fileId: String = FileId.get
   override def bankId: String = BankId.get
@@ -199,6 +222,11 @@ class File extends FileT with LongKeyedMapper[File] with IdPK {
   override def onBehalfOfUserId: String = Option(OnBehalfOfUserId.get).getOrElse("")
   override def isPublic: Boolean = IsPublic.get
   override def createdAt: Date = CreatedAt.get
+  override def isPersonal: Boolean = Option(IsPersonal.get).exists(b => b)
+  override def scanStatus: String = Option(ScanStatus.get).filter(_.nonEmpty).getOrElse(code.files.ScanStatus.Clean)
+  override def scanStatusReason: String = Option(ScanStatusReason.get).getOrElse("")
+  override def scanStatusUpdatedAt: Option[Date] = Option(ScanStatusUpdatedAt.get)
+  override def scanStatusUpdatedByUserId: String = Option(ScanStatusUpdatedByUserId.get).getOrElse("")
 }
 
 object File extends File with LongKeyedMetaMapper[File] {

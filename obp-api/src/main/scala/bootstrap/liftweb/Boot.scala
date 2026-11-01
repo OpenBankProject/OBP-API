@@ -90,7 +90,7 @@ import code.etag.MappedETag
 import code.featuredapicollection.FeaturedApiCollection
 import code.fx.{MappedCurrency, MappedFXRate}
 import code.group.Group
-import code.organisation.Organisation
+import code.tenant.Tenant
 import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
 import code.payeelookup.PayeeLookup
 import code.utilitypayment.UtilityPaymentCallback
@@ -1159,8 +1159,8 @@ object ToSchemify extends MdcLoggable {
     BankAccountBalance,
     Group,
     code.group.GroupMembership,
-    Organisation,
-    code.organisation.OrganisationMember,
+    Tenant,
+    code.model.dataAccess.SelfServiceBank,
     RoutingScheme,
     BankSupportedRoutingScheme,
     code.asset.Asset,

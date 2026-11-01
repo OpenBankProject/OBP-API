@@ -47,7 +47,11 @@ case class FileJsonV700(
   owner_user_id: String,
   user_id: String,
   on_behalf_of_user_id: String,
-  created_at: Date
+  created_at: Date,
+  is_personal: Boolean,
+  scan_status: String,
+  scan_status_reason: String,
+  scan_status_updated_at: Option[Date]
 )
 
 case class FilesJsonV700(files: List[FileJsonV700])
@@ -85,6 +89,21 @@ case class PostFileJsonV700(
 )
 
 case class PutFileIsPublicJsonV700(is_public: Boolean)
+
+/**
+ * The body of Create My File: a personal file, uploaded without a Role, attached at once to one of the
+ * owner's own personal Dynamic Entity records (record_type is the entity's name, record_id the record's id).
+ */
+case class PostMyFileJsonV700(
+  file_name: String,
+  media_type: String,
+  content_base64: String,
+  sha256: Option[String],
+  record_type: String,
+  record_id: String
+)
+
+case class PutFileScanStatusJsonV700(scan_status: String, reason: Option[String])
 
 case class PostFileAttachmentJsonV700(record_type: String, record_id: String)
 
@@ -127,7 +146,11 @@ object JSONFactory700Files {
       owner_user_id = file.ownerUserId,
       user_id = file.userId,
       on_behalf_of_user_id = file.onBehalfOfUserId,
-      created_at = file.createdAt
+      created_at = file.createdAt,
+      is_personal = file.isPersonal,
+      scan_status = file.scanStatus,
+      scan_status_reason = file.scanStatusReason,
+      scan_status_updated_at = file.scanStatusUpdatedAt
     )
 
   def createFilesJson(files: List[FileT]): FilesJsonV700 = FilesJsonV700(files.map(createFileJson))
@@ -188,7 +211,11 @@ object JSONFactory700Files {
     owner_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
     user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
     on_behalf_of_user_id = "",
-    created_at = exampleDate
+    created_at = exampleDate,
+    is_personal = false,
+    scan_status = "clean",
+    scan_status_reason = "",
+    scan_status_updated_at = None
   )
 
   val filesJsonExample: FilesJsonV700 = FilesJsonV700(List(fileJsonExample))
@@ -217,6 +244,21 @@ object JSONFactory700Files {
   )
 
   val putFileIsPublicJsonExample: PutFileIsPublicJsonV700 = PutFileIsPublicJsonV700(is_public = true)
+
+  val postMyFileJsonExample: PostMyFileJsonV700 = PostMyFileJsonV700(
+    file_name = "pitch_deck.pdf",
+    media_type = "application/pdf",
+    content_base64 = "JVBERi0xLjcKJcfsj6IK",
+    sha256 = None,
+    record_type = "cohort_application",
+    record_id = "6fb17583-1e49-4435-bb74-a14fe0996723"
+  )
+
+  lazy val myFileJsonExample: FileJsonV700 = fileJsonExample.copy(
+    file_name = "pitch_deck.pdf", is_personal = true, scan_status = "pending")
+
+  val putFileScanStatusJsonExample: PutFileScanStatusJsonV700 =
+    PutFileScanStatusJsonV700(scan_status = "clean", reason = Some("ClamAV 1.4: no threats found"))
 
   val postFileAttachmentJsonExample: PostFileAttachmentJsonV700 =
     PostFileAttachmentJsonV700(record_type = "customer", record_id = "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh")

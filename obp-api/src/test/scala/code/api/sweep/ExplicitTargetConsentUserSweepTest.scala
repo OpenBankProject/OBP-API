@@ -67,9 +67,9 @@ import scala.io.Source
  * would be wrong: the caller asked for a specific target, and if that target is an agent identity
  * the request is a mistake the caller needs told about. So the endpoint answers 400 OBP-30107.
  *
- * Why a sweep and not a scenario per version file: the guard is twenty-two near-identical three-line
+ * Why a sweep and not a scenario per version file: the guard is twenty-one near-identical three-line
  * blocks spread over ten Http4s objects, and the failure mode that matters is not one of them
- * being wrong -- it is a twenty-first being added, or an existing one being dropped, with nobody
+ * being wrong -- it is a twenty-second being added, or an existing one being dropped, with nobody
  * noticing. So this suite pairs each probe with a source scan (the last scenario) that counts the
  * guards in main and fails if the count and this table disagree.
  *
@@ -240,20 +240,6 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
       ))
     }
 
-    scenario("organisation members", ExplicitTargetGuard) {
-      val agentId = newConsentUser().userId
-      val organisationId = s"sweep-org-${generateUUID().take(8)}"
-      code.organisation.Organisations.organisation.vend.createOrganisation(
-        bankId, organisationId, "Explicit target sweep", None, None, None, "active", "public", resourceUser1.userId
-      ).openOrThrowException("expected the organisation to be created")
-      sweep(List(
-        Probe("OBPv7.0.0-createOrganisationMember", "POST",
-          s"/obp/v7.0.0/banks/$bankId/organisations/$organisationId/members",
-          code.api.v7_0_0.PostOrganisationMemberJsonV700(user_id = agentId, member_role = None, title = None,
-            status = None, is_primary = None))
-      ))
-    }
-
     scenario("account creation", ExplicitTargetGuard) {
       val agentId = newConsentUser().userId
       def v310Body = CreateAccountRequestJsonV310(
@@ -371,11 +357,11 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
         finally source.close()
       }
 
-      // Twenty-three probes cover twenty-two guards: v7.0.0 registers createAccountV700 (POST) and
+      // Twenty-two probes cover twenty-one guards: v7.0.0 registers createAccountV700 (POST) and
       // createAccountWithIdV700 (PUT) over one shared createAccountCommon, so the two probes
       // reach the same guard by two different routes -- the PUT arm validates the account id
       // first, which is the part worth probing separately.
-      val guardsInMain = 22
+      val guardsInMain = 21
 
       withClue(s"found ${guardLines.size} explicit-target guards in main, but this suite is " +
                s"written against $guardsInMain. A guard added without a probe is untested; a " +

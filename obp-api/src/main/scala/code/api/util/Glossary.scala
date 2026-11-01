@@ -7625,6 +7625,14 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |At most these media types are ever accepted: image/jpeg, image/png, image/webp and application/pdf. The prop `files.allowed_media_types` can narrow that list but never extend it, and the content must really be of the type it claims. The prop `files.max_size_in_bytes` limits the size (10 MB by default).
 				 |
+				 |## Personal files
+				 |
+				 |A person may also store a file in their own name without a Role, through Create My File, for example a pitch deck for an application or a document for a KYC check. Personal files are off unless the space is listed in the prop `files.personal.enabled_bank_ids`. The owner's email address must be validated (for a User of another identity provider, having one is enough); each User holds a limited number and size of personal files per space (`files.personal.max_files_per_user`, `files.personal.max_total_bytes_per_user`, `files.personal.max_size_in_bytes`); the media types are those of `files.personal.allowed_media_types`, within the ones the space allows; and a personal file is never public. It is attached at once to one of the owner's own personal Dynamic Entity records, and only such records take it later, unless a holder of CanCreateFileAtOneBank attaches it.
+				 |
+				 |## Scan status
+				 |
+				 |Every file has a `scan_status`: pending, clean or rejected. A personal file starts pending; a file stored with the Role starts clean, as do files stored before scanning existed, except in a bank made with Create My Bank (self-service): anyone can grant themselves Roles there, so every file stored there starts pending. Until a file is clean, its details are shown as usual but its content is served only to its owner and to holders of CanUpdateFileScanStatusAtOneBank; a rejected file's content is not served at all, and only clean files are public. A scanner, holding CanUpdateFileScanStatusAtOneBank as a Scope, lists the waiting files with Get Files of a Space and `scan_status=pending`, reads them, and sets the result with Update File Scan Status; a member of staff with the Role does the same by hand, to approve a file when no scanner is configured, to reject a reported one, or to clear a false positive.
+				 |
 				 |## Who may read a file
 				 |
 				 |A logged-in caller may read a file they own, a file its owner has given them access to, or any file of a space where they hold the Role CanGetFileAtOneBank. Only the owner gives and takes access, and only to a person: a consent user is refused, since access given to one would end with its Consent. Get Files of a Space lists every file of a space for holders of CanGetFileAtOneBank.
@@ -7654,6 +7662,8 @@ object Glossary extends MdcLoggable  {
 				 |- [Get File Content](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFileContent): `GET /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/content`
 				 |- [Get Files Attached to a Record](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFilesAttachedToRecord): `GET /obp/v7.0.0/banks/BANK_ID/files?record_type=&record_id=`
 				 |- [Get My Files](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyFiles): `GET /obp/v7.0.0/banks/BANK_ID/my/files`
+				 |- [Create My File](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createMyFile): `POST /obp/v7.0.0/banks/BANK_ID/my/files`, a personal file
+				 |- [Update File Scan Status](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateFileScanStatus): `PUT /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/scan-status`
 				 |- [Get Files of a Space](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getFilesOfSpace): `GET /obp/v7.0.0/management/banks/BANK_ID/files`, every file of a space, for administrators
 				 |- [Update File Is Public](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateFileIsPublic): `PUT /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/is-public`
 				 |- [Create File Attachment](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createFileAttachment): `POST /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/attachments`

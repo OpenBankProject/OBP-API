@@ -30,21 +30,26 @@ import java.security.MessageDigest
 import java.util.Base64
 
 import cats.effect.IO
-import code.api.Constant.ApiPathZero
+import code.api.Constant.{ApiPathZero, localIdentityProvider}
+import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntitySpace}
 import code.api.util.APIUtil.{EmptyBody, Http4sRoute, ResourceDoc, UserXORApplication, unboxFullOrFail}
 import code.api.util.ApiRole
-import code.api.util.ApiRole.{canCreateFileAtOneBank, canCreatePublicFileAtOneBank, canGetFileAtOneBank}
+import code.api.util.ApiRole.{canCreateFileAtOneBank, canCreatePublicFileAtOneBank, canGetFileAtOneBank, canUpdateFileScanStatusAtOneBank}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers.BytesResponse
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats, Glossary}
-import code.files.{FileT, Files}
+import code.DynamicData.DynamicDataProvider
+import code.files.{FileT, Files, ScanStatus}
+import code.model.dataAccess.{AuthUser, SelfServiceBank}
+import code.users.Users
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import org.http4s._
 import org.http4s.dsl.io._
@@ -120,7 +125,21 @@ object Http4s700Files {
   private def canRead(file: FileT, user: User, cc: CallContext): Boolean =
     isOwner(file, user, cc) ||
       actingUserIds(user, cc).exists(id => Files.provider.vend.getAccess(file.fileId, id).isDefined) ||
-      holdsRole(file.bankId, user, cc, canGetFileAtOneBank)
+      holdsRole(file.bankId, user, cc, canGetFileAtOneBank) ||
+      (file.scanStatus != ScanStatus.Clean && holdsRole(file.bankId, user, cc, canUpdateFileScanStatusAtOneBank))
+
+  /**
+   * The file, if its content may be served to this caller: a clean file to anyone who may read it; a pending one
+   * only to its owner and to a holder of CanUpdateFileScanStatusAtOneBank, who scans it; a rejected one to nobody.
+   */
+  private def servable(file: FileT, user: User, cc: CallContext): Future[FileT] = file.scanStatus match {
+    case ScanStatus.Clean => Future.successful(file)
+    case ScanStatus.Rejected => Helper.booleanToFuture(FileScanRejected, 403, Some(cc))(false).map(_ => file)
+    case _ =>
+      Helper.booleanToFuture(FileNotYetScanned, 403, Some(cc)) {
+        isOwner(file, user, cc) || holdsRole(file.bankId, user, cc, canUpdateFileScanStatusAtOneBank)
+      }.map(_ => file)
+  }
 
   private def readDeniedMessage(bankId: String): String =
     s"$UserHasMissingRoles $canGetFileAtOneBank at bank_id $bankId. Or be the file's owner, or be given access to it."
@@ -134,7 +153,7 @@ object Http4s700Files {
     } yield file
 
   private def publicFile(bankId: String, fileId: String, cc: CallContext): Future[FileT] =
-    Future(Files.provider.vend.getFile(bankId, fileId).filter(_.isPublic))
+    Future(Files.provider.vend.getFile(bankId, fileId).filter(f => f.isPublic && f.scanStatus == ScanStatus.Clean))
       .map(unboxFullOrFail(_, Some(cc), s"$FileNotFound Current FILE_ID is $fileId", 404))
 
   private def contentOf(file: FileT, inline: Boolean, cacheControl: String, cc: CallContext): Future[BytesResponse] =
@@ -198,8 +217,10 @@ object Http4s700Files {
           _ <- Helper.booleanToFuture(s"$FileSha256Mismatch The content's sha256 is $sha256.", 400, Some(cc)) {
             body.sha256.map(_.trim).filter(_.nonEmpty).forall(_.equalsIgnoreCase(sha256))
           }
+          // A Role in a self-service bank vouches for nothing, so the file waits for a scan there.
+          scanStatus = if (SelfServiceBank.isSelfService(bankIdInUrl)) ScanStatus.Pending else ScanStatus.Clean
           file <- Future(Files.provider.vend.createFile(bankIdInUrl, sha256, mediaType, fileName, isPublic,
-            user.userId, bytes))
+            user.userId, bytes, scanStatus = scanStatus))
             .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Could not store the file.", 400))
         } yield JSONFactory700Files.createFileJson(file)
       }
@@ -229,6 +250,10 @@ object Http4s700Files {
        |  Get Public File and Get Public File Content. Making a file public also needs the Role
        |  CanCreatePublicFileAtOneBank at BANK_ID.
        |
+       |The file starts with `scan_status` clean, except in a bank made with Create My Bank (self-service), where anyone
+       |can grant themselves the Role: there it starts pending, like a personal file, until a scanner or a holder of
+       |CanUpdateFileScanStatusAtOneBank sets it.
+       |
        |**Who may call it.** A User with the Role CanCreateFileAtOneBank at BANK_ID (`SYS` for the system space),
        |or an application acting as itself whose Consumer holds it as a Scope.
        |
@@ -243,6 +268,189 @@ object Http4s700Files {
     Some(List(canCreateFileAtOneBank)),
     authMode = UserXORApplication,
     http4sPartialFunction = Some(createFile)
+  ).allowSystemSpace()
+
+  /**
+   * Personal files: uploaded by a person, without a Role, within these limits (props, each with a default). They
+   * are never public, start pending until scanned, and are attached to one of the owner's own personal Dynamic
+   * Entity records. They are off unless the space is listed in files.personal.enabled_bank_ids.
+   */
+  object PersonalFiles {
+    val DefaultMediaTypes: List[String] = List("application/pdf", "image/jpeg", "image/png")
+    val DefaultMaxSizeInBytes: Long = 5L * 1024 * 1024
+    val DefaultMaxFilesPerUser: Int = 10
+    val DefaultMaxTotalBytesPerUser: Long = 20L * 1024 * 1024
+
+    private def list(prop: String): Option[List[String]] =
+      APIUtil.getPropsValue(prop).map(_.split(",").map(_.trim).filter(_.nonEmpty).toList).toOption
+
+    def enabledIn(bankId: String): Boolean = list("files.personal.enabled_bank_ids").exists(_.contains(bankId))
+    /** Within allowedMediaTypes, so the personal list can only narrow what the space allows. */
+    def mediaTypes: List[String] = {
+      val wanted = list("files.personal.allowed_media_types").map(_.map(_.toLowerCase)).getOrElse(DefaultMediaTypes)
+      allowedMediaTypes.filter(wanted.contains)
+    }
+    def maxSizeInBytes: Long =
+      math.min(Http4s700Files.maxSizeInBytes, APIUtil.getPropsAsLongValue("files.personal.max_size_in_bytes").openOr(DefaultMaxSizeInBytes))
+    def maxFilesPerUser: Int = APIUtil.getPropsAsIntValue("files.personal.max_files_per_user").openOr(DefaultMaxFilesPerUser)
+    def maxTotalBytesPerUser: Long =
+      APIUtil.getPropsAsLongValue("files.personal.max_total_bytes_per_user").openOr(DefaultMaxTotalBytesPerUser)
+  }
+
+  /** The person the caller acts for: the User an agent acts for, or the caller. Personal files are theirs. */
+  private def personOf(user: User, cc: CallContext): String =
+    Option(cc.onBehalfOfUserId).filter(_.nonEmpty).getOrElse(user.userId)
+
+  /**
+   * Whether the User's email address counts as validated: for a local User, OBP's own validation; for a User from
+   * another identity provider, that provider vouches for the address, so having one is enough.
+   */
+  private def emailValidated(userId: String): Boolean =
+    Users.users.vend.getUserByUserId(userId).exists { u =>
+      if (u.provider != localIdentityProvider) Option(u.emailAddress).exists(_.trim.nonEmpty)
+      else AuthUser.find(By(AuthUser.user, u.userPrimaryKey.value)).exists(_.validated.get)
+    }
+
+  /** Whether record_type is a personal Dynamic Entity of the space and record_id one of ownerUserId's own records. */
+  private def ownsPersonalRecord(bankId: String, recordType: String, recordId: String, ownerUserId: String): Boolean = {
+    val space = DynamicEntitySpace.bankIdOrNoneForSystem(bankId)
+    DynamicEntityHelper.definitionOf(space, recordType).exists(_.hasPersonalEntity) &&
+      DynamicDataProvider.connectorMethodProvider.vend.get(space, recordType, recordId, Some(ownerUserId), isPersonalEntity = true).isDefined
+  }
+
+  // Route: POST /obp/v7.0.0/banks/BANK_ID/my/files (201)
+  lazy val createMyFile: Http4sRoute = Http4sRoute {
+    case req @ POST -> `prefixPath` / "banks" / bankIdInUrl / "my" / "files" =>
+      EndpointHelpers.withUserAndBodyCreated[PostMyFileJsonV700, FileJsonV700](req) { (user, body, cc) =>
+        val fileName = Option(body.file_name).map(_.trim).getOrElse("")
+        val mediaType = Option(body.media_type).map(_.trim.toLowerCase).getOrElse("")
+        val recordType = Option(body.record_type).map(_.trim).getOrElse("")
+        val recordId = Option(body.record_id).map(_.trim).getOrElse("")
+        val person = personOf(user, cc)
+        val allowed = PersonalFiles.mediaTypes
+        val maxSize = PersonalFiles.maxSizeInBytes
+        for {
+          _ <- Helper.booleanToFuture(s"$PersonalFilesNotEnabled Current bank_id is $bankIdInUrl.", 403, Some(cc)) {
+            PersonalFiles.enabledIn(bankIdInUrl)
+          }
+          _ <- Helper.booleanToFuture(PersonalFileEmailNotValidated, 403, Some(cc)) {
+            emailValidated(person)
+          }
+          _ <- Helper.booleanToFuture(s"$InvalidFile file_name must be 1 to $MaxNameLength characters.", 400, Some(cc)) {
+            fileName.nonEmpty && fileName.length <= MaxNameLength
+          }
+          _ <- Helper.booleanToFuture(s"$FileMediaTypeNotAllowed media_type must be one of ${allowed.mkString(", ")}. Current media_type is $mediaType.", 400, Some(cc)) {
+            allowed.contains(mediaType)
+          }
+          _ <- Helper.booleanToFuture(s"$PersonalFileRecordNotOwned Current record is $recordType $recordId.", 403, Some(cc)) {
+            recordType.nonEmpty && recordId.nonEmpty && ownsPersonalRecord(bankIdInUrl, recordType, recordId, person)
+          }
+          bytes <- Future(tryo(Base64.getMimeDecoder.decode(Option(body.content_base64).getOrElse(""))))
+            .map(unboxFullOrFail(_, Some(cc), s"$InvalidFile content_base64 is not valid base64.", 400))
+          _ <- Helper.booleanToFuture(s"$InvalidFile The file is empty.", 400, Some(cc))(bytes.nonEmpty)
+          _ <- Helper.booleanToFuture(s"$FileTooLarge The most allowed is $maxSize bytes. The file has ${bytes.length}.", 400, Some(cc)) {
+            bytes.length <= maxSize
+          }
+          _ <- Helper.booleanToFuture(s"$InvalidFile The content is not a file of media_type $mediaType.", 400, Some(cc)) {
+            contentMatches(mediaType, bytes)
+          }
+          (count, total) = Files.provider.vend.personalUsage(bankIdInUrl, person)
+          _ <- Helper.booleanToFuture(s"$PersonalFileQuotaExceeded At most ${PersonalFiles.maxFilesPerUser} files and ${PersonalFiles.maxTotalBytesPerUser} bytes; this User has $count files and $total bytes.", 400, Some(cc)) {
+            count < PersonalFiles.maxFilesPerUser && total + bytes.length <= PersonalFiles.maxTotalBytesPerUser
+          }
+          sha256 = sha256Hex(bytes)
+          _ <- Helper.booleanToFuture(s"$FileSha256Mismatch The content's sha256 is $sha256.", 400, Some(cc)) {
+            body.sha256.map(_.trim).filter(_.nonEmpty).forall(_.equalsIgnoreCase(sha256))
+          }
+          file <- Future(Files.provider.vend.createFile(bankIdInUrl, sha256, mediaType, fileName, isPublic = false,
+            user.userId, bytes, isPersonal = true, scanStatus = ScanStatus.Pending))
+            .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Could not store the file.", 400))
+          _ <- Future(Files.provider.vend.createAttachment(file, recordType, recordId, user.userId))
+            .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Could not attach the file.", 400))
+        } yield JSONFactory700Files.createFileJson(file)
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(createMyFile),
+    "POST",
+    "/banks/BANK_ID/my/files",
+    "Create My File",
+    s"""Stores a personal file: one a person uploads in their own name, without a Role, for example a pitch deck for
+       |an application or a document for a KYC check. The caller becomes its owner (the User an agent acts for, when
+       |one does), and the file is attached at once to one of the owner's own personal Dynamic Entity records:
+       |`record_type` is the entity's name and `record_id` the record's id.
+       |
+       |A personal file:
+       |
+       |- is allowed only in the spaces listed in the prop `files.personal.enabled_bank_ids` (none by default);
+       |- needs the owner's email address to be validated (for a User of another identity provider, having one is enough);
+       |- is one of the media types in `files.personal.allowed_media_types` (default ${PersonalFiles.DefaultMediaTypes.mkString(", ")}),
+       |  within those the space allows;
+       |- is at most `files.personal.max_size_in_bytes` (default ${PersonalFiles.DefaultMaxSizeInBytes} bytes), and each User
+       |  holds at most `files.personal.max_files_per_user` (default ${PersonalFiles.DefaultMaxFilesPerUser}) files and
+       |  `files.personal.max_total_bytes_per_user` (default ${PersonalFiles.DefaultMaxTotalBytesPerUser} bytes) per space;
+       |- is never public;
+       |- starts with `scan_status` pending. Until it is clean, its content is served only to its owner and to holders of
+       |  CanUpdateFileScanStatusAtOneBank; see Update File Scan Status.
+       |
+       |See ${Glossary.getGlossaryItemLink("Files")}.
+       |
+       |Authentication is Required.""".stripMargin,
+    JSONFactory700Files.postMyFileJsonExample,
+    JSONFactory700Files.myFileJsonExample,
+    List($BankNotFound, $AuthenticatedUserIsRequired, InvalidJsonFormat, PersonalFilesNotEnabled,
+      PersonalFileEmailNotValidated, InvalidFile, FileMediaTypeNotAllowed, PersonalFileRecordNotOwned, FileTooLarge,
+      PersonalFileQuotaExceeded, FileSha256Mismatch, UnknownError),
+    List(apiTagFile),
+    None,
+    http4sPartialFunction = Some(createMyFile)
+  ).allowSystemSpace()
+
+  // Route: PUT /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/scan-status
+  lazy val updateFileScanStatus: Http4sRoute = Http4sRoute {
+    case req @ PUT -> `prefixPath` / "banks" / bankIdInUrl / "files" / fileId / "scan-status" if fileId.nonEmpty =>
+      EndpointHelpers.withUserAndBody[PutFileScanStatusJsonV700, FileJsonV700](req) { (user, body, cc) =>
+        val status = Option(body.scan_status).map(_.trim.toLowerCase).getOrElse("")
+        val reason = body.reason.map(_.trim).getOrElse("")
+        for {
+          _ <- Helper.booleanToFuture(InvalidFileScanStatus, 400, Some(cc))(ScanStatus.all.contains(status))
+          _ <- Helper.booleanToFuture(s"$InvalidFile reason must be at most 1000 characters.", 400, Some(cc))(reason.length <= 1000)
+          _ <- Future(Files.provider.vend.getFile(bankIdInUrl, fileId))
+            .map(unboxFullOrFail(_, Some(cc), s"$FileNotFound Current FILE_ID is $fileId", 404))
+          file <- Future(Files.provider.vend.setScanStatus(bankIdInUrl, fileId, status, reason, user.userId))
+            .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Could not update the file.", 400))
+        } yield JSONFactory700Files.createFileJson(file)
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(updateFileScanStatus),
+    "PUT",
+    "/banks/BANK_ID/files/FILE_ID/scan-status",
+    "Update File Scan Status",
+    s"""Sets a file's `scan_status`: pending, clean or rejected, with an optional `reason` (at most 1000 characters),
+       |for example the signature a scanner matched. A scanner sets it once it has scanned a file; a member of staff sets
+       |it to approve a file when no scanner is configured, to reject a reported file, or to clear a false positive.
+       |
+       |Only a clean file's content is served to everyone who may read the file. A pending file's content is served to
+       |its owner and to holders of CanUpdateFileScanStatusAtOneBank; a rejected file's to nobody. Get Files of a Space
+       |with `scan_status=pending` lists the files waiting.
+       |
+       |**Who may call it.** A User with the Role CanUpdateFileScanStatusAtOneBank at BANK_ID, or an application acting
+       |as itself whose Consumer holds it as a Scope.
+       |
+       |Authentication is Required.""".stripMargin,
+    JSONFactory700Files.putFileScanStatusJsonExample,
+    JSONFactory700Files.fileJsonExample,
+    List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidFileScanStatus,
+      InvalidFile, FileNotFound, UnknownError),
+    List(apiTagFile),
+    Some(List(canUpdateFileScanStatusAtOneBank)),
+    authMode = UserXORApplication,
+    http4sPartialFunction = Some(updateFileScanStatus)
   ).allowSystemSpace()
 
   // Route: GET /obp/v7.0.0/banks/BANK_ID/files?record_type=&record_id=
@@ -286,20 +494,28 @@ object Http4s700Files {
   // Route: GET /obp/v7.0.0/management/banks/BANK_ID/files
   lazy val getFilesOfSpace: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "banks" / bankIdInUrl / "files" =>
-      EndpointHelpers.withUser(req) { (_, cc) =>
+      EndpointHelpers.withUser(req) { (user, cc) =>
         val parameters = req.uri.query.params
         def number(name: String, default: Int): Int =
           parameters.get(name).map(_.trim).filter(_.nonEmpty).map(value => Try(value.toInt).getOrElse(-1)).getOrElse(default)
         val limit = number("limit", MaxPageSize)
         val offset = number("offset", 0)
+        val scanStatus = parameters.get("scan_status").map(_.trim.toLowerCase).filter(_.nonEmpty)
         for {
+          _ <- Helper.booleanToFuture(s"$InvalidFileQueryParameter scan_status must be pending or rejected.", 400, Some(cc)) {
+            scanStatus.forall(s => s == ScanStatus.Pending || s == ScanStatus.Rejected)
+          }
+          // A scanner holding only CanUpdateFileScanStatusAtOneBank lists the files it has to deal with, not every file.
+          _ <- Helper.booleanToFuture(s"$UserHasMissingRoles $canGetFileAtOneBank at bank_id $bankIdInUrl, or give scan_status.", 403, Some(cc)) {
+            scanStatus.isDefined || holdsRole(bankIdInUrl, user, cc, canGetFileAtOneBank)
+          }
           _ <- Helper.booleanToFuture(s"$InvalidFileQueryParameter limit must be a whole number from 1 to $MaxPageSize.", 400, Some(cc)) {
             limit >= 1 && limit <= MaxPageSize
           }
           _ <- Helper.booleanToFuture(s"$InvalidFileQueryParameter offset must be a whole number, 0 or more.", 400, Some(cc)) {
             offset >= 0
           }
-          (files, total) <- Future(Files.provider.vend.getFiles(bankIdInUrl, limit, offset))
+          (files, total) <- Future(Files.provider.vend.getFiles(bankIdInUrl, limit, offset, scanStatus))
         } yield JSONFactory700Files.createFilesPageJson(files, total, limit, offset)
       }
   }
@@ -316,18 +532,19 @@ object Http4s700Files {
        |
        |- `limit`: the most files to return, from 1 to $MaxPageSize (default $MaxPageSize)
        |- `offset`: how many files to skip (default 0)
+       |- `scan_status`: `pending` or `rejected`, to list only those files, e.g. for a scanner
        |
-       |`pagination.total` is the number of files in the space.
+       |`pagination.total` is the number of files listed in all pages.
        |
        |**Who may call it.** A User with the Role CanGetFileAtOneBank at BANK_ID, or an application acting as itself
-       |whose Consumer holds it as a Scope.
+       |whose Consumer holds it as a Scope. A holder of CanUpdateFileScanStatusAtOneBank may call it with `scan_status`.
        |
        |Authentication is Required.""".stripMargin,
     EmptyBody,
     JSONFactory700Files.filesPageJsonExample,
     List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidFileQueryParameter, UnknownError),
     List(apiTagFile),
-    Some(List(canGetFileAtOneBank)),
+    Some(List(canGetFileAtOneBank, canUpdateFileScanStatusAtOneBank)),
     authMode = UserXORApplication,
     http4sPartialFunction = Some(getFilesOfSpace)
   ).allowSystemSpace()
@@ -393,7 +610,8 @@ object Http4s700Files {
   lazy val getFileContent: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "banks" / bankIdInUrl / "files" / fileId / "content" if fileId.nonEmpty =>
       EndpointHelpers.withUserBytes(req) { (user, cc) =>
-        readableFile(bankIdInUrl, fileId, user, cc).flatMap(contentOf(_, inlineRequested(req), "private, no-store", cc))
+        readableFile(bankIdInUrl, fileId, user, cc).flatMap(servable(_, user, cc))
+          .flatMap(contentOf(_, inlineRequested(req), "private, no-store", cc))
       }
   }
 
@@ -472,6 +690,11 @@ object Http4s700Files {
           }
           _ <- Helper.booleanToFuture(s"$InvalidFile record_type and record_id must each be 1 to 255 characters.", 400, Some(cc)) {
             recordType.nonEmpty && recordType.length <= 255 && recordId.nonEmpty && recordId.length <= 255
+          }
+          // A personal file goes only on its owner's own personal records, unless the Role attaches it.
+          _ <- Helper.booleanToFuture(s"$PersonalFileRecordNotOwned Current record is $recordType $recordId.", 403, Some(cc)) {
+            !file.isPersonal || holdsRole(bankIdInUrl, user, cc, canCreateFileAtOneBank) ||
+              ownsPersonalRecord(bankIdInUrl, recordType, recordId, file.ownerUserId)
           }
           _ <- Helper.booleanToFuture(s"$FileAttachmentAlreadyExists Current record is $recordType $recordId.", 409, Some(cc)) {
             !Files.provider.vend.attachmentExists(fileId, recordType, recordId)
@@ -711,7 +934,7 @@ object Http4s700Files {
         for {
           (recordType, recordId) <- recordOf(req, cc)
           files <- Future(Files.provider.vend.getFilesAttachedTo(bankIdInUrl, recordType, recordId))
-        } yield JSONFactory700Files.createPublicFilesJson(files.filter(_.isPublic))
+        } yield JSONFactory700Files.createPublicFilesJson(files.filter(f => f.isPublic && f.scanStatus == ScanStatus.Clean))
       }
   }
 

@@ -25,68 +25,56 @@ TESOBE (http://www.tesobe.com/)
 
   */
 
-package code.organisation
+package code.tenant
 
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future
 
-object Organisations extends SimpleInjector {
-  val organisation = new Inject(() => buildOne) {}
+object Tenants extends SimpleInjector {
+  val tenant = new Inject(() => buildOne) {}
 
-  def buildOne: OrganisationProvider = MappedOrganisationProvider
+  def buildOne: TenantProvider = MappedTenantProvider
 }
 
 /**
- * Organisations live in a space: a bank, or SYS (Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) for the
- * system space. The organisation_id is unique across all spaces, so a reference to an Organisation needs
- * only its id.
+ * A Tenant is a customer of the operator of this OBP instance: an organisation that uses it. Tenants belong to
+ * no bank; later, banks will name the Tenant they belong to. The tenant_id is
+ * unique and immutable.
  */
-trait OrganisationProvider {
-  def createOrganisation(
-    bankId: String,
-    organisationId: String,
+trait TenantProvider {
+  def createTenant(
+    tenantId: String,
     name: String,
     website: Option[String],
     logoUrl: Option[String],
-    organisationType: Option[String],
     status: String,
     visibility: String,
     createdByUserId: String
-  ): Box[OrganisationTrait]
+  ): Box[TenantTrait]
 
-  /** The Organisation with this id, in whichever space it lives. */
-  def getOrganisation(organisationId: String): Box[OrganisationTrait]
+  def getTenant(tenantId: String): Box[TenantTrait]
 
-  /** The Organisation with this id, only if it lives in the space `bankId`. */
-  def getOrganisation(bankId: String, organisationId: String): Box[OrganisationTrait]
+  def getTenants(): Future[Box[List[TenantTrait]]]
 
-  def getOrganisations(bankId: String): Future[Box[List[OrganisationTrait]]]
-
-  def updateOrganisation(
-    bankId: String,
-    organisationId: String,
+  def updateTenant(
+    tenantId: String,
     name: Option[String],
     website: Option[String],
     logoUrl: Option[String],
-    organisationType: Option[String],
     status: Option[String],
     visibility: Option[String]
-  ): Box[OrganisationTrait]
+  ): Box[TenantTrait]
 
-  def deleteOrganisation(bankId: String, organisationId: String): Box[Boolean]
+  def deleteTenant(tenantId: String): Box[Boolean]
 }
 
-trait OrganisationTrait {
-  def organisationId: String
-  /** A bank id, or SYS for the system space. */
-  def bankId: String
+trait TenantTrait {
+  def tenantId: String
   def name: String
   def website: Option[String]
   def logoUrl: Option[String]
-  /** Free text, e.g. startup, bank, university, regulator, partner. */
-  def organisationType: Option[String]
   def status: String
   def visibility: String
   def createdByUserId: String
