@@ -5524,7 +5524,10 @@ object Http4s700 {
           delivery_status = "PENDING",
           attempts = 3,
           last_error = ""
-        ))
+        )),
+        settlement_tx_id = Some("91e92fceea0d3b373989ae869fa2e12d77488ace8edcf70325a0ed4ecd500c40"),
+        settlement_asset = Some("ADA"),
+        settlement_asset_amount = Some("61943319")
       ),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, OpenCorridorDisabled, $BankNotFound,
            OpenCorridorSettlementNotFound, UnknownError),

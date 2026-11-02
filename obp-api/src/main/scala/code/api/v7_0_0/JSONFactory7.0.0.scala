@@ -1709,7 +1709,13 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     settlement_status: String,
     settlement_depth: Option[Int],
     covered_transaction_request_ids: List[String],
-    messages: List[OpenCorridorSettlementMessageJsonV700]
+    messages: List[OpenCorridorSettlementMessageJsonV700],
+    // What the debtor bank's node reported paying on the settlement rail, from its last reply to the
+    // settlement instruction: the rail transaction id, the asset and the amount in the asset's smallest
+    // unit (lovelace for ADA). The creditor bank checks its incoming payment against these. None until reported.
+    settlement_tx_id: Option[String] = None,
+    settlement_asset: Option[String] = None,
+    settlement_asset_amount: Option[String] = None
   )
 
   // Build the originator block for a TR response. Returns None when there's no
