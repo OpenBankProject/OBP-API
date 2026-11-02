@@ -38,7 +38,7 @@ import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequ
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.cards.MappedPhysicalCard
-import code.entitlement.Entitlement
+import code.entitlement.{Entitlement, MappedEntitlement}
 import code.model.dataAccess.MappedBankAccount
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankId, ErrorMessage}
@@ -184,6 +184,39 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       And("The deleted account's card is gone and the other bank's card is kept")
       cardExists(card) should equal(false)
       cardExists(otherBankCard) should equal(true)
+    }
+  }
+
+  feature(s"test $ApiEndpoint1 version $VersionOfApi - entitlements") {
+    scenario("Deleting an account keeps the entitlements of users who only use an account with the same ACCOUNT_ID at another bank", ApiEndpoint1, VersionOfApi) {
+      Given("Two banks that each have an account with the same ACCOUNT_ID, owned by different users")
+      val bankId = BankId(randomString(10))
+      val otherBankId = BankId(randomString(10))
+      createBank(bankId.value)
+      createBank(otherBankId.value)
+      val accountId = AccountId(randomString(10))
+      createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
+      createAccountRelevantResource(Some(resourceUser2), otherBankId, accountId, "EUR")
+
+      And("The other bank's account owner has an entitlement at the first bank")
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser2.userId, ApiRole.canCreateAccount.toString)
+      def otherOwnerEntitlements: Long = MappedEntitlement.count(
+        By(MappedEntitlement.mBankId, bankId.value),
+        By(MappedEntitlement.mUserId, resourceUser2.userId)
+      )
+      otherOwnerEntitlements should equal(1L)
+
+      When("We delete the account at the first bank with the cascading endpoint")
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
+      val request = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId.value /
+        "accounts" / accountId.value).DELETE <@ (user1)
+      val response = makeDeleteRequest(request)
+
+      Then("We should get a 200")
+      response.code should equal(200)
+
+      And("The other bank's account owner keeps the entitlement")
+      otherOwnerEntitlements should equal(1L)
     }
   }
 
