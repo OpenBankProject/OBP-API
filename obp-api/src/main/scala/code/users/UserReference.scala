@@ -204,6 +204,7 @@ object UserReference {
   case object DynamicEntityWebhook_CreatedByUserId             extends UserReference(UseOnBehalfOfUserId   , "code.dynamicentitywebhook.DynamicEntityWebhook", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: a webhook sends data out of OBP and outlives the Consent that made it, so the agent stays on CreatedByUserId (published as created_by_user_id) and the person it acted for goes to CreatedByOnBehalfOfUserId")
   case object AccountCreation_CreatedByUserId                   extends UserReference(UseOnBehalfOfUserId   , "code.accountcreation.AccountCreation", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: who made the call that created the account, agent included, and the person it was made for; published in the v7.0.0 Create Account metadata. The holder is AccountHolders_User")
   case object Bank_CreatedByUserId                             extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.MappedBank", List("CreatedByUserId"), "creator grant already resolved at the endpoint")
+  case object SelfServiceBank_CreatedByUserId                  extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.SelfServiceBank", List("CreatedByUserId"), "as Bank_CreatedByUserId; the Create My Bank quota counts these rows per creator")
   case object Tenant_CreatedByUserId                     extends UserReference(UseOnBehalfOfUserId   , "code.tenant.Tenant", List("CreatedByUserId"), "outlives the Consent that created it")
   case object Asset_CreatedByUserId                            extends UserReference(UseOnBehalfOfUserId   , "code.asset.Asset", List("CreatedByUserId"), "outlives the Consent that created it, as RoutingScheme_CreatedByUserId; seeded rows hold system:asset-seed")
   case object File_UserId                                      extends UserReference(UseOnBehalfOfUserId   , "code.files.File", List("UserId", "OnBehalfOfUserId"), "record both: UserId = who uploaded (the agent), OnBehalfOfUserId = the human, who owns the file")
@@ -302,6 +303,7 @@ object UserReference {
     DynamicEntityWebhook_CreatedByUserId,
     AccountCreation_CreatedByUserId,
     Bank_CreatedByUserId,
+    SelfServiceBank_CreatedByUserId,
     Tenant_CreatedByUserId,
     Asset_CreatedByUserId,
     File_UserId,
@@ -403,6 +405,7 @@ object UserReference {
     ApiProductSubscription_CreatedByUserId -> mechanicalBatch,
     DynamicGlossaryItem_CreatedByUserId    -> mechanicalBatch,
     Tenant_CreatedByUserId           -> mechanicalBatch,
+    SelfServiceBank_CreatedByUserId        -> mechanicalBatch,
     PayeeLookup_CreatedByUserId            -> mechanicalBatch,
     RoutingScheme_CreatedByUserId          -> mechanicalBatch,
     UtilityPaymentCallback_CreatedByUserId -> mechanicalBatch,
