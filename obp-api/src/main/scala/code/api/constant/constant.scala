@@ -374,6 +374,10 @@ object Constant extends MdcLoggable {
   // The Glossary as each instance holds it in memory. Bumping it reloads the Glossary at once and
   // rebuilds every cached resource-docs document, because their keys carry the Glossary version.
   final val GLOSSARY_NAMESPACE = "glossary"
+  // Dynamic entity definitions: the definition lists memoized in Redis and the definitions map each
+  // instance builds from them. A definition change bumps it once committed, so every instance reads
+  // the definitions again.
+  final val DYNAMIC_ENTITY_NAMESPACE = "dynamic_entity"
 
   // List of all versioned cache namespaces
   final val ALL_CACHE_NAMESPACES = List(
@@ -393,7 +397,8 @@ object Constant extends MdcLoggable {
     FINANCIAL_PRODUCTS_NAMESPACE,
     API_PRODUCTS_NAMESPACE,
     MESSAGE_DOCS_NAMESPACE,
-    GLOSSARY_NAMESPACE
+    GLOSSARY_NAMESPACE,
+    DYNAMIC_ENTITY_NAMESPACE
   )
 
   // Cache key prefixes with global namespace and versioning for easy invalidation

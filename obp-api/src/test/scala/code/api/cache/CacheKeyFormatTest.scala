@@ -48,7 +48,6 @@ import scala.jdk.CollectionConverters._
  * is in there somewhere. That is not enough for the thing that actually depends on this format:
  *
  *     NewStyle.scala:3306   Redis.deleteKeysByPattern("*getMethodRoutings*")
- *     NewStyle.scala        Redis.deleteKeysByPattern("*getDynamicEntities*")
  *     Caching.scala:121     Redis.deleteKeysByPattern(s"${RATE_LIMIT_ACTIVE_PREFIX}${id}_*")
  *
  * Invalidation is pattern matching over the whole key. If the derivation grows a prefix, changes
@@ -128,24 +127,6 @@ class CacheKeyFormatTest extends FlatSpec with Matchers {
       added.matches(regex) shouldBe true
     }
     InMemory.countKeys(glob) should be >= 1
-  }
-
-  it should "keep the pattern dynamic entity invalidation depends on matchable" in {
-    // NewStyle.invalidateDynamicEntityCache issues deleteKeysByPattern("*getDynamicEntities*")
-    // (through DynamicEntityHelper.forgetDefinitions), so keys derived from callers named
-    // getDynamicEntities and getDynamicEntitiesByUserId must both be matched by that glob.
-    val glob = "*getDynamicEntities*"
-    val regex = glob.replace("*", ".*")
-    Seq("getDynamicEntities", "getDynamicEntitiesByUserId").foreach { method =>
-      val marker = s"(CacheKeyFormatTest,$method,${java.util.UUID.randomUUID().toString.take(8)})"
-      val before = storedKeys
-      Caching.memoizeSyncWithImMemory(Some(marker))(ttl)("definitions")
-      val added = (storedKeys -- before).head
-      withClue(s"derived key '$added' is not matched by the invalidation pattern '$glob'. " +
-               s"A changed dynamic entity definition would stay invisible for dynamicEntity.cache.ttl.seconds. ") {
-        added.matches(regex) shouldBe true
-      }
-    }
   }
 
   it should "keep the pattern rate-limit invalidation depends on matchable" in {
