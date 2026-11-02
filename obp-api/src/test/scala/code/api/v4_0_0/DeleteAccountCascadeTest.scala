@@ -37,10 +37,14 @@ import code.api.util.ApiRole.CanDeleteAccountCascade
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
+import code.cards.MappedPhysicalCard
 import code.entitlement.Entitlement
+import code.model.dataAccess.MappedBankAccount
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage}
+import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankId, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.mapper.By
+import net.liftweb.util.Helpers.randomString
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
@@ -139,6 +143,48 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       makeDeleteRequest(request400).code should equal(404)
     }
   }
-  
+
+  feature(s"test $ApiEndpoint1 version $VersionOfApi - cards") {
+    scenario("Deleting an account keeps the cards of an account with the same ACCOUNT_ID at another bank", ApiEndpoint1, VersionOfApi) {
+      Given("Two banks that each have an account with the same ACCOUNT_ID, each with a card")
+      val bankId = BankId(randomString(10))
+      val otherBankId = BankId(randomString(10))
+      createBank(bankId.value)
+      createBank(otherBankId.value)
+      val accountId = AccountId(randomString(10))
+      createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
+      createAccountRelevantResource(Some(resourceUser1), otherBankId, accountId, "EUR")
+
+      def addCard(bank: BankId): String = {
+        val account = MappedBankAccount.find(
+          By(MappedBankAccount.bank, bank.value),
+          By(MappedBankAccount.theAccountId, accountId.value)
+        ).openOrThrowException("test account not found")
+        MappedPhysicalCard.create
+          .mBankId(bank.value)
+          .mAccount(account.id.get)
+          .mBankCardNumber(randomString(16))
+          .mSerialNumber(randomString(10))
+          .saveMe()
+          .mCardId.get
+      }
+      def cardExists(cardId: String): Boolean = MappedPhysicalCard.find(By(MappedPhysicalCard.mCardId, cardId)).isDefined
+      val card = addCard(bankId)
+      val otherBankCard = addCard(otherBankId)
+
+      When("We delete the account at the first bank with the cascading endpoint")
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
+      val request = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId.value /
+        "accounts" / accountId.value).DELETE <@ (user1)
+      val response = makeDeleteRequest(request)
+
+      Then("We should get a 200")
+      response.code should equal(200)
+
+      And("The deleted account's card is gone and the other bank's card is kept")
+      cardExists(card) should equal(false)
+      cardExists(otherBankCard) should equal(true)
+    }
+  }
 
 }
