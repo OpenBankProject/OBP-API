@@ -214,8 +214,26 @@ object DynamicEntityHelper {
   @volatile private var definitionsMapCache: Option[(Long, Map[(String, String), DynamicEntityInfo])] = None
   @volatile private var definitionsToken: AnyRef = new Object
 
-  /** Forget the kept definitions map, so the next use reads the definitions again. */
+  /**
+   * Forget the kept definitions map and the memoized definition lists, so the next use reads the definitions
+   * again. The map is rebuilt from NewStyle.getDynamicEntities, which keeps its list in Redis for
+   * dynamicEntity.cache.ttl.seconds: forgetting only the map rebuilt it from the list as it was before the
+   * change, and kept that for the map's whole time-to-live.
+   *
+   * This node's map is dropped at once, for reads later in the same request. The map and the lists are dropped
+   * again once the request's transaction commits (at once outside a transaction): until then the change is not
+   * visible to other connections, so anything read in between holds the old definitions, and clearing the
+   * shared lists earlier would achieve nothing. Other nodes' maps still follow their own time-to-live.
+   */
   def forgetDefinitions(): Unit = {
+    dropDefinitionsMap()
+    code.api.util.http4s.RequestScopeConnection.afterCommit {
+      dropDefinitionsMap()
+      NewStyle.function.invalidateDynamicEntityCache()
+    }
+  }
+
+  private def dropDefinitionsMap(): Unit = {
     definitionsToken = new Object
     definitionsMapCache = None
   }

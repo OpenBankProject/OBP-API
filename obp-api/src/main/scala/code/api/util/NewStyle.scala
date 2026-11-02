@@ -3716,6 +3716,18 @@ object NewStyle extends MdcLoggable{
       }
     }
     
+    /**
+     * Drop every memoized `getDynamicEntities(...)` and `getDynamicEntitiesByUserId(...)` list after a
+     * definition is created, updated or deleted, so the change shows in the next read instead of after
+     * `dynamicEntity.cache.ttl.seconds`. As with `invalidateMethodRoutingCache`, the Redis memoize key embeds
+     * the method name, so one pattern delete clears every argument variant, for every node reading Redis.
+     * Called through DynamicEntityHelper.forgetDefinitions once the change has committed. No-op / logged when
+     * Redis is unavailable.
+     */
+    def invalidateDynamicEntityCache(): Unit = {
+      Redis.deleteKeysByPattern("*getDynamicEntities*")
+    }
+
     def getDynamicEntitiesByUserId(userId: String): List[DynamicEntityT] = {
       import scala.concurrent.duration._
 
