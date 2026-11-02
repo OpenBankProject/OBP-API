@@ -2780,7 +2780,28 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       statusCode shouldBe 401
     }
 
+    scenario("Return 400 OpenCorridorDisabled when open_corridor_enabled is not set", Http4s700RoutesTag) {
+      val acctCurrency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        openCorridorPromisePath(testBankId1.value, testAccountId0.value),
+        openCorridorPromiseBody(acctCurrency), headers)
+      statusCode shouldBe 400
+      messageOf(json) should include(OpenCorridorDisabled)
+    }
+
+    scenario("OPEN_CORRIDOR_PROMISE is advertised exactly when open_corridor_enabled is true", Http4s700RoutesTag) {
+      setPropsValues("transactionRequests_supported_types" -> "SIMPLE, OPEN_CORRIDOR_PROMISE,SEPA")
+      APIUtil.advertisedTransactionRequestTypes shouldBe List("SIMPLE", "SEPA")
+
+      setPropsValues("open_corridor_enabled" -> "true")
+      APIUtil.advertisedTransactionRequestTypes shouldBe List("SIMPLE", "SEPA", "OPEN_CORRIDOR_PROMISE")
+    }
+
     scenario("Return 400 InvalidJsonFormat when the originator block is missing", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
       // Same shape but no `originator` field — extraction to the OPEN_CORRIDOR_PROMISE body class must fail.
       val body =
         """{
@@ -2810,6 +2831,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("Return 400 InvalidJsonValue when originator.name is empty", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
       val (statusCode, json, _) = makeHttpRequestWithBody("POST",
         openCorridorPromisePath(testBankId1.value, testAccountId0.value),
@@ -2826,6 +2848,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("Return 400 InvalidJsonValue when originator.account_routing.address is empty", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
       val (statusCode, json, _) = makeHttpRequestWithBody("POST",
         openCorridorPromisePath(testBankId1.value, testAccountId0.value),
@@ -2842,6 +2865,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("Return 201 with type OPEN_CORRIDOR_PROMISE and the originator echoed as explicit", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
       val bankId = testBankId1.value
       val accountId = testAccountId0.value
       // Match the source account's currency so the payment path doesn't reject on currency.
@@ -2894,6 +2918,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("Return 201 when the beneficiary account exists only at the far bank's CBS (not in OBP-API)", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
       val acctCurrency = code.bankconnectors.Connector.connector.vend
         .getBankAccountLegacy(testBankId1, testAccountId0, None)
         .map(_._1.currency).openOrThrowException("test account")
@@ -2926,6 +2951,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("Return 404 BankNotFound when the beneficiary bank is not registered", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
       val acctCurrency = code.bankconnectors.Connector.connector.vend
         .getBankAccountLegacy(testBankId1, testAccountId0, None)
         .map(_._1.currency).openOrThrowException("test account")
@@ -2997,6 +3023,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     beneficiaryAccountId: String = testAccountId1.value,
     amount: String = "3.00"
   ): String = {
+    setPropsValues("open_corridor_enabled" -> "true")
     val acctCurrency = code.bankconnectors.Connector.connector.vend
       .getBankAccountLegacy(fromBankId, fromAccountId, None)
       .map(_._1.currency).openOrThrowException("test account")

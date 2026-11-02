@@ -3525,6 +3525,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     registerDefault(nameOfProperty, defaultValue.toString)
     getPropsValue(nameOfProperty) map(toBoolean) openOr(defaultValue)
   }
+  /**
+   * The Transaction Request types this instance advertises: `transactionRequests_supported_types`, with
+   * OPEN_CORRIDOR_PROMISE present exactly when `open_corridor_enabled` is true. Open Corridor has its own
+   * switch rather than a place in the list, and this keeps what is advertised in line with what is served.
+   */
+  def advertisedTransactionRequestTypes: List[String] = {
+    val openCorridor = com.openbankproject.commons.model.enums.TransactionRequestTypes.OPEN_CORRIDOR_PROMISE.toString
+    val listed = getPropsValue("transactionRequests_supported_types", "")
+      .split(",").map(_.trim).filter(_.nonEmpty).toList.filterNot(_ == openCorridor)
+    if (getPropsAsBoolValue("open_corridor_enabled", false)) listed :+ openCorridor else listed
+  }
+
   def getPropsAsIntValue(nameOfProperty: String): Box[Int] = {
     getPropsValue(nameOfProperty) map(toInt)
   }

@@ -4708,6 +4708,10 @@ object Http4s700 {
         EndpointHelpers.withViewAndBodyCreated[JSONFactory700.TransactionRequestBodyOpenCorridorJsonV700, JSONFactory700.TransactionRequestWithChargeOpenCorridorJsonV700](req) { (user, fromAccount, view, body, cc) =>
           val callCtx = Some(cc)
           for {
+            // The same switch as settling: a promise that could never be settled here is refused up front.
+            _ <- code.util.Helper.booleanToFuture(OpenCorridorDisabled, cc = callCtx) {
+              APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)
+            }
             _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(
               view.viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), user, callCtx
             )
@@ -4758,6 +4762,8 @@ object Http4s700 {
         |
         |An OPEN_CORRIDOR_PROMISE does not post a Transaction at create time: the request is held at status `PENDING` as a promise, accumulating for bilateral netting. The Open Corridor settle step later nets all pending promises between a bank pair and posts one net Transaction, at which point covered promises become `COMPLETED`.
         |
+        |Requires `open_corridor_enabled=true` on this instance. Whether it is on shows in GET /banks/BANK_ID/transaction-request-types, which lists OPEN_CORRIDOR_PROMISE exactly when it is.
+        |
         |Authentication is Required.""".stripMargin,
       openCorridorBodyExample,
       JSONFactory700.TransactionRequestWithChargeOpenCorridorJsonV700(
@@ -4789,7 +4795,7 @@ object Http4s700 {
           source = "explicit"
         ))
       ),
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidJsonValue,
+      List($AuthenticatedUserIsRequired, OpenCorridorDisabled, InvalidJsonFormat, InvalidJsonValue,
            CounterpartyBeneficiaryPermit, InvalidChargePolicy,
            InsufficientAuthorisationToCreateTransactionRequest, UnknownError),
       apiTagTransactionRequest :: Nil,

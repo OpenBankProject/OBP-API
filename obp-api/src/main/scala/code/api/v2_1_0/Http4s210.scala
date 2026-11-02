@@ -182,9 +182,9 @@ object Http4s210 {
                    code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
                  else Future.unit
             transactionRequestTypes <- Future {
-              APIUtil.getPropsValue("transactionRequests_supported_types", "")
+              APIUtil.advertisedTransactionRequestTypes
             }
-          } yield JSONFactory210.createTransactionRequestTypeJSON(transactionRequestTypes.split(",").toList)
+          } yield JSONFactory210.createTransactionRequestTypeJSON(transactionRequestTypes)
         }
     }
 
@@ -193,6 +193,10 @@ object Http4s210 {
       "/banks/BANK_ID/transaction-request-types",
       "Get Transaction Request Types at Bank",
       s"""Get the list of the Transaction Request Types supported by the bank.
+         |
+         |These are the types in the `transactionRequests_supported_types` prop. OPEN_CORRIDOR_PROMISE is listed
+         |exactly when `open_corridor_enabled` is true, so a client can tell whether Open Corridor is on here
+         |before it sends a promise.
          |
          |${userAuthenticationMessage(!getTransactionRequestTypesIsPublic)}""",
       EmptyBody, transactionRequestTypesJSON,
