@@ -60,7 +60,7 @@ object DeleteAccountCascade {
         deleteAccountAttributes(bankId, accountId) ::
         deleteAccountWebhooks(bankId, accountId) ::
         deleteBankAccountData(bankId, accountId) ::
-        deleteCards(accountId) ::
+        deleteCards(bankId, accountId) ::
         deleteAccountRoutings(bankId, accountId) ::
         deleteCounterparties(bankId, accountId) ::
         deleteCounterpartyMetadata(bankId, accountId) ::
@@ -93,8 +93,9 @@ object DeleteAccountCascade {
     )
   }
   
-  private def deleteCards(accountId: AccountId): Boolean = {
+  private def deleteCards(bankId: BankId, accountId: AccountId): Boolean = {
     MappedBankAccount.findAll(
+      By(MappedBankAccount.bank, bankId.value),
       By(MappedBankAccount.theAccountId, accountId.value)
     ) map (
       account =>
