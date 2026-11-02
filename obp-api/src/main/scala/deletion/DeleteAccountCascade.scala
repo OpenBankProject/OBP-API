@@ -86,7 +86,10 @@ object DeleteAccountCascade {
     )
   }
   private def deleteEntitlements(bankId: BankId, accountId: AccountId): Boolean = {
-    val userIds = AccountAccess.findAll(By(AccountAccess.account_id, accountId.value)).map(_.user_fk.foreign.map(_.userId).getOrElse(""))
+    val userIds = AccountAccess.findAll(
+      By(AccountAccess.bank_id, bankId.value),
+      By(AccountAccess.account_id, accountId.value)
+    ).map(_.user_fk.foreign.map(_.userId).getOrElse(""))
     MappedEntitlement.bulkDelete_!!(
       By(MappedEntitlement.mBankId, bankId.value),
       ByList(MappedEntitlement.mUserId, userIds)
