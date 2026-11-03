@@ -28,7 +28,10 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import org.json4s._
+import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.accountholders.MapperAccountHolders
+import code.dynamicEntity.{DynamicEntity, DynamicEntityCommons, DynamicEntityProvider}
+import net.liftweb.util.StringHelpers
 import code.api.Constant
 import java.util.concurrent.TimeUnit
 
@@ -179,6 +182,38 @@ class DeleteBankCascadeTest extends V400ServerSetup {
       transactionRequestsAfter shouldBe empty
       challengesAfter shouldBe empty
     }
+    scenario("We delete a bank that has dynamic entities, their records and a ZZ_BAK_ copy", ApiEndpoint1, VersionOfApi) {
+      val bankId = createBank(APIUtil.generateUUID()).bankId.value
+      val otherBankId = createBank(APIUtil.generateUUID()).bankId.value
+      val owner = "bank-cascade-owner"
+      val suffix = APIUtil.generateUUID().take(8).replace("-", "")
+      def defineWithRecord(space: String, name: String): Unit = {
+        DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(DynamicEntityCommons(
+          name, s"""{"$name":{"properties":{"${StringHelpers.snakify(name)}_id":{"type":"string"},"note":{"type":"string"}}}}""",
+          None, owner, Some(space), hasPersonalEntity = false)).openOrThrowException("definition")
+        DynamicDataProvider.connectorMethodProvider.vend.save(Some(space), name,
+          JObject(JField(StringHelpers.snakify(name) + "_id", JString(APIUtil.generateUUID())), JField("note", JString("kept?"))),
+          Some(owner), false).openOrThrowException("record")
+      }
+      defineWithRecord(bankId, s"Echo$suffix")
+      defineWithRecord(bankId, s"ZZ_BAK_Echo$suffix")
+      defineWithRecord(otherBankId, s"Echo$suffix")
+      def definitionsAt(space: String) = DynamicEntity.findAll(By(DynamicEntity.BankId, space))
+      def recordsAt(space: String) = DynamicData.findAll(By(DynamicData.BankId, space))
+      definitionsAt(bankId) should have size 2
+      recordsAt(bankId) should have size 2
+
+      When("We grant the role and delete the bank with the cascading endpoint")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteBankCascade.toString)
+      makeDeleteRequest((v4_0_0_Request / "management" / "cascading" / "banks" / bankId).DELETE <@(user1)).code should equal(200)
+
+      Then("The bank's definitions and records are gone, and the other bank keeps its own")
+      definitionsAt(bankId) shouldBe empty
+      recordsAt(bankId) shouldBe empty
+      definitionsAt(otherBankId) should have size 1
+      recordsAt(otherBankId) should have size 1
+    }
+
     scenario("We delete a bank whose accounts have holders", ApiEndpoint1, VersionOfApi) {
       val bankId = createBank(APIUtil.generateUUID()).bankId.value
       val accountId = createAccountViaEndpoint(bankId, addAccountJson, user1).account_id
