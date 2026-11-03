@@ -1433,7 +1433,15 @@
       "field": "description",
       "reason": "Documents the six-limit semantics (0=blocked, summed across records); same rate-limiting feature expansion as the other rate-limit endpoints below.",
       "lift_digest": "668028ad86321b68b01406fb570d1dafca545c3c45bc2a3e3c0d04dd1a5b69af",
-      "http4s_digest": "a70426ea3f7d3e3305f066057d548d5f810f4920a78ea5c1cc02fce5afd74208"
+      "http4s_digest": "373574cc7bc9c4b16c6d3250eecc3b65db651c16cd1457b5e4ddfa546e220aa3"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createCallLimits",
+      "field": "errorResponseBodies",
+      "reason": "Lists RateLimitScopeNotSupported, the 400 for a rate limit that names an api_name, api_version or bank_id.",
+      "lift_digest": "13a79b912b962f3b1adb4ccab12d47087a6ec04f0f76cf8989b4a0d84606dcff",
+      "http4s_digest": "05d96c06040c6e3c3f076a0b9916d59a4c6108a47f2e2907128a3e4235cd5577"
     },
     {
       "version": "v6_0_0",
@@ -1473,7 +1481,15 @@
       "field": "description",
       "reason": "Same rate-limiting doc expansion as the other call-limit endpoints.",
       "lift_digest": "b4a18cf966d2dbdd3760c86771869b584cd10286dac49620d075a7cbfdca4996",
-      "http4s_digest": "229b587b60d0eec166b7f962703514c81e5d176ee65dd70de0c131efc221bd8c"
+      "http4s_digest": "41c77b86feb302cbc5130214b14e71a7dc5c09710eaad3819b4b126d6ae41412"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateRateLimits",
+      "field": "errorResponseBodies",
+      "reason": "Lists RateLimitScopeNotSupported, the 400 for a rate limit that names an api_name, api_version or bank_id.",
+      "lift_digest": "73a6aab6d272e734f76807465010e55db340ee57091b9590ee564de48566a42a",
+      "http4s_digest": "2d7e7df55e5ff6575b522f6dcf0716be5ea3f4f4ca6c1324596ae0be8b8398a0"
     },
     {
       "version": "v1_4_0",
