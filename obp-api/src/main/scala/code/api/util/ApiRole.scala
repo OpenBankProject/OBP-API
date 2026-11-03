@@ -1643,10 +1643,22 @@ object ApiRole extends MdcLoggable{
     }
   }
 
+  // Checked only by the /management/cascading endpoints, so not offered while allow_cascade_delete=false
+  // leaves those endpoints out. valueOf still resolves them, for entitlements granted earlier.
+  private lazy val cascadeDeleteRoleNames: Set[String] = Set[ApiRole](
+    canDeleteTransactionCascade,
+    canDeleteAccountCascade,
+    canDeleteBankCascade,
+    canDeleteProductCascade,
+    canDeleteCustomerCascade
+  ).map(_.toString)
+  private lazy val offeredRoleNames: List[String] =
+    roles.map(_.toString).filter(name => APIUtil.cascadeDeleteEnabled || !cascadeDeleteRoleNames.contains(name))
+
   def availableRoles: List[String] = {
     import scala.jdk.CollectionConverters._
     val dynamicRoles = dynamicApiRoles.keys().asScala.toList
-    dynamicRoles ::: roles.map(_.toString)
+    dynamicRoles ::: offeredRoleNames
   }
 
 }
