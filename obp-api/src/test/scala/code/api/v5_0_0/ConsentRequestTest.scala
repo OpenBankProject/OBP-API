@@ -291,22 +291,22 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       mail.to == List(recipient) && mail.subject == "OBP Consent Challenge" &&
         mail.textContent.exists(_.contains(Consent.challengeAnswerAtTestEnvironment)))
 
-    def createConsent(scaMethod: String) = {
+    // Returns the consent request id and the response of creating its consent.
+    def createConsent(createConsentUrl: String => code.setup.OBPReq, consentRequest: PostConsentRequestJsonV500 = postConsentRequestJson) = {
       // A send that takes as long as an SMTP round trip: one the request does not wait for is still pending when
       // the response arrives.
       setPropsValues("mail.test.mode" -> "true", "mail.test.mode.delay_millis" -> "1500")
       CommonsEmailWrapper.clearTestModeSentMail()
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
-      val createConsentRequestResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJson))
+      val createConsentRequestResponse = makePostRequest(createConsentRequestUrl, write(consentRequest))
       createConsentRequestResponse.code should equal(201)
       val consentRequestId = createConsentRequestResponse.body.extract[ConsentRequestResponseJson].consent_request_id
-      val request = (v5_0_0_Request / "consumer" / "consent-requests" / consentRequestId / scaMethod / "consents").POST <@ (user1)
-      makePostRequest(request, write(""))
+      (consentRequestId, makePostRequest(createConsentUrl(consentRequestId), write("")))
     }
 
     scenario("EMAIL: the challenge goes to the email address of the consent request", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
       When("We create a consent with an EMAIL challenge")
-      val response = createConsent("EMAIL")
+      val (_, response) = createConsent(createConsentByConsentRequestIdEmail)
       response.code should equal(201)
       Then("The challenge mail has already been sent, once, to the consent request's email address")
       challengeMailTo(postConsentRequestJson.email.head).size should equal(1)
@@ -314,10 +314,21 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
 
     scenario("IMPLICIT: the challenge goes to the email address of the user", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
       When("We create a consent with an IMPLICIT challenge")
-      val response = createConsent("IMPLICIT")
+      val (_, response) = createConsent(createConsentByConsentRequestIdImplicit)
       response.code should equal(201)
       Then("The challenge mail has already been sent, once, to the user's email address")
       challengeMailTo(resourceUser1.emailAddress).size should equal(1)
+    }
+
+    scenario("EMAIL without an email address: no consent that no one could answer", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+      When("We create a consent with an EMAIL challenge from a consent request that names no email address")
+      val (consentRequestId, response) = createConsent(createConsentByConsentRequestIdEmail, postConsentRequestJson.copy(email = None))
+      Then("We get a 400, as from the other Create Consent endpoints, and no challenge is sent")
+      response.code should equal(400)
+      response.body.extract[ErrorMessage].message should include ("email")
+      CommonsEmailWrapper.testModeSentMail.filter(_.subject == "OBP Consent Challenge") shouldBe empty
+      And("No consent was kept for the consent request")
+      makeGetRequest(getConsentByRequestIdUrl(consentRequestId)).code should not equal (200)
     }
   }
 
