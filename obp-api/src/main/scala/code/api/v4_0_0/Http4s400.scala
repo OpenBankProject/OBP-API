@@ -7923,108 +7923,110 @@ object Http4s400 {
         http4sPartialFunction = Some(deleteUserCustomerLink)
       )
 
-      // Cascade deletes are documented, and routed, only when allow_cascade_delete=true.
-      if (APIUtil.cascadeDeleteEnabled) {
-        staticResourceDocs += ResourceDoc(
-          implementedInApiVersion,
-          nameOf(deleteTransactionCascade),
-          "DELETE",
-          "/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID",
-          "Delete Transaction Cascade",
-          s"""Delete a Transaction Cascade specified by TRANSACTION_ID.
-          |
-          |
-          |${userAuthenticationMessage(true)}
-          |
-          |""",
-          EmptyBody,
-          EmptyBody,
-          List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
-          List(apiTagTransaction),
-          Some(List(canDeleteTransactionCascade)),
-          http4sPartialFunction = Some(deleteTransactionCascade)
-        )
+      staticResourceDocs += ResourceDoc(
+        implementedInApiVersion,
+        nameOf(deleteTransactionCascade),
+        "DELETE",
+        "/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID",
+        "Delete Transaction Cascade",
+        s"""Delete a Transaction Cascade specified by TRANSACTION_ID.
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+        List(apiTagTransaction),
+        Some(List(canDeleteTransactionCascade)),
+        http4sPartialFunction = Some(deleteTransactionCascade)
+      )
 
-        staticResourceDocs += ResourceDoc(
-          implementedInApiVersion,
-          nameOf(deleteAccountCascade),
-          "DELETE",
-          "/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID",
-          "Delete Account Cascade",
-          s"""Delete an Account Cascade specified by ACCOUNT_ID.
-          |
-          |
-          |${userAuthenticationMessage(true)}
-          |
-          |""",
-          EmptyBody,
-          EmptyBody,
-          List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
-          List(apiTagAccount),
-          Some(List(canDeleteAccountCascade)),
-          http4sPartialFunction = Some(deleteAccountCascade)
-        )
+      staticResourceDocs += ResourceDoc(
+        implementedInApiVersion,
+        nameOf(deleteAccountCascade),
+        "DELETE",
+        "/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID",
+        "Delete Account Cascade",
+        s"""Delete an Account Cascade specified by ACCOUNT_ID.
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+        List(apiTagAccount),
+        Some(List(canDeleteAccountCascade)),
+        http4sPartialFunction = Some(deleteAccountCascade)
+      )
 
-        staticResourceDocs += ResourceDoc(
-          implementedInApiVersion,
-          nameOf(deleteBankCascade),
-          "DELETE",
-          "/management/cascading/banks/BANK_ID",
-          "Delete Bank Cascade",
-          s"""Delete a Bank Cascade specified by BANK_ID.
-          |
-          |
-          |${userAuthenticationMessage(true)}
-          |
-          |""",
-          EmptyBody,
-          EmptyBody,
-          List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-          List(apiTagBank),
-          Some(List(canDeleteBankCascade)),
-          http4sPartialFunction = Some(deleteBankCascade)
-        )
+      staticResourceDocs += ResourceDoc(
+        implementedInApiVersion,
+        nameOf(deleteBankCascade),
+        "DELETE",
+        "/management/cascading/banks/BANK_ID",
+        "Delete Bank Cascade",
+        s"""Delete a Bank Cascade specified by BANK_ID.
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(apiTagBank),
+        Some(List(canDeleteBankCascade)),
+        http4sPartialFunction = Some(deleteBankCascade)
+      )
 
-        staticResourceDocs += ResourceDoc(
-          implementedInApiVersion,
-          nameOf(deleteProductCascade),
-          "DELETE",
-          "/management/cascading/banks/BANK_ID/products/PRODUCT_CODE",
-          "Delete Product Cascade",
-          s"""Delete a Product Cascade specified by PRODUCT_CODE.
-          |
-          |
-          |${userAuthenticationMessage(true)}
-          |
-          |""",
-          EmptyBody,
-          EmptyBody,
-          List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
-          List(apiTagProduct),
-          Some(List(canDeleteProductCascade)),
-          http4sPartialFunction = Some(deleteProductCascade)
-        )
+      staticResourceDocs += ResourceDoc(
+        implementedInApiVersion,
+        nameOf(deleteProductCascade),
+        "DELETE",
+        "/management/cascading/banks/BANK_ID/products/PRODUCT_CODE",
+        "Delete Product Cascade",
+        s"""Delete a Product Cascade specified by PRODUCT_CODE.
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+        List(apiTagProduct),
+        Some(List(canDeleteProductCascade)),
+        http4sPartialFunction = Some(deleteProductCascade)
+      )
 
-        staticResourceDocs += ResourceDoc(
-          implementedInApiVersion,
-          nameOf(deleteCustomerCascade),
-          "DELETE",
-          "/management/cascading/banks/BANK_ID/customers/CUSTOMER_ID",
-          "Delete Customer Cascade",
-          s"""Delete a Customer Cascade specified by CUSTOMER_ID.
-          |
-          |
-          |${userAuthenticationMessage(true)}
-          |
-          |""",
-          EmptyBody,
-          EmptyBody,
-          List($AuthenticatedUserIsRequired, $BankNotFound, CustomerNotFoundByCustomerId, UserHasMissingRoles, UnknownError),
-          List(apiTagCustomer),
-          Some(List(canDeleteCustomerCascade)),
-          http4sPartialFunction = Some(deleteCustomerCascade)
-        )
-      }
+      staticResourceDocs += ResourceDoc(
+        implementedInApiVersion,
+        nameOf(deleteCustomerCascade),
+        "DELETE",
+        "/management/cascading/banks/BANK_ID/customers/CUSTOMER_ID",
+        "Delete Customer Cascade",
+        s"""Delete a Customer Cascade specified by CUSTOMER_ID.
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, $BankNotFound, CustomerNotFoundByCustomerId, UserHasMissingRoles, UnknownError),
+        List(apiTagCustomer),
+        Some(List(canDeleteCustomerCascade)),
+        http4sPartialFunction = Some(deleteCustomerCascade)
+      )
+
+      // Cascade deletes are documented, and routed, only when allow_cascade_delete=true. Their docs come
+      // out here and their routes out of routesInOrder, both by cascadeDeleteRoutes.
+      if (!cascadeDeleteEnabled)
+        staticResourceDocs --= staticResourceDocs.filter(_.http4sPartialFunction.exists(cascadeDeleteRoutes.contains))
 
       staticResourceDocs += ResourceDoc(
         implementedInApiVersion, nameOf(deleteSystemLevelEndpointTag), "DELETE",
@@ -11252,7 +11254,11 @@ object Http4s400 {
 
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
-    // Left out of routesInOrder unless allow_cascade_delete=true, like their ResourceDocs.
+    // Read once: whether the cascade-delete endpoints exist is fixed when this object initialises.
+    private lazy val cascadeDeleteEnabled: Boolean = APIUtil.cascadeDeleteEnabled
+
+    // Left out of routesInOrder, and their ResourceDocs out of staticResourceDocs, unless
+    // allow_cascade_delete=true.
     private lazy val cascadeDeleteRoutes: Set[Http4sHandler] = Set(
       deleteTransactionCascade,
       deleteAccountCascade,
@@ -11537,7 +11543,7 @@ object Http4s400 {
       createUserWithRoles,
       createUserWithAccountAccess,
       createUserInvitation
-    ).filter(route => APIUtil.cascadeDeleteEnabled || !cascadeDeleteRoutes.contains(route))
+    ).filter(route => cascadeDeleteEnabled || !cascadeDeleteRoutes.contains(route))
 
     lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
 
