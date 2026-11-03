@@ -52,8 +52,15 @@ object CommonsEmailWrapper extends MdcLoggable {
     useSSL: Boolean = false,
     debug: Boolean = false,
     tlsProtocols: String = "TLSv1.2",
-    timeoutMillis: Int = 30000
+    timeoutMillis: Int = CommonsEmailWrapper.defaultTimeoutMillis
   )
+
+  val defaultTimeoutMillis = 30000
+
+  // mail.smtp.timeout_millis as a positive number of milliseconds; anything else falls back to the default,
+  // because Jakarta Mail reads 0 (and Lift reads an unparseable value as 0) as "wait forever".
+  def timeoutMillisFrom(value: Option[String]): Int =
+    value.flatMap(v => scala.util.Try(v.trim.toInt).toOption).filter(_ > 0).getOrElse(defaultTimeoutMillis)
 
   case class EmailContent(
     from: String,
@@ -82,7 +89,7 @@ object CommonsEmailWrapper extends MdcLoggable {
       useSSL = APIUtil.getPropsValue("mail.smtp.ssl.enable", "false").toBoolean,
       debug = APIUtil.getPropsValue("mail.debug", "false").toBoolean,
       tlsProtocols = APIUtil.getPropsValue("mail.smtp.ssl.protocols", "TLSv1.2"),
-      timeoutMillis = APIUtil.getPropsAsIntValue("mail.smtp.timeout_millis", 30000)
+      timeoutMillis = timeoutMillisFrom(APIUtil.getPropsValue("mail.smtp.timeout_millis").toOption)
     )
   }
 
