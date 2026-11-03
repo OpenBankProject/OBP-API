@@ -50,12 +50,16 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
+import code.model.dataAccess.DoubleEntryBookTransaction
+import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionattribute.MappedTransactionAttribute
+import code.transactionrequests.MappedTransactionRequest
+import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, ErrorMessage, UpdateViewJSON}
 import com.openbankproject.commons.util.ApiShortVersions
 import code.setup.OBPReq
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
+import net.liftweb.mapper.{By, ByList}
 import net.liftweb.util.Helpers.randomString
 
 import java.util.concurrent.TimeUnit
@@ -455,6 +459,61 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       user1
     )
     (bank.bankId.value, fromAccount.account_id, transactionId)
+  }
+
+  /**
+   * Creates two accounts at the bank and two SANDBOX_TAN transaction requests from the first to the second:
+   * one below the challenge threshold, which is paid at once and booked in the double-entry book,
+   * and one above it, which stays INITIATED with an expected challenge answer and no transaction.
+   * Returns (fromAccountId, toAccountId, transactionRequestIds).
+   */
+  def createPaymentsForDeleteCascade(bankId: String): (String, String, List[String]) = {
+    def addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310
+      .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"),
+        account_routings = List(AccountRoutingJsonV121(Random.nextString(10), Random.nextString(10))))
+    val fromAccount = createAccountViaEndpoint(bankId, addAccountJson, user1)
+    val toAccount = createAccountViaEndpoint(bankId, addAccountJson, user1)
+    val customViewJson = createViewJsonV300.copy(name = "_cascade_delete", metadata_view = "_cascade_delete", is_public = false).toCreateViewJson
+    val customView = createViewViaEndpoint(bankId, fromAccount.account_id, customViewJson, user1)
+    grantUserAccessToViewViaEndpoint(
+      bankId,
+      fromAccount.account_id,
+      resourceUser1.userId,
+      user1,
+      PostViewJsonV400(view_id = customView.id, is_system = false)
+    )
+    def pay(amount: String) = createTransactionRequestViaEndpoint(
+      fromBankId = bankId,
+      fromAccountId = fromAccount.account_id,
+      fromCurrency = fromAccount.balance.currency,
+      fromViewId = customView.id,
+      amount = amount,
+      toBankId = bankId,
+      toAccountId = toAccount.account_id,
+      user1
+    )
+    val completed = pay("10")
+    completed.status should equal(TransactionRequestStatus.COMPLETED.toString)
+    val initiated = pay("5000")
+    initiated.status should equal(TransactionRequestStatus.INITIATED.toString)
+    (fromAccount.account_id, toAccount.account_id, List(completed.id, initiated.id))
+  }
+
+  def doubleEntryBookTransactionsOfAccount(bankId: String, accountId: String): List[DoubleEntryBookTransaction] = {
+    DoubleEntryBookTransaction.findAll(
+      By(DoubleEntryBookTransaction.DebitTransactionBankId, bankId),
+      By(DoubleEntryBookTransaction.DebitTransactionAccountId, accountId)
+    ) ++ DoubleEntryBookTransaction.findAll(
+      By(DoubleEntryBookTransaction.CreditTransactionBankId, bankId),
+      By(DoubleEntryBookTransaction.CreditTransactionAccountId, accountId)
+    )
+  }
+
+  def transactionRequestsAndChallenges(transactionRequestIds: List[String]): (List[MappedTransactionRequest], List[MappedExpectedChallengeAnswer]) = {
+    (
+      MappedTransactionRequest.findAll(ByList(MappedTransactionRequest.mTransactionRequestId, transactionRequestIds)),
+      MappedExpectedChallengeAnswer.findAll(ByList(MappedExpectedChallengeAnswer.TransactionRequestId, transactionRequestIds))
+    )
   }
 
   def saveHistoricalTransactionViaEndpoint(fromBankId: BankId,

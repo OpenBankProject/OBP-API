@@ -34,7 +34,9 @@ import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.bankconnectors.Connector
 import code.cards.MappedPhysicalCard
 import code.entitlement.MappedEntitlement
-import code.model.dataAccess.{BankAccountRouting, MappedBankAccount, MappedBankAccountData}
+import code.model.dataAccess.{BankAccountRouting, DoubleEntryBookTransaction, MappedBankAccount, MappedBankAccountData}
+import code.transactionChallenge.MappedExpectedChallengeAnswer
+import code.transactionrequests.MappedTransactionRequest
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.MappedAccountWebhook
 import com.openbankproject.commons.model.{AccountId, BankId}
@@ -49,8 +51,13 @@ import scala.collection.immutable.List
 object DeleteAccountCascade {
 
   def delete(bankId: BankId, accountId: AccountId): Boolean = {
+    // The tasks run in list order: the challenges are found through the account's transaction
+    // requests, so they must go before deleteTransactionRequests and deleteTransactions remove them.
     val doneTasks =
-      deleteTransactions(bankId, accountId) ::
+      deleteTransactionRequestChallenges(bankId, accountId) ::
+        deleteTransactionRequests(bankId, accountId) ::
+        deleteDoubleEntryBookTransactions(bankId, accountId) ::
+        deleteTransactions(bankId, accountId) ::
         deleteEntitlements(bankId, accountId) ::
         deleteAccountAccess(bankId, accountId) ::
         deleteCustomViews(bankId, accountId) ::
@@ -152,5 +159,32 @@ object DeleteAccountCascade {
       case _ =>
         false
     }
+  }
+
+  private def deleteTransactionRequestChallenges(bankId: BankId, accountId: AccountId): Boolean = {
+    val transactionRequestIds = MappedTransactionRequest.findAll(
+      By(MappedTransactionRequest.mFrom_BankId, bankId.value),
+      By(MappedTransactionRequest.mFrom_AccountId, accountId.value)
+    ).map(_.mTransactionRequestId.get)
+    MappedExpectedChallengeAnswer.bulkDelete_!!(
+      ByList(MappedExpectedChallengeAnswer.TransactionRequestId, transactionRequestIds)
+    )
+  }
+  private def deleteTransactionRequests(bankId: BankId, accountId: AccountId): Boolean = {
+    MappedTransactionRequest.bulkDelete_!!(
+      By(MappedTransactionRequest.mFrom_BankId, bankId.value),
+      By(MappedTransactionRequest.mFrom_AccountId, accountId.value)
+    )
+  }
+  private def deleteDoubleEntryBookTransactions(bankId: BankId, accountId: AccountId): Boolean = {
+    val debitSide = DoubleEntryBookTransaction.bulkDelete_!!(
+      By(DoubleEntryBookTransaction.DebitTransactionBankId, bankId.value),
+      By(DoubleEntryBookTransaction.DebitTransactionAccountId, accountId.value)
+    )
+    val creditSide = DoubleEntryBookTransaction.bulkDelete_!!(
+      By(DoubleEntryBookTransaction.CreditTransactionBankId, bankId.value),
+      By(DoubleEntryBookTransaction.CreditTransactionAccountId, accountId.value)
+    )
+    debitSide && creditSide
   }
 }

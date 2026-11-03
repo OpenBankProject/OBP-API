@@ -158,6 +158,25 @@ class DeleteBankCascadeTest extends V400ServerSetup {
       val responseBody = response.body.extract[CustomersMinimalJsonV400]
       responseBody.customers.length equals 0
     }
+    scenario("We delete a bank whose accounts have paid by transaction requests", ApiEndpoint1, VersionOfApi) {
+      val bankId = createBank(APIUtil.generateUUID()).bankId.value
+      val (fromAccountId, toAccountId, transactionRequestIds) = createPaymentsForDeleteCascade(bankId)
+      doubleEntryBookTransactionsOfAccount(bankId, fromAccountId) should not be empty
+      transactionRequestsAndChallenges(transactionRequestIds)._2 should not be empty
+
+      When("We grant the role")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteBankCascade.toString)
+      And("We make a delete cascade request v4.0.0")
+      val deleteRequest400 = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId ).DELETE <@(user1)
+      makeDeleteRequest(deleteRequest400).code should equal(200)
+
+      Then("The double-entry book rows, transaction requests and challenges of its accounts are deleted")
+      doubleEntryBookTransactionsOfAccount(bankId, fromAccountId) shouldBe empty
+      doubleEntryBookTransactionsOfAccount(bankId, toAccountId) shouldBe empty
+      val (transactionRequestsAfter, challengesAfter) = transactionRequestsAndChallenges(transactionRequestIds)
+      transactionRequestsAfter shouldBe empty
+      challengesAfter shouldBe empty
+    }
   }
   
 
