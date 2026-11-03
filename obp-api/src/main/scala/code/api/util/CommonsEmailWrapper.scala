@@ -52,7 +52,7 @@ object CommonsEmailWrapper extends MdcLoggable {
     useSSL: Boolean = false,
     debug: Boolean = false,
     tlsProtocols: String = "TLSv1.2",
-    timeoutMillis: Int = 10000
+    timeoutMillis: Int = 30000
   )
 
   case class EmailContent(
@@ -82,7 +82,7 @@ object CommonsEmailWrapper extends MdcLoggable {
       useSSL = APIUtil.getPropsValue("mail.smtp.ssl.enable", "false").toBoolean,
       debug = APIUtil.getPropsValue("mail.debug", "false").toBoolean,
       tlsProtocols = APIUtil.getPropsValue("mail.smtp.ssl.protocols", "TLSv1.2"),
-      timeoutMillis = APIUtil.getPropsAsIntValue("mail.smtp.timeout.millis", 10000)
+      timeoutMillis = APIUtil.getPropsAsIntValue("mail.smtp.timeout_millis", 30000)
     )
   }
 
