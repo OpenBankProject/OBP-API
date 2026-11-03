@@ -633,7 +633,9 @@
                  observe. Excluded here by default (every ordinary shard/local/IDE run boots with
                  the props unset, i.e. false) and run separately with -Dtest.tagsToExclude=
                  -DtagsToInclude=PropGatedPublicEndpoint plus the two OBP_READ_*_REQUIRES_ROLE
-                 env vars set true (see run_tests_parallel.sh and the CI job that runs them);
+                 env vars set true (see run_tests_parallel.sh and the CI job that runs them).
+                 CascadeDeleteDisabledTest shares the tag and runs there with
+                 OBP_ALLOW_CASCADE_DELETE=false;
                  see the ${test.tagsToExclude} property declared above for why this is not a
                  plain literal. -->
             <tagsToExclude>${test.tagsToExclude}</tagsToExclude>
