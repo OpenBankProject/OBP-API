@@ -5382,17 +5382,28 @@ object Http4s400 {
               consent.userId == user.userId
             }
             status = code.consent.ConsentStatus.withName(consentJson.status)
-            updated <- APIUtil.getPropsAsBoolValue("consents.sca.enabled", true) match {
-              case true =>
+            updated <- (refusalOf(consent, status), APIUtil.getPropsAsBoolValue("consents.sca.enabled", true)) match {
+              case (None, true) =>
                 Future.successful(consent)
-              case false =>
+              case (refusal, _) =>
                 Future(
-                  code.consent.Consents.consentProvider.vend.updateConsentStatus(consentId, status)
+                  code.consent.Consents.consentProvider.vend.updateConsentStatus(consentId, refusal.getOrElse(status))
                 ) map { box => connectorEmptyResponse(box, Some(cc)) }
             }
           } yield code.api.v3_1_0.ConsentJsonV310(updated.consentId, updated.jsonWebToken, updated.status)
         }
     }
+
+    // Refusing a consent its PSU has not authorised yet grants nothing, so it needs no SCA. The refusal is stored
+    // under the consent's own standard's name for it: Berlin Group reads `rejected`, the others REJECTED.
+    private val awaitingAuthorisation = Set(ConsentStatus.INITIATED, ConsentStatus.received,
+      ConsentStatus.AWAITINGAUTHORISATION).map(_.toString)
+    private def refusalOf(consent: code.consent.ConsentTrait, requested: ConsentStatus.Value): Option[ConsentStatus.Value] =
+      if ((requested == ConsentStatus.REJECTED || requested == ConsentStatus.rejected) &&
+          awaitingAuthorisation.contains(consent.status))
+        Some(if (consent.apiStandard == code.api.berlin.group.ConstantsBG.berlinGroupVersion1.apiStandard)
+          ConsentStatus.rejected else ConsentStatus.REJECTED)
+      else None
 
     lazy val addConsentUser: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "consents" / consentId / "user-update-request" =>
@@ -5573,6 +5584,10 @@ object Http4s400 {
         |This endpoint is used to update the Status of Consent.
         |
         |The consent must belong to the logged-in user; another user's consent returns 404 $ConsentNotFound
+        |
+        |A consent its user has not authorised yet (INITIATED, received or AWAITINGAUTHORISATION) can be refused with
+        |the status REJECTED without SCA; a Berlin Group consent is stored as rejected. While consents.sca.enabled is
+        |true, any other change leaves the status as it is.
         |
         |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted
          .mkString(", ")}.

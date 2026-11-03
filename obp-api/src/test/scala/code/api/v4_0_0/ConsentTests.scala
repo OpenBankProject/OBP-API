@@ -30,7 +30,9 @@ package code.api.v4_0_0
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
-import code.consent.Consents
+import code.api.berlin.group.ConstantsBG
+import code.api.v3_1_0.ConsentJsonV310
+import code.consent.{ConsentStatus, Consents}
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -99,5 +101,56 @@ class ConsentTests extends V400ServerSetup with DefaultUsers {
       (response.body \ "jwt") should equal(JNothing)
     }
 
+  }
+
+  feature(s"Assuring that endpoint $ApiEndpoint2 lets the PSU refuse a consent it has not authorised - v4.0.0") {
+
+    def reject(consentId: String) = makePutRequest(
+      (v4_0_0_Request / "banks" / testBankId1.value / "consents" / consentId).PUT <@ (user1),
+      write(PutConsentStatusJsonV400(status = "REJECTED")))
+
+    def storedStatus(consentId: String) =
+      Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent").status
+
+    scenario(s"We refuse an OBP consent awaiting its challenge, with SCA enabled - $ApiEndpoint2", ApiEndpoint2, VersionOfApi) {
+      setPropsValues("consents.sca.enabled" -> "true")
+      Given("An OBP consent of user1 that is still INITIATED")
+      val consent = Consents.consentProvider.vend.createObpConsent(resourceUser1, "12345678", None, None)
+        .openOrThrowException("consent")
+      When("user1 sets it to REJECTED")
+      val response = reject(consent.consentId)
+      Then("The consent is rejected, and the answer says so")
+      response.code should equal(200)
+      response.body.extract[ConsentJsonV310].status should equal(ConsentStatus.REJECTED.toString)
+      storedStatus(consent.consentId) should equal(ConsentStatus.REJECTED.toString)
+    }
+
+    scenario(s"We refuse a Berlin Group consent awaiting authorisation, with SCA enabled - $ApiEndpoint2", ApiEndpoint2, VersionOfApi) {
+      setPropsValues("consents.sca.enabled" -> "true")
+      Given("A Berlin Group consent of user1 that is still received")
+      val consent = Consents.consentProvider.vend.createBerlinGroupConsent(
+        user = Some(resourceUser1), consumer = None, recurringIndicator = false,
+        validUntil = new java.util.Date(System.currentTimeMillis() + 86400000L), frequencyPerDay = 1,
+        combinedServiceIndicator = false, apiStandard = Some(ConstantsBG.berlinGroupVersion1.apiStandard),
+        apiVersion = Some(ConstantsBG.berlinGroupVersion1.apiShortVersion)
+      ).openOrThrowException("consent")
+      When("user1 sets it to REJECTED, as Portal's Deny does")
+      val response = reject(consent.consentId)
+      Then("The consent carries Berlin Group's rejected status")
+      response.code should equal(200)
+      storedStatus(consent.consentId) should equal(ConsentStatus.rejected.toString)
+    }
+
+    scenario(s"An authorised consent keeps its status, with SCA enabled - $ApiEndpoint2", ApiEndpoint2, VersionOfApi) {
+      setPropsValues("consents.sca.enabled" -> "true")
+      Given("An OBP consent of user1 that is ACCEPTED")
+      val consent = Consents.consentProvider.vend.createObpConsent(resourceUser1, "12345678", None, None)
+        .openOrThrowException("consent")
+      Consents.consentProvider.vend.updateConsentStatus(consent.consentId, ConsentStatus.ACCEPTED)
+      When("user1 sets it to REJECTED")
+      reject(consent.consentId).code should equal(200)
+      Then("Its status is unchanged: ending an authorised consent is a revocation, not a refusal")
+      storedStatus(consent.consentId) should equal(ConsentStatus.ACCEPTED.toString)
+    }
   }
  }
