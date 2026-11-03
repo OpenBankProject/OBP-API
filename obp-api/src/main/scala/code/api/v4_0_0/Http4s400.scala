@@ -8038,6 +8038,11 @@ object Http4s400 {
         http4sPartialFunction = Some(deleteCustomerCascade)
       )
 
+      // Cascade deletes are documented, and routed, only when allow_cascade_delete=true. Their docs come
+      // out here and their routes out of routesInOrder, both by cascadeDeleteRoutes.
+      if (!cascadeDeleteEnabled)
+        staticResourceDocs --= staticResourceDocs.filter(_.http4sPartialFunction.exists(cascadeDeleteRoutes.contains))
+
       staticResourceDocs += ResourceDoc(
         implementedInApiVersion, nameOf(deleteSystemLevelEndpointTag), "DELETE",
         "/management/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
@@ -11264,6 +11269,19 @@ object Http4s400 {
 
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
+    // Read once: whether the cascade-delete endpoints exist is fixed when this object initialises.
+    private lazy val cascadeDeleteEnabled: Boolean = APIUtil.cascadeDeleteEnabled
+
+    // Left out of routesInOrder, and their ResourceDocs out of staticResourceDocs, unless
+    // allow_cascade_delete=true.
+    private lazy val cascadeDeleteRoutes: Set[Http4sHandler] = Set(
+      deleteTransactionCascade,
+      deleteAccountCascade,
+      deleteBankCascade,
+      deleteProductCascade,
+      deleteCustomerCascade
+    )
+
     // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given the docs in this same order.
     lazy val routesInOrder: List[Http4sHandler] = List(
@@ -11540,7 +11558,7 @@ object Http4s400 {
       createUserWithRoles,
       createUserWithAccountAccess,
       createUserInvitation
-    )
+    ).filter(route => cascadeDeleteEnabled || !cascadeDeleteRoutes.contains(route))
 
     lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
 

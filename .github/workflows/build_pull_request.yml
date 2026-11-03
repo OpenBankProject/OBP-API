@@ -234,7 +234,7 @@ jobs:
             test_filter: >-
               code.api.v4_0_0.Dynamic
           - shard: 10
-            name: "PropGatedPublicEndpoint (read_*_requires_role=true)"
+            name: "PropGatedPublicEndpoint (read_*_requires_role=true, allow_cascade_delete=false)"
             # JsonSchemaValidationPublicPropTrueTest / AuthenticationTypeValidationPublicPropTrueTest
             # need read_json_schema_validation_requires_role /
             # read_authentication_type_validation_requires_role forced true, which is baked into
@@ -242,9 +242,12 @@ jobs:
             # observe. Every other shard boots with these props unset (false, the default) and
             # the pom.xml default tagsToExclude skips this tag there. This shard is the only place
             # the true branch is exercised; see the "Run tests" step's shard-10 special case below.
+            # CascadeDeleteDisabledTest is here for the opposite reason: every other shard has
+            # allow_cascade_delete=true, and only this JVM starts with it false.
             test_filter: >-
               code.api.v4_0_0.JsonSchemaValidationPublicPropTrueTest
               code.api.v4_0_0.AuthenticationTypeValidationPublicPropTrueTest
+              code.api.v4_0_0.CascadeDeleteDisabledTest
 
     services:
       redis:
@@ -335,6 +338,7 @@ jobs:
           echo allow_sandbox_data_import=true >> obp-api/src/main/resources/props/test.default.props
           echo sandbox_data_import_secret=change_me >> obp-api/src/main/resources/props/test.default.props
           echo allow_account_deletion=true >> obp-api/src/main/resources/props/test.default.props
+          echo allow_cascade_delete=true >> obp-api/src/main/resources/props/test.default.props
           echo allowed_internal_redirect_urls = /,/oauth/authorize >> obp-api/src/main/resources/props/test.default.props
           echo transactionRequests_enabled=true >> obp-api/src/main/resources/props/test.default.props
           echo transactionRequests_supported_types=SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,SIMPLE >> obp-api/src/main/resources/props/test.default.props
@@ -453,6 +457,8 @@ jobs:
           if [ "${{ matrix.shard }}" = "10" ]; then
             export OBP_READ_JSON_SCHEMA_VALIDATION_REQUIRES_ROLE="true"
             export OBP_READ_AUTHENTICATION_TYPE_VALIDATION_REQUIRES_ROLE="true"
+            # The cascade-delete routes are fixed when the API objects initialise; off here only.
+            export OBP_ALLOW_CASCADE_DELETE="false"
             EXTRA_MVN_ARGS="-DtagsToInclude=PropGatedPublicEndpoint -Dtest.tagsToExclude="
           fi
 
