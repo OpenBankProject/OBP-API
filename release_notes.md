@@ -3,6 +3,15 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+03/11/2026    TBD           CHANGED: the cascade-delete endpoints are off by default, behind the new prop
+                            allow_cascade_delete (default false). While it is false they are not routed
+                            and not listed in the Resource Docs of any version, so a request gets 404:
+                            DELETE /obp/v4.0.0/management/cascading/banks/BANK_ID, .../accounts/ACCOUNT_ID,
+                            .../accounts/ACCOUNT_ID/transactions/TRANSACTION_ID, .../products/PRODUCT_CODE,
+                            .../customers/CUSTOMER_ID, DELETE /obp/v6.0.0/management/system-dynamic-entities/
+                            cascade/DYNAMIC_ENTITY_ID and DELETE /obp/v7.0.0/management/banks/BANK_ID/
+                            dynamic-entities/cascade/DYNAMIC_ENTITY_ID. Set allow_cascade_delete=true to
+                            keep using them. The prop is read at startup.
 13/10/2026    TBD           ADDED: Domain APIs have is_publicly_discoverable (new column
                             domain_api.is_publicly_discoverable, false by default). The new public
                             GET /obp/v7.0.0/banks/BANK_ID/domain-apis lists, without authentication, the
