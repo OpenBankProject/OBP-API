@@ -32,7 +32,7 @@ import code.api.Constant
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole
+import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ApiRole.CanDeleteAccountCascade
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v3_1_0.CreateAccountResponseJsonV310
@@ -141,6 +141,29 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
 
       When("We try to delete one more time")
       makeDeleteRequest(request400).code should equal(404)
+    }
+    scenario("We delete an account that has paid by transaction requests", ApiEndpoint1, VersionOfApi) {
+      val paymentsBankId = createBank(APIUtil.generateUUID()).bankId.value
+      val (fromAccountId, toAccountId, transactionRequestIds) = createPaymentsForDeleteCascade(paymentsBankId)
+      doubleEntryBookTransactionsOfAccount(paymentsBankId, fromAccountId) should not be empty
+      val (transactionRequestsBefore, challengesBefore) = transactionRequestsAndChallenges(transactionRequestIds)
+      transactionRequestsBefore.size should equal(2)
+      challengesBefore should not be empty
+
+      When("We grant the role")
+      Entitlement.entitlement.vend.addEntitlement(paymentsBankId, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
+      And("We make a delete cascade request v4.0.0")
+      val deleteRequest400 = (v4_0_0_Request / "management" / "cascading" / "banks" / paymentsBankId /
+        "accounts" / fromAccountId).DELETE <@(user1)
+      makeDeleteRequest(deleteRequest400).code should equal(200)
+
+      Then("The double-entry book rows, transaction requests and challenges of the account are deleted")
+      doubleEntryBookTransactionsOfAccount(paymentsBankId, fromAccountId) shouldBe empty
+      val (transactionRequestsAfter, challengesAfter) = transactionRequestsAndChallenges(transactionRequestIds)
+      transactionRequestsAfter shouldBe empty
+      challengesAfter shouldBe empty
+      And("The double-entry book row is gone for the receiving account as well, since it was one row for both sides")
+      doubleEntryBookTransactionsOfAccount(paymentsBankId, toAccountId) shouldBe empty
     }
   }
 
