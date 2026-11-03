@@ -631,6 +631,18 @@ messageQueue.createBankAccounts=true
 ## Set this to true if you want to allow users to delete accounts (local ones like HBCI connected)
 allow_account_deletion=true
 
+## Cascade-delete endpoints: each deletes an object together with everything stored under it.
+##   DELETE /obp/v4.0.0/management/cascading/banks/BANK_ID
+##   DELETE /obp/v4.0.0/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID
+##   DELETE /obp/v4.0.0/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID
+##   DELETE /obp/v4.0.0/management/cascading/banks/BANK_ID/products/PRODUCT_CODE
+##   DELETE /obp/v4.0.0/management/cascading/banks/BANK_ID/customers/CUSTOMER_ID
+##   DELETE /obp/v6.0.0/management/system-dynamic-entities/cascade/DYNAMIC_ENTITY_ID
+##   DELETE /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/cascade/DYNAMIC_ENTITY_ID
+## When false (the default) they are not routed and not listed in the Resource Docs of any version,
+## so a request gets 404. Set to true to make them available. Read at startup.
+allow_cascade_delete=false
+
 ## Secret key that allows access to api calls to get info about oauth tokens. You should change this
 ## to your own secret key
 BankMockKey=change_me
