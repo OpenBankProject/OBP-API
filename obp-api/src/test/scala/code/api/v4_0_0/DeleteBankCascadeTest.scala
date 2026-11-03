@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import org.json4s._
+import code.accountholders.MapperAccountHolders
 import code.api.Constant
 import java.util.concurrent.TimeUnit
 
@@ -43,6 +44,7 @@ import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.mapper.By
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
@@ -177,7 +179,25 @@ class DeleteBankCascadeTest extends V400ServerSetup {
       transactionRequestsAfter shouldBe empty
       challengesAfter shouldBe empty
     }
+    scenario("We delete a bank whose accounts have holders", ApiEndpoint1, VersionOfApi) {
+      val bankId = createBank(APIUtil.generateUUID()).bankId.value
+      val accountId = createAccountViaEndpoint(bankId, addAccountJson, user1).account_id
+      def accountHolders = MapperAccountHolders.findAll(
+        By(MapperAccountHolders.accountBankPermalink, bankId),
+        By(MapperAccountHolders.accountPermalink, accountId)
+      )
+      accountHolders should not be empty
+
+      When("We grant the role")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteBankCascade.toString)
+      And("We delete the bank with the cascading endpoint")
+      val deleteRequest400 = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId ).DELETE <@(user1)
+      makeDeleteRequest(deleteRequest400).code should equal(200)
+
+      Then("The holders of its accounts are deleted")
+      accountHolders shouldBe empty
+    }
   }
-  
+
 
 }
