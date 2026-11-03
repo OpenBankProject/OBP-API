@@ -61,6 +61,13 @@ trait ChallengeProvider {
   def getChallengesByBasketId(basketId: String): Box[List[ChallengeTrait]]
 
   /**
+    * Deletes the challenges of the given type that were raised for this consent.
+    * The type is part of the match because a consent's challenges are not all alike: the Berlin Group
+    * authorisation endpoints keep listing theirs after they are answered.
+    */
+  def deleteChallengesByConsentId(consentId: String, challengeType: String): Box[Boolean]
+
+  /**
     * There is another method:  Connector.validateChallengeAnswer, it validates the challenge over CBS.
     * This method, will validate the answer in OBP side. 
     */
