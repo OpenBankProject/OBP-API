@@ -104,7 +104,7 @@ object Http4s500 {
   val versionStatus: String = ApiVersionStatus.STABLE.toString
   val resourceDocs: ArrayBuffer[ResourceDoc] = ArrayBuffer[ResourceDoc]()
 
-  object Implementations5_0_0 {
+  object Implementations5_0_0 extends code.util.Helper.MdcLoggable {
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
@@ -1133,6 +1133,13 @@ object Http4s500 {
             // challenge has nowhere to go could never be answered.
             challengeRecipient <- if (shouldSkipConsentScaForConsumerIdPair) Future.successful(None)
                                   else resolveChallengeRecipient(scaMethod, consentRequestJson, user, callContextOpt)
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = DEFAULT_CONSENT_TTL)
+            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
+              consentRequestJson.time_to_live match {
+                case Some(ttl) => ttl <= maxTimeToLive
+                case _         => true
+              }
+            }
             (bankId, accountId, viewId, counterpartyId) <- if (isVRPConsentRequest) {
               val postConsentRequestJsonV510 = json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostVRPConsentRequestJsonV510]
               val vrpViewId = s"${VRP_VIEW_ID_PREFIX}${UUID.randomUUID.toString}".dropRight(5)
@@ -1246,13 +1253,6 @@ object Http4s500 {
             } else {
               Future.successful((BankId(""), AccountId(""), ViewId(""), CounterpartyId(""))): Future[(BankId, AccountId, ViewId, CounterpartyId)]
             }
-            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = DEFAULT_CONSENT_TTL)
-            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
-              consentRequestJson.time_to_live match {
-                case Some(ttl) => ttl <= maxTimeToLive
-                case _         => true
-              }
-            }
             requestedEntitlements = consentRequestJson.entitlements.getOrElse(Nil)
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
             // CanCreateEntitlementAtAnyBank stays out of consents. CanCreateEntitlementAtOneBank is
@@ -1348,14 +1348,26 @@ object Http4s500 {
               val challengeSent: Future[Unit] = challengeRecipient match {
                 case Some((method, recipient)) =>
                   val subject = if (method == StrongCustomerAuthentication.EMAIL) Some("OBP Consent Challenge") else None
-                  NewStyle.function.sendCustomerNotification(method, recipient, subject, challengeText, callContextOpt).map(_ => ())
+                  // Started inside the Future, so a connector that throws before building its own Future fails
+                  // this one rather than the request.
+                  Future.unit.flatMap(_ =>
+                    NewStyle.function.sendCustomerNotification(method, recipient, subject, challengeText, callContextOpt)).map(_ => ())
                 case None => Future.successful(())
               }
               // The consent is already written when a send fails (an SMS provider that is missing or refuses), and the
-              // failed request keeps it: reject it, so no one is left with a consent they can never answer.
+              // failed request keeps it: reject it, and release a VRP mandate the way a revoke does, so no one is left
+              // with a consent they can never answer or with a payment authority it no longer stands for. The send's
+              // error is what the caller gets, even if cleaning up fails too.
               challengeSent.map(_ => createdConsent).recoverWith { case e =>
-                Future(Consents.consentProvider.vend.updateConsentStatus(createdConsent.consentId, ConsentStatus.REJECTED))
-                  .flatMap(_ => Future.failed(e))
+                Future {
+                  Consents.consentProvider.vend.updateConsentStatus(createdConsent.consentId, ConsentStatus.REJECTED)
+                  // Read again: the JWT that names the VRP view was saved on another instance.
+                  Consents.consentProvider.vend.getConsentByConsentId(createdConsent.consentId).foreach(Consent.revokeConsentAccountAccess)
+                }.transformWith { cleanup =>
+                  cleanup.failed.foreach(f => logger.warn(s"createConsentByConsentRequestId says: could not reject consent " +
+                    s"${createdConsent.consentId} after its challenge failed: ${f.getClass.getSimpleName}"))
+                  Future.failed(e)
+                }
               }
             }
           } yield ConsentJsonV500(
@@ -1416,6 +1428,8 @@ object Http4s500 {
       |
       |An SCA challenge code is sent to the phone number that was supplied in the Create Consent Request body. The User then completes SCA via Answer Consent Challenge, which moves the Consent from INITIATED to ACCEPTED.
       |
+      |The challenge is sent before this call answers. If it cannot be sent (no SMS provider configured, or the provider refuses), the call fails and the Consent it created is REJECTED; the Consent Request is then used up, and the TPP has to lodge a new one.
+      |
       |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request, otherwise from the consumer making this call. If none of those names a consumer the Consent is not created and this endpoint returns ConsentConsumerIsRequired — a Consent that names no consumer could be presented by nobody. After creation, only the pinned consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
       |
       |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.
@@ -1437,11 +1451,11 @@ object Http4s500 {
       "/consumer/consent-requests/CONSENT_REQUEST_ID/IMPLICIT/consents",
       "Create Consent By CONSENT_REQUEST_ID (IMPLICIT)",
       s"""
-      |Answer a Consent Request and create the resulting Consent, without a Strong Customer Authentication challenge — the Consent is moved directly from INITIATED to ACCEPTED.
+      |Answer a Consent Request and create the resulting Consent, with the Strong Customer Authentication challenge the User's implicit SCA method names.
       |
       |After the TPP has called Create Consent Request (Client Credentials), the User authenticates and answers the request via this endpoint. This creates the Consent (the credential the consumer will use to access OBP on the User's behalf).
       |
-      |IMPLICIT means no SCA challenge is sent. The Consent is immediately ACCEPTED. Use only in flows where the User has already been strongly authenticated by upstream means; for production use behind a public TPP, prefer EMAIL or SMS.
+      |IMPLICIT lets the instance choose how the challenge reaches the User: the connector's getConsentImplicitSCA names the method and the recipient (on the mapped connector, an EMAIL to the User's email address). The challenge is sent before this call answers, and the User completes SCA via Answer Consent Challenge, which moves the Consent from INITIATED to ACCEPTED. If the User has no address for that method the call fails with GetConsentImplicitSCAError before any Consent is created.
       |
       |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request, otherwise from the consumer making this call. If none of those names a consumer the Consent is not created and this endpoint returns ConsentConsumerIsRequired — a Consent that names no consumer could be presented by nobody. After creation, only the pinned consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
       |
@@ -1453,7 +1467,7 @@ object Http4s500 {
       |
       |""",
       EmptyBody, consentJsonV500,
-      ConsentRequestIsInvalid :: MissingPropsValueAtThisInstance :: SmsServerNotResponding :: createConsentByConsentRequestIdCommonErrors,
+      ConsentRequestIsInvalid :: MissingPropsValueAtThisInstance :: SmsServerNotResponding :: GetConsentImplicitSCAError :: createConsentByConsentRequestIdCommonErrors,
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
       http4sPartialFunction = Some(createConsentByConsentRequestId)
