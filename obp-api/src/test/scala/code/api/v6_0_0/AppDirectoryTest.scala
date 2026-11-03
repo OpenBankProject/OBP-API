@@ -198,6 +198,7 @@ class AppDirectoryTest extends V600ServerSetup {
       APIUtil.publicAppUrlPropNames should contain("public_obp_portal_url")
       APIUtil.publicAppUrlPropNames should contain("public_obp_api_explorer_url")
       APIUtil.publicAppUrlPropNames should contain("public_obp_api_manager_url")
+      APIUtil.publicAppUrlPropNames should contain("public_obp_cohort_url")
       APIUtil.publicAppUrlPropNames should contain("public_obp_sandbox_populator_url")
       APIUtil.publicAppUrlPropNames should contain("public_obp_oidc_url")
       APIUtil.publicAppUrlPropNames should contain("public_keycloak_url")

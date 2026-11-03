@@ -13882,7 +13882,7 @@ object Http4s600 {
         "Get App Directory",
         s"""Get connectivity information for apps in the OBP ecosystem.
         |
-        |Returns config (configuration) properties that apps (Portal, API Explorer, API Manager,
+        |Returns config (configuration) properties that apps (Portal, API Explorer, API Manager, Cohort,
         |Sandbox Populator, OIDC, Keycloak, Hola, MCP, Opey) and agents can use to discover
         |endpoints in the OBP ecosystem.
         |

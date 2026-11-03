@@ -429,6 +429,7 @@ public_obp_api_url=http://localhost:8080
 public_obp_portal_url=http://localhost:5174
 public_obp_api_explorer_url=http://localhost:5173
 public_obp_api_manager_url=http://localhost:3003
+public_obp_cohort_url=http://localhost:5183
 public_obp_sandbox_populator_url=http://localhost:5178
 public_obp_oidc_url=http://localhost:9000
 public_keycloak_url=http://localhost:7787
