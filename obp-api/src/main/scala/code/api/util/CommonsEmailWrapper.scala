@@ -86,7 +86,22 @@ object CommonsEmailWrapper extends MdcLoggable {
 
   def isTestMode: Boolean = APIUtil.getPropsValue("mail.test.mode", "false").toBoolean
 
+  // The mail logged in test mode, oldest first and bounded, so tests can check what OBP has sent and when.
+  private val testModeMailLimit = 200
+  private val testModeMail = new java.util.concurrent.ConcurrentLinkedQueue[EmailContent]()
+  def testModeSentMail: List[EmailContent] = {
+    import scala.jdk.CollectionConverters._
+    testModeMail.asScala.toList
+  }
+  def clearTestModeSentMail(): Unit = testModeMail.clear()
+
   private def logEmailInTestMode(content: EmailContent): Box[String] = {
+    // mail.test.mode.delay_millis makes a test-mode send take that long, as a real SMTP round trip does, so a test
+    // can tell whether a request waited for its mail. Test mode only.
+    val delay = APIUtil.getPropsAsIntValue("mail.test.mode.delay_millis", 0)
+    if (delay > 0) Thread.sleep(delay.toLong)
+    testModeMail.add(content)
+    while (testModeMail.size > testModeMailLimit) testModeMail.poll()
     logger.info("=" * 80)
     logger.info("EMAIL TEST MODE - Email would be sent with the following content:")
     logger.info("=" * 80)

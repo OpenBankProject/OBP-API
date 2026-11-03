@@ -30,7 +30,7 @@ import code.api.{Constant, RequestHeader}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.{APIUtil, Consent}
+import code.api.util.{APIUtil, CommonsEmailWrapper, Consent}
 import code.api.util.ErrorMessages._
 import code.api.v3_1_0.{PostConsentChallengeJsonV310, PostConsentEntitlementJsonV310}
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
@@ -283,5 +283,42 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
     }
 
   }
-  
+
+  feature("The consent challenge is sent before Create Consent By CONSENT_REQUEST_ID answers v5.0.0") {
+    // The PSU needs the challenge to accept the consent. When it was sent from a Future the request did not wait
+    // for, it could run after the request's database connection was closed and never be sent at all.
+    def challengeMailTo(recipient: String) = CommonsEmailWrapper.testModeSentMail.filter(mail =>
+      mail.to == List(recipient) && mail.subject == "OBP Consent Challenge" &&
+        mail.textContent.exists(_.contains(Consent.challengeAnswerAtTestEnvironment)))
+
+    def createConsent(scaMethod: String) = {
+      // A send that takes as long as an SMTP round trip: one the request does not wait for is still pending when
+      // the response arrives.
+      setPropsValues("mail.test.mode" -> "true", "mail.test.mode.delay_millis" -> "1500")
+      CommonsEmailWrapper.clearTestModeSentMail()
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
+      val createConsentRequestResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJson))
+      createConsentRequestResponse.code should equal(201)
+      val consentRequestId = createConsentRequestResponse.body.extract[ConsentRequestResponseJson].consent_request_id
+      val request = (v5_0_0_Request / "consumer" / "consent-requests" / consentRequestId / scaMethod / "consents").POST <@ (user1)
+      makePostRequest(request, write(""))
+    }
+
+    scenario("EMAIL: the challenge goes to the email address of the consent request", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      When("We create a consent with an EMAIL challenge")
+      val response = createConsent("EMAIL")
+      response.code should equal(201)
+      Then("The challenge mail has already been sent, once, to the consent request's email address")
+      challengeMailTo(postConsentRequestJson.email.head).size should equal(1)
+    }
+
+    scenario("IMPLICIT: the challenge goes to the email address of the user", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      When("We create a consent with an IMPLICIT challenge")
+      val response = createConsent("IMPLICIT")
+      response.code should equal(201)
+      Then("The challenge mail has already been sent, once, to the user's email address")
+      challengeMailTo(resourceUser1.emailAddress).size should equal(1)
+    }
+  }
+
 }
