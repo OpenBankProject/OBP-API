@@ -1057,62 +1057,33 @@ object Http4s500 {
     // POST /consumer/consent-requests/CONSENT_REQUEST_ID/{EMAIL|SMS|IMPLICIT}/consents → 201
     // Three ResourceDoc registrations (one per SCA literal) but one HttpRoutes pattern.
 
-    // Fails with the same 400 the send would, before anything is written, when the challenge has nowhere to go.
-    private def checkChallengeRecipient(
+    // Where the challenge for a consent goes: the SCA method and its recipient, or None when this method sends
+    // nothing. Fails with a 400 when the challenge has nowhere to go.
+    private def resolveChallengeRecipient(
       scaMethod: String,
       consentRequestJson: PostConsentRequestJsonV500,
       user: User,
       callContextOpt: Option[code.api.util.CallContext]
-    ): Future[Unit] = {
-      def present(value: Option[String]) = value.exists(v => v != null && v.trim.nonEmpty)
+    ): Future[Option[(StrongCustomerAuthentication, String)]] = {
+      def required(method: StrongCustomerAuthentication, recipient: Option[String], failMsg: String) =
+        Helper.booleanToFuture(failMsg, 400, callContextOpt)(recipient.exists(r => r != null && r.trim.nonEmpty))
+          .map(_ => Some((method, recipient.get)))
       scaMethod match {
         case v if v == StrongCustomerAuthentication.EMAIL.toString =>
-          Helper.booleanToFuture(s"$InvalidJsonFormat The Json body must contain the field email", 400, callContextOpt) {
-            present(consentRequestJson.email)
-          }.map(_ => ())
+          required(StrongCustomerAuthentication.EMAIL, consentRequestJson.email, s"$InvalidJsonFormat The Json body must contain the field email")
         case v if v == StrongCustomerAuthentication.SMS.toString =>
-          Helper.booleanToFuture(s"$InvalidJsonFormat The Json body must contain the field phone_number", 400, callContextOpt) {
-            present(consentRequestJson.phone_number)
-          }.map(_ => ())
+          required(StrongCustomerAuthentication.SMS, consentRequestJson.phone_number, s"$InvalidJsonFormat The Json body must contain the field phone_number")
         case v if v == StrongCustomerAuthentication.IMPLICIT.toString =>
-          for {
-            (consentImplicitSCA, _) <- NewStyle.function.getConsentImplicitSCA(user, callContextOpt)
-            _ <- Helper.booleanToFuture(s"$GetConsentImplicitSCAError The user has no ${consentImplicitSCA.scaMethod} address", 400, callContextOpt) {
-              present(Option(consentImplicitSCA.recipient))
+          NewStyle.function.getConsentImplicitSCA(user, callContextOpt).flatMap { case (implicitSca, _) =>
+            implicitSca.scaMethod match {
+              case m @ (StrongCustomerAuthentication.EMAIL | StrongCustomerAuthentication.SMS) =>
+                required(m, Option(implicitSca.recipient), s"$GetConsentImplicitSCAError The user has no $m address")
+              case _ => Future.successful(None)
             }
-          } yield ()
-        case _ => Future.successful(())
+          }
+        case _ => Future.successful(None)
       }
     }
-
-    private def sendEmailConsentNotification(
-      callContextOpt: Option[code.api.util.CallContext],
-      consentRequestJson: PostConsentRequestJsonV500,
-      challengeText: String
-    ): Future[String] =
-      for {
-        consentScaEmail <- NewStyle.function.tryons(
-          s"$InvalidJsonFormat The Json body must contain the field email", 400, callContextOpt) {
-          consentRequestJson.email.head
-        }
-        (status, _) <- NewStyle.function.sendCustomerNotification(
-          StrongCustomerAuthentication.EMAIL, consentScaEmail,
-          Some("OBP Consent Challenge"), challengeText, callContextOpt)
-      } yield status
-
-    private def sendSmsConsentNotification(
-      callContextOpt: Option[code.api.util.CallContext],
-      consentRequestJson: PostConsentRequestJsonV500,
-      challengeText: String
-    ): Future[String] =
-      for {
-        consentScaPhoneNumber <- NewStyle.function.tryons(
-          s"$InvalidJsonFormat The Json body must contain the field phone_number", 400, callContextOpt) {
-          consentRequestJson.phone_number.head
-        }
-        (status, _) <- NewStyle.function.sendCustomerNotification(
-          StrongCustomerAuthentication.SMS, consentScaPhoneNumber, None, challengeText, callContextOpt)
-      } yield status
 
     val createConsentByConsentRequestId: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "consumer" / "consent-requests" / consentRequestId / scaMethod / "consents"
@@ -1147,6 +1118,21 @@ object Http4s500 {
                   json.parse(createdConsentRequest.payload).extract[PostConsentRequestJsonV500]
                 }.map(p => (p, false))
               }
+            // Every Consent names the Consumer it is for: the body's consumer_id, else the Consumer that
+            // lodged the consent request, else the caller. NewStyle.function.resolveConsentConsumer says
+            // why a Consent may not be created without one. One resolution feeds both the JWT's aud and
+            // the stored row, so the two can no longer disagree about who the Consent is for.
+            consentConsumer <- NewStyle.function.resolveConsentConsumer(
+              consentRequestJson.consumer_id.orElse(Option(createdConsentRequest.consumerId)), callContextOpt)
+            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId.get)).getOrElse("Unknown")
+            granteeConsumerId = consentConsumer.consumerId.get
+            shouldSkipConsentScaForConsumerIdPair = APIUtil.skipConsentScaForConsumerIdPairs.contains(
+              APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
+            // Where the challenge goes, settled before anything is written (the VRP view, counterparty and limit
+            // below, then the consent): a request that fails later still keeps what it wrote, and a consent whose
+            // challenge has nowhere to go could never be answered.
+            challengeRecipient <- if (shouldSkipConsentScaForConsumerIdPair) Future.successful(None)
+                                  else resolveChallengeRecipient(scaMethod, consentRequestJson, user, callContextOpt)
             (bankId, accountId, viewId, counterpartyId) <- if (isVRPConsentRequest) {
               val postConsentRequestJsonV510 = json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostVRPConsentRequestJsonV510]
               val vrpViewId = s"${VRP_VIEW_ID_PREFIX}${UUID.randomUUID.toString}".dropRight(5)
@@ -1302,12 +1288,6 @@ object Http4s500 {
                          e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
                    }
                  } yield ()
-            // Every Consent names the Consumer it is for: the body's consumer_id, else the Consumer that
-            // lodged the consent request, else the caller. NewStyle.function.resolveConsentConsumer says
-            // why a Consent may not be created without one. One resolution feeds both the JWT's aud and
-            // the stored row, so the two can no longer disagree about who the Consent is for.
-            consentConsumer <- NewStyle.function.resolveConsentConsumer(
-              consentRequestJson.consumer_id.orElse(Option(createdConsentRequest.consumerId)), callContextOpt)
             consumerIdOpt = Some(consentConsumer.consumerId.get)
             applicationText = consentConsumer.description
             challengeAnswer = Props.mode match {
@@ -1315,14 +1295,6 @@ object Http4s500 {
               case _                   => SecureRandomUtil.numeric()
             }
             consumer = Some(consentConsumer)
-            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId.get)).getOrElse("Unknown")
-            granteeConsumerId = consentConsumer.consumerId.get
-            shouldSkipConsentScaForConsumerIdPair = APIUtil.skipConsentScaForConsumerIdPairs.contains(
-              APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
-            // Checked before the consent exists: a request that fails later still keeps what it wrote, and a
-            // consent whose challenge has nowhere to go could never be answered.
-            _ <- if (shouldSkipConsentScaForConsumerIdPair) Future.successful(())
-                 else checkChallengeRecipient(scaMethod, consentRequestJson, user, callContextOpt)
             createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(
               user, challengeAnswer, Some(consentRequestId), consumer))
               .map(i => connectorEmptyResponse(i, callContextOpt))
@@ -1373,25 +1345,18 @@ object Http4s500 {
               // The challenge is sent within the request, as by the other Create Consent endpoints: the connector
               // looks up its method routing on the request's database connection, which closes with the request.
               // A challenge that cannot be sent fails the request, so no consent is kept that no one can answer.
-              val challengeSent: Future[String] = scaMethod match {
-                case v if v == StrongCustomerAuthentication.EMAIL.toString =>
-                  sendEmailConsentNotification(callContextOpt, consentRequestJson, challengeText)
-                case v if v == StrongCustomerAuthentication.SMS.toString =>
-                  sendSmsConsentNotification(callContextOpt, consentRequestJson, challengeText)
-                case v if v == StrongCustomerAuthentication.IMPLICIT.toString =>
-                  for {
-                    (consentImplicitSCA, _) <- NewStyle.function.getConsentImplicitSCA(user, callContextOpt)
-                    _ <- consentImplicitSCA.scaMethod match {
-                      case v if v == StrongCustomerAuthentication.EMAIL =>
-                        sendEmailConsentNotification(callContextOpt, consentRequestJson.copy(email = Some(consentImplicitSCA.recipient)), challengeText)
-                      case v if v == StrongCustomerAuthentication.SMS =>
-                        sendSmsConsentNotification(callContextOpt, consentRequestJson.copy(phone_number = Some(consentImplicitSCA.recipient)), challengeText)
-                      case _ => Future.successful("Success")
-                    }
-                  } yield "Success"
-                case _ => Future.successful("Success")
+              val challengeSent: Future[Unit] = challengeRecipient match {
+                case Some((method, recipient)) =>
+                  val subject = if (method == StrongCustomerAuthentication.EMAIL) Some("OBP Consent Challenge") else None
+                  NewStyle.function.sendCustomerNotification(method, recipient, subject, challengeText, callContextOpt).map(_ => ())
+                case None => Future.successful(())
               }
-              challengeSent.map(_ => createdConsent)
+              // The consent is already written when a send fails (an SMS provider that is missing or refuses), and the
+              // failed request keeps it: reject it, so no one is left with a consent they can never answer.
+              challengeSent.map(_ => createdConsent).recoverWith { case e =>
+                Future(Consents.consentProvider.vend.updateConsentStatus(createdConsent.consentId, ConsentStatus.REJECTED))
+                  .flatMap(_ => Future.failed(e))
+              }
             }
           } yield ConsentJsonV500(
             mappedConsent.consentId,
