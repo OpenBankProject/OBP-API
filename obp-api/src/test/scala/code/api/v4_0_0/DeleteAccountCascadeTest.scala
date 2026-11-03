@@ -66,6 +66,8 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.deleteAccountCascade))
 
+  private val deleteAtFirstBank = "We delete the account at the first bank with the cascading endpoint"
+
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
   lazy val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
@@ -199,7 +201,7 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       val card = addCard(bankId)
       val otherBankCard = addCard(otherBankId)
 
-      When("We delete the account at the first bank with the cascading endpoint")
+      When(deleteAtFirstBank)
       Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
       val request = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId.value /
         "accounts" / accountId.value).DELETE <@ (user1)
@@ -233,7 +235,7 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       )
       otherOwnerEntitlements should equal(1L)
 
-      When("We delete the account at the first bank with the cascading endpoint")
+      When(deleteAtFirstBank)
       Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
       val request = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId.value /
         "accounts" / accountId.value).DELETE <@ (user1)
@@ -349,7 +351,7 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       challengesOf(consent) should equal(1)
       challengesOf(otherBankConsent) should equal(1)
 
-      When("We delete the account at the first bank with the cascading endpoint")
+      When(deleteAtFirstBank)
       Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
       val request = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId.value /
         "accounts" / accountId.value).DELETE <@ (user1)
