@@ -631,6 +631,23 @@ object ErrorMessages {
   val UpdateTenantError = "OBP-30512: Could not update Tenant."
   val DeleteTenantError = "OBP-30513: Could not delete Tenant."
 
+  // Data retention (OBP-30582 .. OBP-30596)
+  val RetentionPolicyNotFound = "OBP-30609: Retention policy not found in this space. Please specify a valid value for RETENTION_POLICY_ID."
+  val InvalidRetentionPolicy = "OBP-30610: Invalid retention policy. "
+  val RetentionRunNotFound = "OBP-30611: Retention run not found in this space. Please specify a valid value for RETENTION_RUN_ID."
+  val RetentionArchiveIsDisabled = "OBP-30612: Archiving is switched off on this instance, so a run that would move resources into the retention archive is refused. Set retention.archive.enabled=true in the props to allow it. A preview always works."
+  val RetentionDeleteIsDisabled = "OBP-30613: Deleting is switched off on this instance, so a run that would delete or anonymise resources is refused. Set retention.delete.enabled=true in the props to allow it. A preview always works."
+  val RetentionRunNotPending = "OBP-30614: This retention run is not waiting for approval. Only a pending run can be approved or rejected."
+  val RetentionRunApproverIsRequester = "OBP-30615: A retention run must be approved or rejected by a different user from the one who requested it."
+  val RetentionHoldNotFound = "OBP-30616: Retention hold not found in this space. Please specify a valid value for RETENTION_HOLD_ID."
+  val InvalidRetentionHold = "OBP-30617: Invalid retention hold. "
+  val RetentionArchiveEntryNotFound = "OBP-30618: Retention archive entry not found in this space. Please specify a valid value for RETENTION_ARCHIVE_ID."
+  val RetentionRunAlreadyInProgress = "OBP-30619: A run of this retention policy is already in progress. Try again when it has ended."
+  val InvalidRetentionQueryParameter = "OBP-30620: Invalid query parameter for data retention. "
+  val RetentionHoldAlreadyReleased = "OBP-30621: This retention hold has already been released."
+  val InvalidRetentionRunApproval = "OBP-30622: Invalid approval. decision must be approve or reject."
+  val InvalidRetentionRun = "OBP-30623: Invalid retention run. mode must be preview or execute."
+
   // Routing Scheme registry (OBP-30514 .. OBP-30525)
   val RoutingSchemeNotFound = "OBP-30514: Routing Scheme not found. Please specify a valid value for SCHEME."
   val RoutingSchemeAlreadyExists = "OBP-30515: Routing Scheme already exists. Please specify a different value for scheme."

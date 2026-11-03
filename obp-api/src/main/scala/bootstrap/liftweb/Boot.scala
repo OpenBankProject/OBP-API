@@ -659,6 +659,9 @@ class Boot extends MdcLoggable {
       case false => // Do not start it
     }
 
+    // Data retention: runs the enabled retention policies (see RETENTION_PLAN.md). Off by default.
+    code.scheduler.RetentionScheduler.startIfEnabled()
+
 
     // ConnectorEndpoints (connector.name.export.as.endpoints) registered via Lift statelessDispatch
     // which is no longer reachable (Lift bridge removed in Phase B). Disabled until migrated to http4s.
@@ -1171,6 +1174,12 @@ object ToSchemify extends MdcLoggable {
     code.domainapi.DomainApi,
     code.dynamicentitywebhook.DynamicEntityWebhook,
     code.accountcreation.AccountCreation,
+    code.retention.RetentionPolicy,
+    code.retention.RetentionArchive,
+    code.retention.RetentionArchiveContent,
+    code.retention.RetentionHold,
+    code.retention.RetentionRun,
+    code.retention.RetentionRunItem,
     PayeeLookup,
     UtilityPaymentCallback,
     BulkPayment,

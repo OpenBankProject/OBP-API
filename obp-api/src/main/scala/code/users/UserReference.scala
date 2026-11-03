@@ -163,6 +163,11 @@ object UserReference {
   case object GroupMembership_CreatedByUserId                  extends UserReference(UseAuthenticatedUserId, "code.group.GroupMembership", List("CreatedByUserId"), "audit: who added the member, as Entitlement_GrantedByUserId")
   case object AssetStatusHistory_ChangedByUserId              extends UserReference(UseAuthenticatedUserId, "code.asset.AssetStatusHistory", List("ChangedByUserId"), "audit: who changed the asset's status, the question a regulator asks")
   case object File_ScanStatusUpdatedByUserId                   extends UserReference(UseAuthenticatedUserId, "code.files.File", List("ScanStatusUpdatedByUserId"), "audit: who set the scan status, the scanner or the staff member who decided")
+  case object RetentionPolicy_CreatedByUserId                  extends UserReference(UseAuthenticatedUserId, "code.retention.RetentionPolicy", List("CreatedByUserId"), "audit: who created the retention policy")
+  case object RetentionHold_PlacedByUserId                     extends UserReference(UseAuthenticatedUserId, "code.retention.RetentionHold", List("PlacedByUserId", "ReleasedByUserId"), "audit: who placed, and who released, a legal hold")
+  case object RetentionRun_RequestedByUserId                   extends UserReference(UseAuthenticatedUserId, "code.retention.RetentionRun", List("RequestedByUserId", "ApprovedByUserId"), "audit: who requested a run and who approved it; the two must differ, which is only meaningful for the users who actually acted")
+  case object RetentionArchive_OwnerUserId                     extends UserReference(UseAuthenticatedUserId, "code.retention.RetentionArchive", List("OwnerUserId"), "copied from the archived resource as it was stored there; never written from the caller")
+  case object RetentionRunItem_OwnerUserId                     extends UserReference(UseAuthenticatedUserId, "code.retention.RetentionRunItem", List("OwnerUserId"), "disposal register: copied from the disposed resource as it was stored there; never written from the caller")
 
   // ---- UseOnBehalfOfUserId: the row belongs to the person, so it must outlive the Consent that
   // ---- created it. A handful of these tables keep both ids, and those name two fields.
@@ -266,6 +271,11 @@ object UserReference {
     PlatformApp_MarkedByUserId,
     GroupMembership_CreatedByUserId,
     AssetStatusHistory_ChangedByUserId,
+    RetentionPolicy_CreatedByUserId,
+    RetentionHold_PlacedByUserId,
+    RetentionRun_RequestedByUserId,
+    RetentionArchive_OwnerUserId,
+    RetentionRunItem_OwnerUserId,
     TransactionRequest_UserId,
     Entitlement_UserId,
     GroupMembership_UserId,

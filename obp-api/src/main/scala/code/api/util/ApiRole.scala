@@ -660,6 +660,30 @@ object ApiRole extends MdcLoggable{
   case class CanDeleteDynamicEntityWebhook(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteDynamicEntityWebhook = CanDeleteDynamicEntityWebhook()
 
+  // Data retention: how long a space's resources stay live, legal holds, runs and approvals, and the
+  // retention archive. Each Role targets one space: held at a bank id, or at SYS for the system space.
+  // See RETENTION_PLAN.md.
+  case class CanManageRetentionPolicy(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canManageRetentionPolicy = CanManageRetentionPolicy()
+
+  case class CanGetRetentionPolicies(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetRetentionPolicies = CanGetRetentionPolicies()
+
+  case class CanRunRetentionPolicy(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canRunRetentionPolicy = CanRunRetentionPolicy()
+
+  case class CanApproveRetentionRun(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canApproveRetentionRun = CanApproveRetentionRun()
+
+  case class CanGetRetentionRuns(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetRetentionRuns = CanGetRetentionRuns()
+
+  case class CanManageRetentionHold(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canManageRetentionHold = CanManageRetentionHold()
+
+  case class CanGetRetentionArchive(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetRetentionArchive = CanGetRetentionArchive()
+
   // Shows which Consumers and client IP addresses are sending the most traffic to the instance
   // (TrafficSources). About the instance, so held at the empty bank id. It names Consumers and IP
   // addresses, which is why it is a Role of its own and not part of CanGetTelemetry.

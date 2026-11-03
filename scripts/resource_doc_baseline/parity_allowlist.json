@@ -1225,7 +1225,7 @@
       "field": "description",
       "reason": "Additive clarification, nothing removed.",
       "lift_digest": "d92aec65916179b76ddfe8cc8040465ac06c69dff9fea5a0ed7aea28c0f926a3",
-      "http4s_digest": "16f6e6359454b25aeca6f6dd13945d5987010cce18385360cfed9308037d3e22"
+      "http4s_digest": "1064d2f7004266c3de9988421983a019cf3c4c14531365e5f18a4fe5cec179d6"
     },
     {
       "version": "v6_0_0",
@@ -2682,6 +2682,14 @@
       "reason": "Says who may call it: an application acting as itself may create a Customer with CanCreateCustomer as a Scope (UserXORApplication)",
       "lift_digest": "56f72c04242cf24d496141ac1a6665508ae086553eaabd51c6064dad5b149a7d",
       "http4s_digest": "f128cd0805126f789fa5c23585276034b7fc630570c34f5daa27c514e0a1dacd"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "getTransactionRequestTypesSupportedByBank",
+      "field": "description",
+      "reason": "Explains that the list comes from the transactionRequests_supported_types prop and when OPEN_CORRIDOR_PROMISE is included. Additive, nothing removed.",
+      "lift_digest": "dea1479859f8f2e4eead46eb86caef95b294ee947771d5d0ef71df39d288cdae",
+      "http4s_digest": "77a01355ab52e9743c1d2a10bb40273ad237df04d45fdea42a23828437bb729d"
     }
   ]
 }

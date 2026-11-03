@@ -2014,6 +2014,31 @@ user_account_is_validated = false
 # aggregate_metrics_max_days = 31
 
 
+# Data retention: how long the resources of a space (a bank, or SYS) stay live, and what happens to
+# them then, is set per space with the retention policy endpoints
+# (/obp/v7.0.0/management/banks/BANK_ID/retention-policies). Periods are set there, not here, except
+# for the minimum below; the other props only switch the destructive steps on. Defaults live in
+# code.retention.RetentionProps; the values shown here MUST match. See RETENTION_PLAN.md.
+# The shortest retention period allowed, in days: no resource is archived, deleted or anonymised sooner
+# than this after its trigger date. A policy with a shorter retain_days is refused, and an existing one
+# runs as though its retain_days were this. 1825 days is five years.
+# retention.minimum_retain_days = 1825
+# Allow runs that move resources out of the live tables into the retention archive. While false,
+# such a run is refused with an error. A preview always works.
+# retention.archive.enabled = false
+# Allow runs that delete or anonymise resources, and the deletion of archived resources whose archive
+# period has ended. While false, such a run is refused with an error. A preview always works.
+# retention.delete.enabled = false
+# Run the enabled retention policies on a timer. A policy that requires approval gets a pending run
+# for a second user to approve; the others are executed, as far as the two props above allow.
+# retention.scheduler.enabled = false
+# Seconds between two scheduler runs. 3593, a prime just under an hour, so the runs drift across the
+# clock rather than lining up with other schedulers.
+# retention.scheduler.interval_in_seconds = 3593
+# The most resources one run disposes of; what is left is disposed of by the next run.
+# retention.run.max_items = 1000
+
+
 # Defines endpoints we want to store responses at Metric table
 metrics_store_response_body_for_operation_ids=
 

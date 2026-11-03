@@ -202,6 +202,7 @@ object ApiTag {
   val apiTagFinancialCrime = ResourceDocTag("Financial-Crime")
   val apiTagAsset = ResourceDocTag("Asset")
   val apiTagFile = ResourceDocTag("File")
+  val apiTagDataRetention = ResourceDocTag("Data-Retention")
 
   private[this] val tagNameSymbolMapTag: MutableMap[String, ResourceDocTag] = MutableMap()
 

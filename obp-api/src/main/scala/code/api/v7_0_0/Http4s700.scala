@@ -7685,6 +7685,9 @@ object Http4s700 {
     // What an OIDC provider reads from OBP-API to finish signing a User in for a Consumer.
     resourceDocs ++= Http4s700OpenIdConnect.resourceDocs
 
+    // Data retention: retention policies, runs and their approval, the disposal register, legal holds and the archive.
+    resourceDocs ++= Http4s700Retention.resourceDocs
+
     // The order in which the routes are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given this same list: the doc that validates a request
     // is the doc of the route that runs it.
