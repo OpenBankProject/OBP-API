@@ -250,6 +250,14 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       def attributesOf(cardId: String) = MappedCardAttribute.findAll(By(MappedCardAttribute.mCardId, cardId))
       val card = addCardWithAttribute(bankId)
       val otherBankCard = addCardWithAttribute(otherBankId)
+      // an attribute that another bank posted for this card id is not the deleted account's data
+      MappedCardAttribute.create
+        .mBankId(otherBankId.value)
+        .mCardId(card)
+        .mName("OTHER_BANK")
+        .mType("STRING")
+        .mValue("1")
+        .saveMe()
 
       When(deleteAtFirstBank)
       Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
@@ -261,7 +269,7 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       response.code should equal(200)
 
       And("The deleted account's card has no attributes left and the other bank's card keeps its attribute")
-      attributesOf(card) shouldBe empty
+      attributesOf(card).map(_.mBankId.get) should equal(List(otherBankId.value))
       attributesOf(otherBankCard) should have size 1
     }
   }

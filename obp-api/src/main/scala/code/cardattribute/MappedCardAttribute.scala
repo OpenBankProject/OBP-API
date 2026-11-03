@@ -67,8 +67,8 @@ class MappedCardAttribute extends CardAttribute with LongKeyedMapper[MappedCardA
 object MappedCardAttribute extends MappedCardAttribute with LongKeyedMetaMapper[MappedCardAttribute] {
   override def dbIndexes: List[BaseIndex[MappedCardAttribute]] = Index(mCardId) :: Index(mCardAttributeId) :: super.dbIndexes
 
-  /** Delete the attributes of the given cards, for when the cards themselves are deleted. */
-  def deleteForCards(cardIds: List[String]): Boolean =
-    cardIds.isEmpty || bulkDelete_!!(ByList(mCardId, cardIds))
+  /** Delete the attributes that the bank holds for the given cards, for when the cards themselves are deleted. */
+  def deleteForCards(bankId: String, cardIds: List[String]): Boolean =
+    cardIds.isEmpty || bulkDelete_!!(By(mBankId, bankId), ByList(mCardId, cardIds))
 }
 

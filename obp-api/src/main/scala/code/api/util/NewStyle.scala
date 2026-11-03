@@ -3203,9 +3203,9 @@ object NewStyle extends MdcLoggable{
         s"bank_id_pattern(${methodRouting.bankIdPattern.getOrElse("")})"
       ), callContext)
     }
-    def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) =
+    def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext], notFoundCode: Int = 400) =
       Connector.connector.vend.getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$CardAttributeNotFound Current CardAttributeId($cardAttributeId)"), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$CardAttributeNotFound Current CardAttributeId($cardAttributeId)", notFoundCode), i._2)
       }
     
     

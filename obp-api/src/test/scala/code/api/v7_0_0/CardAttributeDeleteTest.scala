@@ -106,6 +106,16 @@ class CardAttributeDeleteTest extends ServerSetupWithTestData {
       attributeExists(otherAttributeId) should equal(true)
     }
 
+    scenario("An unknown attribute answers 404", ApiEndpoint, VersionOfApi) {
+      val cardId = addCard()
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canDeleteCardsForBank.toString)
+
+      val response = makeDeleteRequest(attributeUrl(cardId, "does-not-exist").DELETE <@ (user1))
+
+      response.code should equal(404)
+      response.body.extract[ErrorMessage].message should startWith(CardAttributeNotFound)
+    }
+
     scenario("An attribute of another card is not deleted through this card", ApiEndpoint, VersionOfApi) {
       val cardId = addCard()
       val otherCardId = addCard()

@@ -119,7 +119,7 @@ object DeleteAccountCascade {
     ) map (
       account => {
         val cardIds = MappedPhysicalCard.findAll(By(MappedPhysicalCard.mAccount, account.id.get)).map(_.mCardId.get)
-        MappedCardAttribute.deleteForCards(cardIds) &&
+        MappedCardAttribute.deleteForCards(bankId.value, cardIds) &&
           MappedPhysicalCard.bulkDelete_!!(
             By(MappedPhysicalCard.mAccount, account.id.get)
           )

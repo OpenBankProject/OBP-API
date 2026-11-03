@@ -6936,7 +6936,7 @@ object Http4s700 {
       case req @ DELETE -> `prefixPath` / "management" / "banks" / _ / "cards" / cardId / "attributes" / attributeId =>
         EndpointHelpers.withUserAndBankDelete(req) { (_, bank, cc) =>
           for {
-            (attribute, _) <- NewStyle.function.getCardAttributeById(attributeId, Some(cc))
+            (attribute, _) <- NewStyle.function.getCardAttributeById(attributeId, Some(cc), 404)
             _ <- Helper.booleanToFuture(s"$CardAttributeNotFound The attribute does not belong to CARD_ID($cardId) at BANK_ID(${bank.bankId.value})", 404, Some(cc)) {
               attribute.cardId.contains(cardId) && attribute.bankId.contains(bank.bankId)
             }

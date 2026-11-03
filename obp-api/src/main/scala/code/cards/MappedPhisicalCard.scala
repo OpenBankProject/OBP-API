@@ -317,7 +317,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
       By(MappedPhysicalCard.mBankId, bankId.value),
       By(MappedPhysicalCard.mCardId, cardId),
     ).map { card =>
-      MappedCardAttribute.deleteForCards(List(cardId)) && card.delete_!
+      MappedCardAttribute.deleteForCards(bankId.value, List(cardId)) && card.delete_!
     }
   }
   
