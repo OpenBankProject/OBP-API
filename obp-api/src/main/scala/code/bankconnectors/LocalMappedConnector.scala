@@ -333,9 +333,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
         callContext
       )
-      challenge.map(_.challengeId).toList
+      challenge.map(_.challengeId)
     }
-    (Full(challenges.flatten), callContext)
+    challengesOrFailure(challenges, callContext)
   }
 
   override def createChallengesC2(
@@ -362,9 +362,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         challengeType = challengeType.toString,
         callContext
       )
-      challengeId.toList
+      challengeId
     }
-    (Full(challenges.flatten), callContext)
+    challengesOrFailure(challenges, callContext)
   }
 
   override def createChallengesC3(
@@ -392,10 +392,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         challengeType = challengeType.toString,
         callContext
       )
-      challengeId.toList
+      challengeId
     }
-    (Full(challenges.flatten), callContext)
+    challengesOrFailure(challenges, callContext)
   }
+
+  /** The challenges of all the users, or the first failure: a user who could not be sent a challenge is not skipped. */
+  private def challengesOrFailure[T](results: List[Box[T]], callContext: Option[CallContext]): (Box[List[T]], Option[CallContext]) =
+    results.collectFirst { case failure: Failure => failure } match {
+      case Some(failure) => (failure, callContext)
+      case None => (Full(results.flatMap(_.toList)), callContext)
+    }
 
   private def createChallengeInternal(
     userId: String,
@@ -432,19 +439,31 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case Some(StrongCustomerAuthentication.DUMMY) =>
         createHashedPassword("123")
       case Some(StrongCustomerAuthentication.EMAIL) =>
-        val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
-        val hashedPassword = createHashedPassword(challengeAnswer)
-        APIUtil.getEmailsByUserId(userId) map {
-          pair =>
-            val emailContent = CommonsEmailWrapper.EmailContent(
+        // The customers linked to the user; the user's own address when there is none.
+        val linkedCustomerEmails = APIUtil.getEmailsByUserId(userId).map(_._2).filter(_.trim.nonEmpty)
+        val recipients =
+          if (linkedCustomerEmails.nonEmpty) linkedCustomerEmails
+          else Users.users.vend.getUserByUserId(userId).toList.map(_.emailAddress).filter(_.trim.nonEmpty)
+        if (recipients.isEmpty) {
+          (Failure(ChallengeRecipientNotFound), callContext)
+        } else {
+          val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
+          val hashedPassword = createHashedPassword(challengeAnswer)
+          val sendingResult = recipients map { to =>
+            CommonsEmailWrapper.sendTextEmail(CommonsEmailWrapper.EmailContent(
               from = mailUsersUserinfoSenderAddress,
-              to = List(pair._2),
+              to = List(to),
               subject = "Challenge",
               textContent = Some(s"Your OTP challenge : ${challengeAnswer}")
-            )
-            CommonsEmailWrapper.sendTextEmail(emailContent)
+            ))
+          }
+          val errorMessages = sendingResult.collect { case failure: Failure => failure.msg }
+          if (errorMessages.isEmpty) hashedPassword else (Failure(errorMessages.toSet.mkString(" <- ")), callContext)
         }
-        hashedPassword
+      // No linked customer with a phone number: there is no one to send the passcode to.
+      case Some(StrongCustomerAuthentication.SMS) | Some(StrongCustomerAuthentication.SMS_OTP)
+        if APIUtil.getPhoneNumbersByUserId(userId).forall(_._2.trim.isEmpty) =>
+        (Failure(ChallengeRecipientNotFound), callContext)
       case Some(StrongCustomerAuthentication.SMS) | Some(StrongCustomerAuthentication.SMS_OTP) =>
         val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
         logger.debug(s"${scaMethod.toString} challengeAnswer is $challengeAnswer")

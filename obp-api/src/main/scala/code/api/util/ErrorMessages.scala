@@ -914,6 +914,7 @@ object ErrorMessages {
   val SigningBasketMemberNotFound = "OBP-35056: A payment named for the signing basket was not found. "
   val SigningBasketMemberStatusInvalid = "OBP-35057: A payment named for the signing basket is not waiting for SCA. "
   val SigningBasketConsentsNotSupported = "OBP-35058: Consents in a signing basket are not supported yet. Name payments only. "
+  val ChallengeRecipientNotFound = "OBP-35059: There is no e-mail address or phone number to send the challenge to. Link a Customer with an e-mail address or phone number to the user, or give the user an e-mail address."
   val ConsentMyResourcesInvalid = "OBP-35042: The Consent's my_resources block is invalid. "
   val ConsentMyResourcesMissing = "OBP-35043: The Consent does not cover this personal resource. A consent user may use a personal (my) endpoint only if the Consent lists the resource in my_resources with the needed action. "
   val ConsentAccountAccessCannotBeGranted = "OBP-35041: The Consent's account access cannot be granted. The Consent has not been authorised; please retry the authorisation. "

@@ -437,6 +437,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
 
     scenario("C2: _links.scaStatus of a started authorisation is a {href} object (L4801, L10752)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+      // a challenge the user can be sent: with the default SMS and no linked customer there is no one to send it to
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val basketId = createBasket(List(lodgePayment()))
       val response = startAuthorisation(basketId)
       response.code should equal(201)
@@ -486,6 +488,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
 
     scenario("C7: POST authorisations accepts the two variants it supports (L3653)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val basketId = createBasket(List(lodgePayment()))
       startAuthorisation(basketId, body = "{}").code should equal(201)
       startAuthorisation(basketId, body = """{"scaAuthenticationData":"123"}""").code should equal(201)
