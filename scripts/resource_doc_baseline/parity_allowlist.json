@@ -263,9 +263,9 @@
       "version": "v4_0_0",
       "endpoint": "updateConsentStatus",
       "field": "description",
-      "reason": "Added that the consent must belong to the logged-in user, otherwise 404 ConsentNotFound",
+      "reason": "Added that the consent must belong to the logged-in user, otherwise 404 ConsentNotFound, and that a consent not yet authorised can be refused with REJECTED without SCA",
       "lift_digest": "72dc13245db8680613c4bfc56859b1b7ca4c10d35fb53f65b241c184ebf13827",
-      "http4s_digest": "2ab09de7128ff70488baf26b2fda2ab9f52df3565bf17644fedbc31b36e823ab"
+      "http4s_digest": "cfd8ec7dfc3ba41ba4ad5d3d710f8f04dff9a3690fc5216c504dee3741196ee1"
     },
     {
       "version": "v4_0_0",
