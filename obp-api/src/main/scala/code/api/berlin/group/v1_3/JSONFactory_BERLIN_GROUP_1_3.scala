@@ -802,7 +802,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
     //map OBP transactionRequestId to BerlinGroup PaymentId
     val paymentId = transactionRequest.id.value
     // Without psu_make_payment_sca_redirect_url there is no page to send the PSU to, so the link is left out.
-    val scaRedirectUrl = getPropsValue("psu_make_payment_sca_redirect_url").toOption.map { pattern =>
+    val scaRedirectUrl = getPropsValue("psu_make_payment_sca_redirect_url").toOption.filter(_.trim.nonEmpty).map { pattern =>
       if (pattern.contains("PLACEHOLDER"))
         pattern.replace("PLACEHOLDER", paymentId)
       else

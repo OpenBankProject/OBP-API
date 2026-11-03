@@ -1241,6 +1241,7 @@ display_internal_errors=false
 # Please note that in case that redirect_url_value contains special word PLACEHOLDER it will be replaced with actual ID
 # http://127.0.0.1:8080/confirm-bg-consent-request?PAYMENT_ID=PLACEHOLDER
 # psu_make_payment_sca_redirect_url = redirect_url_value
+# When it is not set (or blank), the response to a payment initiation has no scaRedirect link.
 # -------------------------------------------------------------- Authentication methods --
 
 ## This property is used for documenting at Resource Doc. It may include the port also (but not /obp)

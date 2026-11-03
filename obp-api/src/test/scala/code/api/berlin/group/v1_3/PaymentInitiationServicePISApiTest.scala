@@ -47,7 +47,7 @@ import code.views.Views
 import code.views.system.AccountAccess
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.{AccountRoutingScheme, PaymentServiceTypes, TransactionRequestTypes}
-import com.openbankproject.commons.model.{SepaCreditTransfers, SepaCreditTransfersBerlinGroupV13, ViewId}
+import com.openbankproject.commons.model.{SepaCreditTransfers, SepaCreditTransfersBerlinGroupV13, User, ViewId}
 import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
@@ -814,9 +814,9 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     By(MappedBankAccount.theAccountId, routing.accountId.value))
     .map(_.balance).openOrThrowException("Can not be empty here")
 
-  private def initiatePaymentsAccessOf(account: BankAccountRouting) =
+  private def initiatePaymentsAccessOf(account: BankAccountRouting, user: User = resourceUser1) =
     AccountAccess.findAll(
-      By(AccountAccess.user_fk, resourceUser1.userPrimaryKey.value),
+      By(AccountAccess.user_fk, user.userPrimaryKey.value),
       By(AccountAccess.bank_id, account.bankId.value),
       By(AccountAccess.account_id, account.accountId.value),
       By(AccountAccess.view_id, SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID))
@@ -832,6 +832,20 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
 
       Then("the holder has access through the payment initiation view")
       initiatePaymentsAccessOf(account) should not be empty
+    }
+
+    scenario("a second refresh keeps the view, and a user who holds no account gets none",
+      BerlinGroupV1_3, PIS, initiatePayment) {
+      val account = ibanAccounts.head
+
+      When("the holder is refreshed twice and a user without accounts is refreshed")
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+      AuthUser.refreshUserLegacy(resourceUser2, None)
+
+      Then("the holder still has the view and the other user has none")
+      initiatePaymentsAccessOf(account) should not be empty
+      initiatePaymentsAccessOf(account, resourceUser2) shouldBe empty
     }
 
     scenario("a payment can be initiated after the refresh without granting the view by hand",

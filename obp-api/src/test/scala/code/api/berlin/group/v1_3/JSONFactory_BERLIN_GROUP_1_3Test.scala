@@ -136,6 +136,11 @@ class JSONFactory_BERLIN_GROUP_1_3Test extends FeatureSpec with Matchers with Gi
       scaRedirectOf("p1") shouldBe JString("https://psu.example/confirm?PAYMENT_ID=p1")
     }
 
+    scenario("a blank psu_make_payment_sca_redirect_url gives no scaRedirect link") {
+      setPropsValues("psu_make_payment_sca_redirect_url" -> "  ")
+      scaRedirectOf("p1") shouldBe JNothing
+    }
+
     scenario("without psu_make_payment_sca_redirect_url there is no scaRedirect link and no error text") {
       scaRedirectOf("p1") shouldBe JNothing
       compactRender(Extraction.decompose(
