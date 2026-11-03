@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package deletion
 
 import code.accountattribute.MappedAccountAttribute
+import code.accountholders.MapperAccountHolders
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
@@ -63,6 +64,7 @@ object DeleteAccountCascade {
         deleteTransactions(bankId, accountId) ::
         deleteEntitlements(bankId, accountId) ::
         deleteAccountAccess(bankId, accountId) ::
+        deleteAccountHolders(bankId, accountId) ::
         deleteCustomViews(bankId, accountId) ::
         deleteAccountAttributes(bankId, accountId) ::
         deleteAccountWebhooks(bankId, accountId) ::
@@ -143,6 +145,14 @@ object DeleteAccountCascade {
     AccountAccess.bulkDelete_!!(
       By(AccountAccess.bank_id, bankId.value),
       By(AccountAccess.account_id, accountId.value)
+    )
+  }
+  // A holder row that outlives its account makes the next refresh of the holder's accounts
+  // (AuthUser.refreshUser, run e.g. when the holder creates another account) grant the system views on it again.
+  private def deleteAccountHolders(bankId: BankId, accountId: AccountId): Boolean = {
+    MapperAccountHolders.bulkDelete_!!(
+      By(MapperAccountHolders.accountBankPermalink, bankId.value),
+      By(MapperAccountHolders.accountPermalink, accountId.value)
     )
   }
   private def deleteAccountRoutings(bankId: BankId, accountId: AccountId): Boolean = {
