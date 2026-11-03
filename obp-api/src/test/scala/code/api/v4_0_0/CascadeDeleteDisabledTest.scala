@@ -42,6 +42,7 @@ class CascadeDeleteDisabledTest extends V400ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object PropGatedPublicEndpoint extends Tag("PropGatedPublicEndpoint")
 
+  private def v6_0_0_Request = baseRequest / "obp" / "v6.0.0"
   private def v7_0_0_Request = baseRequest / "obp" / "v7.0.0"
 
   feature("allow_cascade_delete=false") {
@@ -67,7 +68,10 @@ class CascadeDeleteDisabledTest extends V400ServerSetup {
         v4_0_0_Request / "management" / "cascading" / "banks" / bankId,
         v4_0_0_Request / "management" / "cascading" / "banks" / bankId / "products" / "PRODUCT_CODE",
         v4_0_0_Request / "management" / "cascading" / "banks" / bankId / "customers" / "CUSTOMER_ID",
-        // v7.0.0 hands paths it has no route for down to the older versions.
+        // Every later version hands paths it has no route for down to the version below it.
+        v5_0_0_Request / "management" / "cascading" / "banks" / bankId,
+        v5_1_0_Request / "management" / "cascading" / "banks" / bankId,
+        v6_0_0_Request / "management" / "cascading" / "banks" / bankId,
         v7_0_0_Request / "management" / "cascading" / "banks" / bankId
       )
       requests.foreach { request =>

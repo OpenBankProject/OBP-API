@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import code.api.util.APIUtil
-import code.api.util.APIUtil.ResourceDoc
+import code.api.util.APIUtil.{Http4sHandler, ResourceDoc}
 import code.api.util.http4s.Http4sResourceDocAggregation
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.api.v6_0_0.Http4s600.Implementations6_0_0
@@ -49,7 +49,10 @@ class CascadeDeleteEndpointsTest extends V400ServerSetup {
 
   feature("allow_cascade_delete=true") {
     scenario("The prop is on in this JVM", VersionOfApi) {
-      CascadeDeleteEndpoints.enabled should be(true)
+      withClue("allow_cascade_delete must be true in test.default.props (see test.default.props.template); " +
+        "the Delete*CascadeTest suites get 404 without it: ") {
+        CascadeDeleteEndpoints.enabled should be(true)
+      }
     }
 
     scenario("Every cascade-delete endpoint is routed and listed in the Resource Docs", VersionOfApi) {
@@ -67,18 +70,22 @@ class CascadeDeleteEndpointsTest extends V400ServerSetup {
 /** The cascade-delete endpoints that allow_cascade_delete switches on and off, and the ones it leaves alone. */
 object CascadeDeleteEndpoints {
 
-  val gatedNames: List[String] = List(
-    nameOf(Implementations4_0_0.deleteTransactionCascade),
-    nameOf(Implementations4_0_0.deleteAccountCascade),
-    nameOf(Implementations4_0_0.deleteBankCascade),
-    nameOf(Implementations4_0_0.deleteProductCascade),
-    nameOf(Implementations4_0_0.deleteCustomerCascade)
+  private val gatedRoutes: List[(String, Http4sHandler)] = List(
+    nameOf(Implementations4_0_0.deleteTransactionCascade) -> Implementations4_0_0.deleteTransactionCascade,
+    nameOf(Implementations4_0_0.deleteAccountCascade) -> Implementations4_0_0.deleteAccountCascade,
+    nameOf(Implementations4_0_0.deleteBankCascade) -> Implementations4_0_0.deleteBankCascade,
+    nameOf(Implementations4_0_0.deleteProductCascade) -> Implementations4_0_0.deleteProductCascade,
+    nameOf(Implementations4_0_0.deleteCustomerCascade) -> Implementations4_0_0.deleteCustomerCascade
   )
+
+  val gatedNames: List[String] = gatedRoutes.map(_._1)
 
   private def names(docs: Iterable[ResourceDoc]): Set[String] = docs.map(_.partialFunctionName).toSet
 
   /** The gated names in each list the endpoints are routed or documented from. */
   def gated: Map[String, Set[String]] = Map(
+    // The route chain itself, not only the docs derived from it.
+    "v4.0.0 routes" -> gatedRoutes.collect { case (name, route) if Implementations4_0_0.routesInOrder.contains(route) => name }.toSet,
     "v4.0.0 routed docs" -> (names(Implementations4_0_0.orderedResourceDocs) intersect gatedNames.toSet),
     "v4.0.0 catalog" -> (names(Http4sResourceDocAggregation.v400) intersect gatedNames.toSet),
     "v6.0.0 catalog" -> (names(Http4sResourceDocAggregation.v600) intersect gatedNames.toSet)
