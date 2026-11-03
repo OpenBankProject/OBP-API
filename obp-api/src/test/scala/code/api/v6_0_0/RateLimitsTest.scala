@@ -488,6 +488,41 @@ class RateLimitsTest extends V600ServerSetup {
   def requestFor(c: FallthroughCase): OBPReq =
     c.path.foldLeft(baseRequest / "obp" / c.requestVersion)(_ / _).GET <@ (user3)
 
+  feature("A rate limit applies to the consumer from its from_date to its to_date, as set") {
+
+    scenario("A rate limit whose to_date has passed is not active, even within the same hour", ApiEndpoint4, VersionOfApi) {
+      // The row must end after the start of the current UTC hour, or it would not be active under the hour rule either.
+      val now = System.currentTimeMillis()
+      assume(now % 3600000L > 5000L, "the hour has only just begun")
+      val toDate = new Date(now - 2000L)
+      val id = createLimit(consumerId3, callLimitJson("0", "0", "0").copy(from_date = new Date(toDate.getTime - 3600000L), to_date = toDate))
+      try {
+        Then("the rate limit is not considered and does not block the consumer")
+        activeLimitsNow(consumerId3).considered_rate_limit_ids shouldBe empty
+        callAsUser3().code should equal(200)
+      } finally deleteLimit(consumerId3, id)
+    }
+
+    scenario("A rate limit that names an api_name, api_version or bank_id is refused, as those are not enforced", ApiEndpoint4, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
+      val scoped = Map(
+        "api_name" -> callLimitJson("0", "0", "0").copy(api_name = Some("getBank")),
+        "api_version" -> callLimitJson("0", "0", "0").copy(api_version = Some("v6.0.0")),
+        "bank_id" -> callLimitJson("0", "0", "0").copy(bank_id = Some("some-bank"))
+      )
+      scoped.foreach { case (field, json) =>
+        val response = makePostRequest((v6_0_0_Request / "management" / "consumers" / consumerId3 / "consumer" / "rate-limits").POST <@ (user1), write(json))
+        withClue(s"a rate limit that names $field: ") {
+          response.code should equal(400)
+          response.body.extract[ErrorMessage].message should include(field)
+        }
+      }
+      And("none of them was stored, so the consumer is not blocked")
+      activeLimitsNow(consumerId3).considered_rate_limit_ids shouldBe empty
+      callAsUser3().code should equal(200)
+    }
+  }
+
   feature("Rate limiting counts one unit per request, whichever version prefix it arrives at and however many hops it crosses") {
     fallthroughCases.foreach { c =>
       scenario(s"GET /obp/${c.requestVersion}/${c.path.mkString("/")} is served by ${c.servedBy}, and costs one unit", ApiEndpoint4, VersionOfApi) {
