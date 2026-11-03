@@ -33,12 +33,15 @@ import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotM
 import code.api.util.{CallContext, CertificateUtil, Consent}
 import code.consent.{ConsentStatus, Consents}
 import code.model.UserExtended
-import code.transactionChallenge.Challenges
+import code.scheduler.ConsentScheduler
+import code.transactionChallenge.{Challenges, MappedChallengeProvider, MappedExpectedChallengeAnswer}
 import code.views.Views
 import com.openbankproject.commons.model.{BankIdAccountId, ErrorMessage, ViewId}
 import com.openbankproject.commons.model.enums.ChallengeType
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Failure, Full}
+import net.liftweb.mapper.By
+import org.mindrot.jbcrypt.BCrypt
 import org.json4s._
 import org.scalatest.Tag
 
@@ -926,6 +929,130 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       // The regression: before the reorder both of these came back naming resourceUser2.
       boundPsuOf(consentId) should equal("")
       storedConsent(consentId).status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
+    }
+  }
+
+  // A consent's OBP_CONSENT_CHALLENGE rows are deleted once none of them can be used any more: after
+  // a correct answer, and when the consent becomes REVOKED, REJECTED or EXPIRED. A wrong answer keeps
+  // its row, because the attempt counter on it is what limits the next guesses. Rows of other types
+  // on the same consent stay: the Berlin Group authorisation endpoints list theirs after answering.
+  private def consentChallengesOf(consentId: String, challengeType: ChallengeType.Value) =
+    MappedExpectedChallengeAnswer.findAll(
+      By(MappedExpectedChallengeAnswer.ConsentId, consentId),
+      By(MappedExpectedChallengeAnswer.ChallengeType, challengeType.toString))
+  private def seedConsentChallenge(consentId: String, challengeType: ChallengeType.Value): String = {
+    val challengeId = java.util.UUID.randomUUID.toString
+    val salt = BCrypt.gensalt()
+    MappedChallengeProvider.saveChallenge(
+      challengeId = challengeId,
+      transactionRequestId = "",
+      salt = salt,
+      expectedAnswer = BCrypt.hashpw("123", salt).substring(0, 44),
+      expectedUserId = resourceUser1.userId,
+      scaMethod = None,
+      scaStatus = None,
+      consentId = Some(consentId),
+      basketId = None,
+      authenticationMethodId = None,
+      challengeType = challengeType.toString
+    ).openOrThrowException(s"challenge for consent $consentId")
+    challengeId
+  }
+
+  feature("UKOB v4.0.1 a consent's SCA challenges are deleted once they can no longer be used") {
+    scenario("a correct answer deletes the consent's challenges, other challenge types stay", UKOpenBankingV401AccountInfo) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val consentId = createUKConsent(None, Some(new java.util.Date(System.currentTimeMillis() + 3600000L)))
+
+      val challenge = makePostRequest(scaChallengeRequest(consentId) <@ (user1), "")
+      challenge.code should equal(200)
+      val challengeId = (challenge.body \ "challenge_id").extract[String]
+      // A second challenge the PSU started and never answered, and a Berlin Group one on the same id.
+      seedConsentChallenge(consentId, ChallengeType.OBP_CONSENT_CHALLENGE)
+      seedConsentChallenge(consentId, ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE)
+      consentChallengesOf(consentId, ChallengeType.OBP_CONSENT_CHALLENGE).size should equal(2)
+
+      When("the PSU answers the challenge correctly")
+      val authorised = makePostRequest(authoriseRequest(consentId) <@ (user1),
+        s"""{"account_ids":["$acc"],"challenge_id":"$challengeId","answer":"123"}""")
+      authorised.code should equal(200)
+      storedConsent(consentId).status should equal(ConsentStatus.AUTHORISED.toString)
+
+      Then("both OBP consent challenges are gone, and the Berlin Group one is still there")
+      consentChallengesOf(consentId, ChallengeType.OBP_CONSENT_CHALLENGE) should be(empty)
+      Challenges.ChallengeProvider.vend.getChallenge(challengeId).isDefined should equal(false)
+      consentChallengesOf(consentId, ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE).size should equal(1)
+    }
+    scenario("a wrong answer keeps the challenge and its attempt count", UKOpenBankingV401AccountInfo) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val consentId = createUKConsent(None, Some(new java.util.Date(System.currentTimeMillis() + 3600000L)))
+
+      val challenge = makePostRequest(scaChallengeRequest(consentId) <@ (user1), "")
+      challenge.code should equal(200)
+      val challengeId = (challenge.body \ "challenge_id").extract[String]
+
+      val refused = makePostRequest(authoriseRequest(consentId) <@ (user1),
+        s"""{"account_ids":["$acc"],"challenge_id":"$challengeId","answer":"999"}""")
+      refused.code should not equal (200)
+
+      val stored = Challenges.ChallengeProvider.vend.getChallenge(challengeId)
+        .openOrThrowException(s"challenge $challengeId")
+      stored.attemptCounter should equal(1)
+      stored.successful should equal(false)
+      storedConsent(consentId).status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
+    }
+    scenario("a correct answer that is then refused still spends the challenge", UKOpenBankingV401AccountInfo) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val consentId = createUKConsent(None, Some(new java.util.Date(System.currentTimeMillis() + 3600000L)))
+
+      // user2 does not hold testAccountId1, so the authorisation is refused after the answer is checked.
+      val challenge = makePostRequest(scaChallengeRequest(consentId) <@ (user2), "")
+      challenge.code should equal(200)
+      val challengeId = (challenge.body \ "challenge_id").extract[String]
+
+      val refused = makePostRequest(authoriseRequest(consentId) <@ (user2),
+        s"""{"account_ids":["$acc"],"challenge_id":"$challengeId","answer":"123"}""")
+      refused.code should equal(403)
+
+      consentChallengesOf(consentId, ChallengeType.OBP_CONSENT_CHALLENGE) should be(empty)
+      storedConsent(consentId).status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
+    }
+    scenario("REJECTED, REVOKED and EXPIRED delete the consent's challenges, AUTHORISED does not", UKOpenBankingV401AccountInfo) {
+      val expiry = Some(new java.util.Date(System.currentTimeMillis() + 3600000L))
+
+      val authorised = createUKConsent(None, expiry)
+      seedConsentChallenge(authorised, ChallengeType.OBP_CONSENT_CHALLENGE)
+      Consents.consentProvider.vend.updateConsentStatus(authorised, ConsentStatus.AUTHORISED)
+      consentChallengesOf(authorised, ChallengeType.OBP_CONSENT_CHALLENGE).size should equal(1)
+
+      // REJECTED is what the management endpoint PUT /management/banks/BANK_ID/consents/CONSENT_ID sets.
+      val rejected = createUKConsent(None, expiry)
+      seedConsentChallenge(rejected, ChallengeType.OBP_CONSENT_CHALLENGE)
+      seedConsentChallenge(rejected, ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE)
+      Consents.consentProvider.vend.updateConsentStatus(rejected, ConsentStatus.REJECTED)
+      consentChallengesOf(rejected, ChallengeType.OBP_CONSENT_CHALLENGE) should be(empty)
+      consentChallengesOf(rejected, ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE).size should equal(1)
+
+      // Every revoke endpoint, the UK DELETE included, goes through ConsentProvider.revoke.
+      val revoked = createUKConsent(None, expiry)
+      seedConsentChallenge(revoked, ChallengeType.OBP_CONSENT_CHALLENGE)
+      Consents.consentProvider.vend.revoke(revoked).isDefined should equal(true)
+      consentChallengesOf(revoked, ChallengeType.OBP_CONSENT_CHALLENGE) should be(empty)
+
+      val expired = createUKConsent(None, expiry)
+      seedConsentChallenge(expired, ChallengeType.OBP_CONSENT_CHALLENGE)
+      Consents.consentProvider.vend.updateConsentStatus(expired, ConsentStatus.EXPIRED)
+      consentChallengesOf(expired, ChallengeType.OBP_CONSENT_CHALLENGE) should be(empty)
+    }
+    scenario("the UK expiry sweep deletes the challenges of the consents it expires", UKOpenBankingV401AccountInfo) {
+      val consentId = createUKConsent(Some(resourceUser1), Some(new java.util.Date(System.currentTimeMillis() - 60000L)))
+      Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED)
+      seedConsentChallenge(consentId, ChallengeType.OBP_CONSENT_CHALLENGE)
+
+      ConsentScheduler.expiredUKConsents()
+
+      storedConsent(consentId).status should equal(ConsentStatus.EXPIRED.toString)
+      consentChallengesOf(consentId, ChallengeType.OBP_CONSENT_CHALLENGE) should be(empty)
     }
   }
 }

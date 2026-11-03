@@ -1049,6 +1049,35 @@ object Consent extends MdcLoggable {
   }
 
   /**
+   * The consent statuses after which an SCA challenge raised for the consent can no longer be used:
+   * a REVOKED consent is re-authenticated with a fresh challenge, and REJECTED and EXPIRED are terminal.
+   */
+  val consentChallengeEndingStatuses: Set[ConsentStatus] =
+    Set(ConsentStatus.REVOKED, ConsentStatus.REJECTED, ConsentStatus.EXPIRED)
+
+  /**
+   * Delete the OBP_CONSENT_CHALLENGE rows of a consent once none of them can be used any more: when
+   * one has been answered correctly, or when the consent reaches one of consentChallengeEndingStatuses.
+   *
+   * Nothing reads these rows after the answer -- the attempt counter only matters while a challenge
+   * is still open -- so the row is not an audit trail, it is a hashed one-time password waiting to
+   * be swept. Berlin Group consent challenges are left alone (their authorisation endpoints keep
+   * listing them), and so are transaction request challenges.
+   *
+   * Never fails the caller: by the time this runs the answer or the status change has happened, and
+   * a row left behind is logged rather than turned into an error for something that succeeded.
+   */
+  def removeConsentChallenges(consentId: String): Unit =
+    code.transactionChallenge.Challenges.ChallengeProvider.vend
+      .deleteChallengesByConsentId(consentId, com.openbankproject.commons.model.enums.ChallengeType.OBP_CONSENT_CHALLENGE.toString) match {
+      case Failure(msg, ex, _) =>
+        logger.error(
+          s"removeConsentChallenges: the challenges of consent $consentId could not be deleted: $msg" +
+          ex.map(e => s" (${e.getClass.getSimpleName}: ${e.getMessage})").getOrElse(""))
+      case _ =>
+    }
+
+  /**
    * Release the artefacts a VRP mandate created, when the consent that owns them is revoked.
    *
    * Converting a VRP consent-request builds a private custom view named `_vrp-<uuid>`, grants it to

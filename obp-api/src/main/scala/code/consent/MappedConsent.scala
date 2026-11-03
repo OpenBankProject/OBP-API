@@ -61,11 +61,14 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
       case Full(consent) =>
         Consent.expireAllPreviousValidBerlinGroupConsents(consent, status)
-        tryo(consent
+        val updated = tryo(consent
           .mStatus(status.toString)
           .mLastActionDate(now) //maybe not right, but for the create we use the `now`, we need to update it later.
           .saveMe()
         )
+        if (updated.isDefined && Consent.consentChallengeEndingStatuses.contains(status))
+          Consent.removeConsentChallenges(consentId)
+        updated
       case Empty =>
         Empty ?~! ErrorMessages.ConsentNotFound
       case Failure(msg, _, _) =>
@@ -423,6 +426,7 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
                 ex.map(e => s" (${e.getClass.getSimpleName}: ${e.getMessage})").getOrElse(""))
             case _ =>
           }
+          Consent.removeConsentChallenges(consentId)
           MappedConsent.find(By(MappedConsent.mConsentId, consentId))
         }
         else Failure(ErrorMessages.ConsentAlreadyRevoked)
