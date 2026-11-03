@@ -640,6 +640,9 @@ allow_account_deletion=true
 ## When false (the default) they are not routed and not listed in the Resource Docs of any version,
 ## so a request gets 404. Set to true to make them available. Read at startup. The Dynamic Entity
 ## cascade deletes (.../dynamic-entities/cascade/DYNAMIC_ENTITY_ID) are not affected.
+## The Resource Docs responses are cached in Redis (staticResourceDocsObp.cache.ttl.seconds), so after a
+## change and restart they can list the old set of endpoints until that TTL passes, or until the rd_static
+## and rd_all cache namespaces are invalidated (POST /obp/v6.0.0/management/cache/namespaces/invalidate).
 allow_cascade_delete=false
 
 ## Secret key that allows access to api calls to get info about oauth tokens. You should change this
