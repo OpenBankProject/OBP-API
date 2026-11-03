@@ -66,14 +66,15 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
   def getNextMonthDate(): String =
     LocalDate.now().plusMonths(1).format(DateTimeFormatter.ISO_LOCAL_DATE)
 
-  /** One account, addressed by the first IBAN routing in the test data. */
-  def bgConsentPostBody(): PostConsentJson = {
-    val acountRoutingIban = BankAccountRouting
+  /** One account, addressed by `iban`, or by the first IBAN routing in the test data. */
+  def bgConsentPostBody(iban: Option[String] = None): PostConsentJson = {
+    val address = iban.getOrElse(BankAccountRouting
       .findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)).head
+      .accountRouting.address)
     PostConsentJson(
       access = ConsentAccessJson(
         accounts = Option(List(ConsentAccessAccountsJson(
-          iban = Some(acountRoutingIban.accountRouting.address),
+          iban = Some(address),
           bban = None,
           pan = None,
           maskedPan = None,
@@ -131,8 +132,8 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
    * An unclaimed (PSU-less) consent lodged under testConsumer, built straight through the provider
    * -- the shape POST /consents leaves behind for a client_credentials caller.
    */
-  def createUnclaimedBerlinGroupConsent(): ConsentTrait = {
-    val postJsonBody = bgConsentPostBody()
+  def createUnclaimedBerlinGroupConsent(iban: Option[String] = None): ConsentTrait = {
+    val postJsonBody = bgConsentPostBody(iban)
     val validUntilDate = BgSpecValidation.getDate(postJsonBody.validUntil)
 
     val createdConsent = Consents.consentProvider.vend.createBerlinGroupConsent(
