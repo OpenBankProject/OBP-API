@@ -104,7 +104,7 @@ object Http4s500 {
   val versionStatus: String = ApiVersionStatus.STABLE.toString
   val resourceDocs: ArrayBuffer[ResourceDoc] = ArrayBuffer[ResourceDoc]()
 
-  object Implementations5_0_0 {
+  object Implementations5_0_0 extends code.util.Helper.MdcLoggable {
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
@@ -1338,7 +1338,9 @@ object Http4s500 {
               }
             } else {
               val challengeText = s"Your consent challenge : ${challengeAnswer}, Application: $applicationText"
-              scaMethod match {
+              // Sent within the request: run after the response, the send looked up its connector method
+              // routing on the request's database connection after it was closed, and the challenge was lost.
+              val challengeSent: Future[String] = scaMethod match {
                 case v if v == StrongCustomerAuthentication.EMAIL.toString =>
                   sendEmailConsentNotification(callContextOpt, consentRequestJson, challengeText)
                 case v if v == StrongCustomerAuthentication.SMS.toString =>
@@ -1356,7 +1358,13 @@ object Http4s500 {
                   } yield "Success"
                 case _ => Future.successful("Success")
               }
-              Future(createdConsent)
+              // The consent exists either way; a challenge that could not be sent is logged, as before, rather
+              // than turned into an error for a consent that was created.
+              challengeSent.recover { case e =>
+                logger.warn(s"createConsentByConsentRequestId says: the $scaMethod challenge for consent " +
+                  s"${createdConsent.consentId} was not sent: ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}")
+                "Failed"
+              }.map(_ => createdConsent)
             }
           } yield ConsentJsonV500(
             mappedConsent.consentId,
