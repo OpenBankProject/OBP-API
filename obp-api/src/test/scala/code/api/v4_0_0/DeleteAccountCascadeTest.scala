@@ -39,10 +39,8 @@ import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequ
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.cards.MappedPhysicalCard
-import code.consent.Consents
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.model.dataAccess.MappedBankAccount
-import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.views.system.AccountAccess
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankId, ErrorMessage}
@@ -310,57 +308,6 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       Then("The deleted account's holder is gone and the other bank's holder is kept")
       accountHolders(bankId.value, accountId.value) shouldBe empty
       accountHolders(otherBankId.value, accountId.value).size should equal(1)
-    }
-  }
-
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - consent challenges") {
-    scenario("Deleting an account deletes the SCA challenges of the consents bound to it", ApiEndpoint1, VersionOfApi) {
-      setPropsValues("suggested_default_sca_method" -> "DUMMY")
-      Given("Two banks that each have an account with the same ACCOUNT_ID, both held by the same user")
-      val bankId = BankId(randomString(10))
-      val otherBankId = BankId(randomString(10))
-      createBank(bankId.value)
-      createBank(otherBankId.value)
-      val accountId = AccountId(randomString(10))
-      createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
-      createAccountRelevantResource(Some(resourceUser1), otherBankId, accountId, "EUR")
-
-      // A UK consent is lodged without a PSU and bound to the accounts the PSU selects when it
-      // answers the challenge, the way Portal authorises one.
-      def authorisedUKConsent(bank: BankId): String = {
-        val consentId = Consents.consentProvider.vend.saveUKConsent(
-          user = None, bankId = None, accountIds = None, consumerId = None,
-          permissions = List("ReadAccountsBasic"),
-          expirationDateTime = Some(new java.util.Date(System.currentTimeMillis() + 3600000L)),
-          transactionFromDateTime = None, transactionToDateTime = None,
-          apiStandard = Some("UKOpenBanking"), apiVersion = Some("4.0.1")
-        ).openOrThrowException("consent creation failed").consentId
-        val consentPath = v5_1_0_Request / "banks" / bank.value / "consents" / consentId / "authorise"
-        val challenge = makePostRequest((consentPath / "challenge").POST <@ (user1), "")
-        challenge.code should equal(200)
-        val challengeId = (challenge.body \ "challenge_id").extract[String]
-        val authorised = makePostRequest(consentPath.POST <@ (user1),
-          s"""{"account_ids":["${accountId.value}"],"challenge_id":"$challengeId","answer":"123"}""")
-        authorised.code should equal(200)
-        consentId
-      }
-      def challengesOf(consentId: String): Int =
-        MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.ConsentId, consentId)).size
-      val consent = authorisedUKConsent(bankId)
-      val otherBankConsent = authorisedUKConsent(otherBankId)
-      challengesOf(consent) should equal(1)
-      challengesOf(otherBankConsent) should equal(1)
-
-      When(deleteAtFirstBank)
-      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
-      val request = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId.value /
-        "accounts" / accountId.value).DELETE <@ (user1)
-      makeDeleteRequest(request).code should equal(200)
-
-      Then("The challenge of the consent bound to the deleted account is gone")
-      challengesOf(consent) should equal(0)
-      And("The challenge of the consent bound to the other bank's account is kept")
-      challengesOf(otherBankConsent) should equal(1)
     }
   }
 

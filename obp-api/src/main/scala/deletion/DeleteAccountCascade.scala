@@ -28,7 +28,6 @@ TESOBE (http://www.tesobe.com/)
 package deletion
 
 import code.accountattribute.MappedAccountAttribute
-import code.accountholders.AccountHolders
 import code.accountholders.MapperAccountHolders
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
@@ -51,7 +50,7 @@ import com.openbankproject.commons.util.JsonAliases
 import deletion.DeletionUtil.databaseAtomicTask
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.db.DB
-import net.liftweb.mapper.{By, ByList}
+import net.liftweb.mapper.{By, ByList, NotBy}
 import net.liftweb.util.DefaultConnectionIdentifier
 import net.liftweb.util.Helpers.tryo
 import org.json4s.Formats
@@ -62,9 +61,7 @@ object DeleteAccountCascade {
 
   def delete(bankId: BankId, accountId: AccountId): Boolean = {
     // The tasks run in list order: the challenges are found through the account's transaction
-    // requests, so they must go before deleteTransactionRequests and deleteTransactions remove them;
-    // the consent challenges are found through the users who hold or can see the account, so they
-    // must go before deleteAccountAccess removes the rows that name those users.
+    // requests, so they must go before deleteTransactionRequests and deleteTransactions remove them.
     val doneTasks =
       deleteConsentChallenges(bankId, accountId) ::
         deleteTransactionRequestChallenges(bankId, accountId) ::
@@ -229,25 +226,22 @@ object DeleteAccountCascade {
     }
   }
 
-  // A consent names its accounts only in the views of its JWT, so the consents of the users who hold
-  // or can see this account are read to find the ones bound to it. A consent bound to other accounts
-  // as well loses its challenges too: they record the authorisation of the consent as a whole.
+  // A consent names its accounts only in the views of its JWT, so the consents that still have
+  // challenges are read and those whose JWT names this account lose them. The consents are found
+  // through their challenges rather than through users: a Berlin Group consent awaiting its first
+  // challenge answer has no PSU bound to it yet. A consent bound to other accounts as well loses its
+  // challenges too: they record the authorisation of the consent as a whole.
   private def deleteConsentChallenges(bankId: BankId, accountId: AccountId): Boolean = {
     implicit val formats: Formats = CustomJsonFormats.formats
-    val holderIds = AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId).map(_.userId)
-    val viewerIds = AccountAccess.findAll(
-      By(AccountAccess.bank_id, bankId.value),
-      By(AccountAccess.account_id, accountId.value)
-    ).flatMap(_.user_fk.foreign.map(_.userId))
-    val consentIds = (holderIds.toList ++ viewerIds).distinct
-      .flatMap(Consents.consentProvider.vend.getConsentsByUser)
+    val consentIds = MappedExpectedChallengeAnswer.findAll(NotBy(MappedExpectedChallengeAnswer.ConsentId, ""))
+      .map(_.ConsentId.get).distinct
+      .flatMap(Consents.consentProvider.vend.getConsentByConsentId(_).toList)
       .filter { consent =>
         JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken)
           .flatMap(payload => tryo(JsonAliases.parse(payload).extract[ConsentJWT]))
           .exists(_.views.exists(view => view.bank_id == bankId.value && view.account_id == accountId.value))
       }
       .map(_.consentId)
-      .distinct
     consentIds.isEmpty || MappedExpectedChallengeAnswer.bulkDelete_!!(
       ByList(MappedExpectedChallengeAnswer.ConsentId, consentIds)
     )
