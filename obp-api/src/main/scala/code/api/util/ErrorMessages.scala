@@ -590,6 +590,7 @@ object ErrorMessages {
   val InvalidGlossarySource = "OBP-30578: Invalid source. Please specify all, static or dynamic."
 
   // Asset registry (OBP-30579 .. OBP-30581)
+  val RateLimitScopeNotSupported = "OBP-30582: A rate limit applies to every call of the consumer, so it cannot name an api_name, api_version or bank_id yet. Leave them out."
   val AssetNotFound = "OBP-30579: Asset not found. Please specify a valid value for ASSET_CODE."
   val AssetNotFoundByChainIdentity = "OBP-30580: No asset has this chain identity. Please specify a registered CHAIN_SCHEME and CHAIN_ASSET_ID."
   val InvalidAssetQueryParameter = "OBP-30581: Invalid query parameter for assets."

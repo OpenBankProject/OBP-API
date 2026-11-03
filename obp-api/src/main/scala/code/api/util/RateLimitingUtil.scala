@@ -125,10 +125,13 @@ object RateLimitingUtil extends MdcLoggable {
     * @param date The date to check active limits for
     * @return Future containing (aggregated CallLimit, List of rate_limiting_ids that contributed)
     */
-  def getActiveRateLimitsWithIds(consumerId: String, date: Date): Future[(CallLimit, List[String])] = {
+  def getActiveRateLimitsWithIds(consumerId: String, date: Date, exact: Boolean = true): Future[(CallLimit, List[String])] = {
     def getActiveRateLimitings(consumerId: String): Future[List[RateLimiting]] = {
       useConsumerLimits match {
-        case true => RateLimitingDI.rateLimiting.vend.getActiveCallLimitsByConsumerIdAtDate(consumerId, date)
+        // The provider returns every row that touches the hour of `date`. `exact` keeps those whose dates enclose `date`
+        // itself (what a request is held to); without it the hour is the unit, as in the report for an hour.
+        case true => RateLimitingDI.rateLimiting.vend.getActiveCallLimitsByConsumerIdAtDate(consumerId, date).map(
+          _.filter(limit => !exact || (!limit.fromDate.after(date) && !limit.toDate.before(date))))
         case false => Future(List.empty)
       }
     }

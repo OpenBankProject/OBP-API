@@ -30,8 +30,8 @@ import code.api.util.APIUtil.OAuth._
 import code.api.{Constant, JedisMethod}
 import code.api.cache.Redis
 import code.setup.OBPReq
-import code.api.util.ApiRole.{CanCreateRateLimits, CanDeleteRateLimits, CanGetRateLimits}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired, TooManyRequests}
+import code.api.util.ApiRole.{CanCreateRateLimits, CanDeleteRateLimits, CanGetRateLimits, CanUpdateRateLimits}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired, TooManyRequests, RateLimitScopeNotSupported}
 import code.api.v6_0_0.Http4s600.Implementations6_0_0
 import code.consumer.Consumers
 import code.entitlement.Entitlement
@@ -57,8 +57,8 @@ class RateLimitsTest extends V600ServerSetup {
   lazy val postCallLimitJsonV600 = CallLimitPostJsonV600(
     from_date = new Date(),
     to_date = new Date(System.currentTimeMillis() + 86400000L), // +1 day
-    api_version = Some("v6.0.0"),
-    api_name = Some("testEndpoint"),
+    api_version = None,
+    api_name = None,
     bank_id = None,
     per_second_call_limit = "10",
     per_minute_call_limit = "100",
@@ -217,8 +217,8 @@ class RateLimitsTest extends V600ServerSetup {
       val rateLimit1 = CallLimitPostJsonV600(
         from_date = fromDate1,
         to_date = toDate1,
-        api_version = Some("v6.0.0"),
-        api_name = Some("testEndpoint1"),
+        api_version = None,
+        api_name = None,
         bank_id = None,
         per_second_call_limit = "10",
         per_minute_call_limit = "100",
@@ -235,8 +235,8 @@ class RateLimitsTest extends V600ServerSetup {
       val rateLimit2 = CallLimitPostJsonV600(
         from_date = fromDate1,
         to_date = toDate1,
-        api_version = Some("v6.0.0"),
-        api_name = Some("testEndpoint2"),
+        api_version = None,
+        api_name = None,
         bank_id = None,
         per_second_call_limit = "5",
         per_minute_call_limit = "50",
@@ -503,6 +503,30 @@ class RateLimitsTest extends V600ServerSetup {
       } finally deleteLimit(consumerId3, id)
     }
 
+    scenario("A rate limit whose from_date has not come yet is not active", ApiEndpoint4, VersionOfApi) {
+      val now = System.currentTimeMillis()
+      assume(now % 3600000L < 3600000L - 10000L, "the hour is about to end")
+      val id = createLimit(consumerId3, callLimitJson("0", "0", "0").copy(from_date = new Date(now + 5000L), to_date = new Date(now + 86400000L)))
+      try {
+        activeLimitsNow(consumerId3).considered_rate_limit_ids shouldBe empty
+        callAsUser3().code should equal(200)
+      } finally deleteLimit(consumerId3, id)
+    }
+
+    scenario("The report for an hour still lists a limit that ended within that hour", ApiEndpoint3, VersionOfApi) {
+      val now = System.currentTimeMillis()
+      assume(now % 3600000L > 5000L, "the hour has only just begun")
+      val toDate = new Date(now - 2000L)
+      val id = createLimit(consumerId3, callLimitJson("0", "0", "0").copy(from_date = new Date(toDate.getTime - 3600000L), to_date = toDate))
+      try {
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetRateLimits.toString)
+        val hour = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH"))
+        val response = makeGetRequest((v6_0_0_Request / "management" / "consumers" / consumerId3 / "active-rate-limits" / hour).GET <@ (user1))
+        response.code should equal(200)
+        response.body.extract[ActiveRateLimitsJsonV600].considered_rate_limit_ids should contain(id)
+      } finally deleteLimit(consumerId3, id)
+    }
+
     scenario("A rate limit that names an api_name, api_version or bank_id is refused, as those are not enforced", ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
       val scoped = Map(
@@ -514,9 +538,20 @@ class RateLimitsTest extends V600ServerSetup {
         val response = makePostRequest((v6_0_0_Request / "management" / "consumers" / consumerId3 / "consumer" / "rate-limits").POST <@ (user1), write(json))
         withClue(s"a rate limit that names $field: ") {
           response.code should equal(400)
-          response.body.extract[ErrorMessage].message should include(field)
+          response.body.extract[ErrorMessage].message should (startWith(RateLimitScopeNotSupported) and endWith(s"Remove: $field"))
         }
       }
+      And("an existing rate limit cannot be changed to name one either")
+      val id = createLimit(consumerId3, callLimitJson("-1", "-1", "-1"))
+      try {
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateRateLimits.toString)
+        val update = makePutRequest(
+          (v6_0_0_Request / "management" / "consumers" / consumerId3 / "consumer" / "rate-limits" / id).PUT <@ (user1),
+          write(callLimitJson("-1", "-1", "-1").copy(api_name = Some("getBank"))))
+        update.code should equal(400)
+        update.body.extract[ErrorMessage].message should endWith("Remove: api_name")
+      } finally deleteLimit(consumerId3, id)
+
       And("none of them was stored, so the consumer is not blocked")
       activeLimitsNow(consumerId3).considered_rate_limit_ids shouldBe empty
       callAsUser3().code should equal(200)
