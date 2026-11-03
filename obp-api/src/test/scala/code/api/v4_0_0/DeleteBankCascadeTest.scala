@@ -190,7 +190,7 @@ class DeleteBankCascadeTest extends V400ServerSetup {
 
       When("We grant the role")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteBankCascade.toString)
-      And("We make a delete cascade request v4.0.0")
+      And("We delete the bank with the cascading endpoint")
       val deleteRequest400 = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId ).DELETE <@(user1)
       makeDeleteRequest(deleteRequest400).code should equal(200)
 

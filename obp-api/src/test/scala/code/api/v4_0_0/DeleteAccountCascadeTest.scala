@@ -297,7 +297,7 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
       createAccountRelevantResource(Some(resourceUser1), otherBankId, accountId, "EUR")
 
-      When("We delete the account at the first bank with the cascading endpoint")
+      When("We delete the first bank's account, keeping the other bank's one")
       Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
       val request = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId.value /
         "accounts" / accountId.value).DELETE <@ (user1)
