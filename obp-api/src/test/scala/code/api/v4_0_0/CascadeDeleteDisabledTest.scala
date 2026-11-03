@@ -56,6 +56,10 @@ class CascadeDeleteDisabledTest extends V400ServerSetup {
       }
     }
 
+    scenario("The cascade-delete roles are not offered", PropGatedPublicEndpoint, VersionOfApi) {
+      CascadeDeleteEndpoints.offeredRoles should be(empty)
+    }
+
     scenario("The Dynamic Entity cascade deletes stay routed", PropGatedPublicEndpoint, VersionOfApi) {
       CascadeDeleteEndpoints.dynamicEntityCascadesRouted should be(true)
     }

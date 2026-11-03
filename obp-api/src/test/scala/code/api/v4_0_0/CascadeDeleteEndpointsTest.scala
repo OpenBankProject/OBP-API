@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v4_0_0
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ApiRole}
 import code.api.util.APIUtil.{Http4sHandler, ResourceDoc}
 import code.api.util.http4s.Http4sResourceDocAggregation
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
@@ -59,6 +59,10 @@ class CascadeDeleteEndpointsTest extends V400ServerSetup {
       CascadeDeleteEndpoints.gated.foreach { case (where, names) =>
         withClue(where) { names should equal(CascadeDeleteEndpoints.gatedNames.toSet) }
       }
+    }
+
+    scenario("The cascade-delete roles are offered", VersionOfApi) {
+      CascadeDeleteEndpoints.offeredRoles should equal(CascadeDeleteEndpoints.gatedRoleNames)
     }
 
     scenario("The Dynamic Entity cascade deletes are routed", VersionOfApi) {
@@ -95,6 +99,18 @@ object CascadeDeleteEndpoints {
   def dynamicEntityCascadesRouted: Boolean =
     names(Implementations6_0_0.orderedResourceDocs).contains(nameOf(Implementations6_0_0.deleteSystemDynamicEntityCascade)) &&
       names(Implementations7_0_0.orderedResourceDocs).contains(nameOf(Http4s700DynamicEntityDefinitions.deleteDynamicEntityDefinitionCascade))
+
+  /** The roles only the gated endpoints check. */
+  val gatedRoleNames: Set[String] = Set[ApiRole](
+    ApiRole.canDeleteTransactionCascade,
+    ApiRole.canDeleteAccountCascade,
+    ApiRole.canDeleteBankCascade,
+    ApiRole.canDeleteProductCascade,
+    ApiRole.canDeleteCustomerCascade
+  ).map(_.toString)
+
+  /** The gated roles GET /roles lists and entitlement creation accepts by name. */
+  def offeredRoles: Set[String] = ApiRole.availableRoles.toSet intersect gatedRoleNames
 
   def enabled: Boolean = APIUtil.cascadeDeleteEnabled
 }
