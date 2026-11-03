@@ -35,6 +35,7 @@ import code.api.berlin.group.v1_3.model.{ScaStatusResponse, TransactionStatus, U
 import code.api.berlin.group.v1_3.Http4sBGv13PIS
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
+import code.api.util.CommonsEmailWrapper
 import code.api.util.ErrorMessages._
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.model.TokenType
@@ -812,6 +813,36 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     By(MappedBankAccount.bank, routing.bankId.value),
     By(MappedBankAccount.theAccountId, routing.accountId.value))
     .map(_.balance).openOrThrowException("Can not be empty here")
+
+  feature("test the BG v1.3 - the passcode of a payment authorisation sent by EMAIL") {
+    def startAuthorisationAsUser1(): APIResponse = {
+      val (paymentId, _, _) = lodgePaymentAsUser1()
+      makePostRequest(
+        (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "authorisations").POST <@ (user1),
+        """{"scaAuthenticationData":""}""")
+    }
+
+    scenario("goes to the user's own address when no customer is linked", BerlinGroupV1_3, PIS, initiatePayment) {
+      setPropsValues("SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT" -> "EMAIL", "mail.test.mode" -> "true")
+      CommonsEmailWrapper.clearTestModeSentMail()
+
+      startAuthorisationAsUser1().code should equal(201)
+
+      CommonsEmailWrapper.testModeSentMail.filter(_.subject == "Challenge").map(_.to) should equal(List(List(resourceUser1.emailAddress)))
+    }
+
+    scenario("is refused when the user has no address either", BerlinGroupV1_3, PIS, initiatePayment) {
+      setPropsValues("SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT" -> "EMAIL", "mail.test.mode" -> "true")
+      CommonsEmailWrapper.clearTestModeSentMail()
+      val address = resourceUser1.emailAddress
+      resourceUser1.email("").save
+      try {
+        val response = startAuthorisationAsUser1()
+        response.code should equal(400)
+        CommonsEmailWrapper.testModeSentMail.filter(_.subject == "Challenge") shouldBe empty
+      } finally resourceUser1.email(address).save
+    }
+  }
 
   private def paymentUrl(paymentId: String) =
     V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId

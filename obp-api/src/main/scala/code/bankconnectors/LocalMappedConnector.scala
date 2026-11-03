@@ -448,7 +448,6 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           (Failure(ChallengeRecipientNotFound), callContext)
         } else {
           val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
-          val hashedPassword = createHashedPassword(challengeAnswer)
           val sendingResult = recipients map { to =>
             CommonsEmailWrapper.sendTextEmail(CommonsEmailWrapper.EmailContent(
               from = mailUsersUserinfoSenderAddress,
@@ -458,7 +457,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             ))
           }
           val errorMessages = sendingResult.collect { case failure: Failure => failure.msg }
-          if (errorMessages.isEmpty) hashedPassword else (Failure(errorMessages.toSet.mkString(" <- ")), callContext)
+          // The challenge is saved once its passcode has been sent, so a failed send leaves no challenge no one can answer.
+          if (errorMessages.isEmpty) createHashedPassword(challengeAnswer) else (Failure(errorMessages.toSet.mkString(" <- ")), callContext)
         }
       // No linked customer with a phone number: there is no one to send the passcode to.
       case Some(StrongCustomerAuthentication.SMS) | Some(StrongCustomerAuthentication.SMS_OTP)
