@@ -104,7 +104,7 @@ object Http4s500 {
   val versionStatus: String = ApiVersionStatus.STABLE.toString
   val resourceDocs: ArrayBuffer[ResourceDoc] = ArrayBuffer[ResourceDoc]()
 
-  object Implementations5_0_0 extends code.util.Helper.MdcLoggable {
+  object Implementations5_0_0 {
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
@@ -1057,6 +1057,34 @@ object Http4s500 {
     // POST /consumer/consent-requests/CONSENT_REQUEST_ID/{EMAIL|SMS|IMPLICIT}/consents → 201
     // Three ResourceDoc registrations (one per SCA literal) but one HttpRoutes pattern.
 
+    // Fails with the same 400 the send would, before anything is written, when the challenge has nowhere to go.
+    private def checkChallengeRecipient(
+      scaMethod: String,
+      consentRequestJson: PostConsentRequestJsonV500,
+      user: User,
+      callContextOpt: Option[code.api.util.CallContext]
+    ): Future[Unit] = {
+      def present(value: Option[String]) = value.exists(v => v != null && v.trim.nonEmpty)
+      scaMethod match {
+        case v if v == StrongCustomerAuthentication.EMAIL.toString =>
+          Helper.booleanToFuture(s"$InvalidJsonFormat The Json body must contain the field email", 400, callContextOpt) {
+            present(consentRequestJson.email)
+          }.map(_ => ())
+        case v if v == StrongCustomerAuthentication.SMS.toString =>
+          Helper.booleanToFuture(s"$InvalidJsonFormat The Json body must contain the field phone_number", 400, callContextOpt) {
+            present(consentRequestJson.phone_number)
+          }.map(_ => ())
+        case v if v == StrongCustomerAuthentication.IMPLICIT.toString =>
+          for {
+            (consentImplicitSCA, _) <- NewStyle.function.getConsentImplicitSCA(user, callContextOpt)
+            _ <- Helper.booleanToFuture(s"$GetConsentImplicitSCAError The user has no ${consentImplicitSCA.scaMethod} address", 400, callContextOpt) {
+              present(Option(consentImplicitSCA.recipient))
+            }
+          } yield ()
+        case _ => Future.successful(())
+      }
+    }
+
     private def sendEmailConsentNotification(
       callContextOpt: Option[code.api.util.CallContext],
       consentRequestJson: PostConsentRequestJsonV500,
@@ -1287,6 +1315,14 @@ object Http4s500 {
               case _                   => SecureRandomUtil.numeric()
             }
             consumer = Some(consentConsumer)
+            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId.get)).getOrElse("Unknown")
+            granteeConsumerId = consentConsumer.consumerId.get
+            shouldSkipConsentScaForConsumerIdPair = APIUtil.skipConsentScaForConsumerIdPairs.contains(
+              APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
+            // Checked before the consent exists: a request that fails later still keeps what it wrote, and a
+            // consent whose challenge has nowhere to go could never be answered.
+            _ <- if (shouldSkipConsentScaForConsumerIdPair) Future.successful(())
+                 else checkChallengeRecipient(scaMethod, consentRequestJson, user, callContextOpt)
             createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(
               user, challengeAnswer, Some(consentRequestId), consumer))
               .map(i => connectorEmptyResponse(i, callContextOpt))
@@ -1322,10 +1358,6 @@ object Http4s500 {
             validUntil = Helper.calculateValidTo(postConsentBodyCommonJson.valid_from, postConsentBodyCommonJson.time_to_live.getOrElse(3600))
             _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil))
               .map(i => connectorEmptyResponse(i, callContextOpt))
-            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId.get)).getOrElse("Unknown")
-            granteeConsumerId = consentConsumer.consumerId.get
-            shouldSkipConsentScaForConsumerIdPair = APIUtil.skipConsentScaForConsumerIdPairs.contains(
-              APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
             mappedConsent <- if (shouldSkipConsentScaForConsumerIdPair) {
               Future {
                 // Atomic guarded auto-accept: only move INITIATED -> ACCEPTED. If the consent was
@@ -1338,8 +1370,9 @@ object Http4s500 {
               }
             } else {
               val challengeText = s"Your consent challenge : ${challengeAnswer}, Application: $applicationText"
-              // Sent within the request: run after the response, the send looked up its connector method
-              // routing on the request's database connection after it was closed, and the challenge was lost.
+              // The challenge is sent within the request, as by the other Create Consent endpoints: the connector
+              // looks up its method routing on the request's database connection, which closes with the request.
+              // A challenge that cannot be sent fails the request, so no consent is kept that no one can answer.
               val challengeSent: Future[String] = scaMethod match {
                 case v if v == StrongCustomerAuthentication.EMAIL.toString =>
                   sendEmailConsentNotification(callContextOpt, consentRequestJson, challengeText)
@@ -1358,13 +1391,7 @@ object Http4s500 {
                   } yield "Success"
                 case _ => Future.successful("Success")
               }
-              // The consent exists either way; a challenge that could not be sent is logged, as before, rather
-              // than turned into an error for a consent that was created.
-              challengeSent.recover { case e =>
-                logger.warn(s"createConsentByConsentRequestId says: the $scaMethod challenge for consent " +
-                  s"${createdConsent.consentId} was not sent: ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}")
-                "Failed"
-              }.map(_ => createdConsent)
+              challengeSent.map(_ => createdConsent)
             }
           } yield ConsentJsonV500(
             mappedConsent.consentId,
