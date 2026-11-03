@@ -3543,12 +3543,14 @@ object NewStyle extends MdcLoggable{
      * next `/resource-docs` request regenerates from the database instead of
      * serving a pre-change snapshot (TTL is 1 hour by default).
      *
-     * Call after a Dynamic Entity, Dynamic Endpoint or Dynamic Resource Doc is
-     * created, updated, or deleted: each one generates resource docs. The static
-     * resource-doc / swagger caches are not touched because dynamic docs only
-     * reach them through the content=all documents, which are left to their TTL.
+     * Call after a Dynamic Endpoint or Dynamic Resource Doc is created, updated,
+     * or deleted: each one generates resource docs. For a Dynamic Entity,
+     * DynamicEntityHelper.forgetDefinitions calls it once the change has
+     * committed. The static resource-doc / swagger caches are not touched because
+     * dynamic docs only reach them through the content=all documents, which are
+     * left to their TTL.
      */
-    private def invalidateDynamicResourceDocCaches(): Unit = {
+    private[code] def invalidateDynamicResourceDocCaches(): Unit = {
       Constant.incrementCacheNamespaceVersion(Constant.RD_DYNAMIC_NAMESPACE)
       Constant.incrementCacheNamespaceVersion(Constant.RD_ALL_NAMESPACE)
     }
@@ -3589,9 +3591,9 @@ object NewStyle extends MdcLoggable{
       }
 
       Future {
-        val result = DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
-        if (result.isDefined) invalidateDynamicResourceDocCaches()
-        result
+        // The provider calls DynamicEntityHelper.forgetDefinitions, which also drops the dynamic
+        // resource-doc caches once the change has committed.
+        DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
       }
     }
 
@@ -3630,9 +3632,9 @@ object NewStyle extends MdcLoggable{
       }
 
       Future {
-        val result = DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
-        if (result.isDefined) invalidateDynamicResourceDocCaches()
-        result
+        // The provider calls DynamicEntityHelper.forgetDefinitions, which also drops the dynamic
+        // resource-doc caches once the change has committed.
+        DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
       }
 
     }
@@ -3674,8 +3676,8 @@ object NewStyle extends MdcLoggable{
           }
           deleteEntitleMentResult
         }
-        // The entity (and its generated resource docs) are gone — drop the stale doc caches.
-        if (result.exists(deleted => deleted)) invalidateDynamicResourceDocCaches()
+        // The entity's generated resource docs go with it: the provider's delete calls
+        // DynamicEntityHelper.forgetDefinitions, which drops the doc caches once the delete has committed.
         result
       }
     }
@@ -3704,9 +3706,27 @@ object NewStyle extends MdcLoggable{
     }
 
     def getDynamicEntities(bankId: Option[String], returnBothBankAndSystemLevel: Boolean): List[DynamicEntityT] = {
-      import scala.concurrent.duration._
-
       validateBankId(bankId, None)
+      getDynamicEntities(bankId, returnBothBankAndSystemLevel, dynamicEntityDefinitionsVersion)
+    }
+
+    /**
+     * The dynamic_entity cache namespace version, which the memoized definition lists below carry in their
+     * keys. DynamicEntityHelper.forgetDefinitions bumps it once a definition change has committed, so every
+     * list memoized before the change becomes unreachable on every instance, including one that a read still
+     * in flight writes after the bump: it is written under the version that read started with.
+     */
+    private def dynamicEntityDefinitionsVersion: Long =
+      if (dynamicEntityTTL == 0) 0L // nothing is memoized, so no need to ask Redis
+      else Constant.recentCacheNamespaceVersion(Constant.DYNAMIC_ENTITY_NAMESPACE)
+
+    // The version is a parameter so that CacheKeyFromArguments renders it into the key; the name stays
+    // getDynamicEntities so the key and its Telemetry label stay the same apart from the version. Keep
+    // buildCacheKey as the tail expression (see getEndpointMappingsCached): bound to a val first, the macro
+    // renders no arguments and every list would share one key whatever the version. Test mode memoizes
+    // nothing, so no test would notice; the rendering was checked with javap.
+    private def getDynamicEntities(bankId: Option[String], returnBothBankAndSystemLevel: Boolean, definitionsVersion: Long): List[DynamicEntityT] = {
+      import scala.concurrent.duration._
 
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
       CacheKeyFromArguments.buildCacheKey {
@@ -3715,8 +3735,11 @@ object NewStyle extends MdcLoggable{
         }
       }
     }
-    
-    def getDynamicEntitiesByUserId(userId: String): List[DynamicEntityT] = {
+
+    def getDynamicEntitiesByUserId(userId: String): List[DynamicEntityT] =
+      getDynamicEntitiesByUserId(userId, dynamicEntityDefinitionsVersion)
+
+    private def getDynamicEntitiesByUserId(userId: String, definitionsVersion: Long): List[DynamicEntityT] = {
       import scala.concurrent.duration._
 
       var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)

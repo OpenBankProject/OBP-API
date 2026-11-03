@@ -2444,14 +2444,16 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       Constant.FINANCIAL_PRODUCTS_NAMESPACE -> ("Financial product list (bank-scoped and all-banks)", "Products"),
       Constant.API_PRODUCTS_NAMESPACE -> ("Api product list (all banks)", "Products"),
       Constant.MESSAGE_DOCS_NAMESPACE -> ("Message docs and connector JSON Schemas (Redis, and each instance's memory)", "API Documentation"),
-      Constant.GLOSSARY_NAMESPACE -> ("Glossary items held in each instance's memory; bumping also rebuilds cached resource docs", "API Documentation")
+      Constant.GLOSSARY_NAMESPACE -> ("Glossary items held in each instance's memory; bumping also rebuilds cached resource docs", "API Documentation"),
+      Constant.DYNAMIC_ENTITY_NAMESPACE -> ("Dynamic entity definitions: the definition lists in Redis and each instance's definitions map", "Dynamic Entities")
     )
 
     // Caches held in this instance's memory outside the shared in-memory store, which follow their
     // namespace's version through their own keys. Counted here so the page shows their real size.
     val inProcessEntries: Map[String, () => Long] = Map(
       Constant.MESSAGE_DOCS_NAMESPACE -> (() => code.api.v2_2_0.MessageDocsJsonCache.size + code.api.util.JsonSchemaGenerator.cacheSize),
-      Constant.GLOSSARY_NAMESPACE -> (() => code.api.util.Glossary.loadedItemCount.toLong)
+      Constant.GLOSSARY_NAMESPACE -> (() => code.api.util.Glossary.loadedItemCount.toLong),
+      Constant.DYNAMIC_ENTITY_NAMESPACE -> (() => code.api.dynamic.entity.helper.DynamicEntityHelper.keptDefinitionCount.toLong)
     )
 
     var redisAvailable = true

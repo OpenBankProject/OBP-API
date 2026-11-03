@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.dynamic.entity.helper
 
+import code.api.Constant
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, userAuthenticationMessage}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import code.api.util.ApiTag._
@@ -202,35 +203,44 @@ object DynamicEntityHelper {
   // It is asked for many times per request (the access checks, each field's read check, the resource
   // docs), and building it reads every definition and parses each one's JSON: with 120 definitions
   // that was ~5 ms a time, and a Dynamic Query returning 11 records spent ~0.5 s rebuilding it. So
-  // the built map is kept for dynamicEntity.definitions_map.cache.ttl.seconds (default 300), and
-  // forgotten the moment a definition is created, updated or deleted on this node
-  // (MappedDynamicEntityProvider calls forgetDefinitions). Another node sees such a change when its
-  // copy expires. Not kept in test mode, where a test may change the table behind the provider.
+  // the built map is kept for dynamicEntity.definitions_map.cache.ttl.seconds (default 300), and only
+  // while the dynamic_entity cache namespace version is the one it was built under: a definition change
+  // bumps that version once committed (forgetDefinitions), and every instance, which re-reads the version
+  // at most once a second, then builds the map again. Not kept in test mode, where a test may change the
+  // table behind the provider.
   private val definitionsMapTtlMillis: Long =
     if (net.liftweb.util.Props.testMode) 0L
     else APIUtil.getPropsAsLongValue("dynamicEntity.definitions_map.cache.ttl.seconds", 300L) * 1000L
-  // (built at, map). Each change replaces the token, and a build keeps its map only while the token it
-  // started under is still the current one, so a build that started before a change is not kept after it.
-  @volatile private var definitionsMapCache: Option[(Long, Map[(String, String), DynamicEntityInfo])] = None
-  @volatile private var definitionsToken: AnyRef = new Object
 
-  /** Forget the kept definitions map, so the next use reads the definitions again. */
-  def forgetDefinitions(): Unit = {
-    definitionsToken = new Object
-    definitionsMapCache = None
-  }
+  private val definitionsMapCache = new DefinitionsMapCache[Map[(String, String), DynamicEntityInfo]](
+    definitionsMapTtlMillis,
+    () => Constant.recentCacheNamespaceVersion(Constant.DYNAMIC_ENTITY_NAMESPACE),
+    () => buildDefinitionsMap)
 
-  def definitionsMap: Map[(String, String), DynamicEntityInfo] = {
-    val now = System.currentTimeMillis()
-    definitionsMapCache match {
-      case Some((builtAt, map)) if now - builtAt < definitionsMapTtlMillis => map
-      case _ =>
-        val token = definitionsToken
-        val map = buildDefinitionsMap
-        if (definitionsMapTtlMillis > 0 && (definitionsToken eq token)) definitionsMapCache = Some((now, map))
-        map
+  /**
+   * Tell every instance that a definition was created, updated or deleted, once the request's transaction
+   * has committed (at once outside a transaction): bump the dynamic_entity cache namespace version, which
+   * the definitions map and the definition lists NewStyle.getDynamicEntities memoizes in Redis both carry,
+   * so all of them read the definitions again, and then the dynamic resource-doc caches, which hold the
+   * docs generated from the definitions. Not earlier, because until the commit the change is not visible
+   * to other connections: an instance that saw a bump first could read the old rows and keep them under the
+   * new version. Nothing happens if the transaction rolls back.
+   *
+   * This instance also drops its map directly, which is what keeps it current when Redis is unavailable
+   * and the version cannot change. Another instance follows the dynamic_entity version within a second, so
+   * for that second it can still build resource docs from its previous map.
+   */
+  def forgetDefinitions(): Unit =
+    code.api.util.http4s.RequestScopeConnection.afterCommit {
+      Constant.incrementCacheNamespaceVersion(Constant.DYNAMIC_ENTITY_NAMESPACE)
+      definitionsMapCache.forget()
+      NewStyle.function.invalidateDynamicResourceDocCaches()
     }
-  }
+
+  def definitionsMap: Map[(String, String), DynamicEntityInfo] = definitionsMapCache.get
+
+  /** The number of definitions in this instance's kept map, for the cache info page. */
+  def keptDefinitionCount: Int = definitionsMapCache.kept.map(_.size).getOrElse(0)
 
   private def buildDefinitionsMap: Map[(String, String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((DynamicEntitySpace.bankIdOrSystem(it.bankId), it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess, it.authMode))).toMap
 

@@ -51,8 +51,16 @@ object CommonsEmailWrapper extends MdcLoggable {
     useTLS: Boolean = true,
     useSSL: Boolean = false,
     debug: Boolean = false,
-    tlsProtocols: String = "TLSv1.2"
+    tlsProtocols: String = "TLSv1.2",
+    timeoutMillis: Int = CommonsEmailWrapper.defaultTimeoutMillis
   )
+
+  val defaultTimeoutMillis = 30000
+
+  // mail.smtp.timeout_millis as a positive number of milliseconds; anything else falls back to the default,
+  // because Jakarta Mail reads 0 (and Lift reads an unparseable value as 0) as "wait forever".
+  def timeoutMillisFrom(value: Option[String]): Int =
+    value.flatMap(v => scala.util.Try(v.trim.toInt).toOption).filter(_ > 0).getOrElse(defaultTimeoutMillis)
 
   case class EmailContent(
     from: String,
@@ -80,13 +88,33 @@ object CommonsEmailWrapper extends MdcLoggable {
       useTLS = APIUtil.getPropsValue("mail.smtp.starttls.enable", "false").toBoolean,
       useSSL = APIUtil.getPropsValue("mail.smtp.ssl.enable", "false").toBoolean,
       debug = APIUtil.getPropsValue("mail.debug", "false").toBoolean,
-      tlsProtocols = APIUtil.getPropsValue("mail.smtp.ssl.protocols", "TLSv1.2")
+      tlsProtocols = APIUtil.getPropsValue("mail.smtp.ssl.protocols", "TLSv1.2"),
+      timeoutMillis = timeoutMillisFrom(APIUtil.getPropsValue("mail.smtp.timeout_millis").toOption)
     )
   }
 
   def isTestMode: Boolean = APIUtil.getPropsValue("mail.test.mode", "false").toBoolean
 
+  // What logEmailInTestMode logs (sendTextEmail, sendHtmlEmail, sendEmailWithAttachments), oldest first and
+  // bounded, so tests can check what OBP has sent and when. Kept only when OBP runs its tests (Props.testMode): a
+  // sandbox in mail test mode must not hold challenge codes and reset links in memory.
+  private val testModeMailLimit = 200
+  private val testModeMail = new java.util.concurrent.ConcurrentLinkedQueue[EmailContent]()
+  def testModeSentMail: List[EmailContent] = {
+    import scala.jdk.CollectionConverters._
+    testModeMail.asScala.toList
+  }
+  def clearTestModeSentMail(): Unit = testModeMail.clear()
+
   private def logEmailInTestMode(content: EmailContent): Box[String] = {
+    if (net.liftweb.util.Props.testMode) {
+      // mail.test.mode.delay_millis makes a send take that long, as an SMTP round trip does, so a test can tell
+      // whether a request waited for its mail.
+      val delay = APIUtil.getPropsAsIntValue("mail.test.mode.delay_millis", 0)
+      if (delay > 0) Thread.sleep(delay.toLong)
+      testModeMail.add(content)
+      while (testModeMail.size > testModeMailLimit) testModeMail.poll()
+    }
     logger.info("=" * 80)
     logger.info("EMAIL TEST MODE - Email would be sent with the following content:")
     logger.info("=" * 80)
@@ -291,7 +319,7 @@ object CommonsEmailWrapper extends MdcLoggable {
     }
   }
 
-  private def createSession(config: EmailConfig): Session = {
+  def sessionProperties(config: EmailConfig): Properties = {
     val props = new Properties()
     props.put("mail.smtp.host", config.smtpHost)
     props.put("mail.smtp.port", config.smtpPort.toString)
@@ -300,6 +328,15 @@ object CommonsEmailWrapper extends MdcLoggable {
     props.put("mail.smtp.ssl.enable", config.useSSL.toString)
     props.put("mail.debug", config.debug.toString)
     props.put("mail.smtp.ssl.protocols", config.tlsProtocols)
+    // Jakarta Mail waits without limit by default; mail is sent inside requests, which must not hang on SMTP.
+    props.put("mail.smtp.connectiontimeout", config.timeoutMillis.toString)
+    props.put("mail.smtp.timeout", config.timeoutMillis.toString)
+    props.put("mail.smtp.writetimeout", config.timeoutMillis.toString)
+    props
+  }
+
+  private def createSession(config: EmailConfig): Session = {
+    val props = sessionProperties(config)
     val authenticator = new Authenticator() {
       override def getPasswordAuthentication: PasswordAuthentication =
         new PasswordAuthentication(config.username, config.password)

@@ -30,7 +30,7 @@ import code.api.{Constant, RequestHeader}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.{APIUtil, Consent}
+import code.api.util.{APIUtil, CommonsEmailWrapper, Consent}
 import code.api.util.ErrorMessages._
 import code.api.v3_1_0.{PostConsentChallengeJsonV310, PostConsentEntitlementJsonV310}
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
@@ -85,6 +85,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
   def getConsentRequestUrl(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId).GET<@(user1)
   def createConsentByConsentRequestIdEmail(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"EMAIL"/"consents").POST<@(user1)
   def createConsentByConsentRequestIdImplicit(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"IMPLICIT"/"consents").POST<@(user1)
+  def createConsentByConsentRequestIdSms(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"SMS"/"consents").POST<@(user1)
   def getConsentByRequestIdUrl(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"consents").GET<@(user1)
 
   feature("Create/Get Consent Request v5.0.0") {
@@ -283,5 +284,88 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
     }
 
   }
-  
+
+  feature("The consent challenge is sent before Create Consent By CONSENT_REQUEST_ID answers v5.0.0") {
+    // The PSU needs the challenge to accept the consent. When it was sent from a Future the request did not wait
+    // for, it could run after the request's database connection was closed and never be sent at all.
+    def challengeMailTo(recipient: String) = CommonsEmailWrapper.testModeSentMail.filter(mail =>
+      mail.to == List(recipient) && mail.subject == "OBP Consent Challenge" &&
+        mail.textContent.exists(_.contains(Consent.challengeAnswerAtTestEnvironment)))
+
+    // Returns the consent request id and the response of creating its consent.
+    def createConsent(createConsentUrl: String => code.setup.OBPReq, consentRequest: PostConsentRequestJsonV500 = postConsentRequestJson,
+                      sendDelayMillis: Int = 1500) = {
+      // A send that takes as long as an SMTP round trip: one the request does not wait for is still pending when
+      // the response arrives.
+      setPropsValues("mail.test.mode" -> "true", "mail.test.mode.delay_millis" -> sendDelayMillis.toString)
+      CommonsEmailWrapper.clearTestModeSentMail()
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
+      val createConsentRequestResponse = makePostRequest(createConsentRequestUrl, write(consentRequest))
+      createConsentRequestResponse.code should equal(201)
+      val consentRequestId = createConsentRequestResponse.body.extract[ConsentRequestResponseJson].consent_request_id
+      (consentRequestId, makePostRequest(createConsentUrl(consentRequestId), write("")))
+    }
+
+    scenario("EMAIL: the challenge goes to the email address of the consent request", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      When("We create a consent with an EMAIL challenge")
+      val (_, response) = createConsent(createConsentByConsentRequestIdEmail)
+      response.code should equal(201)
+      Then("The challenge mail has already been sent, once, to the consent request's email address")
+      challengeMailTo(postConsentRequestJson.email.head).size should equal(1)
+    }
+
+    scenario("IMPLICIT: the challenge goes to the email address of the user", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      When("We create a consent with an IMPLICIT challenge")
+      val (_, response) = createConsent(createConsentByConsentRequestIdImplicit)
+      response.code should equal(201)
+      Then("The challenge mail has already been sent, once, to the user's email address")
+      challengeMailTo(resourceUser1.emailAddress).size should equal(1)
+    }
+
+    scenario("EMAIL without an email address: no consent that no one could answer", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+      When("We create a consent with an EMAIL challenge from a consent request that names no email address")
+      val (consentRequestId, response) =
+        createConsent(createConsentByConsentRequestIdEmail, postConsentRequestJson.copy(email = None), sendDelayMillis = 0)
+      Then("We get a 400, as from the other Create Consent endpoints, and no challenge is sent")
+      response.code should equal(400)
+      response.body.extract[ErrorMessage].message should include ("email")
+      CommonsEmailWrapper.testModeSentMail.filter(_.subject == "OBP Consent Challenge") shouldBe empty
+      And("No consent was kept for the consent request")
+      // Get Consent By CONSENT_REQUEST_ID answers ConsentRequestNotFound when no consent was created from the request.
+      val getConsent = makeGetRequest(getConsentByRequestIdUrl(consentRequestId))
+      getConsent.code should equal(400)
+      getConsent.body.extract[ErrorMessage].message should equal(ConsentRequestNotFound)
+    }
+
+    scenario("A send that throws before it starts: the consent is rejected as well", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+      When("We create a consent with an EMAIL challenge while the SMTP settings cannot be read")
+      // Outside mail test mode the mapped connector reads the SMTP settings before it builds its Future, so a bad
+      // port throws at once rather than failing a Future. No SMTP connection is attempted.
+      setPropsValues("mail.test.mode" -> "false", "mail.smtp.port" -> "not-a-port")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
+      val createConsentRequestResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJson))
+      createConsentRequestResponse.code should equal(201)
+      val consentRequestId = createConsentRequestResponse.body.extract[ConsentRequestResponseJson].consent_request_id
+      val response = makePostRequest(createConsentByConsentRequestIdEmail(consentRequestId), write(""))
+      Then("The request fails and the consent it wrote is rejected, not left INITIATED")
+      response.code should not equal(201)
+      val getConsent = makeGetRequest(getConsentByRequestIdUrl(consentRequestId))
+      getConsent.code should equal(200)
+      getConsent.body.extract[ConsentJsonV500].status should equal(ConsentStatus.REJECTED.toString)
+    }
+
+    scenario("SMS that cannot be sent: the consent is rejected rather than left waiting for an answer", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+      // With an SMS provider configured this would send a real message; the scenario needs none.
+      assume(APIUtil.getPropsValue("sca_phone_api_key").isEmpty, "sca_phone_api_key is set, so an SMS would be sent")
+      When("We create a consent with an SMS challenge on an instance with no SMS provider configured")
+      val (consentRequestId, response) = createConsent(createConsentByConsentRequestIdSms, sendDelayMillis = 0)
+      Then("We get the 400 of the failed send")
+      response.code should equal(400)
+      And("The consent written before the send is rejected, so no one is left with a consent they cannot answer")
+      val getConsent = makeGetRequest(getConsentByRequestIdUrl(consentRequestId))
+      getConsent.code should equal(200)
+      getConsent.body.extract[ConsentJsonV500].status should equal(ConsentStatus.REJECTED.toString)
+    }
+  }
+
 }

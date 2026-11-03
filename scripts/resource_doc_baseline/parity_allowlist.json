@@ -1047,9 +1047,9 @@
       "version": "v5_0_0",
       "endpoint": "createConsentByConsentRequestIdImplicit",
       "field": "errorResponseBodies",
-      "reason": "Same shared-val expansion artifact as createConsentByConsentRequestIdEmail; expanded sets are identical.",
+      "reason": "Same shared-val expansion artifact as createConsentByConsentRequestIdEmail; expanded sets are identical. The http4s list also names GetConsentImplicitSCAError, which IMPLICIT returns when the user has no address for the implicit SCA method.",
       "lift_digest": "1cb5a60be98c8388253c1855e0b351469e254c5dee7ab2f42d388fe6c213da14",
-      "http4s_digest": "7affd9a379cb014033cdab59e2f4c7df80fbcb89ee3b14b126ae3fc11f20747f"
+      "http4s_digest": "70b04a9494e0047a99f36e6a4b3479ffe1958ab185684307bd6d1e33fb3e0c33"
     },
     {
       "version": "v5_0_0",
@@ -1759,17 +1759,17 @@
       "version": "v5_0_0",
       "endpoint": "createConsentByConsentRequestIdImplicit",
       "field": "description",
-      "reason": "Documents the consumer pin as implemented: adds the caller as the final fallback and states that a Consent naming no consumer is refused with ConsentConsumerIsRequired rather than stored with a null consumer_id. Text-only.",
+      "reason": "Documents the consumer pin as implemented: adds the caller as the final fallback and states that a Consent naming no consumer is refused with ConsentConsumerIsRequired rather than stored with a null consumer_id. Text-only. Also states that IMPLICIT sends the challenge the user's implicit SCA method names (an EMAIL on the mapped connector) before the call answers, and that a user with no address for it gets GetConsentImplicitSCAError before any Consent is created.",
       "lift_digest": "b262a1d68717cdbcc51a7c035741e5da4cf5124123683e3dd015c85ed8baa231",
-      "http4s_digest": "95623d7eda5322dbacd11e947887da53859b646ea16edaa5dd0b34782021f46e"
+      "http4s_digest": "d5dc004e521ebc35830f13b55ca24ca1e01a2f761360b69d8bdbe021fae74c6b"
     },
     {
       "version": "v5_0_0",
       "endpoint": "createConsentByConsentRequestIdSms",
       "field": "description",
-      "reason": "Documents the consumer pin as implemented: adds the caller as the final fallback and states that a Consent naming no consumer is refused with ConsentConsumerIsRequired rather than stored with a null consumer_id. Text-only.",
+      "reason": "Documents the consumer pin as implemented: adds the caller as the final fallback and states that a Consent naming no consumer is refused with ConsentConsumerIsRequired rather than stored with a null consumer_id. Text-only. Also states that the challenge is sent before the call answers, and that a challenge that cannot be sent fails the call, rejects the Consent and uses up the Consent Request.",
       "lift_digest": "7397560b818a5d9f4eb31a701499aea10c0ecd8d89d15496c0904d90984b84a6",
-      "http4s_digest": "881b4fe9e74e92efbe1177f1548d7ad4aa85be90f0ec44789ecf779267335f6b"
+      "http4s_digest": "339420f215d5c413ee4037e4cf5b26a3d906b3e60bd5535a41c24f39778d9765"
     },
     {
       "version": "v4_0_0",

@@ -508,6 +508,9 @@ mail.smtp.port=25
 mail.smtp.auth=false
 mail.smtp.user=
 mail.smtp.password=
+## Milliseconds to wait for the SMTP server to connect, answer and accept data (Default: 30000).
+## Mail such as the consent challenge is sent inside the request, so a server that goes quiet must not hold it.
+#mail.smtp.timeout_millis=30000
 
 ## TLS/SSL Configuration
 ## ---------------------
