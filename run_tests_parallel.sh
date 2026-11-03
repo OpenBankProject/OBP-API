@@ -215,8 +215,7 @@ run_shard() {
     # DynamicResourceDocTest / DynamicMessageDocTest / DynamicCodeKillSwitchTest's ON
     # scenarios need this set explicitly or they fail locally with OBP-50020.
     # OBP_ALLOW_CASCADE_DELETE mirrors CI's allow_cascade_delete=true: the cascade-delete
-    # endpoints are off by default, and the Delete*CascadeTest / Dynamic Entity cascade suites
-    # get 404s without it.
+    # endpoints are off by default, and the Delete*CascadeTest suites get 404s without it.
     # OBP_BERLIN_GROUP_V1_3_ALIAS_PATH mirrors CI's berlin_group_v1_3_alias_path=0.6/v1
     # (injected by both workflows' "Setup props" step): without it, OBP_BERLIN_GROUP_1_3_Alias
     # reports an empty ScannedApiVersion("","","") and ScannedApis.isAddressable filters it

@@ -42,7 +42,6 @@ class CascadeDeleteDisabledTest extends V400ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object PropGatedPublicEndpoint extends Tag("PropGatedPublicEndpoint")
 
-  private def v6_0_0_Request = baseRequest / "obp" / "v6.0.0"
   private def v7_0_0_Request = baseRequest / "obp" / "v7.0.0"
 
   feature("allow_cascade_delete=false") {
@@ -51,9 +50,13 @@ class CascadeDeleteDisabledTest extends V400ServerSetup {
     }
 
     scenario("No cascade-delete endpoint is routed or listed in the Resource Docs", PropGatedPublicEndpoint, VersionOfApi) {
-      CascadeDeleteEndpoints.found.foreach { case (where, names) =>
+      CascadeDeleteEndpoints.gated.foreach { case (where, names) =>
         withClue(where) { names should be(empty) }
       }
+    }
+
+    scenario("The Dynamic Entity cascade deletes stay routed", PropGatedPublicEndpoint, VersionOfApi) {
+      CascadeDeleteEndpoints.dynamicEntityCascadesRouted should be(true)
     }
 
     scenario("A request to any cascade-delete path gets 404", PropGatedPublicEndpoint, VersionOfApi) {
@@ -64,8 +67,6 @@ class CascadeDeleteDisabledTest extends V400ServerSetup {
         v4_0_0_Request / "management" / "cascading" / "banks" / bankId,
         v4_0_0_Request / "management" / "cascading" / "banks" / bankId / "products" / "PRODUCT_CODE",
         v4_0_0_Request / "management" / "cascading" / "banks" / bankId / "customers" / "CUSTOMER_ID",
-        v6_0_0_Request / "management" / "system-dynamic-entities" / "cascade" / "DYNAMIC_ENTITY_ID",
-        v7_0_0_Request / "management" / "banks" / bankId / "dynamic-entities" / "cascade" / "DYNAMIC_ENTITY_ID",
         // v7.0.0 hands paths it has no route for down to the older versions.
         v7_0_0_Request / "management" / "cascading" / "banks" / bankId
       )

@@ -3862,7 +3862,7 @@ object Glossary extends MdcLoggable  {
 |* UserId may be stored for audit purposes but is **ignored in queries**
 |* All authorized users see the same shared data
 |* Role-based authorization is **required** (e.g., CanGetDynamicEntity_FooBar)
-|* Cascade delete **is allowed** - you can delete the entity definition and all its records in one operation (when the prop `allow_cascade_delete` is true; it is false by default and the cascade endpoints do not exist then)
+|* Cascade delete **is allowed** - you can delete the entity definition and all its records in one operation
 |
 |**Summary table:**
 |
@@ -3872,7 +3872,7 @@ object Glossary extends MdcLoggable  {
 || UserId in queries | Yes (filters results) | No (ignored) |
 || 'my' endpoints | Generated | Not generated |
 || Authorization | User-scoped (no roles needed for 'my' endpoints) | Role-based |
-|| Cascade delete | Blocked | Allowed (with `allow_cascade_delete=true`) |
+|| Cascade delete | Blocked | Allowed |
 |
 |**For bank-level entities**, endpoints include the bank ID:
 |
@@ -3928,7 +3928,7 @@ object Glossary extends MdcLoggable  {
 |* PUT /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID - Update a definition (CanUpdateDynamicEntityDefinition)
 |* DELETE /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID - Delete a definition that has no records (CanDeleteDynamicEntityDefinition)
 |* POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/backup - Copy a definition and its records to a `_BAK` entity (CanBackupDynamicEntityDefinition)
-|* DELETE /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/cascade/DYNAMIC_ENTITY_ID - Delete a definition and its records, after copying both to a `ZZ_BAK_` entity (CanDeleteCascadeDynamicEntityDefinition; only when `allow_cascade_delete=true`)
+|* DELETE /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/cascade/DYNAMIC_ENTITY_ID - Delete a definition and its records, after copying both to a `ZZ_BAK_` entity (CanDeleteCascadeDynamicEntityDefinition)
 |
 |**Record endpoints from v7.0.0:**
 |

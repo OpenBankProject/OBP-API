@@ -53,39 +53,41 @@ class CascadeDeleteEndpointsTest extends V400ServerSetup {
     }
 
     scenario("Every cascade-delete endpoint is routed and listed in the Resource Docs", VersionOfApi) {
-      val found = CascadeDeleteEndpoints.found
-      found("v4.0.0 routed docs") should equal(CascadeDeleteEndpoints.v400Names.toSet)
-      found("v4.0.0 catalog") should equal(CascadeDeleteEndpoints.v400Names.toSet)
-      found("v6.0.0 routed docs") should equal(CascadeDeleteEndpoints.v600Names.toSet)
-      found("v6.0.0 catalog") should equal((CascadeDeleteEndpoints.v400Names ++ CascadeDeleteEndpoints.v600Names).toSet)
-      found("v7.0.0 routed docs") should equal(CascadeDeleteEndpoints.v700Names.toSet)
+      CascadeDeleteEndpoints.gated.foreach { case (where, names) =>
+        withClue(where) { names should equal(CascadeDeleteEndpoints.gatedNames.toSet) }
+      }
+    }
+
+    scenario("The Dynamic Entity cascade deletes are routed", VersionOfApi) {
+      CascadeDeleteEndpoints.dynamicEntityCascadesRouted should be(true)
     }
   }
 }
 
-/** The cascade-delete endpoints that allow_cascade_delete switches on and off. */
+/** The cascade-delete endpoints that allow_cascade_delete switches on and off, and the ones it leaves alone. */
 object CascadeDeleteEndpoints {
 
-  val v400Names: List[String] = List(
+  val gatedNames: List[String] = List(
     nameOf(Implementations4_0_0.deleteTransactionCascade),
     nameOf(Implementations4_0_0.deleteAccountCascade),
     nameOf(Implementations4_0_0.deleteBankCascade),
     nameOf(Implementations4_0_0.deleteProductCascade),
     nameOf(Implementations4_0_0.deleteCustomerCascade)
   )
-  val v600Names: List[String] = List(nameOf(Implementations6_0_0.deleteSystemDynamicEntityCascade))
-  val v700Names: List[String] = List(nameOf(Http4s700DynamicEntityDefinitions.deleteDynamicEntityDefinitionCascade))
 
   private def names(docs: Iterable[ResourceDoc]): Set[String] = docs.map(_.partialFunctionName).toSet
 
-  /** The cascade-delete names in each list the endpoints are routed or documented from. */
-  def found: Map[String, Set[String]] = Map(
-    "v4.0.0 routed docs" -> (names(Implementations4_0_0.orderedResourceDocs) intersect v400Names.toSet),
-    "v4.0.0 catalog" -> (names(Http4sResourceDocAggregation.v400) intersect v400Names.toSet),
-    "v6.0.0 routed docs" -> (names(Implementations6_0_0.orderedResourceDocs) intersect v600Names.toSet),
-    "v6.0.0 catalog" -> (names(Http4sResourceDocAggregation.v600) intersect (v400Names ++ v600Names).toSet),
-    "v7.0.0 routed docs" -> (names(Implementations7_0_0.orderedResourceDocs) intersect v700Names.toSet)
+  /** The gated names in each list the endpoints are routed or documented from. */
+  def gated: Map[String, Set[String]] = Map(
+    "v4.0.0 routed docs" -> (names(Implementations4_0_0.orderedResourceDocs) intersect gatedNames.toSet),
+    "v4.0.0 catalog" -> (names(Http4sResourceDocAggregation.v400) intersect gatedNames.toSet),
+    "v6.0.0 catalog" -> (names(Http4sResourceDocAggregation.v600) intersect gatedNames.toSet)
   )
+
+  /** The Dynamic Entity cascade deletes, which back up first and stay routed whatever the prop says. */
+  def dynamicEntityCascadesRouted: Boolean =
+    names(Implementations6_0_0.orderedResourceDocs).contains(nameOf(Implementations6_0_0.deleteSystemDynamicEntityCascade)) &&
+      names(Implementations7_0_0.orderedResourceDocs).contains(nameOf(Http4s700DynamicEntityDefinitions.deleteDynamicEntityDefinitionCascade))
 
   def enabled: Boolean = APIUtil.cascadeDeleteEnabled
 }
