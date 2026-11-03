@@ -3652,34 +3652,40 @@ object NewStyle extends MdcLoggable{
      */
     def deleteDynamicEntity(bankId: Option[String], dynamicEntityId: String): Future[Box[Boolean]] = {
       validateBankId(bankId, None)
-      Future {
-        val result = for {
-          entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
-          deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
-          deleteEntitleMentResult <- if (deleteEntityResult) {
-            Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName, entity.bankId)
-          } else {
-            Box !! false
-          }
-        } yield {
-          if (deleteEntitleMentResult) {
-            // The Role names carry no bank, so while an entity of this name is left in another space
-            // they are still its Roles and stay registered.
-            val nameStillUsed = DynamicEntityProvider.connectorMethodProvider.vend
-              .getDynamicEntities(None, returnBothBankAndSystemLevel = true)
-              .exists(_.entityName == entity.entityName)
-            if (!nameStillUsed)
-              DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
-            // Cascade row-level ACL rows for this entity (§7) — safety net for any rows not already
-            // cleaned up by per-row delete; no-op for non-row-level entities.
-            code.DynamicData.DynamicDataAccessProvider.provider.vend.deleteAllForEntity(entity.bankId, entity.entityName)
-          }
-          deleteEntitleMentResult
+      Future(deleteDynamicEntityNow(bankId, dynamicEntityId))
+    }
+
+    /**
+     * The delete of deleteDynamicEntity on the calling thread, for a caller that deletes inside its own
+     * database transaction (the bank cascade).
+     */
+    def deleteDynamicEntityNow(bankId: Option[String], dynamicEntityId: String): Box[Boolean] = {
+      val result = for {
+        entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
+        deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
+        deleteEntitleMentResult <- if (deleteEntityResult) {
+          Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName, entity.bankId)
+        } else {
+          Box !! false
         }
-        // The entity's generated resource docs go with it: the provider's delete calls
-        // DynamicEntityHelper.forgetDefinitions, which drops the doc caches once the delete has committed.
-        result
+      } yield {
+        if (deleteEntitleMentResult) {
+          // The Role names carry no bank, so while an entity of this name is left in another space
+          // they are still its Roles and stay registered.
+          val nameStillUsed = DynamicEntityProvider.connectorMethodProvider.vend
+            .getDynamicEntities(None, returnBothBankAndSystemLevel = true)
+            .exists(_.entityName == entity.entityName)
+          if (!nameStillUsed)
+            DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
+          // Cascade row-level ACL rows for this entity (§7) — safety net for any rows not already
+          // cleaned up by per-row delete; no-op for non-row-level entities.
+          code.DynamicData.DynamicDataAccessProvider.provider.vend.deleteAllForEntity(entity.bankId, entity.entityName)
+        }
+        deleteEntitleMentResult
       }
+      // The entity's generated resource docs go with it: the provider's delete calls
+      // DynamicEntityHelper.forgetDefinitions, which drops the doc caches once the delete has committed.
+      result
     }
 
     def getDynamicEntityById(bankId: Option[String], dynamicEntityId : String, callContext: Option[CallContext]): OBPReturnType[DynamicEntityT] = {

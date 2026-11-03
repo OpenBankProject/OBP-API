@@ -31,7 +31,10 @@ import code.accountattribute.MappedAccountAttribute
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
+import code.DynamicData.DynamicDataProvider
+import code.api.util.NewStyle
 import code.customer.CustomerX
+import code.dynamicEntity.DynamicEntityProvider
 import code.customeraccountlinks.CustomerAccountLink
 import code.model.dataAccess.{MappedBank, MappedBankAccount}
 import com.openbankproject.commons.model.{BankId, CustomerId}
@@ -60,7 +63,7 @@ object DeleteBankCascade {
       )
       // Delete account
       DeleteAccountCascade.delete(i.bankId, i.accountId)
-    } && deleteBank(bankId)
+    } && deleteDynamicEntities(bankId) && deleteBank(bankId)
   }
   
   def atomicDelete(bankId: BankId): Box[Boolean] = databaseAtomicTask {
@@ -70,6 +73,21 @@ object DeleteBankCascade {
       case false =>
         DB.rollback(DefaultConnectionIdentifier)
         fullBoxOrException(Empty ~> APIFailureNewStyle(CouldNotDeleteCascade, 400))
+    }
+  }
+
+  /**
+   * The bank's dynamic entities with their records (whoever owns them), access rows, entitlements and roles, the
+   * ZZ_BAK_ copies among them. With the bank gone their endpoints answer BankNotFound, so nothing else could
+   * remove them.
+   */
+  private def deleteDynamicEntities(bankId: BankId): Boolean = {
+    val space = Some(bankId.value)
+    DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(space, returnBothBankAndSystemLevel = false).forall { entity =>
+      val recordsDeleted = DynamicDataProvider.connectorMethodProvider.vend.getAllCommunity(space, entity.entityName).forall { record =>
+        record.dynamicDataId.forall(id => DynamicDataProvider.connectorMethodProvider.vend.deleteCommunity(space, entity.entityName, id).openOr(false))
+      }
+      recordsDeleted && entity.dynamicEntityId.forall(id => NewStyle.function.deleteDynamicEntityNow(space, id).openOr(false))
     }
   }
 
