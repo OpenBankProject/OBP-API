@@ -243,6 +243,24 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
     }
   
 
+    scenario("A VRP consent whose challenge has nowhere to go leaves no mandate behind", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      When("the PSU converts a VRP consent request that names no email address with an EMAIL challenge")
+      val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestMonthlyGuardJson.copy(email = None)))
+      createConsentResponse.code should equal(201)
+      val consentRequestId = createConsentResponse.body.extract[ConsentRequestResponseJson].consent_request_id
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
+      def vrpViews = ViewDefinition.findAll().count(_.viewId.value.startsWith(Constant.VRP_VIEW_ID_PREFIX))
+      def counterparties = code.metadata.counterparties.MappedCounterparty.count
+      val (viewsBefore, counterpartiesBefore) = (vrpViews, counterparties)
+      val response = makePostRequest(createConsentByConsentRequestIdEmail(consentRequestId), write(""))
+
+      Then("the request is refused before the view, its grant, the counterparty or its limit are written")
+      response.code should equal(400)
+      response.body.extract[ErrorMessage].message should include ("email")
+      vrpViews should equal(viewsBefore)
+      counterparties should equal(counterpartiesBefore)
+    }
+
     scenario("Revoking a VRP consent releases the mandate it created", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
       When("the PSU creates a VRP consent request and converts it")
       val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestMonthlyGuardJson))
