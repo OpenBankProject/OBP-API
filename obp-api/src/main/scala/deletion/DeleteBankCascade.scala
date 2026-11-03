@@ -85,9 +85,9 @@ object DeleteBankCascade {
     val space = Some(bankId.value)
     DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(space, returnBothBankAndSystemLevel = false).forall { entity =>
       val recordsDeleted = DynamicDataProvider.connectorMethodProvider.vend.getAllCommunity(space, entity.entityName).forall { record =>
-        record.dynamicDataId.forall(id => DynamicDataProvider.connectorMethodProvider.vend.deleteCommunity(space, entity.entityName, id).openOr(false))
+        record.dynamicDataId.exists(id => DynamicDataProvider.connectorMethodProvider.vend.deleteCommunity(space, entity.entityName, id).openOr(false))
       }
-      recordsDeleted && entity.dynamicEntityId.forall(id => NewStyle.function.deleteDynamicEntityNow(space, id).openOr(false))
+      recordsDeleted && entity.dynamicEntityId.exists(id => NewStyle.function.deleteDynamicEntityNow(space, id).openOr(false))
     }
   }
 

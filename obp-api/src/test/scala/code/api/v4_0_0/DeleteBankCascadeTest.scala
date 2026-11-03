@@ -43,7 +43,7 @@ import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequ
 import code.api.util.{APIUtil, ApiRole}
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
-import code.entitlement.Entitlement
+import code.entitlement.{Entitlement, MappedEntitlement}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
@@ -200,8 +200,12 @@ class DeleteBankCascadeTest extends V400ServerSetup {
       defineWithRecord(otherBankId, s"Echo$suffix")
       def definitionsAt(space: String) = DynamicEntity.findAll(By(DynamicEntity.BankId, space))
       def recordsAt(space: String) = DynamicData.findAll(By(DynamicData.BankId, space))
+      val readRole = s"CanGetDynamicEntityRecord_Echo$suffix"
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, readRole)
+      def readRoleGrantsAt(space: String) = MappedEntitlement.findAll(By(MappedEntitlement.mBankId, space), By(MappedEntitlement.mRoleName, readRole))
       definitionsAt(bankId) should have size 2
       recordsAt(bankId) should have size 2
+      readRoleGrantsAt(bankId) should have size 1
 
       When("We grant the role and delete the bank with the cascading endpoint")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteBankCascade.toString)
@@ -210,6 +214,7 @@ class DeleteBankCascadeTest extends V400ServerSetup {
       Then("The bank's definitions and records are gone, and the other bank keeps its own")
       definitionsAt(bankId) shouldBe empty
       recordsAt(bankId) shouldBe empty
+      readRoleGrantsAt(bankId) shouldBe empty
       definitionsAt(otherBankId) should have size 1
       recordsAt(otherBankId) should have size 1
     }
