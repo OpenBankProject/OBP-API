@@ -337,7 +337,26 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       getConsent.body.extract[ErrorMessage].message should equal(ConsentRequestNotFound)
     }
 
+    scenario("A send that throws before it starts: the consent is rejected as well", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+      When("We create a consent with an EMAIL challenge while the SMTP settings cannot be read")
+      // Outside mail test mode the mapped connector reads the SMTP settings before it builds its Future, so a bad
+      // port throws at once rather than failing a Future. No SMTP connection is attempted.
+      setPropsValues("mail.test.mode" -> "false", "mail.smtp.port" -> "not-a-port")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
+      val createConsentRequestResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJson))
+      createConsentRequestResponse.code should equal(201)
+      val consentRequestId = createConsentRequestResponse.body.extract[ConsentRequestResponseJson].consent_request_id
+      val response = makePostRequest(createConsentByConsentRequestIdEmail(consentRequestId), write(""))
+      Then("The request fails and the consent it wrote is rejected, not left INITIATED")
+      response.code should not equal(201)
+      val getConsent = makeGetRequest(getConsentByRequestIdUrl(consentRequestId))
+      getConsent.code should equal(200)
+      getConsent.body.extract[ConsentJsonV500].status should equal(ConsentStatus.REJECTED.toString)
+    }
+
     scenario("SMS that cannot be sent: the consent is rejected rather than left waiting for an answer", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+      // With an SMS provider configured this would send a real message; the scenario needs none.
+      assume(APIUtil.getPropsValue("sca_phone_api_key").isEmpty, "sca_phone_api_key is set, so an SMS would be sent")
       When("We create a consent with an SMS challenge on an instance with no SMS provider configured")
       val (consentRequestId, response) = createConsent(createConsentByConsentRequestIdSms, sendDelayMillis = 0)
       Then("We get the 400 of the failed send")

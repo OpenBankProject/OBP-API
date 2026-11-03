@@ -20,6 +20,12 @@ class CommonsEmailWrapperTest extends FeatureSpec with Matchers with GivenWhenTh
       }
     }
 
+    scenario("mail.smtp.timeout_millis sets the timeout, and a value Jakarta Mail would read as 'wait forever' does not") {
+      CommonsEmailWrapper.timeoutMillisFrom(Some("2500")) shouldBe 2500
+      for (unusable <- List(None, Some("0"), Some("-1"), Some("abc"), Some("")))
+        withClue(unusable) { CommonsEmailWrapper.timeoutMillisFrom(unusable) shouldBe CommonsEmailWrapper.defaultTimeoutMillis }
+    }
+
     scenario("the timeouts follow the configuration") {
       val props = CommonsEmailWrapper.sessionProperties(config.copy(timeoutMillis = 2500))
       props.getProperty("mail.smtp.connectiontimeout") shouldBe "2500"
