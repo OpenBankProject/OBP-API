@@ -110,7 +110,7 @@ import code.util.Helper.SILENCE_IS_GOLDEN
 import com.openbankproject.commons.dto.GetProductsParam
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model.{CreditLimit, CreditRating, CustomerFaceImage}
-import net.liftweb.common.{Empty, Failure}
+import net.liftweb.common.{Box, Empty, Failure}
 
 import scala.util.Random
 import code.metrics.APIMetrics
@@ -5052,35 +5052,44 @@ object Http4s600 {
             box <- code.abacrule.AbacRuleEngine.validateRuleCodeAsync(validateJson.rule_code)
           } yield box match {
             case Full(msg) => ValidateAbacRuleSuccessJsonV600(valid = true, message = msg): Any
-            case Failure(errorMsg, _, _) =>
-              val cleanError = errorMsg.replace("Invalid ABAC rule code: ", "")
-                .replace("Failed to compile ABAC rule: ", "")
-              val (obpMsg, errorType) =
-                if (cleanError.toLowerCase.contains("too permissive") || cleanError.toLowerCase.contains("tautological")) {
-                  val ec = if (cleanError.toLowerCase.contains("statistical"))
-                    AbacRuleStatisticallyTooPermissive else AbacRuleTooPermissive
-                  (ec, "PermissivenessError")
-                } else if (cleanError.toLowerCase.contains("type mismatch") ||
-                  (cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")))
-                  (AbacRuleTypeMismatch, "TypeError")
-                else if (cleanError.toLowerCase.contains("syntax") || cleanError.toLowerCase.contains("parse"))
-                  (AbacRuleSyntaxError, "SyntaxError")
-                else if (cleanError.toLowerCase.contains("not found") || cleanError.toLowerCase.contains("not a member"))
-                  (AbacRuleFieldReferenceError, "FieldReferenceError")
-                else if (cleanError.toLowerCase.contains("compilation failed") ||
-                  cleanError.toLowerCase.contains("reflective compilation has failed"))
-                  (AbacRuleCompilationFailed, "CompilationError")
-                else (AbacRuleValidationFailed, "ValidationError")
+            case failed =>
+              val (obpMsg, errorType, error) = classifyAbacRuleCodeFailure(failed)
               ValidateAbacRuleFailureJsonV600(
-                valid = false, error = cleanError, message = obpMsg,
+                valid = false, error = error, message = obpMsg,
                 details = ValidateAbacRuleErrorDetailsJsonV600(error_type = errorType))
-            case _ =>
-              ValidateAbacRuleFailureJsonV600(
-                valid = false, error = "Unknown validation error",
-                message = AbacRuleValidationFailed,
-                details = ValidateAbacRuleErrorDetailsJsonV600(error_type = "UnknownError"))
           }
         }
+    }
+
+    /** The OBP error message, error type and engine message of a failed ABAC rule code validation. */
+    private def classifyAbacRuleCodeFailure(validation: Box[String]): (String, String, String) = validation match {
+      case Failure(errorMsg, _, _) =>
+        val cleanError = errorMsg.replace("Invalid ABAC rule code: ", "")
+          .replace("Failed to compile ABAC rule: ", "")
+        val (obpMsg, errorType) =
+          if (cleanError.toLowerCase.contains("too permissive") || cleanError.toLowerCase.contains("tautological")) {
+            val ec = if (cleanError.toLowerCase.contains("statistical"))
+              AbacRuleStatisticallyTooPermissive else AbacRuleTooPermissive
+            (ec, "PermissivenessError")
+          } else if (cleanError.toLowerCase.contains("type mismatch") ||
+            (cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")))
+            (AbacRuleTypeMismatch, "TypeError")
+          else if (cleanError.toLowerCase.contains("syntax") || cleanError.toLowerCase.contains("parse"))
+            (AbacRuleSyntaxError, "SyntaxError")
+          else if (cleanError.toLowerCase.contains("not found") || cleanError.toLowerCase.contains("not a member"))
+            (AbacRuleFieldReferenceError, "FieldReferenceError")
+          else if (cleanError.toLowerCase.contains("compilation failed") ||
+            cleanError.toLowerCase.contains("reflective compilation has failed"))
+            (AbacRuleCompilationFailed, "CompilationError")
+          else (AbacRuleValidationFailed, "ValidationError")
+        (obpMsg, errorType, cleanError)
+      case _ => (AbacRuleValidationFailed, "UnknownError", "Unknown validation error")
+    }
+
+    /** Fails with the same OBP error the validate endpoint reports, followed by the engine's message. */
+    private def failOnInvalidAbacRuleCode(validation: Box[String], cc: CallContext): Future[Box[Unit]] = {
+      val (obpMsg, _, error) = classifyAbacRuleCodeFailure(validation)
+      Helper.booleanToFuture(s"$obpMsg $error", 400, Some(cc)) { validation.isDefined }
     }
 
     lazy val executeAbacRule: Http4sRoute = Http4sRoute {
@@ -5983,8 +5992,8 @@ object Http4s600 {
             }
             _ <- Helper.booleanToFuture("Rule name must not be empty", cc = Some(cc)) { createJson.rule_name.nonEmpty }
             _ <- Helper.booleanToFuture("Rule code must not be empty", cc = Some(cc)) { createJson.rule_code.nonEmpty }
-            _ <- AbacRuleEngine.validateRuleCodeAsync(createJson.rule_code)
-              .map(unboxFullOrFail(_, Some(cc), "Invalid ABAC rule code", 400))
+            validation <- AbacRuleEngine.validateRuleCodeAsync(createJson.rule_code)
+            _ <- failOnInvalidAbacRuleCode(validation, cc)
             // Maker/checker: a managed instance queues the rule for a second user's approval (202)
             intercepted <- Future(MakerChecker.intercept(
               com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType.ABAC_RULE,
@@ -6045,8 +6054,8 @@ object Http4s600 {
             updateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UpdateAbacRuleJsonV600]
             }
-            _ <- AbacRuleEngine.validateRuleCodeAsync(updateJson.rule_code)
-              .map(unboxFullOrFail(_, Some(cc), "Invalid ABAC rule code", 400))
+            validation <- AbacRuleEngine.validateRuleCodeAsync(updateJson.rule_code)
+            _ <- failOnInvalidAbacRuleCode(validation, cc)
             _ <- Future(MappedAbacRuleProvider.getAbacRuleById(ruleId))
               .map(unboxFullOrFail(_, Some(cc), s"ABAC Rule not found with ID: $ruleId", 404))
             intercepted <- Future(MakerChecker.intercept(

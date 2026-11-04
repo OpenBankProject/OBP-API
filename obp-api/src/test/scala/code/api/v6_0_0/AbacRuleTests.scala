@@ -29,7 +29,7 @@ package code.api.v6_0_0
 
 import org.json4s._
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{canCreateAbacRule, canExecuteAbacRule}
+import code.api.util.ApiRole.{canCreateAbacRule, canExecuteAbacRule, canUpdateAbacRule}
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.v6_0_0.Http4s600.Implementations6_0_0
@@ -389,6 +389,54 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       val response = makePostRequest(request, write(createJson))
       Then("We should get a 201")
       response.code should equal(201)
+    }
+  }
+
+  // ==================== Error Codes of Rejected Rule Code ====================
+
+  feature(s"Creating or updating a rule with invalid code answers the error validate reports - $VersionOfApi") {
+
+    val invalidRuleCodes = List(
+      "field reference" -> "authenticatedUser.noSuchField == \"x\"",
+      "syntax" -> "authenticatedUser.emailAddress ==",
+      "tautology" -> "true"
+    )
+
+    def obpCode(message: String): String = "OBP-\\d+".r.findFirstIn(message).getOrElse(message)
+
+    def validatedCode(ruleCode: String): String = {
+      val response = makePostRequest(
+        (v6_0_0_Request / "management" / "abac-rules" / "validate").POST <@ (user1),
+        write(ValidateAbacRuleJsonV600(rule_code = ruleCode)))
+      response.code should equal(200)
+      (response.body \ "valid").extract[Boolean] should equal(false)
+      obpCode((response.body \ "message").extract[String])
+    }
+
+    invalidRuleCodes.foreach { case (kind, ruleCode) =>
+      scenario(s"Creating a rule with a $kind error", ApiEndpoint3, VersionOfApi) {
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
+        val expectedCode = validatedCode(ruleCode)
+        expectedCode should not equal obpCode(ErrorMessages.UnknownError)
+        val response = makePostRequest(
+          (v6_0_0_Request / "management" / "abac-rules").POST <@ (user1),
+          write(CreateAbacRuleJsonV600(s"invalid-$kind", ruleCode, "Should be rejected", "account-access", is_active = true)))
+        Then(s"We should get a 400 with $expectedCode")
+        response.code should equal(400)
+        response.body.extract[ErrorMessage].message should startWith(expectedCode)
+      }
+
+      scenario(s"Updating a rule with a $kind error", ApiEndpoint3, VersionOfApi) {
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateAbacRule.toString)
+        val ruleId = createAbacRuleViaApi(s"to-update-$kind", "false")
+        val expectedCode = validatedCode(ruleCode)
+        val response = makePutRequest(
+          (v6_0_0_Request / "management" / "abac-rules" / ruleId).PUT <@ (user1),
+          write(UpdateAbacRuleJsonV600(s"to-update-$kind", ruleCode, "Should be rejected", "account-access", is_active = true)))
+        Then(s"We should get a 400 with $expectedCode")
+        response.code should equal(400)
+        response.body.extract[ErrorMessage].message should startWith(expectedCode)
+      }
     }
   }
 }
