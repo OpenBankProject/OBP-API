@@ -50,9 +50,7 @@ import com.openbankproject.commons.model.{AccountId, BankId}
 import com.openbankproject.commons.util.JsonAliases
 import deletion.DeletionUtil.databaseAtomicTask
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.db.DB
 import net.liftweb.mapper.{By, ByList, NotBy}
-import net.liftweb.util.DefaultConnectionIdentifier
 import net.liftweb.util.Helpers.tryo
 import org.json4s.Formats
 
@@ -90,7 +88,7 @@ object DeleteAccountCascade {
       case true =>
         Full(true)
       case false =>
-        DB.rollback(DefaultConnectionIdentifier)
+        // Throws, so databaseAtomicTask restores what delete has removed.
         fullBoxOrException(Empty ~> APIFailureNewStyle(CouldNotDeleteCascade, 400))
     }
   }

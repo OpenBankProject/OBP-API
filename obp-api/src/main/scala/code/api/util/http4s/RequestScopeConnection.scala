@@ -193,7 +193,8 @@ object RequestScopeConnection extends MdcLoggable {
 
   /**
    * Wrap a real Connection in a proxy that no-ops commit, rollback, and close.
-   * All other methods delegate to the real connection.
+   * All other methods delegate to the real connection, rollback(Savepoint) among them, so
+   * that a part of the request can still undo its own writes (DeletionUtil.databaseAtomicTask).
    *
    * This prevents Lift's per-DB.use lifecycle from committing or returning the
    * connection to the pool before the request transaction scope ends.
@@ -205,7 +206,8 @@ object RequestScopeConnection extends MdcLoggable {
       new InvocationHandler {
         def invoke(proxy: Any, method: Method, args: Array[AnyRef]): AnyRef =
           method.getName match {
-            case "commit" | "rollback" | "close" => null
+            case "commit" | "close" => null
+            case "rollback" if args == null || args.isEmpty => null
             case _ =>
               try {
                 val result =

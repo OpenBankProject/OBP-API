@@ -39,9 +39,7 @@ import code.transaction.MappedTransaction
 import code.transactionattribute.MappedTransactionAttribute
 import code.transactionrequests.MappedTransactionRequestProvider
 import com.openbankproject.commons.model.{AccountId, BankId, TransactionId}
-import net.liftweb.db.DB
 import net.liftweb.mapper.By
-import net.liftweb.util.DefaultConnectionIdentifier
 import deletion.DeletionUtil.databaseAtomicTask
 import net.liftweb.common.{Box, Empty, Full}
 
@@ -64,7 +62,7 @@ object DeleteTransactionCascade {
       case true =>
         Full(true)
       case false =>
-        DB.rollback(DefaultConnectionIdentifier)
+        // Throws, so databaseAtomicTask restores what delete has removed.
         fullBoxOrException(Empty ~> APIFailureNewStyle(CouldNotDeleteCascade, 400))
     }
   }
