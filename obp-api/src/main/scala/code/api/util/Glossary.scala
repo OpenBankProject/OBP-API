@@ -651,7 +651,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |Returns the aggregated active rate limits for the specified hour, including which rate limit records contributed to the totals.
 				 |
-				 |Rate limits are cached and queried at hour-level granularity for performance. All hours are interpreted in UTC for consistency across all servers.
+				 |Rate limit records are cached and queried per hour for performance, and a request is held only to the records whose `from_date` and `to_date` enclose the time of the request. All hours are interpreted in UTC for consistency across all servers.
 				 |
 				 |### System Defaults
 				 |

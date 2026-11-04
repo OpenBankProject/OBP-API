@@ -6246,9 +6246,12 @@ object Http4s600 {
             _ <- Helper.booleanToFuture(s"$RateLimitScopeNotSupported Remove: ${scopeFields.mkString(", ")}", 400, Some(cc)) {
               scopeFields.isEmpty
             }
+            existing <- RateLimitingDI.rateLimiting.vend.getByRateLimitingId(rateLimitingId)
             _ <- RateLimitingDI.rateLimiting.vend.updateConsumerCallLimits(
               rateLimitingId, postJson.from_date, postJson.to_date,
-              None, None, None, // rateLimitScopeFields has refused any value that is not blank
+              // rateLimitScopeFields has refused any value that is not blank; the bank_id of a record an
+              // API Product Subscription wrote is kept.
+              None, None, existing.toOption.flatMap(_.bankId),
               Some(postJson.per_second_call_limit), Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit), Some(postJson.per_day_call_limit),
               Some(postJson.per_week_call_limit), Some(postJson.per_month_call_limit))
