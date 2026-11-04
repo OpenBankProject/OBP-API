@@ -1598,6 +1598,8 @@ trait Connector extends MdcLoggable {
                                 ): OBPReturnType[Box[CardAttribute]] = Future{(Failure(setUnimplementedError(nameOf(createOrUpdateCardAttribute _))), callContext)}
 
   def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]): OBPReturnType[Box[CardAttribute]] = Future{(Failure(setUnimplementedError(nameOf(getCardAttributeById _))), callContext)}
+
+  def deleteCardAttribute(cardAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError(nameOf(deleteCardAttribute _))), callContext)}
   
   def getCardAttributesFromProvider(cardId: String, callContext: Option[CallContext]): OBPReturnType[Box[List[CardAttribute]]] = Future{(Failure(setUnimplementedError(nameOf(getCardAttributesFromProvider _))), callContext)}
 
