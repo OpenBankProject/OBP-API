@@ -270,4 +270,39 @@ class CardTest extends V310ServerSetup with DefaultUsers {
     }
   }
 
-} 
+  feature("Delete Card checks only the delete role") {
+    scenario("A user with CanDeleteCardsForBank alone deletes a card", ApiEndpointDeleteCardForBank, VersionOfApi) {
+      Given("A card created by user1")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canCreateCardsForBank.toString)
+      val customerId = makePostRequest(
+        (v3_1_0_Request / "banks" / testBankId1.value / "customers").POST <@ (user1),
+        write(SwaggerDefinitionsJSON.postCustomerJsonV310)
+      ).body.extract[CustomerJsonV310].customer_id
+      val cardJson = createPhysicalCardJsonV310.copy(account_id = testAccountId1.value, issue_number = "123", customer_id = customerId)
+      val responseCreate = makePostRequest((v3_1_0_Request / "management" / "banks" / testBankId1.value / "cards").POST <@ (user1), write(cardJson))
+      responseCreate.code should equal(201)
+      val cardId = responseCreate.body.extract[PhysicalCardJsonV310].card_id
+      val requestDelete = (v3_1_0_Request / "management" / "banks" / testBankId1.value / "cards" / cardId).DELETE <@ (user2)
+
+      When("user2 holds only CanCreateCardsForBank")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, ApiRole.canCreateCardsForBank.toString)
+      val responseCreateRoleOnly = makeDeleteRequest(requestDelete)
+      Then("the delete is refused for the missing delete role")
+      responseCreateRoleOnly.code should equal(403)
+      responseCreateRoleOnly.body.toString should include(ApiRole.canDeleteCardsForBank.toString)
+
+      When("user2 holds only CanDeleteCardsForBank")
+      Entitlement.entitlement.vend.deleteEntitlement(
+        Entitlement.entitlement.vend.getEntitlement(testBankId1.value, resourceUser2.userId, ApiRole.canCreateCardsForBank.toString))
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, ApiRole.canDeleteCardsForBank.toString)
+      val responseDelete = makeDeleteRequest(requestDelete)
+      Then("the card is deleted")
+      responseDelete.code should equal(204)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canGetCardsForBank.toString)
+      makeGetRequest((v3_1_0_Request / "management" / "banks" / testBankId1.value / "cards" / cardId).GET <@ (user1))
+        .body.toString should include(CardNotFound)
+    }
+  }
+
+}

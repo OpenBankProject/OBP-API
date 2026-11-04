@@ -2240,7 +2240,7 @@ object Http4s310 {
       EmptyBody,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, AllowedValuesAre, UnknownError),
       List(apiTagCard),
-      Some(List(canCreateCardsForBank)),
+      Some(List(canDeleteCardsForBank)),
       http4sPartialFunction = Some(deleteCardForBank)
     )
 
