@@ -1184,9 +1184,8 @@ def restoreSomeSessions(): Unit = {
         }
 
         //3rd: the accounts both sides still have may have gained or lost views, so compare the views of each one, also
-        //when other accounts were added or removed above. Views are taken away only on a refresh that leaves the accounts
-        //as they were: opening an account must not cost the holder the views it was given on its other accounts some
-        //other way (a VRP mandate's view, an auditor view), which the connector does not list.
+        //when other accounts were added or removed above. Views the connector does not list are taken away, as before,
+        //only on a refresh that leaves the accounts as they were, so opening an account does not by itself remove them.
         val accountsUnchanged = cbsRemovedBankAccountIds.equals(csbNewBankAccountIds)
         for {
           bankAccountId <- obpBankAccountIds intersect cbsBankAccountIds
