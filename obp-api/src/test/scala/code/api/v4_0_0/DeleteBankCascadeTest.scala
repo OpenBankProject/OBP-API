@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import org.json4s._
-import code.DynamicData.{DynamicData, DynamicDataProvider}
+import code.DynamicData.{DynamicData, DynamicDataAccess, DynamicDataProvider}
 import code.accountholders.MapperAccountHolders
 import code.dynamicEntity.{DynamicEntity, DynamicEntityCommons, DynamicEntityProvider}
 import net.liftweb.util.StringHelpers
@@ -217,6 +217,34 @@ class DeleteBankCascadeTest extends V400ServerSetup {
       readRoleGrantsAt(bankId) shouldBe empty
       definitionsAt(otherBankId) should have size 1
       recordsAt(otherBankId) should have size 1
+    }
+
+    scenario("We delete a bank that has records whose definition is already gone", ApiEndpoint1, VersionOfApi) {
+      val bankId = createBank(APIUtil.generateUUID()).bankId.value
+      val otherBankId = createBank(APIUtil.generateUUID()).bankId.value
+      // A definition can be deleted while personal records of it remain (its delete checks for community
+      // records only), which leaves records, and the access rows granted on them, with no definition.
+      val entityName = s"Gone${APIUtil.generateUUID().take(8).replace("-", "")}"
+      def orphanAt(space: String): Unit = {
+        val record = DynamicData.create.BankId(space).DynamicEntityName(entityName).DataJson("{}")
+          .UserId("bank-cascade-owner").IsPersonalEntity(true).saveMe()
+        DynamicDataAccess.create.BankId(space).EntityName(entityName).DynamicDataId(record.DynamicDataId.get)
+          .UserId(resourceUser2.userId).CanRead(true).GrantedBy("bank-cascade-owner").saveMe()
+      }
+      orphanAt(bankId)
+      orphanAt(otherBankId)
+      def recordsAt(space: String) = DynamicData.findAll(By(DynamicData.BankId, space), By(DynamicData.DynamicEntityName, entityName))
+      def accessRowsAt(space: String) = DynamicDataAccess.findAll(By(DynamicDataAccess.BankId, space), By(DynamicDataAccess.EntityName, entityName))
+
+      When("We delete the bank with the cascading endpoint")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteBankCascade.toString)
+      makeDeleteRequest((v4_0_0_Request / "management" / "cascading" / "banks" / bankId).DELETE <@(user1)).code should equal(200)
+
+      Then("Those records and access rows go with the bank, and the other bank keeps its own")
+      recordsAt(bankId) shouldBe empty
+      accessRowsAt(bankId) shouldBe empty
+      recordsAt(otherBankId) should have size 1
+      accessRowsAt(otherBankId) should have size 1
     }
 
     scenario("We delete a bank whose accounts have holders", ApiEndpoint1, VersionOfApi) {
