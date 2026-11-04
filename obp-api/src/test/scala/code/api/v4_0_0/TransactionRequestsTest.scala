@@ -699,6 +699,36 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
   }
 
+  feature("a transaction request whose challenge cannot be sent") {
+
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("is not left waiting for an answer", ApiEndpoint1) {}
+    } else {
+      scenario("is not left waiting for an answer", ApiEndpoint1) {
+        When("the challenge goes by SMS and no SMS provider is configured")
+        setPropsValues("ACCOUNT_OTP_INSTRUCTION_TRANSPORT" -> "SMS")
+        val helper = defaultSetup(ACCOUNT.toString)
+        val amt = "30000.00"
+        helper.setCurrencyAndAmt("AED", "AED", amt)
+        helper.bodyValue = AmountOfMoneyJsonV121("AED", amt)
+        helper.transactionRequestBody = helper.transactionRequestBody.copy(value = helper.bodyValue)
+
+        Then("creating the transaction request answers 400")
+        val createTransactionRequestResponse = helper.makeCreateTransReqRequest
+        createTransactionRequestResponse.code should equal(400)
+
+        And("the transaction request it saved is marked FAILED, not INITIATED")
+        val getTransReqResponse = helper.makeGetTransReqRequest
+        getTransReqResponse.code should equal(200)
+        (getTransReqResponse.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(
+          List(TransactionRequestStatus.FAILED.toString))
+
+        And("the account balance is unchanged")
+        helper.checkBankAccountBalance(false)
+      }
+    }
+  }
+
   feature("we can create transaction requests -- FREE_FORM") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
