@@ -2666,6 +2666,9 @@ object Http4s310 {
           for {
             _ <- NewStyle.function.hasEntitlement("", user.userId, canUpdateRateLimits, Some(cc))
             _ <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
+            // The consumer's one rate limit is changed; with several, which one is meant is not known.
+            sameScope <- RateLimitingDI.rateLimiting.vend.countConsumerCallLimits(consumerIdStr, None, None, None)
+            _ <- code.util.Helper.booleanToFuture(RateLimitNotUnique, 400, Some(cc)) { sameScope <= 1 }
             rateLimiting <- RateLimitingDI.rateLimiting.vend.createOrUpdateConsumerCallLimits(
               consumerIdStr,
               postJson.from_date,
@@ -2700,6 +2703,9 @@ object Http4s310 {
       |Per Week
       |Per Month
       |
+      |This changes the Consumer's rate limit, or creates it when there is none. A Consumer given several rate limits
+      |with Create Rate Limits (v6.0.0) is refused with 400: change one of them by its RATE_LIMITING_ID instead.
+      |
       |
       |${userAuthenticationMessage(true)}
       |
@@ -2707,7 +2713,7 @@ object Http4s310 {
       callLimitPostJson,
       callLimitPostJson,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidConsumerId,
-      ConsumerNotFoundByConsumerId, UserHasMissingRoles, UpdateConsumerError, UnknownError),
+      ConsumerNotFoundByConsumerId, RateLimitNotUnique, UserHasMissingRoles, UpdateConsumerError, UnknownError),
       List(apiTagConsumer),
       Some(List(canUpdateRateLimits)),
       http4sPartialFunction = Some(callsLimit)

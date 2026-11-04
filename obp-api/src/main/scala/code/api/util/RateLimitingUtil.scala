@@ -102,6 +102,13 @@ object RateLimitingJson {
 }
 
 object RateLimitingUtil extends MdcLoggable {
+
+  /** The fields of a rate limit that name something narrower than the consumer, which nothing enforces yet. An empty
+    * value names nothing. */
+  def rateLimitScopeFields(apiName: Option[String], apiVersion: Option[String], bankId: Option[String]): List[String] =
+    List("api_name" -> apiName, "api_version" -> apiVersion, "bank_id" -> bankId)
+      .collect { case (name, Some(value)) if value.trim.nonEmpty => name }
+
   import code.api.util.RateLimitingPeriod._
 
   /** State of a rate limiting counter from Redis */

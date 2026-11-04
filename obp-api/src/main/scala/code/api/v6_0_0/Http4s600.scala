@@ -6199,12 +6199,6 @@ object Http4s600 {
     }
 
 
-    // The fields of a rate limit that name something narrower than the consumer, which nothing enforces yet.
-    // An empty value names nothing.
-    private def rateLimitScopeFields(apiName: Option[String], apiVersion: Option[String], bankId: Option[String]): List[String] =
-      List("api_name" -> apiName, "api_version" -> apiVersion, "bank_id" -> bankId)
-        .collect { case (name, Some(value)) if value.trim.nonEmpty => name }
-
     // Route: POST /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits (201)
     lazy val createCallLimits: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" =>
@@ -6216,7 +6210,7 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CallLimitPostJsonV600]
             }
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
-            scopeFields = rateLimitScopeFields(postJson.api_name, postJson.api_version, postJson.bank_id)
+            scopeFields = RateLimitingUtil.rateLimitScopeFields(postJson.api_name, postJson.api_version, postJson.bank_id)
             _ <- Helper.booleanToFuture(s"$RateLimitScopeNotSupported Remove: ${scopeFields.mkString(", ")}", 400, Some(cc)) {
               scopeFields.isEmpty
             }
@@ -6242,7 +6236,7 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CallLimitPostJsonV400]
             }
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
-            scopeFields = rateLimitScopeFields(postJson.api_name, postJson.api_version, postJson.bank_id)
+            scopeFields = RateLimitingUtil.rateLimitScopeFields(postJson.api_name, postJson.api_version, postJson.bank_id)
             _ <- Helper.booleanToFuture(s"$RateLimitScopeNotSupported Remove: ${scopeFields.mkString(", ")}", 400, Some(cc)) {
               scopeFields.isEmpty
             }
