@@ -31,6 +31,7 @@ import net.liftweb.db.DB
 import net.liftweb.util.DefaultConnectionIdentifier
 
 import java.sql.Connection
+import scala.util.control.NonFatal
 
 object DeletionUtil {
   /**
@@ -57,7 +58,9 @@ object DeletionUtil {
           catch { case rollbackFailure: Throwable => e.addSuppressed(rollbackFailure) }
           throw e
       }
-    connection.releaseSavepoint(savepoint)
+    // Oracle's and SQL Server's drivers do not release savepoints; the savepoint then ends with the transaction.
+    try connection.releaseSavepoint(savepoint)
+    catch { case NonFatal(_) => }
     result
   }
 }
