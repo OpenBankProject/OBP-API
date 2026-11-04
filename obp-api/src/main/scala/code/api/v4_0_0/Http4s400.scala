@@ -7999,6 +7999,8 @@ object Http4s400 {
         "Delete Bank Cascade",
         s"""Delete a Bank Cascade specified by BANK_ID.
         |
+        |The bank's dynamic entity definitions and all their records go with it, whoever owns the records. Unlike
+        |the cascade delete of a single dynamic entity, no `ZZ_BAK_` copy is made first.
         |
         |${userAuthenticationMessage(true)}
         |

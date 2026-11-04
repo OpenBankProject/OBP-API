@@ -34,6 +34,7 @@ import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.{ConsentJWT, CustomJsonFormats, JwtUtil}
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.bankconnectors.Connector
+import code.cardattribute.MappedCardAttribute
 import code.cards.MappedPhysicalCard
 import code.consent.Consents
 import code.counterpartyattribute.CounterpartyAttribute
@@ -49,9 +50,7 @@ import com.openbankproject.commons.model.{AccountId, BankId}
 import com.openbankproject.commons.util.JsonAliases
 import deletion.DeletionUtil.databaseAtomicTask
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.db.DB
 import net.liftweb.mapper.{By, ByList, NotBy}
-import net.liftweb.util.DefaultConnectionIdentifier
 import net.liftweb.util.Helpers.tryo
 import org.json4s.Formats
 
@@ -89,7 +88,7 @@ object DeleteAccountCascade {
       case true =>
         Full(true)
       case false =>
-        DB.rollback(DefaultConnectionIdentifier)
+        // Throws, so databaseAtomicTask restores what delete has removed.
         fullBoxOrException(Empty ~> APIFailureNewStyle(CouldNotDeleteCascade, 400))
     }
   }
@@ -116,10 +115,13 @@ object DeleteAccountCascade {
       By(MappedBankAccount.bank, bankId.value),
       By(MappedBankAccount.theAccountId, accountId.value)
     ) map (
-      account =>
-        MappedPhysicalCard.bulkDelete_!!(
-          By(MappedPhysicalCard.mAccount, account.id.get)
-        )
+      account => {
+        val cardIds = MappedPhysicalCard.findAll(By(MappedPhysicalCard.mAccount, account.id.get)).map(_.mCardId.get)
+        MappedCardAttribute.deleteForCards(bankId.value, cardIds) &&
+          MappedPhysicalCard.bulkDelete_!!(
+            By(MappedPhysicalCard.mAccount, account.id.get)
+          )
+      }
     )
   }.forall(_ == true)
   

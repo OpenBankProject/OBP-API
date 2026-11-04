@@ -2714,6 +2714,14 @@
       "reason": "Lists RateLimitScopeNotSupported and RateLimitNotUnique.",
       "lift_digest": "73a6aab6d272e734f76807465010e55db340ee57091b9590ee564de48566a42a",
       "http4s_digest": "50352369bb9cd70682e783614e177b83ddf75a136131a0c29837b045baa4a247"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteBankCascade",
+      "field": "description",
+      "reason": "Says that the bank's dynamic entities and all their records go with the bank and that no ZZ_BAK_ copy is made.",
+      "lift_digest": "2bb8a473e170e77029d901d2e12ee5ec802dc61a95eba7b0c745665613174948",
+      "http4s_digest": "c8e065559d6cad3b6f2fd37804cc949389ffbe460607a074038fd6139b53c45e"
     }
   ]
 }

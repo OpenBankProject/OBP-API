@@ -38,6 +38,7 @@ import code.api.util.ApiRole.CanDeleteAccountCascade
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
+import code.cardattribute.MappedCardAttribute
 import code.cards.MappedPhysicalCard
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.model.dataAccess.MappedBankAccount
@@ -211,6 +212,65 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       And("The deleted account's card is gone and the other bank's card is kept")
       cardExists(card) should equal(false)
       cardExists(otherBankCard) should equal(true)
+    }
+  }
+
+  feature(s"test $ApiEndpoint1 version $VersionOfApi - card attributes") {
+    scenario("Deleting an account deletes the attributes of its cards and keeps those of the same ACCOUNT_ID at another bank", ApiEndpoint1, VersionOfApi) {
+      Given("Two banks that each have an account with the same ACCOUNT_ID, each with a card that has an attribute")
+      val bankId = BankId(randomString(10))
+      val otherBankId = BankId(randomString(10))
+      createBank(bankId.value)
+      createBank(otherBankId.value)
+      val accountId = AccountId(randomString(10))
+      createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
+      createAccountRelevantResource(Some(resourceUser1), otherBankId, accountId, "EUR")
+
+      def addCardWithAttribute(bank: BankId): String = {
+        val account = MappedBankAccount.find(
+          By(MappedBankAccount.bank, bank.value),
+          By(MappedBankAccount.theAccountId, accountId.value)
+        ).openOrThrowException("test account not found")
+        val cardId = MappedPhysicalCard.create
+          .mBankId(bank.value)
+          .mAccount(account.id.get)
+          .mBankCardNumber(randomString(16))
+          .mSerialNumber(randomString(10))
+          .saveMe()
+          .mCardId.get
+        MappedCardAttribute.create
+          .mBankId(bank.value)
+          .mCardId(cardId)
+          .mName("TAX_NUMBER")
+          .mType("STRING")
+          .mValue("123")
+          .saveMe()
+        cardId
+      }
+      def attributesOf(cardId: String) = MappedCardAttribute.findAll(By(MappedCardAttribute.mCardId, cardId))
+      val card = addCardWithAttribute(bankId)
+      val otherBankCard = addCardWithAttribute(otherBankId)
+      // an attribute that another bank posted for this card id is not the deleted account's data
+      MappedCardAttribute.create
+        .mBankId(otherBankId.value)
+        .mCardId(card)
+        .mName("OTHER_BANK")
+        .mType("STRING")
+        .mValue("1")
+        .saveMe()
+
+      When(deleteAtFirstBank)
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
+      val request = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId.value /
+        "accounts" / accountId.value).DELETE <@ (user1)
+      val response = makeDeleteRequest(request)
+
+      Then("We should get a 200")
+      response.code should equal(200)
+
+      And("The deleted account's card has no attributes left and the other bank's card keeps its attribute")
+      attributesOf(card).map(_.mBankId.get) should equal(List(otherBankId.value))
+      attributesOf(otherBankCard) should have size 1
     }
   }
 

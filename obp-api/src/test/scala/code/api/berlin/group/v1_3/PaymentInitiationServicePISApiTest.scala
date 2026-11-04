@@ -36,7 +36,7 @@ import code.api.berlin.group.v1_3.Http4sBGv13PIS
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ErrorMessages._
-import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
+import code.model.dataAccess.{AuthUser, BankAccountRouting, MappedBankAccount}
 import code.model.TokenType
 import code.setup.{APIResponse, DefaultUsers}
 import code.token.Tokens
@@ -44,9 +44,10 @@ import code.transactionrequests.MappedTransactionRequest
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.util.TimeHelpers.TimeSpan
 import code.views.Views
+import code.views.system.AccountAccess
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.{AccountRoutingScheme, PaymentServiceTypes, TransactionRequestTypes}
-import com.openbankproject.commons.model.{SepaCreditTransfers, SepaCreditTransfersBerlinGroupV13, ViewId}
+import com.openbankproject.commons.model.{SepaCreditTransfers, SepaCreditTransfersBerlinGroupV13, User, ViewId}
 import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
@@ -812,6 +813,60 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     By(MappedBankAccount.bank, routing.bankId.value),
     By(MappedBankAccount.theAccountId, routing.accountId.value))
     .map(_.balance).openOrThrowException("Can not be empty here")
+
+  private def initiatePaymentsAccessOf(account: BankAccountRouting, user: User = resourceUser1) =
+    AccountAccess.findAll(
+      By(AccountAccess.user_fk, user.userPrimaryKey.value),
+      By(AccountAccess.bank_id, account.bankId.value),
+      By(AccountAccess.account_id, account.accountId.value),
+      By(AccountAccess.view_id, SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID))
+
+  feature("test the BG v1.3 - the mapped connector grants the payment initiation view to the account holder") {
+    scenario("refreshing the user gives the holder InitiatePaymentsBerlinGroup on the accounts it holds",
+      BerlinGroupV1_3, PIS, initiatePayment) {
+      val account = ibanAccounts.head
+      initiatePaymentsAccessOf(account) shouldBe empty
+
+      When("the user's accounts are refreshed")
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+
+      Then("the holder has access through the payment initiation view")
+      initiatePaymentsAccessOf(account) should not be empty
+    }
+
+    scenario("a second refresh keeps the view, and a user who holds no account gets none",
+      BerlinGroupV1_3, PIS, initiatePayment) {
+      val account = ibanAccounts.head
+
+      When("the holder is refreshed twice and a user without accounts is refreshed")
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+      AuthUser.refreshUserLegacy(resourceUser2, None)
+
+      Then("the holder still has the view and the other user has none")
+      initiatePaymentsAccessOf(account) should not be empty
+      initiatePaymentsAccessOf(account, resourceUser2) shouldBe empty
+    }
+
+    scenario("a payment can be initiated after the refresh without granting the view by hand",
+      BerlinGroupV1_3, PIS, initiatePayment) {
+      val ibanFrom = ibanAccounts.head
+      val ibanTo = ibanAccounts.last
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+
+      val initiatePaymentJson =
+        s"""{
+           | "debtorAccount": { "iban": "${ibanFrom.accountRouting.address}" },
+           | "instructedAmount": { "currency": "EUR", "amount": "2001" },
+           | "creditorAccount": { "iban": "${ibanTo.accountRouting.address}" },
+           | "creditorName": "70charname"
+            }""".stripMargin
+      val response: APIResponse = makePostRequest(
+        (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1),
+        initiatePaymentJson)
+      response.code should equal(201)
+    }
+  }
 
   private def paymentUrl(paymentId: String) =
     V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId

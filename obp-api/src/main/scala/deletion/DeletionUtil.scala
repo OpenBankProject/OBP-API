@@ -30,10 +30,37 @@ package deletion
 import net.liftweb.db.DB
 import net.liftweb.util.DefaultConnectionIdentifier
 
+import java.sql.Connection
+import scala.util.control.NonFatal
+
 object DeletionUtil {
+  /**
+   * Runs a cascade as one unit: when it throws, every row it wrote is restored before the exception goes on.
+   *
+   * Within a request the connection is the request's own (RequestScopeConnection), which ignores rollback and is
+   * committed when the request ends, whatever the response. So the cascade rolls back to a savepoint taken here
+   * instead. Outside a request this is a savepoint within the transaction DB.use already runs.
+   */
   def databaseAtomicTask[R](blockOfCode: => R): R = {
-    DB.use(DefaultConnectionIdentifier){_ =>
-      blockOfCode
+    DB.use(DefaultConnectionIdentifier){ conn =>
+      withSavepoint(conn.connection)(blockOfCode)
     }
+  }
+
+  /** Runs `blockOfCode` after a savepoint on `connection`, rolling back to it when the block throws. */
+  private[deletion] def withSavepoint[R](connection: Connection)(blockOfCode: => R): R = {
+    val savepoint = connection.setSavepoint()
+    val result =
+      try blockOfCode
+      catch {
+        case e: Throwable =>
+          try connection.rollback(savepoint)
+          catch { case rollbackFailure: Throwable => e.addSuppressed(rollbackFailure) }
+          throw e
+      }
+    // Oracle's and SQL Server's drivers do not release savepoints; the savepoint then ends with the transaction.
+    try connection.releaseSavepoint(savepoint)
+    catch { case NonFatal(_) => }
+    result
   }
 }
