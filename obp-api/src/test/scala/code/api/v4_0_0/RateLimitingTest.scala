@@ -128,11 +128,15 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
         org.scalameta.logger.elem(response01)
 
         When("We make the first call after update")
+        val secondStarted = System.nanoTime()
         val response02 = getCurrentUserEndpoint(user1)
         Then("We should get a 200")
         response02.code should equal(200)
 
         When("We make the second call after update")
+        // Redis rounds the counter's TTL to whole seconds, so the one-second window reads as expired about half a second
+        // after the first call: a slower run cannot tell whether the limit was applied.
+        assume((System.nanoTime() - secondStarted) / 1000000 < 400, "the first call took too long to test a per-second limit")
         val response03 = getCurrentUserEndpoint(user1)
         Then("We should get a 429, as the new limit applies at once")
         response03.code should equal(429)

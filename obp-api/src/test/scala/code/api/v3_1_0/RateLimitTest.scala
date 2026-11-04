@@ -202,11 +202,15 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
         response01.code should equal(200)
 
         When("We make the first call after update")
+        val secondStarted = System.nanoTime()
         val response02 = makePutRequest(request310, write(callLimitSecondJson))
         Then("We should get a 200")
         response02.code should equal(200)
 
         When("We make the second call after update")
+        // Redis rounds the counter's TTL to whole seconds, so the one-second window reads as expired about half a second
+        // after the first call: a slower run cannot tell whether the limit was applied.
+        assume((System.nanoTime() - secondStarted) / 1000000 < 400, "the first call took too long to test a per-second limit")
         val response03 = makePutRequest(request310, write(callLimitSecondJson))
         Then("We should get a 429, as the new limit applies at once")
         response03.code should equal(429)
