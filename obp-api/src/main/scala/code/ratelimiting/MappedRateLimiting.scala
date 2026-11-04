@@ -149,27 +149,25 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait with Logger 
                                     bankId: Option[String],
                                     apiVersion: Option[String],
                                     apiName: Option[String]): Option[RateLimiting] =
-    RateLimiting.findAll(
-      sameScope(consumerId, bankId, apiVersion, apiName) :+ OrderBy(RateLimiting.updatedAt, Descending): _*
-    ).headOption
+    sameScope(consumerId, bankId, apiVersion, apiName).sortBy(_.updatedAt.get)(Ordering[java.util.Date].reverse).headOption
 
   def countConsumerCallLimits(consumerId: String,
                               bankId: Option[String],
                               apiVersion: Option[String],
                               apiName: Option[String]): Future[Int] = Future {
-    RateLimiting.count(sameScope(consumerId, bankId, apiVersion, apiName): _*).toInt
+    sameScope(consumerId, bankId, apiVersion, apiName).size
   }
 
-  /** The consumer's rows with exactly this bank_id, api_version and api_name; None matches a row that does not set it. */
+  /**
+   * The consumer's rows with exactly this bank_id, api_version and api_name, None matching a row that does not set it.
+   * Compared through the getters, which take an empty column as not set: older versions stored "" there as well as NULL.
+   */
   private def sameScope(consumerId: String,
                         bankId: Option[String],
                         apiVersion: Option[String],
-                        apiName: Option[String]): List[QueryParam[RateLimiting]] = List(
-    By(RateLimiting.ConsumerId, consumerId),
-    bankId.map(v => By(RateLimiting.BankId, v)).getOrElse(NullRef(RateLimiting.BankId)),
-    apiVersion.map(v => By(RateLimiting.ApiVersion, v)).getOrElse(NullRef(RateLimiting.ApiVersion)),
-    apiName.map(v => By(RateLimiting.ApiName, v)).getOrElse(NullRef(RateLimiting.ApiName))
-  )
+                        apiName: Option[String]): List[RateLimiting] =
+    RateLimiting.findAll(By(RateLimiting.ConsumerId, consumerId))
+      .filter(row => row.bankId == bankId && row.apiVersion == apiVersion && row.apiName == apiName)
 
   def createConsumerCallLimits(consumerId: String,
                                fromDate: Date,

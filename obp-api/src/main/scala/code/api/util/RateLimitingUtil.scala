@@ -102,6 +102,13 @@ object RateLimitingJson {
 }
 
 object RateLimitingUtil extends MdcLoggable {
+
+  /** The fields of a rate limit that name something narrower than the consumer, which nothing enforces yet. An empty
+    * value names nothing. */
+  def rateLimitScopeFields(apiName: Option[String], apiVersion: Option[String], bankId: Option[String]): List[String] =
+    List("api_name" -> apiName, "api_version" -> apiVersion, "bank_id" -> bankId)
+      .collect { case (name, Some(value)) if value.trim.nonEmpty => name }
+
   import code.api.util.RateLimitingPeriod._
 
   /** State of a rate limiting counter from Redis */
@@ -117,12 +124,6 @@ object RateLimitingUtil extends MdcLoggable {
     * @param consumerId The consumer ID
     * @return RateLimit with system property defaults (default to -1 if not set)
     */
-  /** The fields of a rate limit that name something narrower than the consumer, which nothing enforces yet. An empty
-    * value names nothing. */
-  def rateLimitScopeFields(apiName: Option[String], apiVersion: Option[String], bankId: Option[String]): List[String] =
-    List("api_name" -> apiName, "api_version" -> apiVersion, "bank_id" -> bankId)
-      .collect { case (name, Some(value)) if value.trim.nonEmpty => name }
-
   /** THE SINGLE SOURCE OF TRUTH for active rate limits.
     * This is the ONLY function that should be called to get active rate limits.
     * Used by BOTH enforcement (AfterApiAuth) and API reporting (Http4s600).
