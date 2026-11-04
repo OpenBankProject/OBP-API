@@ -238,7 +238,8 @@ class DeleteBankCascadeTest extends V400ServerSetup {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteBankCascade.toString)
       makeDeleteRequest((v4_0_0_Request / "management" / "cascading" / "banks" / bankId).DELETE <@(user1)).code should equal(200)
 
-      Then("The system level definition and its record are kept")
+      Then("The bank is gone, and the system level definition and its record are kept")
+      code.model.dataAccess.MappedBank.find(By(code.model.dataAccess.MappedBank.permalink, bankId)).isDefined should equal(false)
       systemDefinitions should have size 1
       systemRecords should have size 1
     }
