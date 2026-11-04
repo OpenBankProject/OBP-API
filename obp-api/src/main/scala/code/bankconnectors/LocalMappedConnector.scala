@@ -713,7 +713,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    */
   override def getBankAccountsForUserLegacy(provider: String, username:String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
     //1st: get the accounts from userAuthContext
-    val viewsToGenerate = List(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID,SYSTEM_OWNER_VIEW_ID, SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID) //TODO, so far only set the `owner` view, later need to simulate other views.
+    val viewsToGenerate = List(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID,SYSTEM_OWNER_VIEW_ID, SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID) //TODO, so far only set the `owner` view, later need to simulate other views.
     val user = Users.users.vend.getUserByProviderId(provider, username).getOrElse(throw new RuntimeException(s"$RefreshUserError at getBankAccountsForUserLegacy($username, ${callContext})"))
     val userId = user.userId
     tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.user says: provider($provider), username($username)")}
