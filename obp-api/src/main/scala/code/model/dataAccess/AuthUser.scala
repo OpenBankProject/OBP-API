@@ -1184,7 +1184,10 @@ def restoreSomeSessions(): Unit = {
         }
 
         //3rd: the accounts both sides still have may have gained or lost views, so compare the views of each one, also
-        //when other accounts were added or removed above.
+        //when other accounts were added or removed above. Views are taken away only on a refresh that leaves the accounts
+        //as they were: opening an account must not cost the holder the views it was given on its other accounts some
+        //other way (a VRP mandate's view, an auditor view), which the connector does not list.
+        val accountsUnchanged = cbsRemovedBankAccountIds.equals(csbNewBankAccountIds)
         for {
           bankAccountId <- obpBankAccountIds intersect cbsBankAccountIds
           // we can not get the views from the `viewDefinition` table, because we can not delete system views at all. we need to read the view from accountAccess table.
@@ -1197,7 +1200,7 @@ def restoreSomeSessions(): Unit = {
           //cbs removed these views, but OBP still contains the data for them, so we need to clean data in OBP side.
           cbsRemovedViewsForAccount = obpViewsForAccount diff cbsViewsForAccount
           _ = logger.debug("refreshViewsAccountAccessAndHolders.cbsRemovedViewsForAccount-------" + cbsRemovedViewsForAccount)
-          _ = if(cbsRemovedViewsForAccount.nonEmpty){
+          _ = if(cbsRemovedViewsForAccount.nonEmpty && accountsUnchanged){
             val cbsRemovedBankIdAccountIdViewIds = cbsRemovedViewsForAccount.map(view => BankIdAccountIdViewId(bankAccountId.bankId, bankAccountId.accountId, ViewId(view)))
             Views.views.vend.revokeAccessToMultipleViews(cbsRemovedBankIdAccountIdViewIds, user)
             cbsRemovedViewsForAccount.map(view =>Views.views.vend.removeCustomView(ViewId(view), bankAccountId))

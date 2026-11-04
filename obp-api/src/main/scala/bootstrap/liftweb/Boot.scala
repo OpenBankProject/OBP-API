@@ -384,11 +384,11 @@ class Boot extends MdcLoggable {
       }
 
       // The remaining two stay opt-in: nothing in the code requires them to exist, so whether an
-      // instance has them is still the operator's call. (The mapped connector is the exception for
-      // InitiatePaymentsBerlinGroup: it lists the view in viewsToGenerate, so a refresh creates it and
-      // grants it to the holders of their accounts whether or not it is listed here.) Their permission
-      // sets ARE code-defined though, so wherever they exist, listed or not, they are kept current the
-      // same way -- the prop decides existence, not whether the code is authoritative about what a view grants.
+      // instance has them is still the operator's call. (The mapped connector is the exception: it lists
+      // both in viewsToGenerate, so a refresh creates them and grants them to the holders of their accounts
+      // whether or not they are listed here.) Their permission sets ARE code-defined though, so wherever they
+      // exist, listed or not, they are kept current the same way, unless reconcile_permissions_at_boot is false --
+      // the prop decides existence, not whether the code is authoritative about what a view grants.
       Views.views.vend.ensureOptInSystemViewsUpToDate(APIUtil.getPropsValue("additional_system_views"))
 
     }
