@@ -28,7 +28,6 @@ TESOBE (http://www.tesobe.com/)
 package code.api.util
 
 
-import code.cardattribute.CardAttributeX
 import org.apache.pekko.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.Constant.{SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID}
@@ -3231,8 +3230,8 @@ object NewStyle extends MdcLoggable{
       }
     }
     def deleteCardAttribute(cardAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
-      CardAttributeX.cardAttributeProvider.vend.deleteCardAttribute(cardAttributeId) map {
-        i => (unboxFullOrFail(i, callContext, s"$UnknownError Could not delete CardAttribute($cardAttributeId)"), callContext)
+      Connector.connector.vend.deleteCardAttribute(cardAttributeId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$UnknownError Could not delete CardAttribute($cardAttributeId)"), i._2)
       }
     }
 
