@@ -37,7 +37,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.CommonsEmailWrapper
 import code.api.util.ErrorMessages._
-import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
+import code.model.dataAccess.{AuthUser, BankAccountRouting, MappedBankAccount}
 import code.model.TokenType
 import code.setup.{APIResponse, DefaultUsers}
 import code.token.Tokens
@@ -825,10 +825,14 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     scenario("goes to the user's own address when no customer is linked", BerlinGroupV1_3, PIS, initiatePayment) {
       setPropsValues("SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT" -> "EMAIL", "mail.test.mode" -> "true")
       CommonsEmailWrapper.clearTestModeSentMail()
+      // The user's own address is used once the user has signed up here and confirmed it.
+      val authUser = AuthUser.create.user(resourceUser1.id.get).username(resourceUser1.name)
+        .email(resourceUser1.emailAddress).validated(true).saveMe()
+      try {
+        startAuthorisationAsUser1().code should equal(201)
 
-      startAuthorisationAsUser1().code should equal(201)
-
-      CommonsEmailWrapper.testModeSentMail.filter(_.subject == "Challenge").map(_.to) should equal(List(List(resourceUser1.emailAddress)))
+        CommonsEmailWrapper.testModeSentMail.filter(_.subject == "Challenge").map(_.to) should equal(List(List(resourceUser1.emailAddress)))
+      } finally AuthUser.bulkDelete_!!(By(AuthUser.id, authUser.id.get))
     }
 
     scenario("is refused when the user has no address either", BerlinGroupV1_3, PIS, initiatePayment) {

@@ -404,6 +404,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case None => (Full(results.flatMap(_.toList)), callContext)
     }
 
+  /** The values that hold an address: a customer's e-mail or mobile number may be blank or NULL. */
+  private def nonBlank(values: List[String]): List[String] =
+    values.flatMap(value => Option(value).map(_.trim).filter(_.nonEmpty))
+
+  /** The user's own address, when the user signed up on this instance and has confirmed it. */
+  private def validatedOwnEmail(userId: String): Box[String] =
+    for {
+      user <- Users.users.vend.getUserByUserId(userId)
+      authUser <- AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value))
+      if authUser.validated.get
+    } yield authUser.email.get
+
   private def createChallengeInternal(
     userId: String,
     transactionRequestId: String,
@@ -439,64 +451,66 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case Some(StrongCustomerAuthentication.DUMMY) =>
         createHashedPassword("123")
       case Some(StrongCustomerAuthentication.EMAIL) =>
-        // The customers linked to the user; the user's own address when there is none.
-        val linkedCustomerEmails = APIUtil.getEmailsByUserId(userId).map(_._2).filter(_.trim.nonEmpty)
+        // The customers linked to the user; else the user's own address, once the user has confirmed it.
+        val linkedCustomerEmails = nonBlank(APIUtil.getEmailsByUserId(userId).map(_._2))
         val recipients =
           if (linkedCustomerEmails.nonEmpty) linkedCustomerEmails
-          else Users.users.vend.getUserByUserId(userId).toList.map(_.emailAddress).filter(_.trim.nonEmpty)
+          else nonBlank(validatedOwnEmail(userId).toList)
         if (recipients.isEmpty) {
           (Failure(ChallengeRecipientNotFound), callContext)
         } else {
           val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
-          val sendingResult = recipients map { to =>
+          // sendTextEmail answers Full only once the mail has been handed to the SMTP server.
+          val sent = recipients forall { to =>
             CommonsEmailWrapper.sendTextEmail(CommonsEmailWrapper.EmailContent(
               from = mailUsersUserinfoSenderAddress,
               to = List(to),
               subject = "Challenge",
               textContent = Some(s"Your OTP challenge : ${challengeAnswer}")
-            ))
+            )).isDefined
+          }
+          // The challenge is saved once its passcode has been sent, so a failed send leaves no challenge no one can answer.
+          if (sent) createHashedPassword(challengeAnswer) else (Failure(EmailSendingFailed), callContext)
+        }
+      case Some(StrongCustomerAuthentication.SMS) | Some(StrongCustomerAuthentication.SMS_OTP) =>
+        val phoneNumbers = nonBlank(APIUtil.getPhoneNumbersByUserId(userId).map(_._2))
+        if (phoneNumbers.isEmpty) {
+          // No linked customer with a phone number: there is no one to send the passcode to.
+          (Failure(ChallengeRecipientNotFound), callContext)
+        } else {
+          val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
+          logger.debug(s"${scaMethod.toString} challengeAnswer is $challengeAnswer")
+          // The caller may not be the owner of the phone number, so the number stays in the log.
+          val sendFailed = s"${SmsServerNotResponding.stripSuffix(":")}. Please use EMAIL instead."
+          val sendingResult: Seq[Box[Boolean]] = phoneNumbers map {
+            phoneNumber =>
+              for {
+                smsProviderApiKey <- APIUtil.getPropsValue("sca_phone_api_key") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_key"
+                smsProviderApiSecret <- APIUtil.getPropsValue("sca_phone_api_secret") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
+                scaPhoneApiId <- APIUtil.getPropsValue("sca_phone_api_id") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_id"
+                client = Twilio.init(smsProviderApiKey, smsProviderApiSecret) //TODO, move this to other place, we only need to init it once.
+                messageText = s"Your consent challenge : ${challengeAnswer}";
+                message: Message <- tryo {Message.creator(
+                  new PhoneNumber(phoneNumber), 
+                  scaPhoneApiId, 
+                  messageText).create()} match {
+                  case Full(message) => Full(message)
+                  case failure =>
+                    logger.warn(s"createChallengeInternal could not send the passcode to $phoneNumber: $failure")
+                    Failure(sendFailed)
+                }
+                
+                _ = logger.debug(s"createChallengeInternal.send message to $phoneNumber, detail is $message")
+                
+                _ = if (message.getErrorMessage != null)
+                  logger.warn(s"createChallengeInternal could not send the passcode to $phoneNumber: ${message.getErrorMessage}")
+                _ <- Helper.booleanToBox(message.getErrorMessage == null, sendFailed)
+              } yield true
           }
           val errorMessages = sendingResult.collect { case failure: Failure => failure.msg }
-          // The challenge is saved once its passcode has been sent, so a failed send leaves no challenge no one can answer.
+          // As with EMAIL, the challenge is saved once its passcode has been sent.
           if (errorMessages.isEmpty) createHashedPassword(challengeAnswer) else (Failure(errorMessages.toSet.mkString(" <- ")), callContext)
         }
-      // No linked customer with a phone number: there is no one to send the passcode to.
-      case Some(StrongCustomerAuthentication.SMS) | Some(StrongCustomerAuthentication.SMS_OTP)
-        if APIUtil.getPhoneNumbersByUserId(userId).forall(_._2.trim.isEmpty) =>
-        (Failure(ChallengeRecipientNotFound), callContext)
-      case Some(StrongCustomerAuthentication.SMS) | Some(StrongCustomerAuthentication.SMS_OTP) =>
-        val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
-        logger.debug(s"${scaMethod.toString} challengeAnswer is $challengeAnswer")
-        val hashedPassword = createHashedPassword(challengeAnswer)
-        val sendingResult: Seq[Box[Boolean]] = APIUtil.getPhoneNumbersByUserId(userId) map {
-          tuple =>
-            for {
-              smsProviderApiKey <- APIUtil.getPropsValue("sca_phone_api_key") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_key"
-              smsProviderApiSecret <- APIUtil.getPropsValue("sca_phone_api_secret") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
-              scaPhoneApiId <- APIUtil.getPropsValue("sca_phone_api_id") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_id"
-              client = Twilio.init(smsProviderApiKey, smsProviderApiSecret) //TODO, move this to other place, we only need to init it once.
-              phoneNumber = tuple._2
-              messageText = s"Your consent challenge : ${challengeAnswer}";
-              message: Message <- tryo {Message.creator(
-                new PhoneNumber(phoneNumber), 
-                scaPhoneApiId, 
-                messageText).create()}
-              
-              isSuccess <- tryo {message.getErrorMessage == null}
-              
-              _ = logger.debug(s"createChallengeInternal.send message to $phoneNumber, detail is $message")
-              
-              failMsg = if (message.getErrorMessage ==null) 
-                  s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first. ${message.getErrorMessage}"
-                else
-                  s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first."
-                  
-              _ <- Helper.booleanToBox(isSuccess, failMsg)
-            } yield true
-        }
-        val errorMessage = sendingResult.filter(_.isInstanceOf[Failure]).map(_.asInstanceOf[Failure].msg)
-
-        if (sendingResult.forall(_ == Full(true))) hashedPassword else (Failure(errorMessage.toSet.mkString(" <- ")), callContext)
       case _ => // All versions which precede v4.0.0 i.e. to keep backward compatibility 
         createHashedPassword("123")
     }
@@ -5253,8 +5267,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 consentId = None, // Note: consentId and transactionRequestId are exclusive here.
                 authenticationMethodId = None,
                 callContext = callContext
-                ) map { i =>
-                (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
+                ) flatMap {
+                case (Full(challenges), callContext) => Future.successful((challenges, callContext))
+                case (failure, callContext) =>
+                  // Without its challenges the request can never be answered.
+                  saveTransactionRequestStatusImpl(transactionRequest.id, TransactionRequestStatus.FAILED.toString, callContext) map { _ =>
+                    (unboxFullOrFail(failure, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), callContext)
+                  }
               }
              
               //NOTE:this is only for Backward compatibility, now we use the MappedExpectedChallengeAnswer tables instead of the single field in TransactionRequest.
