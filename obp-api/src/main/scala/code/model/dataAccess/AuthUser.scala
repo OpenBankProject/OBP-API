@@ -1183,47 +1183,46 @@ def restoreSomeSessions(): Unit = {
           view
         }
 
-        //3rd: if the ids are not change, but views are changed, we still need compare the view for each account:
-        if(cbsRemovedBankAccountIds.equals(csbNewBankAccountIds)) {
-          for {
-            bankAccountId <- obpBankAccountIds
-            // we can not get the views from the `viewDefinition` table, because we can not delete system views at all. we need to read the view from accountAccess table.
-            //obpViewsForAccount = MapperViews.availableViewsForAccount(bankAccountId).map(_.viewId.value)
-            obpViewsForAccount = Views.views.vend.privateViewsUserCanAccessForAccount(user, bankAccountId).map(_.viewId.value)
-            _ = logger.debug("refreshViewsAccountAccessAndHolders.obpViewsForAccount-------" + obpViewsForAccount)
+        //3rd: the accounts both sides still have may have gained or lost views, so compare the views of each one, also
+        //when other accounts were added or removed above.
+        for {
+          bankAccountId <- obpBankAccountIds intersect cbsBankAccountIds
+          // we can not get the views from the `viewDefinition` table, because we can not delete system views at all. we need to read the view from accountAccess table.
+          //obpViewsForAccount = MapperViews.availableViewsForAccount(bankAccountId).map(_.viewId.value)
+          obpViewsForAccount = Views.views.vend.privateViewsUserCanAccessForAccount(user, bankAccountId).map(_.viewId.value)
+          _ = logger.debug("refreshViewsAccountAccessAndHolders.obpViewsForAccount-------" + obpViewsForAccount)
 
-            cbsViewsForAccount = accountsHeld.find(account => account.bankId.equals(bankAccountId.bankId.value) && account.accountId.equals(bankAccountId.accountId.value)).map(_.viewsToGenerate).getOrElse(Nil)
-            _ = logger.debug("refreshViewsAccountAccessAndHolders.cbsViewsForAccount-------" + cbsViewsForAccount)
-            //cbs removed these views, but OBP still contains the data for them, so we need to clean data in OBP side.
-            cbsRemovedViewsForAccount = obpViewsForAccount diff cbsViewsForAccount
-            _ = logger.debug("refreshViewsAccountAccessAndHolders.cbsRemovedViewsForAccount-------" + cbsRemovedViewsForAccount)
-            _ = if(cbsRemovedViewsForAccount.nonEmpty){
-              val cbsRemovedBankIdAccountIdViewIds = cbsRemovedViewsForAccount.map(view => BankIdAccountIdViewId(bankAccountId.bankId, bankAccountId.accountId, ViewId(view)))
-              Views.views.vend.revokeAccessToMultipleViews(cbsRemovedBankIdAccountIdViewIds, user)
-              cbsRemovedViewsForAccount.map(view =>Views.views.vend.removeCustomView(ViewId(view), bankAccountId))
-              UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
-            }
-            //cbs has new views which are not in obp yet, we need to create new data for these accounts.
-            csbNewViewsForAccount = cbsViewsForAccount diff obpViewsForAccount
-            _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewViewsForAccount-------" + csbNewViewsForAccount)
-            success = if(csbNewViewsForAccount.nonEmpty){
-              for{
-                newViewForAccount <- csbNewViewsForAccount
-                _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewViewsForAccount.newViewForAccount start:-------" + newViewForAccount)
-                view <- Views.views.vend.getOrCreateSystemViewFromCbs(newViewForAccount)//TODO, only support system views so far, may add custom views later.
-                _ = UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
-                view <- if (view.isSystem) //if the view is a system view, we will call `grantAccessToSystemView`
-                  Views.views.vend.grantAccessToSystemView(bankAccountId.bankId, bankAccountId.accountId, view, user)
-                else //otherwise, we will call `grantAccessToCustomView`
-                  Views.views.vend.grantAccessToCustomView(view.uid, user)
-                _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewViewsForAccount.newViewForAccount finish:-------" + newViewForAccount)
-              }yield{
-                view
-              }
-            }
-          } yield {
-            success
+          cbsViewsForAccount = accountsHeld.find(account => account.bankId.equals(bankAccountId.bankId.value) && account.accountId.equals(bankAccountId.accountId.value)).map(_.viewsToGenerate).getOrElse(Nil)
+          _ = logger.debug("refreshViewsAccountAccessAndHolders.cbsViewsForAccount-------" + cbsViewsForAccount)
+          //cbs removed these views, but OBP still contains the data for them, so we need to clean data in OBP side.
+          cbsRemovedViewsForAccount = obpViewsForAccount diff cbsViewsForAccount
+          _ = logger.debug("refreshViewsAccountAccessAndHolders.cbsRemovedViewsForAccount-------" + cbsRemovedViewsForAccount)
+          _ = if(cbsRemovedViewsForAccount.nonEmpty){
+            val cbsRemovedBankIdAccountIdViewIds = cbsRemovedViewsForAccount.map(view => BankIdAccountIdViewId(bankAccountId.bankId, bankAccountId.accountId, ViewId(view)))
+            Views.views.vend.revokeAccessToMultipleViews(cbsRemovedBankIdAccountIdViewIds, user)
+            cbsRemovedViewsForAccount.map(view =>Views.views.vend.removeCustomView(ViewId(view), bankAccountId))
+            UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
           }
+          //cbs has new views which are not in obp yet, we need to create new data for these accounts.
+          csbNewViewsForAccount = cbsViewsForAccount diff obpViewsForAccount
+          _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewViewsForAccount-------" + csbNewViewsForAccount)
+          success = if(csbNewViewsForAccount.nonEmpty){
+            for{
+              newViewForAccount <- csbNewViewsForAccount
+              _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewViewsForAccount.newViewForAccount start:-------" + newViewForAccount)
+              view <- Views.views.vend.getOrCreateSystemViewFromCbs(newViewForAccount)//TODO, only support system views so far, may add custom views later.
+              _ = UserRefreshes.UserRefreshes.vend.createOrUpdateRefreshUser(user.userId)
+              view <- if (view.isSystem) //if the view is a system view, we will call `grantAccessToSystemView`
+                Views.views.vend.grantAccessToSystemView(bankAccountId.bankId, bankAccountId.accountId, view, user)
+              else //otherwise, we will call `grantAccessToCustomView`
+                Views.views.vend.grantAccessToCustomView(view.uid, user)
+              _ = logger.debug("refreshViewsAccountAccessAndHolders.csbNewViewsForAccount.newViewForAccount finish:-------" + newViewForAccount)
+            }yield{
+              view
+            }
+          }
+        } yield {
+          success
         }
         true
       }
