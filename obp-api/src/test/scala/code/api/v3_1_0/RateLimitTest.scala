@@ -50,6 +50,12 @@ import org.scalatest.Tag
 
 class RateLimitTest extends V310ServerSetup with PropsReset {
 
+  /** Sets the consumer's call limits as another consumer, so this consumer starts the period with no calls made. */
+  private def setLimitAsAnotherConsumer(consumerId: String, json: CallLimitPostJson) = {
+    Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, ApiRole.CanUpdateRateLimits.toString)
+    makePutRequest((v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user2), write(json))
+  }
+
   /** The consumer's rate limits are gone, and so is the cached copy: the limit just set would refuse the next PUT. */
   private def removeRateLimits(consumerId: String): Unit = {
     RateLimiting.bulkDelete_!!(By(RateLimiting.ConsumerId, consumerId))
@@ -195,9 +201,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
         val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
         Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
         val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
-        // Set by another consumer, so this consumer starts the period with no calls made.
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, ApiRole.CanUpdateRateLimits.toString)
-        val response01 = makePutRequest((v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user2), write(callLimitSecondJson))
+        val response01 = setLimitAsAnotherConsumer(consumerId, callLimitSecondJson)
         Then("We should get a 200")
         response01.code should equal(200)
 
@@ -227,9 +231,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
         val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
         Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
         val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
-        // Set by another consumer, so this consumer starts the period with no calls made.
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, ApiRole.CanUpdateRateLimits.toString)
-        val response01 = makePutRequest((v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user2), write(callLimitMinuteJson))
+        val response01 = setLimitAsAnotherConsumer(consumerId, callLimitMinuteJson)
         Then("We should get a 200")
         response01.code should equal(200)
 
@@ -255,9 +257,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
         val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
         Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
         val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
-        // Set by another consumer, so this consumer starts the period with no calls made.
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, ApiRole.CanUpdateRateLimits.toString)
-        val response01 = makePutRequest((v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user2), write(callLimitHourJson))
+        val response01 = setLimitAsAnotherConsumer(consumerId, callLimitHourJson)
         Then("We should get a 200")
         response01.code should equal(200)
 
@@ -283,9 +283,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
         val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
         Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
         val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
-        // Set by another consumer, so this consumer starts the period with no calls made.
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, ApiRole.CanUpdateRateLimits.toString)
-        val response01 = makePutRequest((v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user2), write(callLimitDayJson))
+        val response01 = setLimitAsAnotherConsumer(consumerId, callLimitDayJson)
         Then("We should get a 200")
         response01.code should equal(200)
 
@@ -311,9 +309,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
         val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
         Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
         val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
-        // Set by another consumer, so this consumer starts the period with no calls made.
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, ApiRole.CanUpdateRateLimits.toString)
-        val response01 = makePutRequest((v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user2), write(callLimitWeekJson))
+        val response01 = setLimitAsAnotherConsumer(consumerId, callLimitWeekJson)
         Then("We should get a 200")
         response01.code should equal(200)
 
@@ -339,9 +335,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
         val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
         Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
         val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
-        // Set by another consumer, so this consumer starts the period with no calls made.
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, ApiRole.CanUpdateRateLimits.toString)
-        val response01 = makePutRequest((v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user2), write(callLimitMonthJson))
+        val response01 = setLimitAsAnotherConsumer(consumerId, callLimitMonthJson)
         Then("We should get a 200")
         response01.code should equal(200)
 
