@@ -29,6 +29,7 @@ package deletion
 
 import code.accountattribute.MappedAccountAttribute
 import code.api.APIFailureNewStyle
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.DynamicData.{DynamicData, DynamicDataAccess, DynamicDataProvider}
@@ -63,8 +64,14 @@ object DeleteBankCascade {
       )
       // Delete account
       DeleteAccountCascade.delete(i.bankId, i.accountId)
-    } && deleteDynamicEntities(bankId) && deleteBank(bankId)
+    } && (isSystemSpaceMarker(bankId) || deleteDynamicEntities(bankId)) && deleteBank(bankId)
   }
+
+  /**
+   * Dynamic entities of the system space are stored under this marker, so a bank that has it as its id cannot have
+   * dynamic entities of its own, and deleting the bank must not touch the system space.
+   */
+  private def isSystemSpaceMarker(bankId: BankId): Boolean = bankId.value == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
   
   def atomicDelete(bankId: BankId): Box[Boolean] = databaseAtomicTask {
     delete(bankId) match {
