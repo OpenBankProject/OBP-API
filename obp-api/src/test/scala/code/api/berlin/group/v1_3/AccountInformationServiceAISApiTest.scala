@@ -779,6 +779,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
         val consentId =response.body.extract[PostConsentResponseJson].consentId
 
         Then(s"We test the $startConsentAuthorisationTransactionAuthorisation")
+        // a challenge the user can be sent: with the default SMS and no linked customer there is no one to send it to
+        setPropsValues("suggested_default_sca_method" -> "DUMMY")
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/consentId /"authorisations" ).POST <@ (user1)
         val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, """{"scaAuthenticationData":""}""")
         responseStartConsentAuthorisation.code should be (201)
@@ -837,6 +839,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
         val consentId =response.body.extract[PostConsentResponseJson].consentId
   
         Then(s"We test the $startConsentAuthorisationTransactionAuthorisation")
+        // a challenge the user can be sent: with the default SMS and no linked customer there is no one to send it to
+        setPropsValues("suggested_default_sca_method" -> "DUMMY")
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/consentId /"authorisations" ).POST <@ (user1)
         val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, """{"scaAuthenticationData":""}""")
         responseStartConsentAuthorisation.code should be (201)

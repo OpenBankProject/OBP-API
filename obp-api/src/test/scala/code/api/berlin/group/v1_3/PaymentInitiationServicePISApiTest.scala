@@ -35,6 +35,7 @@ import code.api.berlin.group.v1_3.model.{ScaStatusResponse, TransactionStatus, U
 import code.api.berlin.group.v1_3.Http4sBGv13PIS
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
+import code.api.util.CommonsEmailWrapper
 import code.api.util.ErrorMessages._
 import code.model.dataAccess.{AuthUser, BankAccountRouting, MappedBankAccount}
 import code.model.TokenType
@@ -813,6 +814,41 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     By(MappedBankAccount.bank, routing.bankId.value),
     By(MappedBankAccount.theAccountId, routing.accountId.value))
     .map(_.balance).openOrThrowException("Can not be empty here")
+
+  feature("test the BG v1.3 - the passcode of a payment authorisation sent by EMAIL") {
+    def startAuthorisationAsUser1(): APIResponse = {
+      val (paymentId, _, _) = lodgePaymentAsUser1()
+      makePostRequest(
+        (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "authorisations").POST <@ (user1),
+        """{"scaAuthenticationData":""}""")
+    }
+
+    scenario("goes to the user's own address when no customer is linked", BerlinGroupV1_3, PIS, initiatePayment) {
+      setPropsValues("SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT" -> "EMAIL", "mail.test.mode" -> "true")
+      CommonsEmailWrapper.clearTestModeSentMail()
+      // The user's own address is used once the user has signed up here and confirmed it.
+      val authUser = AuthUser.create.user(resourceUser1.id.get).username(resourceUser1.name)
+        .email(resourceUser1.emailAddress).validated(true).saveMe()
+      try {
+        startAuthorisationAsUser1().code should equal(201)
+
+        CommonsEmailWrapper.testModeSentMail.filter(_.subject == "Challenge").map(_.to) should equal(List(List(resourceUser1.emailAddress)))
+      } finally AuthUser.bulkDelete_!!(By(AuthUser.id, authUser.id.get))
+    }
+
+    scenario("is refused when the user has no confirmed address either", BerlinGroupV1_3, PIS, initiatePayment) {
+      // resourceUser1 has no linked customer and did not sign up here, so there is no address to send it to.
+      setPropsValues("SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT" -> "EMAIL", "mail.test.mode" -> "true")
+      CommonsEmailWrapper.clearTestModeSentMail()
+      AuthUser.findAll(By(AuthUser.user, resourceUser1.id.get)) shouldBe empty
+
+      val response = startAuthorisationAsUser1()
+
+      response.code should equal(400)
+      response.body.toString should include(extractErrorMessageCode(ChallengeRecipientNotFound))
+      CommonsEmailWrapper.testModeSentMail.filter(_.subject == "Challenge") shouldBe empty
+    }
+  }
 
   private def initiatePaymentsAccessOf(account: BankAccountRouting, user: User = resourceUser1) =
     AccountAccess.findAll(
