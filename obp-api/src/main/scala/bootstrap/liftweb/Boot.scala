@@ -384,26 +384,12 @@ class Boot extends MdcLoggable {
       }
 
       // The remaining two stay opt-in: nothing in the code requires them to exist, so whether an
-      // instance has them is still the operator's call. (The mapped connector is the exception for
-      // InitiatePaymentsBerlinGroup: it lists the view in viewsToGenerate, so a refresh creates it and
-      // grants it to the holders of their accounts whether or not it is listed here.) Their permission sets ARE code-defined
-      // though, so where they do exist they are kept current the same way -- the prop decides
-      // existence, not whether the code is authoritative about what a view grants.
-      APIUtil.getPropsValue("additional_system_views") match {
-        case Full(value) =>
-          val additionalSystemViewsFromProps = value.split(",").map(_.trim).toList
-          val additionalSystemViews = List(
-            SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID,
-            SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
-          )
-          for {
-            systemView <- additionalSystemViewsFromProps
-            if additionalSystemViews.exists(_ == systemView)
-          } {
-            Views.views.vend.ensureSystemViewUpToDate(systemView)
-          }
-        case _ => // Do nothing
-      }
+      // instance has them is still the operator's call. (The mapped connector is the exception: it lists
+      // both in viewsToGenerate, so a refresh creates them and grants them to the holders of their accounts
+      // whether or not they are listed here.) Their permission sets ARE code-defined though, so wherever they
+      // exist, listed or not, they are kept current the same way, unless reconcile_permissions_at_boot is false --
+      // the prop decides existence, not whether the code is authoritative about what a view grants.
+      Views.views.vend.ensureOptInSystemViewsUpToDate(APIUtil.getPropsValue("additional_system_views"))
 
     }
 
