@@ -201,7 +201,8 @@ class ChallengeRecipientTest extends ServerSetupWithTestData with PropsReset {
       linkCustomer(user, "customer-address@example.com", mobileNumber = "+49 170 0000001")
       val transactionRequestId = randomString(10)
 
-      createChallenge(user, StrongCustomerAuthentication.SMS, transactionRequestId) shouldBe a[Failure]
+      // The caller may not own the phone number, so the answer must not show it.
+      failureMessage(createChallenge(user, StrongCustomerAuthentication.SMS, transactionRequestId)) should not include "+49 170 0000001"
 
       savedChallenges(transactionRequestId) shouldBe empty
     }
