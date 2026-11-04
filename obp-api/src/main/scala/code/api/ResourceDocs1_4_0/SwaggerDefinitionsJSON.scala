@@ -4310,8 +4310,8 @@ object SwaggerDefinitionsJSON {
   lazy val callLimitPostJsonV600 = CallLimitPostJsonV600(
     from_date = DateWithDayExampleObject,
     to_date = DateWithDayExampleObject,
-    api_version = Some(ApiVersion.v6_0_0.toString),
-    api_name = Some("getConsumerCallLimits"),
+    api_version = None,
+    api_name = None,
     bank_id = None,
     per_second_call_limit = "100",
     per_minute_call_limit = "1000",

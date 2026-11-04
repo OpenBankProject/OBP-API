@@ -1433,7 +1433,7 @@
       "field": "description",
       "reason": "Documents the six-limit semantics (0=blocked, summed across records); same rate-limiting feature expansion as the other rate-limit endpoints below.",
       "lift_digest": "668028ad86321b68b01406fb570d1dafca545c3c45bc2a3e3c0d04dd1a5b69af",
-      "http4s_digest": "373574cc7bc9c4b16c6d3250eecc3b65db651c16cd1457b5e4ddfa546e220aa3"
+      "http4s_digest": "20ef72c36c810c8f2e95d6d4fdae9c05438fb1a11c09b3c0d70e9d245883197f"
     },
     {
       "version": "v6_0_0",
@@ -1481,7 +1481,7 @@
       "field": "description",
       "reason": "Same rate-limiting doc expansion as the other call-limit endpoints.",
       "lift_digest": "b4a18cf966d2dbdd3760c86771869b584cd10286dac49620d075a7cbfdca4996",
-      "http4s_digest": "41c77b86feb302cbc5130214b14e71a7dc5c09710eaad3819b4b126d6ae41412"
+      "http4s_digest": "e200763f8a95f7259cae9d370259d22140003a5ee3cf6eee4aba4d99429f3951"
     },
     {
       "version": "v6_0_0",

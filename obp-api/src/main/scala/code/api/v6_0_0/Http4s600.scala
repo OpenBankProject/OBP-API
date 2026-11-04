@@ -6200,8 +6200,10 @@ object Http4s600 {
 
 
     // The fields of a rate limit that name something narrower than the consumer, which nothing enforces yet.
+    // An empty value names nothing.
     private def rateLimitScopeFields(apiName: Option[String], apiVersion: Option[String], bankId: Option[String]): List[String] =
-      List("api_name" -> apiName, "api_version" -> apiVersion, "bank_id" -> bankId).collect { case (name, Some(_)) => name }
+      List("api_name" -> apiName, "api_version" -> apiVersion, "bank_id" -> bankId)
+        .collect { case (name, Some(value)) if value.trim.nonEmpty => name }
 
     // Route: POST /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits (201)
     lazy val createCallLimits: Http4sRoute = Http4sRoute {
@@ -6220,7 +6222,7 @@ object Http4s600 {
             }
             rateLimitingBox <- RateLimitingDI.rateLimiting.vend.createConsumerCallLimits(
               consumerId, postJson.from_date, postJson.to_date,
-              postJson.api_version, postJson.api_name, postJson.bank_id,
+              None, None, None, // rateLimitScopeFields has refused any value that is not blank
               Some(postJson.per_second_call_limit), Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit), Some(postJson.per_day_call_limit),
               Some(postJson.per_week_call_limit), Some(postJson.per_month_call_limit))
@@ -6246,7 +6248,7 @@ object Http4s600 {
             }
             _ <- RateLimitingDI.rateLimiting.vend.updateConsumerCallLimits(
               rateLimitingId, postJson.from_date, postJson.to_date,
-              postJson.api_version, postJson.api_name, postJson.bank_id,
+              None, None, None, // rateLimitScopeFields has refused any value that is not blank
               Some(postJson.per_second_call_limit), Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit), Some(postJson.per_day_call_limit),
               Some(postJson.per_week_call_limit), Some(postJson.per_month_call_limit))
@@ -14798,10 +14800,11 @@ object Http4s600 {
         |
         |A consumer with no records at all gets the system defaults (`rate_limiting_per_*` props).
         |
-        |A record applies to every call of the consumer from `from_date` to `to_date`. `api_name`, `api_version` and `bank_id` cannot be set yet: a request that names one is refused with 400.
+        |A record applies to every call of the consumer from `from_date` to `to_date`. `api_name`, `api_version` and `bank_id` cannot be set yet: a request that names one is refused with 400, and an empty value is stored as not set.
         |
         |A record created by an API Product Subscription is managed by that subscription: it is rewritten on the
-        |subscription's next status change and removed when the subscription is cancelled.
+        |subscription's next status change and removed when the subscription is cancelled. Such a record shows the
+        |subscription's `bank_id` for reference; it too applies to every call of the consumer.
         |
         |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for details.
         |
@@ -14849,10 +14852,11 @@ object Http4s600 {
         |
         |A consumer with no records at all gets the system defaults (`rate_limiting_per_*` props).
         |
-        |A record applies to every call of the consumer from `from_date` to `to_date`. `api_name`, `api_version` and `bank_id` cannot be set yet: a request that names one is refused with 400.
+        |A record applies to every call of the consumer from `from_date` to `to_date`. `api_name`, `api_version` and `bank_id` cannot be set yet: a request that names one is refused with 400, and an empty value is stored as not set.
         |
         |A record created by an API Product Subscription is managed by that subscription: it is rewritten on the
-        |subscription's next status change and removed when the subscription is cancelled.
+        |subscription's next status change and removed when the subscription is cancelled. Such a record shows the
+        |subscription's `bank_id` for reference; it too applies to every call of the consumer.
         |
         |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for details.
         |
