@@ -219,6 +219,30 @@ class DeleteBankCascadeTest extends V400ServerSetup {
       recordsAt(otherBankId) should have size 1
     }
 
+    scenario("We delete a bank whose id is the one that marks the system space", ApiEndpoint1, VersionOfApi) {
+      val bankId = createBank(Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID).bankId.value
+      val name = s"System${APIUtil.generateUUID().take(8).replace("-", "")}"
+      // A system level definition and record, which are stored under that same marker.
+      DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(DynamicEntityCommons(
+        name, s"""{"$name":{"properties":{"${StringHelpers.snakify(name)}_id":{"type":"string"},"note":{"type":"string"}}}}""",
+        None, "bank-cascade-owner", None, hasPersonalEntity = false)).openOrThrowException("definition")
+      DynamicDataProvider.connectorMethodProvider.vend.save(None, name,
+        JObject(JField(StringHelpers.snakify(name) + "_id", JString(APIUtil.generateUUID())), JField("note", JString("kept"))),
+        Some("bank-cascade-owner"), false).openOrThrowException("record")
+      def systemDefinitions = DynamicEntity.findAll(By(DynamicEntity.EntityName, name))
+      def systemRecords = DynamicData.findAll(By(DynamicData.DynamicEntityName, name))
+      systemDefinitions should have size 1
+      systemRecords should have size 1
+
+      When("We delete that bank with the cascading endpoint")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteBankCascade.toString)
+      makeDeleteRequest((v4_0_0_Request / "management" / "cascading" / "banks" / bankId).DELETE <@(user1)).code should equal(200)
+
+      Then("The system level definition and its record are kept")
+      systemDefinitions should have size 1
+      systemRecords should have size 1
+    }
+
     scenario("We delete a bank that has records whose definition is already gone", ApiEndpoint1, VersionOfApi) {
       val bankId = createBank(APIUtil.generateUUID()).bankId.value
       val otherBankId = createBank(APIUtil.generateUUID()).bankId.value
