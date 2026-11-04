@@ -389,21 +389,7 @@ class Boot extends MdcLoggable {
       // grants it to the holders of their accounts whether or not it is listed here.) Their permission sets ARE code-defined
       // though, so where they do exist they are kept current the same way -- the prop decides
       // existence, not whether the code is authoritative about what a view grants.
-      APIUtil.getPropsValue("additional_system_views") match {
-        case Full(value) =>
-          val additionalSystemViewsFromProps = value.split(",").map(_.trim).toList
-          val additionalSystemViews = List(
-            SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID,
-            SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
-          )
-          for {
-            systemView <- additionalSystemViewsFromProps
-            if additionalSystemViews.exists(_ == systemView)
-          } {
-            Views.views.vend.ensureSystemViewUpToDate(systemView)
-          }
-        case _ => // Do nothing
-      }
+      Views.views.vend.ensureOptInSystemViewsUpToDate(APIUtil.getPropsValue("additional_system_views"))
 
     }
 

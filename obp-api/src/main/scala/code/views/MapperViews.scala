@@ -727,6 +727,13 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
+  def ensureOptInSystemViewsUpToDate(additionalSystemViews: Box[String]) : List[Box[View]] = {
+    val listed = additionalSystemViews.toList.flatMap(_.split(",").map(_.trim))
+    List(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)
+      .filter(listed.contains)
+      .map(ensureSystemViewUpToDate)
+  }
+
   def getOrCreateSystemView(viewId: String) : Box[View] = {
     getExistingSystemView(viewId) match {
       case Empty =>
