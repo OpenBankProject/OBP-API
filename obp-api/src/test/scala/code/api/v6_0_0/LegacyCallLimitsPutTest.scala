@@ -112,6 +112,18 @@ class LegacyCallLimitsPutTest extends V600ServerSetup {
       storedPerHourLimits should equal(List(200L))
     }
 
+    scenario("changes a consumer's only rate limit that an older version stored with empty scope fields") {
+      startClean()
+      // As v4.0.0 stored a body that sent "" for api_name, api_version and bank_id.
+      RateLimiting.create.ConsumerId(consumerId).FromDate(from).ToDate(to).BankId("").ApiVersion("").ApiName("")
+        .PerSecondCallLimit(-1).PerMinuteCallLimit(-1).PerHourCallLimit(1000).PerDayCallLimit(-1)
+        .PerWeekCallLimit(-1).PerMonthCallLimit(-1).saveMe()
+
+      makePutRequest(callLimitsPath(v3_1_0_Request).PUT <@ (user1), write(legacyBody("100"))).code should equal(200)
+
+      storedPerHourLimits should equal(List(100L))
+    }
+
     scenario("applies the change at once") {
       startClean()
       createV600Limit("1000")
