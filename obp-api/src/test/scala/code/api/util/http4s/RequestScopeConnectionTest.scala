@@ -132,19 +132,29 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
     }
 
     scenario("rollback to a savepoint on the proxy reaches the real connection") {
-      Given("A tracked real connection wrapped in a proxy")
-      val t     = new ConnectionTracker
-      val proxy = RequestScopeConnection.makeProxy(trackingConn(t))
+      Given("A real connection that records the savepoint it is rolled back to")
       val savepoint = new java.sql.Savepoint {
         def getSavepointId: Int = 1
         def getSavepointName: String = "cascade"
       }
 
-      When("rollback(savepoint) is called on the proxy, as a cascade that failed does")
-      proxy.rollback(savepoint)
+      var rolledBackTo: Option[AnyRef] = None
+      val real = JProxy.newProxyInstance(
+        classOf[Connection].getClassLoader,
+        Array(classOf[Connection]),
+        new InvocationHandler {
+          def invoke(proxy: Any, method: Method, args: Array[AnyRef]): AnyRef = {
+            if (method.getName == "rollback" && args != null && args.length == 1) rolledBackTo = Some(args(0))
+            null
+          }
+        }
+      ).asInstanceOf[Connection]
 
-      Then("The real connection rolls back to it, so the cascade can undo its own writes")
-      t.rollbackCount shouldBe 1
+      When("rollback(savepoint) is called on the proxy, as a cascade that failed does")
+      RequestScopeConnection.makeProxy(real).rollback(savepoint)
+
+      Then("The real connection rolls back to that savepoint, so the cascade can undo its own writes")
+      rolledBackTo shouldBe Some(savepoint)
     }
 
     scenario("close on the proxy does not reach the real connection") {

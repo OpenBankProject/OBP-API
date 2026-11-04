@@ -83,6 +83,26 @@ class DeletionUtilTest extends FeatureSpec with Matchers {
       val recording = new RecordingConnection(releaseFails = Some(new SQLFeatureNotSupportedException("releaseSavepoint")))
 
       DeletionUtil.withSavepoint(recording.connection)("deleted") should equal("deleted")
+
+      recording.calls.toList should equal(List("setSavepoint", "releaseSavepoint"))
+    }
+
+    scenario("that cannot be set stops the cascade before it deletes anything") {
+      val connection = JProxy.newProxyInstance(
+        classOf[Connection].getClassLoader,
+        Array(classOf[Connection]),
+        new InvocationHandler {
+          def invoke(proxy: Any, method: Method, args: Array[AnyRef]): AnyRef = method.getName match {
+            case "setSavepoint" => throw new SQLFeatureNotSupportedException("setSavepoint")
+            case _ => null
+          }
+        }
+      ).asInstanceOf[Connection]
+      var ran = false
+
+      a[SQLFeatureNotSupportedException] should be thrownBy DeletionUtil.withSavepoint(connection) { ran = true }
+
+      ran should equal(false)
     }
 
     scenario("keeps the cascade's exception when rolling back to it fails too") {
