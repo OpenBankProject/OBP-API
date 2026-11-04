@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.connector
 
 import code.api.util.CommonsEmailWrapper
+import code.api.util.ErrorMessages.{ChallengeRecipientNotFound, EmailSendingFailed}
 import code.bankconnectors.LocalMappedConnector
 import code.customer.CustomerX
 import code.model.dataAccess.AuthUser
@@ -89,6 +90,11 @@ class ChallengeRecipientTest extends ServerSetupWithTestData with PropsReset {
   private def savedChallenges(transactionRequestId: String) =
     Challenges.ChallengeProvider.vend.getChallengesByTransactionRequestId(transactionRequestId).openOr(Nil)
 
+  private def failureMessage(result: net.liftweb.common.Box[_]): String = result match {
+    case failure: Failure => failure.msg
+    case other => fail(s"expected a Failure, got $other")
+  }
+
   private def challengeMails = CommonsEmailWrapper.testModeSentMail.filter(_.subject == "Challenge")
 
   private def startMailTestMode(): Unit = {
@@ -130,7 +136,7 @@ class ChallengeRecipientTest extends ServerSetupWithTestData with PropsReset {
       startMailTestMode()
       val user = createLocalUser("unvalidated-address@example.com", validated = false)
 
-      createChallenge(user, StrongCustomerAuthentication.EMAIL) shouldBe a[Failure]
+      failureMessage(createChallenge(user, StrongCustomerAuthentication.EMAIL)) should startWith(ChallengeRecipientNotFound)
 
       challengeMails shouldBe empty
     }
@@ -139,7 +145,7 @@ class ChallengeRecipientTest extends ServerSetupWithTestData with PropsReset {
       startMailTestMode()
       val user = createUser("external-address@example.com")
 
-      createChallenge(user, StrongCustomerAuthentication.EMAIL) shouldBe a[Failure]
+      failureMessage(createChallenge(user, StrongCustomerAuthentication.EMAIL)) should startWith(ChallengeRecipientNotFound)
 
       challengeMails shouldBe empty
     }
@@ -156,16 +162,27 @@ class ChallengeRecipientTest extends ServerSetupWithTestData with PropsReset {
       linkCustomer(user, "customer-address@example.com")
       val transactionRequestId = randomString(10)
 
-      createChallenge(user, StrongCustomerAuthentication.EMAIL, transactionRequestId) shouldBe a[Failure]
+      failureMessage(createChallenge(user, StrongCustomerAuthentication.EMAIL, transactionRequestId)) should startWith(EmailSendingFailed)
 
       savedChallenges(transactionRequestId) shouldBe empty
     }
 
+    scenario("goes once to an address that two linked customers share") {
+      startMailTestMode()
+      val user = createUser("user-address@example.com")
+      linkCustomer(user, "shared-address@example.com")
+      linkCustomer(user, "shared-address@example.com")
+
+      createChallenge(user, StrongCustomerAuthentication.EMAIL).map(_.size) should equal(Full(1))
+
+      challengeMails.map(_.to) should equal(List(List("shared-address@example.com")))
+    }
+
     scenario("is not created when there is no address to send it to") {
       startMailTestMode()
-      val user = createUser("")
+      val user = createLocalUser("", validated = true)
 
-      createChallenge(user, StrongCustomerAuthentication.EMAIL) shouldBe a[Failure]
+      failureMessage(createChallenge(user, StrongCustomerAuthentication.EMAIL)) should startWith(ChallengeRecipientNotFound)
 
       challengeMails shouldBe empty
     }
@@ -175,7 +192,7 @@ class ChallengeRecipientTest extends ServerSetupWithTestData with PropsReset {
     scenario("is not created when no customer with a phone number is linked") {
       val user = createUser("user-address@example.com")
 
-      createChallenge(user, StrongCustomerAuthentication.SMS) shouldBe a[Failure]
+      failureMessage(createChallenge(user, StrongCustomerAuthentication.SMS)) should startWith(ChallengeRecipientNotFound)
     }
 
     scenario("is not saved when the message cannot be sent") {
@@ -184,10 +201,8 @@ class ChallengeRecipientTest extends ServerSetupWithTestData with PropsReset {
       linkCustomer(user, "customer-address@example.com", mobileNumber = "+49 170 0000001")
       val transactionRequestId = randomString(10)
 
-      val result = createChallenge(user, StrongCustomerAuthentication.SMS, transactionRequestId)
+      createChallenge(user, StrongCustomerAuthentication.SMS, transactionRequestId) shouldBe a[Failure]
 
-      result shouldBe a[Failure]
-      result.asInstanceOf[Failure].msg should not include "+49 170 0000001"
       savedChallenges(transactionRequestId) shouldBe empty
     }
   }

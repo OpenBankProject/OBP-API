@@ -835,16 +835,17 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       } finally AuthUser.bulkDelete_!!(By(AuthUser.id, authUser.id.get))
     }
 
-    scenario("is refused when the user has no address either", BerlinGroupV1_3, PIS, initiatePayment) {
+    scenario("is refused when the user has no confirmed address either", BerlinGroupV1_3, PIS, initiatePayment) {
+      // resourceUser1 has no linked customer and did not sign up here, so there is no address to send it to.
       setPropsValues("SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT" -> "EMAIL", "mail.test.mode" -> "true")
       CommonsEmailWrapper.clearTestModeSentMail()
-      val address = resourceUser1.emailAddress
-      resourceUser1.email("").save
-      try {
-        val response = startAuthorisationAsUser1()
-        response.code should equal(400)
-        CommonsEmailWrapper.testModeSentMail.filter(_.subject == "Challenge") shouldBe empty
-      } finally resourceUser1.email(address).save
+      AuthUser.findAll(By(AuthUser.user, resourceUser1.id.get)) shouldBe empty
+
+      val response = startAuthorisationAsUser1()
+
+      response.code should equal(400)
+      response.body.toString should include(extractErrorMessageCode(ChallengeRecipientNotFound))
+      CommonsEmailWrapper.testModeSentMail.filter(_.subject == "Challenge") shouldBe empty
     }
   }
 
