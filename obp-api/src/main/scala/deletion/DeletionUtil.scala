@@ -30,6 +30,8 @@ package deletion
 import net.liftweb.db.DB
 import net.liftweb.util.DefaultConnectionIdentifier
 
+import java.sql.Connection
+
 object DeletionUtil {
   /**
    * Runs a cascade as one unit: when it throws, every row it wrote is restored before the exception goes on.
@@ -40,17 +42,22 @@ object DeletionUtil {
    */
   def databaseAtomicTask[R](blockOfCode: => R): R = {
     DB.use(DefaultConnectionIdentifier){ conn =>
-      val savepoint = conn.connection.setSavepoint()
-      val result =
-        try blockOfCode
-        catch {
-          case e: Throwable =>
-            try conn.connection.rollback(savepoint)
-            catch { case rollbackFailure: Throwable => e.addSuppressed(rollbackFailure) }
-            throw e
-        }
-      conn.connection.releaseSavepoint(savepoint)
-      result
+      withSavepoint(conn.connection)(blockOfCode)
     }
+  }
+
+  /** Runs `blockOfCode` after a savepoint on `connection`, rolling back to it when the block throws. */
+  private[deletion] def withSavepoint[R](connection: Connection)(blockOfCode: => R): R = {
+    val savepoint = connection.setSavepoint()
+    val result =
+      try blockOfCode
+      catch {
+        case e: Throwable =>
+          try connection.rollback(savepoint)
+          catch { case rollbackFailure: Throwable => e.addSuppressed(rollbackFailure) }
+          throw e
+      }
+    connection.releaseSavepoint(savepoint)
+    result
   }
 }
