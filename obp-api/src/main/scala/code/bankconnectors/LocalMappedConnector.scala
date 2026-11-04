@@ -397,12 +397,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     challengesOrFailure(challenges, callContext)
   }
 
-  /** The challenges of all the users, or the first failure: a user who could not be sent a challenge is not skipped. */
-  private def challengesOrFailure[T](results: List[Box[T]], callContext: Option[CallContext]): (Box[List[T]], Option[CallContext]) =
+  /**
+   * The challenges of the users who could be sent one, or the first failure when no one could. A caller that needs
+   * a number of answers checks how many challenges it got.
+   */
+  private def challengesOrFailure[T](results: List[Box[T]], callContext: Option[CallContext]): (Box[List[T]], Option[CallContext]) = {
+    val created = results.flatMap(_.toList)
     results.collectFirst { case failure: Failure => failure } match {
-      case Some(failure) => (failure, callContext)
-      case None => (Full(results.flatMap(_.toList)), callContext)
+      case Some(failure) if created.isEmpty => (failure, callContext)
+      case Some(failure) =>
+        logger.warn(s"challengesOrFailure says: ${results.size - created.size} of ${results.size} users could not be sent a challenge: ${failure.msg}")
+        (Full(created), callContext)
+      case None => (Full(created), callContext)
     }
+  }
 
   /** The values that hold an address: a customer's e-mail or mobile number may be blank or NULL. */
   private def nonBlank(values: List[String]): List[String] =
@@ -452,7 +460,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         createHashedPassword("123")
       case Some(StrongCustomerAuthentication.EMAIL) =>
         // The customers linked to the user; else the user's own address, once the user has confirmed it.
-        val linkedCustomerEmails = nonBlank(APIUtil.getEmailsByUserId(userId).map(_._2))
+        val linkedCustomerEmails = nonBlank(APIUtil.getEmailsByUserId(userId).map(_._2)).distinct
         val recipients =
           if (linkedCustomerEmails.nonEmpty) linkedCustomerEmails
           else nonBlank(validatedOwnEmail(userId).toList)
@@ -473,7 +481,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           if (sent) createHashedPassword(challengeAnswer) else (Failure(EmailSendingFailed), callContext)
         }
       case Some(StrongCustomerAuthentication.SMS) | Some(StrongCustomerAuthentication.SMS_OTP) =>
-        val phoneNumbers = nonBlank(APIUtil.getPhoneNumbersByUserId(userId).map(_._2))
+        val phoneNumbers = nonBlank(APIUtil.getPhoneNumbersByUserId(userId).map(_._2)).distinct
         if (phoneNumbers.isEmpty) {
           // No linked customer with a phone number: there is no one to send the passcode to.
           (Failure(ChallengeRecipientNotFound), callContext)
@@ -5248,6 +5256,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               }
             }
   
+            // How many of those users have to answer, as getUsersForChallenges reads it.
+            def requiredChallengeAnswers(bankId: BankId, accountId: AccountId): Future[Int] =
+              Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
+                _._1.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
+              }
+
             for {
               // The challenge belongs to the person the payment is for, who is not the caller when
               // an agent started it. See paymentChallengeRecipient.
@@ -5256,6 +5270,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               }
               //if challenge necessary, create a new one
               users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId, challengeRecipient)
+              requiredAnswers <- requiredChallengeAnswers(fromAccount.bankId, fromAccount.accountId)
               //now we support multiple challenges. We can support multiple people to answer the challenges.
               //So here we return the challengeIds. 
               (challenges, callContext) <- Connector.connector.vend.createChallengesC2(
@@ -5268,9 +5283,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 authenticationMethodId = None,
                 callContext = callContext
                 ) flatMap {
-                case (Full(challenges), callContext) => Future.successful((challenges, callContext))
-                case (failure, callContext) =>
-                  // Without its challenges the request can never be answered.
+                case (Full(challenges), callContext) if challenges.length >= requiredAnswers => Future.successful((challenges, callContext))
+                case (result, callContext) =>
+                  // With fewer challenges than the answers it needs, the request can never be answered.
+                  val failure: Box[List[ChallengeTrait]] = result match {
+                    case Full(challenges) =>
+                      Failure(s"$ChallengeRecipientNotFound ${challenges.length} of the $requiredAnswers users who have to answer could be sent a challenge.")
+                    case other => other
+                  }
                   saveTransactionRequestStatusImpl(transactionRequest.id, TransactionRequestStatus.FAILED.toString, callContext) map { _ =>
                     (unboxFullOrFail(failure, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), callContext)
                   }
