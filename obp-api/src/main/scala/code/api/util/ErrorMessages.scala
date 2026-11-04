@@ -594,6 +594,9 @@ object ErrorMessages {
   val AssetNotFoundByChainIdentity = "OBP-30580: No asset has this chain identity. Please specify a registered CHAIN_SCHEME and CHAIN_ASSET_ID."
   val InvalidAssetQueryParameter = "OBP-30581: Invalid query parameter for assets."
 
+  // Rate limits (OBP-30582)
+  val RateLimitScopeNotSupported = "OBP-30582: A rate limit applies to every call of the consumer, so it cannot name an api_name, api_version or bank_id yet. Leave them out."
+
   val OrganisationNotFound = "OBP-30506: Organisation not found. Please specify a valid value for ORGANISATION_ID."
   val OrganisationAlreadyExists = "OBP-30507: Organisation already exists. Please specify a different value for ORGANISATION_ID."
   val InvalidOrganisationIdFormat = "OBP-30508: Invalid Organisation Id. The ORGANISATION_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', and be between 2 and 64 characters in length."

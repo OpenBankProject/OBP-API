@@ -6199,6 +6199,12 @@ object Http4s600 {
     }
 
 
+    // The fields of a rate limit that name something narrower than the consumer, which nothing enforces yet.
+    // An empty value names nothing.
+    private def rateLimitScopeFields(apiName: Option[String], apiVersion: Option[String], bankId: Option[String]): List[String] =
+      List("api_name" -> apiName, "api_version" -> apiVersion, "bank_id" -> bankId)
+        .collect { case (name, Some(value)) if value.trim.nonEmpty => name }
+
     // Route: POST /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits (201)
     lazy val createCallLimits: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" =>
@@ -6210,9 +6216,13 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CallLimitPostJsonV600]
             }
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            scopeFields = rateLimitScopeFields(postJson.api_name, postJson.api_version, postJson.bank_id)
+            _ <- Helper.booleanToFuture(s"$RateLimitScopeNotSupported Remove: ${scopeFields.mkString(", ")}", 400, Some(cc)) {
+              scopeFields.isEmpty
+            }
             rateLimitingBox <- RateLimitingDI.rateLimiting.vend.createConsumerCallLimits(
               consumerId, postJson.from_date, postJson.to_date,
-              postJson.api_version, postJson.api_name, postJson.bank_id,
+              None, None, None, // rateLimitScopeFields has refused any value that is not blank
               Some(postJson.per_second_call_limit), Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit), Some(postJson.per_day_call_limit),
               Some(postJson.per_week_call_limit), Some(postJson.per_month_call_limit))
@@ -6232,9 +6242,16 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CallLimitPostJsonV400]
             }
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            scopeFields = rateLimitScopeFields(postJson.api_name, postJson.api_version, postJson.bank_id)
+            _ <- Helper.booleanToFuture(s"$RateLimitScopeNotSupported Remove: ${scopeFields.mkString(", ")}", 400, Some(cc)) {
+              scopeFields.isEmpty
+            }
+            existing <- RateLimitingDI.rateLimiting.vend.getByRateLimitingId(rateLimitingId)
             _ <- RateLimitingDI.rateLimiting.vend.updateConsumerCallLimits(
               rateLimitingId, postJson.from_date, postJson.to_date,
-              postJson.api_version, postJson.api_name, postJson.bank_id,
+              // rateLimitScopeFields has refused any value that is not blank; the bank_id of a record an
+              // API Product Subscription wrote is kept.
+              None, None, existing.toOption.flatMap(_.bankId),
               Some(postJson.per_second_call_limit), Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit), Some(postJson.per_day_call_limit),
               Some(postJson.per_week_call_limit), Some(postJson.per_month_call_limit))
@@ -6283,7 +6300,7 @@ object Http4s600 {
               val ldt = java.time.LocalDateTime.parse(dateWithHourString, fmt)
               java.util.Date.from(ldt.atZone(java.time.ZoneOffset.UTC).toInstant())
             }
-            (rateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, date)
+            (rateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, date, exact = false)
           } yield JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(rateLimit, ids, date)
         }
     }
@@ -14786,8 +14803,11 @@ object Http4s600 {
         |
         |A consumer with no records at all gets the system defaults (`rate_limiting_per_*` props).
         |
+        |A record applies to every call of the consumer from `from_date` to `to_date`. `api_name`, `api_version` and `bank_id` cannot be set yet: a request that names one is refused with 400, and an empty value is stored as not set.
+        |
         |A record created by an API Product Subscription is managed by that subscription: it is rewritten on the
-        |subscription's next status change and removed when the subscription is cancelled.
+        |subscription's next status change and removed when the subscription is cancelled. Such a record shows the
+        |subscription's `bank_id` for reference; it too applies to every call of the consumer.
         |
         |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for details.
         |
@@ -14801,6 +14821,7 @@ object Http4s600 {
           InvalidJsonFormat,
           InvalidConsumerId,
           ConsumerNotFoundByConsumerId,
+          RateLimitScopeNotSupported,
           UserHasMissingRoles,
           UnknownError
         ),
@@ -14834,8 +14855,11 @@ object Http4s600 {
         |
         |A consumer with no records at all gets the system defaults (`rate_limiting_per_*` props).
         |
+        |A record applies to every call of the consumer from `from_date` to `to_date`. `api_name`, `api_version` and `bank_id` cannot be set yet: a request that names one is refused with 400, and an empty value is stored as not set.
+        |
         |A record created by an API Product Subscription is managed by that subscription: it is rewritten on the
-        |subscription's next status change and removed when the subscription is cancelled.
+        |subscription's next status change and removed when the subscription is cancelled. Such a record shows the
+        |subscription's `bank_id` for reference; it too applies to every call of the consumer.
         |
         |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for details.
         |
@@ -14849,6 +14873,7 @@ object Http4s600 {
           InvalidJsonFormat,
           InvalidConsumerId,
           ConsumerNotFoundByConsumerId,
+          RateLimitScopeNotSupported,
           UserHasMissingRoles,
           UpdateConsumerError,
           UnknownError
