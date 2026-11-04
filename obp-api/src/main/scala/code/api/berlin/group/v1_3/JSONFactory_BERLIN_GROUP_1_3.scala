@@ -318,7 +318,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   )
 
   case class InitiatePaymentResponseLinks(
-    scaRedirect: LinkHrefJson,
+    scaRedirect: Option[LinkHrefJson],
     self: LinkHrefJson,
     status: LinkHrefJson,
     scaStatus: LinkHrefJson
@@ -801,18 +801,18 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
 //      Remark: This code may be
     //map OBP transactionRequestId to BerlinGroup PaymentId
     val paymentId = transactionRequest.id.value
-    val scaRedirectUrlPattern = getPropsValue("psu_make_payment_sca_redirect_url")
-      .openOr(MissingPropsValueAtThisInstance + "psu_make_payment_sca_redirect_url")
-    val scaRedirectUrl =
-      if (scaRedirectUrlPattern.contains("PLACEHOLDER"))
-        scaRedirectUrlPattern.replace("PLACEHOLDER", paymentId)
+    // Without psu_make_payment_sca_redirect_url there is no page to send the PSU to, so the link is left out.
+    val scaRedirectUrl = getPropsValue("psu_make_payment_sca_redirect_url").toOption.filter(_.trim.nonEmpty).map { pattern =>
+      if (pattern.contains("PLACEHOLDER"))
+        pattern.replace("PLACEHOLDER", paymentId)
       else
-        s"$scaRedirectUrlPattern/${paymentId}"
+        s"$pattern/$paymentId"
+    }
     InitiatePaymentResponseJson(
       transactionStatus = mapTransactionStatus(transactionRequest.status),
       paymentId = paymentId,
       _links = InitiatePaymentResponseLinks(
-        scaRedirect = LinkHrefJson(s"$scaRedirectUrl/$paymentId"),
+        scaRedirect = scaRedirectUrl.map(LinkHrefJson(_)),
         self = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/sepa-credit-transfers/$paymentId"),
         status = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/$paymentId/status"),
         scaStatus = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/$paymentId/authorisations/${paymentId}")
