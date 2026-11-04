@@ -65,7 +65,7 @@ import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.IdempotencyMiddleware
-import code.api.util.{APIUtil, AttributeTypeDocs, CallContext, CustomJsonFormats, NewStyle}
+import code.api.util.{APIUtil, AttributeTypeDocs, CallContext, CustomJsonFormats, NewStyle, RateLimitingUtil}
 import code.api.v4_0_0.JSONFactory400._
 import code.DynamicData.DynamicData
 import code.api.util.migration.Migration
@@ -406,10 +406,17 @@ object Http4s400 {
           for {
             _ <- NewStyle.function.handleEntitlementsAndScopes("", user.userId, List(canUpdateRateLimits), Some(cc))
             _ <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
+            scopeFields = RateLimitingUtil.rateLimitScopeFields(postJson.api_name, postJson.api_version, postJson.bank_id)
+            _ <- code.util.Helper.booleanToFuture(s"$RateLimitScopeNotSupported Remove: ${scopeFields.mkString(", ")}", 400, Some(cc)) {
+              scopeFields.isEmpty
+            }
+            // The consumer's one rate limit is changed; with several, which one is meant is not known.
+            sameScope <- RateLimitingDI.rateLimiting.vend.countConsumerCallLimits(consumerIdStr, None, None, None)
+            _ <- code.util.Helper.booleanToFuture(RateLimitNotUnique, 400, Some(cc)) { sameScope <= 1 }
             rateLimiting <- RateLimitingDI.rateLimiting.vend.createOrUpdateConsumerCallLimits(
               consumerIdStr,
               postJson.from_date, postJson.to_date,
-              postJson.api_version, postJson.api_name, postJson.bank_id,
+              None, None, None, // rateLimitScopeFields has refused any value that is not blank
               Some(postJson.per_second_call_limit),
               Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit),
@@ -439,6 +446,12 @@ object Http4s400 {
       |Per Week
       |Per Month
       |
+      |This changes the Consumer's rate limit, or creates it when there is none. A Consumer given several rate limits
+      |with Create Rate Limits (v6.0.0) is refused with 400: change one of them by its RATE_LIMITING_ID instead.
+      |
+      |A rate limit applies to every call of the Consumer: `api_name`, `api_version` and `bank_id` cannot be set yet, and
+      |a request that names one is refused with 400. An empty value is taken as not set.
+      |
       |
       |${userAuthenticationMessage(true)}
       |
@@ -446,7 +459,7 @@ object Http4s400 {
       callLimitPostJsonV400,
       callLimitPostJsonV400,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidConsumerId,
-      ConsumerNotFoundByConsumerId, UserHasMissingRoles, UpdateConsumerError, UnknownError),
+      ConsumerNotFoundByConsumerId, RateLimitScopeNotSupported, RateLimitNotUnique, UserHasMissingRoles, UpdateConsumerError, UnknownError),
       List(apiTagConsumer, apiTagRateLimits),
       Some(List(canUpdateRateLimits)),
       http4sPartialFunction = Some(callsLimit)

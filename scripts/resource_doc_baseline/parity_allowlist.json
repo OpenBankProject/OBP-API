@@ -2682,6 +2682,38 @@
       "reason": "Added ApiCollectionNotFound: 404 when the collection does not exist or belongs to another user, so only its owner can update it",
       "lift_digest": "ea8061d2189d61d4f84552f70fa4482c88aa1fb6d5f7692b7c3c6eae0b24f4e6",
       "http4s_digest": "181a990959c91843d2617852d9247a24ae916364b5b3afa58fab87ddd6692130"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "callsLimit",
+      "field": "description",
+      "reason": "Says the PUT changes or creates the consumer's one rate limit and refuses a consumer with several.",
+      "lift_digest": "c6539601da7002deff895c829197c1bf0b63f01af2fdae358505b2f545fbf249",
+      "http4s_digest": "19d2267453f1279b12e47e32cfe970976329d5b1182f641f3e25ece5cf00bd79"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "callsLimit",
+      "field": "errorResponseBodies",
+      "reason": "Lists RateLimitNotUnique, the 400 for a consumer with several rate limits.",
+      "lift_digest": "73a6aab6d272e734f76807465010e55db340ee57091b9590ee564de48566a42a",
+      "http4s_digest": "f7222b11944092a114e928a045581b96e554836df8fa3f398b63dc089f4ef76a"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "callsLimit",
+      "field": "description",
+      "reason": "Says the PUT changes or creates the consumer's one rate limit, refuses a consumer with several, and refuses the scope fields nothing enforces.",
+      "lift_digest": "b4a18cf966d2dbdd3760c86771869b584cd10286dac49620d075a7cbfdca4996",
+      "http4s_digest": "0df098589b7e775d57cf0384f69258b009b10d34db1cfe6dd3650a2ce3c8eacc"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "callsLimit",
+      "field": "errorResponseBodies",
+      "reason": "Lists RateLimitScopeNotSupported and RateLimitNotUnique.",
+      "lift_digest": "73a6aab6d272e734f76807465010e55db340ee57091b9590ee564de48566a42a",
+      "http4s_digest": "50352369bb9cd70682e783614e177b83ddf75a136131a0c29837b045baa4a247"
     }
   ]
 }

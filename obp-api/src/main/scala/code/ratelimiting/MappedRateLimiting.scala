@@ -148,17 +148,28 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait with Logger 
   def findMostRecentRateLimitCommon(consumerId: String,
                                     bankId: Option[String],
                                     apiVersion: Option[String],
-                                    apiName: Option[String]): Option[RateLimiting] = {
-    val byConsumerParam = By(RateLimiting.ConsumerId, consumerId)
-    val byBankParam = bankId.map(v => By(RateLimiting.BankId, v)).getOrElse(NullRef(RateLimiting.BankId))
-    val byApiVersionParam = apiVersion.map(v => By(RateLimiting.ApiVersion, v)).getOrElse(NullRef(RateLimiting.ApiVersion))
-    val byApiNameParam = apiName.map(v => By(RateLimiting.ApiName, v)).getOrElse(NullRef(RateLimiting.ApiName))
-
+                                    apiName: Option[String]): Option[RateLimiting] =
     RateLimiting.findAll(
-      byConsumerParam, byBankParam, byApiVersionParam, byApiNameParam,
-      OrderBy(RateLimiting.updatedAt, Descending)
+      sameScope(consumerId, bankId, apiVersion, apiName) :+ OrderBy(RateLimiting.updatedAt, Descending): _*
     ).headOption
+
+  def countConsumerCallLimits(consumerId: String,
+                              bankId: Option[String],
+                              apiVersion: Option[String],
+                              apiName: Option[String]): Future[Int] = Future {
+    RateLimiting.count(sameScope(consumerId, bankId, apiVersion, apiName): _*).toInt
   }
+
+  /** The consumer's rows with exactly this bank_id, api_version and api_name; None matches a row that does not set it. */
+  private def sameScope(consumerId: String,
+                        bankId: Option[String],
+                        apiVersion: Option[String],
+                        apiName: Option[String]): List[QueryParam[RateLimiting]] = List(
+    By(RateLimiting.ConsumerId, consumerId),
+    bankId.map(v => By(RateLimiting.BankId, v)).getOrElse(NullRef(RateLimiting.BankId)),
+    apiVersion.map(v => By(RateLimiting.ApiVersion, v)).getOrElse(NullRef(RateLimiting.ApiVersion)),
+    apiName.map(v => By(RateLimiting.ApiName, v)).getOrElse(NullRef(RateLimiting.ApiName))
+  )
 
   def createConsumerCallLimits(consumerId: String,
                                fromDate: Date,
@@ -240,7 +251,7 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait with Logger 
       case Some(limit) => createOrUpdateRateLimit(limit)
       case None => createOrUpdateRateLimit(RateLimiting.create)
     }
-
+    result.foreach(_ => Caching.invalidateRateLimitCache(consumerId))
     result
   }
   def updateConsumerCallLimits(rateLimitingId: String,
