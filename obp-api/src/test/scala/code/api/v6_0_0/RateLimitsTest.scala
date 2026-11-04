@@ -35,6 +35,7 @@ import code.api.util.ApiRole.{CanCreateRateLimits, CanDeleteRateLimits, CanGetRa
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired, TooManyRequests, RateLimitScopeNotSupported}
 import code.api.v6_0_0.Http4s600.Implementations6_0_0
 import code.consumer.Consumers
+import code.ratelimiting.RateLimitingDI
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -522,7 +523,8 @@ class RateLimitsTest extends V600ServerSetup {
       val id = createLimit(consumerId3, callLimitJson("0", "0", "0").copy(from_date = new Date(toDate.getTime - 3600000L), to_date = toDate))
       try {
         Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetRateLimits.toString)
-        val hour = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH"))
+        // The hour of `now`, which the assume above keeps clear of the next hour.
+        val hour = java.time.Instant.ofEpochMilli(now).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH"))
         val response = makeGetRequest((v6_0_0_Request / "management" / "consumers" / consumerId3 / "active-rate-limits" / hour).GET <@ (user1))
         response.code should equal(200)
         response.body.extract[ActiveRateLimitsJsonV600].considered_rate_limit_ids should contain(id)
@@ -566,6 +568,24 @@ class RateLimitsTest extends V600ServerSetup {
         write(SwaggerDefinitionsJSON.callLimitPostJsonV600))
       try created.code should equal(201)
       finally if (created.code == 201) deleteLimit(consumerId3, created.body.extract[CallLimitJsonV600].rate_limiting_id)
+    }
+
+    scenario("Updating a rate limit that an API Product Subscription wrote keeps the subscription's bank_id", ApiEndpoint4, VersionOfApi) {
+      // As ApiProductSubscriptionEnforcer writes it.
+      val written = scala.concurrent.Await.result(RateLimitingDI.rateLimiting.vend.createConsumerCallLimits(
+        consumerId3, new Date(), new Date(System.currentTimeMillis() + 86400000L), None, None, Some("subscription-bank"),
+        Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1")), scala.concurrent.duration.Duration(10, "seconds"))
+        .openOrThrowException("expected the rate limit to be written")
+      try {
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateRateLimits.toString)
+        val update = makePutRequest(
+          (v6_0_0_Request / "management" / "consumers" / consumerId3 / "consumer" / "rate-limits" / written.rateLimitingId).PUT <@ (user1),
+          write(callLimitJson("-1", "-1", "-1")))
+        update.code should equal(200)
+        val stored = scala.concurrent.Await.result(RateLimitingDI.rateLimiting.vend.getByRateLimitingId(written.rateLimitingId),
+          scala.concurrent.duration.Duration(10, "seconds")).openOrThrowException("expected the rate limit")
+        stored.bankId should equal(Some("subscription-bank"))
+      } finally deleteLimit(consumerId3, written.rateLimitingId)
     }
 
     scenario("An empty api_name, api_version or bank_id names nothing, and is stored as not set", ApiEndpoint4, VersionOfApi) {
