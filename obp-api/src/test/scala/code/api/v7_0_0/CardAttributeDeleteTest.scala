@@ -32,6 +32,7 @@ import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, CardAttributeNo
 import code.cardattribute.MappedCardAttribute
 import code.cards.MappedPhysicalCard
 import code.entitlement.Entitlement
+import code.methodrouting.{MethodRouting, MethodRoutingCommons, MethodRoutingProvider}
 import code.model.dataAccess.MappedBankAccount
 import code.setup.ServerSetupWithTestData
 import com.openbankproject.commons.model.ErrorMessage
@@ -61,9 +62,9 @@ class CardAttributeDeleteTest extends ServerSetupWithTestData {
       .mCardId.get
   }
 
-  private def addAttribute(cardId: String, name: String): String =
+  private def addAttribute(cardId: String, name: String, bankId: String = testBankId1.value): String =
     MappedCardAttribute.create
-      .mBankId(testBankId1.value)
+      .mBankId(bankId)
       .mCardId(cardId)
       .mName(name)
       .mType("STRING")
@@ -127,6 +128,46 @@ class CardAttributeDeleteTest extends ServerSetupWithTestData {
       response.code should equal(404)
       response.body.extract[ErrorMessage].message should startWith(CardAttributeNotFound)
       attributeExists(otherAttributeId) should equal(true)
+    }
+
+    scenario("An attribute held for another bank is not deleted through this bank", ApiEndpoint, VersionOfApi) {
+      val cardId = addCard()
+      val attributeId = addAttribute(cardId, "TAX_NUMBER", bankId = testBankId2.value)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canDeleteCardsForBank.toString)
+
+      val response = makeDeleteRequest(attributeUrl(cardId, attributeId).DELETE <@ (user1))
+
+      response.code should equal(404)
+      response.body.extract[ErrorMessage].message should startWith(CardAttributeNotFound)
+      attributeExists(attributeId) should equal(true)
+    }
+
+    scenario("The role at another bank does not allow it", ApiEndpoint, VersionOfApi) {
+      val cardId = addCard()
+      val attributeId = addAttribute(cardId, "TAX_NUMBER")
+      Entitlement.entitlement.vend.addEntitlement(testBankId2.value, resourceUser1.userId, ApiRole.canDeleteCardsForBank.toString)
+
+      val response = makeDeleteRequest(attributeUrl(cardId, attributeId).DELETE <@ (user1))
+
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles)
+      attributeExists(attributeId) should equal(true)
+    }
+
+    scenario("The delete goes to the connector the method is routed to", ApiEndpoint, VersionOfApi) {
+      val cardId = addCard()
+      val attributeId = addAttribute(cardId, "TAX_NUMBER")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canDeleteCardsForBank.toString)
+      // A connector that does not delete card attributes: what it answers is what the caller gets.
+      val routing = MethodRoutingProvider.connectorMethodProvider.vend.createOrUpdate(MethodRoutingCommons(
+        "deleteCardAttribute", "cardano_vJun2025", isBankIdExactMatch = false, bankIdPattern = Some(MethodRouting.bankIdPatternMatchAny)
+      )).openOrThrowException("expected the method routing to be created")
+      try {
+        val response = makeDeleteRequest(attributeUrl(cardId, attributeId).DELETE <@ (user1))
+
+        response.code should not equal 204
+        attributeExists(attributeId) should equal(true)
+      } finally MethodRoutingProvider.connectorMethodProvider.vend.delete(routing.methodRoutingId.get)
     }
   }
 }
