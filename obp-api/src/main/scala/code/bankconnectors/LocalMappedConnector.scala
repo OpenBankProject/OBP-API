@@ -5286,7 +5286,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 case (Full(challenges), callContext) if challenges.length >= requiredAnswers => Future.successful((challenges, callContext))
                 case (result, callContext) =>
                   // With fewer challenges than the answers it needs, the request can never be answered.
+                  val mayAnswer = users.toList.flatten.size
                   val failure: Box[List[ChallengeTrait]] = result match {
+                    case _ if mayAnswer < requiredAnswers =>
+                      Failure(s"$ChallengeAnswerersTooFew $mayAnswer may answer, $requiredAnswers answers are required.")
                     case Full(challenges) =>
                       Failure(s"$ChallengeRecipientNotFound ${challenges.length} of the $requiredAnswers users who have to answer could be sent a challenge.")
                     case other => other
