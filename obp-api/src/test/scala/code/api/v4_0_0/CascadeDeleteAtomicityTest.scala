@@ -129,7 +129,8 @@ class CascadeDeleteAtomicityTest extends V400ServerSetup {
       val accountPk = MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, accountId))
         .openOrThrowException("expected the account").id.get
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
-      // A row that still refers to the account, so deleting the account itself, the last step, fails.
+      // A row that still refers to the account, so deleting the account itself, the last step, fails. On H2 (and
+      // MySQL, SQL Server, Oracle) the deletes before it stay in the transaction; Postgres aborts the whole one.
       val table = MappedBankAccount.dbTableName
       runSql(s"CREATE TABLE cascade_atomicity_blocker (account_pk BIGINT REFERENCES $table(id))")
       try {
