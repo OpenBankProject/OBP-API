@@ -3231,7 +3231,7 @@ object NewStyle extends MdcLoggable{
     }
     def deleteCardAttribute(cardAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
       Connector.connector.vend.deleteCardAttribute(cardAttributeId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$UnknownError Could not delete CardAttribute($cardAttributeId)"), i._2)
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
 

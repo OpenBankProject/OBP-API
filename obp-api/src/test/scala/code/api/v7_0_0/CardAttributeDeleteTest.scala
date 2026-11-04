@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, CardAttributeNotFound, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, CardAttributeNotFound, NotImplemented, UserHasMissingRoles}
 import code.cardattribute.MappedCardAttribute
 import code.cards.MappedPhysicalCard
 import code.entitlement.Entitlement
@@ -165,7 +165,8 @@ class CardAttributeDeleteTest extends ServerSetupWithTestData {
       try {
         val response = makeDeleteRequest(attributeUrl(cardId, attributeId).DELETE <@ (user1))
 
-        response.code should not equal 204
+        response.code should equal(400)
+        response.body.extract[ErrorMessage].message should (include(NotImplemented.trim) and include("deleteCardAttribute"))
         attributeExists(attributeId) should equal(true)
       } finally MethodRoutingProvider.connectorMethodProvider.vend.delete(routing.methodRoutingId.get)
     }
