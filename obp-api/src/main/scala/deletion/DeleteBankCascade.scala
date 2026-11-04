@@ -31,7 +31,7 @@ import code.accountattribute.MappedAccountAttribute
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
-import code.DynamicData.DynamicDataProvider
+import code.DynamicData.{DynamicData, DynamicDataAccess, DynamicDataProvider}
 import code.api.util.NewStyle
 import code.customer.CustomerX
 import code.dynamicEntity.DynamicEntityProvider
@@ -88,7 +88,17 @@ object DeleteBankCascade {
         record.dynamicDataId.exists(id => DynamicDataProvider.connectorMethodProvider.vend.deleteCommunity(space, entity.entityName, id).openOr(false))
       }
       recordsDeleted && entity.dynamicEntityId.exists(id => NewStyle.function.deleteDynamicEntityNow(space, id).openOr(false))
-    }
+    } && deleteRecordsWithoutDefinition(bankId)
+  }
+
+  /**
+   * What is left of the bank's records once its definitions are gone: a definition can be deleted while personal
+   * records of it remain, so some records, and the access rows on them, may have no definition.
+   */
+  private def deleteRecordsWithoutDefinition(bankId: BankId): Boolean = {
+    DynamicData.bulkDelete_!!(By(DynamicData.BankId, bankId.value))
+    DynamicDataAccess.bulkDelete_!!(By(DynamicDataAccess.BankId, bankId.value))
+    true
   }
 
   private def deleteBank(bankId: BankId): Boolean = {
