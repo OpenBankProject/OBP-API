@@ -27,6 +27,7 @@ package code.api.v6_0_0
 
 import org.json4s._
 import code.api.util.APIUtil.OAuth._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.{Constant, JedisMethod}
 import code.api.cache.Redis
 import code.setup.OBPReq
@@ -505,8 +506,9 @@ class RateLimitsTest extends V600ServerSetup {
 
     scenario("A rate limit whose from_date has not come yet is not active", ApiEndpoint4, VersionOfApi) {
       val now = System.currentTimeMillis()
-      assume(now % 3600000L < 3600000L - 10000L, "the hour is about to end")
-      val id = createLimit(consumerId3, callLimitJson("0", "0", "0").copy(from_date = new Date(now + 5000L), to_date = new Date(now + 86400000L)))
+      // A minute ahead, so a slow run cannot reach from_date before the checks; still within the current hour.
+      assume(now % 3600000L < 3600000L - 70000L, "the hour is about to end")
+      val id = createLimit(consumerId3, callLimitJson("0", "0", "0").copy(from_date = new Date(now + 60000L), to_date = new Date(now + 86400000L)))
       try {
         activeLimitsNow(consumerId3).considered_rate_limit_ids shouldBe empty
         callAsUser3().code should equal(200)
@@ -555,6 +557,26 @@ class RateLimitsTest extends V600ServerSetup {
       And("none of them was stored, so the consumer is not blocked")
       activeLimitsNow(consumerId3).considered_rate_limit_ids shouldBe empty
       callAsUser3().code should equal(200)
+    }
+
+    scenario("The example request body in the documentation is accepted", ApiEndpoint4, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
+      val created = makePostRequest(
+        (v6_0_0_Request / "management" / "consumers" / consumerId3 / "consumer" / "rate-limits").POST <@ (user1),
+        write(SwaggerDefinitionsJSON.callLimitPostJsonV600))
+      try created.code should equal(201)
+      finally if (created.code == 201) deleteLimit(consumerId3, created.body.extract[CallLimitJsonV600].rate_limiting_id)
+    }
+
+    scenario("An empty api_name, api_version or bank_id names nothing, and is stored as not set", ApiEndpoint4, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
+      val created = makePostRequest(
+        (v6_0_0_Request / "management" / "consumers" / consumerId3 / "consumer" / "rate-limits").POST <@ (user1),
+        write(callLimitJson("-1", "-1", "-1").copy(api_name = Some(""), api_version = Some(" "), bank_id = Some(""))))
+      created.code should equal(201)
+      val stored = created.body.extract[CallLimitJsonV600]
+      try (stored.api_name, stored.api_version, stored.bank_id) should equal((None, None, None))
+      finally deleteLimit(consumerId3, stored.rate_limiting_id)
     }
   }
 
