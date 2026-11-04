@@ -523,7 +523,7 @@ class RateLimitsTest extends V600ServerSetup {
       val id = createLimit(consumerId3, callLimitJson("0", "0", "0").copy(from_date = new Date(toDate.getTime - 3600000L), to_date = toDate))
       try {
         Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetRateLimits.toString)
-        // The hour of `now`, which the assume above keeps clear of the next hour.
+        // The hour of `now`, the hour the assume above keeps to_date in.
         val hour = java.time.Instant.ofEpochMilli(now).atZone(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH"))
         val response = makeGetRequest((v6_0_0_Request / "management" / "consumers" / consumerId3 / "active-rate-limits" / hour).GET <@ (user1))
         response.code should equal(200)
