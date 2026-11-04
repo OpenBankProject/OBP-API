@@ -34,6 +34,7 @@ import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.{ConsentJWT, CustomJsonFormats, JwtUtil}
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.bankconnectors.Connector
+import code.cardattribute.MappedCardAttribute
 import code.cards.MappedPhysicalCard
 import code.consent.Consents
 import code.counterpartyattribute.CounterpartyAttribute
@@ -116,10 +117,13 @@ object DeleteAccountCascade {
       By(MappedBankAccount.bank, bankId.value),
       By(MappedBankAccount.theAccountId, accountId.value)
     ) map (
-      account =>
-        MappedPhysicalCard.bulkDelete_!!(
-          By(MappedPhysicalCard.mAccount, account.id.get)
-        )
+      account => {
+        val cardIds = MappedPhysicalCard.findAll(By(MappedPhysicalCard.mAccount, account.id.get)).map(_.mCardId.get)
+        MappedCardAttribute.deleteForCards(bankId.value, cardIds) &&
+          MappedPhysicalCard.bulkDelete_!!(
+            By(MappedPhysicalCard.mAccount, account.id.get)
+          )
+      }
     )
   }.forall(_ == true)
   

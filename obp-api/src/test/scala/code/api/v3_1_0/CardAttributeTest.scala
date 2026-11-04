@@ -38,6 +38,11 @@ import code.api.util.ApiRole
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.v3_1_0.Http4s310.Implementations3_1_0
+import code.cardattribute.MappedCardAttribute
+import code.cards.MappedPhysicalCard
+import code.model.dataAccess.MappedBankAccount
+import net.liftweb.mapper.By
+import net.liftweb.util.Helpers.randomString
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
@@ -157,4 +162,38 @@ class CardAttributeTest extends V310ServerSetup with DefaultUsers {
     }
   }
 
-} 
+  feature("Deleting a card deletes its attributes") {
+    scenario("Delete Card removes the attributes of the card", ApiEndpointDeleteCardForBank, VersionOfApi) {
+      Given("a card with an attribute")
+      val account = MappedBankAccount.find(
+        By(MappedBankAccount.bank, testBankId1.value),
+        By(MappedBankAccount.theAccountId, testAccountId1.value)
+      ).openOrThrowException("test account not found")
+      val cardId = MappedPhysicalCard.create
+        .mBankId(testBankId1.value)
+        .mAccount(account.id.get)
+        .mBankCardNumber(randomString(16))
+        .mSerialNumber(randomString(10))
+        .saveMe()
+        .mCardId.get
+      MappedCardAttribute.create
+        .mBankId(testBankId1.value)
+        .mCardId(cardId)
+        .mName("TAX_NUMBER")
+        .mType("STRING")
+        .mValue("123")
+        .saveMe()
+
+      When("the card is deleted")
+      // the Resource Doc of Delete Card names CanCreateCardsForBank as well as CanDeleteCardsForBank
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canCreateCardsForBank.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canDeleteCardsForBank.toString)
+      val response = makeDeleteRequest((v3_1_0_Request / "management" / "banks" / testBankId1.value / "cards" / cardId).DELETE <@ (user1))
+
+      Then("We should get a 204 and no attribute of the card is left")
+      response.code should equal(204)
+      MappedPhysicalCard.find(By(MappedPhysicalCard.mCardId, cardId)).isDefined should equal(false)
+      MappedCardAttribute.findAll(By(MappedCardAttribute.mCardId, cardId)) shouldBe empty
+    }
+  }
+}

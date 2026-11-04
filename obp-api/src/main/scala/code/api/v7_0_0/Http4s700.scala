@@ -6931,6 +6931,39 @@ object Http4s700 {
       http4sPartialFunction = Some(deleteApiProductSubscriptionAttribute)
     ).disableAutoValidateRoles()
 
+    // Route: DELETE /obp/v7.0.0/management/banks/BANK_ID/cards/CARD_ID/attributes/CARD_ATTRIBUTE_ID
+    val deleteCardAttribute: Http4sRoute = Http4sRoute {
+      case req @ DELETE -> `prefixPath` / "management" / "banks" / _ / "cards" / cardId / "attributes" / attributeId =>
+        EndpointHelpers.withUserAndBankDelete(req) { (_, bank, cc) =>
+          for {
+            (attribute, _) <- NewStyle.function.getCardAttributeById(attributeId, Some(cc), 404)
+            _ <- Helper.booleanToFuture(s"$CardAttributeNotFound The attribute does not belong to CARD_ID($cardId) at BANK_ID(${bank.bankId.value})", 404, Some(cc)) {
+              attribute.cardId.contains(cardId) && attribute.bankId.contains(bank.bankId)
+            }
+            _ <- NewStyle.function.deleteCardAttribute(attributeId, Some(cc))
+          } yield ()
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deleteCardAttribute),
+      "DELETE",
+      "/management/banks/BANK_ID/cards/CARD_ID/attributes/CARD_ATTRIBUTE_ID",
+      "Delete Card Attribute",
+      s"""Delete an attribute of a Card at the bank.
+        |
+        |The attribute must belong to the card CARD_ID at BANK_ID. Deleting a card or its account deletes the card's attributes as well.
+        |
+        |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, CardAttributeNotFound, UnknownError),
+      apiTagCard :: apiTagCardAttribute :: apiTagAttribute :: Nil,
+      Some(List(ApiRole.canDeleteCardsForBank)),
+      http4sPartialFunction = Some(deleteCardAttribute)
+    )
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Maker/checker for dynamic code: Dynamic Change Requests
     // Design: docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md. Approval is system level (no bank endpoints).
