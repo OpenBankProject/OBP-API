@@ -31,9 +31,26 @@ import net.liftweb.db.DB
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object DeletionUtil {
+  /**
+   * Runs a cascade as one unit: when it throws, every row it wrote is restored before the exception goes on.
+   *
+   * Within a request the connection is the request's own (RequestScopeConnection), which ignores rollback and is
+   * committed when the request ends, whatever the response. So the cascade rolls back to a savepoint taken here
+   * instead. Outside a request this is a savepoint within the transaction DB.use already runs.
+   */
   def databaseAtomicTask[R](blockOfCode: => R): R = {
-    DB.use(DefaultConnectionIdentifier){_ =>
-      blockOfCode
+    DB.use(DefaultConnectionIdentifier){ conn =>
+      val savepoint = conn.connection.setSavepoint()
+      val result =
+        try blockOfCode
+        catch {
+          case e: Throwable =>
+            try conn.connection.rollback(savepoint)
+            catch { case rollbackFailure: Throwable => e.addSuppressed(rollbackFailure) }
+            throw e
+        }
+      conn.connection.releaseSavepoint(savepoint)
+      result
     }
   }
 }
