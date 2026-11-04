@@ -29,7 +29,7 @@ package code.api.berlin.group.v1_3
 
 import org.json4s._
 import code.api.BerlinGroup.ScaStatus
-import code.api.Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
+import code.api.Constant.{SYSTEM_AUDITOR_VIEW_ID, SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancellationJsonV13, ErrorMessagesBG, InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
 import code.api.berlin.group.v1_3.model.{ScaStatusResponse, TransactionStatus, UpdatePsuAuthenticationResponse}
 import code.api.berlin.group.v1_3.Http4sBGv13PIS
@@ -867,6 +867,29 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
 
       Then("the account it already held has the view too")
       initiatePaymentsAccessOf(account) should not be empty
+    }
+
+    scenario("a holder who opens another account keeps the views it was given on the accounts it already held",
+      BerlinGroupV1_3, PIS, initiatePayment) {
+      val account = ibanAccounts.head
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+      // A view the connector does not list, given to the holder some other way (as a VRP mandate's view is).
+      val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).openOrThrowException("expected the auditor view")
+      Views.views.vend.grantAccessToSystemView(account.bankId, account.accountId, auditor, resourceUser1)
+      def auditorAccess = AccountAccess.findAll(
+        By(AccountAccess.user_fk, resourceUser1.userPrimaryKey.value),
+        By(AccountAccess.bank_id, account.bankId.value),
+        By(AccountAccess.account_id, account.accountId.value),
+        By(AccountAccess.view_id, SYSTEM_AUDITOR_VIEW_ID))
+      auditorAccess should not be empty
+
+      When("the holder opens another account and is refreshed")
+      val newAccount = createAccount(account.bankId, AccountId(APIUtil.generateUUID()), "EUR")
+      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(resourceUser1, BankIdAccountId(newAccount.bankId, newAccount.accountId))
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+
+      Then("the view on the account it already held is kept")
+      auditorAccess should not be empty
     }
 
     scenario("a payment can be initiated after the refresh without granting the view by hand",

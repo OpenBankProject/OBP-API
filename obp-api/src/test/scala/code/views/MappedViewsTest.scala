@@ -332,6 +332,18 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
         Some(Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_PERMISSION.toSet))
     }
 
+    scenario("one that already exists keeps its permissions when reconciling at boot is turned off") {
+      setPropsValues("system_views.reconcile_permissions_at_boot" -> "false")
+      val view = MapperViews.getOrCreateSystemView(Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)
+        .openOrThrowException("the view should be created")
+      ViewPermission.resetViewPermissions(view, Constant.SYSTEM_VIEW_PERMISSION_COMMON)
+
+      MapperViews.ensureOptInSystemViewsUpToDate(Empty)
+
+      permissionsOf(Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID) should equal(
+        Some(Constant.SYSTEM_VIEW_PERMISSION_COMMON.toSet))
+    }
+
     scenario("one that does not exist is created only when additional_system_views lists it") {
       MapperViews.ensureOptInSystemViewsUpToDate(Empty)
       permissionsOf(Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID) should equal(None)
