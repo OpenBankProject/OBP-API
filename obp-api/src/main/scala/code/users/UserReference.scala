@@ -160,6 +160,7 @@ object UserReference {
   case object OpenIDConnectToken_AuthUserPrimaryKey            extends UserReference(UseAuthenticatedUserId, "code.token.OpenIDConnectToken", List("AuthUserPrimaryKey"), "token belongs to the login; not attribution")
   case object UserRefreshes_UserId                             extends UserReference(UseAuthenticatedUserId, "code.UserRefreshes.MappedUserRefreshes", List("mUserId"), "operational: refresh of the authenticated user's own account list")
   case object PlatformApp_MarkedByUserId                       extends UserReference(UseAuthenticatedUserId, "code.platformapp.PlatformApp", List("MarkedByUserId"), "audit: who marked the Consumer as a platform app")
+  case object ConsumerAccountAccess_GrantedByUserId            extends UserReference(UseAuthenticatedUserId, "code.consumeraccountaccess.ConsumerAccountAccess", List("GrantedByUserId"), "audit: who gave the Consumer access to the view, as Entitlement_GrantedByUserId")
   case object GroupMembership_CreatedByUserId                  extends UserReference(UseAuthenticatedUserId, "code.group.GroupMembership", List("CreatedByUserId"), "audit: who added the member, as Entitlement_GrantedByUserId")
   case object AssetStatusHistory_ChangedByUserId              extends UserReference(UseAuthenticatedUserId, "code.asset.AssetStatusHistory", List("ChangedByUserId"), "audit: who changed the asset's status, the question a regulator asks")
   case object File_ScanStatusUpdatedByUserId                   extends UserReference(UseAuthenticatedUserId, "code.files.File", List("ScanStatusUpdatedByUserId"), "audit: who set the scan status, the scanner or the staff member who decided")
@@ -269,6 +270,7 @@ object UserReference {
     OpenIDConnectToken_AuthUserPrimaryKey,
     UserRefreshes_UserId,
     PlatformApp_MarkedByUserId,
+    ConsumerAccountAccess_GrantedByUserId,
     GroupMembership_CreatedByUserId,
     AssetStatusHistory_ChangedByUserId,
     RetentionPolicy_CreatedByUserId,
