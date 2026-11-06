@@ -36,13 +36,13 @@ import code.api.v2_0_0.Http4s200.Implementations2_0_0
 import code.api.v2_1_0.Http4s210.Implementations2_1_0
 import code.setup.DefaultUsers
 import code.TransactionTypes.TransactionType.TransactionTypeProvider
-import code.transaction_types.MappedTransactionType
-import net.liftweb.mapper.By
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage, TransactionTypeId}
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.native.Serialization._
 import org.scalatest.Tag
+import code.api.util.DoobieUtil
+import doobie.implicits._
 
 /**
   * Created by zhanghongwei on 17/11/16.
@@ -68,12 +68,13 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
 
   override def afterAll(): Unit = {
     super.afterAll()
-    MappedTransactionType.bulkDelete_!!()
+    // The Lift entity is gone; the table is Doobie/Flyway-owned now.
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedtransactiontype".update.run)
   }
 
-  feature("Assuring that endpoint 'Create Transaction Type at bank' works as expected - v2.1.0") {
+  Feature("Assuring that endpoint 'Create Transaction Type at bank' works as expected - v2.1.0") {
 
-    scenario("We try to put data without Authentication - Create Transaction Type...", VersionOfApi210, ApiEndpoint2) {
+    Scenario("We try to put data without Authentication - Create Transaction Type...", VersionOfApi210, ApiEndpoint2) {
       When("We make the request")
       val requestPut = (v2_1Request / "banks" / testBankId1.value / "transaction-types").PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(transactionTypeJSON))
@@ -83,7 +84,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       responsePut.body.extract[ErrorMessage].message should equal (ErrorMessages.InsufficientAuthorisationToCreateTransactionType)
     }
 
-    scenario("We try to get all roles with Authentication - Create Transaction Type...", VersionOfApi, ApiEndpoint1, VersionOfApi210, ApiEndpoint2) {
+    Scenario("We try to get all roles with Authentication - Create Transaction Type...", VersionOfApi, ApiEndpoint1, VersionOfApi210, ApiEndpoint2) {
       Given("The Authentication")
       setCanCreateTransactionType
 
@@ -104,9 +105,9 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
     }
   }
 
-  feature("Assuring We pass the Authentication - Create Transaction Type... - v2.1.0") {
+  Feature("Assuring We pass the Authentication - Create Transaction Type... - v2.1.0") {
 
-    scenario("We try to insert and update data, call 'Create Transaction Type offered by the bank' correctly ", VersionOfApi210, ApiEndpoint2) {
+    Scenario("We try to insert and update data, call 'Create Transaction Type offered by the bank' correctly ", VersionOfApi210, ApiEndpoint2) {
       Given("The Authentication")
       setCanCreateTransactionType
 
@@ -133,7 +134,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       responsePut.code should equal(200)
     }
 
-    scenario("We try to insert and update error, call 'Create Transaction Type offered by the bank' correctly ", VersionOfApi210, ApiEndpoint2) {
+    Scenario("We try to insert and update error, call 'Create Transaction Type offered by the bank' correctly ", VersionOfApi210, ApiEndpoint2) {
       Given("The Authentication")
       setCanCreateTransactionType
 
@@ -181,7 +182,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
     }
 
     // the Role is at the BANK_ID in the URL, so a body naming another bank must be refused
-    scenario("We try to create a Transaction Type at another bank than the one in the URL", VersionOfApi210, ApiEndpoint2) {
+    Scenario("We try to create a Transaction Type at another bank than the one in the URL", VersionOfApi210, ApiEndpoint2) {
       Given("The Authentication at testBankId1 only")
       setCanCreateTransactionType
 
@@ -194,11 +195,11 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       responsePut.code should equal(400)
       responsePut.body.extract[ErrorMessage].message should startWith (ErrorMessages.InvalidJsonValue)
       And("No Transaction Type was created")
-      MappedTransactionType.count(By(MappedTransactionType.mTransactionTypeId, "other-bank-new")) should equal(0)
+      transactionTypeCount("other-bank-new") should equal(0)
     }
 
     // an existing type is updated by id, so the id of another bank's type must be refused
-    scenario("We try to overwrite a Transaction Type of another bank by its id", VersionOfApi210, ApiEndpoint2) {
+    Scenario("We try to overwrite a Transaction Type of another bank by its id", VersionOfApi210, ApiEndpoint2) {
       Given("A Transaction Type at testBankId2, and the Authentication at testBankId1 only")
       val otherBankType = transactionTypeJSON.copy(id = TransactionTypeId("other-bank-existing"), bank_id = testBankId2.value, short_code = "other")
       TransactionTypeProvider.vend.createOrUpdateTransactionType(otherBankType).isDefined should equal(true)
@@ -218,6 +219,12 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       stored.summary should equal(otherBankType.summary)
     }
   }
+  /** How many stored Transaction Types carry this id, read off the table. */
+  private def transactionTypeCount(transactionTypeId: String): Int =
+    DoobieUtil.runQuery(
+      sql"SELECT COUNT(*) FROM mappedtransactiontype WHERE mtransactiontypeid = $transactionTypeId"
+        .query[Int].unique)
+
   /**
     * set CanCreateTransactionType Entitlements to user1
     */

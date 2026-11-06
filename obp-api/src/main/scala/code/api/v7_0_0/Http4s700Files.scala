@@ -49,7 +49,6 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import org.http4s._
 import org.http4s.dsl.io._
@@ -308,7 +307,7 @@ object Http4s700Files {
   private def emailValidated(userId: String): Boolean =
     Users.users.vend.getUserByUserId(userId).exists { u =>
       if (u.provider != localIdentityProvider) Option(u.emailAddress).exists(_.trim.nonEmpty)
-      else AuthUser.find(By(AuthUser.user, u.userPrimaryKey.value)).exists(_.validated.get)
+      else AuthUser.findByResourceUserPrimaryKey(u.userPrimaryKey.value).exists(_.validated)
     }
 
   /** Whether record_type is a personal Dynamic Entity of the space and record_id one of ownerUserId's own records. */

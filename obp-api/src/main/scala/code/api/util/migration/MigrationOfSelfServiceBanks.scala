@@ -28,11 +28,11 @@ package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.files.{File, ScanStatus}
+import code.api.util.DoobieUtil
+import code.files.ScanStatus
 import code.model.dataAccess.{MappedBank, SelfServiceBank}
 import code.util.BankNameGenerator
-import net.liftweb.db.DB
-import net.liftweb.util.DefaultConnectionIdentifier
+import doobie.implicits._
 
 /**
  * OBP now records the banks made with Create My Bank in SelfServiceBank, because anyone may make one and grant
@@ -51,28 +51,20 @@ object MigrationOfSelfServiceBanks {
     val startDate = System.currentTimeMillis()
     val report = scala.collection.mutable.ListBuffer[String]()
 
-    if (DbFunction.tableExists(MappedBank)) {
-      val generated = MappedBank.findAll().filter(bank => BankNameGenerator.isGenerated(bank.permalink.get))
-        .filterNot(bank => SelfServiceBank.isSelfService(bank.permalink.get))
-      generated.foreach(bank => SelfServiceBank.record(bank.permalink.get, bank.CreatedByUserId.get))
+    if (DbFunction.tableExistsByName("mappedbank")) {
+      val generated = MappedBank.findAll().filter(bank => BankNameGenerator.isGenerated(bank.bankId.value))
+        .filterNot(bank => SelfServiceBank.isSelfService(bank.bankId.value))
+      generated.foreach(bank => SelfServiceBank.record(bank.bankId.value, bank.createdByUserId))
       report += s"Banks: recorded ${generated.size} as self-service"
     }
 
-    if (DbFunction.tableExists(File) && DbFunction.tableExists(SelfServiceBank)) {
-      val selfServiceBankIds = SelfServiceBank.findAll().map(_.BankId.get)
-      // SQL rather than Mapper: Mapper would read a NULL status back as its default.
-      val held = DB.use(DefaultConnectionIdentifier) { connection =>
-        selfServiceBankIds.map { bankId =>
-          val statement = connection.prepareStatement(
-            s"UPDATE ${File._dbTableNameLC} SET ${File.ScanStatus.dbColumnName} = ? " +
-              s"WHERE ${File.BankId.dbColumnName} = ? AND (${File.ScanStatus.dbColumnName} IS NULL OR ${File.ScanStatus.dbColumnName} = '')")
-          try {
-            statement.setString(1, ScanStatus.Pending)
-            statement.setString(2, bankId)
-            statement.executeUpdate()
-          } finally statement.close()
-        }.sum
-      }
+    if (DbFunction.tableExistsByName("file_t") && DbFunction.tableExistsByName("selfservicebank")) {
+      // A NULL or empty status counts as clean elsewhere, so both are moved to pending.
+      val held = SelfServiceBank.allBankIds().map { bankId =>
+        DoobieUtil.runUpdate(
+          sql"""UPDATE file_t SET scanstatus = ${ScanStatus.Pending}
+                WHERE bankid = $bankId AND (scanstatus IS NULL OR scanstatus = '')""".update.run)
+      }.sum
       report += s"Files: set $held file(s) in self-service banks to pending"
     }
 

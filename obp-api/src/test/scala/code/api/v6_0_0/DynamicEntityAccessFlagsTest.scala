@@ -137,9 +137,9 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
   // ==================== Feature 1: Default flags ====================
 
-  feature("Feature 1: Default flags - has_personal_entity=true, others default") {
+  Feature("Feature 1: Default flags - has_personal_entity=true, others default") {
 
-    scenario("1.1: /my/ endpoint works without role", VersionOfApi) {
+    Scenario("1.1: /my/ endpoint works without role", VersionOfApi) {
       val (code, body) = createSystemEntity(entityDefault)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -161,7 +161,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
       }
     }
 
-    scenario("1.2: /community/ and /public/ return 404 when flags are false", VersionOfApi) {
+    Scenario("1.2: /community/ and /public/ return 404 when flags are false", VersionOfApi) {
       val (code, body) = createSystemEntity(entityDefault)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -186,9 +186,9 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
   // ==================== Feature 2: personal_requires_role=true ====================
 
-  feature("Feature 2: personal_requires_role=true") {
+  Feature("Feature 2: personal_requires_role=true") {
 
-    scenario("2.1: /my/ POST requires CanCreate role", VersionOfApi) {
+    Scenario("2.1: /my/ POST requires CanCreate role", VersionOfApi) {
       val (code, body) = createSystemEntity(entityPersonalWithRole)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -212,7 +212,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
       }
     }
 
-    scenario("2.2: /my/ GET requires CanGet role", VersionOfApi) {
+    Scenario("2.2: /my/ GET requires CanGet role", VersionOfApi) {
       val (code, body) = createSystemEntity(entityPersonalWithRole)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -242,7 +242,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
       }
     }
 
-    scenario("2.3: /my/ PUT requires CanUpdate role", VersionOfApi) {
+    Scenario("2.3: /my/ PUT requires CanUpdate role", VersionOfApi) {
       val (code, body) = createSystemEntity(entityPersonalWithRole)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -274,7 +274,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
       }
     }
 
-    scenario("2.4: /my/ DELETE requires CanDelete role", VersionOfApi) {
+    Scenario("2.4: /my/ DELETE requires CanDelete role", VersionOfApi) {
       val (code, body) = createSystemEntity(entityPersonalWithRole)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -309,9 +309,9 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
   // ==================== Feature 3: has_public_access=true ====================
 
-  feature("Feature 3: has_public_access=true") {
+  Feature("Feature 3: has_public_access=true") {
 
-    scenario("3.1: /public/ GET list works without authentication", VersionOfApi) {
+    Scenario("3.1: /public/ GET list works without authentication", VersionOfApi) {
       val (code, body) = createSystemEntity(entityPublicAccess)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -333,7 +333,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
       }
     }
 
-    scenario("3.2: /public/ GET single record works without authentication", VersionOfApi) {
+    Scenario("3.2: /public/ GET single record works without authentication", VersionOfApi) {
       val (code, body) = createSystemEntity(entityPublicAccess)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -357,7 +357,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
       }
     }
 
-    scenario("3.3: /public/ POST is not available (read-only)", VersionOfApi) {
+    Scenario("3.3: /public/ POST is not available (read-only)", VersionOfApi) {
       val (code, body) = createSystemEntity(entityPublicAccess)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -376,9 +376,9 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
   // ==================== Feature 4: has_community_access=true ====================
 
-  feature("Feature 4: has_community_access=true") {
+  Feature("Feature 4: has_community_access=true") {
 
-    scenario("4.1: /community/ GET requires authentication", VersionOfApi) {
+    Scenario("4.1: /community/ GET requires authentication", VersionOfApi) {
       val (code, body) = createSystemEntity(entityCommunityAccess)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -394,7 +394,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
       }
     }
 
-    scenario("4.2: /community/ GET requires CanGet role", VersionOfApi) {
+    Scenario("4.2: /community/ GET requires CanGet role", VersionOfApi) {
       val (code, body) = createSystemEntity(entityCommunityAccess)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -418,7 +418,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
       }
     }
 
-    scenario("4.3: /community/ returns ALL records from all users", VersionOfApi) {
+    Scenario("4.3: /community/ returns ALL records from all users", VersionOfApi) {
       val (code, body) = createSystemEntity(entityCommunityAccess)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -456,7 +456,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
       }
     }
 
-    scenario("4.4: /community/ POST is not available (read-only)", VersionOfApi) {
+    Scenario("4.4: /community/ POST is not available (read-only)", VersionOfApi) {
       val (code, body) = createSystemEntity(entityCommunityAccess)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -475,9 +475,9 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
   // ==================== Feature 5: has_personal_entity=false ====================
 
-  feature("Feature 5: has_personal_entity=false") {
+  Feature("Feature 5: has_personal_entity=false") {
 
-    scenario("5.1: /my/ endpoints return 404 when has_personal_entity=false", VersionOfApi) {
+    Scenario("5.1: /my/ endpoints return 404 when has_personal_entity=false", VersionOfApi) {
       val (code, body) = createSystemEntity(entityNoPersonal)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -499,7 +499,7 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
       }
     }
 
-    scenario("5.2: System-level non-personal CRUD still works", VersionOfApi) {
+    Scenario("5.2: System-level non-personal CRUD still works", VersionOfApi) {
       val (code, body) = createSystemEntity(entityNoPersonal)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -526,9 +526,9 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
   // ==================== Feature 6: personal_requires_role with has_personal_entity=false ====================
 
-  feature("Feature 6: personal_requires_role has no effect when has_personal_entity=false") {
+  Feature("Feature 6: personal_requires_role has no effect when has_personal_entity=false") {
 
-    scenario("6.1: /my/ returns 404 even with personal_requires_role=true when has_personal_entity=false", VersionOfApi) {
+    Scenario("6.1: /my/ returns 404 even with personal_requires_role=true when has_personal_entity=false", VersionOfApi) {
       val (code, body) = createSystemEntity(entityNoPersonalWithRole)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -560,9 +560,9 @@ class DynamicEntityAccessFlagsTest extends V600ServerSetup {
 
   // ==================== Feature 7: All flags enabled ====================
 
-  feature("Feature 7: All flags enabled simultaneously") {
+  Feature("Feature 7: All flags enabled simultaneously") {
 
-    scenario("7.1: All endpoint paths work simultaneously", VersionOfApi) {
+    Scenario("7.1: All endpoint paths work simultaneously", VersionOfApi) {
       val (code, body) = createSystemEntity(entityAllFlags)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]

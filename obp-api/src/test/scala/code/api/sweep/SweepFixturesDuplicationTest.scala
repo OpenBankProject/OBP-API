@@ -27,7 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.sweep
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import java.io.File
 import scala.io.Source
@@ -49,7 +50,7 @@ import scala.io.Source
  * definition" from "two copies that happen to still agree" -- both look identical today, and the
  * difference only matters for whether a FUTURE divergence gets caught.
  */
-class SweepFixturesDuplicationTest extends FlatSpec with Matchers {
+class SweepFixturesDuplicationTest extends AnyFlatSpec with Matchers {
 
   private def sourceOf(basename: String): String = {
     val candidates = List(

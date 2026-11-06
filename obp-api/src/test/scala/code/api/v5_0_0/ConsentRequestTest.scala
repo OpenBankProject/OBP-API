@@ -38,7 +38,7 @@ import code.api.v4_0_0.UsersJsonV400
 import code.api.v5_0_0.Http4s500.Implementations5_0_0
 import code.consent.ConsentStatus
 import code.entitlement.Entitlement
-import code.setup.PropsReset
+import code.setup.{EnvVarOverride, PropsReset}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
@@ -47,7 +47,7 @@ import org.scalatest.Tag
 
 import scala.language.postfixOps
 
-class ConsentRequestTest extends V500ServerSetup with PropsReset{
+class ConsentRequestTest extends V500ServerSetup with PropsReset with EnvVarOverride {
 
   /**
     * Test tags
@@ -74,7 +74,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       address = testAccountId1.value), Constant.SYSTEM_OWNER_VIEW_ID))
   lazy val postConsentRequestJson = SwaggerDefinitionsJSON.postConsentRequestJsonV500
     .copy(entitlements=Some(entitlements))
-    .copy(consumer_id=Some(testConsumer.consumerId.get))
+    .copy(consumer_id=Some(testConsumer.consumerId))
     .copy(bank_id=Some(bankId))
     .copy(account_access=accountAccess)
 
@@ -88,8 +88,8 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
   def createConsentByConsentRequestIdSms(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"SMS"/"consents").POST<@(user1)
   def getConsentByRequestIdUrl(requestId:String) = (v5_0_0_Request / "consumer"/ "consent-requests"/requestId/"consents").GET<@(user1)
 
-  feature("Create/Get Consent Request v5.0.0") {
-    scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Create/Get Consent Request v5.0.0") {
+    Scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.0.0")
       val response500 = makePostRequest(createConsentRequestWithoutLoginUrl, write(postConsentRequestJson))
       Then("We should get a 401")
@@ -97,7 +97,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       response500.body.extract[ErrorMessage].message should equal (ApplicationNotIdentified)
     }
 
-    scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+    Scenario("We will call the Create, Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
       val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJson))
       Then("We should get a 201")
@@ -172,7 +172,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       responseGetUsersWrong.body.extract[ErrorMessage].message contains (ConsentHeaderValueInvalid) should be (true)
     }
 
-    scenario("We will call the Create (IMPLICIT), Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
+    Scenario("We will call the Create (IMPLICIT), Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
       val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJson))
       Then("We should get a 201")
@@ -246,7 +246,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       responseGetUsersWrong.body.extract[ErrorMessage].message contains (ConsentHeaderValueInvalid) should be (true)
     }
 
-    scenario(s"Check the forbidden roles ${CanCreateEntitlementAtAnyBank.toString()}", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+    Scenario(s"Check the forbidden roles ${CanCreateEntitlementAtAnyBank.toString()}", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
       val postJsonForbiddenEntitlementAtAnyBank = postConsentRequestJson.copy(entitlements = Some(forbiddenEntitlementAnyBank))
       val createConsentResponse = makePostRequest(createConsentRequestUrl, write(postJsonForbiddenEntitlementAtAnyBank))
@@ -263,7 +263,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       forbiddenRoleResponse.body.extract[ErrorMessage].message should equal (RolesForbiddenInConsent)
     }
 
-    scenario(s"Check the role ${CanCreateEntitlementAtOneBank.toString()} is allowed in a consent", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
+    Scenario(s"Check the role ${CanCreateEntitlementAtOneBank.toString()} is allowed in a consent", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.0.0")
       // An agent acting under a consent may grant bank roles to humans, so this role is allowed
       // (only CanCreateEntitlementAtAnyBank is forbidden). The user must already hold it.
@@ -341,6 +341,8 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       When("We create a consent with an EMAIL challenge while the SMTP settings cannot be read")
       // Outside mail test mode the mapped connector reads the SMTP settings before it builds its Future, so a bad
       // port throws at once rather than failing a Future. No SMTP connection is attempted.
+      // OBP_MAIL_TEST_MODE, which run_tests_parallel.sh sets, outranks the prop, so it is switched off as well.
+      withEnvOverride("OBP_MAIL_TEST_MODE" -> "false") {
       setPropsValues("mail.test.mode" -> "false", "mail.smtp.port" -> "not-a-port")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       val createConsentRequestResponse = makePostRequest(createConsentRequestUrl, write(postConsentRequestJson))
@@ -352,6 +354,7 @@ class ConsentRequestTest extends V500ServerSetup with PropsReset{
       val getConsent = makeGetRequest(getConsentByRequestIdUrl(consentRequestId))
       getConsent.code should equal(200)
       getConsent.body.extract[ConsentJsonV500].status should equal(ConsentStatus.REJECTED.toString)
+      }
     }
 
     scenario("SMS that cannot be sent: the consent is rejected rather than left waiting for an answer", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {

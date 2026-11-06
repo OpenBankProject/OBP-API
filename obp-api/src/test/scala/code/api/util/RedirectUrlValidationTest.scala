@@ -27,13 +27,15 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.util
 
-import code.setup.PropsReset
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import code.setup.{EnvVarOverride, PropsReset}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * This suite checks the redirect URL rules that every Consumer redirect URL must meet before it is stored.
  */
-class RedirectUrlValidationTest extends FeatureSpec with Matchers with GivenWhenThen with PropsReset {
+class RedirectUrlValidationTest extends AnyFeatureSpec with Matchers with GivenWhenThen with PropsReset with EnvVarOverride {
 
   feature("RedirectUrlValidation accepts the allowed forms") {
     scenario("https, loopback http, reverse-domain app schemes, several entries and an empty value") {
@@ -96,6 +98,8 @@ class RedirectUrlValidationTest extends FeatureSpec with Matchers with GivenWhen
     }
 
     scenario("set, it allows listed hosts, hosts under a listed domain, app schemes and the API's own host") {
+      // OBP_HOSTNAME, which run_tests_parallel.sh sets, outranks the hostname prop below, so it is pinned too.
+      withEnvOverride("OBP_HOSTNAME" -> "https://api.example.org") {
       setPropsValues(
         "redirect_url_allowed_hosts" -> "portal.example.com, .bank.example",
         "hostname" -> "https://api.example.org"
@@ -112,9 +116,11 @@ class RedirectUrlValidationTest extends FeatureSpec with Matchers with GivenWhen
         withClue(value) { RedirectUrlValidation.consumerRedirectUrlError(value, applyHostList = true) shouldBe None }
       }
       RedirectUrlValidation.allowedHostsDescription should include("portal.example.com")
+      }
     }
 
     scenario("set, it refuses other hosts with RedirectUrlHostNotAllowed") {
+      withEnvOverride("OBP_HOSTNAME" -> "https://api.example.org") {
       setPropsValues(
         "redirect_url_allowed_hosts" -> "portal.example.com, .bank.example",
         "hostname" -> "https://api.example.org"
@@ -128,6 +134,7 @@ class RedirectUrlValidationTest extends FeatureSpec with Matchers with GivenWhen
         withClue(value) {
           RedirectUrlValidation.consumerRedirectUrlError(value, applyHostList = true).get should startWith(ErrorMessages.RedirectUrlHostNotAllowed)
         }
+      }
       }
     }
 

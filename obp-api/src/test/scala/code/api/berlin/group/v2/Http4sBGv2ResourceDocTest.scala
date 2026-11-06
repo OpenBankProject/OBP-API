@@ -28,7 +28,9 @@ TESOBE (http://www.tesobe.com/)
 package code.api.berlin.group.v2
 
 import code.util.Helper.MdcLoggable
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Feature: berlin-group-v2-http4s, Property 1: ResourceDoc completeness
@@ -39,7 +41,7 @@ import org.scalatest.{FlatSpec, Matchers, Tag}
  * a non-empty partialFunctionName, a non-empty requestUrl, a non-empty summary,
  * and a non-empty apiTags list.
  */
-class Http4sBGv2ResourceDocTest extends FlatSpec with Matchers with MdcLoggable {
+class Http4sBGv2ResourceDocTest extends AnyFlatSpec with Matchers with MdcLoggable {
 
   object ResourceDocCompletenessTag extends Tag("Property1_ResourceDocCompleteness")
 

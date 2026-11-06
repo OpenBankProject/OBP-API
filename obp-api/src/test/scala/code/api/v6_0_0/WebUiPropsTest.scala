@@ -59,9 +59,9 @@ class WebUiPropsTest extends V600ServerSetup {
   val wrongEntity = WebUiPropsCommons("hello_api_explorer_url", "https://apiexplorer.openbankproject.com") // name not start with "webui_"
 
   
-  feature("Get Single WebUiProp by Name v6.0.0") {
+  Feature("Get Single WebUiProp by Name v6.0.0") {
     
-    scenario("Get WebUiProp - successful case with explicit prop from database", VersionOfApi, ApiEndpoint1) {
+    Scenario("Get WebUiProp - successful case with explicit prop from database", VersionOfApi, ApiEndpoint1) {
       // First create a webui prop
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       When("We create a webui prop")
@@ -80,7 +80,7 @@ class WebUiPropsTest extends V600ServerSetup {
       webUiPropJson.value should equal(rightEntity.value)
     }
 
-    scenario("Get WebUiProp - successful case with active=true returns explicit prop", VersionOfApi, ApiEndpoint1) {
+    Scenario("Get WebUiProp - successful case with active=true returns explicit prop", VersionOfApi, ApiEndpoint1) {
       // First create a webui prop
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       When("We create a webui prop")
@@ -99,7 +99,7 @@ class WebUiPropsTest extends V600ServerSetup {
       webUiPropJson.value should equal(anotherEntity.value)
     }
 
-    scenario("Get WebUiProp - not found without active flag", VersionOfApi, ApiEndpoint1) {
+    Scenario("Get WebUiProp - not found without active flag", VersionOfApi, ApiEndpoint1) {
       When("We get a non-existent webui prop by name without active flag")
       val requestGet = (v6_0_0_Request / "webui-props" / "webui_non_existent_prop").GET
       val responseGet = makeGetRequest(requestGet)
@@ -109,7 +109,7 @@ class WebUiPropsTest extends V600ServerSetup {
       error.message should include(WebUiPropsNotFoundByName)
     }
 
-    scenario("Get WebUiProp - with active=true returns implicit prop from config", VersionOfApi, ApiEndpoint1) {
+    Scenario("Get WebUiProp - with active=true returns implicit prop from config", VersionOfApi, ApiEndpoint1) {
       // Test that we can get implicit props from sample.props.template when active=true
       When("We get a webui prop by name with active=true that exists in config but not in DB")
       // Use a prop that should exist in sample.props.template like webui_sandbox_introduction
@@ -122,7 +122,7 @@ class WebUiPropsTest extends V600ServerSetup {
       webUiPropJson.webUiPropsId should equal(Some("default"))
     }
 
-    scenario("Get WebUiProp - invalid active parameter", VersionOfApi, ApiEndpoint1) {
+    Scenario("Get WebUiProp - invalid active parameter", VersionOfApi, ApiEndpoint1) {
       When("We get a webui prop with invalid active parameter")
       val requestGet = (v6_0_0_Request / "webui-props" / "webui_api_explorer_url").GET.addQueryParameter("active", "invalid")
       val responseGet = makeGetRequest(requestGet)
@@ -132,7 +132,7 @@ class WebUiPropsTest extends V600ServerSetup {
       error.message should include(InvalidFilterParameterFormat)
     }
 
-    scenario("Get WebUiProp - database prop takes precedence over config prop when active=true", VersionOfApi, ApiEndpoint1) {
+    Scenario("Get WebUiProp - database prop takes precedence over config prop when active=true", VersionOfApi, ApiEndpoint1) {
       // Create a webui prop that overrides a config value
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       val customValue = WebUiPropsCommons("webui_get_started_text", "Custom Get Started Text")
@@ -154,9 +154,9 @@ class WebUiPropsTest extends V600ServerSetup {
     }
   }
 
-  feature("Create or Update WebUiProp (PUT) v6.0.0") {
+  Feature("Create or Update WebUiProp (PUT) v6.0.0") {
     
-    scenario("PUT WebUiProp - create new property successfully", VersionOfApi, ApiEndpoint2) {
+    Scenario("PUT WebUiProp - create new property successfully", VersionOfApi, ApiEndpoint2) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       When("We create a new webui prop using PUT")
       val putValue = """{"value": "https://new-api-explorer.com"}"""
@@ -170,7 +170,7 @@ class WebUiPropsTest extends V600ServerSetup {
       webUiProp.webUiPropsId.isDefined should equal(true)
     }
 
-    scenario("PUT WebUiProp - update existing property successfully", VersionOfApi, ApiEndpoint2) {
+    Scenario("PUT WebUiProp - update existing property successfully", VersionOfApi, ApiEndpoint2) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       When("We create a webui prop")
       val putValue1 = """{"value": "original value"}"""
@@ -190,7 +190,7 @@ class WebUiPropsTest extends V600ServerSetup {
       webUiProp.value should equal("updated value")
     }
 
-    scenario("PUT WebUiProp - idempotent create (same value twice)", VersionOfApi, ApiEndpoint2) {
+    Scenario("PUT WebUiProp - idempotent create (same value twice)", VersionOfApi, ApiEndpoint2) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       val putValue = """{"value": "idempotent value"}"""
       
@@ -210,7 +210,7 @@ class WebUiPropsTest extends V600ServerSetup {
       webUiPropsId1 should equal(webUiPropsId2)
     }
 
-    scenario("PUT WebUiProp - name converted to lowercase", VersionOfApi, ApiEndpoint2) {
+    Scenario("PUT WebUiProp - name converted to lowercase", VersionOfApi, ApiEndpoint2) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       When("We create a webui prop with UPPERCASE name")
       val putValue = """{"value": "test value"}"""
@@ -222,7 +222,7 @@ class WebUiPropsTest extends V600ServerSetup {
       webUiProp.name should equal("webui_uppercase_test")
     }
 
-    scenario("PUT WebUiProp - dot allowed in name", VersionOfApi, ApiEndpoint2) {
+    Scenario("PUT WebUiProp - dot allowed in name", VersionOfApi, ApiEndpoint2) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       When("We create a webui prop with dots in name")
       val putValue = """{"value": "https://api.v1.example.com"}"""
@@ -234,7 +234,7 @@ class WebUiPropsTest extends V600ServerSetup {
       webUiProp.name should equal("webui_api.v1.endpoint")
     }
 
-    scenario("PUT WebUiProp - fail without webui_ prefix", VersionOfApi, ApiEndpoint2) {
+    Scenario("PUT WebUiProp - fail without webui_ prefix", VersionOfApi, ApiEndpoint2) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       When("We create a webui prop without webui_ prefix")
       val putValue = """{"value": "test value"}"""
@@ -247,7 +247,7 @@ class WebUiPropsTest extends V600ServerSetup {
       error.message should include("must start with webui_")
     }
 
-    scenario("PUT WebUiProp - fail with hyphen in name", VersionOfApi, ApiEndpoint2) {
+    Scenario("PUT WebUiProp - fail with hyphen in name", VersionOfApi, ApiEndpoint2) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       When("We create a webui prop with hyphen")
       val putValue = """{"value": "test value"}"""
@@ -260,7 +260,7 @@ class WebUiPropsTest extends V600ServerSetup {
       error.message should include("alphanumeric characters, underscore, and dot")
     }
 
-    scenario("PUT WebUiProp - fail with space in name", VersionOfApi, ApiEndpoint2) {
+    Scenario("PUT WebUiProp - fail with space in name", VersionOfApi, ApiEndpoint2) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       When("We create a webui prop with space")
       val putValue = """{"value": "test value"}"""
@@ -272,7 +272,7 @@ class WebUiPropsTest extends V600ServerSetup {
       error.message should include(InvalidWebUiProps)
     }
 
-    scenario("PUT WebUiProp - fail without authentication", VersionOfApi, ApiEndpoint2) {
+    Scenario("PUT WebUiProp - fail without authentication", VersionOfApi, ApiEndpoint2) {
       When("We try to PUT without authentication")
       val putValue = """{"value": "test value"}"""
       val requestPut = (v6_0_0_Request / "management" / "webui_props" / "webui_test_noauth").PUT
@@ -281,7 +281,7 @@ class WebUiPropsTest extends V600ServerSetup {
       responsePut.code should equal(401)
     }
 
-    scenario("PUT WebUiProp - fail without CanCreateWebUiProps role", VersionOfApi, ApiEndpoint2) {
+    Scenario("PUT WebUiProp - fail without CanCreateWebUiProps role", VersionOfApi, ApiEndpoint2) {
       When("We try to PUT without proper role")
       val putValue = """{"value": "test value"}"""
       val requestPut = (v6_0_0_Request / "management" / "webui_props" / "webui_test_norole").PUT <@(user1)
@@ -292,7 +292,7 @@ class WebUiPropsTest extends V600ServerSetup {
       error.message should include(UserHasMissingRoles)
     }
 
-    scenario("PUT WebUiProp - fail with invalid JSON body", VersionOfApi, ApiEndpoint2) {
+    Scenario("PUT WebUiProp - fail with invalid JSON body", VersionOfApi, ApiEndpoint2) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       When("We PUT with invalid JSON")
       val putValue = """{"invalid": "no value field"}"""
@@ -304,7 +304,7 @@ class WebUiPropsTest extends V600ServerSetup {
       error.message should include(InvalidJsonFormat)
     }
 
-    scenario("PUT WebUiProp - fail with name exceeding 255 characters", VersionOfApi, ApiEndpoint2) {
+    Scenario("PUT WebUiProp - fail with name exceeding 255 characters", VersionOfApi, ApiEndpoint2) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       When("We create a webui prop with name exceeding 255 chars")
       val longName = "webui_" + ("a" * 250) // 256 chars total
@@ -319,9 +319,9 @@ class WebUiPropsTest extends V600ServerSetup {
     }
   }
 
-  feature("Delete WebUiProp (DELETE) v6.0.0") {
+  Feature("Delete WebUiProp (DELETE) v6.0.0") {
     
-    scenario("DELETE WebUiProp - delete existing property successfully", VersionOfApi, ApiEndpoint3) {
+    Scenario("DELETE WebUiProp - delete existing property successfully", VersionOfApi, ApiEndpoint3) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteWebUiProps.toString)
       
@@ -341,7 +341,7 @@ class WebUiPropsTest extends V600ServerSetup {
       responseDelete.body shouldBe(JNothing)
     }
 
-    scenario("DELETE WebUiProp - idempotent delete (delete twice)", VersionOfApi, ApiEndpoint3) {
+    Scenario("DELETE WebUiProp - idempotent delete (delete twice)", VersionOfApi, ApiEndpoint3) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteWebUiProps.toString)
       
@@ -364,7 +364,7 @@ class WebUiPropsTest extends V600ServerSetup {
       responseDelete2.code should equal(204)
     }
 
-    scenario("DELETE WebUiProp - delete non-existent property (idempotent)", VersionOfApi, ApiEndpoint3) {
+    Scenario("DELETE WebUiProp - delete non-existent property (idempotent)", VersionOfApi, ApiEndpoint3) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteWebUiProps.toString)
       When("We delete a non-existent webui prop")
       val requestDelete = (v6_0_0_Request / "management" / "webui_props" / "webui_never_existed").DELETE <@(user1)
@@ -373,7 +373,7 @@ class WebUiPropsTest extends V600ServerSetup {
       responseDelete.code should equal(204)
     }
 
-    scenario("DELETE WebUiProp - name converted to lowercase", VersionOfApi, ApiEndpoint3) {
+    Scenario("DELETE WebUiProp - name converted to lowercase", VersionOfApi, ApiEndpoint3) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteWebUiProps.toString)
       
@@ -390,7 +390,7 @@ class WebUiPropsTest extends V600ServerSetup {
       responseDelete.code should equal(204)
     }
 
-    scenario("DELETE WebUiProp - fail without webui_ prefix", VersionOfApi, ApiEndpoint3) {
+    Scenario("DELETE WebUiProp - fail without webui_ prefix", VersionOfApi, ApiEndpoint3) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteWebUiProps.toString)
       When("We try to delete with invalid name")
       val requestDelete = (v6_0_0_Request / "management" / "webui_props" / "invalid_name").DELETE <@(user1)
@@ -402,7 +402,7 @@ class WebUiPropsTest extends V600ServerSetup {
       error.message should include("must start with webui_")
     }
 
-    scenario("DELETE WebUiProp - fail with hyphen in name", VersionOfApi, ApiEndpoint3) {
+    Scenario("DELETE WebUiProp - fail with hyphen in name", VersionOfApi, ApiEndpoint3) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteWebUiProps.toString)
       When("We try to delete with hyphen in name")
       val requestDelete = (v6_0_0_Request / "management" / "webui_props" / "webui_api-explorer").DELETE <@(user1)
@@ -413,7 +413,7 @@ class WebUiPropsTest extends V600ServerSetup {
       error.message should include(InvalidWebUiProps)
     }
 
-    scenario("DELETE WebUiProp - fail without authentication", VersionOfApi, ApiEndpoint3) {
+    Scenario("DELETE WebUiProp - fail without authentication", VersionOfApi, ApiEndpoint3) {
       When("We try to DELETE without authentication")
       val requestDelete = (v6_0_0_Request / "management" / "webui_props" / "webui_test_noauth").DELETE
       val responseDelete = makeDeleteRequest(requestDelete)
@@ -421,7 +421,7 @@ class WebUiPropsTest extends V600ServerSetup {
       responseDelete.code should equal(401)
     }
 
-    scenario("DELETE WebUiProp - fail without CanDeleteWebUiProps role", VersionOfApi, ApiEndpoint3) {
+    Scenario("DELETE WebUiProp - fail without CanDeleteWebUiProps role", VersionOfApi, ApiEndpoint3) {
       When("We try to DELETE without proper role")
       val requestDelete = (v6_0_0_Request / "management" / "webui_props" / "webui_test_norole").DELETE <@(user1)
       val responseDelete = makeDeleteRequest(requestDelete)
@@ -431,7 +431,7 @@ class WebUiPropsTest extends V600ServerSetup {
       error.message should include(UserHasMissingRoles)
     }
 
-    scenario("DELETE WebUiProp - complete CRUD workflow", VersionOfApi, ApiEndpoint3) {
+    Scenario("DELETE WebUiProp - complete CRUD workflow", VersionOfApi, ApiEndpoint3) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateWebUiProps.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteWebUiProps.toString)
       

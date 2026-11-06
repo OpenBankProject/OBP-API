@@ -254,8 +254,8 @@ object JSONFactory700Retention {
     requires_approval = p.requiresApproval,
     enabled = p.enabled,
     created_by_user_id = p.createdByUserId,
-    created_at = p.createdAt.get,
-    updated_at = p.updatedAt.get
+    created_at = p.createdAt,
+    updated_at = p.updatedAt
   )
 
   def createPreviewJson(p: RetentionPolicy, r: RetentionEngine.PreviewResult): RetentionPolicyPreviewJsonV700 =
@@ -291,12 +291,12 @@ object JSONFactory700Retention {
     approved_by_user_id = r.approvedByUserId,
     approval_decision = r.approvalDecision,
     approval_comment = r.approvalComment,
-    matched_count = r.MatchedCount.get,
-    archived_count = r.ArchivedCount.get,
-    anonymised_count = r.AnonymisedCount.get,
-    deleted_count = r.DeletedCount.get,
-    held_count = r.HeldCount.get,
-    failed_count = r.FailedCount.get,
+    matched_count = r.matchedCount,
+    archived_count = r.archivedCount,
+    anonymised_count = r.anonymisedCount,
+    deleted_count = r.deletedCount,
+    held_count = r.heldCount,
+    failed_count = r.failedCount,
     requested_at = r.requestedAt,
     started_at = r.startedAt,
     ended_at = r.endedAt,
@@ -378,7 +378,10 @@ object JSONFactory700Retention {
 
   val putRetentionPolicyJsonV700Example = PutRetentionPolicyJsonV700(
     retain_days = Some(3650),
-    requires_approval = Some(true)
+    archive_days = Some(1825),
+    cascade = Some(false),
+    requires_approval = Some(true),
+    enabled = Some(true)
   )
 
   val retentionPolicyJsonV700Example = RetentionPolicyJsonV700(
@@ -506,7 +509,7 @@ object JSONFactory700Retention {
     archived_at = exampleDate,
     delete_after = Some(new Date(1924992000000L)),
     has_content = false,
-    content_size_in_bytes = None,
+    content_size_in_bytes = Some(2048L),
     data = Some(("dynamic_data_id" -> "3d2c1b0a-9f8e-4d7c-6b5a-4f3e2d1c0b9a") ~ ("entity_name" -> "application") ~
       ("data" -> (("status" -> "CLOSED") ~ ("title" -> "Example application")))),
     content_base64 = None

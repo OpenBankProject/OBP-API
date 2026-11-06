@@ -1,0 +1,142 @@
+# The two SQL views the application's own request paths read.
+#
+# DoobieConsentQueries selects FROM v_consent and DoobieAccountAccessViewQueries selects FROM
+# v_account_access_with_views. Neither had anything in the changelog creating it: both were left to
+# MigrationOfConsentView / MigrationOfAccountAccessWithViewsView, which run only when BOTH
+# `migration_scripts.enabled` and `migration_scripts.execute_all` are true. Those default to false
+# and ship commented out in sample.props.template, so a deployment made from the shipped template
+# came up with all 146 tables present, the OIDC views present, nothing in the log complaining - and
+# then 500ed on the first `GET /obp/v5.1.0/my/consents` with `relation "v_consent" does not exist`,
+# and on every account-access check. The whole test suite is blind to it because ServerSetup forces
+# `migration_scripts.execute_all=true`, so in tests the migration path always creates them.
+#
+# The definitions are lifted verbatim from those two migrations rather than retyped, minus the
+# trailing semicolon (Liquibase supplies the statement terminator). Both are already
+# vendor-neutral: `v_consent` is a plain column projection, and the boolean comparisons in
+# `v_account_access_with_views` are spelled `= true` / `= false`, which H2 and Postgres both accept.
+# The MSSQL arm of those migrations differs only in `CREATE OR ALTER` vs `CREATE OR REPLACE` and in
+# spelling the booleans `1` / `0`; Liquibase's createView emits each vendor's own form, so that arm
+# has no equivalent here.
+#
+# The migrations are deliberately left in place. They are what an existing deployment with
+# `migration_scripts` switched on has already run, and `replaceIfExists` makes creating the same
+# view twice a no-op, so a database that gets both paths ends up with exactly one definition.
+#
+# contextFilter: oidc-views - the same phase marker the OIDC views carry, because it means "created
+# after Migration.database.executeScripts", not "belongs to OIDC". These views select columns that
+# the legacy MigrationOf* scripts still reshape (`ALTER TABLE consumer ALTER COLUMN aud TYPE text`
+# is refused by Postgres while a view depends on that column), so they must not be created in the
+# main pass. LiquibaseSchemaSetup runs the main pass with `!oidc-views` and this pass with
+# `oidc-views`; see its `createOidcViews`, called from Boot after the migrations.
+#
+# runOnChange so that editing a definition here re-applies it.
+#
+# DROP first, then create - NOT `replaceIfExists`. Postgres implements CREATE OR REPLACE VIEW as a
+# replacement that must keep the existing output column list byte-identical in name, order AND
+# type, and refuses otherwise:
+#
+#     ERROR: cannot change data type of view column "bank_id"
+#            from character varying to character varying(255)
+#
+# which aborts the changeset and therefore the boot. That is not hypothetical: every deployment
+# that ever ran MigrationOfAccountAccessWithViewsView already has this view, built when
+# accountaccess.bank_id resolved to an unbounded varchar, while the same column off the baseline
+# changelog is varchar(255). So the replace form works on a fresh database and breaks exactly the
+# upgrades this file exists to serve. Caught by run-suite2, which boots against a clone of the live
+# database; every fresh-database test in the suite passes either way, which is why this needs
+# saying here rather than being left to the next person to rediscover.
+#
+# No CASCADE on the DROP: nothing selects from these two views today, and if something ever does,
+# failing loudly is better than silently taking the dependent with it.
+databaseChangeLog:
+  - changeSet:
+      id: create-view-v_consent
+      author: obp
+      runOnChange: true
+      contextFilter: oidc-views
+      comment: >-
+        Read by DoobieConsentQueries. Renames mappedconsent's Mapper-era column names to the ones the consent queries select.
+      changes:
+        - sql:
+            sql: DROP VIEW IF EXISTS v_consent
+        - createView:
+            viewName: v_consent
+            selectQuery: |-
+              SELECT
+                  consent_reference_id              AS consent_reference_id,
+                  mconsentid                        AS consent_id,
+                  muserid                           AS created_by_user_id,
+                  mconsumerid                       AS consumer_id,
+                  mstatus                           AS status,
+                  mjsonwebtoken                     AS jwt,
+                  mconsentrequestid                 AS consent_request_id,
+                  mapistandard                      AS api_standard,
+                  mapiversion                       AS api_version,
+                  mlastactiondate                   AS last_action_date,
+                  musessofartodaycounterupdatedat   AS last_usage_date,
+                  createdat                         AS created_date,
+                  mnote                             AS note,
+                  mfrequencyperday                  AS frequency_per_day,
+                  musessofartodaycounter            AS uses_so_far_today_counter,
+                  mjsonwebtokenpayload              AS jwt_payload,
+                  jwt_expires_at                    AS jwt_expires_at
+              FROM mappedconsent
+
+  - changeSet:
+      id: create-view-v_account_access_with_views
+      author: obp
+      runOnChange: true
+      contextFilter: oidc-views
+      comment: >-
+        Read by DoobieAccountAccessViewQueries. Joins each account-access row to its user and to the view definition it names - system views match on view_id alone, custom views additionally on bank and account.
+      changes:
+        - sql:
+            sql: DROP VIEW IF EXISTS v_account_access_with_views
+        - createView:
+            viewName: v_account_access_with_views
+            selectQuery: |-
+              SELECT
+                  aa.id              AS account_access_id,
+                  aa.bank_id         AS bank_id,
+                  aa.account_id      AS account_id,
+                  aa.view_id         AS view_id,
+                  aa.consumer_id     AS consumer_id,
+                  ru.userid_         AS user_id,
+                  ru.name_           AS username,
+                  ru.email           AS email,
+                  ru.provider_       AS provider,
+                  ru.id              AS resource_user_primary_key,
+                  vd.name_           AS view_name,
+                  vd.description_    AS view_description,
+                  vd.metadataview_   AS metadata_view,
+                  vd.issystem_       AS is_system,
+                  vd.ispublic_       AS is_public,
+                  vd.isfirehose_     AS is_firehose
+              FROM accountaccess aa
+              JOIN resourceuser ru ON ru.id = aa.user_fk
+              JOIN viewdefinition vd ON vd.issystem_ = true
+                                    AND vd.view_id = aa.view_id
+              UNION ALL
+              SELECT
+                  aa.id              AS account_access_id,
+                  aa.bank_id         AS bank_id,
+                  aa.account_id      AS account_id,
+                  aa.view_id         AS view_id,
+                  aa.consumer_id     AS consumer_id,
+                  ru.userid_         AS user_id,
+                  ru.name_           AS username,
+                  ru.email           AS email,
+                  ru.provider_       AS provider,
+                  ru.id              AS resource_user_primary_key,
+                  vd.name_           AS view_name,
+                  vd.description_    AS view_description,
+                  vd.metadataview_   AS metadata_view,
+                  vd.issystem_       AS is_system,
+                  vd.ispublic_       AS is_public,
+                  vd.isfirehose_     AS is_firehose
+              FROM accountaccess aa
+              JOIN resourceuser ru ON ru.id = aa.user_fk
+              JOIN viewdefinition vd ON vd.issystem_ = false
+                                    AND vd.bank_id = aa.bank_id
+                                    AND vd.account_id = aa.account_id
+                                    AND vd.view_id = aa.view_id

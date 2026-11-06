@@ -46,14 +46,14 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
     super.afterAll()
   }
 
-  feature("Assuring that endpoint 'updateConsumerRedirectUrl' works as expected - v2.1.0") {
+  Feature("Assuring that endpoint 'updateConsumerRedirectUrl' works as expected - v2.1.0") {
 
     val consumerRedirectUrlJSON = ConsumerRedirectUrlJSON("x-com.tesobe.helloobp.ios://callback")
 
-    scenario("Try to Update Redirect Url without proper role ") {
+    Scenario("Try to Update Redirect Url without proper role ") {
 
       When("We make the request Update Redirect Url for a Consumer")
-      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id.get / "consumer" / "redirect_url" ).PUT <@ (user1)
+      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id / "consumer" / "redirect_url" ).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(consumerRedirectUrlJSON))
 
       Then("We should get a 403")
@@ -68,13 +68,13 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
       error should equal(UserHasMissingRoles + CanUpdateConsumerRedirectUrl)
     }
 
-    scenario("Try to Update Redirect Url without proper role when consumers are enabled by default") {
+    Scenario("Try to Update Redirect Url without proper role when consumers are enabled by default") {
       // The role used to be checked only when consumers_enabled_by_default was false,
       // so on an instance with the prop set to true the creator could change it without the role.
       setPropsValues("consumers_enabled_by_default" -> "true")
 
       When("We make the request Update Redirect Url for a Consumer")
-      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id.get / "consumer" / "redirect_url" ).PUT <@ (user1)
+      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id / "consumer" / "redirect_url" ).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(consumerRedirectUrlJSON))
 
       Then("We should get a 403")
@@ -87,7 +87,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
       error should equal(UserHasMissingRoles + CanUpdateConsumerRedirectUrl)
     }
 
-    scenario("Try to Update Redirect Url created by other user ") {
+    Scenario("Try to Update Redirect Url created by other user ") {
 
       Then("We add entitlement to user2")
       addEntitlement("", resourceUser2.userId, CanUpdateConsumerRedirectUrl.toString)
@@ -95,7 +95,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
       hasEntitlement should equal(true)
 
       When("We make the request Update Redirect Url for a Consumer")
-      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id.get / "consumer" / "redirect_url" ).PUT <@ (user2)
+      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id / "consumer" / "redirect_url" ).PUT <@ (user2)
       val responsePut = makePutRequest(requestPut, write(consumerRedirectUrlJSON))
 
       Then("We should get a 400")
@@ -109,7 +109,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
       error.toString contains (UserNoPermissionUpdateConsumer) should be (true)
     }
 
-    scenario("Try to Update Redirect Url successfully ") {
+    Scenario("Try to Update Redirect Url successfully ") {
 
       Then("We add entitlement to user1")
       addEntitlement("", resourceUser1.userId, CanUpdateConsumerRedirectUrl.toString)
@@ -117,7 +117,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
       hasEntitlement should equal(true)
 
       When("We make the request Update Redirect Url for a Consumer")
-      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id.get / "consumer" / "redirect_url" ).PUT <@ (user1)
+      val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id / "consumer" / "redirect_url" ).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(consumerRedirectUrlJSON))
 
       Then("We should get a 200")

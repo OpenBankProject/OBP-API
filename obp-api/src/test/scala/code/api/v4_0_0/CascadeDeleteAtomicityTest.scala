@@ -39,11 +39,11 @@ import code.methodrouting.{MethodRouting, MethodRoutingCommons, MethodRoutingPro
 import code.model.dataAccess.{MappedBank, MappedBankAccount}
 import code.views.system.AccountAccess
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage}
+import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankId, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.db.DB
-import net.liftweb.mapper.By
 import net.liftweb.util.DefaultConnectionIdentifier
+import org.json4s.jvalue2extractable
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
@@ -70,10 +70,10 @@ class CascadeDeleteAtomicityTest extends V400ServerSetup {
   }
 
   private def accountExists(bankId: String, accountId: String): Boolean =
-    MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, accountId)).isDefined
+    MappedBankAccount.find(bankId, accountId).isDefined
 
   private def accessRows(bankId: String, accountId: String): Int =
-    AccountAccess.count(By(AccountAccess.bank_id, bankId), By(AccountAccess.account_id, accountId)).toInt
+    AccountAccess.findAllByBankIdAccountId(BankId(bankId), AccountId(accountId)).size
 
   /** The account cascade lists the account's transactions through the connector; one that cannot fails the step. */
   private def withTransactionsUnreadable[T](block: => T): T = {
@@ -117,7 +117,7 @@ class CascadeDeleteAtomicityTest extends V400ServerSetup {
       }
 
       response.code should equal(400)
-      MappedBank.find(By(MappedBank.permalink, bankId)).isDefined should equal(true)
+      MappedBank.findByBankId(BankId(bankId)).isDefined should equal(true)
       accountExists(bankId, accountId) should equal(true)
       accessRows(bankId, accountId) should equal(accessBefore)
     }
@@ -126,12 +126,12 @@ class CascadeDeleteAtomicityTest extends V400ServerSetup {
       val bankId = randomBankId
       val accountId = createAccountWithSecondViewer(bankId)
       val accessBefore = accessRows(bankId, accountId)
-      val accountPk = MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, accountId))
-        .openOrThrowException("expected the account").id.get
+      val accountPk = MappedBankAccount.find(bankId, accountId)
+        .openOrThrowException("expected the account").accountPrimaryKey
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
       // A row that still refers to the account, so deleting the account itself, the last step, fails. On H2 (and
       // MySQL, SQL Server, Oracle) the deletes before it stay in the transaction; Postgres aborts the whole one.
-      val table = MappedBankAccount.dbTableName
+      val table = "mappedbankaccount"
       runSql(s"CREATE TABLE cascade_atomicity_blocker (account_pk BIGINT REFERENCES $table(id))")
       try {
         runSql(s"INSERT INTO cascade_atomicity_blocker (account_pk) VALUES ($accountPk)")

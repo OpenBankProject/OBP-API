@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v7_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.Constant
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetTelemetry
@@ -142,7 +143,7 @@ class TelemetryEndpointTest extends V600ServerSetup {
       makeGetRequest(telemetryRequest.GET <@ (application2)).code should equal(403)
 
       When("testConsumer2 is granted CanGetTelemetry as a Scope")
-      val granted = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, CanGetTelemetry.toString)
+      val granted = Scope.scope.vend.addScope("", testConsumer2.id.toString, CanGetTelemetry.toString)
       val (response, personResponse) = try {
         (makeGetRequest(telemetryRequest.GET <@ (application2)), makeGetRequest(telemetryRequest.GET <@ (user2)))
       } finally Scope.scope.vend.deleteScope(granted)

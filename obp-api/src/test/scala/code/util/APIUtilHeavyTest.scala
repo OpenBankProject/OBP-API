@@ -41,8 +41,8 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
 
   val bgVersion = ConstantsBG.berlinGroupVersion1.apiShortVersion
   
-  feature("test APIUtil.versionIsAllowed method") {
-    scenario("Test versionIsAllowed with various disabled/enabled version combinations") {
+  Feature("test APIUtil.versionIsAllowed method") {
+    Scenario("Test versionIsAllowed with various disabled/enabled version combinations") {
       //This mean, we are only disabled the v4.0.0, all other versions should be enabled
       setPropsValues(
         "api_disabled_versions" -> "[v4.0.0]",
@@ -100,8 +100,8 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
   }
 
 
-  feature("test APIUtil.getAllowedEndpoints method") {
-    scenario(s"Test the APIUtil.getAllowedEndpoints method") {
+  Feature("test APIUtil.getAllowedEndpoints method") {
+    Scenario(s"Test the APIUtil.getAllowedEndpoints method") {
       // v4.0.0 is fully on http4s; getAllowedResourceDocs is Lift-specific (needs non-null
       // partialFunctions). Filter Http4s400.resourceDocs directly by props instead.
       val obpAllResourceDocsV400 = Http4s400.resourceDocs
@@ -187,9 +187,9 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
     }
   }
 
-  feature("test APIUtil.getPermissionPairFromViewDefinition method") {
+  Feature("test APIUtil.getPermissionPairFromViewDefinition method") {
 
-    scenario(s"Test the getPermissionPairFromViewDefinition method") {
+    Scenario(s"Test the getPermissionPairFromViewDefinition method") {
 
       val subList = List(
         "can_see_transaction_request_types",

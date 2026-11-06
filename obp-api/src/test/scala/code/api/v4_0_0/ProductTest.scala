@@ -81,8 +81,8 @@ class ProductTest extends V400ServerSetup {
     product
   }
   
-  feature("Create Product v4.0.0") {
-    scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Create Product v4.0.0") {
+    Scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId / "products" / "CODE").PUT
       val response400 = makePutRequest(request400, write(parentPutProductJsonV400))
@@ -91,7 +91,7 @@ class ProductTest extends V400ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId / "products" / "CODE").PUT <@(user1)
       val response400 = makePutRequest(request400, write(parentPutProductJsonV400))
@@ -102,7 +102,7 @@ class ProductTest extends V400ServerSetup {
       And("error should be " + createProductEntitlementsRequiredText)
       response400.body.extract[ErrorMessage].message contains (createProductEntitlementsRequiredText) should be (true)
     }
-    scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
 
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
 
@@ -133,7 +133,7 @@ class ProductTest extends V400ServerSetup {
 
     }
     // with apiOptions.getProductsIsPublic=false the product refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
-    scenario("We will call the Get Product endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the Get Product endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
       val product: ProductJsonV400 = createProduct(code = "ANONYMOUS_GET_CODE", json = parentPutProductJsonV400)
       When("We get the product with no authentication")
@@ -150,7 +150,7 @@ class ProductTest extends V400ServerSetup {
       }
     }
     // with apiOptions.getProductsIsPublic=false the product list refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
-    scenario("We will call the Get Products endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the Get Products endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We get the products with no authentication")
       val requestGetAll400 = (v4_0_0_Request / "banks" / testBankId / "products").GET
       val responseGetAll400 = makeGetRequest(requestGetAll400)
@@ -164,7 +164,7 @@ class ProductTest extends V400ServerSetup {
         responseGetAll400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
       }
     }
-    scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
+    Scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
 
       When("We need to first create the products ")
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
@@ -183,28 +183,31 @@ class ProductTest extends V400ServerSetup {
 
     }
 
-    scenario("Filtering getProducts by attribute returns only this bank's products, even when another bank uses the same product code", ApiEndpoint3, VersionOfApi) {
+    Scenario("Filtering getProducts by attribute returns only this bank's products, even when another bank uses the same product code", ApiEndpoint3, VersionOfApi) {
       val sharedCode = "SHARED_" + java.util.UUID.randomUUID().toString.take(8)
       val otherBankId = "other-bank-" + java.util.UUID.randomUUID().toString.take(8)
       val attributeName = "filter_test_" + java.util.UUID.randomUUID().toString.take(8)
 
       Given("A product with the same code at this bank and at another bank")
       List(testBankId, otherBankId).foreach { bankId =>
-        code.products.MappedProduct.create
-          .mBankId(bankId)
-          .mCode(sharedCode)
-          .mName(s"Product $sharedCode at $bankId")
-          .saveMe()
+        code.products.MappedProduct.createOrUpdate(bankId = bankId, code = sharedCode, parentProductCode = None,
+          name = s"Product $sharedCode at $bankId", category = "", family = "", superFamily = "",
+          moreInfoUrl = "", termsAndConditionsUrl = "", details = "", description = "",
+          licenseId = "", licenseName = "")
       }
 
       And("Only this bank's product has the attribute being filtered on")
-      code.productAttributeattribute.MappedProductAttribute.create
-        .mBankId(testBankId)
-        .mCode(sharedCode)
-        .mName(attributeName)
-        .mType("STRING")
-        .mValue("yes")
-        .saveMe()
+      scala.concurrent.Await.result(
+        code.productattribute.DoobieProductAttributeProvider.createOrUpdateProductAttribute(
+          com.openbankproject.commons.model.BankId(testBankId),
+          com.openbankproject.commons.model.ProductCode(sharedCode),
+          productAttributeId = None,
+          name = attributeName,
+          attributeType = com.openbankproject.commons.model.enums.ProductAttributeType.STRING,
+          value = "yes",
+          isActive = None),
+        scala.concurrent.duration.Duration.Inf
+      ).openOrThrowException("the product attribute must be created")
 
       When("We get this bank's products filtered by that attribute")
       val request400 = (v4_0_0_Request / "banks" / testBankId / "products").GET <@(user1) <<? List(attributeName -> "yes")

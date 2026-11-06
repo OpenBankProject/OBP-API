@@ -45,7 +45,7 @@ import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{Meta, _}
-import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
+import com.openbankproject.commons.util.{JsonUtils, ReflectUtils, RestConnectorTypes}
 import net.liftweb.common._
 import com.openbankproject.commons.util.json
 import org.json4s.Extraction.decompose
@@ -70,7 +70,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
   //this one import is for implicit convert, don't delete
   import com.openbankproject.commons.model.{AmountOfMoney, CreditLimit, CreditRating, CustomerFaceImage}
 
-  implicit override val nameOfConnector = RestConnector_vMar2019.toString
+  implicit override val nameOfConnector: String = RestConnector_vMar2019.toString
 
   // "Versioning" of the messages sent by this or similar connector works like this:
   // Use Case Classes (e.g. Inbound... Outbound... as below to describe the message structures.
@@ -7124,7 +7124,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       }
 
     val jsonToSend = if(jValue == JNothing) "" else compactRender(jValue)
-    val request = prepareHttpRequest(paramUrl, method, HttpProtocol("HTTP/1.1"), jsonToSend).withHeaders(buildHeaders(paramUrl,jsonToSend,callContext))
+    val request = prepareHttpRequest(paramUrl, method, HttpProtocols.`HTTP/1.1`, jsonToSend).withHeaders(buildHeaders(paramUrl,jsonToSend,callContext))
     logger.debug(s"RestConnector_vMar2019 request is : $request")
     val responseFuture = makeHttpRequest(request)
 
@@ -7296,7 +7296,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       .foldLeft(s"$baseUrl/$methodName")((url, pair) => url.concat(s"/${pair._1}/${urlValueConverter(pair._2)}")) + queryParams.getOrElse("")
   }
 
-  private[this] def sendRequest[T <: InBoundTrait[_]: TypeTag : Manifest](url: String, method: HttpMethod, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
+  private[this] def sendRequest[T <: InBoundTrait[_]: Manifest](url: String, method: HttpMethod, outBound: TopicTrait, callContext: Option[CallContext]): Future[Box[T]] = {
     //transfer accountId to accountReference and customerId to customerReference in outBound
     Helper.convertToReference(outBound)
     val methodRouting = MethodRoutingHolder.methodRouting
@@ -7310,7 +7310,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
         compactRender(builtJson)
       case _ => org.json4s.native.Serialization.write(outBound)
     }
-    val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), outBoundJson).withHeaders(buildHeaders(url, outBoundJson, callContext))
+    val request = prepareHttpRequest(url, method, HttpProtocols.`HTTP/1.1`, outBoundJson).withHeaders(buildHeaders(url, outBoundJson, callContext))
     logger.debug(s"RestConnector_vMar2019 request is : $request")
     val responseFuture = makeHttpRequest(request)
     responseFuture.map {
@@ -7348,7 +7348,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
       .map(_.utf8String)
   }
 
-  private[this] def extractEntity[T: TypeTag: Manifest](responseEntity: ResponseEntity, inBoundMapping: Box[JObject]): Future[Box[T]] = {
+  private[this] def extractEntity[T: Manifest](responseEntity: ResponseEntity, inBoundMapping: Box[JObject]): Future[Box[T]] = {
     this.extractBody(responseEntity)
       .map({
         case null => Empty
@@ -7404,17 +7404,17 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
     //2rd: if connector != mapped, we still need the `implicitly_convert_ids == true`
 
     def isCustomerId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
-        ownerType =:= typeOf[CustomerId] ||
-        (fieldName.equalsIgnoreCase("customerId") && fieldType =:= typeOf[String]) ||
-        (ownerType <:< typeOf[Customer] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
+        ownerType =:= RestConnectorTypes.tCustomerId ||
+        (fieldName.equalsIgnoreCase("customerId") && fieldType =:= RestConnectorTypes.tString) ||
+        (ownerType <:< RestConnectorTypes.tCustomer && fieldName.equalsIgnoreCase("id") && fieldType =:= RestConnectorTypes.tString)
       }
 
     def isAccountId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
-        ownerType <:< typeOf[AccountId] ||
-        (fieldName.equalsIgnoreCase("accountId") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[CoreAccount] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[AccountBalance] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[AccountHeld] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
+        ownerType <:< RestConnectorTypes.tAccountId ||
+        (fieldName.equalsIgnoreCase("accountId") && fieldType =:= RestConnectorTypes.tString)||
+        (ownerType <:< RestConnectorTypes.tCoreAccount && fieldName.equalsIgnoreCase("id") && fieldType =:= RestConnectorTypes.tString)||
+        (ownerType <:< RestConnectorTypes.tAccountBalance && fieldName.equalsIgnoreCase("id") && fieldType =:= RestConnectorTypes.tString)||
+        (ownerType <:< RestConnectorTypes.tAccountHeld && fieldName.equalsIgnoreCase("id") && fieldType =:= RestConnectorTypes.tString)
       }
 
     if(APIUtil.getPropsValue("connector","mapped") != "mapped" && APIUtil.getPropsAsBoolValue("implicitly_convert_ids",false)){

@@ -51,7 +51,9 @@ class TelemetryConventionsTest extends ServerSetupWithTestData {
     "code/api/cache/RedisLogger.scala" -> 1,
     "code/api/util/JsonSchemaGenerator.scala" -> 1,
     "code/api/v2_2_0/MessageDocsJsonCache.scala" -> 4,
-    "code/logcache/LogCacheEventBus.scala" -> 1
+    "code/logcache/LogCacheEventBus.scala" -> 1,
+    // A sequence for the names of compiled snippets, not a metric.
+    "code/api/util/dynamiccompiler/DotcScalaCompiler.scala" -> 1
   )
 
   /** Standard meter families OBP-API registers through Micrometer's own binders. */

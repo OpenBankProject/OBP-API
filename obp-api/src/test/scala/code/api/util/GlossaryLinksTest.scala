@@ -27,10 +27,11 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.util
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /** Links in the Glossary to the API Explorer's own pages are served fully qualified. */
-class GlossaryLinksTest extends FlatSpec with Matchers {
+class GlossaryLinksTest extends AnyFlatSpec with Matchers {
 
   private val explorer = Glossary.apiExplorerUrl
 

@@ -65,8 +65,8 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
   lazy val bankId = randomBankId
   private val mockOperationId = "MOCK_OPERATION_ID"
 
-  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Unauthenticated access") {
-    scenario(s"We will call the endpoint $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Unauthenticated access") {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).POST
       val response= makePostRequest(request, allowedDirectLogin)
@@ -75,7 +75,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).PUT
       val response= makePutRequest(request, allowedDirectLogin)
@@ -84,7 +84,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).DELETE
       val response= makeDeleteRequest(request)
@@ -93,7 +93,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 without user credentials", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 without user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET
       val response= makeGetRequest(request)
@@ -102,7 +102,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint5 without user credentials", ApiEndpoint5, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint5 without user credentials", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "authentication-type-validations" ).GET
       val response= makeGetRequest(request)
@@ -112,8 +112,8 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Unauthorized access") {
-    scenario(s"We will call the endpoint $ApiEndpoint1 without required role", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Unauthorized access") {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 without required role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).POST <@ user1
       val response= makePostRequest(request, allowedDirectLogin)
@@ -122,7 +122,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canCreateAuthenticationTypeValidation")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint2 without required role", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 without required role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).PUT <@ user1
       val response= makePutRequest(request, allowedDirectLogin)
@@ -131,7 +131,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canUpdateAuthenticationTypeValidation")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint3 without required role", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 without required role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).DELETE <@ user1
       val response= makeDeleteRequest(request)
@@ -140,7 +140,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canDeleteAuthenticationValidation")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 without required role", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 without required role", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).GET <@ user1
       val response= makeGetRequest(request)
@@ -149,7 +149,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canGetAuthenticationTypeValidation")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint5 without required role", ApiEndpoint5, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint5 without required role", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "authentication-type-validations" ).GET <@ user1
       val response= makeGetRequest(request)
@@ -159,8 +159,8 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Authorized access") {
-    scenario(s"We will call the endpoint $ApiEndpoint1 with required role", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Authorized access") {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with required role", ApiEndpoint1, VersionOfApi) {
       grantEntitlement(canCreateAuthenticationTypeValidation)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "authentication-type-validations" /  mockOperationId).POST <@ user1
@@ -172,7 +172,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       authTypeValidation \ "allowed_authentication_types" should equal (json.parse(allowedDirectLogin))
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint2 with required role", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 with required role", ApiEndpoint2, VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedDirectLogin, mockOperationId)
       grantEntitlement(canUpdateAuthenticationTypeValidation)
 
@@ -186,7 +186,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       authTypeValidation \ "allowed_authentication_types" should equal (json.parse(allowedAll))
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint3 with required role", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 with required role", ApiEndpoint3, VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedDirectLogin, mockOperationId)
       grantEntitlement(canDeleteAuthenticationValidation)
 
@@ -198,7 +198,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       response.body should equal(JBool(true))
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 with required role", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 with required role", ApiEndpoint4, VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedDirectLogin, mockOperationId)
       grantEntitlement(canGetAuthenticationTypeValidation)
 
@@ -212,7 +212,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       authTypeValidation \ "allowed_authentication_types" should equal (json.parse(allowedDirectLogin))
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint5 with required role", ApiEndpoint5, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint5 with required role", ApiEndpoint5, VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedDirectLogin, mockOperationId)
       grantEntitlement(canGetAuthenticationTypeValidation)
 
@@ -229,7 +229,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       authTypeValidation \ "allowed_authentication_types" should equal (json.parse(allowedDirectLogin))
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint6 anonymously", ApiEndpoint6, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint6 anonymously", ApiEndpoint6, VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedDirectLogin, mockOperationId)
 
       When("We make a request v4.0.0")
@@ -246,8 +246,8 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Wrong request") {
-    scenario(s"We will call the endpoint $ApiEndpoint1 with wrong auth type name", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Wrong request") {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with wrong auth type name", ApiEndpoint1, VersionOfApi) {
       grantEntitlement(canCreateAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
@@ -262,7 +262,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       message should include("Allowed Authentication Type names: [")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint1 with exists operationId", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with exists operationId", ApiEndpoint1, VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedDirectLogin, mockOperationId)
 
       When("We make a request v4.0.0")
@@ -277,7 +277,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       message should include(OperationIdExistsError)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint2 with not exists operationId", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 with not exists operationId", ApiEndpoint2, VersionOfApi) {
       grantEntitlement(canUpdateAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
@@ -291,7 +291,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       message should include(AuthenticationTypeValidationNotFound)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint3 with required role", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 with required role", ApiEndpoint3, VersionOfApi) {
       grantEntitlement(canDeleteAuthenticationValidation)
 
       When("We make a request v4.0.0")
@@ -305,7 +305,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       message should include(AuthenticationTypeValidationNotFound)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 with required role", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 with required role", ApiEndpoint4, VersionOfApi) {
       grantEntitlement(canGetAuthenticationTypeValidation)
 
       When("We make a request v4.0.0")
@@ -322,8 +322,8 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
   }
 
 
-  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate static endpoint request body") {
-    scenario(s"We will call the endpoint $ApiEndpointCreateFx with invalid Fx", VersionOfApi) {
+  Feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate static endpoint request body") {
+    Scenario(s"We will call the endpoint $ApiEndpointCreateFx with invalid Fx", VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedGatewayLogin, "OBPv2.2.0-createFx")
       grantEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
@@ -338,7 +338,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       message should include("allowed authentication types: [GatewayLogin]")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpointCreateFx with valid Fx", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpointCreateFx with valid Fx", VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedAll, "OBPv2.2.0-createFx")
       grantEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
@@ -350,8 +350,8 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
   }
 
-  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate dynamic entity endpoint request body") {
-    scenario(s"We will call the endpoint $ApiEndpoint1 with invalid FooBar", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate dynamic entity endpoint request body") {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with invalid FooBar", ApiEndpoint1, VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedGatewayLogin, s"OBPv4.0.0-dynamicEntity_createFooBar_")
       addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntityRecord_FooBar", "")
@@ -368,7 +368,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       message should include("allowed authentication types: [GatewayLogin]")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint1 with valid FooBar", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with valid FooBar", ApiEndpoint1, VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedAll, s"OBPv4.0.0-dynamicEntity_createFooBar_${bankId}")
       addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntityRecord_FooBar", "")
@@ -382,8 +382,8 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
 
   }
 
-  feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate dynamic endpoints endpoint request body") {
-    scenario("We will call the endpoint /dynamic/save with invalid FooBar", VersionOfApi) {
+  Feature(s"test AuthenticationTypeValidation endpoints version $VersionOfApi - Validate dynamic endpoints endpoint request body") {
+    Scenario("We will call the endpoint /dynamic/save with invalid FooBar", VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedGatewayLogin, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
@@ -400,7 +400,7 @@ class AuthenticationTypeValidationTest extends V400ServerSetup {
       message should include("allowed authentication types: [GatewayLogin]")
     }
 
-    scenario("We will call the endpoint /dynamic/save with valid FooBar", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint /dynamic/save with valid FooBar", ApiEndpoint1, VersionOfApi) {
       addOneAuthenticationTypeValidation(allowedAll, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()
       addStringEntitlement("CanCreateDynamicEndpoint_User469")

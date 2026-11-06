@@ -27,6 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.sweep
 
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 import java.io.File
 import java.util.Date
 
@@ -111,7 +113,8 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
 
   /** A user minted by a Consent: CreatedByConsentId set, which is what isConsentUser reads. */
   private def newConsentUser(): ResourceUser = {
-    val consent = code.consent.MappedConsent.create.mUserId(resourceUser1.userId).saveMe()
+    val consent = code.consent.MappedConsent.insert(userId = resourceUser1.userId, consumerId = "",
+      status = code.consent.ConsentStatus.ACCEPTED.toString)
     Users.users.vend.createResourceUser(
       provider = "explicit-target-sweep-provider",
       providerId = Some(generateUUID()),
@@ -352,7 +355,10 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
       val guardLines = scalaFilesUnder(root).flatMap { f =>
         val source = Source.fromFile(f, "UTF-8")
         try source.getLines().toList.zipWithIndex
-          .filter { case (line, _) => line.contains(consentUserPhrase) && line.contains("InvalidUserId") }
+          // "The caller is a consent user" is a guard on who is calling (the mobile phone number is an
+          // authentication channel), not on a user id the caller named, so it is not probed here.
+          .filter { case (line, _) => line.contains(consentUserPhrase) && line.contains("InvalidUserId") &&
+            !line.contains("The caller is a consent user") }
           .map { case (_, i) => s"${f.getPath}:${i + 1}" }
         finally source.close()
       }

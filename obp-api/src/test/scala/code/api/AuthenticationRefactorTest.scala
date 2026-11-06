@@ -34,9 +34,10 @@ import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.setup.{ServerSetup, TestPasswordConfig}
 import code.users.Users
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
-import org.scalatest.{BeforeAndAfter, FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.{BeforeAndAfter, GivenWhenThen}
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Unit tests for authentication refactoring
@@ -45,7 +46,7 @@ import org.scalatest.{BeforeAndAfter, FeatureSpec, GivenWhenThen, Matchers}
  * These tests verify specific examples and edge cases for the authentication logic.
  * They complement the property-based tests by testing concrete scenarios.
  */
-class AuthenticationRefactorTest extends FeatureSpec 
+class AuthenticationRefactorTest extends AnyFeatureSpec 
   with GivenWhenThen 
   with Matchers 
   with ServerSetup 
@@ -70,18 +71,16 @@ class AuthenticationRefactorTest extends FeatureSpec
     validated: Boolean = true
   ): AuthUser = {
     // Clean up any existing user
-    AuthUser.findAll(By(AuthUser.username, username), By(AuthUser.provider, provider)).foreach(_.delete_!)
+    AuthUser.findByUsernameAndProvider(username, provider).foreach(_.delete_!)
     
     // Create new user
-    val user = AuthUser.create
-      .email(s"${randomString(10)}@example.com")
-      .username(username)
-      .password(password)
-      .provider(provider)
-      .validated(validated)
-      .firstName(randomString(10))
-      .lastName(randomString(10))
-      .saveMe()
+    val user = AuthUser(
+        email = s"${randomString(10)}@example.com",
+        username = username,
+        provider = provider,
+        validated = validated,
+        firstName = randomString(10),
+        lastName = randomString(10)).withPassword(password).saveMe()
     
     user
   }
@@ -124,7 +123,7 @@ class AuthenticationRefactorTest extends FeatureSpec
    * @param provider The authentication provider
    */
   def cleanupTestUser(username: String, provider: String = localIdentityProvider): Unit = {
-    AuthUser.findAll(By(AuthUser.username, username), By(AuthUser.provider, provider)).foreach(_.delete_!)
+    AuthUser.findByUsernameAndProvider(username, provider).foreach(_.delete_!)
     LoginAttempt.resetBadLoginAttempts(provider, username)
   }
 
@@ -132,9 +131,9 @@ class AuthenticationRefactorTest extends FeatureSpec
   // Unit Tests - Edge Cases and Specific Scenarios
   // ============================================================================
 
-  feature("Authentication Edge Cases") {
+  Feature("Authentication Edge Cases") {
 
-    scenario("Locked user returns usernameLockedStateCode") {
+    Scenario("Locked user returns usernameLockedStateCode") {
       Given("A user account that is locked")
       val username = s"locked_user_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -163,7 +162,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("Unvalidated email returns userEmailNotValidatedStateCode") {
+    Scenario("Unvalidated email returns userEmailNotValidatedStateCode") {
       Given("A local user whose email is not validated")
       val username = s"unvalidated_user_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -188,7 +187,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("User not found increments attempts and returns Empty") {
+    Scenario("User not found increments attempts and returns Empty") {
       Given("A username that does not exist")
       val username = s"nonexistent_user_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -213,7 +212,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("Wrong password increments attempts and returns Empty") {
+    Scenario("Wrong password increments attempts and returns Empty") {
       Given("A valid user with correct credentials")
       val username = s"valid_user_${randomString(10)}"
       val correctPassword = TestPasswordConfig.VALID_PASSWORD
@@ -240,7 +239,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("Successful authentication resets bad login attempts") {
+    Scenario("Successful authentication resets bad login attempts") {
       Given("A valid user with some failed login attempts")
       val username = s"valid_user_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -277,7 +276,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("Repeated failed attempts eventually lock the account") {
+    Scenario("Repeated failed attempts eventually lock the account") {
       Given("A valid user")
       val username = s"valid_user_${randomString(10)}"
       val correctPassword = TestPasswordConfig.VALID_PASSWORD
@@ -309,7 +308,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("Connector disabled returns Empty and increments attempts") {
+    Scenario("Connector disabled returns Empty and increments attempts") {
       Given("An external provider user when connector.user.authentication is false")
       val username = s"external_user_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -342,9 +341,9 @@ class AuthenticationRefactorTest extends FeatureSpec
     }
   }
 
-  feature("Authentication Result Types") {
+  Feature("Authentication Result Types") {
 
-    scenario("Valid authentication returns positive user ID") {
+    Scenario("Valid authentication returns positive user ID") {
       Given("A valid user with correct credentials")
       val username = s"valid_user_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -369,7 +368,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("Authentication result is always one of expected types") {
+    Scenario("Authentication result is always one of expected types") {
       Given("Various authentication scenarios")
       val testCases = List(
         ("valid_user", TestPasswordConfig.VALID_PASSWORD, true, true, "valid"),
@@ -421,9 +420,9 @@ class AuthenticationRefactorTest extends FeatureSpec
   // Unit Tests - External User Authentication (Task 4.2)
   // ============================================================================
 
-  feature("External User Authentication - Refactored getResourceUserId") {
+  Feature("External User Authentication - Refactored getResourceUserId") {
 
-    scenario("External user authentication with valid credentials") {
+    Scenario("External user authentication with valid credentials") {
       Given("An external provider user with valid credentials")
       val username = s"external_valid_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -473,7 +472,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("External user authentication with invalid credentials") {
+    Scenario("External user authentication with invalid credentials") {
       Given("An external provider user with invalid credentials")
       val username = s"external_invalid_${randomString(10)}"
       val correctPassword = TestPasswordConfig.VALID_PASSWORD
@@ -509,7 +508,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("External user locked scenario") {
+    Scenario("External user locked scenario") {
       Given("An external provider user that is locked")
       val username = s"external_locked_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -560,7 +559,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("Connector disabled scenario for external user") {
+    Scenario("Connector disabled scenario for external user") {
       Given("An external provider user when connector.user.authentication is false")
       val username = s"external_disabled_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -595,7 +594,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("Verify logging statements are present for external authentication") {
+    Scenario("Verify logging statements are present for external authentication") {
       Given("Various external authentication scenarios")
       val username = s"external_logging_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -641,7 +640,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("External authentication uses checkExternalUserViaConnector method") {
+    Scenario("External authentication uses checkExternalUserViaConnector method") {
       Given("An external provider user")
       val username = s"external_helper_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -684,9 +683,9 @@ class AuthenticationRefactorTest extends FeatureSpec
   // Unit Tests - verifyUserCredentials Endpoint (Task 5.2)
   // ============================================================================
 
-  feature("verifyUserCredentials Endpoint - Refactored Error Handling") {
+  Feature("verifyUserCredentials Endpoint - Refactored Error Handling") {
 
-    scenario("Endpoint returns 401 with UsernameHasBeenLocked when user is locked") {
+    Scenario("Endpoint returns 401 with UsernameHasBeenLocked when user is locked") {
       Given("A locked user account")
       val username = s"locked_endpoint_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -724,7 +723,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("Endpoint returns 401 with InvalidLoginCredentials when authentication fails") {
+    Scenario("Endpoint returns 401 with InvalidLoginCredentials when authentication fails") {
       Given("A user with wrong password")
       val username = s"invalid_creds_${randomString(10)}"
       val correctPassword = TestPasswordConfig.VALID_PASSWORD
@@ -758,7 +757,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("Endpoint returns 401 with UserEmailNotValidated when email not validated") {
+    Scenario("Endpoint returns 401 with UserEmailNotValidated when email not validated") {
       Given("A local user whose email is not validated")
       val username = s"unvalidated_endpoint_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -768,7 +767,7 @@ class AuthenticationRefactorTest extends FeatureSpec
         val user = createUnvalidatedUser(username, password)
         
         // Verify user is not validated
-        user.validated.get shouldBe false
+        user.validated shouldBe false
         
         When("getResourceUserId is called for the unvalidated user")
         val resourceUserIdBox = AuthUser.getResourceUserId(username, password, localIdentityProvider)
@@ -796,7 +795,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("Endpoint returns success response when authentication succeeds") {
+    Scenario("Endpoint returns success response when authentication succeeds") {
       Given("A valid user with correct credentials")
       val username = s"success_endpoint_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD
@@ -812,7 +811,7 @@ class AuthenticationRefactorTest extends FeatureSpec
         resourceUserIdBox match {
           case Full(id) if id > 0 =>
             // Success - this is what the endpoint expects
-            id shouldBe user.user.get
+            id shouldBe user.user
             succeed
           case other =>
             fail(s"Expected Full(userId > 0), got: $other")
@@ -838,7 +837,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       }
     }
 
-    scenario("Endpoint handles all authentication result types correctly") {
+    Scenario("Endpoint handles all authentication result types correctly") {
       Given("Various authentication scenarios")
       
       val testCases = List(
@@ -899,7 +898,7 @@ class AuthenticationRefactorTest extends FeatureSpec
       info("All endpoint error mappings verified successfully")
     }
 
-    scenario("Endpoint correctly uses decodedProvider parameter") {
+    Scenario("Endpoint correctly uses decodedProvider parameter") {
       Given("A user with an external provider")
       val username = s"external_provider_${randomString(10)}"
       val password = TestPasswordConfig.VALID_PASSWORD

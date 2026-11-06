@@ -47,7 +47,7 @@ import org.http4s.{Request, Response}
  * directly — the response status is taken from `CallContext.httpCode` (set by `HttpCode.xxx`).
  */
 trait DynamicCompileEndpoint {
-  implicit val formats = CustomJsonFormats.formats
+  implicit val formats: org.json4s.Formats = CustomJsonFormats.formats
 
   protected def process(callContext: CallContext, request: Request[IO], pathParams: Map[String, String]): IO[Response[IO]]
 

@@ -10,42 +10,69 @@ final case class PresenceEvent(
     userId: _root_.scala.Predef.String = "",
     username: _root_.scala.Predef.String = "",
     provider: _root_.scala.Predef.String = "",
-    isOnline: _root_.scala.Boolean = false
-    ) extends scalapb.GeneratedMessage with scalapb.Message[PresenceEvent] with scalapb.lenses.Updatable[PresenceEvent] {
+    isOnline: _root_.scala.Boolean = false,
+    unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[PresenceEvent] {
     @transient
-    private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-    private[this] def __computeSerializedValue(): _root_.scala.Int = {
+    private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+    private[this] def __computeSerializedSize(): _root_.scala.Int = {
       var __size = 0
-      if (userId != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, userId) }
-      if (username != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, username) }
-      if (provider != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, provider) }
-      if (isOnline != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(4, isOnline) }
+      
+      {
+        val __value = userId
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+        }
+      };
+      
+      {
+        val __value = username
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
+        }
+      };
+      
+      {
+        val __value = provider
+        if (!__value.isEmpty) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, __value)
+        }
+      };
+      
+      {
+        val __value = isOnline
+        if (__value != false) {
+          __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(4, __value)
+        }
+      };
+      __size += unknownFields.serializedSize
       __size
     }
-    final override def serializedSize: _root_.scala.Int = {
-      var read = __serializedSizeCachedValue
-      if (read == 0) {
-        read = __computeSerializedValue()
-        __serializedSizeCachedValue = read
+    override def serializedSize: _root_.scala.Int = {
+      var __size = __serializedSizeMemoized
+      if (__size == 0) {
+        __size = __computeSerializedSize() + 1
+        __serializedSizeMemoized = __size
       }
-      read
+      __size - 1
+      
     }
     def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
       {
         val __v = userId
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(1, __v)
         }
       };
       {
         val __v = username
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(2, __v)
         }
       };
       {
         val __v = provider
-        if (__v != "") {
+        if (!__v.isEmpty) {
           _output__.writeString(3, __v)
         }
       };
@@ -55,40 +82,15 @@ final case class PresenceEvent(
           _output__.writeBool(4, __v)
         }
       };
-    }
-    def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.chat.api.PresenceEvent = {
-      var __userId = this.userId
-      var __username = this.username
-      var __provider = this.provider
-      var __isOnline = this.isOnline
-      var _done__ = false
-      while (!_done__) {
-        val _tag__ = _input__.readTag()
-        _tag__ match {
-          case 0 => _done__ = true
-          case 10 =>
-            __userId = _input__.readString()
-          case 18 =>
-            __username = _input__.readString()
-          case 26 =>
-            __provider = _input__.readString()
-          case 32 =>
-            __isOnline = _input__.readBool()
-          case tag => _input__.skipField(tag)
-        }
-      }
-      code.obp.grpc.chat.api.PresenceEvent(
-          userId = __userId,
-          username = __username,
-          provider = __provider,
-          isOnline = __isOnline
-      )
+      unknownFields.writeTo(_output__)
     }
     def withUserId(__v: _root_.scala.Predef.String): PresenceEvent = copy(userId = __v)
     def withUsername(__v: _root_.scala.Predef.String): PresenceEvent = copy(username = __v)
     def withProvider(__v: _root_.scala.Predef.String): PresenceEvent = copy(provider = __v)
     def withIsOnline(__v: _root_.scala.Boolean): PresenceEvent = copy(isOnline = __v)
-    def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+    def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+    def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+    def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => {
           val __t = userId
@@ -109,7 +111,7 @@ final case class PresenceEvent(
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-      require(__field.containingMessage eq companion.scalaDescriptor)
+      _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
         case 1 => _root_.scalapb.descriptors.PString(userId)
         case 2 => _root_.scalapb.descriptors.PString(username)
@@ -118,38 +120,67 @@ final case class PresenceEvent(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.chat.api.PresenceEvent
+    def companion: code.obp.grpc.chat.api.PresenceEvent.type = code.obp.grpc.chat.api.PresenceEvent
+    // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.chat.g1.PresenceEvent])
 }
 
 object PresenceEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.PresenceEvent] {
   implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.PresenceEvent] = this
-  def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.chat.api.PresenceEvent = {
-    require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-    val __fields = javaDescriptor.getFields
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.chat.api.PresenceEvent = {
+    var __userId: _root_.scala.Predef.String = ""
+    var __username: _root_.scala.Predef.String = ""
+    var __provider: _root_.scala.Predef.String = ""
+    var __isOnline: _root_.scala.Boolean = false
+    var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+    var _done__ = false
+    while (!_done__) {
+      val _tag__ = _input__.readTag()
+      _tag__ match {
+        case 0 => _done__ = true
+        case 10 =>
+          __userId = _input__.readStringRequireUtf8()
+        case 18 =>
+          __username = _input__.readStringRequireUtf8()
+        case 26 =>
+          __provider = _input__.readStringRequireUtf8()
+        case 32 =>
+          __isOnline = _input__.readBool()
+        case tag =>
+          if (_unknownFields__ == null) {
+            _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+          }
+          _unknownFields__.parseField(tag, _input__)
+      }
+    }
     code.obp.grpc.chat.api.PresenceEvent(
-      __fieldsMap.getOrElse(__fields.get(0), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(1), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(2), "").asInstanceOf[_root_.scala.Predef.String],
-      __fieldsMap.getOrElse(__fields.get(3), false).asInstanceOf[_root_.scala.Boolean]
+        userId = __userId,
+        username = __username,
+        provider = __provider,
+        isOnline = __isOnline,
+        unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
   implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.chat.api.PresenceEvent] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-      require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+      _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       code.obp.grpc.chat.api.PresenceEvent(
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Boolean]).getOrElse(false)
+        userId = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        username = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        provider = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+        isOnline = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Boolean]).getOrElse(false)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ChatProto.javaDescriptor.getMessageTypes.get(5)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = throw new UnsupportedOperationException("scalaDescriptor not available")
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ChatProto.javaDescriptor.getMessageTypes().get(5)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ChatProto.scalaDescriptor.messages(5)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = code.obp.grpc.chat.api.PresenceEvent(
+    userId = "",
+    username = "",
+    provider = "",
+    isOnline = false
   )
   implicit class PresenceEventLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.chat.api.PresenceEvent]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.chat.api.PresenceEvent](_l) {
     def userId: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.userId)((c_, f_) => c_.copy(userId = f_))
@@ -157,8 +188,20 @@ object PresenceEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.cha
     def provider: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.provider)((c_, f_) => c_.copy(provider = f_))
     def isOnline: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Boolean] = field(_.isOnline)((c_, f_) => c_.copy(isOnline = f_))
   }
-  final val USERID_FIELD_NUMBER = 1
+  final val USER_ID_FIELD_NUMBER = 1
   final val USERNAME_FIELD_NUMBER = 2
   final val PROVIDER_FIELD_NUMBER = 3
-  final val ISONLINE_FIELD_NUMBER = 4
+  final val IS_ONLINE_FIELD_NUMBER = 4
+  def of(
+    userId: _root_.scala.Predef.String,
+    username: _root_.scala.Predef.String,
+    provider: _root_.scala.Predef.String,
+    isOnline: _root_.scala.Boolean
+  ): _root_.code.obp.grpc.chat.api.PresenceEvent = _root_.code.obp.grpc.chat.api.PresenceEvent(
+    userId,
+    username,
+    provider,
+    isOnline
+  )
+  // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.chat.g1.PresenceEvent])
 }

@@ -26,20 +26,26 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v7_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, CardAttributeNotFound, NotImplemented, UserHasMissingRoles}
-import code.cardattribute.MappedCardAttribute
+import code.api.util.APIUtil
+import code.cardattribute.DoobieCardAttributeProvider
 import code.cards.MappedPhysicalCard
 import code.entitlement.Entitlement
 import code.methodrouting.{MethodRouting, MethodRoutingCommons, MethodRoutingProvider}
 import code.model.dataAccess.MappedBankAccount
 import code.setup.ServerSetupWithTestData
-import com.openbankproject.commons.model.ErrorMessage
+import com.openbankproject.commons.model.{BankId, ErrorMessage}
+import com.openbankproject.commons.model.enums.CardAttributeType
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 import org.scalatest.Tag
+
+import java.util.Date
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 class CardAttributeDeleteTest extends ServerSetupWithTestData {
 
@@ -48,35 +54,33 @@ class CardAttributeDeleteTest extends ServerSetupWithTestData {
 
   def v7 = baseRequest / "obp" / "v7.0.0"
 
+  // The card is written straight to the store with only the fields the scenarios need; the rest take
+  // empty values (the store binds every column, so a Mapper default of NULL becomes "" here) and the
+  // card id is a fresh UUID, which is what the Mapper field defaulted to.
   private def addCard(): String = {
-    val account = MappedBankAccount.find(
-      By(MappedBankAccount.bank, testBankId1.value),
-      By(MappedBankAccount.theAccountId, testAccountId1.value)
-    ).openOrThrowException("test account not found")
-    MappedPhysicalCard.create
-      .mBankId(testBankId1.value)
-      .mAccount(account.id.get)
-      .mBankCardNumber(randomString(16))
-      .mSerialNumber(randomString(10))
-      .saveMe()
-      .mCardId.get
+    val account = MappedBankAccount.find(testBankId1.value, testAccountId1.value)
+      .openOrThrowException("test account not found")
+    MappedPhysicalCard.insert(
+      cardId = APIUtil.generateUUID(), bankId = testBankId1.value, bankCardNumber = randomString(16),
+      cardType = "", nameOnCard = "", issueNumber = "", serialNumber = randomString(10),
+      validFrom = new Date(), expires = new Date(), enabled = false, cancelled = false, onHotList = false,
+      technology = "", networks = "", allows = "", accountKey = account.accountPrimaryKey,
+      replacementDate = None, replacementReason = None, collected = None, posted = None,
+      customerId = "", cvv = "", brand = ""
+    ).cardId
   }
 
   private def addAttribute(cardId: String, name: String, bankId: String = testBankId1.value): String =
-    MappedCardAttribute.create
-      .mBankId(bankId)
-      .mCardId(cardId)
-      .mName(name)
-      .mType("STRING")
-      .mValue("123")
-      .saveMe()
-      .mCardAttributeId.get
+    Await.result(DoobieCardAttributeProvider.createOrUpdateCardAttribute(
+      Some(BankId(bankId)), Some(cardId), None, name, CardAttributeType.STRING, "123"), 30.seconds)
+      .openOrThrowException("expected the card attribute to be created")
+      .cardAttributeId.getOrElse(fail("the created card attribute has no id"))
 
   private def attributeUrl(cardId: String, attributeId: String) =
     v7 / "management" / "banks" / testBankId1.value / "cards" / cardId / "attributes" / attributeId
 
   private def attributeExists(attributeId: String): Boolean =
-    MappedCardAttribute.find(By(MappedCardAttribute.mCardAttributeId, attributeId)).isDefined
+    Await.result(DoobieCardAttributeProvider.getCardAttributeById(attributeId), 30.seconds).isDefined
 
   feature("Delete Card Attribute") {
     scenario("Without a logged-in user", ApiEndpoint, VersionOfApi) {

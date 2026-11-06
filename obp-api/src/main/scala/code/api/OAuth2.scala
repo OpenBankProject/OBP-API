@@ -42,7 +42,6 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import net.liftweb.common.Box.tryo
 import net.liftweb.common._
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers
 import org.apache.commons.lang3.StringUtils
 
@@ -499,7 +498,7 @@ object OAuth2Login extends MdcLoggable {
       val local = Constant.localIdentityProvider
       lazy val localUser = Users.users.vend.getUserByProviderId(provider = local, idGivenByProvider = clientId)
       lazy val signedUp = localUser.isDefined &&
-        AuthUser.find(By(AuthUser.username, clientId), By(AuthUser.provider, local)).isDefined
+        AuthUser.findByUsernameAndProvider(clientId, local).isDefined
       if (Users.users.vend.getUserByProviderId(provider = OBPOIDC.clientCredentialsProvider, idGivenByProvider = clientId).isDefined)
         OBPOIDC.clientCredentialsProvider
       else if (localUser.isDefined && !signedUp) local
@@ -763,7 +762,7 @@ object OAuth2Login extends MdcLoggable {
         case "ID" => super.applyIdTokenRules(token, cc) // Authentication
         case "Bearer" => // Authorization
           val result = super.applyAccessTokenRules(token, cc)
-          result._2.flatMap(_.consumer.map(_.id.get)) match {
+          result._2.flatMap(_.consumer.map(_.id)) match {
             case Some(consumerPrimaryKey) =>
               addScopesToConsumer(token, consumerPrimaryKey)
             case None => // Do nothing

@@ -36,7 +36,6 @@ import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.util.Helper
 import code.model.dataAccess.AuthUser
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfAuthUser {
@@ -46,14 +45,14 @@ object MigrationOfAuthUser {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterColumnUsernameProviderEmailFirstnameAndLastname(name: String): Boolean = {
-    DbFunction.tableExists(AuthUser) match {
+    DbFunction.tableExistsByName("authuser") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -96,28 +95,28 @@ object MigrationOfAuthUser {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${AuthUser._dbTableNameLC} table does not exist""".stripMargin
+          s"""${"authuser"} table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
   }
 
   def populateMissingProviderWithLocalIdentity(name: String): Boolean = {
-    DbFunction.tableExists(AuthUser) match {
+    DbFunction.tableExistsByName("authuser") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         // Make back up
-        DbFunction.makeBackUpOfTable(AuthUser)
+        DbFunction.makeBackUpOfTableByName("authuser")
 
         val updatedRows =
           for {
             user <- AuthUser.findAll()
-            providerValue = Option(user.provider.get).map(_.trim).getOrElse("") if providerValue.isEmpty
+            providerValue = Option(user.provider).map(_.trim).getOrElse("") if providerValue.isEmpty
           } yield {
-            user.provider(Constant.localIdentityProvider).saveMe()
+            AuthUser.update(user.copy(provider = Constant.localIdentityProvider))
           }
 
         val endDate = System.currentTimeMillis()
@@ -135,21 +134,21 @@ object MigrationOfAuthUser {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${AuthUser._dbTableNameLC} table does not exist""".stripMargin
+          s"""${"authuser"} table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
   }
 
   def dropIndexAtColumnUsername(name: String): Boolean = {
-    DbFunction.tableExists(AuthUser) match {
+    DbFunction.tableExistsByName("authuser") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             val dbDriver = APIUtil.getPropsValue("db.driver", "org.h2.Driver")
             () =>
               s"""${Helper.dropIndexIfExists(dbDriver, "authuser", "authuser_username")}"""
@@ -170,7 +169,7 @@ object MigrationOfAuthUser {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${AuthUser._dbTableNameLC} table does not exist""".stripMargin
+          s"""${"authuser"} table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

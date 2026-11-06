@@ -58,7 +58,7 @@ object DynamicEndpointMatch {
 
 object DynamicEndpoints {
   //TODO, better put all other dynamic endpoints into this list. eg: dynamicEntityEndpoints, dynamicSwaggerDocsEndpoints ....
-  val disabledEndpointOperationIds = getDisabledEndpointOperationIds
+  val disabledEndpointOperationIds = getDisabledEndpointOperationIds()
 
   private val endpointGroups: List[EndpointGroup] =
     if(disabledEndpointOperationIds.contains("OBPv4.0.0-test-dynamic-resource-doc")) {

@@ -26,9 +26,11 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.concurrency
 
-import code.loginattempts.{LoginAttempt, MappedBadLoginAttempt}
+import code.api.util.DoobieUtil
+import code.bankconnectors.DoobieBadLoginAttemptQueries
+import code.loginattempts.LoginAttempt
 import code.transactionChallenge.{MappedChallengeProvider, MappedExpectedChallengeAnswer}
-import net.liftweb.mapper.By
+import doobie.implicits._
 import org.mindrot.jbcrypt.BCrypt
 
 import java.util.{Date, UUID}
@@ -52,23 +54,16 @@ import java.util.{Date, UUID}
  */
 class ConcurrentSecurityRaceTest extends ConcurrentRaceSetup {
 
-  feature("Authentication counter atomicity under concurrency") {
+  Feature("Authentication counter atomicity under concurrency") {
 
-    scenario("H: N concurrent bad-login increments must each land — no lockout bypass", ConcurrencyRace) {
+    Scenario("H: N concurrent bad-login increments must each land — no lockout bypass", ConcurrencyRace) {
       Given("a bad-login record pre-seeded at zero attempts for a dedicated test credential")
       val provider = "__conc_sec_provider_h"
       val username = "__conc_sec_user_h"
       // Clean up from any prior run (shared JVM, forkMode=once).
-      MappedBadLoginAttempt.findAll(
-        By(MappedBadLoginAttempt.Provider, provider),
-        By(MappedBadLoginAttempt.mUsername, username)
-      ).foreach(_.delete_!)
-      MappedBadLoginAttempt.create
-        .mUsername(username)
-        .Provider(provider)
-        .mBadAttemptsSinceLastSuccessOrReset(0)
-        .mLastFailureDate(new Date())
-        .saveMe()
+      DoobieUtil.runUpdate(
+        sql"DELETE FROM mappedbadloginattempt WHERE provider = $provider AND musername = $username".update.run)
+      DoobieBadLoginAttemptQueries.create(provider, username, 0)
       val n = 8
 
       When(s"$n bad-login increments are fired concurrently for the same credential")
@@ -77,10 +72,8 @@ class ConcurrentSecurityRaceTest extends ConcurrentRaceSetup {
       }
 
       Then("the counter must equal N — every increment must land, no lost-updates")
-      val finalCounter = MappedBadLoginAttempt.find(
-        By(MappedBadLoginAttempt.Provider, provider),
-        By(MappedBadLoginAttempt.mUsername, username)
-      ).map(_.badAttemptsSinceLastSuccessOrReset).getOrElse(0)
+      val finalCounter = DoobieBadLoginAttemptQueries.find(provider, username)
+        .map(_.badAttemptsSinceLastSuccessOrReset).getOrElse(0)
       withClue(
         s"finalCounter=$finalCounter (expected=$n): each of $n concurrent bad-login attempts must " +
         s"be counted — if fewer land, an attacker can bypass the lockout threshold by sending " +
@@ -90,7 +83,7 @@ class ConcurrentSecurityRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("K: N concurrent wrong challenge answers must each consume one attempt — no brute-force bypass", ConcurrencyRace) {
+    Scenario("K: N concurrent wrong challenge answers must each consume one attempt — no brute-force bypass", ConcurrencyRace) {
       Given("a challenge seeded directly via MappedChallengeProvider with a known expected answer")
       // Raise the attempt limit so the limit-guard never fires early and interferes with the counter test.
       setPropsValues("transactionRequests_challenge_max_allowed_attempts" -> "100")
@@ -122,8 +115,8 @@ class ConcurrentSecurityRaceTest extends ConcurrentRaceSetup {
 
       Then("the attempt counter must equal N — each wrong answer must consume exactly one attempt")
       val finalCounter = MappedExpectedChallengeAnswer
-        .find(By(MappedExpectedChallengeAnswer.ChallengeId, challengeId))
-        .map(_.AttemptCounter.get)
+        .findByChallengeId(challengeId)
+        .map(_.attemptCounter)
         .getOrElse(-1)
       withClue(
         s"finalCounter=$finalCounter (expected=$n): each of $n concurrent wrong-answer attempts must " +

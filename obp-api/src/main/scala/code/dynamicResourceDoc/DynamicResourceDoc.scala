@@ -27,78 +27,266 @@ TESOBE (http://www.tesobe.com/)
 
 package code.dynamicResourceDoc
 
-import org.json4s._
-import code.util.UUIDString
+import code.api.util.DoobieUtil
 import com.openbankproject.commons.util.json
-import net.liftweb.mapper._
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 import org.apache.commons.lang3.StringUtils
+
+import java.util.Date
 
 import scala.collection.immutable.List
 
-class DynamicResourceDoc extends LongKeyedMapper[DynamicResourceDoc] with IdPK with CreatedUpdated {
+/**
+ * One runtime-defined endpoint.
+ *
+ * `exampleRequestBody` and `successResponseBody` genuinely hold NULL — the provider maps the two
+ * optional JSON bodies through orNull — so both are bound as Option. An absent body must not become
+ * "" either, since the reader distinguishes blank from present.
+ *
+ * `bankId` is the stored column: SYS for a system level doc written since the space model, and NULL
+ * on a row written before it (the changelog moves those to SYS). It stays an Option for that reason;
+ * [[DynamicResourceDoc.getJsonDynamicResourceDoc]] turns either form back into None.
+ */
+case class DynamicResourceDoc(
+  dynamicResourceDocId: String,
+  bankId: Option[String],
+  partialFunctionName: String,
+  requestVerb: String,
+  requestUrl: String,
+  summary: String,
+  description: String,
+  exampleRequestBody: Option[String],
+  successResponseBody: Option[String],
+  errorResponseBodies: String,
+  tags: String,
+  roles: String,
+  methodBody: String,
+  // Source language of methodBody: "Scala" (default) or "Java". Mirrors DynamicMessageDoc.programmingLang
+  // and ConnectorMethod's lang column, see DynamicEndpoints.
+  programmingLang: String,
+  // Provenance, added upstream on the Mapper entity and carried across: who created / last updated
+  // this runtime-compiled endpoint, and a SHA-256 of the decoded method body so drift is
+  // detectable. Written server-side from the CallContext user, never from the request body.
+  createdByUserId: Option[String],
+  updatedByUserId: Option[String],
+  methodBodyHash: Option[String],
+  // CreatedUpdated's two columns. Read as java.util.Date, not the java.sql.Timestamp the driver
+  // hands back: json4s serialises the subclass as an empty JSON object.
+  createdAt: Option[Date],
+  updatedAt: Option[Date],
+  // Maker/checker (upstream commit 5d4af81c3): the hash a checker approved, and whether the row
+  // is live. The runtime loads this doc only when isActive and - when maker/checker is enabled
+  // for DYNAMIC_RESOURCE_DOC - when methodBodyHash equals approvedHash. Written only by an
+  // approved DynamicChangeRequest, never from a request body.
+  approvedHash: Option[String],
+  isActive: Boolean
+)
 
-  override def getSingleton = DynamicResourceDoc
+object DynamicResourceDoc {
 
-  object BankId extends MappedString(this, 255)
-  object DynamicResourceDocId extends UUIDString(this)
-  object PartialFunctionName extends MappedString(this, 255)
-  object RequestVerb extends MappedString(this, 255)
-  object RequestUrl extends MappedString(this, 255)
-  object Summary extends MappedString(this, 255)
-  object Description extends MappedText(this)
-  object ExampleRequestBody extends MappedText(this)
-  object SuccessResponseBody extends MappedText(this)
-  object ErrorResponseBodies extends MappedText(this)
-  object Tags extends MappedText(this)
-  object Roles extends MappedText(this)
-  object MethodBody extends MappedText(this)
-  // Source language of MethodBody: "Scala" (default) or "Java". Mirrors DynamicMessageDoc.Lang /
-  // ConnectorMethod.programmingLang — same field name/width convention, see DynamicEndpoints.
-  object Lang extends MappedString(this, 50)
-  // Provenance: who created / last updated this runtime-compiled endpoint, and a SHA-256 of the
-  // (decoded) method body so tampering / drift is detectable. Set server-side from the CallContext
-  // user — never from the request body. createdAt / updatedAt come from the CreatedUpdated trait.
-  object CreatedByUserId extends MappedString(this, 255)
-  object UpdatedByUserId extends MappedString(this, 255)
-  object MethodBodyHash extends MappedString(this, 64)
-  // Maker/checker (see docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md): the runtime only loads this row when
-  // IsActive is true and, when maker/checker is enabled for this target type, when MethodBodyHash
-  // equals ApprovedHash. ApprovedHash is written only by an approved DynamicChangeRequest (or the
-  // one-off seeding of pre-existing rows when the feature is first enabled), never from a request body.
-  object ApprovedHash extends MappedString(this, 64)
-  object IsActive extends MappedBoolean(this) {
-    override def defaultValue = true
+  // roles is stored as roles_c: ROLES collides with a SQL reserved word.
+  private val selectColumns =
+    fr"""SELECT dynamicresourcedocid, bankid, partialfunctionname, requestverb, requesturl, summary,
+                description, examplerequestbody, successresponsebody, errorresponsebodies, tags,
+                roles_c, methodbody, lang, createdbyuserid, updatedbyuserid, methodbodyhash,
+                createdat, updatedat, approvedhash, isactive
+         FROM dynamicresourcedoc"""
+
+  // Every column the insert below binds through Option is read as one too. A doc posted with a
+  // null tags or summary really does store SQL NULL - Mapper did the same - and reading it as a
+  // bare String throws NonNullableColumnRead, which fails the whole query rather than the one row.
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String],
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[String], Option[Boolean])
+
+  /** java.sql.Timestamp is a java.util.Date subclass, but json4s renders it as {} - convert. */
+  private def readDate(value: Option[java.sql.Timestamp]): Option[Date] =
+    value.map(t => new Date(t.getTime))
+
+  private def fromRow(row: Row): DynamicResourceDoc = row match {
+    case (dynamicResourceDocId, bankId, partialFunctionName, requestVerb, requestUrl, summary,
+          description, exampleRequestBody, successResponseBody, errorResponseBodies, tags, roles,
+          methodBody, lang, createdByUserId, updatedByUserId, methodBodyHash, createdAt, updatedAt,
+          approvedHash, isActive) =>
+      // orNull, not "": MappedString handed a NULL column back as null and the JSON showed null.
+      DynamicResourceDoc(dynamicResourceDocId.orNull, bankId, partialFunctionName.orNull,
+        requestVerb.orNull, requestUrl.orNull, summary.orNull, description.orNull,
+        exampleRequestBody, successResponseBody, errorResponseBodies.orNull, tags.orNull,
+        roles.orNull, methodBody.orNull,
+        // Rows created before the lang column existed have NULL there, not "Scala": fall back to
+        // the default rather than surfacing an empty programming_lang.
+        lang.filter(StringUtils.isNotBlank).getOrElse("Scala"),
+        createdByUserId, updatedByUserId, methodBodyHash,
+        readDate(createdAt), readDate(updatedAt),
+        // isactive is nullable in the changeset (rows written before the column existed have it
+        // NULL); Mapper's MappedBoolean read a NULL as false, but the column's own default is
+        // true and a pre-existing dynamic doc was live - so a NULL here means "made before
+        // maker/checker" and must stay live.
+        approvedHash, isActive.getOrElse(true))
   }
 
+  private def query(condition: Fragment): List[DynamicResourceDoc] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  private def one(condition: Fragment): Box[DynamicResourceDoc] =
+    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  /**
+   * A supplied bank id narrows the match; an absent one does NOT constrain bankid, so a
+   * system-level lookup also matches bank-level rows. Pre-existing provider behaviour.
+   */
+  private def bankFilter(bankId: Option[String]): Fragment =
+    bankId.map(b => fr"AND bankid = $b").getOrElse(Fragment.empty)
+
+  def findById(bankId: Option[String], dynamicResourceDocId: String): Box[DynamicResourceDoc] =
+    one(fr"WHERE dynamicresourcedocid = $dynamicResourceDocId" ++ bankFilter(bankId))
+
+  /**
+   * The bank id a doc's row stores. A system level doc stores the SYS sentinel rather than a SQL NULL, as a
+   * Dynamic Entity does: a NULL is never equal to another NULL in a unique index on Postgres or H2, so the
+   * index on (bankid, requesturl, requestverb) could not keep two system level docs off the same URL.
+   */
+  def storedBankId(bankId: Option[String]): String =
+    code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrSystem(bankId)
+
+  // A verb and URL are unique within one space, so this looks in the given space only; the system space
+  // (bankId None) is the rows stored with the SYS bank id.
+  def findByVerbAndUrl(bankId: Option[String], requestVerb: String,
+                       requestUrl: String): Box[DynamicResourceDoc] =
+    one(fr"WHERE bankid = ${storedBankId(bankId)} AND requestverb = $requestVerb AND requesturl = $requestUrl")
+
+  /** The docs of exactly one space, None being the system space. */
+  def findAllInSpace(bankId: Option[String]): List[DynamicResourceDoc] =
+    query(fr"WHERE bankid = ${storedBankId(bankId)} ORDER BY id ASC")
+
+  def findAll(bankId: Option[String]): List[DynamicResourceDoc] = bankId match {
+    case None => query(fr"ORDER BY id ASC")
+    case Some(b) => query(fr"WHERE bankid = $b ORDER BY id ASC")
+  }
+
+  def insert(dynamicResourceDocId: String, bankId: Option[String], partialFunctionName: String,
+             requestVerb: String, requestUrl: String, summary: String, description: String,
+             exampleRequestBody: Option[String], successResponseBody: Option[String],
+             errorResponseBodies: String, tags: String, roles: String,
+             methodBody: String, programmingLang: String, createdByUserId: Option[String],
+             methodBodyHash: Option[String]): DynamicResourceDoc = {
+    // CreatedUpdated set both on create; the row is never written without them.
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO dynamicresourcedoc
+            (dynamicresourcedocid, bankid, partialfunctionname, requestverb, requesturl, summary,
+             description, examplerequestbody, successresponsebody, errorresponsebodies, tags,
+             roles_c, methodbody, lang, createdbyuserid, methodbodyhash, createdat, updatedat)
+            VALUES ($dynamicResourceDocId, ${storedBankId(bankId)}, ${Option(partialFunctionName)},
+             ${Option(requestVerb)}, ${Option(requestUrl)}, ${Option(summary)},
+             ${Option(description)}, $exampleRequestBody, $successResponseBody,
+             ${Option(errorResponseBodies)}, ${Option(tags)}, ${Option(roles)},
+             ${Option(methodBody)}, ${Option(programmingLang)}, $createdByUserId, $methodBodyHash, $now, $now)"""
+        .update.run)
+    findById(None, dynamicResourceDocId)
+      .openOrThrowException("the resource doc just inserted must be readable")
+  }
+
+  /** Unlike the message-doc update, this one DOES write bankId — the Mapper path did too. */
+  def update(dynamicResourceDocId: String, bankId: Option[String], partialFunctionName: String,
+             requestVerb: String, requestUrl: String, summary: String, description: String,
+             exampleRequestBody: Option[String], successResponseBody: Option[String],
+             errorResponseBodies: String, tags: String, roles: String,
+             methodBody: String, programmingLang: String, updatedByUserId: Option[String],
+             methodBodyHash: Option[String]): Box[DynamicResourceDoc] = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""UPDATE dynamicresourcedoc SET bankid = ${storedBankId(bankId)},
+              partialfunctionname = ${Option(partialFunctionName)},
+              requestverb = ${Option(requestVerb)}, requesturl = ${Option(requestUrl)},
+              summary = ${Option(summary)}, description = ${Option(description)},
+              examplerequestbody = $exampleRequestBody,
+              successresponsebody = $successResponseBody,
+              errorresponsebodies = ${Option(errorResponseBodies)}, tags = ${Option(tags)},
+              roles_c = ${Option(roles)}, methodbody = ${Option(methodBody)},
+              lang = ${Option(programmingLang)},
+              updatedbyuserid = $updatedByUserId, methodbodyhash = $methodBodyHash,
+              updatedat = $now
+            WHERE dynamicresourcedocid = $dynamicResourceDocId""".update.run)
+    findById(None, dynamicResourceDocId)
+  }
+
+  def delete(bankId: Option[String], dynamicResourceDocId: String): Boolean = {
+    DoobieUtil.runUpdate(
+      (fr"DELETE FROM dynamicresourcedoc WHERE dynamicresourcedocid = $dynamicResourceDocId" ++
+        bankFilter(bankId)).update.run)
+    true
+  }
+
+
+  // ── Maker/checker write helpers (upstream commit 5d4af81c3) ────────────────────────────────
+  // Upstream drives these off the Mapper entity (`r.MethodBodyHash(h).ApprovedHash(h).IsActive(true).save`);
+  // with a Doobie store the same three writes are one statement.
+
+  /** Record `hash` as both the current body hash and the approved one, and make the row live. */
+  def setApproved(dynamicresourcedocid: String, hash: String): Boolean = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""UPDATE dynamicresourcedoc
+              SET methodbodyhash = ${Option(hash)}, approvedhash = ${Option(hash)},
+                  isactive = true, updatedat = $now
+            WHERE dynamicresourcedocid = $dynamicresourcedocid""".update.run) == 1
+  }
+
+  /** Activate or deactivate without touching the approved hash. */
+  def setActive(dynamicresourcedocid: String, active: Boolean): Boolean = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""UPDATE dynamicresourcedoc SET isactive = $active, updatedat = $now
+            WHERE dynamicresourcedocid = $dynamicresourcedocid""".update.run) == 1
+  }
+
+  /** Rows that have never been approved - the one-off seeding set when the feature is enabled. */
+  def findAllWithoutApprovedHash(): List[DynamicResourceDoc] =
+    query(fr"WHERE approvedhash IS NULL OR approvedhash = '' ORDER BY id ASC")
+
+  /**
+   * Write only the body hash, leaving the approved hash alone.
+   *
+   * Exists for the maker/checker guard test, which has to simulate the body being changed behind
+   * the API's back - the one case the guard is there to catch. No production path writes these
+   * two apart: an approved change writes both through setApproved.
+   */
+  def setMethodBodyHash(dynamicResourceDocId: String, hash: String): Boolean =
+    DoobieUtil.runUpdate(
+      sql"""UPDATE dynamicresourcedoc SET methodbodyhash = ${Option(hash)}
+            WHERE dynamicresourcedocid = $dynamicResourceDocId""".update.run) == 1
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM dynamicresourcedoc".update.run)
+    ()
+  }
+
+  def getJsonDynamicResourceDoc(dynamicResourceDoc: DynamicResourceDoc): JsonDynamicResourceDoc =
+    JsonDynamicResourceDoc(
+      // The row stores SYS for the system space; in memory the system space is None, as for a Dynamic Entity.
+      bankId = dynamicResourceDoc.bankId.flatMap(code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrNoneForSystem),
+      dynamicResourceDocId = Some(dynamicResourceDoc.dynamicResourceDocId),
+      methodBody = dynamicResourceDoc.methodBody,
+      partialFunctionName = dynamicResourceDoc.partialFunctionName,
+      requestVerb = dynamicResourceDoc.requestVerb,
+      requestUrl = dynamicResourceDoc.requestUrl,
+      summary = dynamicResourceDoc.summary,
+      description = dynamicResourceDoc.description,
+      exampleRequestBody = dynamicResourceDoc.exampleRequestBody.filter(StringUtils.isNotBlank).map(json.parse),
+      successResponseBody = dynamicResourceDoc.successResponseBody.filter(StringUtils.isNotBlank).map(json.parse),
+      errorResponseBodies = dynamicResourceDoc.errorResponseBodies,
+      tags = dynamicResourceDoc.tags,
+      roles = dynamicResourceDoc.roles,
+      programmingLang = dynamicResourceDoc.programmingLang
+    )
 }
-
-
-object DynamicResourceDoc extends DynamicResourceDoc with LongKeyedMetaMapper[DynamicResourceDoc] {
-  // A verb and URL are unique within a space (BankId, which is SYS for the system space), not across spaces:
-  // a doc is served under its space. Databases that predate this had UniqueIndex(RequestUrl, RequestVerb) and
-  // stored NULL for a system level doc; Migration.database.prepareDynamicEntitySpaceScopedIndexes, which Boot
-  // runs on every start, drops that index and moves those NULLs to SYS.
-  override def dbIndexes: List[BaseIndex[DynamicResourceDoc]] = UniqueIndex(DynamicResourceDocId) :: UniqueIndex(BankId, RequestUrl, RequestVerb) :: super.dbIndexes
-  def getJsonDynamicResourceDoc(dynamicResourceDoc: DynamicResourceDoc) = JsonDynamicResourceDoc(
-    // The row stores SYS for the system space; in memory the system space is None, as for a Dynamic Entity.
-    bankId = code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrNoneForSystem(dynamicResourceDoc.BankId.get),
-    dynamicResourceDocId = Some(dynamicResourceDoc.DynamicResourceDocId.get),
-    methodBody = dynamicResourceDoc.MethodBody.get,
-    partialFunctionName = dynamicResourceDoc.PartialFunctionName.get,
-    requestVerb = dynamicResourceDoc.RequestVerb.get,
-    requestUrl = dynamicResourceDoc.RequestUrl.get,
-    summary = dynamicResourceDoc.Summary.get,
-    description = dynamicResourceDoc.Description.get,
-    exampleRequestBody = Option(dynamicResourceDoc.ExampleRequestBody.get).filter(StringUtils.isNotBlank).map(json.parse),
-    successResponseBody = Option(dynamicResourceDoc.SuccessResponseBody.get).filter(StringUtils.isNotBlank).map(json.parse),
-    errorResponseBodies = dynamicResourceDoc.ErrorResponseBodies.get,
-    tags = dynamicResourceDoc.Tags.get,
-    roles = dynamicResourceDoc.Roles.get,
-    // Rows created before the Lang column existed have NULL there, not "Scala" -- a bare
-    // Lang.get would surface that as an empty/null programming_lang instead of falling back to
-    // JsonDynamicResourceDoc's own "Scala" default, since an explicit null argument bypasses a
-    // case class default (that only applies when the argument is omitted entirely).
-    programmingLang = Option(dynamicResourceDoc.Lang.get).filter(StringUtils.isNotBlank).getOrElse("Scala")
-  )
-}
-

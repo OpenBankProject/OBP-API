@@ -40,9 +40,9 @@ class AccountTest extends V200ServerSetup with DefaultUsers with PrivateUser2Acc
   val mockAccountId1 = "NEW_ACCOUNT_ID_01"
   val mockAccountLabel1 = "NEW_ACCOUNT_LABEL_01"
   
-  feature("Assuring that Get all accounts at all banks works as expected - v2.0.0") {
+  Feature("Assuring that Get all accounts at all banks works as expected - v2.0.0") {
 
-    scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAllBanks") {
+    Scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAllBanks") {
       Given("The bank")
       val testBank = testBankId1
       val accountPutJSON = CreateAccountJSON(resourceUser1.userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
@@ -88,7 +88,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers with PrivateUser2Acc
       isPublicAll.forall(_ == false) should equal(true)
     }
 
-    scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAtOneBank") {
+    Scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAtOneBank") {
       Given("The bank")
       val testBank = testBankId1
 
@@ -136,7 +136,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers with PrivateUser2Acc
       isPublicAll.forall(_ == false) should equal(true)
     }
 
-    scenario("We create an account, but with wrong format of account_id ") {
+    Scenario("We create an account, but with wrong format of account_id ") {
       Given("The bank")
       val testBank = testBankId1
       val newAccountIdWithSpaces = "account%20with%20spaces"
@@ -158,8 +158,8 @@ class AccountTest extends V200ServerSetup with DefaultUsers with PrivateUser2Acc
     }
   }
 
-  feature("Information about the public bank accounts for all banks"){
-    scenario("we get the public bank accounts"){
+  Feature("Information about the public bank accounts for all banks"){
+    Scenario("we get the public bank accounts"){
       accountTestsSpecificDBSetup()
       Given("We will not use an access token")
       When("the request is sent")

@@ -726,7 +726,7 @@ object Http4s210 {
             }
           } yield {
             val consumers = Consumer.findAll()
-            JSONFactory210.createConsumerJSONs(consumers.sortWith(_.id.get < _.id.get))
+            JSONFactory210.createConsumerJSONs(consumers.sortWith(_.id < _.id))
           }
         }
     }
@@ -766,11 +766,11 @@ object Http4s210 {
             updatedConsumer <- Future {
               unboxFullOrFail(
                 Consumers.consumers.vend.updateConsumer(
-                  consumer.id.get, None, None, Some(body.enabled),
+                  consumer.id, None, None, Some(body.enabled),
                   None, None, None, None, None, None, None, None),
                 Some(cc), "Cannot update Consumer", 400)
             }
-          } yield PutEnabledJSON(updatedConsumer.isActive.get)
+          } yield PutEnabledJSON(updatedConsumer.isActive)
         }
     }
 
@@ -1301,7 +1301,7 @@ object Http4s210 {
             }
             _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(body.redirect_url, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
-              id          = consumer.id.get,
+              id          = consumer.id,
               isActive    = Some(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false)),
               redirectURL = Some(body.redirect_url),
               callContext = Some(cc)

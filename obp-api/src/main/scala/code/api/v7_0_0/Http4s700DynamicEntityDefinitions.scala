@@ -43,13 +43,13 @@ import code.dynamicEntity.DynamicEntityCommons
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.By
 import org.http4s._
 import org.http4s.dsl.io._
 import org.json4s.Formats
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
+import org.json4s.jvalue2extractable
 
 /**
  * This object holds the v7.0.0 endpoints that manage Dynamic Entity definitions.
@@ -121,11 +121,7 @@ object Http4s700DynamicEntityDefinitions {
         } yield {
           val entitiesWithCounts = dynamicEntities.sortBy(_.entityName).map { entity =>
             val commons: DynamicEntityCommons = entity
-            val recordCount = DynamicData.count(
-              By(DynamicData.DynamicEntityName, entity.entityName),
-              By(DynamicData.IsPersonalEntity, false),
-              By(DynamicData.BankId, DynamicEntitySpace.bankIdOrSystem(entity.bankId))
-            )
+            val recordCount = DynamicData.countImpersonal(entity.bankId, entity.entityName)
             (commons, recordCount)
           }
           val listed = JSONFactory600.createDynamicEntitiesWithCountJson(entitiesWithCounts)
@@ -206,6 +202,10 @@ object Http4s700DynamicEntityDefinitions {
     CreateDynamicEntityRequestJsonV600(
       entity_name = "customer_preferences",
       has_personal_entity = Some(true),
+      has_public_access = Some(false),
+      has_community_access = Some(false),
+      personal_requires_role = Some(false),
+      use_row_level_access = Some(false),
       schema = exampleSchema
     ),
     exampleDefinition,
@@ -248,6 +248,10 @@ object Http4s700DynamicEntityDefinitions {
     UpdateDynamicEntityRequestJsonV600(
       entity_name = "customer_preferences",
       has_personal_entity = Some(true),
+      has_public_access = Some(false),
+      has_community_access = Some(false),
+      personal_requires_role = Some(false),
+      use_row_level_access = Some(false),
       schema = exampleSchema
     ),
     exampleDefinition,

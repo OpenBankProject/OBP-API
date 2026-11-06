@@ -1,5 +1,6 @@
 package code.api.v6_0_0
 
+import org.json4s.jvalue2monadic
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.ApiRole
 import code.entitlement.Entitlement

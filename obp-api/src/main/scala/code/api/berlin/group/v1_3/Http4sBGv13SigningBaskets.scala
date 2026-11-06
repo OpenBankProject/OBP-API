@@ -123,7 +123,7 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
           // ignored its consents would claim an authorisation that never happened.
           _ <- booleanToFuture(SigningBasketConsentsNotSupported, cc = callContext)(postJson.consentIds.forall(_.isEmpty))
           // The basket belongs to the TPP that creates it; nothing else identifies who may address it later.
-          consumerId <- Future.successful(cc.consumer.toOption.map(_.consumerId.get))
+          consumerId <- Future.successful(cc.consumer.toOption.map(_.consumerId))
             .map(unboxFullOrFail(_, callContext, AuthenticatedUserIsRequired, 401))
           // Every payment must be one this TPP lodged and SCA can still authorise.
           _ <- SigningBasketNewStyle.admitPayments(postJson.paymentIds.getOrElse(Nil), callContext)

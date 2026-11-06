@@ -29,10 +29,12 @@ package code.scheduler
 
 import java.util.{Date, UUID}
 
+import code.api.util.DoobieUtil
 import code.consent.{ConsentStatus, MappedConsent}
 import code.setup.ServerSetup
 import com.openbankproject.commons.util.ApiStandards
-import net.liftweb.mapper.{By, DB}
+import doobie.implicits._
+import doobie.implicits.javasql._
 
 /**
  * The unfinishedObpConsents task: OBP consents still INITIATED after the time limit are rejected, so an app that
@@ -46,21 +48,15 @@ class ConsentSchedulerTest extends ServerSetup {
 
   private def consent(status: ConsentStatus.Value, apiStandard: String, hoursAgo: Long): String = {
     val consentId = UUID.randomUUID.toString
-    MappedConsent.create
-      .mConsentId(consentId)
-      .mStatus(status.toString)
-      .mApiStandard(apiStandard)
-      .saveMe()
-    DB.runUpdate(
-      s"UPDATE ${MappedConsent.dbTableName} SET ${MappedConsent.updatedAt.dbColumnName} = ? " +
-        s"WHERE ${MappedConsent.mConsentId.dbColumnName} = ?",
-      List(new Date(new Date().getTime - hoursAgo * hourMs), consentId)
-    )
+    MappedConsent.insertWithConsentId(consentId, status = status.toString, apiStandard = apiStandard)
+    val backdated = new java.sql.Timestamp(new Date().getTime - hoursAgo * hourMs)
+    DoobieUtil.runUpdate(
+      sql"UPDATE mappedconsent SET updatedat = $backdated WHERE mconsentid = $consentId".update.run)
     consentId
   }
 
   private def statusOf(consentId: String): String =
-    MappedConsent.find(By(MappedConsent.mConsentId, consentId)).map(_.mStatus.get).openOr("missing")
+    MappedConsent.findByConsentId(consentId).map(_.status).openOr("missing")
 
   feature("Rejecting OBP consents that stay INITIATED") {
 
@@ -68,7 +64,7 @@ class ConsentSchedulerTest extends ServerSetup {
       val id = consent(ConsentStatus.INITIATED, ApiStandards.obp.toString, hoursAgo = 7)
       ConsentScheduler.unfinishedObpConsents(sixHours)
       statusOf(id) shouldBe ConsentStatus.REJECTED.toString
-      MappedConsent.find(By(MappedConsent.mConsentId, id)).map(_.mNote.get).openOr("") should include("not accepted within 21600 seconds")
+      MappedConsent.findByConsentId(id).map(_.note).openOr("") should include("not accepted within 21600 seconds")
     }
 
     scenario("A recent INITIATED consent, one already ACCEPTED and one of another standard are left alone") {

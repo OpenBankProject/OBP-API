@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.ApiRole
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency

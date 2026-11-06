@@ -42,8 +42,8 @@ class OPTIONSTest extends V400ServerSetup {
   object ApiEndpoint1 extends Tag("optionsRequest")
 
 
-  feature("HTTP OPTIONS request should be handled correctly") {
-    scenario("We send a common OPTIONS http request", ApiEndpoint1, VersionOfApi) {
+  Feature("HTTP OPTIONS request should be handled correctly") {
+    Scenario("We send a common OPTIONS http request", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val requestOPTIONS = (v4_0_0_Request / "banks").OPTIONS
       val response204 = OBPReq.client.newCall(requestOPTIONS.toOkHttpRequest).execute()

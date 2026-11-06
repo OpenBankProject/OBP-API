@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v4_0_0
 
+import org.json4s.jvalue2monadic
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
@@ -35,7 +36,6 @@ import code.model.BankAccountX
 import code.transactionrequests.MappedTransactionRequest
 import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankAccount, BankId}
-import net.liftweb.mapper.By
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
@@ -145,8 +145,7 @@ class SimpleTransactionRequestChallengePayeeTest extends V400ServerSetup {
       SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / "SIMPLE" / "transaction-requests" / transactionRequestId / "challenge").POST <@ user1
     if (forgetRecordedCounterparty) {
       And("the request carries no recorded counterparty, as requests created before the fix do not")
-      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId))
-        .map(_.mCounterpartyId("").saveMe()).openOrThrowException(attemptedToOpenAnEmptyBox)
+      MappedTransactionRequest.setCounterpartyId(transactionRequestId, "") shouldBe true
     }
     val answerResponse = makePostRequest(answerRequest, write(ChallengeAnswerJson400(id = challengeId, answer = "123")))
 

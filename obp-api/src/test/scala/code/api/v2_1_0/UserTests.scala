@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v2_1_0
 
 import com.openbankproject.commons.model.ErrorMessage
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetAnyUser
 import code.api.util.ErrorMessages.UserHasMissingRoles
@@ -37,10 +38,9 @@ import code.entitlement.Entitlement
 
 class UserTests extends V210ServerSetup {
 
-  feature("Assuring that endpoint Get all Users works as expected - v2.1.0") 
-  {
+  Feature("Assuring that endpoint Get all Users works as expected - v2.1.0") {
 
-    scenario("We try to get all roles without credentials - Get all Users") {
+    Scenario("We try to get all roles without credentials - Get all Users") {
       When("We make the request")
       val requestGet = (v2_1Request / "users").GET
       val responseGet = makeGetRequest(requestGet)
@@ -51,8 +51,7 @@ class UserTests extends V210ServerSetup {
 
     }
 
-    scenario("We try to get all roles with credentials but no roles- Get all Users") 
-    {
+    Scenario("We try to get all roles with credentials but no roles- Get all Users") {
       When("We make the request")
       val requestGet = (v2_1Request / "users").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
@@ -63,8 +62,7 @@ class UserTests extends V210ServerSetup {
     }
   
   
-    scenario(s"We try to get all roles with credentials with ${ApiRole.canGetAnyUser} roles- Get all Users")
-    {
+    Scenario(s"We try to get all roles with credentials with ${ApiRole.canGetAnyUser} roles- Get all Users") {
       When(s"We first grant the ${ApiRole.canGetAnyUser} to the User1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString())
       

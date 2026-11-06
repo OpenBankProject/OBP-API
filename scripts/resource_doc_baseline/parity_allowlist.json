@@ -318,14 +318,6 @@
     {
       "version": "v6_0_0",
       "endpoint": "updateBankLevelDynamicEntity",
-      "field": "exampleRequestBody",
-      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
-      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
-      "http4s_digest": "575436f8f568222b34c4814c0313738383819afe1477d4c8b311a143cd7c108f"
-    },
-    {
-      "version": "v6_0_0",
-      "endpoint": "updateBankLevelDynamicEntity",
       "field": "successResponseBody",
       "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
       "lift_digest": "fb39e7460ca2805f706bb8ac37ae375df3195a146a4fd4f1423670c60068c460",
@@ -334,26 +326,10 @@
     {
       "version": "v6_0_0",
       "endpoint": "updateMyDynamicEntity",
-      "field": "exampleRequestBody",
-      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
-      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
-      "http4s_digest": "575436f8f568222b34c4814c0313738383819afe1477d4c8b311a143cd7c108f"
-    },
-    {
-      "version": "v6_0_0",
-      "endpoint": "updateMyDynamicEntity",
       "field": "successResponseBody",
       "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
       "lift_digest": "30dea326337d124762eb3a45a7e36bdd6307858b4acca6c765144f7e11cce19e",
       "http4s_digest": "92739c84cab456c0d5933c5c7c255439134982c9edaa84c741621936eb8a05ba"
-    },
-    {
-      "version": "v6_0_0",
-      "endpoint": "updateSystemDynamicEntity",
-      "field": "exampleRequestBody",
-      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
-      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
-      "http4s_digest": "575436f8f568222b34c4814c0313738383819afe1477d4c8b311a143cd7c108f"
     },
     {
       "version": "v6_0_0",
@@ -1423,7 +1399,7 @@
       "version": "v6_0_0",
       "endpoint": "createApiProduct",
       "field": "description",
-      "reason": "Documents the six call-limit semantics, tiering and recognised Api Product Attribute names (SELF_SUBSCRIBE/BILLING_SYSTEM/etc) — real feature per code.apiproductsubscription.*, opening sentence and auth note preserved verbatim.",
+      "reason": "Documents the six call-limit semantics, tiering and recognised Api Product Attribute names (SELF_SUBSCRIBE/BILLING_SYSTEM/etc) \u2014 real feature per code.apiproductsubscription.*, opening sentence and auth note preserved verbatim.",
       "lift_digest": "a0a19cc5100424e4e1824f1d1c70dc4329971051689338c8559c988e334ddab7",
       "http4s_digest": "585ffe0ecaab1b7ee5d333fffc55aca0016497dba502ad9ebc446dd3a4c92ade"
     },
@@ -2746,6 +2722,30 @@
       "reason": "Explains that the list comes from the transactionRequests_supported_types prop and when OPEN_CORRIDOR_PROMISE is included. Additive, nothing removed.",
       "lift_digest": "dea1479859f8f2e4eead46eb86caef95b294ee947771d5d0ef71df39d288cdae",
       "http4s_digest": "77a01355ab52e9743c1d2a10bb40273ad237df04d45fdea42a23828437bb729d"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateBankLevelDynamicEntity",
+      "field": "exampleRequestBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity; the update example also names has_community_access and personal_requires_role, which UpdateDynamicEntityRequestJsonV600 accepts",
+      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
+      "http4s_digest": "ace4e0cbfac4471fe60d8719343ff35ae8e5e421311d2640f4e81d6fe73ad362"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateMyDynamicEntity",
+      "field": "exampleRequestBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity; the update example also names has_community_access and personal_requires_role, which UpdateDynamicEntityRequestJsonV600 accepts",
+      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
+      "http4s_digest": "ace4e0cbfac4471fe60d8719343ff35ae8e5e421311d2640f4e81d6fe73ad362"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateSystemDynamicEntity",
+      "field": "exampleRequestBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity; the update example also names has_community_access and personal_requires_role, which UpdateDynamicEntityRequestJsonV600 accepts",
+      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
+      "http4s_digest": "ace4e0cbfac4471fe60d8719343ff35ae8e5e421311d2640f4e81d6fe73ad362"
     }
   ]
 }

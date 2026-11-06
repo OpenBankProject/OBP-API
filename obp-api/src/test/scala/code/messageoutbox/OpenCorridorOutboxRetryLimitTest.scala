@@ -28,7 +28,6 @@ TESOBE (http://www.tesobe.com/)
 package code.messageoutbox
 
 import code.setup.{DefaultUsers, ServerSetup}
-import net.liftweb.mapper.By
 
 /**
  * This test checks that an Open Corridor outbox message the relay can never deliver stops being
@@ -50,7 +49,7 @@ class OpenCorridorOutboxRetryLimitTest extends ServerSetup with DefaultUsers {
       "bank-with-no-broker-" + java.util.UUID.randomUUID().toString, "{}")
 
   private def reload(row: MessageOutbox): MessageOutbox =
-    MessageOutbox.find(By(MessageOutbox.id, row.id.get)).openOrThrowException("outbox row")
+    MessageOutbox.findById(row.id).openOrThrowException("outbox row")
 
   feature("Open Corridor outbox messages have a retry limit") {
 
@@ -63,7 +62,7 @@ class OpenCorridorOutboxRetryLimitTest extends ServerSetup with DefaultUsers {
       val belowLimit = reload(row)
       belowLimit.status should equal(MessageOutbox.STATUS_PENDING)
       belowLimit.attempts should equal(maxAttempts - 1)
-      belowLimit.LastError.get should include("BANK_ID")
+      belowLimit.lastError should include("BANK_ID")
 
       When("the relay fails once more")
       MessageOutboxRelay.relayRow(reload(row))
@@ -71,11 +70,11 @@ class OpenCorridorOutboxRetryLimitTest extends ServerSetup with DefaultUsers {
       val atLimit = reload(row)
       atLimit.status should equal(MessageOutbox.STATUS_STICKY)
       atLimit.attempts should equal(maxAttempts)
-      atLimit.LastError.get should include(s"gave up after $maxAttempts attempts")
-      atLimit.LastError.get should include("transport failure")
+      atLimit.lastError should include(s"gave up after $maxAttempts attempts")
+      atLimit.lastError should include("transport failure")
 
       And("a STICKY row is no longer picked up by the relay")
-      MessageOutbox.pending().exists(_.id.get == row.id.get) should equal(false)
+      MessageOutbox.pending().exists(_.id == row.id) should equal(false)
     }
   }
 }

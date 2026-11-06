@@ -2,6 +2,17 @@ syntax = "proto3";
 package code.obp.grpc.chat.g1;
 
 import "google/protobuf/timestamp.proto";
+import "scalapb/scalapb.proto";
+
+// The checked-in Scala lives in code.obp.grpc.chat.api (flat), predating the g1
+// rename of the proto package. package_name pins the Scala package there so
+// scripts/regenerate_grpc.sh regenerates onto the existing files instead of
+// creating a parallel package; the wire-level service name still derives from
+// the proto package above and is unchanged.
+option (scalapb.options) = {
+  package_name: "code.obp.grpc.chat.api"
+  flat_package: true
+};
 
 message StreamMessagesRequest {
   string chat_room_id = 1;

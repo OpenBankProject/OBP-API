@@ -596,6 +596,12 @@ Date          Commit        Action
                             its own live mode at <url>/status (field: Outbound to OBP-API
                             (OBP_AUTHORIZATION_VIA)); that is the source of truth, while the props
                             only say where the instances are.
+03/09/2026    (pending)     RETIRED PROP: mapper_rules.create_foreign_keys. It configured Lift
+                            Schemifier's foreign-key creation, and Schemifier is no longer called
+                            anywhere in obp-api - the whole net.liftweb.mapper surface was removed
+                            once the last Mapper entity moved to Doobie; the schema comes from
+                            Liquibase, which has no equivalent setting because foreign keys are
+                            declared in the changelog itself. Setting this prop now has no effect.
 
 15/08/2026    614e7294e     BUILD/DEPLOY CHANGE: obp-api and obp-commons are built with Scala 2.13.
                             The class files this produces are Java 25, where 2.12 emitted Java 8

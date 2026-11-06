@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v7_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetAllScopes, CanGetReachableRoles, CanGetTelemetry}
 import code.api.util.ErrorMessages.{ApplicationNotIdentified, UserHasMissingRoles}
@@ -59,7 +60,7 @@ class GrantsEndpointTest extends V600ServerSetup {
   }
 
   private def withScope[T](role: String)(body: => T): T = {
-    val scope = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, role)
+    val scope = Scope.scope.vend.addScope("", testConsumer2.id.toString, role)
     try body finally Scope.scope.vend.deleteScope(scope)
   }
 
@@ -83,7 +84,7 @@ class GrantsEndpointTest extends V600ServerSetup {
       }
       response.code should equal(200)
       response.body.extract[ScopesJsonV700].scopes should contain(
-        ScopeJsonV700(bank_id = "", role_name = CanGetTelemetry.toString, consumer_id = testConsumer2.id.get.toString))
+        ScopeJsonV700(bank_id = "", role_name = CanGetTelemetry.toString, consumer_id = testConsumer2.id.toString))
     }
   }
 

@@ -1564,7 +1564,7 @@ mvn install -pl .,obp-commons -DskipTests
 mvn package -pl obp-api -DskipTests
 
 # Run (executable fat JAR)
-java -jar obp-api/target/obp-api.jar
+java -cp "obp-api/target/obp-api.jar:obp-api/target/lib/*" bootstrap.http4s.Http4sServer
 ```
 
 **Alternative with increased stack size:**
@@ -1572,7 +1572,7 @@ java -jar obp-api/target/obp-api.jar
 ```bash
 export MAVEN_OPTS="-Xss128m"
 mvn install -pl .,obp-commons -DskipTests && mvn package -pl obp-api -DskipTests
-java -Xss128m -jar obp-api/target/obp-api.jar
+java -Xss128m -cp "obp-api/target/obp-api.jar:obp-api/target/lib/*" bootstrap.http4s.Http4sServer
 ```
 
 **The `--add-opens` flags (required on the pinned JDK 25, as on any Java 11+):**
@@ -1712,7 +1712,7 @@ After=network.target postgresql.service redis.service
 [Service]
 Type=simple
 User=obp
-ExecStart=/usr/bin/java -Drun.mode=production -Xmx768m -jar /opt/obp/obp-api.jar
+ExecStart=/usr/bin/java -Drun.mode=production -Xmx768m -cp "/opt/obp/obp-api.jar:/opt/obp/lib/*" bootstrap.http4s.Http4sServer
 Restart=always
 
 [Install]
@@ -3417,7 +3417,7 @@ use_consumer_limits=true
 export MAVEN_OPTS="-Xmx2048m -Xms1024m -XX:MaxPermSize=512m"
 
 # For production
-java -Xmx4096m -Xms2048m -jar obp-api/target/obp-api.jar
+java -Xmx4096m -Xms2048m -cp "obp-api/target/obp-api.jar:obp-api/target/lib/*" bootstrap.http4s.Http4sServer
 
 # Monitor memory usage
 jconsole  # Connect to JVM process
@@ -3688,7 +3688,7 @@ connector=mapped
 # 3. Build and run
 mvn clean install -pl .,obp-commons -DskipTests
 mvn package -pl obp-api -DskipTests
-java -jar obp-api/target/obp-api.jar
+java -cp "obp-api/target/obp-api.jar:obp-api/target/lib/*" bootstrap.http4s.Http4sServer
 
 # 4. Access
 # API: http://localhost:8080
@@ -3715,7 +3715,7 @@ allow_oauth2_login=true
 mvn clean package -pl obp-api -am -DskipTests
 
 # 4. Deploy
-java -Drun.mode=production -jar obp-api/target/obp-api.jar
+java -Drun.mode=production -cp "obp-api/target/obp-api.jar:obp-api/target/lib/*" bootstrap.http4s.Http4sServer
 
 # 5. Setup API Explorer II
 cd API-Explorer-II
@@ -3814,7 +3814,10 @@ backend obp_nodes
 ```bash
 # Deploy to all nodes
 for node in node1 node2 node3; do
+    # the lib directory must travel with the jar: the server is launched with
+    # -cp "obp-api.jar:lib/*", not -jar (see the systemd unit above)
     scp obp-api/target/obp-api.jar $node:/opt/obp/obp-api.jar
+    scp -r obp-api/target/lib $node:/opt/obp/lib
     ssh $node "sudo systemctl restart obp-api"
 done
 

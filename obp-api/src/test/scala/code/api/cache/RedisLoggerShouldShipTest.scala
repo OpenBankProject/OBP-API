@@ -1,6 +1,7 @@
 package code.api.cache
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Guards the two invariants MdcLoggable's level gate (code.util.Helper) depends on to skip
@@ -25,7 +26,7 @@ import org.scalatest.{FlatSpec, Matchers}
  * That half of the behaviour was verified by hand against the actual props read at JVM start
  * (see the redis_logging_min_level default in sample.props.template) rather than by a test here.
  */
-class RedisLoggerShouldShipTest extends FlatSpec with Matchers {
+class RedisLoggerShouldShipTest extends AnyFlatSpec with Matchers {
 
   "LogLevel" should "be declared in ascending severity order" in {
     RedisLogger.LogLevel.TRACE.id should be < RedisLogger.LogLevel.DEBUG.id

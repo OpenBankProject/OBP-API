@@ -27,14 +27,15 @@ TESOBE (http://www.tesobe.com/)
 package code.api.util
 
 import code.api.util.APIUtil.HTTPParam
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * This suite checks that the documented metric filters reach a query. A filter name is mapped to its query
  * param in one place and read in another (APIUtil.createQueriesByHttpParams); a name mapped but not read was
  * silently ignored, which is how consent_reference_id and certificate_trust went unapplied.
  */
-class MetricFilterParamsTest extends FlatSpec with Matchers {
+class MetricFilterParamsTest extends AnyFlatSpec with Matchers {
 
   private def queries(name: String, value: String): List[OBPQueryParam] =
     APIUtil.createQueriesByHttpParams(List(HTTPParam(name, List(value)))).openOrThrowException("filters")

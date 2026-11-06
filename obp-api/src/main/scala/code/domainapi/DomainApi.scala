@@ -30,10 +30,11 @@ package code.domainapi
 import java.util.Date
 import java.util.concurrent.atomic.AtomicReference
 
-import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
-import code.api.util.APIUtil
-import net.liftweb.common.Box
-import net.liftweb.mapper._
+import code.api.util.{APIUtil, DoobieUtil}
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.SimpleInjector
 
@@ -121,43 +122,45 @@ object DomainApiDbProvider extends DomainApiProvider {
   override def create(bankId: String, basePath: String, version: String, title: String, description: String,
                       isPubliclyDiscoverable: Boolean, createdByUserId: String): Box[DomainApiTrait] = {
     val created = tryo {
-      DomainApi.create
-        .DomainApiId(APIUtil.generateUUID())
-        .BankId(bankId)
-        .BasePath(basePath)
-        .Version(version)
-        .Title(title)
-        .Description(description)
-        .IsPubliclyDiscoverable(isPubliclyDiscoverable)
+      val now = new Date()
+      DomainApi.insert(DomainApi(
+        domainApiId = APIUtil.generateUUID(),
+        bankId = bankId,
+        basePath = basePath,
+        version = version,
+        title = title,
+        descriptionRaw = description,
+        isPubliclyDiscoverable = isPubliclyDiscoverable,
         // A consent user's Domain API belongs to the person the Consent is for (UserReference).
-        .CreatedByUserId(code.users.Users.users.vend.attributedUserId(createdByUserId, code.users.UserReference.DomainApi_CreatedByUserId).openOr(createdByUserId))
-        .saveMe()
+        createdByUserId = code.users.Users.users.vend.attributedUserId(createdByUserId, code.users.UserReference.DomainApi_CreatedByUserId).openOr(createdByUserId),
+        createdAt = now,
+        updatedAt = now))
     }
     forget()
     created
   }
 
   override def get(bankId: String, domainApiId: String): Box[DomainApiTrait] =
-    DomainApi.find(By(DomainApi.BankId, bankId), By(DomainApi.DomainApiId, domainApiId))
+    DomainApi.find(bankId, domainApiId)
 
   override def getAll(bankId: String): Box[List[DomainApiTrait]] =
-    tryo(DomainApi.findAll(By(DomainApi.BankId, bankId), OrderBy(DomainApi.BasePath, Ascending)))
+    tryo(DomainApi.query(fr"WHERE bank_id = ${Option(bankId)} ORDER BY base_path ASC"))
 
   override def getPubliclyDiscoverable(bankId: String): Box[List[DomainApiTrait]] =
-    tryo(DomainApi.findAll(By(DomainApi.BankId, bankId), By(DomainApi.IsPubliclyDiscoverable, true), OrderBy(DomainApi.BasePath, Ascending)))
+    tryo(DomainApi.query(fr"WHERE bank_id = ${Option(bankId)} AND is_publicly_discoverable = ${true} ORDER BY base_path ASC"))
 
   override def getPubliclyDiscoverableInEverySpace(): Box[List[DomainApiTrait]] =
-    tryo(DomainApi.findAll(By(DomainApi.IsPubliclyDiscoverable, true), OrderBy(DomainApi.BasePath, Ascending)))
+    tryo(DomainApi.query(fr"WHERE is_publicly_discoverable = ${true} ORDER BY base_path ASC"))
 
   override def getAllInEverySpace(): Box[List[DomainApiTrait]] =
-    tryo(DomainApi.findAll(OrderBy(DomainApi.BasePath, Ascending)))
+    tryo(DomainApi.query(fr"ORDER BY base_path ASC"))
 
   override def update(bankId: String, domainApiId: String, basePath: String, version: String, title: String,
                       description: String, isPubliclyDiscoverable: Boolean): Box[DomainApiTrait] = {
-    val updated = DomainApi.find(By(DomainApi.BankId, bankId), By(DomainApi.DomainApiId, domainApiId)).flatMap { row =>
+    val updated = DomainApi.find(bankId, domainApiId).flatMap { row =>
       tryo {
-        row.BasePath(basePath).Version(version).Title(title).Description(description)
-          .IsPubliclyDiscoverable(isPubliclyDiscoverable).UpdatedAt(new Date()).saveMe()
+        DomainApi.update(row.copy(basePath = basePath, version = version, title = title, descriptionRaw = description,
+          isPubliclyDiscoverable = isPubliclyDiscoverable, updatedAt = new Date()))
       }
     }
     forget()
@@ -165,65 +168,89 @@ object DomainApiDbProvider extends DomainApiProvider {
   }
 
   override def delete(bankId: String, domainApiId: String): Box[Boolean] = {
-    val deleted = DomainApi.find(By(DomainApi.BankId, bankId), By(DomainApi.DomainApiId, domainApiId)).flatMap(row => tryo(row.delete_!))
+    val deleted = DomainApi.find(bankId, domainApiId).flatMap(row => tryo(DomainApi.delete(row.domainApiId)))
     forget()
     deleted
   }
 }
 
-class DomainApi extends DomainApiTrait with LongKeyedMapper[DomainApi] with IdPK {
-  def getSingleton = DomainApi
-
-  object DomainApiId extends MappedString(this, 36) {
-    override def dbColumnName = "domain_api_id"
-  }
-  // SYS for the system space, never NULL: see DynamicEntitySpace.
-  object BankId extends MappedString(this, 255) {
-    override def dbColumnName = "bank_id"
-    override def defaultValue = DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
-  }
-  object BasePath extends MappedString(this, 255) {
-    override def dbColumnName = "base_path"
-  }
-  object Version extends MappedString(this, 50) {
-    override def dbColumnName = "version"
-  }
-  object Title extends MappedString(this, 255) {
-    override def dbColumnName = "title"
-  }
-  object Description extends MappedString(this, 2000) {
-    override def dbColumnName = "description"
-  }
-  // False until its owner says otherwise: a Domain API is only listed publicly on purpose.
-  object IsPubliclyDiscoverable extends MappedBoolean(this) {
-    override def dbColumnName = "is_publicly_discoverable"
-    override def defaultValue = false
-  }
-  object CreatedByUserId extends MappedString(this, 255) {
-    override def dbColumnName = "created_by_user_id"
-  }
-  object CreatedAt extends MappedDateTime(this) {
-    override def dbColumnName = "created_at"
-    override def defaultValue = new Date()
-  }
-  object UpdatedAt extends MappedDateTime(this) {
-    override def dbColumnName = "updated_at"
-    override def defaultValue = new Date()
-  }
-
-  override def domainApiId: String = DomainApiId.get
-  override def bankId: String = BankId.get
-  override def basePath: String = BasePath.get
-  override def version: String = Version.get
-  override def title: String = Title.get
-  override def description: String = Option(Description.get).getOrElse("")
-  override def isPubliclyDiscoverable: Boolean = IsPubliclyDiscoverable.get
-  override def createdByUserId: String = CreatedByUserId.get
-  override def createdAt: Date = CreatedAt.get
-  override def updatedAt: Date = UpdatedAt.get
+/**
+ * One row of domain_api. Upstream declares this as a Lift Mapper entity; here it is a Doobie store over
+ * the table the changelog creates (db.changelog-develop-merge-3.yaml), unique on domain_api_id and on
+ * base_path.
+ *
+ * bank_id is SYS for the system space, never NULL: see DynamicEntitySpace. is_publicly_discoverable is
+ * false until its owner says otherwise: a Domain API is only listed publicly on purpose.
+ */
+case class DomainApi(
+  domainApiId: String,
+  bankId: String,
+  basePath: String,
+  version: String,
+  title: String,
+  private[domainapi] val descriptionRaw: String,
+  isPubliclyDiscoverable: Boolean,
+  createdByUserId: String,
+  createdAt: Date,
+  updatedAt: Date
+) extends DomainApiTrait {
+  override def description: String = Option(descriptionRaw).getOrElse("")
 }
 
-object DomainApi extends DomainApi with LongKeyedMetaMapper[DomainApi] {
-  override def dbTableName = "domain_api"
-  override def dbIndexes = UniqueIndex(DomainApiId) :: UniqueIndex(BasePath) :: Index(BankId) :: super.dbIndexes
+object DomainApi {
+
+  private val selectColumns =
+    fr"""SELECT domain_api_id, bank_id, base_path, version, title, description, is_publicly_discoverable,
+                created_by_user_id, created_at, updated_at
+         FROM domain_api"""
+
+  private type Row = (Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[Boolean], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+
+  private def readDate(t: Option[java.sql.Timestamp]): Date = t.map(ts => new Date(ts.getTime)).orNull
+
+  private def ts(d: Date): Option[java.sql.Timestamp] = Option(d).map(x => new java.sql.Timestamp(x.getTime))
+
+  private def fromRow(r: Row): DomainApi =
+    DomainApi(r._1.orNull, r._2.orNull, r._3.orNull, r._4.orNull, r._5.orNull, r._6.orNull,
+      r._7.getOrElse(false), r._8.orNull, readDate(r._9), readDate(r._10))
+
+  private[domainapi] def query(condition: Fragment): List[DomainApi] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  def findAll(): List[DomainApi] = query(fr"ORDER BY id ASC")
+
+  def find(bankId: String, domainApiId: String): Box[DomainApi] =
+    query(fr"WHERE bank_id = ${Option(bankId)} AND domain_api_id = ${Option(domainApiId)} ORDER BY id ASC")
+      .headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  def insert(d: DomainApi): DomainApi = {
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO domain_api (domain_api_id, bank_id, base_path, version, title, description,
+              is_publicly_discoverable, created_by_user_id, created_at, updated_at)
+            VALUES (${Option(d.domainApiId)}, ${Option(d.bankId)}, ${Option(d.basePath)}, ${Option(d.version)},
+              ${Option(d.title)}, ${Option(d.descriptionRaw)}, ${d.isPubliclyDiscoverable},
+              ${Option(d.createdByUserId)}, ${ts(d.createdAt)}, ${ts(d.updatedAt)})""".update.run)
+    d
+  }
+
+  def update(d: DomainApi): DomainApi = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE domain_api SET bank_id = ${Option(d.bankId)}, base_path = ${Option(d.basePath)},
+              version = ${Option(d.version)}, title = ${Option(d.title)}, description = ${Option(d.descriptionRaw)},
+              is_publicly_discoverable = ${d.isPubliclyDiscoverable}, updated_at = ${ts(d.updatedAt)}
+            WHERE domain_api_id = ${Option(d.domainApiId)}""".update.run)
+    d
+  }
+
+  def delete(domainApiId: String): Boolean =
+    DoobieUtil.runUpdate(sql"DELETE FROM domain_api WHERE domain_api_id = ${Option(domainApiId)}".update.run) > 0
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM domain_api".update.run)
+    ()
+  }
 }

@@ -1,5 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
+import org.json4s.jvalue2monadic
 import code.telemetry.Telemetry
 import com.openbankproject.commons.util.JsonAliases.compactRender
 import org.scalatest.Tag

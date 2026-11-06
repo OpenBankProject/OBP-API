@@ -78,11 +78,11 @@ class RateLimitsTest extends V600ServerSetup {
     super.beforeEach()
   }
 
-  feature("POST Create Call Limits v6.0.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("POST Create Call Limits v6.0.0 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0 without user credentials")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST
       val response600 = makePostRequest(request600, write(postCallLimitJsonV600))
       Then("We should get a 401")
@@ -92,11 +92,11 @@ class RateLimitsTest extends V600ServerSetup {
     }
   }
 
-  feature("POST Create Call Limits v6.0.0 - Authorized access") {
-    scenario("We will call the endpoint without proper Role", ApiEndpoint1, VersionOfApi) {
+  Feature("POST Create Call Limits v6.0.0 - Authorized access") {
+    Scenario("We will call the endpoint without proper Role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0 without a proper role")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val response600 = makePostRequest(request600, write(postCallLimitJsonV600))
       Then("We should get a 403")
@@ -105,10 +105,10 @@ class RateLimitsTest extends V600ServerSetup {
       response600.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanCreateRateLimits)
     }
 
-    scenario("We will call the endpoint with proper Role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with proper Role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0 with a proper role")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
       val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val response600 = makePostRequest(request600, write(postCallLimitJsonV600))
@@ -122,11 +122,11 @@ class RateLimitsTest extends V600ServerSetup {
     }
   }
 
-  feature("DELETE Call Limits v6.0.0") {
-    scenario("We will delete a call limit by rate limiting ID", ApiEndpoint2, VersionOfApi) {
+  Feature("DELETE Call Limits v6.0.0") {
+    Scenario("We will delete a call limit by rate limiting ID", ApiEndpoint2, VersionOfApi) {
       Given("We create a call limit first")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
       val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val createResponse = makePostRequest(request600, write(postCallLimitJsonV600))
@@ -142,10 +142,10 @@ class RateLimitsTest extends V600ServerSetup {
       deleteResponse.code should equal(204)
     }
 
-    scenario("We will try to delete without proper role", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to delete without proper role", ApiEndpoint2, VersionOfApi) {
       Given("We create a call limit first")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
       val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val createResponse = makePostRequest(request600, write(postCallLimitJsonV600))
@@ -163,11 +163,11 @@ class RateLimitsTest extends V600ServerSetup {
     }
   }
 
-  feature("GET Active Call Limits at Date v6.0.0") {
-    scenario("We will get active call limits at a specific date", ApiEndpoint3, VersionOfApi) {
+  Feature("GET Active Call Limits at Date v6.0.0") {
+    Scenario("We will get active call limits at a specific date", ApiEndpoint3, VersionOfApi) {
       Given("We create a call limit first")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
       val request600 = (v6_0_0_Request / "management" / "consumers" / consumerId / "consumer" / "rate-limits").POST <@ (user1)
       val createResponse = makePostRequest(request600, write(postCallLimitJsonV600))
@@ -190,10 +190,10 @@ class RateLimitsTest extends V600ServerSetup {
       activeCallLimits.active_per_second_rate_limit should be >= 10L
     }
 
-    scenario("We will try to get active call limits without proper role", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will try to get active call limits without proper role", ApiEndpoint3, VersionOfApi) {
       When("We try to get active call limits without proper role")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       val currentDateString = ZonedDateTime
         .now(ZoneOffset.UTC)
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH"))
@@ -206,11 +206,11 @@ class RateLimitsTest extends V600ServerSetup {
       getResponse.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetRateLimits)
     }
 
-    scenario("We will get aggregated call limits for two overlapping rate limit records", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will get aggregated call limits for two overlapping rate limit records", ApiEndpoint3, VersionOfApi) {
     // NOTE: This test requires use_consumer_limits=true in props file
       Given("We create two call limit records with overlapping date ranges")
       val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId).getOrElse("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
 
       // Create first rate limit record
@@ -280,7 +280,7 @@ class RateLimitsTest extends V600ServerSetup {
   // delete every record they create so that later test classes are not affected.
   // ---------------------------------------------------------------------------------------------
 
-  lazy val consumerId3: String = Consumers.consumers.vend.getConsumerByConsumerKey(consumer3.key).map(_.consumerId.get).getOrElse("")
+  lazy val consumerId3: String = Consumers.consumers.vend.getConsumerByConsumerKey(consumer3.key).map(_.consumerId).getOrElse("")
 
   def callLimitJson(perSecond: String, perMinute: String, perHour: String): CallLimitPostJsonV600 = CallLimitPostJsonV600(
     from_date = new Date(System.currentTimeMillis() - 3600000L), // one hour ago, so the current hour is covered
@@ -317,9 +317,9 @@ class RateLimitsTest extends V600ServerSetup {
 
   def callAsUser3() = makeGetRequest((v6_0_0_Request / "users" / "current").GET <@ (user3))
 
-  feature("Rate limit values v6.0.0: 0 blocks, -1 is unlimited, no record means the system default") {
+  Feature("Rate limit values v6.0.0: 0 blocks, -1 is unlimited, no record means the system default") {
 
-    scenario("A consumer with no rate limit records gets the system defaults", ApiEndpoint4, VersionOfApi) {
+    Scenario("A consumer with no rate limit records gets the system defaults", ApiEndpoint4, VersionOfApi) {
       When("We get the active rate limits of a consumer that has no records")
       val limits = activeLimitsNow(consumerId3)
       Then("No record is considered and every period shows the system default (-1 in the test props)")
@@ -334,7 +334,7 @@ class RateLimitsTest extends V600ServerSetup {
       callAsUser3().code should equal(200)
     }
 
-    scenario("A record with 0 blocks the consumer and deleting it unblocks", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
+    Scenario("A record with 0 blocks the consumer and deleting it unblocks", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
       Given("The consumer can call the API")
       callAsUser3().code should equal(200)
       When("We create a record with 0 per second, per minute and per hour")
@@ -362,7 +362,7 @@ class RateLimitsTest extends V600ServerSetup {
       activeLimitsNow(consumerId3).considered_rate_limit_ids shouldBe empty
     }
 
-    scenario("A 0 record adds nothing to a positive record; it blocks only once the sum is 0", ApiEndpoint4, VersionOfApi) {
+    Scenario("A 0 record adds nothing to a positive record; it blocks only once the sum is 0", ApiEndpoint4, VersionOfApi) {
       Given("A positive record and a record that is 0 per second only")
       val positiveId = createLimit(consumerId3, callLimitJson("10", "100", "1000"))
       val zeroId = createLimit(consumerId3, callLimitJson("0", "-1", "-1"))
@@ -397,7 +397,7 @@ class RateLimitsTest extends V600ServerSetup {
     // and v3.0.0 serves it: seven hops. Every hop that had no doc used to authenticate afresh AND
     // charge one rate-limit unit, so one request cost seven units and a per-minute limit of 2
     // refused the very first request with 429 OBP-10018. A request must cost exactly one unit.
-    scenario("A request served after six version hops costs one rate-limit unit, not one per hop", ApiEndpoint4, VersionOfApi) {
+    Scenario("A request served after six version hops costs one rate-limit unit, not one per hop", ApiEndpoint4, VersionOfApi) {
       Given("A record limiting the consumer to 2 calls per minute, unlimited otherwise")
       // Earlier scenarios in this class called the API as user3 within the same minute, and
       // counters are incremented even under an unlimited record: start this window from zero.
@@ -425,7 +425,7 @@ class RateLimitsTest extends V600ServerSetup {
       }
     }
 
-    scenario("A record with -1 in every period is unlimited, not blocked", ApiEndpoint4, VersionOfApi) {
+    Scenario("A record with -1 in every period is unlimited, not blocked", ApiEndpoint4, VersionOfApi) {
       Given("A record with -1 everywhere")
       val id = createLimit(consumerId3, callLimitJson("-1", "-1", "-1"))
       try {
@@ -490,9 +490,9 @@ class RateLimitsTest extends V600ServerSetup {
   def requestFor(c: FallthroughCase): OBPReq =
     c.path.foldLeft(baseRequest / "obp" / c.requestVersion)(_ / _).GET <@ (user3)
 
-  feature("A rate limit applies to the consumer from its from_date to its to_date, as set") {
+  Feature("A rate limit applies to the consumer from its from_date to its to_date, as set") {
 
-    scenario("A rate limit whose to_date has passed is not active, even within the same hour", ApiEndpoint4, VersionOfApi) {
+    Scenario("A rate limit whose to_date has passed is not active, even within the same hour", ApiEndpoint4, VersionOfApi) {
       // The row must end after the start of the current UTC hour, or it would not be active under the hour rule either.
       val now = System.currentTimeMillis()
       assume(now % 3600000L > 5000L, "the hour has only just begun")
@@ -505,7 +505,7 @@ class RateLimitsTest extends V600ServerSetup {
       } finally deleteLimit(consumerId3, id)
     }
 
-    scenario("A rate limit whose from_date has not come yet is not active", ApiEndpoint4, VersionOfApi) {
+    Scenario("A rate limit whose from_date has not come yet is not active", ApiEndpoint4, VersionOfApi) {
       val now = System.currentTimeMillis()
       // A minute ahead, so a slow run cannot reach from_date before the checks; still within the current hour.
       assume(now % 3600000L < 3600000L - 70000L, "the hour is about to end")
@@ -516,7 +516,7 @@ class RateLimitsTest extends V600ServerSetup {
       } finally deleteLimit(consumerId3, id)
     }
 
-    scenario("The report for an hour still lists a limit that ended within that hour", ApiEndpoint3, VersionOfApi) {
+    Scenario("The report for an hour still lists a limit that ended within that hour", ApiEndpoint3, VersionOfApi) {
       val now = System.currentTimeMillis()
       assume(now % 3600000L > 5000L, "the hour has only just begun")
       val toDate = new Date(now - 2000L)
@@ -531,7 +531,7 @@ class RateLimitsTest extends V600ServerSetup {
       } finally deleteLimit(consumerId3, id)
     }
 
-    scenario("A rate limit that names an api_name, api_version or bank_id is refused, as those are not enforced", ApiEndpoint4, VersionOfApi) {
+    Scenario("A rate limit that names an api_name, api_version or bank_id is refused, as those are not enforced", ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
       val scoped = Map(
         "api_name" -> callLimitJson("0", "0", "0").copy(api_name = Some("getBank")),
@@ -561,7 +561,7 @@ class RateLimitsTest extends V600ServerSetup {
       callAsUser3().code should equal(200)
     }
 
-    scenario("The example request body in the documentation is accepted", ApiEndpoint4, VersionOfApi) {
+    Scenario("The example request body in the documentation is accepted", ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
       val created = makePostRequest(
         (v6_0_0_Request / "management" / "consumers" / consumerId3 / "consumer" / "rate-limits").POST <@ (user1),
@@ -570,7 +570,7 @@ class RateLimitsTest extends V600ServerSetup {
       finally if (created.code == 201) deleteLimit(consumerId3, created.body.extract[CallLimitJsonV600].rate_limiting_id)
     }
 
-    scenario("Updating a rate limit that an API Product Subscription wrote keeps the subscription's bank_id", ApiEndpoint4, VersionOfApi) {
+    Scenario("Updating a rate limit that an API Product Subscription wrote keeps the subscription's bank_id", ApiEndpoint4, VersionOfApi) {
       // As ApiProductSubscriptionEnforcer writes it.
       val written = scala.concurrent.Await.result(RateLimitingDI.rateLimiting.vend.createConsumerCallLimits(
         consumerId3, new Date(), new Date(System.currentTimeMillis() + 86400000L), None, None, Some("subscription-bank"),
@@ -588,7 +588,7 @@ class RateLimitsTest extends V600ServerSetup {
       } finally deleteLimit(consumerId3, written.rateLimitingId)
     }
 
-    scenario("An empty api_name, api_version or bank_id names nothing, and is stored as not set", ApiEndpoint4, VersionOfApi) {
+    Scenario("An empty api_name, api_version or bank_id names nothing, and is stored as not set", ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateRateLimits.toString)
       val created = makePostRequest(
         (v6_0_0_Request / "management" / "consumers" / consumerId3 / "consumer" / "rate-limits").POST <@ (user1),
@@ -600,9 +600,9 @@ class RateLimitsTest extends V600ServerSetup {
     }
   }
 
-  feature("Rate limiting counts one unit per request, whichever version prefix it arrives at and however many hops it crosses") {
+  Feature("Rate limiting counts one unit per request, whichever version prefix it arrives at and however many hops it crosses") {
     fallthroughCases.foreach { c =>
-      scenario(s"GET /obp/${c.requestVersion}/${c.path.mkString("/")} is served by ${c.servedBy}, and costs one unit", ApiEndpoint4, VersionOfApi) {
+      Scenario(s"GET /obp/${c.requestVersion}/${c.path.mkString("/")} is served by ${c.servedBy}, and costs one unit", ApiEndpoint4, VersionOfApi) {
         Given("no rate limit record for the consumer, and its call counters at zero")
         activeLimitsNow(consumerId3).considered_rate_limit_ids shouldBe empty // made by user1, so not counted for consumer3
         resetCallCounters(consumerId3)
@@ -625,7 +625,7 @@ class RateLimitsTest extends V600ServerSetup {
       }
     }
 
-    scenario("X-Rate-Limit headers describe the shortest LIMITED period, not merely the shortest counted one", ApiEndpoint4, VersionOfApi) {
+    Scenario("X-Rate-Limit headers describe the shortest LIMITED period, not merely the shortest counted one", ApiEndpoint4, VersionOfApi) {
       Given("A record with per second unlimited, 100 per minute and 1000 per hour, and counters at zero")
       // Every period is counted, so the per-second counter is live too; the headers must skip it
       // because it has no limit, and describe the per-minute limit.
@@ -651,7 +651,7 @@ class RateLimitsTest extends V600ServerSetup {
     // v4.0.0/users/current: nine groups pass it on, then two bridges, then v3.0.0 serves it. It is the
     // deepest NEW-style target: the old-style versions (v2.0.0 and below) report a refused call as
     // 400 rather than 429 (ResourceDocMiddleware.authenticate keeps Lift's old-style status codes).
-    scenario("A per-minute limit of 2 is enforced once per request deep in the chain (v4.0.0/users/current, served by v3.0.0)", ApiEndpoint4, VersionOfApi) {
+    Scenario("A per-minute limit of 2 is enforced once per request deep in the chain (v4.0.0/users/current, served by v3.0.0)", ApiEndpoint4, VersionOfApi) {
       Given("A record limiting the consumer to 2 calls per minute, unlimited otherwise, and counters at zero")
       resetCallCounters(consumerId3)
       val id = createLimit(consumerId3, callLimitJson("-1", "2", "-1"))

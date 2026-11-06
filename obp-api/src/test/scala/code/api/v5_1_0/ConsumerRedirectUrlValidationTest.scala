@@ -146,7 +146,7 @@ class ConsumerRedirectUrlValidationTest extends V510ServerSetup {
 
     scenario("v2.1.0 updateConsumerRedirectUrl") {
       val consumerId = createConsumerOwnedByUser1("https://app.example.com/cb")
-      val primaryId = Consumers.consumers.vend.getConsumerByConsumerId(consumerId).map(_.id.get).openOrThrowException("consumer just created")
+      val primaryId = Consumers.consumers.vend.getConsumerByConsumerId(consumerId).map(_.id).openOrThrowException("consumer just created")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateConsumerRedirectUrl.toString)
       shouldBeRejected(makePutRequest((v2_1_0 / "management" / "consumers" / primaryId.toString / "consumer" / "redirect_url").PUT <@ (user1),
         write(ConsumerRedirectUrlJSON(badRedirectUrl))))
@@ -158,9 +158,15 @@ class ConsumerRedirectUrlValidationTest extends V510ServerSetup {
     scenario("getOidcClient returns only the allowed entries of a redirect URL saved before the rules existed") {
       // Saved without validation, as a Consumer written before the redirect URL rules existed would be.
       val key = randomString(40).toLowerCase
-      Consumer.create.key(key).secret(randomString(40).toLowerCase).name("legacy-" + randomString(8))
-        .description("legacy").isActive(true)
-        .redirectURL("https://app.example.com/cb,javascript:alert(1) http://public.example.com/cb").saveMe()
+      Consumers.consumers.vend.createConsumer(
+        Some(key), Some(randomString(40).toLowerCase), Some(true), Some("legacy-" + randomString(8)), None,
+        Some("legacy"), Some("legacy@example.com"), None, None, None, None, None).openOrThrowException("consumer not created")
+      {
+        import doobie.implicits._
+        val legacyRedirectUrl = "https://app.example.com/cb,javascript:alert(1) http://public.example.com/cb"
+        code.api.util.DoobieUtil.runUpdate(
+          sql"UPDATE consumer SET redirecturl = $legacyRedirectUrl WHERE key_c = $key".update.run)
+      }
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetOidcClient.toString)
       val response = makeGetRequest((v6_0_0 / "oidc" / "clients" / key).GET <@ (user1))

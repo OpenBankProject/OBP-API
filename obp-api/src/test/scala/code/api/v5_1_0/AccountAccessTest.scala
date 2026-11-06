@@ -86,8 +86,8 @@ class AccountAccessTest extends V510ServerSetup {
 
   
 
-  feature(s"test ${GetAccountAccessByUserId.name}") {
-    scenario(s"We will test ${GetAccountAccessByUserId.name}", GetAccountAccessByUserId, VersionOfApi) {
+  Feature(s"test ${GetAccountAccessByUserId.name}") {
+    Scenario(s"We will test ${GetAccountAccessByUserId.name}", GetAccountAccessByUserId, VersionOfApi) {
 
       val requestGet = (v5_1_0_Request / "users" / resourceUser2.userId / "account-access").GET
 
@@ -112,9 +112,9 @@ class AccountAccessTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1  Authorized access") {
+  Feature(s"test $ApiEndpoint1  Authorized access") {
     
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id /"views" / ownerView /"account-access" / "grant").POST
       val response510 = makePostRequest(request510, write(postAccountAccessJson))
@@ -123,7 +123,7 @@ class AccountAccessTest extends V510ServerSetup {
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     
-    scenario("We will call the endpoint with user credentials and system view, but try to grant custom view access", VersionOfApi, ApiEndpoint1) {
+    Scenario("We will call the endpoint with user credentials and system view, but try to grant custom view access", VersionOfApi, ApiEndpoint1) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -141,7 +141,7 @@ class AccountAccessTest extends V510ServerSetup {
       response.body.toString.contains(UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount) should be (true)
     }
     
-    scenario("We will call the endpoint with user credentials and managerCustomView view, but try to grant system view access", VersionOfApi, ApiEndpoint1) {
+    Scenario("We will call the endpoint with user credentials and managerCustomView view, but try to grant system view access", VersionOfApi, ApiEndpoint1) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -158,7 +158,7 @@ class AccountAccessTest extends V510ServerSetup {
       response.body.toString.contains(UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount) should be (true)
     }
     
-    scenario("We will call the endpoint with user credentials and system view permission", VersionOfApi, ApiEndpoint1) {
+    Scenario("We will call the endpoint with user credentials and system view permission", VersionOfApi, ApiEndpoint1) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -175,7 +175,7 @@ class AccountAccessTest extends V510ServerSetup {
       response.body.extract[ViewJsonV300]
     }
     
-    scenario("We will call the endpoint with user credentials and custom view permission", VersionOfApi, ApiEndpoint1) {
+    Scenario("We will call the endpoint with user credentials and custom view permission", VersionOfApi, ApiEndpoint1) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -194,9 +194,9 @@ class AccountAccessTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2  Authorized access") {
+  Feature(s"test $ApiEndpoint2  Authorized access") {
     
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id /"views" / ownerView /"account-access" / "revoke").POST
       val response510 = makePostRequest(request510, write(postAccountAccessJson))
@@ -205,7 +205,7 @@ class AccountAccessTest extends V510ServerSetup {
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     
-    scenario("We will call the endpoint with user credentials and system view, but try to grant custom view access", VersionOfApi, ApiEndpoint1) {
+    Scenario("We will call the endpoint with user credentials and system view, but try to grant custom view access", VersionOfApi, ApiEndpoint1) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -223,7 +223,7 @@ class AccountAccessTest extends V510ServerSetup {
       response.body.toString.contains(UserLacksPermissionCanRevokeAccessToCustomViewForTargetAccount) should be (true)
     }
     
-    scenario("We will call the endpoint with user credentials and managerCustomView view, but try to revoke system view access", VersionOfApi, ApiEndpoint1) {
+    Scenario("We will call the endpoint with user credentials and managerCustomView view, but try to revoke system view access", VersionOfApi, ApiEndpoint1) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -240,7 +240,7 @@ class AccountAccessTest extends V510ServerSetup {
       response.body.toString.contains(UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount) should be (true)
     }
     
-    scenario("We will call the endpoint with user credentials and system view permission", VersionOfApi, ApiEndpoint1) {
+    Scenario("We will call the endpoint with user credentials and system view permission", VersionOfApi, ApiEndpoint1) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -265,7 +265,7 @@ class AccountAccessTest extends V510ServerSetup {
       response.body.extract[RevokedJsonV400].revoked should be (true)
     }
     
-    scenario("A user cannot revoke their own access", VersionOfApi, ApiEndpoint2) {
+    Scenario("A user cannot revoke their own access", VersionOfApi, ApiEndpoint2) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -282,7 +282,7 @@ class AccountAccessTest extends V510ServerSetup {
       response.body.extract[ErrorMessage].message should include(CannotRevokeOwnAccountAccess)
     }
 
-    scenario("We will call the endpoint with user credentials and custom view permission", VersionOfApi, ApiEndpoint1) {
+    Scenario("We will call the endpoint with user credentials and custom view permission", VersionOfApi, ApiEndpoint1) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -309,9 +309,9 @@ class AccountAccessTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint3  Authorized access") {
+  Feature(s"test $ApiEndpoint3  Authorized access") {
     
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request510 = (v5_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id /"views" / ownerView /"user-account-access").POST
       val response510 = makePostRequest(request510, write(postAccountAccessJson))
@@ -320,7 +320,7 @@ class AccountAccessTest extends V510ServerSetup {
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
     
-    scenario("We will call the endpoint with user credentials and system view, but try to grant custom view access", VersionOfApi, ApiEndpoint1) {
+    Scenario("We will call the endpoint with user credentials and system view, but try to grant custom view access", VersionOfApi, ApiEndpoint1) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -339,7 +339,7 @@ class AccountAccessTest extends V510ServerSetup {
       response.body.toString.contains(UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount) should be (true)
     }
     
-    scenario("We will call the endpoint with user credentials and managerCustomView view, but try to grant system view access", VersionOfApi, ApiEndpoint1) {
+    Scenario("We will call the endpoint with user credentials and managerCustomView view, but try to grant system view access", VersionOfApi, ApiEndpoint1) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -356,7 +356,7 @@ class AccountAccessTest extends V510ServerSetup {
       response.body.toString.contains(UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount) should be (true)
     }
     
-    scenario("We will call the endpoint with user credentials and system view permission", VersionOfApi, ApiEndpoint1) {
+    Scenario("We will call the endpoint with user credentials and system view permission", VersionOfApi, ApiEndpoint1) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -373,7 +373,7 @@ class AccountAccessTest extends V510ServerSetup {
       response.body.extract[ViewJsonV300]
     }
     
-    scenario("We will call the endpoint with user credentials and custom view permission", VersionOfApi, ApiEndpoint1) {
+    Scenario("We will call the endpoint with user credentials and custom view permission", VersionOfApi, ApiEndpoint1) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)

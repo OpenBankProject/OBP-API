@@ -35,13 +35,14 @@ import code.api.util.ApiRole.{CanCreateFileAtOneBank, CanCreatePublicFileAtOneBa
 import code.api.util.ErrorMessages._
 import code.api.v6_0_0.V600ServerSetup
 import code.entitlement.Entitlement
+import code.api.util.DoobieUtil
 import code.model.dataAccess.SelfServiceBank
-import net.liftweb.mapper.By
 import code.scope.Scope
 import code.setup.{APIResponse, OBPReq}
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.native.Serialization.write
+import org.json4s.{jvalue2extractable, jvalue2monadic}
 import org.scalatest.Tag
 
 /**
@@ -101,6 +102,13 @@ class FilesTest extends V600ServerSetup {
 
   private def message(response: APIResponse): String = response.body.extract[ErrorMessage].message
 
+  /** Takes the bank out of the self-service record again; the store has no delete of one bank. */
+  private def forgetSelfServiceBank(bank: String): Unit = {
+    import doobie.implicits._
+    DoobieUtil.runUpdate(sql"DELETE FROM selfservicebank WHERE bankid = $bank".update.run)
+    ()
+  }
+
   feature(s"Create File - POST /banks/BANK_ID/files - $VersionOfApi") {
 
     scenario("Anonymous access fails with 401", Files, VersionOfApi) {
@@ -128,7 +136,7 @@ class FilesTest extends V600ServerSetup {
       uploaded().scan_status should equal("clean")
       SelfServiceBank.record(bankId, resourceUser1.userId)
       try uploaded().scan_status should equal("pending")
-      finally SelfServiceBank.findAll(By(SelfServiceBank.BankId, bankId)).foreach(_.delete_!)
+      finally forgetSelfServiceBank(bankId)
     }
 
     scenario("The Role at another bank does not cover this bank, and there is no any-bank Role", Files, VersionOfApi) {
@@ -191,12 +199,12 @@ class FilesTest extends V600ServerSetup {
     }
 
     scenario("A Consumer holding the Role as a Scope stores a file as itself, owned by its own User", Files, VersionOfApi) {
-      val scope = Scope.scope.vend.addScope(bankId, testConsumer2.id.get.toString, CanCreateFileAtOneBank.toString)
+      val scope = Scope.scope.vend.addScope(bankId, testConsumer2.id.toString, CanCreateFileAtOneBank.toString)
       try {
         makePostRequest(files().POST <@ (user2), body()).code should equal(403)
         val response = makePostRequest(files().POST <@ (application2), body())
         response.code should equal(201)
-        val ownUser = code.model.UserX.findByProviderId(code.api.OAuth2Login.OBPOIDC.clientCredentialsProvider, testConsumer2.key.get)
+        val ownUser = code.model.UserX.findByProviderId(code.api.OAuth2Login.OBPOIDC.clientCredentialsProvider, testConsumer2.key)
           .map(_.userId).openOrThrowException("own User")
         response.body.extract[FileJsonV700].owner_user_id should equal(ownUser)
       } finally Scope.scope.vend.deleteScope(scope)

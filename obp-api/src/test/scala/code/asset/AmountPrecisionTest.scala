@@ -1,6 +1,8 @@
 package code.asset
 
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * This class tests AmountPrecision, which finds an amount in a request that has more decimal places
@@ -10,7 +12,7 @@ import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
  * Everything here is a pure function call with no database, so the currencies' decimal places come
  * from the built-in list (EUR 2, JPY 0, KWD 3).
  */
-class AmountPrecisionTest extends FeatureSpec with Matchers with GivenWhenThen {
+class AmountPrecisionTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   feature("Counting decimal places") {
 

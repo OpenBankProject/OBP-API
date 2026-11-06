@@ -3,7 +3,8 @@ package code.util
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.{Level, Logger => LogbackLogger}
 import ch.qos.logback.core.AppenderBase
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -17,7 +18,7 @@ import java.util.concurrent.{CopyOnWriteArrayList, TimeUnit}
  * SecureLogging.maskCalls counts for the whole JVM, and other threads may log while this runs,
  * so the skipped-level check allows a small amount of unrelated masking.
  */
-class LoggingCostBudgetTest extends FlatSpec with Matchers {
+class LoggingCostBudgetTest extends AnyFlatSpec with Matchers {
 
   private object Probe extends Helper.MdcLoggable {
     def debug(msg: => AnyRef): Unit = logger.debug(msg)

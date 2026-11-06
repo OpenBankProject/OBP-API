@@ -29,6 +29,8 @@ package code.api.berlin.group.v1_3
 
 import org.json4s._
 import code.api.Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{AuthorisationJsonV13, ErrorMessagesBG, InitiatePaymentResponseJson, PostSigningBasketJsonV13, SigningBasketGetResponseJson, SigningBasketResponseJson}
 import code.api.berlin.group.v1_3.model.TransactionStatus
@@ -36,18 +38,19 @@ import code.api.berlin.group.v1_3.{Http4sBGv13SigningBaskets => APIMethods_Signi
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
 import code.model.TokenType
-import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
+import code.model.dataAccess.MappedBankAccount
 import code.setup.APIResponse
 import com.openbankproject.commons.model.User
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketPayment, SigningBasketX}
 import code.token.Tokens
 import code.transactionChallenge.Challenges
 import code.transactionrequests.MappedTransactionRequest
+import code.bankconnectors.{BankAccountRoutingRow, DoobieBankAccountRoutingQueries}
+import code.setup.{APIResponse, DefaultUsers}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ViewId
 import com.openbankproject.commons.model.enums.{AccountRoutingScheme, PaymentServiceTypes, StrongCustomerAuthenticationStatus, TransactionRequestTypes}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.util.TimeHelpers.TimeSpan
 import org.json4s.native.Serialization.write
@@ -87,13 +90,11 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     409 -> Set("REFERENCE_STATUS_INVALID", "STATUS_INVALID")
   )
 
-  private def ibanAccounts = BankAccountRouting
-    .findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+  private def ibanAccounts = DoobieBankAccountRoutingQueries
+    .findAllByScheme(AccountRoutingScheme.IBAN.toString)
     .filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
 
-  private def balanceOf(routing: BankAccountRouting) = MappedBankAccount.find(
-    By(MappedBankAccount.bank, routing.bankId.value),
-    By(MappedBankAccount.theAccountId, routing.accountId.value))
+  private def balanceOf(routing: BankAccountRoutingRow) = MappedBankAccount.find(routing.bankId.value, routing.accountId.value)
     .map(_.balance).openOrThrowException("Can not be empty here")
 
   private def basketsUrl = V1_3_BG / "signing-baskets"
@@ -173,13 +174,13 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId).toOption.map(_.basket.status)
 
   private def storedPaymentStatus(paymentId: String): String =
-    MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, paymentId))
-      .map(_.mStatus.get).openOrThrowException(s"payment $paymentId must exist")
+    MappedTransactionRequest.findByTransactionRequestId(paymentId)
+      .map(_.status).openOrThrowException(s"payment $paymentId must exist")
 
   private def storedChallengeCount(basketId: String): Int =
     Challenges.ChallengeProvider.vend.getChallengesByBasketId(basketId).map(_.size).openOrThrowException("challenges must be readable")
 
-  private def storedBasketCount(): Long = MappedSigningBasket.count()
+  private def storedBasketCount(): Long = MappedSigningBasket.findAll().size.toLong
 
   private def tppCode(response: APIResponse): String = response.body.extract[ErrorMessagesBG].tppMessages.head.code
 
@@ -195,8 +196,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
   private lazy val samePsuUnderSecondConsumer = {
     val token = Tokens.tokens.vend.createToken(
       TokenType.Access,
-      Some(testConsumer2.id.get),
-      Some(resourceUser1.id.get),
+      Some(testConsumer2.id),
+      Some(resourceUser1.id),
       Some(randomString(40).toLowerCase),
       Some(randomString(40).toLowerCase),
       Some(tokenDuration),
@@ -204,11 +205,11 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       Some(new java.util.Date(System.currentTimeMillis())),
       None
     ).openOrThrowException("test token creation failed")
-    Some(consumer2, Token(token.key.get, token.secret.get))
+    Some(consumer2, Token(token.key, token.secret))
   }
 
-  feature(s"test the BG v1.3 - ${createSigningBasket.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, createSigningBasket) {
+  Feature(s"test the BG v1.3 - ${createSigningBasket.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, createSigningBasket) {
       val postJson =
         s"""{
            |  "consentIds": [
@@ -227,8 +228,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"test the BG v1.3 -${createSigningBasket.name}") {
-    scenario("Failed Case - Wrong Json format Body", BerlinGroupV1_3, SBS, createSigningBasket) {
+  Feature(s"test the BG v1.3 -${createSigningBasket.name}") {
+    Scenario("Failed Case - Wrong Json format Body", BerlinGroupV1_3, SBS, createSigningBasket) {
       val wrongFieldNameJson =
         s"""{
            |  "wrongFieldName": [
@@ -247,8 +248,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
    }
 
-  feature(s"test the BG v1.3 -${createSigningBasket.name}") {
-    scenario("Success Case - 201 with real paymentId and response body validation", BerlinGroupV1_3, SBS, createSigningBasket) {
+  Feature(s"test the BG v1.3 -${createSigningBasket.name}") {
+    Scenario("Success Case - 201 with real paymentId and response body validation", BerlinGroupV1_3, SBS, createSigningBasket) {
       val realPaymentId = createRealPaymentId()
       val postJson =
         s"""{
@@ -271,8 +272,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
   }
 
 
-  feature(s"test the BG v1.3 - ${getSigningBasket.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasket) {
+  Feature(s"test the BG v1.3 - ${getSigningBasket.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasket) {
       val requestGet = (V1_3_BG / "signing-baskets" / "basketId").GET
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401 ")
@@ -281,7 +282,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       And("error should be " + error)
       responseGet.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(error)
     }
-    scenario("Success Case - 200 with multiple real paymentIds and payment status validation", BerlinGroupV1_3, SBS, getSigningBasket) {
+    Scenario("Success Case - 200 with multiple real paymentIds and payment status validation", BerlinGroupV1_3, SBS, getSigningBasket) {
       // Create two real payments, then create a basket referencing both
       val paymentId1 = createRealPaymentId()
       val paymentId2 = createRealPaymentId()
@@ -320,8 +321,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"test the BG v1.3 - ${getSigningBasketStatus.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasketStatus) {
+  Feature(s"test the BG v1.3 - ${getSigningBasketStatus.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasketStatus) {
       val requestGet = (V1_3_BG / "signing-baskets" / "basketId" / "status").GET
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401 ")
@@ -332,8 +333,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"test the BG v1.3 - ${deleteSigningBasket.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, deleteSigningBasket) {
+  Feature(s"test the BG v1.3 - ${deleteSigningBasket.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, deleteSigningBasket) {
       val request = (V1_3_BG / "signing-baskets" / "basketId").DELETE
       val response = makeDeleteRequest(request)
       Then("We should get a 401 ")
@@ -344,8 +345,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"test the BG v1.3 - ${startSigningBasketAuthorisation.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+  Feature(s"test the BG v1.3 - ${startSigningBasketAuthorisation.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
       val postJson = s"""{}""".stripMargin
       val request = (V1_3_BG / "signing-baskets" / "basketId" / "authorisations").POST
       val response = makePostRequest(request, postJson)
@@ -357,8 +358,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"test the BG v1.3 - ${getSigningBasketScaStatus.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasketScaStatus) {
+  Feature(s"test the BG v1.3 - ${getSigningBasketScaStatus.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasketScaStatus) {
       val requestGet = (V1_3_BG / "signing-baskets" / "basketId" / "authorisations" / "authorisationId").GET
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401 ")
@@ -369,8 +370,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"test the BG v1.3 - ${getSigningBasketAuthorisation.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasketAuthorisation) {
+  Feature(s"test the BG v1.3 - ${getSigningBasketAuthorisation.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, getSigningBasketAuthorisation) {
       val requestGet = (V1_3_BG / "signing-baskets" / "basketId" / "authorisations").GET
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401 ")
@@ -381,8 +382,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature(s"test the BG v1.3 - ${updateSigningBasketPsuData.name}") {
-    scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+  Feature(s"test the BG v1.3 - ${updateSigningBasketPsuData.name}") {
+    Scenario("Failed Case - Unauthenticated Access", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       val putJson = s"""{"scaAuthenticationData":"123"}""".stripMargin
       val request = (V1_3_BG / "signing-baskets" / "basketId" / "authorisations" / "authorisationId").PUT
       val response = makePutRequest(request, putJson)
@@ -397,8 +398,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
 
   // ───────────────────────── the happy path, with real payments ─────────────────────────
 
-  feature(s"BG v1.3 - $createSigningBasket, $getSigningBasket, $getSigningBasketStatus, $deleteSigningBasket, $startSigningBasketAuthorisation, $getSigningBasketAuthorisation, $getSigningBasketScaStatus, $updateSigningBasketPsuData") {
-    scenario("a basket of real payments is created, read, authorised and its authorisation listed", BerlinGroupV1_3, SBS, createSigningBasket, getSigningBasket, getSigningBasketStatus, startSigningBasketAuthorisation, getSigningBasketAuthorisation, getSigningBasketScaStatus, updateSigningBasketPsuData) {
+  Feature(s"BG v1.3 - $createSigningBasket, $getSigningBasket, $getSigningBasketStatus, $deleteSigningBasket, $startSigningBasketAuthorisation, $getSigningBasketAuthorisation, $getSigningBasketScaStatus, $updateSigningBasketPsuData") {
+    Scenario("a basket of real payments is created, read, authorised and its authorisation listed", BerlinGroupV1_3, SBS, createSigningBasket, getSigningBasket, getSigningBasketStatus, startSigningBasketAuthorisation, getSigningBasketAuthorisation, getSigningBasketScaStatus, updateSigningBasketPsuData) {
       val started = startedBasket(paymentCount = 2)
 
       Then(s"We test the $getSigningBasket")
@@ -425,8 +426,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
 
   // ───────────────────────── response shape: C1, C2, C3, C12 ─────────────────────────
 
-  feature("BG v1.3 signing baskets - response shape follows the standard") {
-    scenario("C1: transactionStatus is upper case in every response that carries it (L4497-4518)", BerlinGroupV1_3, SBS, createSigningBasket, getSigningBasket, getSigningBasketStatus) {
+  Feature("BG v1.3 signing baskets - response shape follows the standard") {
+    Scenario("C1: transactionStatus is upper case in every response that carries it (L4497-4518)", BerlinGroupV1_3, SBS, createSigningBasket, getSigningBasket, getSigningBasketStatus) {
       val response = postBasket(s"""{"paymentIds":${idList(List(lodgePayment()))}}""")
       response.code should equal(201)
       (response.body \ "transactionStatus").extract[String] should equal("RCVD")
@@ -436,7 +437,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       (makeGetRequest((basketUrl(basketId) / "status").GET <@ (user1)).body \ "transactionStatus").extract[String] should equal("RCVD")
     }
 
-    scenario("C2: _links.scaStatus of a started authorisation is a {href} object (L4801, L10752)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+    Scenario("C2: _links.scaStatus of a started authorisation is a {href} object (L4801, L10752)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
       // a challenge the user can be sent: with the default SMS and no linked customer there is no one to send it to
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val basketId = createBasket(List(lodgePayment()))
@@ -447,7 +448,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       (response.body \ "_links" \ "scaStatus" \ "href").extract[String] should endWith(s"/signing-baskets/$basketId/authorisations/$authorisationId")
     }
 
-    scenario("C3: the answer to an authorisation links to the basket's authorisation, not to a payment (L8828, L15675)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+    Scenario("C3: the answer to an authorisation links to the basket's authorisation, not to a payment (L8828, L15675)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       val started = startedBasket()
       val response = answerAuthorisation(started.basketId, started.authorisationId)
       response.code should equal(200)
@@ -460,8 +461,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
 
   // ───────────────────────── request validation: C5, C7 ─────────────────────────
 
-  feature("BG v1.3 signing baskets - requests are validated against the schema") {
-    scenario("C5: an empty id list is refused, whichever list it is (L4325, L4365; body 'shall contain at least one entry' L4742)", BerlinGroupV1_3, SBS, createSigningBasket) {
+  Feature("BG v1.3 signing baskets - requests are validated against the schema") {
+    Scenario("C5: an empty id list is refused, whichever list it is (L4325, L4365; body 'shall contain at least one entry' L4742)", BerlinGroupV1_3, SBS, createSigningBasket) {
       val payment = lodgePayment()
       val basketsBefore = storedBasketCount()
       List(
@@ -475,26 +476,26 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       withClue("a refused request leaves no basket behind: ") { storedBasketCount() should equal(basketsBefore) }
     }
 
-    scenario("C5: the same id twice in one list is refused (the standard sets no rule; refused as a format error)", BerlinGroupV1_3, SBS, createSigningBasket) {
+    Scenario("C5: the same id twice in one list is refused (the standard sets no rule; refused as a format error)", BerlinGroupV1_3, SBS, createSigningBasket) {
       val payment = lodgePayment()
       expectRefusal(postBasket(s"""{"paymentIds":${idList(List(payment, payment))}}"""), 400, "FORMAT_ERROR", "duplicate payment id")
     }
 
-    scenario("C7: POST authorisations refuses the body variants it does not support instead of discarding them (L3653)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+    Scenario("C7: POST authorisations refuses the body variants it does not support instead of discarding them (L3653)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
       val basketId = createBasket(List(lodgePayment()))
       expectRefusal(startAuthorisation(basketId, body = """{"psuData":{"password":"secret"}}"""), 400, "SERVICE_INVALID", "updatePsuAuthentication")
       expectRefusal(startAuthorisation(basketId, body = """{"authenticationMethodId":"sms"}"""), 400, "SERVICE_INVALID", "selectPsuAuthenticationMethod")
       withClue("neither refused request minted a challenge: ") { storedChallengeCount(basketId) should equal(0) }
     }
 
-    scenario("C7: POST authorisations accepts the two variants it supports (L3653)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
+    Scenario("C7: POST authorisations accepts the two variants it supports (L3653)", BerlinGroupV1_3, SBS, startSigningBasketAuthorisation) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
       val basketId = createBasket(List(lodgePayment()))
       startAuthorisation(basketId, body = "{}").code should equal(201)
       startAuthorisation(basketId, body = """{"scaAuthenticationData":"123"}""").code should equal(201)
     }
 
-    scenario("C7: PUT refuses the variants it does not support, and a body matching no variant is a format error (L3867, L8250-8300)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+    Scenario("C7: PUT refuses the variants it does not support, and a body matching no variant is a format error (L3867, L8250-8300)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       val started = startedBasket()
       expectRefusal(answerAuthorisation(started.basketId, started.authorisationId, body = """{"confirmationCode":"123"}"""), 400, "SERVICE_INVALID", "authorisationConfirmation")
       expectRefusal(answerAuthorisation(started.basketId, started.authorisationId, body = """{"psuData":{"password":"x"}}"""), 400, "SERVICE_INVALID", "updatePsuAuthentication")
@@ -508,8 +509,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
 
   // ───────────────────────── states and transitions: C6, C9, C10 ─────────────────────────
 
-  feature("BG v1.3 signing baskets - a basket only moves along the transitions the standard and this ASPSP allow") {
-    scenario("C9: a deleted basket cannot be authorised, and nothing it held is touched (L3399-3403)", BerlinGroupV1_3, SBS, deleteSigningBasket, startSigningBasketAuthorisation, updateSigningBasketPsuData) {
+  Feature("BG v1.3 signing baskets - a basket only moves along the transitions the standard and this ASPSP allow") {
+    Scenario("C9: a deleted basket cannot be authorised, and nothing it held is touched (L3399-3403)", BerlinGroupV1_3, SBS, deleteSigningBasket, startSigningBasketAuthorisation, updateSigningBasketPsuData) {
       val started = startedBasket()
       makeDeleteRequest(basketUrl(started.basketId).DELETE <@ (user1)).code should equal(204)
       storedBasketStatus(started.basketId) should equal(Some("CANC"))
@@ -525,7 +526,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       }
     }
 
-    scenario("C6: a basket whose authorisation has been applied cannot be deleted or restarted (L3399-3403)", BerlinGroupV1_3, SBS, deleteSigningBasket, startSigningBasketAuthorisation, updateSigningBasketPsuData) {
+    Scenario("C6: a basket whose authorisation has been applied cannot be deleted or restarted (L3399-3403)", BerlinGroupV1_3, SBS, deleteSigningBasket, startSigningBasketAuthorisation, updateSigningBasketPsuData) {
       val started = startedBasket()
       answerAuthorisation(started.basketId, started.authorisationId).code should equal(200)
       storedBasketStatus(started.basketId) should equal(Some("ACTC"))
@@ -535,13 +536,13 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       withClue("the basket is still ACTC, not CANC: ") { storedBasketStatus(started.basketId) should equal(Some("ACTC")) }
     }
 
-    scenario("C6: a started but unanswered authorisation does not stop a delete (L3399-3403)", BerlinGroupV1_3, SBS, deleteSigningBasket) {
+    Scenario("C6: a started but unanswered authorisation does not stop a delete (L3399-3403)", BerlinGroupV1_3, SBS, deleteSigningBasket) {
       val started = startedBasket()
       makeDeleteRequest(basketUrl(started.basketId).DELETE <@ (user1)).code should equal(204)
       storedBasketStatus(started.basketId) should equal(Some("CANC"))
     }
 
-    scenario("C9: answering the same authorisation twice is a conflict and does not repeat anything", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+    Scenario("C9: answering the same authorisation twice is a conflict and does not repeat anything", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       val started = startedBasket()
       answerAuthorisation(started.basketId, started.authorisationId).code should equal(200)
       expectRefusal(answerAuthorisation(started.basketId, started.authorisationId), 409, "STATUS_INVALID", "the repeated answer")
@@ -552,8 +553,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
 
   // ───────────────────────── unknown resources: C4, C8, C11 ─────────────────────────
 
-  feature("BG v1.3 signing baskets - unknown resources are refused with codes the standard allows") {
-    scenario("C8/D1: an unknown basket is answered 403 RESOURCE_UNKNOWN by every operation that names one (L11648, L11680)", BerlinGroupV1_3, SBS, getSigningBasket, getSigningBasketStatus, deleteSigningBasket, getSigningBasketAuthorisation, startSigningBasketAuthorisation, getSigningBasketScaStatus, updateSigningBasketPsuData) {
+  Feature("BG v1.3 signing baskets - unknown resources are refused with codes the standard allows") {
+    Scenario("C8/D1: an unknown basket is answered 403 RESOURCE_UNKNOWN by every operation that names one (L11648, L11680)", BerlinGroupV1_3, SBS, getSigningBasket, getSigningBasketStatus, deleteSigningBasket, getSigningBasketAuthorisation, startSigningBasketAuthorisation, getSigningBasketScaStatus, updateSigningBasketPsuData) {
       enableBasketAuthorisation()
       val unknown = UUID.randomUUID().toString
       val unknownAuthorisation = UUID.randomUUID().toString
@@ -572,7 +573,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       }
     }
 
-    scenario("C4: an authorisation id the basket does not have is 404 RESOURCE_UNKNOWN, never a 200 with a made-up scaStatus (L4521, L11680)", BerlinGroupV1_3, SBS, getSigningBasketScaStatus, updateSigningBasketPsuData) {
+    Scenario("C4: an authorisation id the basket does not have is 404 RESOURCE_UNKNOWN, never a 200 with a made-up scaStatus (L4521, L11680)", BerlinGroupV1_3, SBS, getSigningBasketScaStatus, updateSigningBasketPsuData) {
       val started = startedBasket()
       val other = startedBasket()
       expectRefusal(makeGetRequest(authorisationUrl(started.basketId, UUID.randomUUID().toString).GET <@ (user1)), 404, "RESOURCE_UNKNOWN", "an id nobody issued")
@@ -580,7 +581,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       expectRefusal(answerAuthorisation(started.basketId, other.authorisationId), 404, "RESOURCE_UNKNOWN", "answering an id issued for another basket")
     }
 
-    scenario("C11: a refused creation uses codes from the standard's lists (L11514, L11744, IG §14.11.5)", BerlinGroupV1_3, SBS, createSigningBasket) {
+    Scenario("C11: a refused creation uses codes from the standard's lists (L11514, L11744, IG §14.11.5)", BerlinGroupV1_3, SBS, createSigningBasket) {
       val invented = UUID.randomUUID().toString
       expectRefusal(postBasket(s"""{"paymentIds":${idList(List(invented))}}"""), 400, "RESOURCE_UNKNOWN", "invented payment id")
       expectRefusal(postBasket("""{"wrongFieldName":["x"]}"""), 400, "FORMAT_ERROR", "unknown field")
@@ -589,8 +590,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
 
   // ───────────────────────── ownership: S1 ─────────────────────────
 
-  feature("BG v1.3 signing baskets - a basket belongs to the TPP that created it") {
-    scenario("S1: a second TPP is refused on every operation, and nothing about the basket changes (IG §4.11)", BerlinGroupV1_3, SBS, getSigningBasket, getSigningBasketStatus, deleteSigningBasket, getSigningBasketAuthorisation, startSigningBasketAuthorisation, getSigningBasketScaStatus, updateSigningBasketPsuData) {
+  Feature("BG v1.3 signing baskets - a basket belongs to the TPP that created it") {
+    Scenario("S1: a second TPP is refused on every operation, and nothing about the basket changes (IG §4.11)", BerlinGroupV1_3, SBS, getSigningBasket, getSigningBasketStatus, deleteSigningBasket, getSigningBasketAuthorisation, startSigningBasketAuthorisation, getSigningBasketScaStatus, updateSigningBasketPsuData) {
       val started = startedBasket()
       val challengesBefore = storedChallengeCount(started.basketId)
 
@@ -613,18 +614,18 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       makeGetRequest((basketUrl(started.basketId) / "status").GET <@ (user1)).code should equal(200)
     }
 
-    scenario("S1: the same PSU acting through a second TPP is refused too (IG §4.11)", BerlinGroupV1_3, SBS, getSigningBasketStatus, deleteSigningBasket) {
+    Scenario("S1: the same PSU acting through a second TPP is refused too (IG §4.11)", BerlinGroupV1_3, SBS, getSigningBasketStatus, deleteSigningBasket) {
       val basketId = createBasket(List(lodgePayment()))
       expectRefusal(makeGetRequest((basketUrl(basketId) / "status").GET <@ (samePsuUnderSecondConsumer)), 403, "RESOURCE_UNKNOWN", "status read")
       expectRefusal(makeDeleteRequest(basketUrl(basketId).DELETE <@ (samePsuUnderSecondConsumer)), 403, "RESOURCE_UNKNOWN", "delete")
       storedBasketStatus(basketId) should equal(Some("RCVD"))
     }
 
-    scenario("S1: a basket created before ownership was recorded is quarantined, for everybody", BerlinGroupV1_3, SBS, getSigningBasket, deleteSigningBasket, startSigningBasketAuthorisation) {
+    Scenario("S1: a basket created before ownership was recorded is quarantined, for everybody", BerlinGroupV1_3, SBS, getSigningBasket, deleteSigningBasket, startSigningBasketAuthorisation) {
       // The shape every basket had before ownership existed: a status, members, and no consumer or PSU.
       val payment = lodgePayment()
-      val legacy = MappedSigningBasket.create.Status("RCVD").saveMe()
-      MappedSigningBasketPayment.create.BasketId(legacy.basketId).PaymentId(payment).saveMe()
+      val legacy = MappedSigningBasket.insert("RCVD", consumerId = null)
+      MappedSigningBasketPayment.insert(legacy.basketId, payment)
 
       List(
         "GET basket" -> makeGetRequest(basketUrl(legacy.basketId).GET <@ (user1)),
@@ -638,21 +639,21 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature("BG v1.3 signing baskets - a basket only takes members the caller may authorise") {
-    scenario("S5: consents cannot be put in a basket yet, and no basket is left behind", BerlinGroupV1_3, SBS, createSigningBasket) {
+  Feature("BG v1.3 signing baskets - a basket only takes members the caller may authorise") {
+    Scenario("S5: consents cannot be put in a basket yet, and no basket is left behind", BerlinGroupV1_3, SBS, createSigningBasket) {
       val basketsBefore = storedBasketCount()
       expectRefusal(postBasket(s"""{"consentIds":${idList(List("123qwert456789"))}}"""), 400, "SERVICE_INVALID", "a basket of a consent")
       expectRefusal(postBasket(s"""{"paymentIds":${idList(List(lodgePayment()))},"consentIds":${idList(List("123qwert456789"))}}"""), 400, "SERVICE_INVALID", "a basket of a payment and a consent")
       storedBasketCount() should equal(basketsBefore)
     }
 
-    scenario("S5: an id that names no payment is refused, and no basket is left behind", BerlinGroupV1_3, SBS, createSigningBasket) {
+    Scenario("S5: an id that names no payment is refused, and no basket is left behind", BerlinGroupV1_3, SBS, createSigningBasket) {
       val basketsBefore = storedBasketCount()
       expectRefusal(postBasket(s"""{"paymentIds":${idList(List("123qwert456789", "12345qwert7899"))}}"""), 400, "RESOURCE_UNKNOWN", "invented payment ids")
       storedBasketCount() should equal(basketsBefore)
     }
 
-    scenario("S5: a payment another TPP lodged looks exactly like one that does not exist", BerlinGroupV1_3, SBS, createSigningBasket) {
+    Scenario("S5: a payment another TPP lodged looks exactly like one that does not exist", BerlinGroupV1_3, SBS, createSigningBasket) {
       val payment = lodgePayment() // lodged by user1
       val basketsBefore = storedBasketCount()
       val foreign = postBasket(s"""{"paymentIds":${idList(List(payment))}}""", as = user2)
@@ -662,7 +663,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       storedBasketCount() should equal(basketsBefore)
     }
 
-    scenario("D8: a payment that is already booked cannot be put in a basket (IG §14.11.5, L11748)", BerlinGroupV1_3, SBS, createSigningBasket) {
+    Scenario("D8: a payment that is already booked cannot be put in a basket (IG §14.11.5, L11748)", BerlinGroupV1_3, SBS, createSigningBasket) {
       val booked = lodgePayment(amount = "10") // under the threshold: booked on creation
       storedPaymentStatus(booked) should equal(bookedOnCreation)
       expectRefusal(postBasket(s"""{"paymentIds":${idList(List(booked))}}"""), 409, "REFERENCE_STATUS_INVALID", "a booked payment")
@@ -670,8 +671,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
 
   }
 
-  feature("BG v1.3 signing baskets - an authorisation can only be answered through the basket it was issued for") {
-    scenario("S3: a challenge that was finalised for one basket cannot be replayed to execute another (SB PUT order)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+  Feature("BG v1.3 signing baskets - an authorisation can only be answered through the basket it was issued for") {
+    Scenario("S3: a challenge that was finalised for one basket cannot be replayed to execute another (SB PUT order)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       val first = startedBasket()
       val second = startedBasket()
       answerAuthorisation(first.basketId, first.authorisationId).code should equal(200) // finalises first's challenge
@@ -685,7 +686,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       }
     }
 
-    scenario("S3: a wrong answer is the standard's incorrect-OTP refusal and changes nothing (IG §14.11 PSU_CREDENTIALS_INVALID, L11597)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+    Scenario("S3: a wrong answer is the standard's incorrect-OTP refusal and changes nothing (IG §14.11 PSU_CREDENTIALS_INVALID, L11597)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       val started = startedBasket()
       expectRefusal(
         answerAuthorisation(started.basketId, started.authorisationId, body = """{"scaAuthenticationData":"wrong"}"""),
@@ -697,7 +698,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       }
     }
 
-    scenario("S2: the same correct answer sent twice at once is accepted once and refused once (contract 3.7)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+    Scenario("S2: the same correct answer sent twice at once is accepted once and refused once (contract 3.7)", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       import scala.concurrent.ExecutionContext.Implicits.global
       (1 to 5).foreach { round =>
         val started = startedBasket()
@@ -710,7 +711,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       }
     }
 
-    scenario("D9: a basket cannot be authorised unless the instance enables it, and nothing changes while it is not", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+    Scenario("D9: a basket cannot be authorised unless the instance enables it, and nothing changes while it is not", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY") // signing_basket_authorisation_enabled is left at its default
       val payment = lodgePayment()
       val basketId = createBasket(List(payment))
@@ -736,19 +737,17 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     ibanAccounts.size should be >= 3
     val creditor = ibanAccounts(1)
     val payment = lodgePayment(creditorIban = Some(creditor.accountRouting.address))
-    BankAccountRouting.findAll(
-      By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString),
-      By(BankAccountRouting.BankId, creditor.bankId.value),
-      By(BankAccountRouting.AccountId, creditor.accountId.value),
-      By(BankAccountRouting.AccountRoutingAddress, creditor.accountRouting.address)).foreach(_.delete_!)
+    // (bankId, accountId, scheme) is unique, so this is the one row that carries the creditor's IBAN.
+    DoobieBankAccountRoutingQueries.deleteByBankAccountScheme(
+      creditor.bankId, creditor.accountId, AccountRoutingScheme.IBAN.toString)
     payment
   }
 
   private def storedBasketStatusRaw(basketId: String): String =
-    MappedSigningBasket.find(By(MappedSigningBasket.BasketId, basketId)).map(_.Status.get).openOrThrowException("basket")
+    MappedSigningBasket.findByBasketId(basketId).map(_.status).openOrThrowException("basket")
 
-  feature("BG v1.3 signing baskets - answering the authorisation books the payments, and only then is the basket ACTC") {
-    scenario("S4: both payments are booked once and the basket is ACTC", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+  Feature("BG v1.3 signing baskets - answering the authorisation books the payments, and only then is the basket ACTC") {
+    Scenario("S4: both payments are booked once and the basket is ACTC", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       val ibanFrom = ibanAccounts.head
       val ibanTo = ibanAccounts.last
       val started = startedBasket(paymentCount = 2)
@@ -762,7 +761,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       storedBasketStatus(started.basketId) should equal(Some("ACTC"))
     }
 
-    scenario("S4: a payment that cannot be booked leaves the basket RCVD, the earlier payment booked, and says so", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+    Scenario("S4: a payment that cannot be booked leaves the basket RCVD, the earlier payment booked, and says so", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       enableBasketAuthorisation()
       val ibanFrom = ibanAccounts.head
       val ibanTo = ibanAccounts.last
@@ -792,13 +791,13 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       }
     }
 
-    scenario("S4: a payment stored INITIATED is admitted and then booked like one stored RCVD, and ends COMPLETED", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+    Scenario("S4: a payment stored INITIATED is admitted and then booked like one stored RCVD, and ends COMPLETED", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       enableBasketAuthorisation()
       val ibanFrom = ibanAccounts.head
       val ibanTo = ibanAccounts.last
       val payment = lodgePayment()
-      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, payment)).openOrThrowException("payment")
-        .mStatus("INITIATED").saveMe()
+      MappedTransactionRequest.findByTransactionRequestId(payment).openOrThrowException("payment")
+      MappedTransactionRequest.setStatus(payment, "INITIATED")
       val basketId = createBasket(List(payment))
       val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
       val (fromBefore, toBefore) = (balanceOf(ibanFrom), balanceOf(ibanTo))
@@ -811,8 +810,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
 
   }
 
-  feature("BG v1.3 signing baskets - a delete racing the final answer has exactly one winner") {
-    scenario("S2: PUT and DELETE at the same time never both succeed", BerlinGroupV1_3, SBS, deleteSigningBasket, updateSigningBasketPsuData) {
+  Feature("BG v1.3 signing baskets - a delete racing the final answer has exactly one winner") {
+    Scenario("S2: PUT and DELETE at the same time never both succeed", BerlinGroupV1_3, SBS, deleteSigningBasket, updateSigningBasketPsuData) {
       import scala.concurrent.ExecutionContext.Implicits.global
       (1 to 5).foreach { round =>
         val started = startedBasket()
@@ -831,8 +830,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
     }
   }
 
-  feature("BG v1.3 signing baskets - what a review of the execution found") {
-    scenario("R3: a payment that is no longer waiting for SCA stops the answer before anything is booked", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+  Feature("BG v1.3 signing baskets - what a review of the execution found") {
+    Scenario("R3: a payment that is no longer waiting for SCA stops the answer before anything is booked", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       enableBasketAuthorisation()
       val ibanFrom = ibanAccounts.head
       List("REJECTED", "CANCELLED", "FAILED").foreach { status =>
@@ -840,8 +839,8 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
         val second = lodgePayment()
         val basketId = createBasket(List(first, second))
         val authorisationId = (startAuthorisation(basketId).body \ "authorisationId").extract[String]
-        MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, second)).openOrThrowException("payment")
-          .mStatus(status).saveMe()
+        MappedTransactionRequest.findByTransactionRequestId(second).openOrThrowException("payment")
+        MappedTransactionRequest.setStatus(second, status)
         val before = balanceOf(ibanFrom)
         withClue(s"a payment that is $status: ") {
           answerAuthorisation(basketId, authorisationId).code should equal(409)
@@ -893,7 +892,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       }).asInstanceOf[com.openbankproject.commons.model.ChallengeTrait]
   }
 
-  feature("BG v1.3 signing baskets - what a connector other than the mapped one can answer") {
+  Feature("BG v1.3 signing baskets - what a connector other than the mapped one can answer") {
     // The connector answers a one-time password it did not accept by handing back the challenge itself, with
     // a status that says so, instead of failing.
     def connectorAnswering(status: StrongCustomerAuthenticationStatus.SCAStatus): PartialFunction[String, Array[AnyRef] => AnyRef] = {
@@ -901,7 +900,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
         Future.successful((net.liftweb.common.Full(challengeReporting(arguments(3).asInstanceOf[String], status)), arguments(6)))
     }
 
-    scenario("X1: a challenge the connector hands back as failed is a refusal, and authorises nothing", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+    Scenario("X1: a challenge the connector hands back as failed is a refusal, and authorises nothing", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       val ibanFrom = ibanAccounts.head
       val started = startedBasket(paymentCount = 2)
       val before = balanceOf(ibanFrom)
@@ -915,7 +914,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupConsentFixtures {
       }
     }
 
-    scenario("X2: a challenge the connector hands back without finalising it authorises nothing either", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
+    Scenario("X2: a challenge the connector hands back without finalising it authorises nothing either", BerlinGroupV1_3, SBS, updateSigningBasketPsuData) {
       val ibanFrom = ibanAccounts.head
       val started = startedBasket()
       val before = balanceOf(ibanFrom)

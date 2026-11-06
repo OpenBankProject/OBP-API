@@ -4,14 +4,15 @@ import java.lang.reflect.{InvocationHandler, Method, Proxy => JProxy}
 import java.sql.{Connection, SQLException}
 import java.util.concurrent.atomic.AtomicInteger
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * DatabaseConnectionHoldWatch wraps every connection taken from the pool. These tests check that
  * the wrapper passes calls through unchanged, that a connection held past the limit is warned
  * about once with the code holding it, and that returning it to the pool ends the watch.
  */
-class DatabaseConnectionHoldWatchTest extends FlatSpec with Matchers {
+class DatabaseConnectionHoldWatchTest extends AnyFlatSpec with Matchers {
 
   /** A stand-in for a pooled connection: counts close() calls and fails rollback() with an SQLException. */
   private class FakeConnection {

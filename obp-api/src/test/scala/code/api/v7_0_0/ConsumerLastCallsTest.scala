@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v7_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.cache.Redis
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanReadMetrics
@@ -126,7 +127,7 @@ class ConsumerLastCallsTest extends V600ServerSetup {
       makeGetRequest((v5_1_0_Request / "banks").GET <@ (user2)).code should equal(200)
 
       eventually(timeout(Span(10, Seconds))) {
-        val recorded = lastCallsAsUser1().consumer_last_calls.find(_.consumer_id == testConsumer2.consumerId.get)
+        val recorded = lastCallsAsUser1().consumer_last_calls.find(_.consumer_id == testConsumer2.consumerId)
         recorded.map(_.last_call_at.getTime >= before) shouldBe Some(true)
       }
     }

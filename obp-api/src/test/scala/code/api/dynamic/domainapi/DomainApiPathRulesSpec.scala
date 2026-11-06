@@ -28,14 +28,15 @@ TESOBE (http://www.tesobe.com/)
 package code.api.dynamic.domainapi
 
 import code.api.dynamic.domainapi.DomainApiPaths.ResourceDocPath
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * This suite checks the rules that keep a space's paths unambiguous: the Dynamic Entities and Dynamic
  * Resource Docs of one space share one set of paths when a Domain API publishes them, and a Dynamic Entity
  * owns every path that starts with its name. Pure unit tests, with no server and no database.
  */
-class DomainApiPathRulesSpec extends FlatSpec with Matchers {
+class DomainApiPathRulesSpec extends AnyFlatSpec with Matchers {
 
   private def doc(path: String, verb: String = "GET", id: Option[String] = None, name: String = "doc") =
     ResourceDocPath(id, verb, path, name)

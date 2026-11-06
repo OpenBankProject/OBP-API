@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v5_1_0
 
 import code.api.Constant.localIdentityProvider
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanLockUser, CanReadUserLockedStatus, CanUnlockUser}
@@ -56,8 +57,8 @@ class LockUserTest extends V510ServerSetup {
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.unlockUserByProviderAndUsername))
   
 
-  feature(s"test $ApiEndpoint1,$ApiEndpoint2, $ApiEndpoint3, version $VersionOfApi - Unauthorized access") {
-    scenario(s"We will call the $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1,$ApiEndpoint2, $ApiEndpoint3, version $VersionOfApi - Unauthorized access") {
+    Scenario(s"We will call the $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "users"/"PROVIDER" / "USERNAME" / "locks").POST
       val response = makePostRequest(request, "")
@@ -65,7 +66,7 @@ class LockUserTest extends V510ServerSetup {
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
-    scenario(s"We will call the $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "users" / "PROVIDER" / "USERNAME" / "lock-status").GET
       val response = makeGetRequest(request)
@@ -73,7 +74,7 @@ class LockUserTest extends V510ServerSetup {
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
-    scenario(s"We will call the $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We will call the $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "users" / "PROVIDER" / "USERNAME" / "lock-status").PUT
       val response = makePutRequest(request, "")
@@ -83,8 +84,8 @@ class LockUserTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1,$ApiEndpoint2, $ApiEndpoint3, version $VersionOfApi - Missing roles") {
-    scenario(s"We will call the $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1,$ApiEndpoint2, $ApiEndpoint3, version $VersionOfApi - Missing roles") {
+    Scenario(s"We will call the $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request /"users" /"PROVIDER" / "USERNAME" / "locks").POST <@(user1)
       val response = makePostRequest(request, "")
@@ -92,7 +93,7 @@ class LockUserTest extends V510ServerSetup {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanLockUser)
     }
-    scenario(s"We will call the $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "users" /"PROVIDER" / "USERNAME" / "lock-status").GET <@(user1)
       val response = makeGetRequest(request)
@@ -100,7 +101,7 @@ class LockUserTest extends V510ServerSetup {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanReadUserLockedStatus)
     }
-    scenario(s"We will call the $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We will call the $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "users" /"PROVIDER" / "USERNAME" / "lock-status").PUT <@(user1)
       val response = makePutRequest(request, "")
@@ -110,8 +111,8 @@ class LockUserTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1,$ApiEndpoint2, $ApiEndpoint3,  version $VersionOfApi - Wrong username") {
-    scenario(s"We will call the $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1,$ApiEndpoint2, $ApiEndpoint3,  version $VersionOfApi - Wrong username") {
+    Scenario(s"We will call the $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
       val username = "USERNAME"
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanLockUser.toString)
       When("We make a request v5.1.0")
@@ -121,7 +122,7 @@ class LockUserTest extends V510ServerSetup {
       response.code should equal(404)
       response.body.extract[ErrorMessage].message contains s"$UserNotFoundByProviderAndUsername" shouldBe(true)
     }
-    scenario(s"We will call the $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
       val username = "USERNAME"
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadUserLockedStatus.toString)
       When("We make a request v5.1.0")
@@ -131,7 +132,7 @@ class LockUserTest extends V510ServerSetup {
       response.code should equal(404)
       response.body.extract[ErrorMessage].message contains s"$UserNotFoundByProviderAndUsername" shouldBe(true)
     }
-    scenario(s"We will call the $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We will call the $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
       val username = "USERNAME"
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUnlockUser.toString)
       When("We make a request v5.1.0")
@@ -143,11 +144,11 @@ class LockUserTest extends V510ServerSetup {
     }
   }
   
-  feature(s"test $ApiEndpoint1,$ApiEndpoint2, $ApiEndpoint3,  version $VersionOfApi - Proper values") {
+  Feature(s"test $ApiEndpoint1,$ApiEndpoint2, $ApiEndpoint3,  version $VersionOfApi - Proper values") {
 
     val resource2Username = resourceUser2.name 
     val resource2Provider = resourceUser2.provider 
-    scenario(s"We will call the $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We will call the $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanLockUser.toString)
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request /"users" / resource2Provider / resource2Username / "locks").POST <@(user1)
@@ -165,7 +166,7 @@ class LockUserTest extends V510ServerSetup {
         response
       }
     }
-    scenario(s"we fake failed login 10 times, cause lock the user, and check login status and unlock it ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+    Scenario(s"we fake failed login 10 times, cause lock the user, and check login status and unlock it ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadUserLockedStatus.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUnlockUser.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanLockUser.toString)

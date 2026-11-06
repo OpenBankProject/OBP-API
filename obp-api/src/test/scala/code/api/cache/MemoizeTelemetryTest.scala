@@ -3,7 +3,8 @@ package code.api.cache
 import java.util.UUID
 
 import code.telemetry.Telemetry
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 
@@ -13,7 +14,7 @@ import scala.concurrent.duration._
  * the cached code only when the key was built by CacheKeyFromArguments. A key a caller wrote itself
  * may contain an identifier, so it is labelled "other".
  */
-class MemoizeTelemetryTest extends FlatSpec with Matchers {
+class MemoizeTelemetryTest extends AnyFlatSpec with Matchers {
 
   private def gets(cache: String, result: String): Double =
     Option(Telemetry.registry.find("obp.api.memoize.gets")

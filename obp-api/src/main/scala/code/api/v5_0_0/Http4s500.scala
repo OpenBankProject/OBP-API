@@ -43,7 +43,7 @@ import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps
 import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.newstyle.ViewNewStyle
-import code.api.util.{APIUtil, ConsentJWT, ConsentView, Consent, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, SecureRandomUtil}
+import code.api.util.{APIUtil, CallContext, ConsentJWT, ConsentView, Consent, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, SecureRandomUtil}
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{JSONFactory310, PostConsentBodyCommonJson, PostConsentViewJsonV310, PostUserAuthContextJson, PostUserAuthContextUpdateJsonV310}
@@ -80,7 +80,6 @@ import com.openbankproject.commons.util.json
 import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.json4s.{Extraction, Formats}
 import com.openbankproject.commons.util.JsonAliases.compactRender
-import net.liftweb.mapper.By
 import net.liftweb.util.{Helpers, Props, StringHelpers}
 import org.http4s.{HttpRoutes, MediaType, Method, Request, Response, Status, Uri}
 import org.http4s.dsl.io._
@@ -309,7 +308,7 @@ object Http4s500 {
     lazy val createSystemView: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "system-views" =>
         EndpointHelpers.executeFutureCreated(req) {
-          implicit val cc = req.callContext
+          implicit val cc: CallContext = req.callContext
           val bodyString = cc.httpBody.getOrElse("")
           for {
             createViewJson <- NewStyle.function.tryons(
@@ -359,7 +358,7 @@ object Http4s500 {
     lazy val getSystemView: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system-views" / viewId =>
         EndpointHelpers.executeFuture(req) {
-          implicit val cc = req.callContext
+          implicit val cc: CallContext = req.callContext
           for {
             view <- ViewNewStyle.systemView(ViewId(viewId), Some(cc))
           } yield JSONFactory500.createViewJsonV500(view)
@@ -395,7 +394,7 @@ object Http4s500 {
     lazy val updateSystemView: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "system-views" / viewId =>
         EndpointHelpers.executeFuture(req) {
-          implicit val cc = req.callContext
+          implicit val cc: CallContext = req.callContext
           val bodyString = cc.httpBody.getOrElse("")
           for {
             updateJson <- NewStyle.function.tryons(
@@ -438,7 +437,7 @@ object Http4s500 {
     lazy val deleteSystemView: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "system-views" / viewId =>
         EndpointHelpers.executeFuture(req) {
-          implicit val cc = req.callContext
+          implicit val cc: CallContext = req.callContext
           for {
             _ <- ViewNewStyle.systemView(ViewId(viewId), Some(cc))
             result <- ViewNewStyle.deleteSystemView(ViewId(viewId), Some(cc))
@@ -991,7 +990,7 @@ object Http4s500 {
             consent <- Future { Consents.consentProvider.vend.getConsentByConsentRequestId(consentRequestId) }
               .map(unboxFullOrFail(_, callContextOpt, ConsentRequestNotFound))
             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = Some(cc)) {
-              consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
+              consent.consumerId == cc.consumer.map(_.consumerId).getOrElse("None")
             }
             tuple <- NewStyle.function.tryons(
               failMsg = Oauth2BadJWTException, 400, callContextOpt) {
@@ -1126,8 +1125,8 @@ object Http4s500 {
             // the stored row, so the two can no longer disagree about who the Consent is for.
             consentConsumer <- NewStyle.function.resolveConsentConsumer(
               consentRequestJson.consumer_id.orElse(Option(createdConsentRequest.consumerId)), callContextOpt)
-            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId.get)).getOrElse("Unknown")
-            granteeConsumerId = consentConsumer.consumerId.get
+            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId)).getOrElse("Unknown")
+            granteeConsumerId = consentConsumer.consumerId
             shouldSkipConsentScaForConsumerIdPair = APIUtil.skipConsentScaForConsumerIdPairs.contains(
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
             // Where the challenge goes, settled before anything is written (the VRP view, counterparty and limit
@@ -1195,7 +1194,7 @@ object Http4s500 {
                 }
                 (vrpView, _) <- ViewNewStyle.createCustomView(fromBankIdAccountId, targetCreateCustomViewJson.toCreateViewJson, callContextOpt)
                 _ <- ViewNewStyle.grantAccessToCustomView(vrpView, user, callContextOpt)
-                _ <- Helper.booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}", cc = callContextOpt) {
+                _ <- Helper.booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.descriptionMaxLength}", cc = callContextOpt) {
                   postJson.description.length <= 36
                 }
                 (existingCounterparty, _) <- Connector.connector.vend.checkCounterpartyExists(
@@ -1287,10 +1286,10 @@ object Http4s500 {
                    _ <- Helper.booleanToFuture(ViewsAllowedInConsent, cc = callContextOpt) {
                      postConsentViewJsons.forall(rv =>
                        assignedViews.exists(e =>
-                         e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
+                         e.viewId == rv.view_id && e.bankId == rv.bank_id && e.accountId == rv.account_id))
                    }
                  } yield ()
-            consumerIdOpt = Some(consentConsumer.consumerId.get)
+            consumerIdOpt = Some(consentConsumer.consumerId)
             applicationText = consentConsumer.description
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
@@ -1339,7 +1338,7 @@ object Http4s500 {
                 // instead of the skip-SCA write blindly resurrecting it to ACCEPTED.
                 code.bankconnectors.DoobieConsentStatusQueries.conditionalStatusTransitionByConsentId(
                   createdConsent.consentId, ConsentStatus.INITIATED.toString, ConsentStatus.ACCEPTED.toString)
-                MappedConsent.find(By(MappedConsent.mConsentId, createdConsent.consentId))
+                MappedConsent.findByConsentId(createdConsent.consentId)
                   .openOrThrowException(s"Consent ${createdConsent.consentId} not found immediately after creation")
               }
             } else {
@@ -2439,7 +2438,7 @@ object Http4s500 {
   val wrappedRoutesV500ServicesWithJsonNotFound: HttpRoutes[IO] = {
     import code.api.util.APIUtil
     import code.api.util.ErrorMessages
-    Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+    Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
       wrappedRoutesV500Services(req).orElse {
         OptionT.liftF(IO.pure {
           val contentType = req.headers.get(CIString("Content-Type")).map(_.head.value).getOrElse("")

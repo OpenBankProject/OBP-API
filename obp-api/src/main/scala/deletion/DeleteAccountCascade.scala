@@ -27,34 +27,31 @@ TESOBE (http://www.tesobe.com/)
 
 package deletion
 
-import code.accountattribute.MappedAccountAttribute
-import code.accountholders.MapperAccountHolders
+import cats.data.NonEmptyList
+import code.accountattribute.DoobieAccountAttributeProvider
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
-import code.api.util.{ConsentJWT, CustomJsonFormats, JwtUtil}
+import code.api.util.{ConsentJWT, CustomJsonFormats, DoobieUtil, JwtUtil}
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
-import code.bankconnectors.Connector
-import code.cardattribute.MappedCardAttribute
+import code.bankconnectors.{Connector, DoobieBankAccountRoutingQueries}
+import code.cardattribute.DoobieCardAttributeProvider
 import code.cards.MappedPhysicalCard
 import code.consent.Consents
-import code.counterpartyattribute.CounterpartyAttribute
-import code.counterpartylimit.CounterpartyLimit
 import code.entitlement.MappedEntitlement
-import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
-import code.model.dataAccess.{BankAccountRouting, DoubleEntryBookTransaction, MappedBankAccount, MappedBankAccountData}
-import code.transactionChallenge.MappedExpectedChallengeAnswer
-import code.transactionrequests.MappedTransactionRequest
+import code.model.dataAccess.MappedBankAccount
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.MappedAccountWebhook
 import com.openbankproject.commons.model.{AccountId, BankId}
 import com.openbankproject.commons.util.JsonAliases
 import deletion.DeletionUtil.databaseAtomicTask
+import doobie._
+import doobie.implicits._
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper.{By, ByList, NotBy}
 import net.liftweb.util.Helpers.tryo
 import org.json4s.Formats
 
 import scala.collection.immutable.List
+import org.json4s.jvalue2extractable
 
 object DeleteAccountCascade {
 
@@ -93,120 +90,96 @@ object DeleteAccountCascade {
     }
   }
 
+  private def run(statement: Fragment): Boolean = {
+    DoobieUtil.runUpdate(statement.update.run)
+    true
+  }
+
+  /** `column IN (...)`; callers skip the statement when the list is empty, as Mapper's ByList did. */
+  private def in[A: doobie.util.Put](column: Fragment, values: List[A]): Fragment =
+    Fragments.in(column, NonEmptyList.fromListUnsafe(values.distinct))
+
   private def deleteAccount(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedBankAccount.bulkDelete_!!(
-      By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.theAccountId, accountId.value)
-    )
+    MappedBankAccount.delete(bankId.value, accountId.value)
   }
   private def deleteEntitlements(bankId: BankId, accountId: AccountId): Boolean = {
-    val userIds = AccountAccess.findAll(
-      By(AccountAccess.bank_id, bankId.value),
-      By(AccountAccess.account_id, accountId.value)
-    ).map(_.user_fk.foreign.map(_.userId).getOrElse(""))
-    MappedEntitlement.bulkDelete_!!(
-      By(MappedEntitlement.mBankId, bankId.value),
-      ByList(MappedEntitlement.mUserId, userIds)
-    )
+    // user_fk holds RESOURCEUSER's numeric key; resolve each to the public user id as before, with
+    // an unresolvable key contributing "" exactly as the Lift foreign key did. Only this bank's
+    // account of that id is meant: another bank may hold an account with the same id.
+    val userIds = AccountAccess.findAllByAccountId(accountId.value)
+      .filter(_.bankId == bankId.value)
+      .map(a => code.model.dataAccess.ResourceUser.findByPrimaryKey(a.userPrimaryKey)
+        .map(_.userId).getOrElse(""))
+    MappedEntitlement.deleteByBankIdAndUserIds(bankId.value, userIds)
   }
   
   private def deleteCards(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedBankAccount.findAll(
-      By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.theAccountId, accountId.value)
-    ) map (
+    MappedBankAccount.findAllByAccountId(accountId.value).filter(_.bankId == bankId) map (
       account => {
-        val cardIds = MappedPhysicalCard.findAll(By(MappedPhysicalCard.mAccount, account.id.get)).map(_.mCardId.get)
-        MappedCardAttribute.deleteForCards(bankId.value, cardIds) &&
-          MappedPhysicalCard.bulkDelete_!!(
-            By(MappedPhysicalCard.mAccount, account.id.get)
-          )
+        val cardIds = DoobieUtil.runQuery(
+          sql"SELECT mcardid FROM mappedphysicalcard WHERE maccount = ${account.accountPrimaryKey}"
+            .query[Option[String]].to[List]).flatten
+        DoobieCardAttributeProvider.deleteForCards(bankId.value, cardIds) &&
+          MappedPhysicalCard.deleteByAccountKey(account.accountPrimaryKey)
       }
     )
   }.forall(_ == true)
   
-  private def deleteBankAccountData(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedBankAccountData.bulkDelete_!!(
-      By(MappedBankAccountData.bankId, bankId.value),
-      By(MappedBankAccountData.accountId, accountId.value)
-    )
-  }  
+  private def deleteBankAccountData(bankId: BankId, accountId: AccountId): Boolean =
+    run(sql"DELETE FROM mappedbankaccountdata WHERE bankid = ${bankId.value} AND accountid = ${accountId.value}")
   private def deleteAccountWebhooks(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedAccountWebhook.bulkDelete_!!(
-      By(MappedAccountWebhook.mBankId, bankId.value),
-      By(MappedAccountWebhook.mAccountId, accountId.value)
-    )
+    MappedAccountWebhook.deleteByBankAccount(bankId.value, accountId.value)
   }   
   private def deleteAccountAttributes(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedAccountAttribute.bulkDelete_!!(
-      By(MappedAccountAttribute.mBankIdId, bankId.value),
-      By(MappedAccountAttribute.mAccountId, accountId.value)
-    )
-  }  
+    DoobieAccountAttributeProvider.deleteAccountAttributesByBankAndAccount(bankId.value, accountId.value)
+  }
   private def deleteCustomViews(bankId: BankId, accountId: AccountId): Boolean = {
-    ViewDefinition.bulkDelete_!!(
-      By(ViewDefinition.bank_id, bankId.value),
-      By(ViewDefinition.account_id, accountId.value)
-    )
+    ViewDefinition.deleteByBankAccount(bankId.value, accountId.value)
   }  
   private def deleteAccountAccess(bankId: BankId, accountId: AccountId): Boolean = {
-    AccountAccess.bulkDelete_!!(
-      By(AccountAccess.bank_id, bankId.value),
-      By(AccountAccess.account_id, accountId.value)
-    )
+    AccountAccess.deleteByBankIdAccountId(bankId, accountId)
   }
   // A holder row that outlives its account makes the next refresh of the holder's accounts
   // (AuthUser.refreshUser, run e.g. when the holder creates another account) grant the system views on it again.
-  private def deleteAccountHolders(bankId: BankId, accountId: AccountId): Boolean = {
-    MapperAccountHolders.bulkDelete_!!(
-      By(MapperAccountHolders.accountBankPermalink, bankId.value),
-      By(MapperAccountHolders.accountPermalink, accountId.value)
-    )
-  }
+  private def deleteAccountHolders(bankId: BankId, accountId: AccountId): Boolean =
+    run(sql"""DELETE FROM mapperaccountholders
+              WHERE accountbankpermalink = ${bankId.value} AND accountpermalink = ${accountId.value}""")
   private def deleteAccountRoutings(bankId: BankId, accountId: AccountId): Boolean = {
-    BankAccountRouting.bulkDelete_!!(
-      By(BankAccountRouting.BankId, bankId.value),
-      By(BankAccountRouting.AccountId, accountId.value)
-    )
+    DoobieBankAccountRoutingQueries.deleteByBankAccount(bankId, accountId)
+    true
   }
 
   // The counterparties this account created, with the rows that hang off each of them.
   // Counterparties of other accounts that point at this account are theirs and are kept.
   private def deleteCounterparties(bankId: BankId, accountId: AccountId): Boolean = {
-    val counterparties = MappedCounterparty.findAll(
-      By(MappedCounterparty.mThisBankId, bankId.value),
-      By(MappedCounterparty.mThisAccountId, accountId.value)
-    )
-    val primaryKeys = counterparties.map(_.id.get)
-    val counterpartyIds = counterparties.map(_.counterpartyId)
+    val counterparties = DoobieUtil.runQuery(
+      sql"""SELECT id, mcounterpartyid FROM mappedcounterparty
+            WHERE mthisbankid = ${bankId.value} AND mthisaccountid = ${accountId.value}"""
+        .query[(Long, Option[String])].to[List])
+    val primaryKeys = counterparties.map(_._1)
+    val counterpartyIds = counterparties.flatMap(_._2)
     val bespokesDeleted = primaryKeys.isEmpty ||
-      MappedCounterpartyBespoke.bulkDelete_!!(ByList(MappedCounterpartyBespoke.mCounterparty, primaryKeys))
+      run(fr"DELETE FROM mappedcounterpartybespoke WHERE" ++ in(fr"mcounterparty", primaryKeys))
     val attributesDeleted = counterpartyIds.isEmpty ||
-      CounterpartyAttribute.bulkDelete_!!(ByList(CounterpartyAttribute.CounterpartyId_, counterpartyIds))
-    val limitsDeleted = CounterpartyLimit.bulkDelete_!!(
-      By(CounterpartyLimit.BankId, bankId.value),
-      By(CounterpartyLimit.AccountId, accountId.value)
-    )
-    val counterpartiesDeleted = MappedCounterparty.bulkDelete_!!(
-      By(MappedCounterparty.mThisBankId, bankId.value),
-      By(MappedCounterparty.mThisAccountId, accountId.value)
-    )
+      run(fr"DELETE FROM counterpartyattribute WHERE" ++ in(fr"counterpartyid", counterpartyIds))
+    val limitsDeleted =
+      run(sql"DELETE FROM counterpartylimit WHERE bankid = ${bankId.value} AND accountid = ${accountId.value}")
+    val counterpartiesDeleted =
+      run(sql"DELETE FROM mappedcounterparty WHERE mthisbankid = ${bankId.value} AND mthisaccountid = ${accountId.value}")
     bespokesDeleted && attributesDeleted && limitsDeleted && counterpartiesDeleted
   }
 
   // Metadata covers both the counterparties created on this account and the ones derived from its transactions.
   private def deleteCounterpartyMetadata(bankId: BankId, accountId: AccountId): Boolean = {
-    val metadata = MappedCounterpartyMetadata.findAll(
-      By(MappedCounterpartyMetadata.thisBankId, bankId.value),
-      By(MappedCounterpartyMetadata.thisAccountId, accountId.value)
-    )
-    val locationIds = metadata.flatMap(m => List(m.physicalLocation.get, m.corporateLocation.get)).filter(_ > 0)
+    val locations = DoobieUtil.runQuery(
+      sql"""SELECT physicallocation, corporatelocation FROM mappedcounterpartymetadata
+            WHERE thisbankid = ${bankId.value} AND thisaccountid = ${accountId.value}"""
+        .query[(Option[Long], Option[Long])].to[List])
+    val locationIds = locations.flatMap { case (physical, corporate) => physical.toList ++ corporate.toList }.filter(_ > 0)
     val locationsDeleted = locationIds.isEmpty ||
-      MappedCounterpartyWhereTag.bulkDelete_!!(ByList(MappedCounterpartyWhereTag.id, locationIds))
-    val metadataDeleted = MappedCounterpartyMetadata.bulkDelete_!!(
-      By(MappedCounterpartyMetadata.thisBankId, bankId.value),
-      By(MappedCounterpartyMetadata.thisAccountId, accountId.value)
-    )
+      run(fr"DELETE FROM mappedcounterpartywheretag WHERE" ++ in(fr"id", locationIds))
+    val metadataDeleted =
+      run(sql"DELETE FROM mappedcounterpartymetadata WHERE thisbankid = ${bankId.value} AND thisaccountid = ${accountId.value}")
     locationsDeleted && metadataDeleted
   }
 
@@ -235,8 +208,9 @@ object DeleteAccountCascade {
   // challenges too: they record the authorisation of the consent as a whole.
   private def deleteConsentChallenges(bankId: BankId, accountId: AccountId): Boolean = {
     implicit val formats: Formats = CustomJsonFormats.formats
-    val consentIds = MappedExpectedChallengeAnswer.findAll(NotBy(MappedExpectedChallengeAnswer.ConsentId, ""))
-      .map(_.ConsentId.get).distinct
+    val consentIds = DoobieUtil.runQuery(
+      sql"SELECT DISTINCT consentid FROM expectedchallengeanswer WHERE consentid IS NOT NULL AND consentid <> ''"
+        .query[String].to[List])
       .flatMap(Consents.consentProvider.vend.getConsentByConsentId(_).toList)
       .filter { consent =>
         JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken)
@@ -244,34 +218,24 @@ object DeleteAccountCascade {
           .exists(_.views.exists(view => view.bank_id == bankId.value && view.account_id == accountId.value))
       }
       .map(_.consentId)
-    consentIds.isEmpty || MappedExpectedChallengeAnswer.bulkDelete_!!(
-      ByList(MappedExpectedChallengeAnswer.ConsentId, consentIds)
-    )
+    consentIds.isEmpty || run(fr"DELETE FROM expectedchallengeanswer WHERE" ++ in(fr"consentid", consentIds))
   }
   private def deleteTransactionRequestChallenges(bankId: BankId, accountId: AccountId): Boolean = {
-    val transactionRequestIds = MappedTransactionRequest.findAll(
-      By(MappedTransactionRequest.mFrom_BankId, bankId.value),
-      By(MappedTransactionRequest.mFrom_AccountId, accountId.value)
-    ).map(_.mTransactionRequestId.get)
-    MappedExpectedChallengeAnswer.bulkDelete_!!(
-      ByList(MappedExpectedChallengeAnswer.TransactionRequestId, transactionRequestIds)
-    )
+    val transactionRequestIds = DoobieUtil.runQuery(
+      sql"""SELECT mtransactionrequestid FROM mappedtransactionrequest
+            WHERE mfrom_bankid = ${bankId.value} AND mfrom_accountid = ${accountId.value}"""
+        .query[Option[String]].to[List]).flatten
+    transactionRequestIds.isEmpty ||
+      run(fr"DELETE FROM expectedchallengeanswer WHERE" ++ in(fr"transactionrequestid", transactionRequestIds))
   }
-  private def deleteTransactionRequests(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedTransactionRequest.bulkDelete_!!(
-      By(MappedTransactionRequest.mFrom_BankId, bankId.value),
-      By(MappedTransactionRequest.mFrom_AccountId, accountId.value)
-    )
-  }
+  private def deleteTransactionRequests(bankId: BankId, accountId: AccountId): Boolean =
+    run(sql"""DELETE FROM mappedtransactionrequest
+              WHERE mfrom_bankid = ${bankId.value} AND mfrom_accountid = ${accountId.value}""")
   private def deleteDoubleEntryBookTransactions(bankId: BankId, accountId: AccountId): Boolean = {
-    val debitSide = DoubleEntryBookTransaction.bulkDelete_!!(
-      By(DoubleEntryBookTransaction.DebitTransactionBankId, bankId.value),
-      By(DoubleEntryBookTransaction.DebitTransactionAccountId, accountId.value)
-    )
-    val creditSide = DoubleEntryBookTransaction.bulkDelete_!!(
-      By(DoubleEntryBookTransaction.CreditTransactionBankId, bankId.value),
-      By(DoubleEntryBookTransaction.CreditTransactionAccountId, accountId.value)
-    )
+    val debitSide = run(sql"""DELETE FROM doubleentrybooktransaction
+              WHERE debittransactionbankid = ${bankId.value} AND debittransactionaccountid = ${accountId.value}""")
+    val creditSide = run(sql"""DELETE FROM doubleentrybooktransaction
+              WHERE credittransactionbankid = ${bankId.value} AND credittransactionaccountid = ${accountId.value}""")
     debitSide && creditSide
   }
 }

@@ -75,8 +75,8 @@ class ProductAttributeTest extends V310ServerSetup {
   lazy val updateProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
   lazy val deleteProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
 
-  feature("Create/Get, Update/Get and Delete/Get Product Attribute v3.1.0") {
-    scenario("We will call the endpoints with a proper roles", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+  Feature("Create/Get, Update/Get and Delete/Get Product Attribute v3.1.0") {
+    Scenario("We will call the endpoints with a proper roles", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProductAttribute.toString)
       When("We make a request v3.1.0")
@@ -132,8 +132,8 @@ class ProductAttributeTest extends V310ServerSetup {
     }
   }
 
-  feature("Create Product Attribute v3.1.0") {
-    scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Create Product Attribute v3.1.0") {
+    Scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = createProductAttributeEndpoint.POST
       val response310 = makePostRequest(request310, write(postProductAttributeJson))
@@ -142,7 +142,7 @@ class ProductAttributeTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Create endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Create endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = createProductAttributeEndpoint.POST <@(user1)
       val response310 = makePostRequest(request310, write(postProductAttributeJson))
@@ -154,7 +154,7 @@ class ProductAttributeTest extends V310ServerSetup {
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (createProductEntitlementsRequiredText.toString()) should be (true)
     }
-    scenario("We will call the Create endpoint but wrong `type` ", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Create endpoint but wrong `type` ", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProductAttribute.toString)
       val request310 = createProductAttributeEndpoint.POST <@(user1)
@@ -166,8 +166,8 @@ class ProductAttributeTest extends V310ServerSetup {
     }
   }
   
-  feature("Get Product Attribute v3.1.0") {
-    scenario("We will call the endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature("Get Product Attribute v3.1.0") {
+    Scenario("We will call the endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = getProductAttributeEndpoint.GET
       val response310 = makeGetRequest(request310)
@@ -176,7 +176,7 @@ class ProductAttributeTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Get endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Get endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = getProductAttributeEndpoint.GET <@(user1)
       val response310 = makeGetRequest(request310)
@@ -189,7 +189,7 @@ class ProductAttributeTest extends V310ServerSetup {
       errorMessage contains (canGetProductAttribute.toString()) should be (true)
     }
     // a role at one bank must not read a product attribute of another bank or another product
-    scenario("We will call the Get endpoint with an attribute of another bank or another product", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the Get endpoint with an attribute of another bank or another product", ApiEndpoint2, VersionOfApi) {
       // an attribute owned by another bank, created directly so no role at that bank is needed
       val otherBankAttribute = Await.result(
         ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
@@ -218,8 +218,8 @@ class ProductAttributeTest extends V310ServerSetup {
     }
   }
   
-  feature("Update Product Attribute v3.1.0") {
-    scenario("We will call the endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature("Update Product Attribute v3.1.0") {
+    Scenario("We will call the endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = updateProductAttributeEndpoint.PUT
       val response310 = makePutRequest(request310, write(putProductAttributeJson))
@@ -228,7 +228,7 @@ class ProductAttributeTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Update endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Update endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = updateProductAttributeEndpoint.PUT <@(user1)
       val response310 = makePutRequest(request310, write(putProductAttributeJson))
@@ -241,7 +241,7 @@ class ProductAttributeTest extends V310ServerSetup {
       errorMessage contains (createProductEntitlementsRequiredText.toString()) should be (true)
     }
     // a role at one bank must not overwrite, or move, a product attribute of another bank or another product
-    scenario("We will call the Update endpoint with an attribute of another bank or another product", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the Update endpoint with an attribute of another bank or another product", ApiEndpoint3, VersionOfApi) {
       // an attribute owned by another bank, created directly so no role at that bank is needed
       val otherBankAttribute = Await.result(
         ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
@@ -276,8 +276,8 @@ class ProductAttributeTest extends V310ServerSetup {
     }
   }
 
-  feature("Delete Product Attribute v3.1.0") {
-    scenario("We will call the Delete endpoint without a user credentials", ApiEndpoint4, VersionOfApi) {
+  Feature("Delete Product Attribute v3.1.0") {
+    Scenario("We will call the Delete endpoint without a user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = deleteProductAttributeEndpoint.DELETE
       val response310 = makeDeleteRequest(request310)
@@ -286,7 +286,7 @@ class ProductAttributeTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Delete endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Delete endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = deleteProductAttributeEndpoint.DELETE <@(user1)
       val response310 = makeDeleteRequest(request310)
@@ -299,7 +299,7 @@ class ProductAttributeTest extends V310ServerSetup {
       errorMessage contains (canDeleteProductAttribute.toString()) should be (true)
     }
     // a role at one bank must not delete a product attribute of another bank or another product
-    scenario("We will call the Delete endpoint with an attribute of another bank or another product", ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the Delete endpoint with an attribute of another bank or another product", ApiEndpoint4, VersionOfApi) {
       // an attribute owned by another bank, created directly so no role at that bank is needed
       val otherBankAttribute = Await.result(
         ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(

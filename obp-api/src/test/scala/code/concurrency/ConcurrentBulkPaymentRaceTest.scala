@@ -28,7 +28,6 @@ package code.concurrency
 
 import code.bulkpayment.{BulkBatchReference, MappedBulkPaymentProvider}
 import net.liftweb.common.{Failure, Full}
-import net.liftweb.mapper.By
 
 import java.util.UUID
 
@@ -67,9 +66,9 @@ class ConcurrentBulkPaymentRaceTest extends ConcurrentRaceSetup {
 
   private val provider = MappedBulkPaymentProvider
 
-  feature("BulkPayment batch-reference idempotency guard") {
+  Feature("BulkPayment batch-reference idempotency guard") {
 
-    scenario("C1a: claimBatchReference must return Failure when the reference already exists (DB constraint works)", ConcurrencyRace) {
+    Scenario("C1a: claimBatchReference must return Failure when the reference already exists (DB constraint works)", ConcurrencyRace) {
       Given("a batch-reference row already exists for (bank, account, ref)")
       val bankId    = "__conc_bulk_bank_" + UUID.randomUUID.toString.take(8)
       val accountId = "__conc_bulk_acc_"  + UUID.randomUUID.toString.take(8)
@@ -92,18 +91,14 @@ class ConcurrentBulkPaymentRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("C1b: concurrent isBatchReferenceUsed + claimBatchReference must not silently allow both to proceed", ConcurrencyRace) {
+    Scenario("C1b: concurrent isBatchReferenceUsed + claimBatchReference must not silently allow both to proceed", ConcurrencyRace) {
       Given("no existing BulkBatchReference row for a fresh (bank, account, batchRef)")
       val bankId    = "__conc_bulk2_bank_" + UUID.randomUUID.toString.take(8)
       val accountId = "__conc_bulk2_acc_"  + UUID.randomUUID.toString.take(8)
       val batchRef  = "__conc_bulk2_ref_"  + UUID.randomUUID.toString.take(8)
       val n         = 2
 
-      def rowCount: Long = BulkBatchReference.count(
-        By(BulkBatchReference.FromBankId,     bankId),
-        By(BulkBatchReference.FromAccountId,  accountId),
-        By(BulkBatchReference.BatchReference, batchRef)
-      )
+      def rowCount: Long = BulkBatchReference.count(bankId, accountId, batchRef)
 
       When(s"$n threads concurrently check isBatchReferenceUsed then call claimBatchReference")
       // This reproduces the check-then-act window:

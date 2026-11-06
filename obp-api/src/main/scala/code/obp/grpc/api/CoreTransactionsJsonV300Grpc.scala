@@ -7,83 +7,93 @@ package code.obp.grpc.api
 
 @SerialVersionUID(0L)
 final case class CoreTransactionsJsonV300Grpc(
-    transactions: _root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc] = _root_.scala.collection.Seq.empty
-    ) extends scalapb.GeneratedMessage with scalapb.Message[CoreTransactionsJsonV300Grpc] with scalapb.lenses.Updatable[CoreTransactionsJsonV300Grpc] {
+    transactions: _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc] = _root_.scala.Seq.empty,
+    unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[CoreTransactionsJsonV300Grpc] {
     @transient
-    private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-    private[this] def __computeSerializedValue(): _root_.scala.Int = {
+    private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+    private[this] def __computeSerializedSize(): _root_.scala.Int = {
       var __size = 0
-      transactions.foreach(transactions => __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(transactions.serializedSize) + transactions.serializedSize)
+      transactions.foreach { __item =>
+        val __value = __item
+        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+      }
+      __size += unknownFields.serializedSize
       __size
     }
-    final override def serializedSize: _root_.scala.Int = {
-      var read = __serializedSizeCachedValue
-      if (read == 0) {
-        read = __computeSerializedValue()
-        __serializedSizeCachedValue = read
+    override def serializedSize: _root_.scala.Int = {
+      var __size = __serializedSizeMemoized
+      if (__size == 0) {
+        __size = __computeSerializedSize() + 1
+        __serializedSizeMemoized = __size
       }
-      read
+      __size - 1
+      
     }
     def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
       transactions.foreach { __v =>
+        val __m = __v
         _output__.writeTag(1, 2)
-        _output__.writeUInt32NoTag(__v.serializedSize)
-        __v.writeTo(_output__)
+        _output__.writeUInt32NoTag(__m.serializedSize)
+        __m.writeTo(_output__)
       };
+      unknownFields.writeTo(_output__)
     }
-    def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc = {
-      val __transactions = (_root_.scala.collection.immutable.Vector.newBuilder[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc] ++= this.transactions)
-      var _done__ = false
-      while (!_done__) {
-        val _tag__ = _input__.readTag()
-        _tag__ match {
-          case 0 => _done__ = true
-          case 10 =>
-            __transactions += _root_.scalapb.LiteParser.readMessage(_input__, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc.defaultInstance)
-          case tag => _input__.skipField(tag)
-        }
-      }
-      code.obp.grpc.api.CoreTransactionsJsonV300Grpc(
-          transactions = __transactions.result()
-      )
-    }
-    def clearTransactions = copy(transactions = _root_.scala.collection.Seq.empty)
-    def addTransactions(__vs: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc*): CoreTransactionsJsonV300Grpc = addAllTransactions(__vs)
-    def addAllTransactions(__vs: TraversableOnce[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc]): CoreTransactionsJsonV300Grpc = copy(transactions = transactions ++ __vs)
-    def withTransactions(__v: _root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc]): CoreTransactionsJsonV300Grpc = copy(transactions = __v)
-    def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+    def clearTransactions = copy(transactions = _root_.scala.Seq.empty)
+    def addTransactions(__vs: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc *): CoreTransactionsJsonV300Grpc = addAllTransactions(__vs)
+    def addAllTransactions(__vs: Iterable[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc]): CoreTransactionsJsonV300Grpc = copy(transactions = transactions ++ __vs)
+    def withTransactions(__v: _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc]): CoreTransactionsJsonV300Grpc = copy(transactions = __v)
+    def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+    def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+    def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
       (__fieldNumber: @_root_.scala.unchecked) match {
         case 1 => transactions
       }
     }
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-      require(__field.containingMessage eq companion.scalaDescriptor)
+      _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
         case 1 => _root_.scalapb.descriptors.PRepeated(transactions.iterator.map(_.toPMessage).toVector)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc
+    def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc
+    // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.CoreTransactionsJsonV300Grpc])
 }
 
 object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc] {
   implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc] = this
-  def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.api.CoreTransactionsJsonV300Grpc = {
-    require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-    val __fields = javaDescriptor.getFields
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc = {
+    val __transactions: _root_.scala.collection.immutable.VectorBuilder[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc] = new _root_.scala.collection.immutable.VectorBuilder[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc]
+    var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+    var _done__ = false
+    while (!_done__) {
+      val _tag__ = _input__.readTag()
+      _tag__ match {
+        case 0 => _done__ = true
+        case 10 =>
+          __transactions += _root_.scalapb.LiteParser.readMessage[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc](_input__)
+        case tag =>
+          if (_unknownFields__ == null) {
+            _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+          }
+          _unknownFields__.parseField(tag, _input__)
+      }
+    }
     code.obp.grpc.api.CoreTransactionsJsonV300Grpc(
-      __fieldsMap.getOrElse(__fields.get(0), Nil).asInstanceOf[_root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc]]
+        transactions = __transactions.result(),
+        unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
   implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.api.CoreTransactionsJsonV300Grpc] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-      require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+      _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       code.obp.grpc.api.CoreTransactionsJsonV300Grpc(
-        __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc]]).getOrElse(_root_.scala.collection.Seq.empty)
+        transactions = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc]]).getOrElse(_root_.scala.Seq.empty)
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ApiProto.javaDescriptor.getMessageTypes.get(10)
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ApiProto.javaDescriptor.getMessageTypes().get(10)
   def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ApiProto.scalaDescriptor.messages(10)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
     var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
@@ -92,106 +102,104 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     }
     __out
   }
-  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]](
-    _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc,
-    _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc,
-    _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc,
-    _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc,
-    _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc,
-    _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc,
-    _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc,
-    _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc
-  )
+  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] =
+    Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]](
+      _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc,
+      _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc,
+      _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc,
+      _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc,
+      _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc,
+      _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc,
+      _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc,
+      _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc
+    )
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc(
+    transactions = _root_.scala.Seq.empty
   )
   @SerialVersionUID(0L)
   final case class CoreTransactionJsonV300Grpc(
       id: _root_.scala.Predef.String = "",
-      thisAccount: scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc] = None,
-      otherAccount: scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc] = None,
-      details: scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc] = None
-      ) extends scalapb.GeneratedMessage with scalapb.Message[CoreTransactionJsonV300Grpc] with scalapb.lenses.Updatable[CoreTransactionJsonV300Grpc] {
+      thisAccount: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc] = _root_.scala.None,
+      otherAccount: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc] = _root_.scala.None,
+      details: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc] = _root_.scala.None,
+      unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+      ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[CoreTransactionJsonV300Grpc] {
       @transient
-      private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-      private[this] def __computeSerializedValue(): _root_.scala.Int = {
+      private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+      private[this] def __computeSerializedSize(): _root_.scala.Int = {
         var __size = 0
-        if (id != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, id) }
-        if (thisAccount.isDefined) { __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(thisAccount.get.serializedSize) + thisAccount.get.serializedSize }
-        if (otherAccount.isDefined) { __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(otherAccount.get.serializedSize) + otherAccount.get.serializedSize }
-        if (details.isDefined) { __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(details.get.serializedSize) + details.get.serializedSize }
+        
+        {
+          val __value = id
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+          }
+        };
+        if (thisAccount.isDefined) {
+          val __value = thisAccount.get
+          __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+        };
+        if (otherAccount.isDefined) {
+          val __value = otherAccount.get
+          __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+        };
+        if (details.isDefined) {
+          val __value = details.get
+          __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+        };
+        __size += unknownFields.serializedSize
         __size
       }
-      final override def serializedSize: _root_.scala.Int = {
-        var read = __serializedSizeCachedValue
-        if (read == 0) {
-          read = __computeSerializedValue()
-          __serializedSizeCachedValue = read
+      override def serializedSize: _root_.scala.Int = {
+        var __size = __serializedSizeMemoized
+        if (__size == 0) {
+          __size = __computeSerializedSize() + 1
+          __serializedSizeMemoized = __size
         }
-        read
+        __size - 1
+        
       }
       def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
         {
           val __v = id
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(1, __v)
           }
         };
         thisAccount.foreach { __v =>
+          val __m = __v
           _output__.writeTag(2, 2)
-          _output__.writeUInt32NoTag(__v.serializedSize)
-          __v.writeTo(_output__)
+          _output__.writeUInt32NoTag(__m.serializedSize)
+          __m.writeTo(_output__)
         };
         otherAccount.foreach { __v =>
+          val __m = __v
           _output__.writeTag(3, 2)
-          _output__.writeUInt32NoTag(__v.serializedSize)
-          __v.writeTo(_output__)
+          _output__.writeUInt32NoTag(__m.serializedSize)
+          __m.writeTo(_output__)
         };
         details.foreach { __v =>
+          val __m = __v
           _output__.writeTag(4, 2)
-          _output__.writeUInt32NoTag(__v.serializedSize)
-          __v.writeTo(_output__)
+          _output__.writeUInt32NoTag(__m.serializedSize)
+          __m.writeTo(_output__)
         };
-      }
-      def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc = {
-        var __id = this.id
-        var __thisAccount = this.thisAccount
-        var __otherAccount = this.otherAccount
-        var __details = this.details
-        var _done__ = false
-        while (!_done__) {
-          val _tag__ = _input__.readTag()
-          _tag__ match {
-            case 0 => _done__ = true
-            case 10 =>
-              __id = _input__.readString()
-            case 18 =>
-              __thisAccount = Option(_root_.scalapb.LiteParser.readMessage(_input__, __thisAccount.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc.defaultInstance)))
-            case 26 =>
-              __otherAccount = Option(_root_.scalapb.LiteParser.readMessage(_input__, __otherAccount.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc.defaultInstance)))
-            case 34 =>
-              __details = Option(_root_.scalapb.LiteParser.readMessage(_input__, __details.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc.defaultInstance)))
-            case tag => _input__.skipField(tag)
-          }
-        }
-        code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc(
-            id = __id,
-            thisAccount = __thisAccount,
-            otherAccount = __otherAccount,
-            details = __details
-        )
+        unknownFields.writeTo(_output__)
       }
       def withId(__v: _root_.scala.Predef.String): CoreTransactionJsonV300Grpc = copy(id = __v)
       def getThisAccount: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc = thisAccount.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc.defaultInstance)
-      def clearThisAccount: CoreTransactionJsonV300Grpc = copy(thisAccount = None)
+      def clearThisAccount: CoreTransactionJsonV300Grpc = copy(thisAccount = _root_.scala.None)
       def withThisAccount(__v: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc): CoreTransactionJsonV300Grpc = copy(thisAccount = Option(__v))
       def getOtherAccount: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc = otherAccount.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc.defaultInstance)
-      def clearOtherAccount: CoreTransactionJsonV300Grpc = copy(otherAccount = None)
+      def clearOtherAccount: CoreTransactionJsonV300Grpc = copy(otherAccount = _root_.scala.None)
       def withOtherAccount(__v: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc): CoreTransactionJsonV300Grpc = copy(otherAccount = Option(__v))
       def getDetails: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc = details.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc.defaultInstance)
-      def clearDetails: CoreTransactionJsonV300Grpc = copy(details = None)
+      def clearDetails: CoreTransactionJsonV300Grpc = copy(details = _root_.scala.None)
       def withDetails(__v: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc): CoreTransactionJsonV300Grpc = copy(details = Option(__v))
-      def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+      def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+      def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+      def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
         (__fieldNumber: @_root_.scala.unchecked) match {
           case 1 => {
             val __t = id
@@ -203,7 +211,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-        require(__field.containingMessage eq companion.scalaDescriptor)
+        _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
         (__field.number: @_root_.scala.unchecked) match {
           case 1 => _root_.scalapb.descriptors.PString(id)
           case 2 => thisAccount.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
@@ -212,33 +220,58 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc
+      // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc])
   }
   
   object CoreTransactionJsonV300Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc] {
     implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc] = this
-    def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc = {
-      require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-      val __fields = javaDescriptor.getFields
+    def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc = {
+      var __id: _root_.scala.Predef.String = ""
+      var __thisAccount: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc] = _root_.scala.None
+      var __otherAccount: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc] = _root_.scala.None
+      var __details: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc] = _root_.scala.None
+      var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+      var _done__ = false
+      while (!_done__) {
+        val _tag__ = _input__.readTag()
+        _tag__ match {
+          case 0 => _done__ = true
+          case 10 =>
+            __id = _input__.readStringRequireUtf8()
+          case 18 =>
+            __thisAccount = _root_.scala.Option(__thisAccount.fold(_root_.scalapb.LiteParser.readMessage[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+          case 26 =>
+            __otherAccount = _root_.scala.Option(__otherAccount.fold(_root_.scalapb.LiteParser.readMessage[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+          case 34 =>
+            __details = _root_.scala.Option(__details.fold(_root_.scalapb.LiteParser.readMessage[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+          case tag =>
+            if (_unknownFields__ == null) {
+              _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+            }
+            _unknownFields__.parseField(tag, _input__)
+        }
+      }
       code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc(
-        __fieldsMap.getOrElse(__fields.get(0), "").asInstanceOf[_root_.scala.Predef.String],
-        __fieldsMap.get(__fields.get(1)).asInstanceOf[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc]],
-        __fieldsMap.get(__fields.get(2)).asInstanceOf[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc]],
-        __fieldsMap.get(__fields.get(3)).asInstanceOf[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc]]
+          id = __id,
+          thisAccount = __thisAccount,
+          otherAccount = __otherAccount,
+          details = __details,
+          unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
       )
     }
     implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc] = _root_.scalapb.descriptors.Reads{
       case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-        require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+        _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
         code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc(
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).flatMap(_.as[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc]]),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).flatMap(_.as[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc]]),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).flatMap(_.as[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc]])
+          id = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+          thisAccount = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).flatMap(_.as[_root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc]]),
+          otherAccount = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).flatMap(_.as[_root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc]]),
+          details = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).flatMap(_.as[_root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc]])
         )
       case _ => throw new RuntimeException("Expected PMessage")
     }
-    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes.get(0)
+    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes().get(0)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.scalaDescriptor.nestedMessages(0)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
       var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
@@ -252,47 +285,78 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc(
+      id = "",
+      thisAccount = _root_.scala.None,
+      otherAccount = _root_.scala.None,
+      details = _root_.scala.None
     )
     implicit class CoreTransactionJsonV300GrpcLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc](_l) {
       def id: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.id)((c_, f_) => c_.copy(id = f_))
-      def thisAccount: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc] = field(_.getThisAccount)((c_, f_) => c_.copy(thisAccount = Option(f_)))
-      def optionalThisAccount: _root_.scalapb.lenses.Lens[UpperPB, scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc]] = field(_.thisAccount)((c_, f_) => c_.copy(thisAccount = f_))
-      def otherAccount: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc] = field(_.getOtherAccount)((c_, f_) => c_.copy(otherAccount = Option(f_)))
-      def optionalOtherAccount: _root_.scalapb.lenses.Lens[UpperPB, scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc]] = field(_.otherAccount)((c_, f_) => c_.copy(otherAccount = f_))
-      def details: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc] = field(_.getDetails)((c_, f_) => c_.copy(details = Option(f_)))
-      def optionalDetails: _root_.scalapb.lenses.Lens[UpperPB, scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc]] = field(_.details)((c_, f_) => c_.copy(details = f_))
+      def thisAccount: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc] = field(_.getThisAccount)((c_, f_) => c_.copy(thisAccount = _root_.scala.Option(f_)))
+      def optionalThisAccount: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc]] = field(_.thisAccount)((c_, f_) => c_.copy(thisAccount = f_))
+      def otherAccount: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc] = field(_.getOtherAccount)((c_, f_) => c_.copy(otherAccount = _root_.scala.Option(f_)))
+      def optionalOtherAccount: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc]] = field(_.otherAccount)((c_, f_) => c_.copy(otherAccount = f_))
+      def details: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc] = field(_.getDetails)((c_, f_) => c_.copy(details = _root_.scala.Option(f_)))
+      def optionalDetails: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc]] = field(_.details)((c_, f_) => c_.copy(details = f_))
     }
     final val ID_FIELD_NUMBER = 1
     final val THIS_ACCOUNT_FIELD_NUMBER = 2
     final val OTHER_ACCOUNT_FIELD_NUMBER = 3
     final val DETAILS_FIELD_NUMBER = 4
+    def of(
+      id: _root_.scala.Predef.String,
+      thisAccount: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc],
+      otherAccount: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc],
+      details: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc]
+    ): _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc = _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc(
+      id,
+      thisAccount,
+      otherAccount,
+      details
+    )
+    // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc])
   }
   
   @SerialVersionUID(0L)
   final case class AccountHolderJSONGrpc(
       name: _root_.scala.Predef.String = "",
-      isAlias: _root_.scala.Boolean = false
-      ) extends scalapb.GeneratedMessage with scalapb.Message[AccountHolderJSONGrpc] with scalapb.lenses.Updatable[AccountHolderJSONGrpc] {
+      isAlias: _root_.scala.Boolean = false,
+      unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+      ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[AccountHolderJSONGrpc] {
       @transient
-      private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-      private[this] def __computeSerializedValue(): _root_.scala.Int = {
+      private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+      private[this] def __computeSerializedSize(): _root_.scala.Int = {
         var __size = 0
-        if (name != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, name) }
-        if (isAlias != false) { __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(2, isAlias) }
+        
+        {
+          val __value = name
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+          }
+        };
+        
+        {
+          val __value = isAlias
+          if (__value != false) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeBoolSize(2, __value)
+          }
+        };
+        __size += unknownFields.serializedSize
         __size
       }
-      final override def serializedSize: _root_.scala.Int = {
-        var read = __serializedSizeCachedValue
-        if (read == 0) {
-          read = __computeSerializedValue()
-          __serializedSizeCachedValue = read
+      override def serializedSize: _root_.scala.Int = {
+        var __size = __serializedSizeMemoized
+        if (__size == 0) {
+          __size = __computeSerializedSize() + 1
+          __serializedSizeMemoized = __size
         }
-        read
+        __size - 1
+        
       }
       def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
         {
           val __v = name
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(1, __v)
           }
         };
@@ -302,30 +366,13 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
             _output__.writeBool(2, __v)
           }
         };
-      }
-      def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc = {
-        var __name = this.name
-        var __isAlias = this.isAlias
-        var _done__ = false
-        while (!_done__) {
-          val _tag__ = _input__.readTag()
-          _tag__ match {
-            case 0 => _done__ = true
-            case 10 =>
-              __name = _input__.readString()
-            case 16 =>
-              __isAlias = _input__.readBool()
-            case tag => _input__.skipField(tag)
-          }
-        }
-        code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc(
-            name = __name,
-            isAlias = __isAlias
-        )
+        unknownFields.writeTo(_output__)
       }
       def withName(__v: _root_.scala.Predef.String): AccountHolderJSONGrpc = copy(name = __v)
       def withIsAlias(__v: _root_.scala.Boolean): AccountHolderJSONGrpc = copy(isAlias = __v)
-      def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+      def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+      def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+      def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
         (__fieldNumber: @_root_.scala.unchecked) match {
           case 1 => {
             val __t = name
@@ -338,41 +385,62 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-        require(__field.containingMessage eq companion.scalaDescriptor)
+        _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
         (__field.number: @_root_.scala.unchecked) match {
           case 1 => _root_.scalapb.descriptors.PString(name)
           case 2 => _root_.scalapb.descriptors.PBoolean(isAlias)
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc
+      // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc])
   }
   
   object AccountHolderJSONGrpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc] {
     implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc] = this
-    def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc = {
-      require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-      val __fields = javaDescriptor.getFields
+    def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc = {
+      var __name: _root_.scala.Predef.String = ""
+      var __isAlias: _root_.scala.Boolean = false
+      var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+      var _done__ = false
+      while (!_done__) {
+        val _tag__ = _input__.readTag()
+        _tag__ match {
+          case 0 => _done__ = true
+          case 10 =>
+            __name = _input__.readStringRequireUtf8()
+          case 16 =>
+            __isAlias = _input__.readBool()
+          case tag =>
+            if (_unknownFields__ == null) {
+              _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+            }
+            _unknownFields__.parseField(tag, _input__)
+        }
+      }
       code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc(
-        __fieldsMap.getOrElse(__fields.get(0), "").asInstanceOf[_root_.scala.Predef.String],
-        __fieldsMap.getOrElse(__fields.get(1), false).asInstanceOf[_root_.scala.Boolean]
+          name = __name,
+          isAlias = __isAlias,
+          unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
       )
     }
     implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc] = _root_.scalapb.descriptors.Reads{
       case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-        require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+        _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
         code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc(
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Boolean]).getOrElse(false)
+          name = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+          isAlias = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Boolean]).getOrElse(false)
         )
       case _ => throw new RuntimeException("Expected PMessage")
     }
-    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes.get(1)
+    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes().get(1)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.scalaDescriptor.nestedMessages(1)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
     lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc(
+      name = "",
+      isAlias = false
     )
     implicit class AccountHolderJSONGrpcLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc](_l) {
       def name: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.name)((c_, f_) => c_.copy(name = f_))
@@ -380,66 +448,72 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     }
     final val NAME_FIELD_NUMBER = 1
     final val IS_ALIAS_FIELD_NUMBER = 2
+    def of(
+      name: _root_.scala.Predef.String,
+      isAlias: _root_.scala.Boolean
+    ): _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc = _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc(
+      name,
+      isAlias
+    )
+    // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc])
   }
   
   @SerialVersionUID(0L)
   final case class AccountRoutingJsonV121Grpc(
       scheme: _root_.scala.Predef.String = "",
-      address: _root_.scala.Predef.String = ""
-      ) extends scalapb.GeneratedMessage with scalapb.Message[AccountRoutingJsonV121Grpc] with scalapb.lenses.Updatable[AccountRoutingJsonV121Grpc] {
+      address: _root_.scala.Predef.String = "",
+      unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+      ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[AccountRoutingJsonV121Grpc] {
       @transient
-      private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-      private[this] def __computeSerializedValue(): _root_.scala.Int = {
+      private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+      private[this] def __computeSerializedSize(): _root_.scala.Int = {
         var __size = 0
-        if (scheme != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, scheme) }
-        if (address != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, address) }
+        
+        {
+          val __value = scheme
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+          }
+        };
+        
+        {
+          val __value = address
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
+          }
+        };
+        __size += unknownFields.serializedSize
         __size
       }
-      final override def serializedSize: _root_.scala.Int = {
-        var read = __serializedSizeCachedValue
-        if (read == 0) {
-          read = __computeSerializedValue()
-          __serializedSizeCachedValue = read
+      override def serializedSize: _root_.scala.Int = {
+        var __size = __serializedSizeMemoized
+        if (__size == 0) {
+          __size = __computeSerializedSize() + 1
+          __serializedSizeMemoized = __size
         }
-        read
+        __size - 1
+        
       }
       def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
         {
           val __v = scheme
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(1, __v)
           }
         };
         {
           val __v = address
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(2, __v)
           }
         };
-      }
-      def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc = {
-        var __scheme = this.scheme
-        var __address = this.address
-        var _done__ = false
-        while (!_done__) {
-          val _tag__ = _input__.readTag()
-          _tag__ match {
-            case 0 => _done__ = true
-            case 10 =>
-              __scheme = _input__.readString()
-            case 18 =>
-              __address = _input__.readString()
-            case tag => _input__.skipField(tag)
-          }
-        }
-        code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc(
-            scheme = __scheme,
-            address = __address
-        )
+        unknownFields.writeTo(_output__)
       }
       def withScheme(__v: _root_.scala.Predef.String): AccountRoutingJsonV121Grpc = copy(scheme = __v)
       def withAddress(__v: _root_.scala.Predef.String): AccountRoutingJsonV121Grpc = copy(address = __v)
-      def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+      def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+      def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+      def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
         (__fieldNumber: @_root_.scala.unchecked) match {
           case 1 => {
             val __t = scheme
@@ -452,41 +526,62 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-        require(__field.containingMessage eq companion.scalaDescriptor)
+        _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
         (__field.number: @_root_.scala.unchecked) match {
           case 1 => _root_.scalapb.descriptors.PString(scheme)
           case 2 => _root_.scalapb.descriptors.PString(address)
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc
+      // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc])
   }
   
   object AccountRoutingJsonV121Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc] {
     implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc] = this
-    def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc = {
-      require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-      val __fields = javaDescriptor.getFields
+    def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc = {
+      var __scheme: _root_.scala.Predef.String = ""
+      var __address: _root_.scala.Predef.String = ""
+      var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+      var _done__ = false
+      while (!_done__) {
+        val _tag__ = _input__.readTag()
+        _tag__ match {
+          case 0 => _done__ = true
+          case 10 =>
+            __scheme = _input__.readStringRequireUtf8()
+          case 18 =>
+            __address = _input__.readStringRequireUtf8()
+          case tag =>
+            if (_unknownFields__ == null) {
+              _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+            }
+            _unknownFields__.parseField(tag, _input__)
+        }
+      }
       code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc(
-        __fieldsMap.getOrElse(__fields.get(0), "").asInstanceOf[_root_.scala.Predef.String],
-        __fieldsMap.getOrElse(__fields.get(1), "").asInstanceOf[_root_.scala.Predef.String]
+          scheme = __scheme,
+          address = __address,
+          unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
       )
     }
     implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc] = _root_.scalapb.descriptors.Reads{
       case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-        require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+        _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
         code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc(
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+          scheme = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+          address = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
         )
       case _ => throw new RuntimeException("Expected PMessage")
     }
-    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes.get(2)
+    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes().get(2)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.scalaDescriptor.nestedMessages(2)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
     lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc(
+      scheme = "",
+      address = ""
     )
     implicit class AccountRoutingJsonV121GrpcLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc](_l) {
       def scheme: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.scheme)((c_, f_) => c_.copy(scheme = f_))
@@ -494,66 +589,72 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     }
     final val SCHEME_FIELD_NUMBER = 1
     final val ADDRESS_FIELD_NUMBER = 2
+    def of(
+      scheme: _root_.scala.Predef.String,
+      address: _root_.scala.Predef.String
+    ): _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc = _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc(
+      scheme,
+      address
+    )
+    // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc])
   }
   
   @SerialVersionUID(0L)
   final case class BankRoutingJsonV121Grpc(
       scheme: _root_.scala.Predef.String = "",
-      address: _root_.scala.Predef.String = ""
-      ) extends scalapb.GeneratedMessage with scalapb.Message[BankRoutingJsonV121Grpc] with scalapb.lenses.Updatable[BankRoutingJsonV121Grpc] {
+      address: _root_.scala.Predef.String = "",
+      unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+      ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[BankRoutingJsonV121Grpc] {
       @transient
-      private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-      private[this] def __computeSerializedValue(): _root_.scala.Int = {
+      private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+      private[this] def __computeSerializedSize(): _root_.scala.Int = {
         var __size = 0
-        if (scheme != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, scheme) }
-        if (address != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, address) }
+        
+        {
+          val __value = scheme
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+          }
+        };
+        
+        {
+          val __value = address
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
+          }
+        };
+        __size += unknownFields.serializedSize
         __size
       }
-      final override def serializedSize: _root_.scala.Int = {
-        var read = __serializedSizeCachedValue
-        if (read == 0) {
-          read = __computeSerializedValue()
-          __serializedSizeCachedValue = read
+      override def serializedSize: _root_.scala.Int = {
+        var __size = __serializedSizeMemoized
+        if (__size == 0) {
+          __size = __computeSerializedSize() + 1
+          __serializedSizeMemoized = __size
         }
-        read
+        __size - 1
+        
       }
       def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
         {
           val __v = scheme
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(1, __v)
           }
         };
         {
           val __v = address
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(2, __v)
           }
         };
-      }
-      def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc = {
-        var __scheme = this.scheme
-        var __address = this.address
-        var _done__ = false
-        while (!_done__) {
-          val _tag__ = _input__.readTag()
-          _tag__ match {
-            case 0 => _done__ = true
-            case 10 =>
-              __scheme = _input__.readString()
-            case 18 =>
-              __address = _input__.readString()
-            case tag => _input__.skipField(tag)
-          }
-        }
-        code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc(
-            scheme = __scheme,
-            address = __address
-        )
+        unknownFields.writeTo(_output__)
       }
       def withScheme(__v: _root_.scala.Predef.String): BankRoutingJsonV121Grpc = copy(scheme = __v)
       def withAddress(__v: _root_.scala.Predef.String): BankRoutingJsonV121Grpc = copy(address = __v)
-      def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+      def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+      def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+      def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
         (__fieldNumber: @_root_.scala.unchecked) match {
           case 1 => {
             val __t = scheme
@@ -566,41 +667,62 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-        require(__field.containingMessage eq companion.scalaDescriptor)
+        _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
         (__field.number: @_root_.scala.unchecked) match {
           case 1 => _root_.scalapb.descriptors.PString(scheme)
           case 2 => _root_.scalapb.descriptors.PString(address)
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc
+      // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc])
   }
   
   object BankRoutingJsonV121Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] {
     implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] = this
-    def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc = {
-      require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-      val __fields = javaDescriptor.getFields
+    def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc = {
+      var __scheme: _root_.scala.Predef.String = ""
+      var __address: _root_.scala.Predef.String = ""
+      var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+      var _done__ = false
+      while (!_done__) {
+        val _tag__ = _input__.readTag()
+        _tag__ match {
+          case 0 => _done__ = true
+          case 10 =>
+            __scheme = _input__.readStringRequireUtf8()
+          case 18 =>
+            __address = _input__.readStringRequireUtf8()
+          case tag =>
+            if (_unknownFields__ == null) {
+              _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+            }
+            _unknownFields__.parseField(tag, _input__)
+        }
+      }
       code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc(
-        __fieldsMap.getOrElse(__fields.get(0), "").asInstanceOf[_root_.scala.Predef.String],
-        __fieldsMap.getOrElse(__fields.get(1), "").asInstanceOf[_root_.scala.Predef.String]
+          scheme = __scheme,
+          address = __address,
+          unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
       )
     }
     implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] = _root_.scalapb.descriptors.Reads{
       case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-        require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+        _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
         code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc(
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+          scheme = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+          address = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
         )
       case _ => throw new RuntimeException("Expected PMessage")
     }
-    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes.get(3)
+    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes().get(3)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.scalaDescriptor.nestedMessages(3)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
     lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc(
+      scheme = "",
+      address = ""
     )
     implicit class BankRoutingJsonV121GrpcLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc](_l) {
       def scheme: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.scheme)((c_, f_) => c_.copy(scheme = f_))
@@ -608,97 +730,101 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     }
     final val SCHEME_FIELD_NUMBER = 1
     final val ADDRESS_FIELD_NUMBER = 2
+    def of(
+      scheme: _root_.scala.Predef.String,
+      address: _root_.scala.Predef.String
+    ): _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc = _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc(
+      scheme,
+      address
+    )
+    // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc])
   }
   
   @SerialVersionUID(0L)
   final case class ThisAccountJsonV300Grpc(
       id: _root_.scala.Predef.String = "",
-      bankRouting: scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] = None,
-      accountRoutings: _root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc] = _root_.scala.collection.Seq.empty,
-      holders: _root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc] = _root_.scala.collection.Seq.empty
-      ) extends scalapb.GeneratedMessage with scalapb.Message[ThisAccountJsonV300Grpc] with scalapb.lenses.Updatable[ThisAccountJsonV300Grpc] {
+      bankRouting: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] = _root_.scala.None,
+      accountRoutings: _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc] = _root_.scala.Seq.empty,
+      holders: _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc] = _root_.scala.Seq.empty,
+      unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+      ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[ThisAccountJsonV300Grpc] {
       @transient
-      private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-      private[this] def __computeSerializedValue(): _root_.scala.Int = {
+      private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+      private[this] def __computeSerializedSize(): _root_.scala.Int = {
         var __size = 0
-        if (id != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, id) }
-        if (bankRouting.isDefined) { __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(bankRouting.get.serializedSize) + bankRouting.get.serializedSize }
-        accountRoutings.foreach(accountRoutings => __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(accountRoutings.serializedSize) + accountRoutings.serializedSize)
-        holders.foreach(holders => __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(holders.serializedSize) + holders.serializedSize)
+        
+        {
+          val __value = id
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+          }
+        };
+        if (bankRouting.isDefined) {
+          val __value = bankRouting.get
+          __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+        };
+        accountRoutings.foreach { __item =>
+          val __value = __item
+          __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+        }
+        holders.foreach { __item =>
+          val __value = __item
+          __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+        }
+        __size += unknownFields.serializedSize
         __size
       }
-      final override def serializedSize: _root_.scala.Int = {
-        var read = __serializedSizeCachedValue
-        if (read == 0) {
-          read = __computeSerializedValue()
-          __serializedSizeCachedValue = read
+      override def serializedSize: _root_.scala.Int = {
+        var __size = __serializedSizeMemoized
+        if (__size == 0) {
+          __size = __computeSerializedSize() + 1
+          __serializedSizeMemoized = __size
         }
-        read
+        __size - 1
+        
       }
       def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
         {
           val __v = id
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(1, __v)
           }
         };
         bankRouting.foreach { __v =>
+          val __m = __v
           _output__.writeTag(2, 2)
-          _output__.writeUInt32NoTag(__v.serializedSize)
-          __v.writeTo(_output__)
+          _output__.writeUInt32NoTag(__m.serializedSize)
+          __m.writeTo(_output__)
         };
         accountRoutings.foreach { __v =>
+          val __m = __v
           _output__.writeTag(3, 2)
-          _output__.writeUInt32NoTag(__v.serializedSize)
-          __v.writeTo(_output__)
+          _output__.writeUInt32NoTag(__m.serializedSize)
+          __m.writeTo(_output__)
         };
         holders.foreach { __v =>
+          val __m = __v
           _output__.writeTag(4, 2)
-          _output__.writeUInt32NoTag(__v.serializedSize)
-          __v.writeTo(_output__)
+          _output__.writeUInt32NoTag(__m.serializedSize)
+          __m.writeTo(_output__)
         };
-      }
-      def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc = {
-        var __id = this.id
-        var __bankRouting = this.bankRouting
-        val __accountRoutings = (_root_.scala.collection.immutable.Vector.newBuilder[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc] ++= this.accountRoutings)
-        val __holders = (_root_.scala.collection.immutable.Vector.newBuilder[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc] ++= this.holders)
-        var _done__ = false
-        while (!_done__) {
-          val _tag__ = _input__.readTag()
-          _tag__ match {
-            case 0 => _done__ = true
-            case 10 =>
-              __id = _input__.readString()
-            case 18 =>
-              __bankRouting = Option(_root_.scalapb.LiteParser.readMessage(_input__, __bankRouting.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc.defaultInstance)))
-            case 26 =>
-              __accountRoutings += _root_.scalapb.LiteParser.readMessage(_input__, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc.defaultInstance)
-            case 34 =>
-              __holders += _root_.scalapb.LiteParser.readMessage(_input__, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc.defaultInstance)
-            case tag => _input__.skipField(tag)
-          }
-        }
-        code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc(
-            id = __id,
-            bankRouting = __bankRouting,
-            accountRoutings = __accountRoutings.result(),
-            holders = __holders.result()
-        )
+        unknownFields.writeTo(_output__)
       }
       def withId(__v: _root_.scala.Predef.String): ThisAccountJsonV300Grpc = copy(id = __v)
       def getBankRouting: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc = bankRouting.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc.defaultInstance)
-      def clearBankRouting: ThisAccountJsonV300Grpc = copy(bankRouting = None)
+      def clearBankRouting: ThisAccountJsonV300Grpc = copy(bankRouting = _root_.scala.None)
       def withBankRouting(__v: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc): ThisAccountJsonV300Grpc = copy(bankRouting = Option(__v))
-      def clearAccountRoutings = copy(accountRoutings = _root_.scala.collection.Seq.empty)
-      def addAccountRoutings(__vs: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc*): ThisAccountJsonV300Grpc = addAllAccountRoutings(__vs)
-      def addAllAccountRoutings(__vs: TraversableOnce[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]): ThisAccountJsonV300Grpc = copy(accountRoutings = accountRoutings ++ __vs)
-      def withAccountRoutings(__v: _root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]): ThisAccountJsonV300Grpc = copy(accountRoutings = __v)
-      def clearHolders = copy(holders = _root_.scala.collection.Seq.empty)
-      def addHolders(__vs: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc*): ThisAccountJsonV300Grpc = addAllHolders(__vs)
-      def addAllHolders(__vs: TraversableOnce[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]): ThisAccountJsonV300Grpc = copy(holders = holders ++ __vs)
-      def withHolders(__v: _root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]): ThisAccountJsonV300Grpc = copy(holders = __v)
-      def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+      def clearAccountRoutings = copy(accountRoutings = _root_.scala.Seq.empty)
+      def addAccountRoutings(__vs: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc *): ThisAccountJsonV300Grpc = addAllAccountRoutings(__vs)
+      def addAllAccountRoutings(__vs: Iterable[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]): ThisAccountJsonV300Grpc = copy(accountRoutings = accountRoutings ++ __vs)
+      def withAccountRoutings(__v: _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]): ThisAccountJsonV300Grpc = copy(accountRoutings = __v)
+      def clearHolders = copy(holders = _root_.scala.Seq.empty)
+      def addHolders(__vs: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc *): ThisAccountJsonV300Grpc = addAllHolders(__vs)
+      def addAllHolders(__vs: Iterable[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]): ThisAccountJsonV300Grpc = copy(holders = holders ++ __vs)
+      def withHolders(__v: _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]): ThisAccountJsonV300Grpc = copy(holders = __v)
+      def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+      def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+      def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
         (__fieldNumber: @_root_.scala.unchecked) match {
           case 1 => {
             val __t = id
@@ -710,7 +836,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-        require(__field.containingMessage eq companion.scalaDescriptor)
+        _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
         (__field.number: @_root_.scala.unchecked) match {
           case 1 => _root_.scalapb.descriptors.PString(id)
           case 2 => bankRouting.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
@@ -719,33 +845,58 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc
+      // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc])
   }
   
   object ThisAccountJsonV300Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc] {
     implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc] = this
-    def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc = {
-      require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-      val __fields = javaDescriptor.getFields
+    def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc = {
+      var __id: _root_.scala.Predef.String = ""
+      var __bankRouting: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] = _root_.scala.None
+      val __accountRoutings: _root_.scala.collection.immutable.VectorBuilder[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc] = new _root_.scala.collection.immutable.VectorBuilder[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]
+      val __holders: _root_.scala.collection.immutable.VectorBuilder[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc] = new _root_.scala.collection.immutable.VectorBuilder[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]
+      var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+      var _done__ = false
+      while (!_done__) {
+        val _tag__ = _input__.readTag()
+        _tag__ match {
+          case 0 => _done__ = true
+          case 10 =>
+            __id = _input__.readStringRequireUtf8()
+          case 18 =>
+            __bankRouting = _root_.scala.Option(__bankRouting.fold(_root_.scalapb.LiteParser.readMessage[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+          case 26 =>
+            __accountRoutings += _root_.scalapb.LiteParser.readMessage[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc](_input__)
+          case 34 =>
+            __holders += _root_.scalapb.LiteParser.readMessage[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc](_input__)
+          case tag =>
+            if (_unknownFields__ == null) {
+              _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+            }
+            _unknownFields__.parseField(tag, _input__)
+        }
+      }
       code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc(
-        __fieldsMap.getOrElse(__fields.get(0), "").asInstanceOf[_root_.scala.Predef.String],
-        __fieldsMap.get(__fields.get(1)).asInstanceOf[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc]],
-        __fieldsMap.getOrElse(__fields.get(2), Nil).asInstanceOf[_root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]],
-        __fieldsMap.getOrElse(__fields.get(3), Nil).asInstanceOf[_root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]]
+          id = __id,
+          bankRouting = __bankRouting,
+          accountRoutings = __accountRoutings.result(),
+          holders = __holders.result(),
+          unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
       )
     }
     implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc] = _root_.scalapb.descriptors.Reads{
       case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-        require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+        _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
         code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc(
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).flatMap(_.as[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc]]),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]]).getOrElse(_root_.scala.collection.Seq.empty),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]]).getOrElse(_root_.scala.collection.Seq.empty)
+          id = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+          bankRouting = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).flatMap(_.as[_root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc]]),
+          accountRoutings = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]]).getOrElse(_root_.scala.Seq.empty),
+          holders = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]]).getOrElse(_root_.scala.Seq.empty)
         )
       case _ => throw new RuntimeException("Expected PMessage")
     }
-    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes.get(4)
+    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes().get(4)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.scalaDescriptor.nestedMessages(4)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
       var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
@@ -759,108 +910,120 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc(
+      id = "",
+      bankRouting = _root_.scala.None,
+      accountRoutings = _root_.scala.Seq.empty,
+      holders = _root_.scala.Seq.empty
     )
     implicit class ThisAccountJsonV300GrpcLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc](_l) {
       def id: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.id)((c_, f_) => c_.copy(id = f_))
-      def bankRouting: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] = field(_.getBankRouting)((c_, f_) => c_.copy(bankRouting = Option(f_)))
-      def optionalBankRouting: _root_.scalapb.lenses.Lens[UpperPB, scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc]] = field(_.bankRouting)((c_, f_) => c_.copy(bankRouting = f_))
-      def accountRoutings: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]] = field(_.accountRoutings)((c_, f_) => c_.copy(accountRoutings = f_))
-      def holders: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]] = field(_.holders)((c_, f_) => c_.copy(holders = f_))
+      def bankRouting: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] = field(_.getBankRouting)((c_, f_) => c_.copy(bankRouting = _root_.scala.Option(f_)))
+      def optionalBankRouting: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc]] = field(_.bankRouting)((c_, f_) => c_.copy(bankRouting = f_))
+      def accountRoutings: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]] = field(_.accountRoutings)((c_, f_) => c_.copy(accountRoutings = f_))
+      def holders: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]] = field(_.holders)((c_, f_) => c_.copy(holders = f_))
     }
     final val ID_FIELD_NUMBER = 1
     final val BANK_ROUTING_FIELD_NUMBER = 2
     final val ACCOUNT_ROUTINGS_FIELD_NUMBER = 3
     final val HOLDERS_FIELD_NUMBER = 4
+    def of(
+      id: _root_.scala.Predef.String,
+      bankRouting: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc],
+      accountRoutings: _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc],
+      holders: _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]
+    ): _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc = _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc(
+      id,
+      bankRouting,
+      accountRoutings,
+      holders
+    )
+    // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc])
   }
   
   @SerialVersionUID(0L)
   final case class CoreCounterpartyJsonV300Grpc(
       id: _root_.scala.Predef.String = "",
-      holder: scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc] = None,
-      bankRouting: scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] = None,
-      accountRoutings: _root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc] = _root_.scala.collection.Seq.empty
-      ) extends scalapb.GeneratedMessage with scalapb.Message[CoreCounterpartyJsonV300Grpc] with scalapb.lenses.Updatable[CoreCounterpartyJsonV300Grpc] {
+      holder: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc] = _root_.scala.None,
+      bankRouting: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] = _root_.scala.None,
+      accountRoutings: _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc] = _root_.scala.Seq.empty,
+      unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+      ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[CoreCounterpartyJsonV300Grpc] {
       @transient
-      private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-      private[this] def __computeSerializedValue(): _root_.scala.Int = {
+      private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+      private[this] def __computeSerializedSize(): _root_.scala.Int = {
         var __size = 0
-        if (id != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, id) }
-        if (holder.isDefined) { __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(holder.get.serializedSize) + holder.get.serializedSize }
-        if (bankRouting.isDefined) { __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(bankRouting.get.serializedSize) + bankRouting.get.serializedSize }
-        accountRoutings.foreach(accountRoutings => __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(accountRoutings.serializedSize) + accountRoutings.serializedSize)
+        
+        {
+          val __value = id
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+          }
+        };
+        if (holder.isDefined) {
+          val __value = holder.get
+          __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+        };
+        if (bankRouting.isDefined) {
+          val __value = bankRouting.get
+          __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+        };
+        accountRoutings.foreach { __item =>
+          val __value = __item
+          __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+        }
+        __size += unknownFields.serializedSize
         __size
       }
-      final override def serializedSize: _root_.scala.Int = {
-        var read = __serializedSizeCachedValue
-        if (read == 0) {
-          read = __computeSerializedValue()
-          __serializedSizeCachedValue = read
+      override def serializedSize: _root_.scala.Int = {
+        var __size = __serializedSizeMemoized
+        if (__size == 0) {
+          __size = __computeSerializedSize() + 1
+          __serializedSizeMemoized = __size
         }
-        read
+        __size - 1
+        
       }
       def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
         {
           val __v = id
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(1, __v)
           }
         };
         holder.foreach { __v =>
+          val __m = __v
           _output__.writeTag(2, 2)
-          _output__.writeUInt32NoTag(__v.serializedSize)
-          __v.writeTo(_output__)
+          _output__.writeUInt32NoTag(__m.serializedSize)
+          __m.writeTo(_output__)
         };
         bankRouting.foreach { __v =>
+          val __m = __v
           _output__.writeTag(3, 2)
-          _output__.writeUInt32NoTag(__v.serializedSize)
-          __v.writeTo(_output__)
+          _output__.writeUInt32NoTag(__m.serializedSize)
+          __m.writeTo(_output__)
         };
         accountRoutings.foreach { __v =>
+          val __m = __v
           _output__.writeTag(4, 2)
-          _output__.writeUInt32NoTag(__v.serializedSize)
-          __v.writeTo(_output__)
+          _output__.writeUInt32NoTag(__m.serializedSize)
+          __m.writeTo(_output__)
         };
-      }
-      def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc = {
-        var __id = this.id
-        var __holder = this.holder
-        var __bankRouting = this.bankRouting
-        val __accountRoutings = (_root_.scala.collection.immutable.Vector.newBuilder[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc] ++= this.accountRoutings)
-        var _done__ = false
-        while (!_done__) {
-          val _tag__ = _input__.readTag()
-          _tag__ match {
-            case 0 => _done__ = true
-            case 10 =>
-              __id = _input__.readString()
-            case 18 =>
-              __holder = Option(_root_.scalapb.LiteParser.readMessage(_input__, __holder.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc.defaultInstance)))
-            case 26 =>
-              __bankRouting = Option(_root_.scalapb.LiteParser.readMessage(_input__, __bankRouting.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc.defaultInstance)))
-            case 34 =>
-              __accountRoutings += _root_.scalapb.LiteParser.readMessage(_input__, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc.defaultInstance)
-            case tag => _input__.skipField(tag)
-          }
-        }
-        code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc(
-            id = __id,
-            holder = __holder,
-            bankRouting = __bankRouting,
-            accountRoutings = __accountRoutings.result()
-        )
+        unknownFields.writeTo(_output__)
       }
       def withId(__v: _root_.scala.Predef.String): CoreCounterpartyJsonV300Grpc = copy(id = __v)
       def getHolder: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc = holder.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc.defaultInstance)
-      def clearHolder: CoreCounterpartyJsonV300Grpc = copy(holder = None)
+      def clearHolder: CoreCounterpartyJsonV300Grpc = copy(holder = _root_.scala.None)
       def withHolder(__v: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc): CoreCounterpartyJsonV300Grpc = copy(holder = Option(__v))
       def getBankRouting: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc = bankRouting.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc.defaultInstance)
-      def clearBankRouting: CoreCounterpartyJsonV300Grpc = copy(bankRouting = None)
+      def clearBankRouting: CoreCounterpartyJsonV300Grpc = copy(bankRouting = _root_.scala.None)
       def withBankRouting(__v: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc): CoreCounterpartyJsonV300Grpc = copy(bankRouting = Option(__v))
-      def clearAccountRoutings = copy(accountRoutings = _root_.scala.collection.Seq.empty)
-      def addAccountRoutings(__vs: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc*): CoreCounterpartyJsonV300Grpc = addAllAccountRoutings(__vs)
-      def addAllAccountRoutings(__vs: TraversableOnce[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]): CoreCounterpartyJsonV300Grpc = copy(accountRoutings = accountRoutings ++ __vs)
-      def withAccountRoutings(__v: _root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]): CoreCounterpartyJsonV300Grpc = copy(accountRoutings = __v)
-      def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+      def clearAccountRoutings = copy(accountRoutings = _root_.scala.Seq.empty)
+      def addAccountRoutings(__vs: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc *): CoreCounterpartyJsonV300Grpc = addAllAccountRoutings(__vs)
+      def addAllAccountRoutings(__vs: Iterable[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]): CoreCounterpartyJsonV300Grpc = copy(accountRoutings = accountRoutings ++ __vs)
+      def withAccountRoutings(__v: _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]): CoreCounterpartyJsonV300Grpc = copy(accountRoutings = __v)
+      def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+      def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+      def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
         (__fieldNumber: @_root_.scala.unchecked) match {
           case 1 => {
             val __t = id
@@ -872,7 +1035,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-        require(__field.containingMessage eq companion.scalaDescriptor)
+        _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
         (__field.number: @_root_.scala.unchecked) match {
           case 1 => _root_.scalapb.descriptors.PString(id)
           case 2 => holder.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
@@ -881,33 +1044,58 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc
+      // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc])
   }
   
   object CoreCounterpartyJsonV300Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc] {
     implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc] = this
-    def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc = {
-      require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-      val __fields = javaDescriptor.getFields
+    def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc = {
+      var __id: _root_.scala.Predef.String = ""
+      var __holder: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc] = _root_.scala.None
+      var __bankRouting: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] = _root_.scala.None
+      val __accountRoutings: _root_.scala.collection.immutable.VectorBuilder[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc] = new _root_.scala.collection.immutable.VectorBuilder[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]
+      var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+      var _done__ = false
+      while (!_done__) {
+        val _tag__ = _input__.readTag()
+        _tag__ match {
+          case 0 => _done__ = true
+          case 10 =>
+            __id = _input__.readStringRequireUtf8()
+          case 18 =>
+            __holder = _root_.scala.Option(__holder.fold(_root_.scalapb.LiteParser.readMessage[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+          case 26 =>
+            __bankRouting = _root_.scala.Option(__bankRouting.fold(_root_.scalapb.LiteParser.readMessage[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+          case 34 =>
+            __accountRoutings += _root_.scalapb.LiteParser.readMessage[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc](_input__)
+          case tag =>
+            if (_unknownFields__ == null) {
+              _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+            }
+            _unknownFields__.parseField(tag, _input__)
+        }
+      }
       code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc(
-        __fieldsMap.getOrElse(__fields.get(0), "").asInstanceOf[_root_.scala.Predef.String],
-        __fieldsMap.get(__fields.get(1)).asInstanceOf[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]],
-        __fieldsMap.get(__fields.get(2)).asInstanceOf[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc]],
-        __fieldsMap.getOrElse(__fields.get(3), Nil).asInstanceOf[_root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]]
+          id = __id,
+          holder = __holder,
+          bankRouting = __bankRouting,
+          accountRoutings = __accountRoutings.result(),
+          unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
       )
     }
     implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc] = _root_.scalapb.descriptors.Reads{
       case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-        require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+        _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
         code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc(
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).flatMap(_.as[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]]),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).flatMap(_.as[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc]]),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]]).getOrElse(_root_.scala.collection.Seq.empty)
+          id = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+          holder = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).flatMap(_.as[_root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]]),
+          bankRouting = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).flatMap(_.as[_root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc]]),
+          accountRoutings = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]]).getOrElse(_root_.scala.Seq.empty)
         )
       case _ => throw new RuntimeException("Expected PMessage")
     }
-    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes.get(5)
+    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes().get(5)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.scalaDescriptor.nestedMessages(5)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
       var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
@@ -921,79 +1109,93 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc(
+      id = "",
+      holder = _root_.scala.None,
+      bankRouting = _root_.scala.None,
+      accountRoutings = _root_.scala.Seq.empty
     )
     implicit class CoreCounterpartyJsonV300GrpcLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc](_l) {
       def id: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.id)((c_, f_) => c_.copy(id = f_))
-      def holder: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc] = field(_.getHolder)((c_, f_) => c_.copy(holder = Option(f_)))
-      def optionalHolder: _root_.scalapb.lenses.Lens[UpperPB, scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]] = field(_.holder)((c_, f_) => c_.copy(holder = f_))
-      def bankRouting: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] = field(_.getBankRouting)((c_, f_) => c_.copy(bankRouting = Option(f_)))
-      def optionalBankRouting: _root_.scalapb.lenses.Lens[UpperPB, scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc]] = field(_.bankRouting)((c_, f_) => c_.copy(bankRouting = f_))
-      def accountRoutings: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]] = field(_.accountRoutings)((c_, f_) => c_.copy(accountRoutings = f_))
+      def holder: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc] = field(_.getHolder)((c_, f_) => c_.copy(holder = _root_.scala.Option(f_)))
+      def optionalHolder: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc]] = field(_.holder)((c_, f_) => c_.copy(holder = f_))
+      def bankRouting: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] = field(_.getBankRouting)((c_, f_) => c_.copy(bankRouting = _root_.scala.Option(f_)))
+      def optionalBankRouting: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc]] = field(_.bankRouting)((c_, f_) => c_.copy(bankRouting = f_))
+      def accountRoutings: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]] = field(_.accountRoutings)((c_, f_) => c_.copy(accountRoutings = f_))
     }
     final val ID_FIELD_NUMBER = 1
     final val HOLDER_FIELD_NUMBER = 2
     final val BANK_ROUTING_FIELD_NUMBER = 3
     final val ACCOUNT_ROUTINGS_FIELD_NUMBER = 4
+    def of(
+      id: _root_.scala.Predef.String,
+      holder: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc],
+      bankRouting: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc],
+      accountRoutings: _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc]
+    ): _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc = _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc(
+      id,
+      holder,
+      bankRouting,
+      accountRoutings
+    )
+    // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc])
   }
   
   @SerialVersionUID(0L)
   final case class AmountOfMoneyJsonV121Grpc(
       currency: _root_.scala.Predef.String = "",
-      amount: _root_.scala.Predef.String = ""
-      ) extends scalapb.GeneratedMessage with scalapb.Message[AmountOfMoneyJsonV121Grpc] with scalapb.lenses.Updatable[AmountOfMoneyJsonV121Grpc] {
+      amount: _root_.scala.Predef.String = "",
+      unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+      ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[AmountOfMoneyJsonV121Grpc] {
       @transient
-      private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-      private[this] def __computeSerializedValue(): _root_.scala.Int = {
+      private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+      private[this] def __computeSerializedSize(): _root_.scala.Int = {
         var __size = 0
-        if (currency != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, currency) }
-        if (amount != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, amount) }
+        
+        {
+          val __value = currency
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+          }
+        };
+        
+        {
+          val __value = amount
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
+          }
+        };
+        __size += unknownFields.serializedSize
         __size
       }
-      final override def serializedSize: _root_.scala.Int = {
-        var read = __serializedSizeCachedValue
-        if (read == 0) {
-          read = __computeSerializedValue()
-          __serializedSizeCachedValue = read
+      override def serializedSize: _root_.scala.Int = {
+        var __size = __serializedSizeMemoized
+        if (__size == 0) {
+          __size = __computeSerializedSize() + 1
+          __serializedSizeMemoized = __size
         }
-        read
+        __size - 1
+        
       }
       def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
         {
           val __v = currency
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(1, __v)
           }
         };
         {
           val __v = amount
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(2, __v)
           }
         };
-      }
-      def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc = {
-        var __currency = this.currency
-        var __amount = this.amount
-        var _done__ = false
-        while (!_done__) {
-          val _tag__ = _input__.readTag()
-          _tag__ match {
-            case 0 => _done__ = true
-            case 10 =>
-              __currency = _input__.readString()
-            case 18 =>
-              __amount = _input__.readString()
-            case tag => _input__.skipField(tag)
-          }
-        }
-        code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc(
-            currency = __currency,
-            amount = __amount
-        )
+        unknownFields.writeTo(_output__)
       }
       def withCurrency(__v: _root_.scala.Predef.String): AmountOfMoneyJsonV121Grpc = copy(currency = __v)
       def withAmount(__v: _root_.scala.Predef.String): AmountOfMoneyJsonV121Grpc = copy(amount = __v)
-      def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+      def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+      def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+      def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
         (__fieldNumber: @_root_.scala.unchecked) match {
           case 1 => {
             val __t = currency
@@ -1006,41 +1208,62 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-        require(__field.containingMessage eq companion.scalaDescriptor)
+        _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
         (__field.number: @_root_.scala.unchecked) match {
           case 1 => _root_.scalapb.descriptors.PString(currency)
           case 2 => _root_.scalapb.descriptors.PString(amount)
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc
+      // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc])
   }
   
   object AmountOfMoneyJsonV121Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] {
     implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] = this
-    def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc = {
-      require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-      val __fields = javaDescriptor.getFields
+    def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc = {
+      var __currency: _root_.scala.Predef.String = ""
+      var __amount: _root_.scala.Predef.String = ""
+      var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+      var _done__ = false
+      while (!_done__) {
+        val _tag__ = _input__.readTag()
+        _tag__ match {
+          case 0 => _done__ = true
+          case 10 =>
+            __currency = _input__.readStringRequireUtf8()
+          case 18 =>
+            __amount = _input__.readStringRequireUtf8()
+          case tag =>
+            if (_unknownFields__ == null) {
+              _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+            }
+            _unknownFields__.parseField(tag, _input__)
+        }
+      }
       code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc(
-        __fieldsMap.getOrElse(__fields.get(0), "").asInstanceOf[_root_.scala.Predef.String],
-        __fieldsMap.getOrElse(__fields.get(1), "").asInstanceOf[_root_.scala.Predef.String]
+          currency = __currency,
+          amount = __amount,
+          unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
       )
     }
     implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] = _root_.scalapb.descriptors.Reads{
       case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-        require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+        _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
         code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc(
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+          currency = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+          amount = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
         )
       case _ => throw new RuntimeException("Expected PMessage")
     }
-    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes.get(6)
+    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes().get(6)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.scalaDescriptor.nestedMessages(6)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
     lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc(
+      currency = "",
+      amount = ""
     )
     implicit class AmountOfMoneyJsonV121GrpcLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc](_l) {
       def currency: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.currency)((c_, f_) => c_.copy(currency = f_))
@@ -1048,6 +1271,14 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     }
     final val CURRENCY_FIELD_NUMBER = 1
     final val AMOUNT_FIELD_NUMBER = 2
+    def of(
+      currency: _root_.scala.Predef.String,
+      amount: _root_.scala.Predef.String
+    ): _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc = _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc(
+      currency,
+      amount
+    )
+    // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc])
   }
   
   /** @param posted
@@ -1060,112 +1291,114 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
       description: _root_.scala.Predef.String = "",
       posted: _root_.scala.Predef.String = "",
       completed: _root_.scala.Predef.String = "",
-      newBalance: scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] = None,
-      value: scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] = None
-      ) extends scalapb.GeneratedMessage with scalapb.Message[CoreTransactionDetailsJSONGrpc] with scalapb.lenses.Updatable[CoreTransactionDetailsJSONGrpc] {
+      newBalance: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] = _root_.scala.None,
+      value: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] = _root_.scala.None,
+      unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+      ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[CoreTransactionDetailsJSONGrpc] {
       @transient
-      private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-      private[this] def __computeSerializedValue(): _root_.scala.Int = {
+      private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+      private[this] def __computeSerializedSize(): _root_.scala.Int = {
         var __size = 0
-        if (`type` != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, `type`) }
-        if (description != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, description) }
-        if (posted != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, posted) }
-        if (completed != "") { __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(4, completed) }
-        if (newBalance.isDefined) { __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(newBalance.get.serializedSize) + newBalance.get.serializedSize }
-        if (value.isDefined) { __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(value.get.serializedSize) + value.get.serializedSize }
+        
+        {
+          val __value = `type`
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+          }
+        };
+        
+        {
+          val __value = description
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
+          }
+        };
+        
+        {
+          val __value = posted
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(3, __value)
+          }
+        };
+        
+        {
+          val __value = completed
+          if (!__value.isEmpty) {
+            __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(4, __value)
+          }
+        };
+        if (newBalance.isDefined) {
+          val __value = newBalance.get
+          __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+        };
+        if (value.isDefined) {
+          val __value = value.get
+          __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
+        };
+        __size += unknownFields.serializedSize
         __size
       }
-      final override def serializedSize: _root_.scala.Int = {
-        var read = __serializedSizeCachedValue
-        if (read == 0) {
-          read = __computeSerializedValue()
-          __serializedSizeCachedValue = read
+      override def serializedSize: _root_.scala.Int = {
+        var __size = __serializedSizeMemoized
+        if (__size == 0) {
+          __size = __computeSerializedSize() + 1
+          __serializedSizeMemoized = __size
         }
-        read
+        __size - 1
+        
       }
       def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
         {
           val __v = `type`
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(1, __v)
           }
         };
         {
           val __v = description
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(2, __v)
           }
         };
         {
           val __v = posted
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(3, __v)
           }
         };
         {
           val __v = completed
-          if (__v != "") {
+          if (!__v.isEmpty) {
             _output__.writeString(4, __v)
           }
         };
         newBalance.foreach { __v =>
+          val __m = __v
           _output__.writeTag(5, 2)
-          _output__.writeUInt32NoTag(__v.serializedSize)
-          __v.writeTo(_output__)
+          _output__.writeUInt32NoTag(__m.serializedSize)
+          __m.writeTo(_output__)
         };
         value.foreach { __v =>
+          val __m = __v
           _output__.writeTag(6, 2)
-          _output__.writeUInt32NoTag(__v.serializedSize)
-          __v.writeTo(_output__)
+          _output__.writeUInt32NoTag(__m.serializedSize)
+          __m.writeTo(_output__)
         };
-      }
-      def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc = {
-        var __type = this.`type`
-        var __description = this.description
-        var __posted = this.posted
-        var __completed = this.completed
-        var __newBalance = this.newBalance
-        var __value = this.value
-        var _done__ = false
-        while (!_done__) {
-          val _tag__ = _input__.readTag()
-          _tag__ match {
-            case 0 => _done__ = true
-            case 10 =>
-              __type = _input__.readString()
-            case 18 =>
-              __description = _input__.readString()
-            case 26 =>
-              __posted = _input__.readString()
-            case 34 =>
-              __completed = _input__.readString()
-            case 42 =>
-              __newBalance = Option(_root_.scalapb.LiteParser.readMessage(_input__, __newBalance.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc.defaultInstance)))
-            case 50 =>
-              __value = Option(_root_.scalapb.LiteParser.readMessage(_input__, __value.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc.defaultInstance)))
-            case tag => _input__.skipField(tag)
-          }
-        }
-        code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc(
-            `type` = __type,
-            description = __description,
-            posted = __posted,
-            completed = __completed,
-            newBalance = __newBalance,
-            value = __value
-        )
+        unknownFields.writeTo(_output__)
       }
       def withType(__v: _root_.scala.Predef.String): CoreTransactionDetailsJSONGrpc = copy(`type` = __v)
       def withDescription(__v: _root_.scala.Predef.String): CoreTransactionDetailsJSONGrpc = copy(description = __v)
       def withPosted(__v: _root_.scala.Predef.String): CoreTransactionDetailsJSONGrpc = copy(posted = __v)
       def withCompleted(__v: _root_.scala.Predef.String): CoreTransactionDetailsJSONGrpc = copy(completed = __v)
       def getNewBalance: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc = newBalance.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc.defaultInstance)
-      def clearNewBalance: CoreTransactionDetailsJSONGrpc = copy(newBalance = None)
+      def clearNewBalance: CoreTransactionDetailsJSONGrpc = copy(newBalance = _root_.scala.None)
       def withNewBalance(__v: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc): CoreTransactionDetailsJSONGrpc = copy(newBalance = Option(__v))
       def getValue: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc = value.getOrElse(code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc.defaultInstance)
-      def clearValue: CoreTransactionDetailsJSONGrpc = copy(value = None)
+      def clearValue: CoreTransactionDetailsJSONGrpc = copy(value = _root_.scala.None)
       def withValue(__v: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc): CoreTransactionDetailsJSONGrpc = copy(value = Option(__v))
-      def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
+      def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+      def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+      def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
         (__fieldNumber: @_root_.scala.unchecked) match {
           case 1 => {
             val __t = `type`
@@ -1188,7 +1421,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-        require(__field.containingMessage eq companion.scalaDescriptor)
+        _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
         (__field.number: @_root_.scala.unchecked) match {
           case 1 => _root_.scalapb.descriptors.PString(`type`)
           case 2 => _root_.scalapb.descriptors.PString(description)
@@ -1199,37 +1432,68 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc
+      // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc])
   }
   
   object CoreTransactionDetailsJSONGrpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc] {
     implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc] = this
-    def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc = {
-      require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
-      val __fields = javaDescriptor.getFields
+    def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc = {
+      var __type: _root_.scala.Predef.String = ""
+      var __description: _root_.scala.Predef.String = ""
+      var __posted: _root_.scala.Predef.String = ""
+      var __completed: _root_.scala.Predef.String = ""
+      var __newBalance: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] = _root_.scala.None
+      var __value: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] = _root_.scala.None
+      var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+      var _done__ = false
+      while (!_done__) {
+        val _tag__ = _input__.readTag()
+        _tag__ match {
+          case 0 => _done__ = true
+          case 10 =>
+            __type = _input__.readStringRequireUtf8()
+          case 18 =>
+            __description = _input__.readStringRequireUtf8()
+          case 26 =>
+            __posted = _input__.readStringRequireUtf8()
+          case 34 =>
+            __completed = _input__.readStringRequireUtf8()
+          case 42 =>
+            __newBalance = _root_.scala.Option(__newBalance.fold(_root_.scalapb.LiteParser.readMessage[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+          case 50 =>
+            __value = _root_.scala.Option(__value.fold(_root_.scalapb.LiteParser.readMessage[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+          case tag =>
+            if (_unknownFields__ == null) {
+              _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+            }
+            _unknownFields__.parseField(tag, _input__)
+        }
+      }
       code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc(
-        __fieldsMap.getOrElse(__fields.get(0), "").asInstanceOf[_root_.scala.Predef.String],
-        __fieldsMap.getOrElse(__fields.get(1), "").asInstanceOf[_root_.scala.Predef.String],
-        __fieldsMap.getOrElse(__fields.get(2), "").asInstanceOf[_root_.scala.Predef.String],
-        __fieldsMap.getOrElse(__fields.get(3), "").asInstanceOf[_root_.scala.Predef.String],
-        __fieldsMap.get(__fields.get(4)).asInstanceOf[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc]],
-        __fieldsMap.get(__fields.get(5)).asInstanceOf[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc]]
+          `type` = __type,
+          description = __description,
+          posted = __posted,
+          completed = __completed,
+          newBalance = __newBalance,
+          value = __value,
+          unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
       )
     }
     implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc] = _root_.scalapb.descriptors.Reads{
       case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-        require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+        _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
         code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc(
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).flatMap(_.as[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc]]),
-          __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).flatMap(_.as[scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc]])
+          `type` = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+          description = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+          posted = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+          completed = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
+          newBalance = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).flatMap(_.as[_root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc]]),
+          value = __fieldsMap.get(scalaDescriptor.findFieldByNumber(6).get).flatMap(_.as[_root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc]])
         )
       case _ => throw new RuntimeException("Expected PMessage")
     }
-    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes.get(7)
+    def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes().get(7)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.scalaDescriptor.nestedMessages(7)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
       var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
@@ -1242,16 +1506,22 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc(
+      `type` = "",
+      description = "",
+      posted = "",
+      completed = "",
+      newBalance = _root_.scala.None,
+      value = _root_.scala.None
     )
     implicit class CoreTransactionDetailsJSONGrpcLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc](_l) {
       def `type`: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.`type`)((c_, f_) => c_.copy(`type` = f_))
       def description: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.description)((c_, f_) => c_.copy(description = f_))
       def posted: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.posted)((c_, f_) => c_.copy(posted = f_))
       def completed: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.completed)((c_, f_) => c_.copy(completed = f_))
-      def newBalance: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] = field(_.getNewBalance)((c_, f_) => c_.copy(newBalance = Option(f_)))
-      def optionalNewBalance: _root_.scalapb.lenses.Lens[UpperPB, scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc]] = field(_.newBalance)((c_, f_) => c_.copy(newBalance = f_))
-      def value: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] = field(_.getValue)((c_, f_) => c_.copy(value = Option(f_)))
-      def optionalValue: _root_.scalapb.lenses.Lens[UpperPB, scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc]] = field(_.value)((c_, f_) => c_.copy(value = f_))
+      def newBalance: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] = field(_.getNewBalance)((c_, f_) => c_.copy(newBalance = _root_.scala.Option(f_)))
+      def optionalNewBalance: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc]] = field(_.newBalance)((c_, f_) => c_.copy(newBalance = f_))
+      def value: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] = field(_.getValue)((c_, f_) => c_.copy(value = _root_.scala.Option(f_)))
+      def optionalValue: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc]] = field(_.value)((c_, f_) => c_.copy(value = f_))
     }
     final val TYPE_FIELD_NUMBER = 1
     final val DESCRIPTION_FIELD_NUMBER = 2
@@ -1259,10 +1529,32 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     final val COMPLETED_FIELD_NUMBER = 4
     final val NEW_BALANCE_FIELD_NUMBER = 5
     final val VALUE_FIELD_NUMBER = 6
+    def of(
+      `type`: _root_.scala.Predef.String,
+      description: _root_.scala.Predef.String,
+      posted: _root_.scala.Predef.String,
+      completed: _root_.scala.Predef.String,
+      newBalance: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc],
+      value: _root_.scala.Option[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc]
+    ): _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc = _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc(
+      `type`,
+      description,
+      posted,
+      completed,
+      newBalance,
+      value
+    )
+    // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc])
   }
   
   implicit class CoreTransactionsJsonV300GrpcLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.api.CoreTransactionsJsonV300Grpc](_l) {
-    def transactions: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.collection.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc]] = field(_.transactions)((c_, f_) => c_.copy(transactions = f_))
+    def transactions: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc]] = field(_.transactions)((c_, f_) => c_.copy(transactions = f_))
   }
   final val TRANSACTIONS_FIELD_NUMBER = 1
+  def of(
+    transactions: _root_.scala.Seq[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc]
+  ): _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc = _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc(
+    transactions
+  )
+  // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.CoreTransactionsJsonV300Grpc])
 }

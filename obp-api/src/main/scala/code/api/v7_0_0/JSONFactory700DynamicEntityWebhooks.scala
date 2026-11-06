@@ -30,7 +30,7 @@ import java.util.Date
 
 import code.dynamicentitywebhook.{DynamicEntityWebhookFieldCondition, DynamicEntityWebhookTrait}
 import code.messageoutbox.{MessageOutbox, WebhookOutbox}
-import org.json4s.{JBool, JValue}
+import org.json4s.{JBool, JValue, jvalue2monadic}
 
 /*
  * The JSON of the v7.0.0 Dynamic Entity webhook endpoints. Package-level case classes, for the reason given in
@@ -121,10 +121,13 @@ object JSONFactory700DynamicEntityWebhooks {
     status = row.status,
     attempts = row.attempts,
     last_http_status = WebhookOutbox.lastReply(row).map(_.http_status),
-    last_error = Option(row.LastError.get).filter(_.trim.nonEmpty),
-    created_at = row.CreatedAt.get,
-    updated_at = row.UpdatedAt.get
+    last_error = Option(row.lastError).filter(_.trim.nonEmpty),
+    // A plain Date, not the driver's Timestamp subclass, which json4s would render as an empty object.
+    created_at = asDate(row.createdAt),
+    updated_at = asDate(row.updatedAt)
   )
+
+  private def asDate(d: Date): Date = Option(d).map(x => new Date(x.getTime)).orNull
 
   def createWebhookJson(webhook: DynamicEntityWebhookTrait): DynamicEntityWebhookJsonV700 = DynamicEntityWebhookJsonV700(
     webhook_id = webhook.webhookId,
@@ -185,9 +188,9 @@ object JSONFactory700DynamicEntityWebhooks {
     event_id = "0f8e4a71-5ff1-4006-95bb-7fd9e4adaef9",
     event_name = "webhook.test",
     record_id = None,
-    status = "PENDING",
-    attempts = 0,
-    last_http_status = None,
+    status = "DELIVERED",
+    attempts = 1,
+    last_http_status = Some(200),
     last_error = None,
     created_at = new Date(),
     updated_at = new Date()

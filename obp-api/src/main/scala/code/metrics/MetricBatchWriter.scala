@@ -137,33 +137,34 @@ object MetricBatchWriter extends MdcLoggable {
    * is longer than its column ("value too long for type character varying(N)"). One such value
    * would therefore lose every metric in the flush, not only its own. Several values come from
    * the caller (X-Forwarded-For, X-Forwarded-Host, the correlation id, the URL), so without this
-   * any caller could make everyone's metrics disappear with one long header. The widths are read
-   * from MappedMetric, so they cannot drift from the table definition.
+   * any caller could make everyone's metrics disappear with one long header. The widths are those
+   * the changelog declares for the metric table (MetricColumnWidthsTest holds them to it), and
+   * metricarchive has the same widths, so a fitted row also archives.
    */
   private[metrics] def fitToColumns(row: MetricRow): MetricRow = {
-    def fit(value: String, column: net.liftweb.mapper.MappedString[MappedMetric]): String =
-      if (value != null && value.length > column.maxLen) value.substring(0, column.maxLen) else value
-    val table = MappedMetric
+    def fit(value: String, width: Int): String =
+      if (value != null && value.length > width) value.substring(0, width) else value
+    val w = MetricColumnWidths
     row.copy(
-      userId = fit(row.userId, table.userId),
-      url = fit(row.url, table.url),
-      userName = fit(row.userName, table.userName),
-      appName = fit(row.appName, table.appName),
-      developerEmail = fit(row.developerEmail, table.developerEmail),
-      consumerId = fit(row.consumerId, table.consumerId),
-      implementedByPartialFunction = fit(row.implementedByPartialFunction, table.implementedByPartialFunction),
-      implementedInVersion = fit(row.implementedInVersion, table.implementedInVersion),
-      verb = fit(row.verb, table.verb),
-      correlationId = fit(row.correlationId, table.correlationId),
-      sourceIp = fit(row.sourceIp, table.sourceIp),
-      targetIp = fit(row.targetIp, table.targetIp),
-      forwardedFor = fit(row.forwardedFor, table.forwardedFor),
-      apiInstanceId = fit(row.apiInstanceId, table.apiInstanceId),
-      consentReferenceId = fit(row.consentReferenceId, table.consentReferenceId),
-      certificateTrust = fit(row.certificateTrust, table.certificateTrust),
-      certificateTrustDetail = fit(row.certificateTrustDetail, table.certificateTrustDetail),
-      authType = fit(row.authType, table.authType),
-      domainApiUrl = fit(row.domainApiUrl, table.domainApiUrl)
+      userId = fit(row.userId, w.userId),
+      url = fit(row.url, w.url),
+      userName = fit(row.userName, w.userName),
+      appName = fit(row.appName, w.appName),
+      developerEmail = fit(row.developerEmail, w.developerEmail),
+      consumerId = fit(row.consumerId, w.consumerId),
+      implementedByPartialFunction = fit(row.implementedByPartialFunction, w.implementedByPartialFunction),
+      implementedInVersion = fit(row.implementedInVersion, w.implementedInVersion),
+      verb = fit(row.verb, w.verb),
+      correlationId = fit(row.correlationId, w.correlationId),
+      sourceIp = fit(row.sourceIp, w.sourceIp),
+      targetIp = fit(row.targetIp, w.targetIp),
+      forwardedFor = fit(row.forwardedFor, w.forwardedFor),
+      apiInstanceId = fit(row.apiInstanceId, w.apiInstanceId),
+      consentReferenceId = fit(row.consentReferenceId, w.consentReferenceId),
+      certificateTrust = fit(row.certificateTrust, w.certificateTrust),
+      certificateTrustDetail = fit(row.certificateTrustDetail, w.certificateTrustDetail),
+      authType = fit(row.authType, w.authType),
+      domainApiUrl = fit(row.domainApiUrl, w.domainApiUrl)
     )
   }
 
@@ -263,4 +264,27 @@ object MetricBatchWriter extends MdcLoggable {
     }
     if (details.isEmpty) "" else details.mkString(" [SQL chain: ", " | ", "]")
   }
+}
+
+/** The widths of the text columns of the metric table (and of metricarchive, which mirrors it). */
+object MetricColumnWidths {
+  val userId = 44
+  val url = 2000
+  val userName = 64
+  val appName = 64
+  val developerEmail = 64
+  val consumerId = 250
+  val implementedByPartialFunction = 128
+  val implementedInVersion = 16
+  val verb = 16
+  val correlationId = 256
+  val sourceIp = 64
+  val targetIp = 64
+  val forwardedFor = 512
+  val apiInstanceId = 255
+  val consentReferenceId = 36
+  val certificateTrust = 32
+  val certificateTrustDetail = 255
+  val authType = 32
+  val domainApiUrl = 2000
 }

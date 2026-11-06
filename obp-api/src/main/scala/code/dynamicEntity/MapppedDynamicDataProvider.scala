@@ -28,16 +28,17 @@ TESOBE (http://www.tesobe.com/)
 package code.DynamicData
 
 import org.json4s._
-import code.api.util.CustomJsonFormats
+import code.api.util.{CustomJsonFormats, DoobieUtil}
 import code.api.util.ErrorMessages.DynamicDataNotFound
-import code.api.util.APIUtil.generateUUID
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
-import net.liftweb.common.{Box, Failure, Full}
+import net.liftweb.common.{Box, Failure, Full, Empty}
 import com.openbankproject.commons.util.json
 import org.json4s.JObject
 import org.json4s.JsonAST.JString
 import org.json4s.JsonDSL._
-import net.liftweb.mapper._
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
@@ -71,47 +72,10 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     userId.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicData_UserId).openOr(id))
 
   /**
-   * The bank and the entity that a lookup is confined to.
-   *
-   * Every query in this provider starts from these two, so that a record held in one space can
-   * never be found, updated or deleted through a request naming another. A record belonging to no
-   * bank is stored under Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID rather than as a SQL NULL,
-   * and that is what lets the system level case share this one query: it differs from a space only
-   * in the value bound here. While the column held NULL the two needed different SQL -- NullRef
-   * against a plain equality -- and each method below carried a separate copy of itself for each.
-   *
-   * The two are named in the order the things they identify come into existence, the bank first and
-   * then the entity defined within it, which is also the order of the columns in DynamicData's
-   * unique index. A query needing more than these two appends it -- the record id next, then the
-   * ownership predicate -- so every query in this file reads in that same order.
-   */
-  private def whereClauseBankOrSystemAndEntity(bankId: Option[String], entityName: String): List[QueryParam[DynamicData]] =
-    List(
-      By(DynamicData.BankId, bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)),
-      By(DynamicData.DynamicEntityName, entityName)
-    )
-
-  /**
-   * Whose records of an entity the caller is asking about.
-   *
-   * Each record of a personal entity belongs to one user, and is selected by naming that user.
-   * Records of any other entity are selected by the flag alone, with no user named at all.
-   */
-  private def byOwnership(isPersonalEntity: Boolean, userId: Option[String]): QueryParam[DynamicData] =
-    if (isPersonalEntity) By(DynamicData.UserId, userId.getOrElse(null))
-    else By(DynamicData.IsPersonalEntity, false)
-
-  /**
    * The wording of the not-found failure for an owner-scoped read, which varies with what the
-   * caller named.
-   *
-   * These four spellings are reproduced exactly as they stood when each case had its own copy of
-   * the query, because they reach callers as the body of a not-found response. Two of them are
-   * irregular and are deliberately left that way: one renders the user id as an Option, so it reads
-   * "userId = Some(x)", and the bank id is preceded by a space here that the community wording
-   * below does not have. The one deviation is that a missing user id used to be read with .get in
-   * the last case, which threw while building the message instead of producing one; it now reads
-   * as null, and no message that previously rendered is changed.
+   * caller named. The four spellings reach callers as the body of a not-found response, so they are
+   * kept exactly, irregularities included: one renders the user id as an Option ("userId = Some(x)"),
+   * and the bank id is preceded by a space that the community wording below does not have.
    */
   private def notFoundMessage(entityName: String, id: String, bankId: Option[String],
                               userId: Option[String], isPersonalEntity: Boolean): String = {
@@ -133,41 +97,36 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   override def save(bankId: Option[String], entityName: String, requestBody: JObject, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     val idName = getIdName(entityName)
     val JString(idValue) = (requestBody \ idName).asInstanceOf[JString]
-    val dynamicData: DynamicData = DynamicData.create.DynamicDataId(idValue)
-    val result = saveOrUpdate(bankId, entityName, requestBody, ownerOf(userId), isPersonalEntity, userId, dynamicData)
-    result
+    // Create inserts; it must not fall back to updating whatever row already holds this id. The
+    // id can be supplied by the caller, so an upsert here would overwrite another user's record.
+    writeRecord(bankId, entityName, requestBody, ownerOf(userId), isPersonalEntity, userId, idValue, existing = None)
   }
   override def update(bankId: Option[String], entityName: String, requestBody: JObject, id: String, userId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
+    // get scopes by space, entity and owner, so reaching the write below means the caller owns the row.
+    // Resolve the owner once and use it for both the read and the write, so an agent updates the
+    // same row it created rather than looking for one under its own id.
     val owner = ownerOf(userId)
     val dynamicData = get(bankId, entityName, id, owner, isPersonalEntity).openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id").asInstanceOf[DynamicData]
-    saveOrUpdate(bankId, entityName, requestBody, owner, isPersonalEntity, userId, dynamicData)
+    writeRecord(bankId, entityName, requestBody, owner, isPersonalEntity, userId,
+      dynamicData.dynamicDataId.getOrElse(""), existing = Some(dynamicData))
   }
 
-  // Separate method for reference validation - only checks ID and entity name exist
   /**
    * Does `entityName` hold a record with this id, in this space?
    *
    * Used to check a `reference:` field. The space matters because a record id is unique within one
    * space and one entity, not across the instance: two banks may each hold a record whose natural
-   * key is the country code DE, and so may the system space. Asking without the space would answer
-   * a different question, namely whether such a record exists anywhere, and a reference would then
-   * resolve to another bank's record. `bankId` is the space, and None is the system space, stored
-   * as Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID.
+   * key is the country code DE, and so may the system space. `bankId` is the space, and None is the
+   * system space, stored as Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID.
    */
   def recordExists(bankId: Option[String], entityName: String, id: String): Boolean =
-    DynamicData.count(
-      By(DynamicData.BankId, bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)),
-      By(DynamicData.DynamicEntityName, entityName),
-      By(DynamicData.DynamicDataId, id)
-    ) > 0
+    DynamicData.find(bankId, entityName, id, None).isDefined
 
   override def get(bankId: Option[String], entityName: String, id: String, callerUserId: Option[String], isPersonalEntity: Boolean): Box[DynamicDataT] = {
     val userId = ownerOf(callerUserId)
     // An Empty is turned into a Failure rather than passed up: this is get-by-id, and the reason
     // nothing came back is worth stating at this level.
-    DynamicData.find(
-      (whereClauseBankOrSystemAndEntity(bankId, entityName) :+ By(DynamicData.DynamicDataId, id) :+ byOwnership(isPersonalEntity, userId)): _*
-    ) match {
+    DynamicData.find(bankId, entityName, id, Some(DynamicData.Ownership(isPersonalEntity, userId))) match {
       case Full(dynamicData) => Full(dynamicData)
       case _ => Failure(notFoundMessage(entityName, id, bankId, userId, isPersonalEntity))
     }
@@ -181,22 +140,16 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
 
   override def getAll(bankId: Option[String], entityName: String, callerUserId: Option[String], isPersonalEntity: Boolean): List[DynamicDataT] = {
     val userId = ownerOf(callerUserId)
-    DynamicData.findAll((whereClauseBankOrSystemAndEntity(bankId, entityName) :+ byOwnership(isPersonalEntity, userId)): _*)
+    DynamicData.findAll(bankId, entityName, Some(DynamicData.Ownership(isPersonalEntity, userId)))
   }
 
   override def delete(bankId: Option[String], entityName: String, id: String, userId: Option[String], isPersonalEntity: Boolean) = {
-    get(bankId, entityName, id, userId, isPersonalEntity).map { d =>
-      val result = d.asInstanceOf[DynamicData].delete_!
-      // DE_indexing: remove the projection row in the same transaction (no-op unless projection enabled+ready).
-      code.api.dynamic.entity.projection.ProjectionDualWrite.onDelete(bankId, entityName, id)
-      if (result) code.dynamicentitywebhook.DynamicEntityWebhookFiring.recordDeleted(bankId, entityName, id)
-      result
-    }
+    get(bankId, entityName, id, userId, isPersonalEntity).map(_ => deleteRecord(bankId, entityName, id))
   }
 
   // Community access: return ALL records regardless of userId/IsPersonalEntity
   override def getAllCommunity(bankId: Option[String], entityName: String): List[DynamicDataT] =
-    DynamicData.findAll(whereClauseBankOrSystemAndEntity(bankId, entityName): _*)
+    DynamicData.findAllCommunity(bankId, entityName)
 
   override def getAllDataJsonCommunity(bankId: Option[String], entityName: String): List[JObject] = {
     getAllCommunity(bankId, entityName)
@@ -205,7 +158,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   }
 
   override def getCommunity(bankId: Option[String], entityName: String, id: String): Box[DynamicDataT] =
-    DynamicData.find((whereClauseBankOrSystemAndEntity(bankId, entityName) :+ By(DynamicData.DynamicDataId, id)): _*) match {
+    DynamicData.find(bankId, entityName, id, None) match {
       case Full(dynamicData) => Full(dynamicData)
       case _ => Failure(notFoundCommunityMessage(entityName, id, bankId))
     }
@@ -215,7 +168,8 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       .openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id")
       .asInstanceOf[DynamicData]
     // Preserve the row's existing owner/personal flag — row-level access changes the data, not provenance.
-    saveOrUpdate(bankId, entityName, withRecordId(entityName, requestBody, id), Option(dynamicData.UserId.get), dynamicData.IsPersonalEntity.get, callerUserId, dynamicData)
+    writeRecord(bankId, entityName, withRecordId(entityName, requestBody, id), dynamicData.userId,
+      dynamicData.isPersonalEntity, callerUserId, dynamicData.dynamicDataId.getOrElse(""), existing = Some(dynamicData))
   }
 
   /**
@@ -234,23 +188,23 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
 
   override def getByIds(bankId: Option[String], entityName: String, ids: List[String]): List[DynamicDataT] =
     // Grouped so that a long list never becomes one very long IN clause.
-    ids.distinct.grouped(1000).toList.flatMap { someIds =>
-      DynamicData.findAll((whereClauseBankOrSystemAndEntity(bankId, entityName) :+ ByList(DynamicData.DynamicDataId, someIds)): _*)
-    }
+    ids.distinct.grouped(1000).toList.flatMap(someIds => DynamicData.findAllByIds(bankId, entityName, someIds))
 
   override def deleteCommunity(bankId: Option[String], entityName: String, id: String): Box[Boolean] = {
-    getCommunity(bankId, entityName, id).map { d =>
-      val result = d.asInstanceOf[DynamicData].delete_!
-      // DE_indexing: remove the projection row in the same transaction (no-op unless projection enabled+ready).
-      code.api.dynamic.entity.projection.ProjectionDualWrite.onDelete(bankId, entityName, id)
-      if (result) code.dynamicentitywebhook.DynamicEntityWebhookFiring.recordDeleted(bankId, entityName, id)
-      result
-    }
+    getCommunity(bankId, entityName, id).map(_ => deleteRecord(bankId, entityName, id))
+  }
+
+  private def deleteRecord(bankId: Option[String], entityName: String, id: String): Boolean = {
+    val result = DynamicData.delete(bankId, entityName, id)
+    // DE_indexing: remove the projection row in the same transaction (no-op unless projection enabled+ready).
+    code.api.dynamic.entity.projection.ProjectionDualWrite.onDelete(bankId, entityName, id)
+    if (result) code.dynamicentitywebhook.DynamicEntityWebhookFiring.recordDeleted(bankId, entityName, id)
+    result
   }
 
   override def existsData(bankId: Option[String], dynamicEntityName: String, callerUserId: Option[String], isPersonalEntity: Boolean): Boolean = {
     val userId = ownerOf(callerUserId)
-    DynamicData.find((whereClauseBankOrSystemAndEntity(bankId, dynamicEntityName) :+ byOwnership(isPersonalEntity, userId)): _*).isDefined
+    DynamicData.findAll(bankId, dynamicEntityName, Some(DynamicData.Ownership(isPersonalEntity, userId))).nonEmpty
   }
 
   /**
@@ -273,36 +227,37 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     }
 
   /**
-   * This saves a record, new or existing. `userId` is the owner stored in UserId, already resolved.
-   * `callerUserId` is the user making the call, not resolved, from which the writer columns are
-   * filled: the created pair only when the record is new, and the updated pair on every save.
+   * This saves a record: a new one when `existing` is None, otherwise that row. `userId` is the owner
+   * stored in userid, already resolved. `callerUserId` is the user making the call, not resolved, from
+   * which the writer columns are filled: the created pair only when the record is new, and the updated
+   * pair on every save.
    */
-  private def saveOrUpdate(bankId: Option[String], entityName: String, requestBody: JObject, userId: Option[String], isPersonalEntity: Boolean,
-                           callerUserId: Option[String], dynamicData: => DynamicData): Box[DynamicData] = {
-    val data: DynamicData = dynamicData
+  private def writeRecord(bankId: Option[String], entityName: String, requestBody: JObject,
+                          userId: Option[String], isPersonalEntity: Boolean, callerUserId: Option[String],
+                          dynamicDataId: String, existing: Option[DynamicData]): Box[DynamicData] =
     tryo {
       val dataStr = json.compactRender(requestBody)
-      val isNew = !data.saved_?
       // The stored values before this write, which webhook field conditions compare against.
-      val before = if (isNew) None else scala.util.Try(json.parse(data.DataJson.get).asInstanceOf[JObject]).toOption.orElse(Some(JObject(Nil)))
+      val before = existing.map(row =>
+        scala.util.Try(json.parse(row.dataJson).asInstanceOf[JObject]).toOption.getOrElse(JObject(Nil)))
       val (writerUserId, writerOnBehalfOfUserId) = writersOf(callerUserId,
-        if (isNew) code.users.UserReference.DynamicData_CreatedByUserId else code.users.UserReference.DynamicData_UpdatedByUserId)
-      if (isNew) data.CreatedByUserId(writerUserId).CreatedByOnBehalfOfUserId(writerOnBehalfOfUserId)
-      data.UpdatedByUserId(writerUserId).UpdatedByOnBehalfOfUserId(writerOnBehalfOfUserId)
-     val saved = data.BankId(bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID))
-       .DynamicEntityName(entityName)
-       .DataJson(dataStr)
-       .UserId(userId.getOrElse(null))
-       .IsPersonalEntity(isPersonalEntity)
-       .saveMe()
-     // DE_indexing: keep the projection in sync in the same transaction (no-op unless projection enabled+ready).
-     code.api.dynamic.entity.projection.ProjectionDualWrite.onSave(bankId, entityName, saved.DynamicDataId.get, requestBody)
-     // Dynamic Entity webhooks: queued in this same transaction, so they go out only if the write commits.
-     code.dynamicentitywebhook.DynamicEntityWebhookFiring.recordSaved(bankId, entityName, saved.DynamicDataId.get, before,
-       requestBody, Option(saved.updatedAt.get).getOrElse(new Date()))
-     saved
+        if (existing.isEmpty) code.users.UserReference.DynamicData_CreatedByUserId else code.users.UserReference.DynamicData_UpdatedByUserId)
+      val saved = existing match {
+        case None =>
+          DynamicData.insert(dynamicDataId, entityName, dataStr, bankId, userId, isPersonalEntity,
+            writerUserId, writerOnBehalfOfUserId)
+        case Some(_) =>
+          DynamicData.update(dynamicDataId, entityName, dataStr, bankId, userId, isPersonalEntity,
+            writerUserId, writerOnBehalfOfUserId)
+      }
+      // DE_indexing: keep the projection in sync in the same transaction (no-op unless projection enabled+ready).
+      code.api.dynamic.entity.projection.ProjectionDualWrite.onSave(bankId, entityName,
+        saved.dynamicDataId.getOrElse(""), requestBody)
+      // Dynamic Entity webhooks: queued in this same transaction, so they go out only if the write commits.
+      code.dynamicentitywebhook.DynamicEntityWebhookFiring.recordSaved(bankId, entityName,
+        saved.dynamicDataId.getOrElse(""), before, requestBody, saved.updatedDate.getOrElse(new Date()))
+      saved
     }
-  }
 
   private def getIdName(entityName: String) = {
     s"${entityName}_Id".replaceAll("(?<=[a-z0-9])(?=[A-Z])|-", "_").toLowerCase
@@ -310,86 +265,198 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
 }
 
 /**
- * This class is one record of a Dynamic Entity.
+ * One record of a runtime-defined entity type. The record is JSON in `dataJson`; the other columns
+ * are scoping keys and the record's metadata.
  *
- * It mixes in CreatedUpdated, which adds the columns createdat and updatedat. createdat is set when
- * the record is first saved. updatedat is set again on every save, so each update refreshes it. The
- * two columns were added after records already existed, so a record saved before then holds NULL in
- * both until it is next updated, and only updatedat is filled at that point: its creation time was
- * never recorded and is not guessed. createdDate and updatedDate therefore return an Option.
+ * A system level record stores the SYS sentinel (Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) in
+ * bankid rather than a SQL NULL; it is filtered back out of `bankId`, so every caller still sees
+ * None for such a record. The record id is unique within one space and one entity, which is the
+ * unique index on (bankid, dynamicentityname, dynamicdataid), so every write and delete addresses a
+ * record by all three.
  *
- * The four writer columns follow the same rule. CreatedByUserId and CreatedByOnBehalfOfUserId are
- * set when the record is first saved; UpdatedByUserId and UpdatedByOnBehalfOfUserId on every save.
- * Each pair holds the user who made the call and the user it was made for, which differ only when an
- * agent acted for somebody. They are separate from UserId, which is the owner of a personal record.
+ * createdat and updatedat were added after records already existed, so a record saved before then
+ * holds NULL in both until it is next updated, and only updatedat is filled at that point: its
+ * creation time was never recorded and is not guessed. The four writer columns follow the same rule:
+ * the created pair is set when the record is first saved, the updated pair on every save. Each pair
+ * holds the user who made the call and the user it was made for, which differ only when an agent
+ * acted for somebody. They are separate from userid, which is the owner of a personal record.
  */
-class DynamicData extends DynamicDataT with LongKeyedMapper[DynamicData] with IdPK with CreatedUpdated {
+case class DynamicData(
+  private val dynamicDataIdRaw: String,
+  dynamicEntityName: String,
+  dataJson: String,
+  private val bankIdRaw: Option[String],
+  private val userIdRaw: Option[String],
+  isPersonalEntity: Boolean,
+  override val createdDate: Option[Date] = None,
+  override val updatedDate: Option[Date] = None,
+  private val createdByUserIdRaw: Option[String] = None,
+  private val createdByOnBehalfOfUserIdRaw: Option[String] = None,
+  private val updatedByUserIdRaw: Option[String] = None,
+  private val updatedByOnBehalfOfUserIdRaw: Option[String] = None
+) extends DynamicDataT {
+  override def dynamicDataId: Option[String] = Option(dynamicDataIdRaw)
+  override def bankId: Option[String] =
+    bankIdRaw.filter(b => b.nonEmpty && b != DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+  override def userId: Option[String] = userIdRaw
+  override def createdByUserId: Option[String] = createdByUserIdRaw.filter(_.nonEmpty)
+  override def createdByOnBehalfOfUserId: Option[String] = createdByOnBehalfOfUserIdRaw.filter(_.nonEmpty)
+  override def updatedByUserId: Option[String] = updatedByUserIdRaw.filter(_.nonEmpty)
+  override def updatedByOnBehalfOfUserId: Option[String] = updatedByOnBehalfOfUserIdRaw.filter(_.nonEmpty)
+}
 
-  override def getSingleton = DynamicData
+object DynamicData {
+
+  // ProjectionStore builds raw SQL against this table and used to read these names off the Lift
+  // metadata. They live here so the DDL and that SQL cannot drift.
+  val tableName: String = "dynamicdata"
+  val idColumnName: String = "dynamicdataid"
+  val jsonColumnName: String = "datajson"
+  val entityNameColumnName: String = "dynamicentityname"
+  val bankIdColumnName: String = "bankid"
+  val userIdColumnName: String = "userid"
+  val personalColumnName: String = "ispersonalentity"
+  /** The width of dynamicdataid (db.changelog-develop-merge-3.yaml widens it to 255). */
+  val idColumnWidth: Int = 255
 
   /**
-   * The identifier of a single Dynamic Entity record. This column used to be a `MappedUUID`, which is
-   * 36 characters wide because that is the length of a UUID. A caller may however supply the id itself
-   * in the request body instead of letting one be generated, which is how a Dynamic Entity is given a
-   * natural key such as a country code or a scheme name, so the value is not always a UUID and can be
-   * considerably longer than 36 characters. Such a value used to reach Postgres unchanged and fail
-   * there with "value too long for type character varying(36)". The column is therefore an ordinary
-   * string of 255 characters, the same width as the two other columns that hold this same id: the
-   * row level access list in DynamicDataAccess, and the `data_id` column of the SQL projection tables.
-   * The default value stays a generated UUID, so a request that omits the id behaves exactly as before.
+   * Whose records of an entity the caller is asking about. Each record of a personal entity belongs
+   * to one user and is selected by naming that user; records of any other entity are selected by the
+   * flag alone. The user is compared with `= ?` even when it is None, which renders `= NULL` and
+   * matches nothing, so a personal read with no user returns no rows rather than every row.
    */
-  object DynamicDataId extends MappedString(this, 255) {
-    override def defaultValue = generateUUID()
+  case class Ownership(isPersonalEntity: Boolean, userId: Option[String])
+
+  private val selectColumns =
+    fr"""SELECT dynamicdataid, dynamicentityname, datajson, bankid, userid, ispersonalentity,
+                createdat, updatedat, createdbyuserid, createdbyonbehalfofuserid, updatedbyuserid,
+                updatedbyonbehalfofuserid
+         FROM dynamicdata"""
+
+  // Every column is read through Option: a bare mapping throws NonNullableColumnRead on a NULL and
+  // fails the whole query, and the metadata columns are NULL on every record that predates them.
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[Boolean], Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[String], Option[String], Option[String], Option[String])
+
+  private def readDate(value: Option[java.sql.Timestamp]): Option[Date] = value.map(t => new Date(t.getTime))
+
+  private def fromRow(row: Row): DynamicData = row match {
+    case (dynamicDataId, dynamicEntityName, dataJson, bankId, userId, isPersonalEntity, createdAt,
+          updatedAt, createdBy, createdByOnBehalfOf, updatedBy, updatedByOnBehalfOf) =>
+      DynamicData(dynamicDataId.orNull, dynamicEntityName.orNull, dataJson.orNull, bankId, userId,
+        isPersonalEntity.getOrElse(false), readDate(createdAt), readDate(updatedAt), createdBy,
+        createdByOnBehalfOf, updatedBy, updatedByOnBehalfOf)
   }
-  object DynamicEntityName extends MappedString(this, 255)
 
-  object DataJson extends MappedText(this)
-  
-  object BankId extends MappedString(this,255)
-  
-  object UserId extends MappedString(this,255)
-  
-  object IsPersonalEntity extends MappedBoolean(this)
+  private def query(condition: Fragment): List[DynamicData] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
 
-  /** The user whose call first saved this record: an agent's own id when an agent made the call. */
-  object CreatedByUserId extends MappedString(this, 255)
-  /** The user that call was made for; the same as CreatedByUserId when nobody was delegating. */
-  object CreatedByOnBehalfOfUserId extends MappedString(this, 255)
-  /** As CreatedByUserId, for the call that last saved this record. */
-  object UpdatedByUserId extends MappedString(this, 255)
-  /** As CreatedByOnBehalfOfUserId, for the call that last saved this record. */
-  object UpdatedByOnBehalfOfUserId extends MappedString(this, 255)
+  private def one(condition: Fragment): Box[DynamicData] =
+    query(condition ++ fr"ORDER BY id ASC" ++ DoobieUtil.pagination(1, 0)).headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
 
-  override def dynamicDataId: Option[String] = Option(DynamicDataId.get)
-  override def dynamicEntityName: String = DynamicEntityName.get
-  override def dataJson: String = DataJson.get
-  // A system level record stores the sentinel rather than a SQL NULL, so it is filtered back out
-  // here: every caller of this method still sees None for such a record, exactly as before.
-  override def bankId: Option[String] = Option(BankId.get).filterNot(_ == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
-  override def userId: Option[String] = Option(UserId.get)
-  override def isPersonalEntity: Boolean = IsPersonalEntity.get
-  override def createdDate: Option[Date] = Option(createdAt.get)
-  override def updatedDate: Option[Date] = Option(updatedAt.get)
-  override def createdByUserId: Option[String] = Option(CreatedByUserId.get).filter(_.nonEmpty)
-  override def createdByOnBehalfOfUserId: Option[String] = Option(CreatedByOnBehalfOfUserId.get).filter(_.nonEmpty)
-  override def updatedByUserId: Option[String] = Option(UpdatedByUserId.get).filter(_.nonEmpty)
-  override def updatedByOnBehalfOfUserId: Option[String] = Option(UpdatedByOnBehalfOfUserId.get).filter(_.nonEmpty)
-}
+  /** The value bankid holds for a space: the bank's id, or SYS for the system space (None). */
+  def storedBankId(bankId: Option[String]): String =
+    bankId.filter(_.nonEmpty).getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
 
-object DynamicData extends DynamicData with LongKeyedMetaMapper[DynamicData] {
   /**
-   * A record's id is unique within one space and one entity, not across the whole instance.
-   *
-   * The columns are named in the order the things they identify come into existence: the bank (the
-   * space) exists first, the entity is defined within it, and the record is created last. The index
-   * used to name DynamicDataId alone, which meant two spaces could not each hold a record with the
-   * same natural key -- one country table holding DE stopped any other from holding it. The
-   * discriminators were already sitting in the same row, simply unused by the index.
-   *
-   * The bank id column never holds a SQL NULL; see Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID for
-   * why that matters here, since Postgres treats NULLs as distinct and a nullable column in this
-   * index would enforce nothing for system level records.
+   * The bank and the entity a lookup is confined to. Every query here starts from these two, so a
+   * record held in one space can never be found, updated or deleted through a request naming another.
    */
-  override def dbIndexes = UniqueIndex(BankId, DynamicEntityName, DynamicDataId) :: super.dbIndexes
-}
+  private def inSpace(bankId: Option[String], entityName: String): Fragment =
+    fr"WHERE bankid = ${storedBankId(bankId)} AND dynamicentityname = $entityName"
 
+  private def owned(ownership: Option[Ownership]): Fragment = ownership match {
+    case Some(Ownership(true, userId)) => fr"AND userid = $userId"
+    case Some(Ownership(false, _))     => fr"AND ispersonalentity = false"
+    case None                          => Fragment.empty
+  }
+
+  def findAll(): List[DynamicData] = query(fr"ORDER BY id ASC")
+
+  def find(bankId: Option[String], entityName: String, id: String, ownership: Option[Ownership]): Box[DynamicData] =
+    one(inSpace(bankId, entityName) ++ fr"AND dynamicdataid = $id" ++ owned(ownership))
+
+  def findAll(bankId: Option[String], entityName: String, ownership: Option[Ownership]): List[DynamicData] =
+    query(inSpace(bankId, entityName) ++ owned(ownership) ++ fr"ORDER BY id ASC")
+
+  /** Community access: every record of the entity in the space, whatever its owner or personal flag. */
+  def findAllCommunity(bankId: Option[String], entityName: String): List[DynamicData] =
+    findAll(bankId, entityName, None)
+
+  def findAllByIds(bankId: Option[String], entityName: String, ids: List[String]): List[DynamicData] =
+    if (ids.isEmpty) Nil
+    else query(inSpace(bankId, entityName) ++ fr"AND" ++
+      Fragments.in(fr"dynamicdataid", cats.data.NonEmptyList.fromListUnsafe(ids.distinct)) ++ fr"ORDER BY id ASC")
+
+  /** How many records an entity holds in a space, whoever owns them. */
+  def countInSpace(bankId: Option[String], entityName: String): Long =
+    DoobieUtil.runQuery((fr"SELECT COUNT(*) FROM dynamicdata" ++ inSpace(bankId, entityName)).query[Long].unique)
+
+  /** Impersonal record count for one entity in one space — the dynamic-entity listing shows it. */
+  def countImpersonal(bankId: Option[String], entityName: String): Long =
+    DoobieUtil.runQuery((fr"SELECT COUNT(*) FROM dynamicdata" ++ inSpace(bankId, entityName) ++
+      fr"AND ispersonalentity = false").query[Long].unique)
+
+  /**
+   * Creates a record. INSERT only - never an upsert.
+   *
+   * The record id can come from the request body. An id-keyed upsert on this path would let a caller
+   * who names an existing id overwrite somebody else's row, which is to say re-own it. A duplicate id
+   * within the space hits the unique index instead and surfaces as a Failure through the caller's tryo,
+   * with the existing row untouched, which is what Mapper's create path did.
+   */
+  def insert(dynamicDataId: String, entityName: String, dataJson: String, bankId: Option[String],
+             userId: Option[String], isPersonalEntity: Boolean, writerUserId: String,
+             writerOnBehalfOfUserId: String): DynamicData = {
+    val now = new java.sql.Timestamp(System.currentTimeMillis())
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO dynamicdata
+            (dynamicdataid, dynamicentityname, datajson, bankid, userid, ispersonalentity, createdat,
+             updatedat, createdbyuserid, createdbyonbehalfofuserid, updatedbyuserid,
+             updatedbyonbehalfofuserid)
+            VALUES ($dynamicDataId, ${Option(entityName)}, ${Option(dataJson)}, ${storedBankId(bankId)},
+             $userId, $isPersonalEntity, $now, $now, ${Option(writerUserId)},
+             ${Option(writerOnBehalfOfUserId)}, ${Option(writerUserId)}, ${Option(writerOnBehalfOfUserId)})"""
+        .update.run)
+    find(bankId, entityName, dynamicDataId, None)
+      .openOrThrowException("the dynamic data just written must be readable")
+  }
+
+  /**
+   * Rewrites an existing record. Only the update paths use this, and only after they have resolved
+   * the record through a scoped read, so by the time this runs the caller's right to the row has been
+   * established. The created columns are left as they were.
+   */
+  def update(dynamicDataId: String, entityName: String, dataJson: String, bankId: Option[String],
+             userId: Option[String], isPersonalEntity: Boolean, writerUserId: String,
+             writerOnBehalfOfUserId: String): DynamicData = {
+    DoobieUtil.runUpdate(
+      (fr"""UPDATE dynamicdata SET datajson = ${Option(dataJson)}, userid = $userId,
+              ispersonalentity = $isPersonalEntity,
+              updatedat = ${new java.sql.Timestamp(System.currentTimeMillis())},
+              updatedbyuserid = ${Option(writerUserId)},
+              updatedbyonbehalfofuserid = ${Option(writerOnBehalfOfUserId)}""" ++
+        inSpace(bankId, entityName) ++ fr"AND dynamicdataid = $dynamicDataId").update.run)
+    find(bankId, entityName, dynamicDataId, None)
+      .openOrThrowException("the dynamic data just written must be readable")
+  }
+
+  def delete(bankId: Option[String], entityName: String, dynamicDataId: String): Boolean =
+    DoobieUtil.runUpdate(
+      (fr"DELETE FROM dynamicdata" ++ inSpace(bankId, entityName) ++ fr"AND dynamicdataid = $dynamicDataId")
+        .update.run) > 0
+
+  /** Every record held at one bank, whatever its entity. Never the system space: SYS is not a bank. */
+  def deleteAllAtBank(bankId: String): Int =
+    if (bankId == null || bankId.isEmpty || bankId == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) 0
+    else DoobieUtil.runUpdate(sql"DELETE FROM dynamicdata WHERE bankid = $bankId".update.run)
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM dynamicdata".update.run)
+    ()
+  }
+}

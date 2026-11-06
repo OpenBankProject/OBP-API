@@ -54,8 +54,8 @@ class CacheEndpointsTest extends V600ServerSetup {
   // GET /system/cache/config - Get Cache Configuration
   // ============================================================================================================
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We call getCacheConfig without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We call getCacheConfig without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0 without credentials")
       val request = (v6_0_0_Request / "system" / "cache" / "config").GET
       val response = makeGetRequest(request)
@@ -65,8 +65,8 @@ class CacheEndpointsTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Missing role") {
-    scenario("We call getCacheConfig without the CanGetCacheConfig role", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Missing role") {
+    Scenario("We call getCacheConfig without the CanGetCacheConfig role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v6.0.0 without the required role")
       val request = (v6_0_0_Request / "system" / "cache" / "config").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -77,8 +77,8 @@ class CacheEndpointsTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
-    scenario("We call getCacheConfig with the CanGetCacheConfig role", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
+    Scenario("We call getCacheConfig with the CanGetCacheConfig role", ApiEndpoint1, VersionOfApi) {
       Given("We have a user with CanGetCacheConfig entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCacheConfig.toString)
 
@@ -111,8 +111,8 @@ class CacheEndpointsTest extends V600ServerSetup {
   // GET /system/cache/info - Get Cache Information
   // ============================================================================================================
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
-    scenario("We call getCacheInfo without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+    Scenario("We call getCacheInfo without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v6.0.0 without credentials")
       val request = (v6_0_0_Request / "system" / "cache" / "info").GET
       val response = makeGetRequest(request)
@@ -122,8 +122,8 @@ class CacheEndpointsTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Missing role") {
-    scenario("We call getCacheInfo without the CanGetCacheInfo role", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Missing role") {
+    Scenario("We call getCacheInfo without the CanGetCacheInfo role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v6.0.0 without the required role")
       val request = (v6_0_0_Request / "system" / "cache" / "info").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -134,8 +134,8 @@ class CacheEndpointsTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
-    scenario("We call getCacheInfo with the CanGetCacheInfo role", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
+    Scenario("We call getCacheInfo with the CanGetCacheInfo role", ApiEndpoint2, VersionOfApi) {
       Given("We have a user with CanGetCacheInfo entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCacheInfo.toString)
 
@@ -172,8 +172,8 @@ class CacheEndpointsTest extends V600ServerSetup {
   // POST /management/cache/namespaces/invalidate - Invalidate Cache Namespace
   // ============================================================================================================
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
-    scenario("We call invalidateCacheNamespace without user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
+    Scenario("We call invalidateCacheNamespace without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v6.0.0 without credentials")
       val request = (v6_0_0_Request / "management" / "cache" / "namespaces" / "invalidate").POST
       val response = makePostRequest(request, write(InvalidateCacheNamespaceJsonV600("rd_localised")))
@@ -183,8 +183,8 @@ class CacheEndpointsTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Missing role") {
-    scenario("We call invalidateCacheNamespace without the CanInvalidateCacheNamespace role", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Missing role") {
+    Scenario("We call invalidateCacheNamespace without the CanInvalidateCacheNamespace role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v6.0.0 without the required role")
       val request = (v6_0_0_Request / "management" / "cache" / "namespaces" / "invalidate").POST <@ (user1)
       val response = makePostRequest(request, write(InvalidateCacheNamespaceJsonV600("rd_localised")))
@@ -195,8 +195,8 @@ class CacheEndpointsTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Invalid JSON format") {
-    scenario("We call invalidateCacheNamespace with invalid JSON", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Invalid JSON format") {
+    Scenario("We call invalidateCacheNamespace with invalid JSON", ApiEndpoint3, VersionOfApi) {
       Given("We have a user with CanInvalidateCacheNamespace entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanInvalidateCacheNamespace.toString)
 
@@ -211,8 +211,8 @@ class CacheEndpointsTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Invalid namespace_id") {
-    scenario("We call invalidateCacheNamespace with non-existent namespace_id", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Invalid namespace_id") {
+    Scenario("We call invalidateCacheNamespace with non-existent namespace_id", ApiEndpoint3, VersionOfApi) {
       Given("We have a user with CanInvalidateCacheNamespace entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanInvalidateCacheNamespace.toString)
 
@@ -229,8 +229,8 @@ class CacheEndpointsTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access with valid namespace") {
-    scenario("We call invalidateCacheNamespace with valid rd_localised namespace", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access with valid namespace") {
+    Scenario("We call invalidateCacheNamespace with valid rd_localised namespace", ApiEndpoint3, VersionOfApi) {
       Given("We have a user with CanInvalidateCacheNamespace entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanInvalidateCacheNamespace.toString)
 
@@ -250,7 +250,7 @@ class CacheEndpointsTest extends V600ServerSetup {
       result.status should equal("invalidated")
     }
 
-    scenario("We call invalidateCacheNamespace with valid connector namespace", ApiEndpoint3, VersionOfApi) {
+    Scenario("We call invalidateCacheNamespace with valid connector namespace", ApiEndpoint3, VersionOfApi) {
       Given("We have a user with CanInvalidateCacheNamespace entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanInvalidateCacheNamespace.toString)
 
@@ -269,7 +269,7 @@ class CacheEndpointsTest extends V600ServerSetup {
       result.status should equal("invalidated")
     }
 
-    scenario("We call invalidateCacheNamespace with valid abac_rule namespace", ApiEndpoint3, VersionOfApi) {
+    Scenario("We call invalidateCacheNamespace with valid abac_rule namespace", ApiEndpoint3, VersionOfApi) {
       Given("We have a user with CanInvalidateCacheNamespace entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanInvalidateCacheNamespace.toString)
 
@@ -287,8 +287,8 @@ class CacheEndpointsTest extends V600ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Version increment validation") {
-    scenario("We verify that cache version increments correctly on multiple invalidations", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Version increment validation") {
+    Scenario("We verify that cache version increments correctly on multiple invalidations", ApiEndpoint3, VersionOfApi) {
       Given("We have a user with CanInvalidateCacheNamespace entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanInvalidateCacheNamespace.toString)
 
@@ -320,8 +320,8 @@ class CacheEndpointsTest extends V600ServerSetup {
   // Cross-endpoint test - Verify cache info updates after invalidation
   // ============================================================================================================
 
-  feature(s"Integration test - Cache endpoints interaction") {
-    scenario("We verify cache info shows updated version after invalidation", ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+  Feature(s"Integration test - Cache endpoints interaction") {
+    Scenario("We verify cache info shows updated version after invalidation", ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       Given("We have a user with both CanGetCacheInfo and CanInvalidateCacheNamespace entitlements")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCacheInfo.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanInvalidateCacheNamespace.toString)

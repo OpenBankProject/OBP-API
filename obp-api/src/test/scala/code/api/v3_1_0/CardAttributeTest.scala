@@ -38,11 +38,14 @@ import code.api.util.ApiRole
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.v3_1_0.Http4s310.Implementations3_1_0
-import code.cardattribute.MappedCardAttribute
+import code.cardattribute.DoobieCardAttributeProvider
 import code.cards.MappedPhysicalCard
 import code.model.dataAccess.MappedBankAccount
-import net.liftweb.mapper.By
+import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model.enums.CardAttributeType
 import net.liftweb.util.Helpers.randomString
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
@@ -58,8 +61,8 @@ class CardAttributeTest extends V310ServerSetup with DefaultUsers {
   object ApiEndpointDeleteCardForBank extends Tag(nameOf(Implementations3_1_0.createCardAttribute))
   
   
-  feature("test Card APIs") {
-    scenario("We will create Card with many error cases", 
+  Feature("test Card APIs") {
+    Scenario("We will create Card with many error cases", 
       ApiEndpointAddCardForBank, 
       ApiEndpointDeleteCardForBank, 
       VersionOfApi
@@ -165,24 +168,19 @@ class CardAttributeTest extends V310ServerSetup with DefaultUsers {
   feature("Deleting a card deletes its attributes") {
     scenario("Delete Card removes the attributes of the card", ApiEndpointDeleteCardForBank, VersionOfApi) {
       Given("a card with an attribute")
-      val account = MappedBankAccount.find(
-        By(MappedBankAccount.bank, testBankId1.value),
-        By(MappedBankAccount.theAccountId, testAccountId1.value)
-      ).openOrThrowException("test account not found")
-      val cardId = MappedPhysicalCard.create
-        .mBankId(testBankId1.value)
-        .mAccount(account.id.get)
-        .mBankCardNumber(randomString(16))
-        .mSerialNumber(randomString(10))
-        .saveMe()
-        .mCardId.get
-      MappedCardAttribute.create
-        .mBankId(testBankId1.value)
-        .mCardId(cardId)
-        .mName("TAX_NUMBER")
-        .mType("STRING")
-        .mValue("123")
-        .saveMe()
+      val account = MappedBankAccount.find(testBankId1.value, testAccountId1.value)
+        .openOrThrowException("test account not found")
+      val cardId = MappedPhysicalCard.insert(
+        cardId = code.api.util.APIUtil.generateUUID(), bankId = testBankId1.value,
+        bankCardNumber = randomString(16), cardType = "", nameOnCard = "", issueNumber = "",
+        serialNumber = randomString(10), validFrom = new java.util.Date(), expires = new java.util.Date(),
+        enabled = false, cancelled = false, onHotList = false, technology = "", networks = "", allows = "",
+        accountKey = account.accountPrimaryKey, replacementDate = None, replacementReason = None,
+        collected = None, posted = None, customerId = "", cvv = "", brand = ""
+      ).cardId
+      Await.result(DoobieCardAttributeProvider.createOrUpdateCardAttribute(
+        Some(BankId(testBankId1.value)), Some(cardId), None, "TAX_NUMBER", CardAttributeType.STRING, "123"),
+        Duration.Inf).openOrThrowException("the card attribute must be created")
 
       When("the card is deleted")
       // the Resource Doc of Delete Card names CanCreateCardsForBank as well as CanDeleteCardsForBank
@@ -192,8 +190,8 @@ class CardAttributeTest extends V310ServerSetup with DefaultUsers {
 
       Then("We should get a 204 and no attribute of the card is left")
       response.code should equal(204)
-      MappedPhysicalCard.find(By(MappedPhysicalCard.mCardId, cardId)).isDefined should equal(false)
-      MappedCardAttribute.findAll(By(MappedCardAttribute.mCardId, cardId)) shouldBe empty
+      MappedPhysicalCard.findByBankAndCardId(testBankId1.value, cardId).isDefined should equal(false)
+      Await.result(DoobieCardAttributeProvider.getCardAttributesFromProvider(cardId), Duration.Inf).openOr(Nil) shouldBe empty
     }
   }
 }

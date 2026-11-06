@@ -30,8 +30,10 @@ package code.api
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import org.http4s.{Header, Method, Request, Uri}
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
 import org.typelevel.ci.CIString
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Pins the exact contract that Kubernetes liveness probes depend on for
@@ -40,14 +42,14 @@ import org.typelevel.ci.CIString
  *
  * Keep these assertions verbatim — they are the freeze.
  */
-class AliveCheckRoutesTest extends FeatureSpec with Matchers with GivenWhenThen {
+class AliveCheckRoutesTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   private def runRoute(req: Request[IO]) =
     AliveCheckRoutes.routes.run(req).value.unsafeRunSync()
 
-  feature("GET /alive contract (Kubernetes liveness probe)") {
+  Feature("GET /alive contract (Kubernetes liveness probe)") {
 
-    scenario("Returns 200 with body 'true' and JSON content-type") {
+    Scenario("Returns 200 with body 'true' and JSON content-type") {
       Given("an unauthenticated GET /alive request")
       val req = Request[IO](method = Method.GET, uri = Uri.unsafeFromString("/alive"))
 
@@ -70,7 +72,7 @@ class AliveCheckRoutesTest extends FeatureSpec with Matchers with GivenWhenThen 
       ctValue.toLowerCase should include("utf-8")
     }
 
-    scenario("Succeeds without any Authorization header") {
+    Scenario("Succeeds without any Authorization header") {
       Given("a GET /alive request with no auth headers at all")
       val req = Request[IO](method = Method.GET, uri = Uri.unsafeFromString("/alive"))
       req.headers.get(CIString("Authorization")) shouldBe empty
@@ -82,7 +84,7 @@ class AliveCheckRoutesTest extends FeatureSpec with Matchers with GivenWhenThen 
       resp.status.code should equal(200)
     }
 
-    scenario("Ignores Authorization header if one happens to be sent") {
+    Scenario("Ignores Authorization header if one happens to be sent") {
       Given("a GET /alive request that carries a bogus Authorization header")
       val req = Request[IO](method = Method.GET, uri = Uri.unsafeFromString("/alive"))
         .putHeaders(Header.Raw(CIString("Authorization"), "Bearer not-a-real-token"))
@@ -95,7 +97,7 @@ class AliveCheckRoutesTest extends FeatureSpec with Matchers with GivenWhenThen 
       new String(resp.body.compile.to(Array).unsafeRunSync(), "UTF-8") should equal("true")
     }
 
-    scenario("Path is literally /alive — not under /obp/...") {
+    Scenario("Path is literally /alive — not under /obp/...") {
       Given("a GET request to a prefixed path like /obp/v5.0.0/alive")
       val req = Request[IO](method = Method.GET, uri = Uri.unsafeFromString("/obp/v5.0.0/alive"))
 
@@ -106,7 +108,7 @@ class AliveCheckRoutesTest extends FeatureSpec with Matchers with GivenWhenThen 
       matched shouldBe None
     }
 
-    scenario("Does not match POST /alive") {
+    Scenario("Does not match POST /alive") {
       Given("a POST /alive request")
       val req = Request[IO](method = Method.POST, uri = Uri.unsafeFromString("/alive"))
 
@@ -117,7 +119,7 @@ class AliveCheckRoutesTest extends FeatureSpec with Matchers with GivenWhenThen 
       matched shouldBe None
     }
 
-    scenario("Does not match /alive/anything") {
+    Scenario("Does not match /alive/anything") {
       Given("a GET request to a child path of /alive")
       val req = Request[IO](method = Method.GET, uri = Uri.unsafeFromString("/alive/foo"))
 
@@ -128,7 +130,7 @@ class AliveCheckRoutesTest extends FeatureSpec with Matchers with GivenWhenThen 
       matched shouldBe None
     }
 
-    scenario("Does not match the root path /") {
+    Scenario("Does not match the root path /") {
       Given("a GET / request")
       val req = Request[IO](method = Method.GET, uri = Uri.unsafeFromString("/"))
 

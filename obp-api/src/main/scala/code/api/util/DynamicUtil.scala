@@ -28,9 +28,9 @@ TESOBE (http://www.tesobe.com/)
 package code.api.util
 
 import org.json4s._
-import code.api.Constant.SHOW_USED_CONNECTOR_METHODS
 import code.api.{APIFailureNewStyle, JsonResponseException}
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
+import code.api.util.dynamiccompiler.{DotcScalaCompiler, DynamicCompileFailure, DynamicScalaCompiler}
 import cats.effect.IO
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.Functions.Memo
@@ -53,7 +53,6 @@ import scala.concurrent.{Future, Promise}
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.runtimeMirror
 import scala.runtime.NonLocalReturnControl
-import scala.tools.reflect.{ToolBox, ToolBoxError}
 
 object DynamicUtil extends MdcLoggable{
 
@@ -67,49 +66,29 @@ object DynamicUtil extends MdcLoggable{
       case _ => false
     }
 
-  val toolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox()
+  // The Scala-source compiler, behind an interface so the Scala 3 flip swaps the
+  // implementation (Scala 3 has no ToolBox) without touching any caller.
+  private val scalaCompiler: DynamicScalaCompiler = DotcScalaCompiler
 
   /** One compiler diagnostic from [[checkScalaCode]]. `line`/`column` are 1-based in the code that was checked; 0 when unknown. */
   case class CompileProblem(line: Int, column: Int, severity: String, message: String)
 
-  /** Collects compiler diagnostics with positions; the default toolbox front end only keeps the messages. */
-  private class CollectingFrontEnd extends scala.tools.reflect.FrontEnd {
-    // FrontEnd.log already records every diagnostic in `infos`; nothing to print.
-    override def display(info: Info): Unit = ()
-  }
-  private val checkFrontEnd = new CollectingFrontEnd
-  // A second toolbox, so a dry-run check never touches the memoised compile results of the real one.
-  private val checkToolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox(frontEnd = checkFrontEnd)
-
   /**
    * Compile `code` for diagnostics only: nothing is evaluated, nothing is cached. Empty list = compiles.
-   * Toolboxes are not thread-safe, so checks are serialised. Callers must apply the kill switch and a role.
+   * Callers must apply the kill switch and a role.
    *
-   * The code is checked inside a method, because that is how it is really compiled: ToolBox.compile
-   * wraps the tree in a method before compiling it. Checked bare, a `return` in the code (which the
-   * documented example method body uses to answer early with an error) is reported as "return
-   * outside method definition", although a real create accepts it. The wrapper is added on the same
-   * line as the start of the code, so line numbers are unchanged; columns on that first line are
-   * corrected for it.
+   * Upstream implemented this on a second Scala 2 `ToolBox`; Scala 3 has no ToolBox, so it
+   * delegates to the same `DynamicScalaCompiler` the real compile path uses, whose `check` runs
+   * the compiler without evaluating or caching. That also removes upstream's serialisation
+   * requirement - there is no shared mutable front end to guard.
+   *
+   * Upstream wraps the code in a method before checking it, because a bare `return` (which the
+   * documented example method body uses) is otherwise reported as "return outside method
+   * definition". DotcScalaCompiler.check already compiles the code as the body of `def result`,
+   * exactly as the real compile does, so the same code is accepted here without a wrapper.
    */
-  def checkScalaCode(code: String): List[CompileProblem] = checkToolBox.synchronized {
-    checkFrontEnd.reset()
-    val wrapperStart = "{ def dryRunCompileWrapper(): Any = { "
-    val wrapperEnd = "\n}; () }"
-    val failure: Option[String] = try {
-      checkToolBox.typecheck(checkToolBox.parse(wrapperStart + code + wrapperEnd))
-      None
-    } catch {
-      case e: ToolBoxError => Some(e.message)
-    }
-    val collected = checkFrontEnd.infos.toList.filter(_.severity == checkFrontEnd.ERROR).map { info =>
-      val (line, column) = if (info.pos != null && info.pos.isDefined) (info.pos.line, info.pos.column) else (0, 0)
-      val columnInCode = if (line == 1 && column > wrapperStart.length) column - wrapperStart.length else column
-      CompileProblem(line, columnInCode, "ERROR", info.msg)
-    }
-    if (collected.nonEmpty) collected
-    else failure.map(m => CompileProblem(0, 0, "ERROR", m.stripPrefix("reflective typecheck has failed:").stripPrefix("reflective compilation has failed:").trim)).toList
-  }
+  def checkScalaCode(code: String): List[CompileProblem] =
+    scalaCompiler.check(code).map(d => CompileProblem(d.line, d.column, d.severity, d.message))
 
   /**
    * This compiles a Java `method_body` for diagnostics only, the Java counterpart of
@@ -174,17 +153,66 @@ object DynamicUtil extends MdcLoggable{
   // validation outcome built on top of it -- see createJavaHttp4sEndpoint's doc comment.
   private val memoJavaCompiledScript = new Memo[String, Box[ch.obermuhlner.scriptengine.java.JavaCompiledScript]]
 
+  /**
+   * A javassist pool scoped to one classloader.
+   *
+   * This used to hand back `ClassPool.getDefault` - a process-wide singleton - after appending a
+   * LoaderClassPath for the caller's loader, so every distinct classloader added another search
+   * path to the one shared pool and none was ever removed. Harmless while the only caller was the
+   * `show_used_connector_methods` diagnostic (off by default, so this ran approximately never);
+   * not harmless once the dependency scan runs for real, because dynamic compilation mints a fresh
+   * classloader per snippet. The pool then accumulates a path per snippet, each pinning a
+   * classloader whose temp output directory is gone, and every later lookup searches all of them
+   * in turn - which is also what the `MEMORY_USER` notes on the callers were worried about.
+   *
+   * `new ClassPool(true)` starts from the system path, exactly as `getDefault` does, so lookups
+   * resolve the same way; it is just not shared. Still memoized per classloader, so a repeated
+   * scan against the same loader reuses its pool and its parsed CtClasses.
+   *
+   * Retraction, recorded here because 125950aa2's message got it wrong: that commit presented the
+   * shared pool as the proven cause of two failures seen at the time - DynamicUtilTest and
+   * InternalConnectorTest reporting `missing reference, looking for JValue/T in package object
+   * json4s` - and said so was "verified by isolation". It was not the cause. Those failures were a
+   * cross-checkout `~/.m2` overwrite: another checkout's `mvn install` replacing
+   * com.tesobe:obp-commons, which carries no Scala suffix, so nothing detects the mismatch. The
+   * error named it four lines below the line that gets read - "A signature in
+   * ~/.m2/.../obp-commons-1.10.1.jar refers to JValue/T in package object org.json4s.package which
+   * is not available" - and fingerprinting the jar during a later run caught the swap live. The
+   * isolation experiment was confounded: a green run only meant `~/.m2` happened to be right that
+   * time. With the repository isolated (`-Dmaven.repo.local`), the suite is 3870/0 on H2 and
+   * Postgres with this scoping in place and no other change.
+   *
+   * The scoping below stands on its own regardless: a process-wide singleton that grows a search
+   * path per classloader and never releases one is a hazard under forkMode=once, where a single
+   * JVM runs a whole shard. Fixing the right thing and explaining it wrongly are different
+   * mistakes; only the explanation is retracted.
+   */
   private def getClassPool(classLoader: ClassLoader) = memoClassPool.memoize(classLoader){
-    val cp = ClassPool.getDefault
+    val cp = new ClassPool(true)
     cp.appendClassPath(new LoaderClassPath(classLoader))
     cp
   }
 
-  // code -> dynamic method function
-  // the same code should always be compiled once, so here cache them
-  private val dynamicCompileResult = new ConcurrentHashMap[String, Box[Any]]()
+  // The "compile each distinct source once" cache moved into DynamicScalaCompiler, which is
+  // where the compiling happens now.
 
   type DynamicFunction = (Array[AnyRef], Option[CallContext]) => Future[Box[(String, Option[CallContext])]]
+
+  /**
+   * True when a SecurityManager is installed, i.e. when anything could confine dynamic code.
+   *
+   * JEP 486 removed SecurityManager in JDK 24, and the permission-set wrapper that used it has been
+   * removed too (see DynamicCodeBody below), so on every JVM OBP supports this is false and
+   * dynamic code runs with the full rights of the process. Kept as the condition rather than
+   * hard-coded so the second acceptance below states what it is guarding against.
+   */
+  private def sandboxCanEnforce: Boolean = System.getSecurityManager != null
+
+  /**
+   * True when the operator has explicitly accepted running user code with no enforceable sandbox.
+   */
+  private def unsandboxedExecutionAccepted: Boolean =
+    APIUtil.getPropsAsBoolValue("allow_user_generated_scala_code_without_sandbox", false)
 
   /**
    * Compile scala code
@@ -195,38 +223,31 @@ object DynamicUtil extends MdcLoggable{
   def compileScalaCode[T](code: String): Box[T] = {
     if (!dynamicCodeExecutionEnabled)
       return Failure(ErrorMessages.DynamicCodeExecutionDisabled)
+    // Second consent, only on a runtime where nothing can confine the code. `allow_user_generated_scala_code`
+    // may have been turned on when a sandbox still restricted file, network and reflection access;
+    // on JDK 24+ nothing does, so the same switch now means something much larger than it did when
+    // it was set. Refusing to compile - rather than refusing to boot - keeps the failure
+    // scoped to the feature that lost its isolation, and leaves a deployment that means it one
+    // deliberate edit away from working. Default deployments are unaffected: the feature is off.
+    if (!sandboxCanEnforce && !unsandboxedExecutionAccepted)
+      return Failure(ErrorMessages.DynamicCodeExecutionUnsandboxed)
     compileScalaCodeUnchecked[T](code)
   }
 
   // Used ONLY by DynamicUtil.Validation's props-driven config parsing (operator config,
   // not user-generated code) so the app can still boot with the kill-switch off.
+  //
+  // The compiler itself lives behind DynamicScalaCompiler: Scala 3 has no ToolBox, so the
+  // flip swaps the implementation instead of rewriting this method's callers. Caching and
+  // the compile-error / evaluation-error distinction moved into the implementation with it;
+  // this method only adapts the result back to the Box shape callers expect.
   private def compileScalaCodeUnchecked[T](code: String): Box[T] = {
-    logger.trace(s"code.api.util.DynamicUtil.compileScalaCode.size is ${dynamicCompileResult.size()}")
-    val compiledResult: Box[Any] = dynamicCompileResult.computeIfAbsent(code, _ => {
-      val tree = try {
-        toolBox.parse(code)
-      } catch {
-        case e: ToolBoxError =>
-          return Failure(e.message)
-      }
-
-      try {
-        val func: () => Any = toolBox.compile(tree)
-        Box.tryo(func())
-      } catch {
-        case _: ToolBoxError =>
-          // try compile again
-          try {
-            val func: () => Any = toolBox.compile(tree)
-            Box.tryo(func())
-          } catch {
-            case e: ToolBoxError =>
-              Failure(e.message)
-          }
-      }
-    })
-
-    compiledResult.map(_.asInstanceOf[T])
+    logger.trace(s"code.api.util.DynamicUtil.compileScalaCode.size is ${scalaCompiler.cachedCount}")
+    scalaCompiler.compile(code) match {
+      case Right(value)                                   => Full(value.asInstanceOf[T])
+      case Left(DynamicCompileFailure(message, None))     => Failure(message)
+      case Left(DynamicCompileFailure(message, Some(ex))) => Failure(message, Full(ex), Empty)
+    }
   }
 
   /**
@@ -299,21 +320,17 @@ object DynamicUtil extends MdcLoggable{
    * NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap.
    * @param clazz
    * @param predicate
-   * @param force bypasses the SHOW_USED_CONNECTOR_METHODS gate below. SHOW_USED_CONNECTOR_METHODS
-   *              exists to opt in to an unrelated, expensive introspection/reporting feature (which
-   *              connector methods a static endpoint touches) — it was never meant to gate SECURITY
-   *              validation, which reuses this same bytecode scan. Without `force`, a deployment
-   *              that sets dynamic_code_obp_calls_are_restricted=true (the documented, security-
-   *              relevant prop) but leaves the unrelated show_used_connector_methods at its default
-   *              false would silently get an always-empty dependency list here — every dynamic-code
-   *              call looks "allowed" no matter what it does, because there is nothing to check
-   *              against the whitelist. Validation.validateDependency passes force=true so it is
-   *              controlled solely by dynamic_code_obp_calls_are_restricted, matching what an
-   *              operator following that prop's own documentation would expect.
+   * @param force accepted from callers written for a version that gated this scan on
+   *              SHOW_USED_CONNECTOR_METHODS. The scan is not gated: SHOW_USED_CONNECTOR_METHODS opts in
+   *              to an unrelated diagnostic (which connector methods a static endpoint touches), and
+   *              gating the security validation that reuses this bytecode scan on it handed
+   *              Validation.validateDependency an always-empty list on every deployment that left the
+   *              diagnostic at its default, so every restricted call passed.
+   *              DynamicCodeDependencyScanTest fails if the scan goes quiet again.
    * @return
    */
   def getDynamicCodeDependentMethods(clazz: Class[_], predicate:  String => Boolean = _ => true, force: Boolean = false): List[(String, String, String)] =
-  if (SHOW_USED_CONNECTOR_METHODS || force) {
+  {
     val className = clazz.getTypeName
     val listBuffer = new ListBuffer[(String, String, String)]()
     val classPool = getClassPool(clazz.getClassLoader)
@@ -349,7 +366,7 @@ object DynamicUtil extends MdcLoggable{
       } else if (visited.contains(key)) {
         Nil
       } else {
-        APIUtil.getDependentMethods(typeName, methodName, signature, force).flatMap { case (t, m, s) =>
+        APIUtil.getDependentMethods(typeName, methodName, signature, force, classPool).flatMap { case (t, m, s) =>
           expand(t, m, s, visited + key)
         }
       }
@@ -358,14 +375,12 @@ object DynamicUtil extends MdcLoggable{
     for {
       method <- ctClass.getDeclaredMethods.toList
       if predicate(method.getName)
-      (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature, force)
+      (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature, force, classPool)
     } yield {
       listBuffer.appendAll(expand(typeName, methodName, signature, Set.empty))
     }
 
     listBuffer.distinct.toList
-  } else {
-    Nil
   }
 
   /**
