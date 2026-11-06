@@ -4764,6 +4764,8 @@ object Http4s700 {
         |
         |Requires `open_corridor_enabled=true` on this instance. Whether it is on shows in GET /banks/BANK_ID/transaction-request-types, which lists OPEN_CORRIDOR_PROMISE exactly when it is.
         |
+        |The caller is either a User with account access to VIEW_ID, or an application acting as itself (OAuth2 client credentials) whose Consumer has been given access to VIEW_ID of this account (see Consumer Account Access). The view needs `can_add_transaction_request_to_any_account` or `can_add_transaction_request_to_beneficiary`. The Transaction Request records the Consumer that created it.
+        |
         |Authentication is Required.""".stripMargin,
       openCorridorBodyExample,
       JSONFactory700.TransactionRequestWithChargeOpenCorridorJsonV700(
@@ -4800,6 +4802,7 @@ object Http4s700 {
            InsufficientAuthorisationToCreateTransactionRequest, UnknownError),
       apiTagTransactionRequest :: Nil,
       None,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(createTransactionRequestOpenCorridor)
     )
 
@@ -7721,6 +7724,9 @@ object Http4s700 {
 
     // Data retention: retention policies, runs and their approval, the disposal register, legal holds and the archive.
     resourceDocs ++= Http4s700Retention.resourceDocs
+
+    // Consumer account access: a view of an account granted to a Consumer, for an application acting as itself.
+    resourceDocs ++= Http4s700ConsumerAccountAccess.resourceDocs
 
     // The order in which the routes are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given this same list: the doc that validates a request

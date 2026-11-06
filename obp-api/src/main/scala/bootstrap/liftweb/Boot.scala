@@ -1159,6 +1159,7 @@ object ToSchemify extends MdcLoggable {
     code.glossaryitem.DynamicGlossaryItem,
     code.platformapp.PlatformApp,
     code.platformapp.PlatformAppRequiredScope,
+    code.consumeraccountaccess.ConsumerAccountAccess,
     code.domainapi.DomainApi,
     code.dynamicentitywebhook.DynamicEntityWebhook,
     code.accountcreation.AccountCreation,

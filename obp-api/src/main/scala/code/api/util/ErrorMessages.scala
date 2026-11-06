@@ -651,6 +651,9 @@ object ErrorMessages {
   val RetentionHoldAlreadyReleased = "OBP-30621: This retention hold has already been released."
   val InvalidRetentionRunApproval = "OBP-30622: Invalid approval. decision must be approve or reject."
   val InvalidRetentionRun = "OBP-30623: Invalid retention run. mode must be preview or execute."
+  val ConsumerAccountAccessAlreadyExists = "OBP-30627: This Consumer already has access to this view of this account."
+  val ConsumerAccountAccessNotFound = "OBP-30628: Consumer account access not found by CONSUMER_ACCOUNT_ACCESS_ID on this account."
+  val CannotGrantConsumerAccountAccessToView = "OBP-30629: A Consumer cannot be given access to this view. The owner view and public views are for Users: give the Consumer a view with only the permissions it needs."
 
   // Routing Scheme registry (OBP-30514 .. OBP-30525)
   val RoutingSchemeNotFound = "OBP-30514: Routing Scheme not found. Please specify a valid value for SCHEME."

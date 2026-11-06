@@ -7428,6 +7428,39 @@ object Glossary extends MdcLoggable  {
 				 |- [Update Current Consumer Platform App](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateCurrentConsumerPlatformApp): `PUT /obp/v7.0.0/consumers/current/platform-app`, for an app to declare the Scopes it needs.
 				 |- [Get Current Consumer Scopes](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getCurrentConsumerScopes): `GET /obp/v7.0.0/consumers/current/scopes`, for an app to read the Scopes its Consumer holds.
 				 |- [Create Scope for a Consumer](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-addScope): `POST /obp/v7.0.0/consumers/CONSUMER_ID/scopes`, to grant a missing Scope.
+				 |
+				 |A Scope says which endpoints an app may call. An app that also acts on an account through a view, such as initiating payments from it, needs access to that view of the account as well: see ${getGlossaryItemLink("Consumer Account Access")}.
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Consumer Account Access",
+		description =
+			s"""
+				 |# Consumer Account Access
+				 |
+				 |OBP has two layers of permission. **Roles** say which endpoints may be called; they are granted to a User as Entitlements and to a Consumer as Scopes. **Account access** says which accounts may be used, and through which view; it is granted to a User, and with Consumer Account Access also to a Consumer.
+				 |
+				 |It is for an application that acts on an account as itself, with its own application token (OAuth2 client credentials), when no person is involved: for example a bank's service that initiates payments from the bank's own account for customers whose payments it relays. Without it, such a service has to log in as a stand-in User who holds the account access.
+				 |
+				 |## How it works
+				 |
+				 |1. Someone who may grant views of the account (their view lists the target view in `can_grant_access_to_views`, or has `can_grant_access_to_custom_views` for a custom view) gives the Consumer access to a view. The grant records who gave it.
+				 |2. The application calls an endpoint of that view with its client-credentials token. Its User is then the Consumer's own (provider `obp-oidc#client`, named after the Consumer's key), and OBP finds the Consumer's grant.
+				 |3. The grant counts only on endpoints that admit an application acting as itself (auth mode ApplicationOnly or UserXORApplication). On every other endpoint the view still needs a User's account access.
+				 |
+				 |A person who logs in through the same Consumer does not get the Consumer's account access, and a caller identified by the Consumer Key alone does not either: only the client-credentials token proves the application is calling as itself.
+				 |
+				 |## Which view
+				 |
+				 |The owner view and public views can't be granted to a Consumer. Holding an account is for people. Give the Consumer a view with only the permissions it needs, for example a custom view with `can_add_transaction_request_to_any_account` for initiating payments: create it with Create Custom View (Management), `POST /obp/v6.0.0/management/banks/BANK_ID/accounts/ACCOUNT_ID/views` (Role CanCreateCustomView), and grant it through the ManageCustomViews system view, which has `can_grant_access_to_custom_views` and which the account holder can give through owner. The Transaction Requests the Consumer creates record it.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Grant Consumer access to View](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-grantConsumerAccessToView): `POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/consumer-account-access`
+				 |- [Get Consumer access to Account](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getConsumerAccountAccess): `GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/consumer-account-access`
+				 |- [Revoke Consumer access to View](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-revokeConsumerAccessToView): `DELETE /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/consumer-account-access/CONSUMER_ACCOUNT_ACCESS_ID`
+				 |
+				 |See also ${getGlossaryItemLink("Platform Apps")}.
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(

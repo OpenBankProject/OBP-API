@@ -3651,6 +3651,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case Some(u) if hasAccountFirehoseAccessAtBank(view,u, bankIdAccountId.bankId)  => Full(true) //Login User and Firehose access
         case Some(u) if hasAccountFirehoseAccess(view,u)  => Full(true)//Login User and Firehose access
         case Some(u) if u.hasAccountAccess(view, bankIdAccountId, callContext)=> Full(true)     // Login User and check view access
+        case Some(u) if hasConsumerAccountAccess(view, bankIdAccountId, u, callContext) => Full(true) // An application acting as itself, on its own grant
         case Some(u) =>
           // Normal checks failed — try ABAC as fallback
           checkAbacAccountAccess(u, view, bankIdAccountId, callContext)
@@ -3658,6 +3659,28 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           Full(false)
       }
   }
+
+  /**
+   * Account access granted to a Consumer (code.consumeraccountaccess): true when the caller is an application
+   * acting as itself, its Consumer holds a grant for this view of this account, and the endpoint opts in.
+   *
+   * - Acting as itself means the caller is the Consumer's own client-credentials User (provider obp-oidc#client,
+   *   named after the Consumer's key). A person calling through the same Consumer never picks up its grants,
+   *   and neither does a caller identified by a Consumer Key alone: the token proves the client secret.
+   * - The endpoint opts in through its auth mode: only ApplicationOnly and UserXORApplication endpoints admit
+   *   an application acting as itself, so every other endpoint of the view keeps needing a User's access.
+   */
+  def hasConsumerAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, callContext: Option[CallContext]): Boolean =
+    (for {
+      cc <- callContext
+      doc <- cc.resourceDocument
+      if doc.authMode == ApplicationOnly || doc.authMode == UserXORApplication
+      consumer <- cc.consumer.toOption
+      if isApplicationsOwnUser(user, consumer)
+    } yield code.consumeraccountaccess.ConsumerAccountAccesses.consumerAccountAccessProvider.vend
+      .find(consumer.consumerId.get, bankIdAccountId.bankId, bankIdAccountId.accountId, view.viewId)
+      .isDefined
+    ).getOrElse(false)
 
   private def checkAbacAccountAccess(
     user: User,
