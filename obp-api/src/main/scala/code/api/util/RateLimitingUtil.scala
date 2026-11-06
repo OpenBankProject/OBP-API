@@ -44,6 +44,7 @@ import redis.clients.jedis.Jedis
 
 import scala.collection.immutable
 import scala.collection.immutable.{List, Nil}
+import scala.util.control.NonFatal
 
 
 object RateLimitingPeriod extends Enumeration {
@@ -296,7 +297,8 @@ object RateLimitingUtil extends MdcLoggable {
    * @param periodsWithLimits the periods to check and count, shortest first, each with its limit
    * @return None when nothing was checked or counted: `use_consumer_limits=false` (an instance
    *         without Redis is left alone) or Redis unreachable (fail open: the call is allowed and
-   *         no X-Rate-Limit-* headers are set)
+   *         no X-Rate-Limit-* headers are set), except that a blocked period (limit 0) still
+   *         refuses when Redis is unreachable, see [[refusalWithoutRedis]]
    */
   private def checkAndCount(consumerKey: String, periodsWithLimits: List[(LimitCallPeriod, Long)]): Option[QuotaOutcome] =
     if (!useConsumerLimits) None
@@ -313,10 +315,21 @@ object RateLimitingUtil extends MdcLoggable {
           Some(Counted(periodsWithLimits.zip(countsAndTtls).map { case ((period, limit), (count, ttl)) => (period, limit, (ttl, count)) }))
       }
     } catch {
-      case e: Throwable =>
-        logger.error(s"Redis unavailable when checking the rate limit for $consumerKey - allowing request", e)
-        None
+      case NonFatal(e) =>
+        val outcome = refusalWithoutRedis(periodsWithLimits)
+        // A warning without the stack trace: while Redis is down this happens on every request.
+        logger.warn(s"Redis unavailable when checking the rate limit for $consumerKey (${e.getClass.getSimpleName}: ${e.getMessage}) - " +
+          (if (outcome.isDefined) "refusing: a period is blocked (limit 0)" else "allowing request"))
+        outcome
     }
+
+  /**
+   * What the quota decides when Redis can't be asked: a blocked period (limit 0) refuses without a
+   * counter, the shortest one first, as it always has; everything else fails open (None). Without
+   * this a Consumer an administrator had blocked would be served whenever Redis is unreachable.
+   */
+  private[util] def refusalWithoutRedis(periodsWithLimits: List[(LimitCallPeriod, Long)]): Option[QuotaOutcome] =
+    periodsWithLimits.collectFirst { case (period, 0L) => Refused(period, 0L, 0L) }
 
 
 

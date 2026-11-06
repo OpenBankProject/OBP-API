@@ -3,6 +3,14 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+06/11/2026    TBD           FIXED: the consumer quota. A per-second limit held for only about half of each second:
+                            Redis rounds TTL to the nearest second, so a 1-second counter read TTL 0 for its last
+                            ~500 ms while still holding its count, and was treated as expired, letting every call
+                            through. The quota script now decides on PTTL, and reports the X-Rate-Limit-Reset
+                            rounded up, so a live counter never reads 0 (the headers were also missing in that
+                            half-second). And a Consumer blocked with a limit of 0 is refused again while Redis is
+                            unreachable, as before the single-script quota; other limits still fail open, now with
+                            a warning per request instead of an error with a stack trace.
 06/11/2026    TBD           ADDED: Consumer Account Access. A view of an account can be granted to a Consumer, as it
                             can to a User, so an application acting as itself (OAuth2 client credentials, its own
                             obp-oidc#client User) can use that view. v7.0.0 POST, GET and DELETE

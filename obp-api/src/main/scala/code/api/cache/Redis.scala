@@ -321,23 +321,29 @@ object Redis extends MdcLoggable {
    *                  (refused without reading the counter's value), > 0 max calls in the period
    *   ARGV[n + i]    length of period i in seconds, the TTL a new counter gets
    *
-   * Returns {0, i, count, ttl} when period i refuses: count is what its counter holds now (0 when
-   * the key is absent or has no expiry) and ttl is the key's TTL as Redis reports it. Returns
-   * {1, c1, ttl1, ..., cn, ttln} after counting: the post-increment count and TTL of each key.
-   * A key found without an expiry is treated as expired on the check and recreated on the count,
-   * as incrementWithTtlScript does. Everything runs atomically server-side, so the check and
-   * the count of one call cannot interleave with another call's: at most `limit` calls pass.
+   * Returns {0, i, count, pttl} when period i refuses: count is what its counter holds now (0 when
+   * the key is absent or has no expiry) and pttl is the key's PTTL in milliseconds as Redis reports
+   * it (-1 no expiry, -2 no key). Returns {1, c1, pttl1, ..., cn, pttln} after counting: the
+   * post-increment count and PTTL of each key. A key found without an expiry is treated as expired
+   * on the check and recreated on the count, as incrementWithTtlScript does. Everything runs
+   * atomically server-side, so the check and the count of one call cannot interleave with another
+   * call's: at most `limit` calls pass.
+   *
+   * Liveness is decided on PTTL, not TTL. TTL rounds to the nearest second, so a 1-second counter
+   * reads TTL 0 for the last ~500 ms of its window while it still holds its count; a check on TTL
+   * treated it as expired there and let every call through, and the per-second limit held for only
+   * half of each second.
    */
   private val quotaCheckAndCountScript =
     """local n = #KEYS
       |for i = 1, n do
       |  local limit = tonumber(ARGV[i])
       |  if limit >= 0 then
-      |    local ttl = redis.call('TTL', KEYS[i])
+      |    local pttl = redis.call('PTTL', KEYS[i])
       |    local count = 0
-      |    if ttl > 0 then count = tonumber(redis.call('GET', KEYS[i]) or '0') end
+      |    if pttl > 0 then count = tonumber(redis.call('GET', KEYS[i]) or '0') end
       |    if limit == 0 or count + 1 > limit then
-      |      return {0, i, count, ttl}
+      |      return {0, i, count, pttl}
       |    end
       |  end
       |end
@@ -346,12 +352,12 @@ object Redis extends MdcLoggable {
       |  local c = redis.call('INCR', KEYS[i])
       |  if c == 1 then
       |    redis.call('EXPIRE', KEYS[i], ARGV[n + i])
-      |  elseif redis.call('TTL', KEYS[i]) < 0 then
+      |  elseif redis.call('PTTL', KEYS[i]) < 0 then
       |    redis.call('SET', KEYS[i], 1, 'EX', ARGV[n + i])
       |    c = 1
       |  end
       |  out[#out + 1] = c
-      |  out[#out + 1] = redis.call('TTL', KEYS[i])
+      |  out[#out + 1] = redis.call('PTTL', KEYS[i])
       |end
       |return out""".stripMargin
 
@@ -361,6 +367,10 @@ object Redis extends MdcLoggable {
    * shortest period first. Throws when Redis is unreachable; the caller decides whether to fail
    * open.
    */
+  /** A PTTL in milliseconds as whole seconds, rounded up, so a live key never reads 0 (the
+   *  X-Rate-Limit-Reset header and the TTL the callers compare with 0). -1 and -2 stay as they are. */
+  private[cache] def pttlToSeconds(pttl: Long): Long = if (pttl > 0) (pttl + 999) / 1000 else pttl
+
   def quotaCheckAndCount(keys: List[String], limits: List[Long], periodSeconds: List[Int]): QuotaDecision = {
     require(keys.nonEmpty && keys.size == limits.size && keys.size == periodSeconds.size,
       s"quotaCheckAndCount needs one limit and one period per key: ${keys.size} keys, ${limits.size} limits, ${periodSeconds.size} periods")
@@ -376,9 +386,9 @@ object Redis extends MdcLoggable {
         ).asInstanceOf[java.util.List[java.lang.Long]].asScala.map(_.longValue()).toList
       }
       val decision = reply match {
-        case 0L :: index :: count :: ttl :: Nil => QuotaRefused(index.toInt - 1, count, ttl)
-        case 1L :: countsAndTtls if countsAndTtls.size == keys.size * 2 =>
-          QuotaCounted(countsAndTtls.grouped(2).collect { case List(count, ttl) => (count, ttl) }.toList)
+        case 0L :: index :: count :: pttl :: Nil => QuotaRefused(index.toInt - 1, count, pttlToSeconds(pttl))
+        case 1L :: countsAndPttls if countsAndPttls.size == keys.size * 2 =>
+          QuotaCounted(countsAndPttls.grouped(2).collect { case List(count, pttl) => (count, pttlToSeconds(pttl)) }.toList)
         case other => throw new RuntimeException(s"quotaCheckAndCount: unexpected reply $other for ${keys.size} keys")
       }
       succeeded = true
