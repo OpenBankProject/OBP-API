@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.UKOpenBanking.v4_0_1
 
-import code.api.util.APIUtil.{ResourceDoc, UserOrApplication, buildOperationId}
+import code.api.util.APIUtil.{ResourceDoc, UserXORApplication, buildOperationId}
 import code.api.util.{CallContext, Consent}
 import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser}
 import code.model.UserX
@@ -294,15 +294,15 @@ class UKOpenBankingV401ConsentAccessTests extends UKOpenBankingV401ServerSetup {
     // reached. Pinned because nothing else would notice a revert: these endpoints keep working for
     // as long as OAuth2 token parsing auto-vivifies a user for a client-credentials token.
     for (name <- List("getAccountAccessConsentsConsentId", "deleteAccountAccessConsentsConsentId")) {
-      scenario(s"v4.0.1 $name declares UserOrApplication", UKOpenBankingV401ConsentAccess) {
+      scenario(s"v4.0.1 $name declares UserXORApplication", UKOpenBankingV401ConsentAccess) {
         val docs = ResourceDoc.getResourceDocs(List(buildOperationId(ApiVersion.ukOpenBankingV401, name)))
         docs should not be empty
-        docs.foreach(_.authMode should equal(UserOrApplication))
+        docs.foreach(_.authMode should equal(UserXORApplication))
       }
-      scenario(s"v3.1 $name declares UserOrApplication", UKOpenBankingV401ConsentAccess) {
+      scenario(s"v3.1 $name declares UserXORApplication", UKOpenBankingV401ConsentAccess) {
         val docs = ResourceDoc.getResourceDocs(List(buildOperationId(ApiVersion.ukOpenBankingV31, name)))
         docs should not be empty
-        docs.foreach(_.authMode should equal(UserOrApplication))
+        docs.foreach(_.authMode should equal(UserXORApplication))
       }
     }
   }

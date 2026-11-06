@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{Http4sRoute, EmptyBody, ResourceDoc, UserOrApplication}
+import code.api.util.APIUtil.{Http4sRoute, EmptyBody, ResourceDoc, UserXORApplication}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -87,7 +87,7 @@ object Http4s700Grants {
     List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
     List(apiTagScope, apiTagRole),
     Some(List(canGetAllScopes)),
-    authMode = UserOrApplication,
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(getAllScopes)
   )
 
@@ -125,7 +125,7 @@ object Http4s700Grants {
     List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
     List(apiTagRole, apiTagEntitlement),
     Some(List(canGetReachableRoles)),
-    authMode = UserOrApplication,
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(getReachableRoles)
   )
 }

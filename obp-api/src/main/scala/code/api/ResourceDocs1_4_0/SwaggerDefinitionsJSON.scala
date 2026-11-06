@@ -6388,6 +6388,7 @@ object SwaggerDefinitionsJSON {
       ConfigPropJsonV600("public_obp_portal_url", "http://localhost:5174"),
       ConfigPropJsonV600("public_obp_api_explorer_url", "http://localhost:5173"),
       ConfigPropJsonV600("public_obp_api_manager_url", "http://localhost:3003"),
+      ConfigPropJsonV600("public_obp_cohort_url", "http://localhost:5183"),
       ConfigPropJsonV600("public_obp_sandbox_populator_url", "http://localhost:5178"),
       ConfigPropJsonV600("public_obp_oidc_url", "http://localhost:9000"),
       ConfigPropJsonV600("public_keycloak_url", "http://localhost:7787"),

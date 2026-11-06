@@ -34,8 +34,8 @@ import code.api.util.http4s.Http4sStandardHeaders
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, DuplicateUsername, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidPhoneNumber, InvalidRoutingSchemeName, UserFilterParametersNotSupported, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, NotificationWebhookNotFound, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateTenant, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteTenant, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canUpdateSystemView, canGetAccountAccessTrace, canGetAccountDirectoryAtOneBank, canGetTenant, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateTenant, canUpdateRoutingScheme}
+import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, DuplicateUsername, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidTenantIdFormat, InvalidPhoneNumber, InvalidRoutingSchemeName, UserFilterParametersNotSupported, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, NotificationWebhookNotFound, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, TenantAlreadyExists, TenantNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
 import code.utilitypayment.{UtilityCallbackStatus, UtilityPaymentCallbacks}
 import code.scheduler.JobScheduler
 import net.liftweb.mapper.By
@@ -49,7 +49,7 @@ import net.liftweb.util.Helpers.randomString
 import code.metrics.MappedMetric
 import code.customer.CustomerX
 import code.entitlement.Entitlement
-import code.organisation.Organisations
+import code.tenant.Tenants
 import code.metadata.counterparties.Counterparties
 import com.openbankproject.commons.model.{BankId => CommBankId, CreditLimit, CreditRating, CustomerFaceImage}
 import fs2.Stream
@@ -59,7 +59,7 @@ import org.typelevel.ci.CIString
 import java.util.Date
 import code.setup.ServerSetupWithTestData
 import org.json4s.JValue
-import org.json4s.JsonAST.{JArray, JBool, JField, JInt, JNull, JObject, JString}
+import org.json4s.JsonAST.{JArray, JBool, JField, JInt, JNothing, JNull, JObject, JString}
 import com.openbankproject.commons.util.JsonAliases.parse
 import org.scalatest.Tag
 import com.openbankproject.commons.util.JsonAliases.RichJField
@@ -174,9 +174,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     visibility: String = "public",
     status: String = "active"
   ): Unit = {
-    Organisations.organisation.vend.createOrganisation(
-      orgId, s"Test $orgId", None, None, status, visibility, resourceUser1.userId
-    )
+    Tenants.tenant.vend.createTenant(orgId, s"Test $orgId", None, None, status, visibility, resourceUser1.userId)
   }
 
   // ─── root ────────────────────────────────────────────────────────────────────
@@ -586,6 +584,55 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case JString(msg) => msg should include(AccountIdAlreadyExists)
         case _ => fail("Expected message field")
       }
+    }
+  }
+
+  // ─── getAccountDirectory ──────────────────────────────────────────────────────
+
+  feature("Http4s700 getAccountDirectory endpoint") {
+
+    def accountDirectoryPath = s"/obp/v7.0.0/banks/${testBankId1.value}/account-directory"
+
+    scenario("Reject an unauthenticated request", Http4s700RoutesTag) {
+      val (statusCode, json, _) = makeHttpRequest(accountDirectoryPath)
+      statusCode shouldBe 401
+      messageOf(json) should include(AuthenticatedUserIsRequired)
+    }
+
+    scenario("Return 403 without CanGetAccountDirectoryAtOneBank", Http4s700RoutesTag) {
+      val (statusCode, json, _) = makeHttpRequest(accountDirectoryPath, Map("DirectLogin" -> s"token=${token2.value}"))
+      statusCode shouldBe 403
+      messageOf(json) should include(UserHasMissingRoles)
+      messageOf(json) should include(canGetAccountDirectoryAtOneBank.toString)
+    }
+
+    scenario("List an account created through v7.0.0 with who created it, and one without a creation record without metadata", Http4s700RoutesTag) {
+      Given("resourceUser1 creates an account through v7.0.0 Create Account, and holds CanGetAccountDirectoryAtOneBank")
+      addEntitlement(testBankId1.value, resourceUser1.userId, canCreateAccount.toString)
+      addEntitlement(testBankId1.value, resourceUser1.userId, canGetAccountDirectoryAtOneBank.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val createdId = s"v7-directory-${APIUtil.generateUUID().take(12)}"
+      val (createStatus, _, _) = makeHttpRequestWithBody(
+        "PUT", s"/obp/v7.0.0/banks/${testBankId1.value}/accounts/$createdId", createAccountBody(), headers)
+      createStatus shouldBe 201
+
+      When("GET /banks/BANK_ID/account-directory")
+      val (statusCode, json, _) = makeHttpRequest(s"$accountDirectoryPath?limit=1000", headers)
+
+      Then("The created account carries metadata.created naming resourceUser1 as caller and as the User it was for")
+      statusCode shouldBe 200
+      val accounts = (json \ "accounts").children
+      val created = accounts.find(a => (a \ "account_id") == JString(createdId))
+        .getOrElse(fail(s"Expected $createdId in the directory"))
+      (created \ "bank_id") shouldBe JString(testBankId1.value)
+      (created \ "metadata" \ "created" \ "user_id") shouldBe JString(resourceUser1.userId)
+      (created \ "metadata" \ "created" \ "on_behalf_of_user_id") shouldBe JString(resourceUser1.userId)
+      (created \ "metadata" \ "created" \ "consent_reference_id") shouldBe JNothing
+
+      And("An account set up by the test fixture, with no creation record, has no metadata")
+      val fixtureAccount = accounts.find(a => (a \ "account_id") == JString(testAccountId0.value))
+        .getOrElse(fail(s"Expected ${testAccountId0.value} in the directory"))
+      (fixtureAccount \ "metadata") shouldBe JNothing
     }
   }
 
@@ -1656,12 +1703,12 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("Http4s700 createOrganisation endpoint") {
+  feature("Http4s700 createTenant endpoint") {
 
-    scenario("Reject unauthenticated POST to /organisations", Http4s700RoutesTag) {
-      Given("POST /obp/v7.0.0/organisations with no auth")
-      val body = """{"organisation_id":"test-org-401","name":"X"}"""
-      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/organisations", body)
+    scenario("Reject unauthenticated POST to /tenants", Http4s700RoutesTag) {
+      Given("POST /obp/v7.0.0/tenants with no auth")
+      val body = """{"tenant_id":"test-org-401","name":"X"}"""
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/tenants", body)
 
       Then("Response is 401")
       statusCode shouldBe 401
@@ -1675,11 +1722,11 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Return 403 when authenticated but missing canCreateOrganisation role", Http4s700RoutesTag) {
+    scenario("Return 403 when authenticated but missing canCreateTenant role", Http4s700RoutesTag) {
       Given("DirectLogin without the required role")
-      val body = """{"organisation_id":"test-org-403","name":"X"}"""
+      val body = """{"tenant_id":"test-org-403","name":"X"}"""
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/organisations", body, headers)
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/tenants", body, headers)
 
       Then("Response is 403 with UserHasMissingRoles message")
       statusCode shouldBe 403
@@ -1693,67 +1740,67 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Return 201 with organisation JSON when authenticated with role and valid body", Http4s700RoutesTag) {
-      Given("canCreateOrganisation granted to caller")
-      addEntitlement("", resourceUser1.userId, canCreateOrganisation.toString)
+    scenario("Return 201 with tenant JSON when authenticated with role and valid body", Http4s700RoutesTag) {
+      Given("canCreateTenant granted to caller")
+      addEntitlement("", resourceUser1.userId, canCreateTenant.toString)
       val orgId = s"test-org-${APIUtil.generateUUID().take(8)}"
-      val body = s"""{"organisation_id":"$orgId","name":"Test Org"}"""
+      val body = s"""{"tenant_id":"$orgId","name":"Test Org"}"""
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
 
-      When(s"POST /obp/v7.0.0/organisations with organisation_id=$orgId")
-      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/organisations", body, headers)
+      When(s"POST /obp/v7.0.0/tenants with tenant_id=$orgId")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/tenants", body, headers)
 
       Then("Response is 201 with the expected fields")
       statusCode shouldBe 201
       json match {
         case JObject(fields) =>
           val map = toFieldMap(fields)
-          map.keys should contain allOf ("organisation_id", "name", "status", "visibility", "created_by_user_id")
-          map.get("organisation_id") shouldBe Some(JString(orgId))
+          map.keys should contain allOf ("tenant_id", "name", "status", "visibility", "created_by_user_id")
+          map.get("tenant_id") shouldBe Some(JString(orgId))
           map.get("status")          shouldBe Some(JString("active"))
           map.get("visibility")      shouldBe Some(JString("public"))
         case _ => fail("Expected JSON object")
       }
     }
 
-    scenario("Return 400 when organisation_id format is invalid", Http4s700RoutesTag) {
-      Given("canCreateOrganisation granted; organisation_id contains an invalid character")
-      addEntitlement("", resourceUser1.userId, canCreateOrganisation.toString)
-      val body = """{"organisation_id":"bad id with spaces","name":"X"}"""
+    scenario("Return 400 when tenant_id format is invalid", Http4s700RoutesTag) {
+      Given("canCreateTenant granted; tenant_id contains an invalid character")
+      addEntitlement("", resourceUser1.userId, canCreateTenant.toString)
+      val body = """{"tenant_id":"bad id with spaces","name":"X"}"""
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
 
-      When("POST /obp/v7.0.0/organisations with invalid id")
-      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/organisations", body, headers)
+      When("POST /obp/v7.0.0/tenants with invalid id")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/tenants", body, headers)
 
-      Then("Response is 400 with InvalidOrganisationIdFormat message")
+      Then("Response is 400 with InvalidTenantIdFormat message")
       statusCode shouldBe 400
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("message") match {
-            case Some(JString(msg)) => msg should include(InvalidOrganisationIdFormat)
+            case Some(JString(msg)) => msg should include(InvalidTenantIdFormat)
             case _ => fail("Expected message field")
           }
         case _ => fail("Expected JSON object")
       }
     }
 
-    scenario("Return 409 when organisation already exists", Http4s700RoutesTag) {
-      Given("an organisation already exists; canCreateOrganisation granted")
-      addEntitlement("", resourceUser1.userId, canCreateOrganisation.toString)
+    scenario("Return 409 when tenant already exists", Http4s700RoutesTag) {
+      Given("an tenant already exists; canCreateTenant granted")
+      addEntitlement("", resourceUser1.userId, canCreateTenant.toString)
       val orgId = s"dup-org-${APIUtil.generateUUID().take(8)}"
       createTestOrg(orgId)
 
-      When("POST /obp/v7.0.0/organisations with the same organisation_id")
-      val body = s"""{"organisation_id":"$orgId","name":"X"}"""
+      When("POST /obp/v7.0.0/tenants with the same tenant_id")
+      val body = s"""{"tenant_id":"$orgId","name":"X"}"""
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/organisations", body, headers)
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/tenants", body, headers)
 
-      Then("Response is 409 with OrganisationAlreadyExists message")
+      Then("Response is 409 with TenantAlreadyExists message")
       statusCode shouldBe 409
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("message") match {
-            case Some(JString(msg)) => msg should include(OrganisationAlreadyExists)
+            case Some(JString(msg)) => msg should include(TenantAlreadyExists)
             case _ => fail("Expected message field")
           }
         case _ => fail("Expected JSON object")
@@ -1761,11 +1808,11 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
   }
 
-  feature("Http4s700 getOrganisations endpoint") {
+  feature("Http4s700 getTenants endpoint") {
 
-    scenario("Reject unauthenticated GET to /organisations", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/organisations with no auth")
-      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/organisations")
+    scenario("Reject unauthenticated GET to /tenants", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/tenants with no auth")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/tenants")
 
       Then("Response is 401")
       statusCode shouldBe 401
@@ -1779,33 +1826,33 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Return 200 with organisations array for an authenticated user", Http4s700RoutesTag) {
-      Given("an organisation exists")
+    scenario("Return 200 with tenants array for an authenticated user", Http4s700RoutesTag) {
+      Given("an tenant exists")
       val orgId = s"list-org-${APIUtil.generateUUID().take(8)}"
       createTestOrg(orgId)
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
 
-      When("GET /obp/v7.0.0/organisations")
-      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/organisations", headers)
+      When("GET /obp/v7.0.0/tenants")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/tenants", headers)
 
-      Then("Response is 200 with an organisations array")
+      Then("Response is 200 with an tenants array")
       statusCode shouldBe 200
       json match {
         case JObject(fields) =>
-          toFieldMap(fields).get("organisations") match {
+          toFieldMap(fields).get("tenants") match {
             case Some(JArray(_)) => succeed
-            case _ => fail("Expected organisations array")
+            case _ => fail("Expected tenants array")
           }
         case _ => fail("Expected JSON object")
       }
     }
   }
 
-  feature("Http4s700 getOrganisation endpoint") {
+  feature("Http4s700 getTenant endpoint") {
 
-    scenario("Reject unauthenticated GET to /organisations/ORGANISATION_ID", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/organisations/anything with no auth")
-      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/organisations/anything")
+    scenario("Reject unauthenticated GET to /tenants/TENANT_ID", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/tenants/anything with no auth")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/tenants/anything")
 
       Then("Response is 401")
       statusCode shouldBe 401
@@ -1819,52 +1866,52 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Return 404 when organisation does not exist", Http4s700RoutesTag) {
-      Given("an authenticated user; organisation_id that does not exist")
+    scenario("Return 404 when tenant does not exist", Http4s700RoutesTag) {
+      Given("an authenticated user; tenant_id that does not exist")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
 
-      When("GET /obp/v7.0.0/organisations/no-such-org-xyz")
-      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/organisations/no-such-org-xyz", headers)
+      When("GET /obp/v7.0.0/tenants/no-such-org-xyz")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/tenants/no-such-org-xyz", headers)
 
-      Then("Response is 404 with OrganisationNotFound message")
+      Then("Response is 404 with TenantNotFound message")
       statusCode shouldBe 404
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("message") match {
-            case Some(JString(msg)) => msg should include(OrganisationNotFound)
+            case Some(JString(msg)) => msg should include(TenantNotFound)
             case _ => fail("Expected message field")
           }
         case _ => fail("Expected JSON object")
       }
     }
 
-    scenario("Return 200 with organisation JSON for an existing public organisation", Http4s700RoutesTag) {
-      Given("a public organisation exists")
+    scenario("Return 200 with tenant JSON for an existing public tenant", Http4s700RoutesTag) {
+      Given("a public tenant exists")
       val orgId = s"get-org-${APIUtil.generateUUID().take(8)}"
       createTestOrg(orgId, visibility = "public")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
 
-      When(s"GET /obp/v7.0.0/organisations/$orgId")
-      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/organisations/$orgId", headers)
+      When(s"GET /obp/v7.0.0/tenants/$orgId")
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/tenants/$orgId", headers)
 
       Then("Response is 200 with the expected fields")
       statusCode shouldBe 200
       json match {
         case JObject(fields) =>
           val map = toFieldMap(fields)
-          map.get("organisation_id") shouldBe Some(JString(orgId))
+          map.get("tenant_id") shouldBe Some(JString(orgId))
           map.get("visibility")      shouldBe Some(JString("public"))
         case _ => fail("Expected JSON object")
       }
     }
   }
 
-  feature("Http4s700 updateOrganisation endpoint") {
+  feature("Http4s700 updateTenant endpoint") {
 
-    scenario("Reject unauthenticated PUT to /organisations/ORGANISATION_ID", Http4s700RoutesTag) {
-      Given("PUT /obp/v7.0.0/organisations/anything with no auth")
+    scenario("Reject unauthenticated PUT to /tenants/TENANT_ID", Http4s700RoutesTag) {
+      Given("PUT /obp/v7.0.0/tenants/anything with no auth")
       val body = """{"name":"New Name"}"""
-      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", "/obp/v7.0.0/organisations/anything", body)
+      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", "/obp/v7.0.0/tenants/anything", body)
 
       Then("Response is 401")
       statusCode shouldBe 401
@@ -1878,11 +1925,11 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Return 403 when authenticated but missing canUpdateOrganisation role", Http4s700RoutesTag) {
+    scenario("Return 403 when authenticated but missing canUpdateTenant role", Http4s700RoutesTag) {
       Given("DirectLogin without the required role")
       val body = """{"name":"New Name"}"""
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", "/obp/v7.0.0/organisations/anything", body, headers)
+      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", "/obp/v7.0.0/tenants/anything", body, headers)
 
       Then("Response is 403 with UserHasMissingRoles message")
       statusCode shouldBe 403
@@ -1896,43 +1943,43 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Return 200 with updated organisation JSON when authenticated with role", Http4s700RoutesTag) {
-      Given("an organisation exists; canUpdateOrganisation granted")
-      addEntitlement("", resourceUser1.userId, canUpdateOrganisation.toString)
+    scenario("Return 200 with updated tenant JSON when authenticated with role", Http4s700RoutesTag) {
+      Given("an tenant exists; canUpdateTenant granted")
+      addEntitlement("", resourceUser1.userId, canUpdateTenant.toString)
       val orgId = s"upd-org-${APIUtil.generateUUID().take(8)}"
       createTestOrg(orgId)
 
-      When(s"PUT /obp/v7.0.0/organisations/$orgId with a new name")
+      When(s"PUT /obp/v7.0.0/tenants/$orgId with a new name")
       val body = """{"name":"Updated Name"}"""
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", s"/obp/v7.0.0/organisations/$orgId", body, headers)
+      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", s"/obp/v7.0.0/tenants/$orgId", body, headers)
 
       Then("Response is 200 and name reflects the update")
       statusCode shouldBe 200
       json match {
         case JObject(fields) =>
           val map = toFieldMap(fields)
-          map.get("organisation_id") shouldBe Some(JString(orgId))
+          map.get("tenant_id") shouldBe Some(JString(orgId))
           map.get("name")            shouldBe Some(JString("Updated Name"))
         case _ => fail("Expected JSON object")
       }
     }
   }
 
-  feature("Http4s700 deleteOrganisation endpoint") {
+  feature("Http4s700 deleteTenant endpoint") {
 
-    scenario("Reject unauthenticated DELETE to /organisations/ORGANISATION_ID", Http4s700RoutesTag) {
-      Given("DELETE /obp/v7.0.0/organisations/anything with no auth")
-      val (statusCode, _, _) = makeHttpRequestWithMethod("DELETE", "/obp/v7.0.0/organisations/anything")
+    scenario("Reject unauthenticated DELETE to /tenants/TENANT_ID", Http4s700RoutesTag) {
+      Given("DELETE /obp/v7.0.0/tenants/anything with no auth")
+      val (statusCode, _, _) = makeHttpRequestWithMethod("DELETE", "/obp/v7.0.0/tenants/anything")
 
       Then("Response is 401")
       statusCode shouldBe 401
     }
 
-    scenario("Return 403 when authenticated but missing canDeleteOrganisation role", Http4s700RoutesTag) {
+    scenario("Return 403 when authenticated but missing canDeleteTenant role", Http4s700RoutesTag) {
       Given("DirectLogin without the required role")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequestWithMethod("DELETE", "/obp/v7.0.0/organisations/anything", headers)
+      val (statusCode, json, _) = makeHttpRequestWithMethod("DELETE", "/obp/v7.0.0/tenants/anything", headers)
 
       Then("Response is 403 with UserHasMissingRoles message")
       statusCode shouldBe 403
@@ -1946,18 +1993,90 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Return 204 when authenticated with role and organisation exists", Http4s700RoutesTag) {
-      Given("an organisation exists; canDeleteOrganisation granted")
-      addEntitlement("", resourceUser1.userId, canDeleteOrganisation.toString)
+    scenario("Return 204 when authenticated with role and tenant exists", Http4s700RoutesTag) {
+      Given("an tenant exists; canDeleteTenant granted")
+      addEntitlement("", resourceUser1.userId, canDeleteTenant.toString)
       val orgId = s"del-org-${APIUtil.generateUUID().take(8)}"
       createTestOrg(orgId)
 
-      When(s"DELETE /obp/v7.0.0/organisations/$orgId")
+      When(s"DELETE /obp/v7.0.0/tenants/$orgId")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, _, _) = makeHttpRequestWithMethod("DELETE", s"/obp/v7.0.0/organisations/$orgId", headers)
+      val (statusCode, _, _) = makeHttpRequestWithMethod("DELETE", s"/obp/v7.0.0/tenants/$orgId", headers)
 
       Then("Response is 204 with no body")
       statusCode shouldBe 204
+    }
+  }
+
+  feature("Http4s700 Tenants belong to no bank") {
+
+    def messageOf(json: JValue): String = json match {
+      case JObject(fields) => toFieldMap(fields).get("message") match {
+        case Some(JString(msg)) => msg
+        case _ => fail("Expected message field")
+      }
+      case _ => fail("Expected JSON object")
+    }
+
+    def tenantIdsIn(json: JValue): List[String] = json match {
+      case JObject(fields) => toFieldMap(fields).get("tenants") match {
+        case Some(JArray(orgs)) => orgs.collect { case JObject(f) => toFieldMap(f).get("tenant_id") }
+          .collect { case Some(JString(id)) => id }
+        case _ => fail("Expected tenants array")
+      }
+      case _ => fail("Expected JSON object")
+    }
+
+    val headers = Map("DirectLogin" -> s"token=${token1.value}")
+
+    scenario("A Tenant Role granted at a bank authorises nothing: they are system Roles", Http4s700RoutesTag) {
+      Given("canCreateTenant granted at a bank only")
+      addEntitlement(testBankId2.value, resourceUser1.userId, canCreateTenant.toString)
+      val body = s"""{"tenant_id":"other-${APIUtil.generateUUID().take(8)}","name":"X"}"""
+
+      When("POST /obp/v7.0.0/tenants")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/tenants", body, headers)
+
+      Then("Response is 403")
+      statusCode shouldBe 403
+      messageOf(json) should include(UserHasMissingRoles)
+    }
+
+    scenario("A Tenant names no bank", Http4s700RoutesTag) {
+      Given("a public Tenant")
+      val orgId = s"no-bank-${APIUtil.generateUUID().take(8)}"
+      createTestOrg(orgId)
+
+      When("it is fetched")
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/tenants/$orgId", headers)
+
+      Then("Response is 200 without a bank_id")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) => toFieldMap(fields).keys should not contain "bank_id"
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("A private Tenant needs CanGetTenant", Http4s700RoutesTag) {
+      Given("a private Tenant")
+      val orgId = s"priv-org-${APIUtil.generateUUID().take(8)}"
+      createTestOrg(orgId, visibility = "private")
+
+      When("it is fetched without the Role")
+      val (withoutRole, _, _) = makeHttpRequest(s"/obp/v7.0.0/tenants/$orgId", headers)
+      Then("Response is 403 and the list leaves it out")
+      withoutRole shouldBe 403
+      val (_, listWithout, _) = makeHttpRequest("/obp/v7.0.0/tenants", headers)
+      tenantIdsIn(listWithout) should not contain orgId
+
+      When("CanGetTenant is granted")
+      addEntitlement("", resourceUser1.userId, canGetTenant.toString)
+      val (withRole, _, _) = makeHttpRequest(s"/obp/v7.0.0/tenants/$orgId", headers)
+      Then("Response is 200 and the list includes it")
+      withRole shouldBe 200
+      val (_, listWith, _) = makeHttpRequest("/obp/v7.0.0/tenants", headers)
+      tenantIdsIn(listWith) should contain(orgId)
     }
   }
 
@@ -2661,7 +2780,28 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       statusCode shouldBe 401
     }
 
+    scenario("Return 400 OpenCorridorDisabled when open_corridor_enabled is not set", Http4s700RoutesTag) {
+      val acctCurrency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        openCorridorPromisePath(testBankId1.value, testAccountId0.value),
+        openCorridorPromiseBody(acctCurrency), headers)
+      statusCode shouldBe 400
+      messageOf(json) should include(OpenCorridorDisabled)
+    }
+
+    scenario("OPEN_CORRIDOR_PROMISE is advertised exactly when open_corridor_enabled is true", Http4s700RoutesTag) {
+      setPropsValues("transactionRequests_supported_types" -> "SIMPLE, OPEN_CORRIDOR_PROMISE,SEPA")
+      APIUtil.advertisedTransactionRequestTypes shouldBe List("SIMPLE", "SEPA")
+
+      setPropsValues("open_corridor_enabled" -> "true")
+      APIUtil.advertisedTransactionRequestTypes shouldBe List("SIMPLE", "SEPA", "OPEN_CORRIDOR_PROMISE")
+    }
+
     scenario("Return 400 InvalidJsonFormat when the originator block is missing", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
       // Same shape but no `originator` field — extraction to the OPEN_CORRIDOR_PROMISE body class must fail.
       val body =
         """{
@@ -2691,6 +2831,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("Return 400 InvalidJsonValue when originator.name is empty", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
       val (statusCode, json, _) = makeHttpRequestWithBody("POST",
         openCorridorPromisePath(testBankId1.value, testAccountId0.value),
@@ -2707,6 +2848,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("Return 400 InvalidJsonValue when originator.account_routing.address is empty", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
       val (statusCode, json, _) = makeHttpRequestWithBody("POST",
         openCorridorPromisePath(testBankId1.value, testAccountId0.value),
@@ -2723,6 +2865,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("Return 201 with type OPEN_CORRIDOR_PROMISE and the originator echoed as explicit", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
       val bankId = testBankId1.value
       val accountId = testAccountId0.value
       // Match the source account's currency so the payment path doesn't reject on currency.
@@ -2775,6 +2918,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("Return 201 when the beneficiary account exists only at the far bank's CBS (not in OBP-API)", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
       val acctCurrency = code.bankconnectors.Connector.connector.vend
         .getBankAccountLegacy(testBankId1, testAccountId0, None)
         .map(_._1.currency).openOrThrowException("test account")
@@ -2807,6 +2951,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("Return 404 BankNotFound when the beneficiary bank is not registered", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
       val acctCurrency = code.bankconnectors.Connector.connector.vend
         .getBankAccountLegacy(testBankId1, testAccountId0, None)
         .map(_._1.currency).openOrThrowException("test account")
@@ -2878,6 +3023,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     beneficiaryAccountId: String = testAccountId1.value,
     amount: String = "3.00"
   ): String = {
+    setPropsValues("open_corridor_enabled" -> "true")
     val acctCurrency = code.bankconnectors.Connector.connector.vend
       .getBankAccountLegacy(fromBankId, fromAccountId, None)
       .map(_._1.currency).openOrThrowException("test account")
@@ -3013,6 +3159,43 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         promiseEvidenceBody(), headers)
       statusCode shouldBe 403
       messageOf(json) should include(UserHasMissingRoles)
+      messageOf(json) should include("CanAttachOpenCorridorPromise")
+    }
+
+    scenario("A Consumer holding CanAttachOpenCorridorPromise as a Scope may attach evidence as itself; its own User is recorded", Http4s700RoutesTag) {
+      Given("testConsumer2 holds the Scope at the bank; user2, a person, signs with it but holds no Entitlement")
+      val transactionRequestId = createPendingPromise()
+      val granted = code.scope.Scope.scope.vend.addScope(
+        testBankId1.value, testConsumer2.id.get.toString, canAttachOpenCorridorPromise.toString)
+      val path = promiseEvidencePath(testBankId1.value, testAccountId0.value, transactionRequestId)
+      val ((personCode, _, _), (statusCode, json, _)) = try {
+        (makeHttpRequestWithBody("POST", path, promiseEvidenceBody(), Map("DirectLogin" -> s"token=${token2.value}")),
+         makeHttpRequestWithBody("POST", path, promiseEvidenceBody(), Map("DirectLogin" -> s"token=${tokenApplication2.value}")))
+      } finally code.scope.Scope.scope.vend.deleteScope(granted)
+
+      Then("user2 does not get the Consumer's Scope")
+      personCode shouldBe 403
+
+      And("testConsumer2 acting as itself attaches the evidence, recorded as its own User")
+      statusCode shouldBe 201
+      val applicationsOwnUserId = code.model.UserX.findByProviderId(
+        code.api.OAuth2Login.OBPOIDC.clientCredentialsProvider, testConsumer2.key.get).map(_.userId).openOrThrowException("own User")
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("reported_by_user_id") shouldBe Some(JString(applicationsOwnUserId))
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("A CanAttachOpenCorridorPromise Scope at another bank does not authorize this bank's URL", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${tokenApplication2.value}")
+      val granted = code.scope.Scope.scope.vend.addScope(
+        testBankId2.value, testConsumer2.id.get.toString, canAttachOpenCorridorPromise.toString)
+      val (statusCode, json, _) = try makeHttpRequestWithBody("POST",
+        promiseEvidencePath(testBankId1.value, testAccountId0.value, "some-tr-id"),
+        promiseEvidenceBody(), headers)
+      finally code.scope.Scope.scope.vend.deleteScope(granted)
+      statusCode shouldBe 403
       messageOf(json) should include("CanAttachOpenCorridorPromise")
     }
 
@@ -3293,6 +3476,36 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     scenario("Return 403 without CanSettleOpenCorridor", Http4s700RoutesTag) {
       val headers = Map("DirectLogin" -> s"token=${token2.value}")
       val (statusCode, json, _) = makeHttpRequestWithBody("POST", settlementsPath(testBankId1.value), settleBody("EUR"), headers)
+      statusCode shouldBe 403
+      messageOf(json) should include("CanSettleOpenCorridor")
+    }
+
+    scenario("A Consumer holding CanSettleOpenCorridor as a Scope at the bank passes the Role check as itself", Http4s700RoutesTag) {
+      Given("testConsumer2 holds the Scope at the bank; user2, a person, signs with it but holds no Entitlement")
+      val granted = code.scope.Scope.scope.vend.addScope(
+        testBankId1.value, testConsumer2.id.get.toString, canSettleOpenCorridor.toString)
+      val ((personCode, _, _), (statusCode, json, _)) = try {
+        (makeHttpRequestWithBody("POST", settlementsPath(testBankId1.value), settleBody("EUR"),
+           Map("DirectLogin" -> s"token=${token2.value}")),
+         makeHttpRequestWithBody("POST", settlementsPath(testBankId1.value), settleBody("EUR"),
+           Map("DirectLogin" -> s"token=${tokenApplication2.value}")))
+      } finally code.scope.Scope.scope.vend.deleteScope(granted)
+
+      Then("user2 does not get the Consumer's Scope")
+      personCode shouldBe 403
+
+      And("testConsumer2 acting as itself gets past the Role check and stops at open_corridor_enabled, which this test leaves off")
+      statusCode shouldBe 400
+      messageOf(json) should include(OpenCorridorDisabled)
+    }
+
+    scenario("A CanSettleOpenCorridor Scope at another bank does not authorize this bank's URL", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${tokenApplication2.value}")
+      val granted = code.scope.Scope.scope.vend.addScope(
+        testBankId2.value, testConsumer2.id.get.toString, canSettleOpenCorridor.toString)
+      val (statusCode, json, _) = try makeHttpRequestWithBody("POST",
+        settlementsPath(testBankId1.value), settleBody("EUR"), headers)
+      finally code.scope.Scope.scope.vend.deleteScope(granted)
       statusCode shouldBe 403
       messageOf(json) should include("CanSettleOpenCorridor")
     }
@@ -4569,6 +4782,8 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           .shortBankName("Agent Made")
           .CreatedByUserId(agentUser.userId)
           .saveMe()
+        // What Create My Bank records, and what its quota counts.
+        code.model.dataAccess.SelfServiceBank.record(agentBankId, agentUser.userId)
         agentBankId
       }
 

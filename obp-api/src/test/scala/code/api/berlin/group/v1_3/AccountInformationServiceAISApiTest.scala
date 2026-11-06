@@ -980,15 +980,15 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
   //
   // Pinned because nothing else would notice a revert: these keep working for as long as OAuth2
   // token parsing auto-vivifies a user for a client-credentials token, and start 401ing the day
-  // that stops. The consent endpoints in the same file have been UserOrApplication all along, so
+  // that stops. The consent endpoints in the same file have been UserXORApplication all along, so
   // this is also a consistency guard within the family.
   feature("BG v1.3 - consent authorisation sub-resources accept a client-credentials caller") {
     for (name <- List(nameOf(Http4sBGv13AIS.getConsentAuthorisation), nameOf(Http4sBGv13AIS.getConsentScaStatus))) {
-      scenario(s"$name declares UserOrApplication", BerlinGroupV1_3) {
+      scenario(s"$name declares UserXORApplication", BerlinGroupV1_3) {
         val docs = APIUtil.ResourceDoc.getResourceDocs(
           List(APIUtil.buildOperationId(ConstantsBG.berlinGroupVersion1, name)))
         docs should not be empty
-        docs.foreach(_.authMode should equal(APIUtil.UserOrApplication))
+        docs.foreach(_.authMode should equal(APIUtil.UserXORApplication))
       }
     }
   }

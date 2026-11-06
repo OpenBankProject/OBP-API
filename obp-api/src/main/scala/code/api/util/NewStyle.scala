@@ -1052,7 +1052,7 @@ object NewStyle extends MdcLoggable{
         else errorMsg
 
       Helper.booleanToFuture(errorInfo, cc=callContext) {
-        APIUtil.hasEntitlement(bankId, userId, role)
+        APIUtil.holdsVirtualRole(userId, role) || APIUtil.hasEntitlement(bankId, userId, role)
       } map validateRequestPayload(callContext)
     }
     // scala not allow overload method both have default parameter, so this method name is just in order avoid the same name with hasEntitlement

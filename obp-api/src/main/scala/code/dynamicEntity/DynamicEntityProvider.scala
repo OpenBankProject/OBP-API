@@ -487,13 +487,19 @@ object ReferenceType extends MdcLoggable {
 object DynamicEntityAuthMode {
   val UserOnly = "UserOnly"
   val ApplicationOnly = "ApplicationOnly"
-  val UserOrApplication = "UserOrApplication"
+  val UserXORApplication = "UserXORApplication"
   val UserAndApplication = "UserAndApplication"
-  val all: List[String] = List(UserOnly, ApplicationOnly, UserOrApplication, UserAndApplication)
+  /** The former name of UserXORApplication, still accepted on input and in stored rows. */
+  val LegacyUserOrApplication = "UserOrApplication"
+  val all: List[String] = List(UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication)
   val default: String = UserOnly
   def isValid(value: String): Boolean = all.contains(value)
-  /** null / empty (rows created before the column existed) read as the default. */
-  def normalise(value: String): String = Option(value).map(_.trim).filter(_.nonEmpty).getOrElse(default)
+  /** null / empty (rows created before the column existed) read as the default; the legacy name reads as UserXORApplication. */
+  def normalise(value: String): String = Option(value).map(_.trim).filter(_.nonEmpty) match {
+    case Some(LegacyUserOrApplication) => UserXORApplication
+    case Some(v) => v
+    case None => default
+  }
 }
 
 case class DynamicEntityCommons(entityName: String,

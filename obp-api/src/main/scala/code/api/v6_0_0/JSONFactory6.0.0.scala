@@ -1044,7 +1044,7 @@ case class CreateDynamicEntityRequestJsonV600(
     has_community_access: Option[Boolean] = None,  // defaults to false if not provided
     personal_requires_role: Option[Boolean] = None,  // defaults to false if not provided
     use_row_level_access: Option[Boolean] = None,  // defaults to false if not provided
-    auth_mode: Option[String] = None,  // UserOnly | ApplicationOnly | UserOrApplication | UserAndApplication; defaults to UserOnly
+    auth_mode: Option[String] = None,  // UserOnly | ApplicationOnly | UserXORApplication | UserAndApplication; defaults to UserOnly
     schema: org.json4s.JsonAST.JObject
 )
 

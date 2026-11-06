@@ -106,6 +106,13 @@ object Http4sRequestAttributes {
     Key.newKey[IO, Option[String]].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
 
   /**
+   * Set on a response whose body is a file's bytes (EndpointHelpers.executeAndRespondBytes), so that
+   * ResourceDocMiddleware keeps its Content-Type instead of making it application/json.
+   */
+  val fileContentResponseKey: Key[Unit] =
+    Key.newKey[IO, Unit].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
+
+  /**
    * Vault key for how the caller's certificate was established — the full PeerTrust.Resolution,
    * from which the CallContext takes certificateTrust (the mode: "direct" / "forwarded" / "none")
    * and certificateTrustDetail (the forwarding proxy's subject DN, or the rejection reason).
@@ -237,6 +244,48 @@ object Http4sRequestAttributes {
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
+
+    /** A file's bytes and what to send with them; see [[executeAndRespondBytes]]. */
+    case class BytesResponse(bytes: Array[Byte], mediaType: MediaType, fileName: String, inline: Boolean,
+                             etag: String, cacheControl: String, metricSummary: Map[String, Any])
+
+    /**
+     * Execute Future-based business logic that returns a file's bytes rather than JSON: 200 with the
+     * file's own Content-Type. Errors are JSON, converted via ErrorResponseConverter, as everywhere else.
+     *
+     * The bytes may come from anyone, so the response stops a browser treating them as anything other
+     * than the declared type: X-Content-Type-Options nosniff, and a sandbox Content-Security-Policy so a
+     * document opened from this origin cannot run scripts. The metric records metricSummary, never the bytes.
+     */
+    def executeAndRespondBytes(req: Request[IO])(f: CallContext => Future[BytesResponse]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      RequestScopeConnection.fromFuture(f(cc)).attempt.flatMap {
+        case Right(file) =>
+          val disposition = (if (file.inline) "inline" else "attachment") +
+            "; filename=\"" + file.fileName.replaceAll("[\"\\\\\r\n]", "_") + "\""
+          val response = Response[IO](Status.Ok)
+            .withEntity(file.bytes)
+            .withContentType(`Content-Type`(file.mediaType))
+            .putHeaders(
+              Header.Raw(CIString("Content-Disposition"), disposition),
+              Header.Raw(CIString("X-Content-Type-Options"), "nosniff"),
+              Header.Raw(CIString("Content-Security-Policy"), "sandbox; default-src 'none'"),
+              Header.Raw(CIString("ETag"), "\"" + file.etag + "\""),
+              Header.Raw(CIString("Cache-Control"), file.cacheControl))
+          IO.pure(withCallContextHeaders(response).withAttribute(Http4sRequestAttributes.fileContentResponseKey, ()))
+            .flatTap(recordMetric(file.metricSummary, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /** [[executeAndRespondBytes]] for a validated User. */
+    def withUserBytes(req: Request[IO])(f: (User, CallContext) => Future[BytesResponse]): IO[Response[IO]] =
+      executeAndRespondBytes(req) { cc =>
+        cc.user.toOption match {
+          case Some(user) => f(user, cc)
+          case None => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
+        }
+      }
 
     /**
      * Execute business logic requiring validated User.

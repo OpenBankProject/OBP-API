@@ -485,6 +485,29 @@ object ApiRole extends MdcLoggable{
   case class CanUpdateProductTagsAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateProductTagsAtAnyBank = CanUpdateProductTagsAtAnyBank()
 
+  case class CanCreateAsset(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateAsset = CanCreateAsset()
+
+  // Files: held at a bank or at SYS (the system space). There are deliberately no AtAnyBank versions.
+  case class CanCreateFileAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateFileAtOneBank = CanCreateFileAtOneBank()
+
+  case class CanCreatePublicFileAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreatePublicFileAtOneBank = CanCreatePublicFileAtOneBank()
+
+  case class CanGetFileAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetFileAtOneBank = CanGetFileAtOneBank()
+  // Sets a file's scan status (pending, clean, rejected), and reads the files of the space that are not clean,
+  // so a scanner can fetch what it has to scan. Held by a scanner app as a Scope, or by staff who approve files.
+  case class CanUpdateFileScanStatusAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateFileScanStatusAtOneBank = CanUpdateFileScanStatusAtOneBank()
+
+  // Queues a plain-text email to one of the bank's Customers through the message outbox (Send Email to Customer).
+  // Held by an application, such as a programme website, as a Scope, to confirm what a Customer did or tell them
+  // about a decision.
+  case class CanSendEmailToCustomerAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canSendEmailToCustomerAtOneBank = CanSendEmailToCustomerAtOneBank()
+
   case class CanCreateFxRate(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateFxRate = CanCreateFxRate()
 
@@ -636,6 +659,30 @@ object ApiRole extends MdcLoggable{
 
   case class CanDeleteDynamicEntityWebhook(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteDynamicEntityWebhook = CanDeleteDynamicEntityWebhook()
+
+  // Data retention: how long a space's resources stay live, legal holds, runs and approvals, and the
+  // retention archive. Each Role targets one space: held at a bank id, or at SYS for the system space.
+  // See RETENTION_PLAN.md.
+  case class CanManageRetentionPolicy(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canManageRetentionPolicy = CanManageRetentionPolicy()
+
+  case class CanGetRetentionPolicies(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetRetentionPolicies = CanGetRetentionPolicies()
+
+  case class CanRunRetentionPolicy(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canRunRetentionPolicy = CanRunRetentionPolicy()
+
+  case class CanApproveRetentionRun(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canApproveRetentionRun = CanApproveRetentionRun()
+
+  case class CanGetRetentionRuns(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetRetentionRuns = CanGetRetentionRuns()
+
+  case class CanManageRetentionHold(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canManageRetentionHold = CanManageRetentionHold()
+
+  case class CanGetRetentionArchive(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetRetentionArchive = CanGetRetentionArchive()
 
   // Shows which Consumers and client IP addresses are sending the most traffic to the instance
   // (TrafficSources). About the instance, so held at the empty bank id. It names Consumers and IP
@@ -1531,15 +1578,15 @@ object ApiRole extends MdcLoggable{
   case class CanGetGroupsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetGroupsAtOneBank = CanGetGroupsAtOneBank()
 
-  // Organisation management roles
-  case class CanCreateOrganisation(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canCreateOrganisation = CanCreateOrganisation()
-  case class CanGetAnyOrganisation(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canGetAnyOrganisation = CanGetAnyOrganisation()
-  case class CanUpdateOrganisation(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canUpdateOrganisation = CanUpdateOrganisation()
-  case class CanDeleteOrganisation(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canDeleteOrganisation = CanDeleteOrganisation()
+  // Tenant management roles. A Tenant belongs to no bank, so these are system Roles.
+  case class CanCreateTenant(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateTenant = CanCreateTenant()
+  case class CanGetTenant(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetTenant = CanGetTenant()
+  case class CanUpdateTenant(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateTenant = CanUpdateTenant()
+  case class CanDeleteTenant(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteTenant = CanDeleteTenant()
 
   // Routing Scheme registry roles (system-scoped: schemes are global infrastructure)
   case class CanCreateRoutingScheme(requiresBankId: Boolean = false) extends ApiRole

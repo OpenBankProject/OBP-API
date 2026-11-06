@@ -25,7 +25,7 @@ TESOBE (http://www.tesobe.com/)
 
   */
 
-package code.organisation
+package code.tenant
 
 import net.liftweb.common.Box
 import net.liftweb.mapper._
@@ -34,20 +34,20 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 
-object MappedOrganisationProvider extends OrganisationProvider {
+object MappedTenantProvider extends TenantProvider {
 
-  override def createOrganisation(
-    organisationId: String,
+  override def createTenant(
+    tenantId: String,
     name: String,
     website: Option[String],
     logoUrl: Option[String],
     status: String,
     visibility: String,
     createdByUserId: String
-  ): Box[OrganisationTrait] = {
+  ): Box[TenantTrait] = {
     tryo {
-      Organisation.create
-        .OrganisationId(organisationId)
+      Tenant.create
+        .TenantId(tenantId)
         .Name(name)
         .Website(website.getOrElse(""))
         .LogoUrl(logoUrl.getOrElse(""))
@@ -58,49 +58,51 @@ object MappedOrganisationProvider extends OrganisationProvider {
     }
   }
 
-  override def getOrganisation(organisationId: String): Box[OrganisationTrait] = {
-    Organisation.find(By(Organisation.OrganisationId, organisationId))
+  override def getTenant(tenantId: String): Box[TenantTrait] = {
+    Tenant.find(By(Tenant.TenantId, tenantId))
   }
 
-  override def getAllOrganisations(): Future[Box[List[OrganisationTrait]]] = {
+  override def getTenants(): Future[Box[List[TenantTrait]]] = {
     Future {
-      tryo { Organisation.findAll() }
+      tryo { Tenant.findAll() }
     }
   }
 
-  override def updateOrganisation(
-    organisationId: String,
+  override def updateTenant(
+    tenantId: String,
     name: Option[String],
     website: Option[String],
     logoUrl: Option[String],
     status: Option[String],
     visibility: Option[String]
-  ): Box[OrganisationTrait] = {
-    Organisation.find(By(Organisation.OrganisationId, organisationId)).flatMap { org =>
+  ): Box[TenantTrait] = {
+    Tenant.find(By(Tenant.TenantId, tenantId)).flatMap { tenant =>
       tryo {
-        name.foreach(v => org.Name(v))
-        website.foreach(v => org.Website(v))
-        logoUrl.foreach(v => org.LogoUrl(v))
-        status.foreach(v => org.Status(v))
-        visibility.foreach(v => org.Visibility(v))
-        org.LastUpdate(new java.util.Date())
-        org.saveMe()
+        name.foreach(v => tenant.Name(v))
+        website.foreach(v => tenant.Website(v))
+        logoUrl.foreach(v => tenant.LogoUrl(v))
+        status.foreach(v => tenant.Status(v))
+        visibility.foreach(v => tenant.Visibility(v))
+        tenant.LastUpdate(new java.util.Date())
+        tenant.saveMe()
       }
     }
   }
 
-  override def deleteOrganisation(organisationId: String): Box[Boolean] = {
-    Organisation.find(By(Organisation.OrganisationId, organisationId)).flatMap { org =>
-      tryo { org.delete_! }
+  override def deleteTenant(tenantId: String): Box[Boolean] = {
+    Tenant.find(By(Tenant.TenantId, tenantId)).flatMap { tenant =>
+      tryo {
+        tenant.delete_!
+      }
     }
   }
 }
 
-class Organisation extends OrganisationTrait with LongKeyedMapper[Organisation] with IdPK {
+class Tenant extends TenantTrait with LongKeyedMapper[Tenant] with IdPK {
 
-  def getSingleton = Organisation
+  def getSingleton = Tenant
 
-  object OrganisationId extends MappedString(this, 64)
+  object TenantId extends MappedString(this, 64)
   object Name extends MappedString(this, 255)
   object Website extends MappedString(this, 1024)
   object LogoUrl extends MappedString(this, 1024)
@@ -114,7 +116,7 @@ class Organisation extends OrganisationTrait with LongKeyedMapper[Organisation] 
     override def defaultValue = new java.util.Date()
   }
 
-  override def organisationId: String = OrganisationId.get
+  override def tenantId: String = TenantId.get
   override def name: String = Name.get
   override def website: Option[String] = {
     val v = Website.get
@@ -131,7 +133,7 @@ class Organisation extends OrganisationTrait with LongKeyedMapper[Organisation] 
   override def updatedAt: java.util.Date = LastUpdate.get
 }
 
-object Organisation extends Organisation with LongKeyedMetaMapper[Organisation] {
-  override def dbTableName = "Organisation"
-  override def dbIndexes = UniqueIndex(OrganisationId) :: super.dbIndexes
+object Tenant extends Tenant with LongKeyedMetaMapper[Tenant] {
+  override def dbTableName = "Tenant"
+  override def dbIndexes = UniqueIndex(TenantId) :: super.dbIndexes
 }

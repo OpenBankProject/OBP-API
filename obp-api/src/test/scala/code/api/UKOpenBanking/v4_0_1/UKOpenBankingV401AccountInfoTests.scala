@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.UKOpenBanking.v4_0_1
 
 import code.api.Constant
-import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, UserOrApplication, buildOperationId}
+import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, UserXORApplication, buildOperationId}
 import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser, ConsentExpiredIssue, ConsentIdClaimMissing, ConsentNotFound}
 import code.api.util.{CallContext, CertificateUtil, Consent}
 import code.consent.{ConsentStatus, Consents}
@@ -190,11 +190,11 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     // silently reverting to the default -- the endpoint would keep working for as long as OAuth2
     // token parsing auto-vivifies a user for a client-credentials token, and start 401ing the day
     // that stops.
-    scenario("ResourceDoc declares UserOrApplication so a PSU-less TPP call is not rejected", UKOpenBankingV401AccountInfo) {
+    scenario("ResourceDoc declares UserXORApplication so a PSU-less TPP call is not rejected", UKOpenBankingV401AccountInfo) {
       val docs = ResourceDoc.getResourceDocs(
         List(buildOperationId(ApiVersion.ukOpenBankingV401, "createAccountAccessConsents")))
       docs should not be empty
-      docs.foreach(_.authMode should equal(UserOrApplication))
+      docs.foreach(_.authMode should equal(UserXORApplication))
     }
     scenario("all three datetime fields omitted -> 201, open-ended (no expiry/date restriction)", UKOpenBankingV401AccountInfo) {
       val bodyWithoutDates =

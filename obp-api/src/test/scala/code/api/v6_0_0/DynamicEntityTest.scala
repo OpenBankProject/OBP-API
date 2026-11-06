@@ -194,11 +194,11 @@ class DynamicEntityTest extends V600ServerSetup {
     }
 
     scenario("Create System Dynamic Entity with consumer scope (no user entitlement)", ApiEndpoint1, VersionOfApi) {
-      // Add scope to consumer instead of entitlement to user — UserOrApplication should accept this
+      // Add scope to consumer instead of entitlement to user — UserXORApplication accepts it when the Consumer acts as itself
       val addedScope = Scope.scope.vend.addScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer.id.get.toString, ApiRole.CanCreateDynamicEntityDefinition.toString)
 
       When("We create a dynamic entity using consumer with scope")
-      val request = (v6_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
+      val request = (v6_0_0_Request / "management" / "system-dynamic-entities").POST <@(application1)
       val response = try {
         makePostRequest(request, write(rightEntityV600))
       } finally {

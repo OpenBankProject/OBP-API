@@ -130,7 +130,7 @@ case class CallContext(
                         // request, but only the data-read endpoints run on the principal; the consent-management
                         // endpoints (GET/DELETE account-access-consents) do not, and they are how a TPP inspects
                         // or revokes the very consent that cannot be resolved. Failing at authentication would
-                        // lock that door too -- and, since those endpoints are UserOrApplication, would report it
+                        // lock that door too -- and, since those endpoints are UserXORApplication, would report it
                         // as ApplicationNotIdentified rather than as anything to do with the consent.
                         ukConsentUnresolved: Option[String] = None,
                         // How the caller's certificate was established (PeerTrust.Resolution.mode):

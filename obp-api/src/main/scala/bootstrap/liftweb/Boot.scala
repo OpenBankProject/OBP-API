@@ -90,7 +90,7 @@ import code.etag.MappedETag
 import code.featuredapicollection.FeaturedApiCollection
 import code.fx.{MappedCurrency, MappedFXRate}
 import code.group.Group
-import code.organisation.Organisation
+import code.tenant.Tenant
 import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
 import code.payeelookup.PayeeLookup
 import code.utilitypayment.UtilityPaymentCallback
@@ -659,6 +659,9 @@ class Boot extends MdcLoggable {
       case false => // Do not start it
     }
 
+    // Data retention: runs the enabled retention policies (see RETENTION_PLAN.md). Off by default.
+    code.scheduler.RetentionScheduler.startIfEnabled()
+
 
     // ConnectorEndpoints (connector.name.export.as.endpoints) registered via Lift statelessDispatch
     // which is no longer reachable (Lift bridge removed in Phase B). Disabled until migrated to http4s.
@@ -1159,7 +1162,8 @@ object ToSchemify extends MdcLoggable {
     BankAccountBalance,
     Group,
     code.group.GroupMembership,
-    Organisation,
+    Tenant,
+    code.model.dataAccess.SelfServiceBank,
     RoutingScheme,
     BankSupportedRoutingScheme,
     code.asset.Asset,
@@ -1169,6 +1173,13 @@ object ToSchemify extends MdcLoggable {
     code.platformapp.PlatformAppRequiredScope,
     code.domainapi.DomainApi,
     code.dynamicentitywebhook.DynamicEntityWebhook,
+    code.accountcreation.AccountCreation,
+    code.retention.RetentionPolicy,
+    code.retention.RetentionArchive,
+    code.retention.RetentionArchiveContent,
+    code.retention.RetentionHold,
+    code.retention.RetentionRun,
+    code.retention.RetentionRunItem,
     PayeeLookup,
     UtilityPaymentCallback,
     BulkPayment,

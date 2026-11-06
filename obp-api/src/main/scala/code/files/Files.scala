@@ -34,7 +34,7 @@ import net.liftweb.util.SimpleInjector
 /**
  * This file holds the model for Files: documents such as PDFs and photographs that belong to a space
  * (a bank, or SYS for the system space) and can be attached to OBP records. See the Glossary item
- * "Files" and ideas/ogcr_file_storage.md.
+ * "Files".
  *
  * A file's bytes never change once stored. A new version of a document is a new file. What can
  * change is which records the file is attached to and which Users have been given access to it.
@@ -61,10 +61,33 @@ trait FileT {
   def userId: String
   /** The User an agent uploaded the file for. Empty when nobody was delegating. */
   def onBehalfOfUserId: String
+  /** Anyone may read a public file, without logging in, through the public file endpoints. */
+  def isPublic: Boolean
   def createdAt: Date
 
   /** The file's owner: the User an agent acted for, or else the User who uploaded it. */
   def ownerUserId: String = if (onBehalfOfUserId.nonEmpty) onBehalfOfUserId else userId
+  /** Uploaded by a person through Create My File, within the personal files limits, rather than with a Role. */
+  def isPersonal: Boolean
+  /** pending, clean or rejected (see [[ScanStatus]]). The content is served to everyone allowed only when clean. */
+  def scanStatus: String
+  /** Why the status was set, e.g. the signature a scanner matched. Empty when no reason was given. */
+  def scanStatusReason: String
+  def scanStatusUpdatedAt: Option[Date]
+  /** Who last set the status: the scanner's or the staff member's own id. Empty while nobody has. */
+  def scanStatusUpdatedByUserId: String
+}
+
+/**
+ * Whether a file's content may be served. A personal file starts pending and waits for a scanner or a member
+ * of staff; a file uploaded with a Role starts clean. Until a file is clean its content is served only to its
+ * owner and to holders of CanUpdateFileScanStatusAtOneBank; a rejected file is not served at all.
+ */
+object ScanStatus {
+  val Pending = "pending"
+  val Clean = "clean"
+  val Rejected = "rejected"
+  val all: List[String] = List(Pending, Clean, Rejected)
 }
 
 /** A link between a file and one record, such as a Customer or a Dynamic Entity record. */
@@ -102,21 +125,34 @@ trait FileStore {
 }
 
 trait FilesProvider {
-  /** Store the bytes and the metadata of a new file, together. */
-  def createFile(bankId: String, sha256: String, mediaType: String, fileName: String,
-                 userId: String, onBehalfOfUserId: String, bytes: Array[Byte]): Box[FileT]
+  /** Store the bytes and the metadata of a new file, together. userId is the caller; the provider records
+   *  the User an agent acted for, by the attribution policy of File_UserId. */
+  def createFile(bankId: String, sha256: String, mediaType: String, fileName: String, isPublic: Boolean,
+                 userId: String, bytes: Array[Byte], isPersonal: Boolean = false,
+                 scanStatus: String = ScanStatus.Clean): Box[FileT]
   def getFile(bankId: String, fileId: String): Box[FileT]
   def getContent(fileId: String): Box[Array[Byte]]
+  /** Whether the file is public is the one thing about it that can change; its bytes never do. */
+  def setPublic(bankId: String, fileId: String, isPublic: Boolean): Box[FileT]
+  /** One page of the files of a space, newest first, and how many there are in all; only those with
+   *  scanStatus when it is given (pending or rejected, which are always stored explicitly). */
+  def getFiles(bankId: String, limit: Int, offset: Int, scanStatus: Option[String] = None): (List[FileT], Long)
+  /** Set the scan status. userId is the caller, recorded as it is (an audit of who decided). */
+  def setScanStatus(bankId: String, fileId: String, scanStatus: String, reason: String, userId: String): Box[FileT]
+  /** How many personal files a User owns in a space, and their total size in bytes. */
+  def personalUsage(bankId: String, ownerUserId: String): (Int, Long)
+  /** The files of a space that the User owns or has been given access to, oldest first. */
+  def getFilesOwnedOrSharedWith(bankId: String, userId: String): List[FileT]
 
-  def createAttachment(file: FileT, recordType: String, recordId: String,
-                       userId: String, onBehalfOfUserId: String): Box[FileAttachmentT]
+  def createAttachment(file: FileT, recordType: String, recordId: String, userId: String): Box[FileAttachmentT]
   def getAttachment(bankId: String, fileId: String, fileAttachmentId: String): Box[FileAttachmentT]
+  def getAttachments(bankId: String, fileId: String): List[FileAttachmentT]
   def attachmentExists(fileId: String, recordType: String, recordId: String): Boolean
   def deleteAttachment(fileAttachmentId: String): Box[Boolean]
   /** The files attached to one record of a space. */
   def getFilesAttachedTo(bankId: String, recordType: String, recordId: String): List[FileT]
 
-  def grantAccess(fileId: String, granteeUserId: String, grantedByUserId: String, onBehalfOfUserId: String): Box[FileAccessT]
+  def grantAccess(fileId: String, granteeUserId: String, grantedByUserId: String): Box[FileAccessT]
   def getAccess(fileId: String, granteeUserId: String): Box[FileAccessT]
   def getAccessList(fileId: String): List[FileAccessT]
   def revokeAccess(fileId: String, granteeUserId: String): Box[Boolean]

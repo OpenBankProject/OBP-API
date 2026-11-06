@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, Http4sRoute}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserXORApplication, Http4sRoute}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -265,7 +265,7 @@ object Http4s700PlatformApps {
     List(ApplicationNotIdentified, InvalidJsonFormat, PlatformAppNotFound, InvalidPlatformAppDeclaration, UnknownError),
     List(apiTagConsumer, apiTagScope),
     None,
-    authMode = UserOrApplication,
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(updateCurrentConsumerPlatformApp)
   )
 

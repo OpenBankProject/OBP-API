@@ -162,6 +162,12 @@ object UserReference {
   case object PlatformApp_MarkedByUserId                       extends UserReference(UseAuthenticatedUserId, "code.platformapp.PlatformApp", List("MarkedByUserId"), "audit: who marked the Consumer as a platform app")
   case object GroupMembership_CreatedByUserId                  extends UserReference(UseAuthenticatedUserId, "code.group.GroupMembership", List("CreatedByUserId"), "audit: who added the member, as Entitlement_GrantedByUserId")
   case object AssetStatusHistory_ChangedByUserId              extends UserReference(UseAuthenticatedUserId, "code.asset.AssetStatusHistory", List("ChangedByUserId"), "audit: who changed the asset's status, the question a regulator asks")
+  case object File_ScanStatusUpdatedByUserId                   extends UserReference(UseAuthenticatedUserId, "code.files.File", List("ScanStatusUpdatedByUserId"), "audit: who set the scan status, the scanner or the staff member who decided")
+  case object RetentionPolicy_CreatedByUserId                  extends UserReference(UseAuthenticatedUserId, "code.retention.RetentionPolicy", List("CreatedByUserId"), "audit: who created the retention policy")
+  case object RetentionHold_PlacedByUserId                     extends UserReference(UseAuthenticatedUserId, "code.retention.RetentionHold", List("PlacedByUserId", "ReleasedByUserId"), "audit: who placed, and who released, a legal hold")
+  case object RetentionRun_RequestedByUserId                   extends UserReference(UseAuthenticatedUserId, "code.retention.RetentionRun", List("RequestedByUserId", "ApprovedByUserId"), "audit: who requested a run and who approved it; the two must differ, which is only meaningful for the users who actually acted")
+  case object RetentionArchive_OwnerUserId                     extends UserReference(UseAuthenticatedUserId, "code.retention.RetentionArchive", List("OwnerUserId"), "copied from the archived resource as it was stored there; never written from the caller")
+  case object RetentionRunItem_OwnerUserId                     extends UserReference(UseAuthenticatedUserId, "code.retention.RetentionRunItem", List("OwnerUserId"), "disposal register: copied from the disposed resource as it was stored there; never written from the caller")
 
   // ---- UseOnBehalfOfUserId: the row belongs to the person, so it must outlive the Consent that
   // ---- created it. A handful of these tables keep both ids, and those name two fields.
@@ -201,8 +207,10 @@ object UserReference {
   case object DynamicGlossaryItem_CreatedByUserId              extends UserReference(UseOnBehalfOfUserId   , "code.glossaryitem.DynamicGlossaryItem", List("CreatedByUserId"), "outlives the Consent that created it")
   case object DomainApi_CreatedByUserId                        extends UserReference(UseOnBehalfOfUserId   , "code.domainapi.DomainApi", List("CreatedByUserId"), "the Domain API's creator; a published API outlives the Consent that created it")
   case object DynamicEntityWebhook_CreatedByUserId             extends UserReference(UseOnBehalfOfUserId   , "code.dynamicentitywebhook.DynamicEntityWebhook", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: a webhook sends data out of OBP and outlives the Consent that made it, so the agent stays on CreatedByUserId (published as created_by_user_id) and the person it acted for goes to CreatedByOnBehalfOfUserId")
+  case object AccountCreation_CreatedByUserId                   extends UserReference(UseOnBehalfOfUserId   , "code.accountcreation.AccountCreation", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: who made the call that created the account, agent included, and the person it was made for; published in the v7.0.0 Create Account metadata. The holder is AccountHolders_User")
   case object Bank_CreatedByUserId                             extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.MappedBank", List("CreatedByUserId"), "creator grant already resolved at the endpoint")
-  case object Organisation_CreatedByUserId                     extends UserReference(UseOnBehalfOfUserId   , "code.organisation.Organisation", List("CreatedByUserId"), "outlives the Consent that created it")
+  case object SelfServiceBank_CreatedByUserId                  extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.SelfServiceBank", List("CreatedByUserId"), "as Bank_CreatedByUserId; the Create My Bank quota counts these rows per creator")
+  case object Tenant_CreatedByUserId                     extends UserReference(UseOnBehalfOfUserId   , "code.tenant.Tenant", List("CreatedByUserId"), "outlives the Consent that created it")
   case object Asset_CreatedByUserId                            extends UserReference(UseOnBehalfOfUserId   , "code.asset.Asset", List("CreatedByUserId"), "outlives the Consent that created it, as RoutingScheme_CreatedByUserId; seeded rows hold system:asset-seed")
   case object File_UserId                                      extends UserReference(UseOnBehalfOfUserId   , "code.files.File", List("UserId", "OnBehalfOfUserId"), "record both: UserId = who uploaded (the agent), OnBehalfOfUserId = the human, who owns the file")
   case object FileAttachment_UserId                            extends UserReference(UseOnBehalfOfUserId   , "code.files.FileAttachment", List("UserId", "OnBehalfOfUserId"), "record both: UserId = who attached (the agent), OnBehalfOfUserId = the human")
@@ -263,6 +271,11 @@ object UserReference {
     PlatformApp_MarkedByUserId,
     GroupMembership_CreatedByUserId,
     AssetStatusHistory_ChangedByUserId,
+    RetentionPolicy_CreatedByUserId,
+    RetentionHold_PlacedByUserId,
+    RetentionRun_RequestedByUserId,
+    RetentionArchive_OwnerUserId,
+    RetentionRunItem_OwnerUserId,
     TransactionRequest_UserId,
     Entitlement_UserId,
     GroupMembership_UserId,
@@ -298,10 +311,13 @@ object UserReference {
     DynamicGlossaryItem_CreatedByUserId,
     DomainApi_CreatedByUserId,
     DynamicEntityWebhook_CreatedByUserId,
+    AccountCreation_CreatedByUserId,
     Bank_CreatedByUserId,
-    Organisation_CreatedByUserId,
+    SelfServiceBank_CreatedByUserId,
+    Tenant_CreatedByUserId,
     Asset_CreatedByUserId,
     File_UserId,
+    File_ScanStatusUpdatedByUserId,
     FileAttachment_UserId,
     FileAccess_GrantedByUserId,
     FileAccess_GranteeUserId,
@@ -359,9 +375,6 @@ object UserReference {
     "deferred 2026-09-16, not mechanical: agreed as record-both (like Counterparty), but the webhook " +
     "code has two dead paths already and is not to be touched in a hurry. todo/webhook_attribution.md.")
 
-  private val filesNotYetServed = NotYetWired.NotReachedByConsentUser(
-    "the Files tables (code.files) exist but no endpoint writes them yet. The endpoints must store " +
-    "cc.onBehalfOfUserId as the owner (ideas/ogcr_file_storage.md) and reject a consent user as grantee.")
 
   private val rejectNotEnforced = NotYetWired.StoresCaller(
     "Reject, not yet enforced: attributionOf already returns Failure for it (AgentDelegationTest pins " +
@@ -401,13 +414,8 @@ object UserReference {
     CounterpartyWhereTag_User              -> mechanicalBatch,
     ApiProductSubscription_CreatedByUserId -> mechanicalBatch,
     DynamicGlossaryItem_CreatedByUserId    -> mechanicalBatch,
-    Organisation_CreatedByUserId           -> mechanicalBatch,
-    Asset_CreatedByUserId                  -> NotYetWired.NotReachedByConsentUser(
-      "no endpoint writes the asset registry yet; only the boot seed does. Wire it with the asset write endpoints."),
-    File_UserId                            -> filesNotYetServed,
-    FileAttachment_UserId                  -> filesNotYetServed,
-    FileAccess_GrantedByUserId             -> filesNotYetServed,
-    FileAccess_GranteeUserId               -> filesNotYetServed,
+    Tenant_CreatedByUserId           -> mechanicalBatch,
+    SelfServiceBank_CreatedByUserId        -> mechanicalBatch,
     PayeeLookup_CreatedByUserId            -> mechanicalBatch,
     RoutingScheme_CreatedByUserId          -> mechanicalBatch,
     UtilityPaymentCallback_CreatedByUserId -> mechanicalBatch,
@@ -438,7 +446,10 @@ object UserReference {
     AccountAccessRequest_TargetUserId      -> NotYetWired.NotReachedByConsentUser(
       "explicit target, so the endpoint refuses a consent user rather than redirecting -- covered " +
       "by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),
-    GroupMembership_UserId                 -> NotYetWired.NotReachedByConsentUser(
+    FileAccess_GranteeUserId               -> NotYetWired.NotReachedByConsentUser(
+      "explicit target: Create File Access refuses a consent user as grantee rather than redirecting -- " +
+      "covered by ExplicitTargetConsentUserSweepTest. The provider redirect is unreachable from the API."),
+    GroupMembership_UserId                -> NotYetWired.NotReachedByConsentUser(
       "the member is never the caller: the Group member sync endpoint reads each member's user id " +
       "from the Group's existing Entitlements and membership rows, so there is nothing to redirect."),
     Consent_UserId                         -> NotYetWired.StoresCaller(

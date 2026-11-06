@@ -139,7 +139,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **Views System**: Account data visibility control (owner, public, accountant, auditor, custom)
 - **Scope Management**: OAuth 2.0 scope definitions
 - **Authentication Type Validation**: Enforce authentication requirements per endpoint
-- **Endpoint Auth Modes**: Per-endpoint control over user vs application authentication (UserOnly, ApplicationOnly, UserOrApplication, UserAndApplication)
+- **Endpoint Auth Modes**: Per-endpoint control over user vs application authentication (UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication)
 - **Mandates**: Corporate account governance with provisions, signatory panels, and multi-signature approval
 
 #### 1.2.9 Extensibility & Customization
@@ -2699,7 +2699,7 @@ OBP can bootstrap a Consumer (Application) for OBP-OIDC at startup. This allows 
 
 The bootstrap consumer is granted the following Scopes: `CanGetConsumers`, `CanCreateConsumer`, `CanVerifyOidcClient`, `CanGetOidcClient`, `CanGetOidcConsent`.
 
-These endpoints use `authMode = UserOrApplication`, meaning they can be accessed either by a logged-in User with Entitlements, or by an Application using a Consumer Key with Scopes.
+These endpoints use `authMode = UserXORApplication`, meaning they can be accessed either by a logged-in User with Entitlements, or by the Application acting as itself (e.g. with a client-credentials token) with its Consumer's Scopes. A User calling through the Consumer does not get its Scopes.
 
 ```properties
 # Bootstrap OIDC Operator Consumer
@@ -3022,18 +3022,18 @@ Previously, a global `allow_entitlements_or_scopes` config flag allowed consumer
 |------|-------------|
 | `UserOnly` | (Default) Requires user authentication and user entitlements |
 | `ApplicationOnly` | Requires consumer scope only, no user authentication needed |
-| `UserOrApplication` | Either consumer scope OR user entitlement is sufficient |
+| `UserXORApplication` | Consumer scope when the application acts as itself (no user, or its own client-credentials user, provider `obp-oidc#client`); user entitlement when a person acts. A person never uses the consumer's scopes. Formerly `UserOrApplication` (either was sufficient) |
 | `UserAndApplication` | Both consumer scope AND user entitlement are required |
 
 **Migration from `allow_entitlements_or_scopes`:**
 
-The global `allow_entitlements_or_scopes` config flag has been removed. Deployments that previously used `allow_entitlements_or_scopes=true` must now set `authMode = UserOrApplication` on individual endpoint `ResourceDoc` instances.
+The global `allow_entitlements_or_scopes` config flag has been removed. Deployments that previously used `allow_entitlements_or_scopes=true` must now set `authMode = UserXORApplication` on individual endpoint `ResourceDoc` instances.
 
-The global overrides `require_scopes_for_all_roles` and `require_scopes_for_listed_roles` continue to work and force `UserAndApplication` behavior.
+The global overrides `require_scopes_for_all_roles` and `require_scopes_for_listed_roles` continue to work and force `UserAndApplication` behavior, except for an application acting as itself on an `ApplicationOnly` or `UserXORApplication` endpoint, which still needs only its scopes.
 
 **Example:**
 
-The `verifyUserCredentials` endpoint uses `UserOrApplication` mode, so it can be called either by a logged-in user with the appropriate entitlement, or by an application with the appropriate consumer scope.
+The `verifyUserCredentials` endpoint uses `UserXORApplication` mode, so it can be called either by a logged-in user with the appropriate entitlement, or by an application acting as itself with the appropriate consumer scope.
 
 ### 8.8 Maker/Checker for Transaction Requests
 
@@ -4298,7 +4298,7 @@ docker run -p 8080:8080 \
 
 **Dynamic Endpoint:** User-defined API endpoint
 
-**Endpoint Auth Mode:** Per-endpoint setting controlling whether user authentication, application scope, or both are required (UserOnly, ApplicationOnly, UserOrApplication, UserAndApplication)
+**Endpoint Auth Mode:** Per-endpoint setting controlling whether user authentication, application scope, or both are required (UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication)
 
 **Entitlement:** Permission to perform specific operation (same as Role)
 

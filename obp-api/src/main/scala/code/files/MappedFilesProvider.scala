@@ -28,6 +28,7 @@ package code.files
 
 import java.util.{Date, UUID}
 
+import code.users.{UserReference, Users}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -41,10 +42,16 @@ object MappedFilesProvider extends FilesProvider {
   /** Where the bytes go. Replaced by an object storage implementation when the volume calls for it. */
   val store: FileStore = PostgresFileStore
 
-  override def createFile(bankId: String, sha256: String, mediaType: String, fileName: String,
-                          userId: String, onBehalfOfUserId: String, bytes: Array[Byte]): Box[FileT] = {
+  /** The caller and, when an agent called for somebody, that somebody (empty otherwise), by the
+   *  reference's attribution policy: these tables record both. */
+  private def attributed(userId: String, ref: UserReference): Box[(String, String)] =
+    Users.users.vend.attributionOf(userId, ref).map(a => (a.userId, if (a.isDelegated) a.onBehalfOfUserId else ""))
+
+  override def createFile(bankId: String, sha256: String, mediaType: String, fileName: String, isPublic: Boolean,
+                          userId: String, bytes: Array[Byte], isPersonal: Boolean, scanStatus: String): Box[FileT] = {
     val fileId = UUID.randomUUID().toString
     for {
+      (callerId, onBehalfOfUserId) <- attributed(userId, UserReference.File_UserId)
       _ <- store.write(fileId, bytes)
       file <- tryo {
         File.create
@@ -54,7 +61,10 @@ object MappedFilesProvider extends FilesProvider {
           .SizeInBytes(bytes.length.toLong)
           .MediaType(mediaType)
           .FileName(fileName)
-          .UserId(userId)
+          .IsPublic(isPublic)
+          .IsPersonal(isPersonal)
+          .ScanStatus(scanStatus)
+          .UserId(callerId)
           .OnBehalfOfUserId(onBehalfOfUserId)
           .CreatedAt(new Date())
           .saveMe()
@@ -67,22 +77,56 @@ object MappedFilesProvider extends FilesProvider {
 
   override def getContent(fileId: String): Box[Array[Byte]] = store.read(fileId)
 
-  override def createAttachment(file: FileT, recordType: String, recordId: String,
-                                userId: String, onBehalfOfUserId: String): Box[FileAttachmentT] = tryo {
-    FileAttachment.create
-      .FileId(file.fileId)
-      .BankId(file.bankId)
-      .RecordType(recordType)
-      .RecordId(recordId)
-      .UserId(userId)
-      .OnBehalfOfUserId(onBehalfOfUserId)
-      .CreatedAt(new Date())
-      .saveMe()
+  override def setPublic(bankId: String, fileId: String, isPublic: Boolean): Box[FileT] =
+    File.find(By(File.BankId, bankId), By(File.FileId, fileId)).flatMap(file => tryo(file.IsPublic(isPublic).saveMe()))
+
+  override def getFiles(bankId: String, limit: Int, offset: Int, scanStatus: Option[String]): (List[FileT], Long) = {
+    val where: List[QueryParam[File]] = By(File.BankId, bankId) :: scanStatus.map(By(File.ScanStatus, _)).toList
+    (File.findAll(where ++ List(OrderBy(File.CreatedAt, Descending), MaxRows[File](limit), StartAt[File](offset)): _*),
+      File.count(where: _*))
   }
+
+  override def setScanStatus(bankId: String, fileId: String, scanStatus: String, reason: String, userId: String): Box[FileT] =
+    File.find(By(File.BankId, bankId), By(File.FileId, fileId)).flatMap { file =>
+      tryo(file.ScanStatus(scanStatus).ScanStatusReason(reason).ScanStatusUpdatedAt(new Date())
+        .ScanStatusUpdatedByUserId(userId).saveMe())
+    }
+
+  override def personalUsage(bankId: String, ownerUserId: String): (Int, Long) = {
+    val owned = File.findAll(By(File.BankId, bankId), By(File.IsPersonal, true)).filter(_.ownerUserId == ownerUserId)
+    (owned.size, owned.map(_.sizeInBytes).sum)
+  }
+
+  override def getFilesOwnedOrSharedWith(bankId: String, userId: String): List[FileT] = {
+    val uploaded = File.findAll(By(File.BankId, bankId), By(File.UserId, userId), By(File.OnBehalfOfUserId, ""))
+    val uploadedFor = File.findAll(By(File.BankId, bankId), By(File.OnBehalfOfUserId, userId))
+    val sharedFileIds = FileAccess.findAll(By(FileAccess.GranteeUserId, userId)).map(_.FileId.get).distinct
+    val shared = if (sharedFileIds.isEmpty) Nil else File.findAll(By(File.BankId, bankId), ByList(File.FileId, sharedFileIds))
+    (uploaded ++ uploadedFor ++ shared).groupBy(_.fileId).values.map(_.head).toList.sortBy(_.createdAt.getTime)
+  }
+
+  override def createAttachment(file: FileT, recordType: String, recordId: String, userId: String): Box[FileAttachmentT] =
+    attributed(userId, UserReference.FileAttachment_UserId).flatMap { case (callerId, onBehalfOfUserId) =>
+      tryo {
+        FileAttachment.create
+          .FileId(file.fileId)
+          .BankId(file.bankId)
+          .RecordType(recordType)
+          .RecordId(recordId)
+          .UserId(callerId)
+          .OnBehalfOfUserId(onBehalfOfUserId)
+          .CreatedAt(new Date())
+          .saveMe()
+      }
+    }
 
   override def getAttachment(bankId: String, fileId: String, fileAttachmentId: String): Box[FileAttachmentT] =
     FileAttachment.find(By(FileAttachment.BankId, bankId), By(FileAttachment.FileId, fileId),
       By(FileAttachment.FileAttachmentId, fileAttachmentId))
+
+  override def getAttachments(bankId: String, fileId: String): List[FileAttachmentT] =
+    FileAttachment.findAll(By(FileAttachment.BankId, bankId), By(FileAttachment.FileId, fileId),
+      OrderBy(FileAttachment.CreatedAt, Ascending))
 
   override def attachmentExists(fileId: String, recordType: String, recordId: String): Boolean =
     FileAttachment.find(By(FileAttachment.FileId, fileId), By(FileAttachment.RecordType, recordType),
@@ -102,15 +146,20 @@ object MappedFilesProvider extends FilesProvider {
     }
   }
 
-  override def grantAccess(fileId: String, granteeUserId: String, grantedByUserId: String, onBehalfOfUserId: String): Box[FileAccessT] = tryo {
-    FileAccess.create
-      .FileId(fileId)
-      .GranteeUserId(granteeUserId)
-      .GrantedByUserId(grantedByUserId)
-      .OnBehalfOfUserId(onBehalfOfUserId)
-      .CreatedAt(new Date())
-      .saveMe()
-  }
+  // The grantee is an explicit target named in the request: the endpoint refuses a consent user rather
+  // than redirecting, since access given to one would die with its Consent.
+  override def grantAccess(fileId: String, granteeUserId: String, grantedByUserId: String): Box[FileAccessT] =
+    attributed(grantedByUserId, UserReference.FileAccess_GrantedByUserId).flatMap { case (callerId, onBehalfOfUserId) =>
+      tryo {
+        FileAccess.create
+          .FileId(fileId)
+          .GranteeUserId(granteeUserId)
+          .GrantedByUserId(callerId)
+          .OnBehalfOfUserId(onBehalfOfUserId)
+          .CreatedAt(new Date())
+          .saveMe()
+      }
+    }
 
   override def getAccess(fileId: String, granteeUserId: String): Box[FileAccessT] =
     FileAccess.find(By(FileAccess.FileId, fileId), By(FileAccess.GranteeUserId, granteeUserId))
@@ -150,7 +199,18 @@ class File extends FileT with LongKeyedMapper[File] with IdPK {
   object FileName extends MappedString(this, 255)
   object UserId extends MappedString(this, 255)
   object OnBehalfOfUserId extends MappedString(this, 255)
+  object IsPublic extends MappedBoolean(this) {
+    override def defaultValue = false
+  }
   object CreatedAt extends MappedDateTime(this)
+  object IsPersonal extends MappedBoolean(this) {
+    override def defaultValue = false
+  }
+  // NULL on rows written before scanning existed, which count as clean.
+  object ScanStatus extends MappedString(this, 20)
+  object ScanStatusReason extends MappedString(this, 1000)
+  object ScanStatusUpdatedAt extends MappedDateTime(this)
+  object ScanStatusUpdatedByUserId extends MappedString(this, 255)
 
   override def fileId: String = FileId.get
   override def bankId: String = BankId.get
@@ -160,7 +220,13 @@ class File extends FileT with LongKeyedMapper[File] with IdPK {
   override def fileName: String = FileName.get
   override def userId: String = UserId.get
   override def onBehalfOfUserId: String = Option(OnBehalfOfUserId.get).getOrElse("")
+  override def isPublic: Boolean = IsPublic.get
   override def createdAt: Date = CreatedAt.get
+  override def isPersonal: Boolean = Option(IsPersonal.get).exists(b => b)
+  override def scanStatus: String = Option(ScanStatus.get).filter(_.nonEmpty).getOrElse(code.files.ScanStatus.Clean)
+  override def scanStatusReason: String = Option(ScanStatusReason.get).getOrElse("")
+  override def scanStatusUpdatedAt: Option[Date] = Option(ScanStatusUpdatedAt.get)
+  override def scanStatusUpdatedByUserId: String = Option(ScanStatusUpdatedByUserId.get).getOrElse("")
 }
 
 object File extends File with LongKeyedMetaMapper[File] {
@@ -171,7 +237,13 @@ class FileContent extends LongKeyedMapper[FileContent] with IdPK {
   override def getSingleton = FileContent
 
   object FileId extends MappedString(this, 36)
-  object Content extends MappedBinary(this)
+  object Content extends MappedBinary(this) {
+    // Lift creates a binary column as BINARY on H2, which H2 2.x reads as BINARY(1): one byte. Use VARBINARY
+    // there (not BLOB, which Mapper reads back as a Blob, not bytes). Other databases keep Lift's type
+    // (BYTEA on PostgreSQL).
+    override def fieldCreatorString(dbType: net.liftweb.db.DriverType, colName: String): String =
+      if (dbType == net.liftweb.db.H2Driver) colName + " VARBINARY" else super.fieldCreatorString(dbType, colName)
+  }
 }
 
 object FileContent extends FileContent with LongKeyedMetaMapper[FileContent] {

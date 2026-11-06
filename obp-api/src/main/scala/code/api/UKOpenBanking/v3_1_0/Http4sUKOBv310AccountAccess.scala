@@ -32,7 +32,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.Constant
 import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBodyUKV310
-import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, UserOrApplication, connectorEmptyResponse, mockedDataText, passesPsd2Aisp, unboxFullOrFail, parseIso8601OrDayDate}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, UserXORApplication, connectorEmptyResponse, mockedDataText, passesPsd2Aisp, unboxFullOrFail, parseIso8601OrDayDate}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, InvalidUKConsentPermissions, UnknownError}
@@ -75,6 +75,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
       EndpointHelpers.executeFutureCreated(req) {
         implicit val cc: CallContext = req.callContext
         for {
+          _ <- code.api.util.Consent.checkConsentsAllowed(Some(cc))
           // Client-credentials lodging: require some authentication (consumer or user) but not a
           // PSU specifically; reject only a fully anonymous request. The PSU is bound later at
           // authorise time. Mirrors the Berlin Group native consent flow and the v4.0.1 handler.
@@ -201,8 +202,8 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
     // Without it the doc defaults to UserOnly, which sends the middleware down anonymousAccess and
     // 401s any request that carries no user -- so the endpoint only works today because OAuth2
     // token parsing auto-vivifies a user for a client-credentials token. Matches the Berlin Group
-    // twin (Http4sBGv13AIS.createConsent), which has always been UserOrApplication.
-    authMode = UserOrApplication,
+    // twin (Http4sBGv13AIS.createConsent), which has always been UserXORApplication.
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(createAccountAccessConsents)
   )
 
@@ -239,7 +240,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
     ApiTag("Account Access") :: Nil,
     // As with the POST that lodges the consent: revoking is a client-credentials call in the
     // standard's AISP flow, so a PSU cannot be required. See Consent.checkUKConsentAccess.
-    authMode = UserOrApplication,
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(deleteAccountAccessConsentsConsentId)
   )
 
@@ -317,7 +318,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Account Access") :: Nil,
     // As above: the AISP polls its own consent with a client-credentials token.
-    authMode = UserOrApplication,
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(getAccountAccessConsentsConsentId)
   )
 

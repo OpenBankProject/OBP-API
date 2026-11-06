@@ -3,6 +3,140 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+01/11/2026    TBD           CHANGED: with consents.allowed false (the default) consents are now refused when they are
+                            created, not only when they are used: every endpoint that creates a consent or a consent
+                            request (OBP v3.1.0, v5.0.0, v5.1.0 and v6.0.0, Berlin Group v1.3, UK Open Banking v3.1 and
+                            v4.0.1) answers 401 OBP-35007 first, before a challenge is sent or anything is stored.
+                            Before, such consents were created (and could even be accepted) but could never be used.
+01/11/2026    TBD           ADDED: OBP consents left INITIATED (their challenge never answered) are now rejected by
+                            a new ConsentScheduler task, unfinishedObpConsents, once unchanged for
+                            obp_unfinished_consents_time_in_seconds (default 21600, 6 hours). It runs every
+                            obp_unfinished_consents_interval_in_seconds (default 593; 0 stops it) and notes the reason
+                            on the consent. Before, an INITIATED OBP consent stayed INITIATED forever, so an app that
+                            reuses a pending consent (as the Portal and other OBP-Frontend apps do for Opey) could be
+                            stuck on one. Berlin Group consents already had the equivalent task.
+01/11/2026    TBD           CHANGED: v7.0.0 Organisation is now Tenant: a customer of the operator of this OBP
+                            instance, which belongs to no bank (banks will later name their Tenant). The endpoints
+                            move from /banks/BANK_ID/organisations[/ORGANISATION_ID] to /tenants[/TENANT_ID]. JSON
+                            field organisation_id becomes tenant_id; bank_id and organisation_type are gone. The
+                            Roles become system Roles: CanCreateTenant, CanGetTenant, CanUpdateTenant,
+                            CanDeleteTenant. REMOVED: Organisation members (/banks/BANK_ID/organisations/
+                            ORGANISATION_ID/members[/USER_ID], GET /my/organisations), their four Roles and the
+                            OrganisationMember table's use. Error codes OBP-30506..30513 keep their numbers with
+                            Tenant wording; OBP-30553..30559 and OBP-30597 are gone. New table Tenant; the
+                            migration renameOrganisationsToTenants copies the rows of Organisation (left in place,
+                            unread) and moves the old Roles held at SYS or the empty bank id to the new system
+                            Roles. This replaces moveOrganisationsIntoSpaces.
+01/11/2026    TBD           CHANGED: Create Customer (v6.0.0 POST /banks/BANK_ID/customers) and Create User Customer
+                            Link (v4.0.0 POST /banks/BANK_ID/user_customer_links) are UserXORApplication: an
+                            application acting as itself may call them with CanCreateCustomer and
+                            CanCreateUserCustomerLink as Scopes. Called with no credentials at all, Create User
+                            Customer Link now answers 401 OBP-20200 (application not identified) instead of 401
+                            OBP-20001.
+01/11/2026    TBD           ADDED: v7.0.0 Send Email to Customer. POST /banks/BANK_ID/customers/CUSTOMER_ID/emails
+                            queues a plain-text email (subject, text, optional reference) to one of the bank's
+                            Customers, at the address on the Customer record, through the message outbox; the
+                            address is never returned. Needs the new Role CanSendEmailToCustomerAtOneBank (or the
+                            Scope, for an application acting as itself). Only a Customer of BANK_ID is emailed, and
+                            not in a self-service bank (made with Create My Bank); at most
+                            customer_emails.max_per_customer_per_day (default 20) per Customer in 24 hours. From:
+                            customer_emails.sender_address, else mail.api.consumer.registered.sender.address.
+                            MessageOutbox.enqueueEmail takes optional metadata.
+31/10/2026    TBD           ADDED: v7.0.0 personal files and scan status. POST /banks/BANK_ID/my/files stores a
+                            file in the caller's own name without a Role, attached to one of their own personal
+                            Dynamic Entity records. Off unless the space is in files.personal.enabled_bank_ids;
+                            needs the owner's email address validated (a User of another identity provider
+                            needs only to have one); limited by
+                            files.personal.allowed_media_types, files.personal.max_size_in_bytes,
+                            files.personal.max_files_per_user and files.personal.max_total_bytes_per_user; never
+                            public. Every file now has scan_status (pending, clean, rejected): personal files start
+                            pending, files stored with CanCreateFileAtOneBank and existing files count as clean,
+                            except in self-service banks (made with Create My Bank), where every file starts
+                            pending. CHANGED: Create My Bank (POST /my/banks), still enabled by
+                            self_service_bank_creation.limit > 0, is refused with OBP-30232 unless OBP stores banks
+                            itself (the mapped connector, or star routing createOrUpdateBank to mapped), so a User
+                            never creates a bank on a backend system. It records each bank in the new table
+                            SelfServiceBank; its quota counts those rows, so banks made with CanCreateBank no longer
+                            count. The migration markSelfServiceBanks records existing banks whose id has the
+                            generated shape, and sets unscanned files in those banks to pending.
+                            Until clean, content is served only to the owner and holders of the new Role
+                            CanUpdateFileScanStatusAtOneBank, which PUT /banks/BANK_ID/files/FILE_ID/scan-status
+                            needs; rejected content is not served. Get Files of a Space takes scan_status=pending.
+                            File responses gain is_personal, scan_status, scan_status_reason and
+                            scan_status_updated_at. New File columns: IsPersonal, ScanStatus, ScanStatusReason,
+                            ScanStatusUpdatedAt, ScanStatusUpdatedByUserId.
+30/10/2026    TBD           ADDED: v7.0.0 Organisation members. POST/GET /banks/BANK_ID/organisations/
+                            ORGANISATION_ID/members and GET/PUT/DELETE .../members/USER_ID link Users to an
+                            Organisation with a member_role (owner, admin, member), an optional title, a status
+                            (invited, active, suspended, left) and is_primary. New Roles, granted at the space:
+                            CanCreateOrganisationMember, CanGetOrganisationMembers, CanUpdateOrganisationMember,
+                            CanDeleteOrganisationMember. An active owner or admin member manages members without a
+                            Role, any active member reads the list, and a member may accept, leave and change their
+                            own title. GET /my/organisations lists the current User's memberships. Each write
+                            records both the caller and the person it acted for. New table: OrganisationMember.
+30/10/2026    TBD           CHANGED: v7.0.0 Organisations live in a space. The endpoints moved from
+                            /obp/v7.0.0/organisations[/ORGANISATION_ID] to
+                            /obp/v7.0.0/banks/BANK_ID/organisations[/ORGANISATION_ID], where BANK_ID is a bank or
+                            SYS for the system space; responses carry bank_id, and an optional organisation_type
+                            can be set. The four Roles now name a space (requiresBankId = true), and
+                            CanGetAnyOrganisation is renamed CanGetOrganisation. The migration
+                            moveOrganisationsIntoSpaces puts every existing Organisation in SYS and moves the
+                            Roles' Entitlements, Entitlement Requests, Consumer Scopes and Groups from the empty
+                            bank id to SYS, so existing grants keep exactly the access they had. A Group that also
+                            holds non-Organisation Roles stays at the empty bank id and is named in the
+                            migration log: grant its Organisation Roles at SYS another way.
+29/10/2026    TBD           CHANGED: Super admins (super_admin_user_ids) also hold the virtual Roles
+                            CanGetEntitlementRequestsAtAnyBank and CanDeleteEntitlementRequestsAtAnyBank,
+                            so on a fresh instance they can see and accept entitlement requests (accepting
+                            deletes the request) without first granting themselves those Roles. No new
+                            power: a super admin could already grant themselves any Role.
+29/10/2026    TBD           FIXED: Endpoints that check their Roles again in the handler
+                            (hasAtLeastOneEntitlement, hasAllEntitlements, NewStyle hasEntitlement; e.g. Get
+                            Entitlement Requests, v3.0.0 Get User by id / email / username, v3.1.0 Get Consumers)
+                            now honour the virtual Roles of super_admin_user_ids and oidc_operator_user_ids,
+                            as the ResourceDoc Role check already did, instead of answering 403.
+29/10/2026    TBD           ADDED: Files in v7.0.0: documents and photographs stored in a space (a bank, or
+                            SYS) and attached to records. POST /banks/BANK_ID/files stores one, base64 in
+                            JSON (Role CanCreateFileAtOneBank; is_public true also needs
+                            CanCreatePublicFileAtOneBank). GET .../files/FILE_ID, .../content (the bytes,
+                            with the file's Content-Type, ETag and Content-Disposition), .../attachments,
+                            GET .../files?record_type=&record_id= and GET .../my/files, for the owner, a
+                            User given access, or CanGetFileAtOneBank. GET /management/banks/BANK_ID/files
+                            lists every file of a space, paginated (CanGetFileAtOneBank). PUT .../files/FILE_ID/is-public
+                            (CanCreatePublicFileAtOneBank). POST/DELETE .../attachments and .../access.
+                            Public files are served without login by GET .../public-files,
+                            .../public-files/FILE_ID and .../public-files/FILE_ID/content, which serve
+                            public files only. No AtAnyBank Roles; a Role at SYS covers the system space.
+                            Media types are at most image/jpeg, image/png, image/webp, application/pdf
+                            (files.allowed_media_types can narrow them); size limit files.max_size_in_bytes
+                            (default 10 MB). New column File.IsPublic, new Roles, new tag File, new errors
+                            OBP-30586 to OBP-30596, new Glossary item Files.
+29/10/2026    TBD           CHANGED: the endpoint auth mode UserOrApplication is replaced by UserXORApplication.
+                            A request is either a person acting or an application acting as itself,
+                            never a mix. The application acts as itself when there is no User, or the User
+                            is its own, the one an OBP-OIDC client-credentials token resolves to (provider
+                            obp-oidc#client, named after the client id): then only its Consumer's Scopes
+                            count. Otherwise only the User's Entitlements count; a person calling through a
+                            Consumer that holds a Scope no longer gets it (DirectLogin needs only the
+                            consumer key, so anyone with an account and the key could). Who is let in is
+                            now who is recorded as acting. Applies to every endpoint that was
+                            UserOrApplication (log cache, telemetry, Platform Apps, Grants, OIDC / Consumer
+                            bootstrap, Dynamic Entity definitions, Get My Role, verify credentials, ...).
+                            require_scopes_for_all_roles / require_scopes_for_listed_roles no longer make
+                            an application acting as itself on an ApplicationOnly or UserXORApplication
+                            endpoint also need Entitlements. Dynamic Entity auth_mode accepts the former
+                            value UserOrApplication and stores and returns it as UserXORApplication; rows
+                            already stored with it read as UserXORApplication. Get My Role's
+                            allowed_for_auth_modes names UserXORApplication, and application_only is true
+                            only for a User of provider obp-oidc#client.
+29/10/2026    TBD           CHANGED: v7.0.0 Attach Open Corridor Promise Evidence, Create Open Corridor
+                            Settlement, Create Open Corridor Fee Settlement and Get Open Corridor
+                            Settlement are UserXORApplication: a person with the Role at BANK_ID as an
+                            Entitlement, or an application acting as itself whose Consumer holds it as a
+                            Scope at BANK_ID, such as a bank's Bank Node with a client-credentials token.
+                            reported_by_user_id is the application's own User when it acted. A call with no
+                            credentials still gets 401, now with ApplicationNotIdentified instead of
+                            AuthenticatedUserIsRequired. Response bodies are unchanged.
 13/10/2026    TBD           ADDED: Domain APIs have is_publicly_discoverable (new column
                             domain_api.is_publicly_discoverable, false by default). The new public
                             GET /obp/v7.0.0/banks/BANK_ID/domain-apis lists, without authentication, the

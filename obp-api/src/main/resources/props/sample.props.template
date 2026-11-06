@@ -271,6 +271,13 @@ jwt.use.ssl=false
 ## Unit is a second
 # obp_expired_consents_interval_in_seconds =
 
+## Reject OBP consents still "INITIATED" (their challenge was never answered) after a defined time.
+## They never granted access; rejecting them stops an app that reuses a pending consent from being stuck on one.
+## Both have defaults: the task runs every 593 seconds, and rejects consents unchanged for 21600 seconds (6 hours).
+## Set the interval to 0 to stop the task.
+# obp_unfinished_consents_time_in_seconds = 21600
+# obp_unfinished_consents_interval_in_seconds = 593
+
 ## Expire UK Open Banking consents with status "Authorised"
 ## Unlike the three keys above this one HAS a default (601 seconds, a prime near 10 minutes, so the
 ## sweep does not settle into step with other periodic schedulers). Set it to 0 to stop the task.
@@ -422,6 +429,7 @@ public_obp_api_url=http://localhost:8080
 public_obp_portal_url=http://localhost:5174
 public_obp_api_explorer_url=http://localhost:5173
 public_obp_api_manager_url=http://localhost:3003
+public_obp_cohort_url=http://localhost:5183
 public_obp_sandbox_populator_url=http://localhost:5178
 public_obp_oidc_url=http://localhost:9000
 public_keycloak_url=http://localhost:7787
@@ -917,6 +925,8 @@ defaultBank.bank_id=OBP
 ## CanCreateEntitlementAtAnyBank
 ## CanCreateEntitlementAtOneBank
 ## CanGetAnyUser
+## CanGetEntitlementRequestsAtAnyBank
+## CanDeleteEntitlementRequestsAtAnyBank
 ## After they have granted these roles, they can grant further roles and remove their
 # user_id from the super_admin_user_ids list because its redundant.
 ## Once you have the roles above you can grant any other system or bank related roles to yourself.
@@ -1439,7 +1449,8 @@ database_messages_scheduler_interval=3600
 # ---------------------------------------------------
 
 # -- Consents ---------------------------------------------
-# In case isn't defined default value is "false"
+# In case isn't defined default value is "false". While false, no consent is accepted as a login (OBP-35007)
+# and none is created either: every endpoint that creates a consent or a consent request answers OBP-35007.
 # consents.allowed=true
 #
 # In order to pin a consent to a consumer we can use the property consumer_validation_method_for_consent
@@ -2004,6 +2015,31 @@ user_account_is_validated = false
 # An aggregate reads every metric row in its range, so the cost grows with the range; a
 # longer range is refused with 400. A call without from_date covers this many days.
 # aggregate_metrics_max_days = 31
+
+
+# Data retention: how long the resources of a space (a bank, or SYS) stay live, and what happens to
+# them then, is set per space with the retention policy endpoints
+# (/obp/v7.0.0/management/banks/BANK_ID/retention-policies). Periods are set there, not here, except
+# for the minimum below; the other props only switch the destructive steps on. Defaults live in
+# code.retention.RetentionProps; the values shown here MUST match. See RETENTION_PLAN.md.
+# The shortest retention period allowed, in days: no resource is archived, deleted or anonymised sooner
+# than this after its trigger date. A policy with a shorter retain_days is refused, and an existing one
+# runs as though its retain_days were this. 1825 days is five years.
+# retention.minimum_retain_days = 1825
+# Allow runs that move resources out of the live tables into the retention archive. While false,
+# such a run is refused with an error. A preview always works.
+# retention.archive.enabled = false
+# Allow runs that delete or anonymise resources, and the deletion of archived resources whose archive
+# period has ended. While false, such a run is refused with an error. A preview always works.
+# retention.delete.enabled = false
+# Run the enabled retention policies on a timer. A policy that requires approval gets a pending run
+# for a second user to approve; the others are executed, as far as the two props above allow.
+# retention.scheduler.enabled = false
+# Seconds between two scheduler runs. 3593, a prime just under an hour, so the runs drift across the
+# clock rather than lining up with other schedulers.
+# retention.scheduler.interval_in_seconds = 3593
+# The most resources one run disposes of; what is left is disposed of by the next run.
+# retention.run.max_items = 1000
 
 
 # Defines endpoints we want to store responses at Metric table
