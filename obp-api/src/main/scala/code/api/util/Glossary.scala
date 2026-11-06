@@ -606,8 +606,8 @@ object Glossary extends MdcLoggable  {
 				 |1. **Rate Limit Records**: Stored in the `RateLimiting` table with date ranges (from_date, to_date)
 				 |2. **Multiple Records**: A consumer can have multiple active rate limit records that overlap
 				 |3. **Aggregation**: When multiple records are active, per period: `-1` values are ignored and the rest (`0` or positive) are summed; a sum of `0` blocks the period; nothing to sum (all `-1`) means unlimited
-				 |4. **Enforcement**: On every API request, the system checks Redis counters against the aggregated limits
-				 |5. **Counting**: Every served request is counted in the Redis counter of every period, whether or not that period has a limit, so the call-counter endpoints show a Consumer's activity even when nothing limits it. A blocked period (sum `0`) serves nothing, so nothing is counted under it.
+				 |4. **Enforcement**: On every API request, one Redis script checks the counter of every period against the aggregated limits, shortest period first, and refuses with 429 at the first period that is full
+				 |5. **Counting**: In the same script, once every period has passed, the request is counted in the Redis counter of every period, whether or not that period has a limit, so the call-counter endpoints show a Consumer's activity even when nothing limits it. A blocked period (sum `0`) serves nothing, so nothing is counted under it. Because the check and the count run atomically in one round trip, concurrent requests cannot pass a check together and overshoot a limit.
 				 |
 				 |### Time Periods
 				 |

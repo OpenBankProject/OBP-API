@@ -302,6 +302,94 @@ object Redis extends MdcLoggable {
     finally jedis.close()
   }
 
+  /** Outcome of [[quotaCheckAndCount]]. */
+  sealed trait QuotaDecision
+  /** A period refused the call: `periodIndex` into the lists passed in (0-based), the counter's
+   *  current count and its remaining TTL in seconds (negative when the key has no expiry or does
+   *  not exist, as Redis TTL reports it). Nothing was counted. */
+  final case class QuotaRefused(periodIndex: Int, count: Long, ttlSeconds: Long) extends QuotaDecision
+  /** Every period passed and the call was counted in all of them: (count after this call,
+   *  remaining TTL in seconds) per key, in the order passed in. */
+  final case class QuotaCounted(countsAndTtls: List[(Long, Long)]) extends QuotaDecision
+
+  /**
+   * The consumer quota in one script: check every period's limit against its counter and, only
+   * when all pass, count the call in every period.
+   *
+   *   KEYS[i]        counter key of period i, shortest period first (precedence of the 429)
+   *   ARGV[i]        limit of period i: -1 unlimited (not checked, still counted), 0 blocked
+   *                  (refused without reading the counter's value), > 0 max calls in the period
+   *   ARGV[n + i]    length of period i in seconds, the TTL a new counter gets
+   *
+   * Returns {0, i, count, ttl} when period i refuses: count is what its counter holds now (0 when
+   * the key is absent or has no expiry) and ttl is the key's TTL as Redis reports it. Returns
+   * {1, c1, ttl1, ..., cn, ttln} after counting: the post-increment count and TTL of each key.
+   * A key found without an expiry is treated as expired on the check and recreated on the count,
+   * as incrementWithTtlScript does. Everything runs atomically server-side, so the check and
+   * the count of one call cannot interleave with another call's: at most `limit` calls pass.
+   */
+  private val quotaCheckAndCountScript =
+    """local n = #KEYS
+      |for i = 1, n do
+      |  local limit = tonumber(ARGV[i])
+      |  if limit >= 0 then
+      |    local ttl = redis.call('TTL', KEYS[i])
+      |    local count = 0
+      |    if ttl > 0 then count = tonumber(redis.call('GET', KEYS[i]) or '0') end
+      |    if limit == 0 or count + 1 > limit then
+      |      return {0, i, count, ttl}
+      |    end
+      |  end
+      |end
+      |local out = {1}
+      |for i = 1, n do
+      |  local c = redis.call('INCR', KEYS[i])
+      |  if c == 1 then
+      |    redis.call('EXPIRE', KEYS[i], ARGV[n + i])
+      |  elseif redis.call('TTL', KEYS[i]) < 0 then
+      |    redis.call('SET', KEYS[i], 1, 'EX', ARGV[n + i])
+      |    c = 1
+      |  end
+      |  out[#out + 1] = c
+      |  out[#out + 1] = redis.call('TTL', KEYS[i])
+      |end
+      |return out""".stripMargin
+
+  /**
+   * Check and count one call against several period counters in a single atomic round trip
+   * (see quotaCheckAndCountScript). `keys`, `limits` and `periodSeconds` are parallel lists,
+   * shortest period first. Throws when Redis is unreachable; the caller decides whether to fail
+   * open.
+   */
+  def quotaCheckAndCount(keys: List[String], limits: List[Long], periodSeconds: List[Int]): QuotaDecision = {
+    require(keys.nonEmpty && keys.size == limits.size && keys.size == periodSeconds.size,
+      s"quotaCheckAndCount needs one limit and one period per key: ${keys.size} keys, ${limits.size} limits, ${periodSeconds.size} periods")
+    import scala.jdk.CollectionConverters._
+    val startNanos = System.nanoTime()
+    var succeeded = false
+    try {
+      val reply: List[Long] = withJedis { jedis =>
+        jedis.eval(
+          quotaCheckAndCountScript,
+          keys.asJava,
+          (limits.map(_.toString) ++ periodSeconds.map(_.toString)).asJava
+        ).asInstanceOf[java.util.List[java.lang.Long]].asScala.map(_.longValue()).toList
+      }
+      val decision = reply match {
+        case 0L :: index :: count :: ttl :: Nil => QuotaRefused(index.toInt - 1, count, ttl)
+        case 1L :: countsAndTtls if countsAndTtls.size == keys.size * 2 =>
+          QuotaCounted(countsAndTtls.grouped(2).collect { case List(count, ttl) => (count, ttl) }.toList)
+        case other => throw new RuntimeException(s"quotaCheckAndCount: unexpected reply $other for ${keys.size} keys")
+      }
+      succeeded = true
+      decision
+    } finally {
+      code.telemetry.Telemetry.timer("obp.api.redis.commands",
+        "command" -> "EVAL_QUOTA_CHECK_AND_COUNT", "result" -> (if (succeeded) "success" else "error"))
+        .record(System.nanoTime() - startNanos, java.util.concurrent.TimeUnit.NANOSECONDS)
+    }
+  }
+
   /**
    * Atomic `SET key value EX ttlSeconds NX` (Jedis 2.9.0 five-arg overload). Sets the key with a TTL
    * only if it does not already exist, in a single command. Returns true iff this call set the key.
