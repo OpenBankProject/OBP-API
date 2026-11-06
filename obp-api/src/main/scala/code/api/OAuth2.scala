@@ -400,6 +400,11 @@ object OAuth2Login extends MdcLoggable {
       *                }
       * @return an existing or a new user
       */
+    // TODO Record the user's agreement to the Terms and Conditions and the Privacy Policy for users created here (first
+    //  sign-in through Keycloak or another OIDC provider), as AuthUser's own sign-up does: a UserAgreement each for
+    //  terms_and_conditions and privacy_conditions holding the full text of webui_terms_and_conditions and
+    //  webui_privacy_policy at that moment (with its date and hash). Today only AuthUser.actionsAfterSignup records them, so users
+    //  from an external identity provider have none. The same applies to getOrCreateResourceUser below.
     def getOrCreateResourceUserFuture(jwtToken: String): Future[Box[User]] = {
       val uniqueIdGivenByProvider = JwtUtil.getSubject(jwtToken).getOrElse("")
       val provider = resolveProvider(jwtToken)

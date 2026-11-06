@@ -3,6 +3,32 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+06/11/2026    TBD           FIXED: the consumer quota. A per-second limit held for only about half of each second:
+                            Redis rounds TTL to the nearest second, so a 1-second counter read TTL 0 for its last
+                            ~500 ms while still holding its count, and was treated as expired, letting every call
+                            through. The quota script now decides on PTTL, and reports the X-Rate-Limit-Reset
+                            rounded up, so a live counter never reads 0 (the headers were also missing in that
+                            half-second). And a Consumer blocked with a limit of 0 is refused again while Redis is
+                            unreachable, as before the single-script quota; other limits still fail open, now with
+                            a warning per request instead of an error with a stack trace.
+06/11/2026    TBD           ADDED: Consumer Account Access. A view of an account can be granted to a Consumer, as it
+                            can to a User, so an application acting as itself (OAuth2 client credentials, its own
+                            obp-oidc#client User) can use that view. v7.0.0 POST, GET and DELETE
+                            /banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/consumer-account-access[/CONSUMER_ACCOUNT_
+                            ACCESS_ID] grant, list and revoke it, with the same view permissions as granting a view to
+                            a User (can_grant_access_to_views / can_grant_access_to_custom_views, and the revoke ones;
+                            listing needs can_see_views_with_permissions_for_all_users); the grant records who gave
+                            it. The owner view and public views can't be granted to a Consumer (400 OBP-30629); a
+                            second grant is 409 OBP-30627; an unknown grant is 404 OBP-30628. The access counts only
+                            for the Consumer's own client-credentials User, never for a person logging in through the
+                            Consumer or a caller identified by Consumer Key alone, and only on endpoints whose auth
+                            mode admits an application (ApplicationOnly, UserXORApplication). New table
+                            consumer_account_access. Glossary: Consumer Account Access.
+06/11/2026    TBD           CHANGED: v7.0.0 Create Transaction Request (OPEN_CORRIDOR_PROMISE) is UserXORApplication:
+                            an application acting as itself may create the promise through a view its Consumer has
+                            been given (Consumer Account Access). The Transaction Request records the Consumer, as
+                            before. Called with no credentials at all it now answers 401 OBP-20200 (application not
+                            identified) instead of 401 OBP-20001.
 03/11/2026    TBD           CHANGED: the cascade-delete endpoints under /management/cascading are off by
                             default, behind the new prop allow_cascade_delete (default false). While it is
                             false they are not routed and not listed in the Resource Docs of any version,

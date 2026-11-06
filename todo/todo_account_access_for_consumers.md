@@ -1,5 +1,14 @@
 # TODO — Account access granted to a Consumer
 
+**Status (2026-11-06): implemented as Consumer Account Access** (`code.consumeraccountaccess`, v7.0.0
+`/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/consumer-account-access`, the check in
+`APIUtil.hasConsumerAccountAccess`, Glossary "Consumer Account Access"). Decisions taken: any view but
+owner and public ones (a dedicated custom view is the recommendation); granted and revoked with the same
+view permissions as for a User; counts only for the Consumer's own client-credentials User and only on
+ApplicationOnly / UserXORApplication endpoints; the Transaction Request already records the Consumer
+(`mConsumerId`), so no data-model change. Still open: questions 4 (declaring required account access as a
+Platform App) and 5 (a challenge above the threshold for an application acting as itself).
+
 ## Context
 
 OBP has two layers of permission, and only one of them can be granted to a Consumer today:

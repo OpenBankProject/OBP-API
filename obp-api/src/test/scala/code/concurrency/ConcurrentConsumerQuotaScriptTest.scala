@@ -169,5 +169,31 @@ class ConcurrentConsumerQuotaScriptTest extends ConcurrentRaceSetup {
       }
       keys.map(count) should equal(List(limit, limit))
     }
+
+    scenario("Q7: a full per-second counter still refuses in the second half of its window, where TTL reads 0", ConcurrencyRace) {
+      RedisTestTarget.requireReachable(redisUp, "Q7")
+      Given("a per-second limit of 2, reached")
+      val keys = freshKeys(1)
+      call(keys, List(2L), List(1))
+      call(keys, List(2L), List(1))
+      When("more than half of the second has passed: TTL rounds to 0 while the counter still holds 2")
+      Thread.sleep(600)
+      assume(ttl(keys.head) == 0L && count(keys.head) == 2L, "the window ended before the check (slow machine)")
+      Then("the third call is refused, with a reset of 1 second, and nothing is counted")
+      call(keys, List(2L), List(1)) should equal(QuotaRefused(0, 2L, 1L))
+      count(keys.head) should equal(2L)
+    }
+
+    scenario("Q8: a call served in the second half of a per-second window reports a reset of 1 second, not 0", ConcurrencyRace) {
+      RedisTestTarget.requireReachable(redisUp, "Q8")
+      Given("a per-second limit of 5 with one call counted")
+      val keys = freshKeys(1)
+      call(keys, List(5L), List(1))
+      Thread.sleep(600)
+      assume(ttl(keys.head) == 0L, "the window ended before the check (slow machine)")
+      When("a second call is counted in the same window")
+      Then("its count is 2 and its TTL is rounded up, so the X-Rate-Limit-* headers are still set")
+      call(keys, List(5L), List(1)) should equal(QuotaCounted(List((2L, 1L))))
+    }
   }
 }
