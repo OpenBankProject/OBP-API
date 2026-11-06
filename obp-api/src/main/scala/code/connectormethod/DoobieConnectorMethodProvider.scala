@@ -85,7 +85,7 @@ object DoobieConnectorMethodProvider extends ConnectorMethodProvider {
       // caller-supplied string, which throws on a malformed escape ('%' is ordinary in Scala
       // source). Computing it outside turned that into an exception escaping create, where the
       // Mapper implementation returned a Failure the endpoint could report.
-      val hash = APIUtil.sha256Hex(entity.decodedMethodBody)
+      val hash = APIUtil.dynamicCodeHash(entity.programmingLang, entity.decodedMethodBody)
       DoobieUtil.runUpdate(
         sql"""INSERT INTO connectormethod (connectormethodid, methodname, methodbody, lang,
                 createdbyuserid, methodbodyhash, createdat, updatedat)
@@ -104,7 +104,7 @@ object DoobieConnectorMethodProvider extends ConnectorMethodProvider {
       case Some(existing) =>
         tryo {
           val now = new java.sql.Timestamp(System.currentTimeMillis())
-          val hash = APIUtil.sha256Hex(
+          val hash = APIUtil.dynamicCodeHash(programmingLang,
             java.net.URLDecoder.decode(connectorMethodBody, "UTF-8"))
           DoobieUtil.runUpdate(
             sql"""UPDATE connectormethod SET methodbody = $connectorMethodBody, lang = $programmingLang,

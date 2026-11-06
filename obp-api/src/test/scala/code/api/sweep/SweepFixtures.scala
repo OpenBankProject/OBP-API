@@ -27,9 +27,18 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.sweep
 
+import cats.effect.IO
+import cats.effect.unsafe.IORuntime
 import code.api.util.ApiRole
+import code.api.util.http4s.Http4sApp
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
+import com.openbankproject.commons.util.JsonAliases.parse
+import fs2.Stream
+import org.http4s.{Header, Headers, Method, Request, Uri}
+import org.json4s.JValue
+import org.json4s.JsonAST.JObject
+import org.typelevel.ci.CIString
 
 /**
  * Shared setup for sweeps that call the API with a fully-entitled caller.
@@ -47,6 +56,19 @@ trait SweepFixtures { self: DefaultUsers =>
       .map(_._1).getOrElse(Nil).headOption.map(_.bankId.value)
 
   /**
+   * The first account the fixtures created at `bankId`, if any.
+   *
+   * Read from the store rather than over HTTP for the same reason realBankId is: these sweeps
+   * are in-process, and a round trip per lookup would be the only slow part of them.
+   */
+  def realAccountId(bankId: String): Option[String] =
+    code.model.dataAccess.MappedBankAccount
+      .findAllByBankId(bankId)
+      .sortBy(_.accountPrimaryKey)
+      .headOption
+      .map(_.accountId.value)
+
+  /**
    * A caller holding every role in the system.
    *
    * Granted directly through the Entitlement provider rather than over the API -- the same thing
@@ -59,10 +81,44 @@ trait SweepFixtures { self: DefaultUsers =>
       // roles whose backing entity may not exist in this database -- a grant that cannot be
       // made is not a reason to abandon the other several hundred.
       try {
-        val bankId = if (ApiRole.valueOf(role).requiresBankId) realBankId.getOrElse("") else ""
-        Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, role)
+        if (ApiRole.valueOf(role).requiresBankId) {
+          Entitlement.entitlement.vend.addEntitlement(realBankId.getOrElse(""), resourceUser1.userId, role)
+          // Dynamic Entity endpoints that name no bank check their Roles at the system space, SYS,
+          // so a caller holding every role must hold the bank-scoped ones there as well.
+          Entitlement.entitlement.vend.addEntitlement(
+            code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, role)
+        } else {
+          Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, role)
+        }
       } catch { case _: Exception => () }
     }
     Map("DirectLogin" -> s"token=${token1.value}")
+  }
+
+  /**
+   * One in-process request against the whole http4s app. No TCP, no server startup.
+   *
+   * Shared rather than copied per sweep: AuthSweepTest, FailureSweepTest and SuccessSweepTest
+   * each carried their own near-identical copy, differing only in whether they could send a
+   * body. Those three still hold theirs; a new sweep must not add a fourth.
+   */
+  /** Built once: Http4sApp.httpApp is a def that assembles the whole route chain on each call. */
+  private lazy val sweepHttpApp = Http4sApp.httpApp
+
+  def callApi(verb: String, path: String, headers: Map[String, String], body: String = "")
+             (implicit runtime: IORuntime): (Int, JValue) = {
+    val method = Method.fromString(verb.toUpperCase).getOrElse(Method.GET)
+    val hdrs   = if (body.nonEmpty) headers + ("Content-Type" -> "application/json") else headers
+    val req = Request[IO](
+      method  = method,
+      uri     = Uri.unsafeFromString(path),
+      headers = Headers(hdrs.map { case (k, v) => Header.Raw(CIString(k), v) }.toList),
+      body    = if (body.nonEmpty) Stream.emits(body.getBytes("UTF-8")).covary[IO] else Stream.empty
+    )
+    val resp    = sweepHttpApp.run(req).unsafeRunSync()
+    val bodyStr = resp.bodyText.compile.string.unsafeRunSync()
+    val json = try { if (bodyStr.trim.isEmpty) JObject(Nil) else parse(bodyStr) }
+               catch { case _: Exception => JObject(Nil) }
+    (resp.status.code, json)
   }
 }

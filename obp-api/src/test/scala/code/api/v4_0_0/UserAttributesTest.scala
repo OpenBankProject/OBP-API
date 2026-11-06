@@ -152,5 +152,28 @@ class UserAttributesTest extends V400ServerSetup {
       putResponse400.body.extract[UserAttributeResponseJsonV400].name equals  ("ROLE_2")
     }
   }
-  
+  // Another user's attribute id must be refused as not found, not updated and reassigned to the caller
+  feature(s"test $ApiEndpoint3 version $VersionOfApi - another user's attribute") {
+    scenario("We will update an attribute of another user", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      When("user1 creates a personal attribute")
+      val request400 = (v4_0_0_Request / "my" / "user" / "attributes").POST <@ (user1)
+      val response400 = makePostRequest(request400, write(postUserAttributeJsonV400))
+      response400.code should equal(201)
+      val userAttributeId = response400.body.extract[UserAttributeResponseJsonV400].user_attribute_id
+
+      When("user2 tries to update it")
+      val putRequest400 = (v4_0_0_Request / "my" / "user" / "attributes" / userAttributeId).PUT <@ (user2)
+      val putResponse400 = makePutRequest(putRequest400, write(putUserAttributeJsonV400))
+      Then("We should get a 404")
+      putResponse400.code should equal(404)
+      putResponse400.body.extract[ErrorMessage].message should equal(UserAttributeNotFound)
+
+      Then("user1 still has the attribute, unchanged")
+      val getRequest400 = (v4_0_0_Request / "my" / "user" / "attributes").GET <@ (user1)
+      val getResponse400 = makeGetRequest(getRequest400)
+      getResponse400.body.extract[UserAttributesResponseJson].user_attributes
+        .exists(a => a.user_attribute_id == userAttributeId && a.name == batteryLevel) should be (true)
+    }
+  }
+
 }

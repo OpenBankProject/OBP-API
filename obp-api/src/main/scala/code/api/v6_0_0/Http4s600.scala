@@ -37,7 +37,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, 
   DateWithMsExampleString,
   DefaultToDateString,
   EmptyBody,
@@ -49,7 +49,7 @@ import code.api.util.APIUtil.{
   urlParametersDocument,
   userAuthenticationMessage
 }
-import code.api.util.{ExampleValue, Glossary}
+import code.api.util.{AttributeTypeDocs, ExampleValue, Glossary}
 import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, TransactionDetailsJSON}
 import code.api.v4_0_0.BankAttributeBankResponseJsonV400
 import code.dynamicchangerequest.MakerChecker
@@ -82,7 +82,7 @@ import code.api.cache.Redis
 import code.bankconnectors.{Connector => BankConnector}
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.migration.MigrationScriptLogProvider
-import code.api.dynamic.entity.helper.DynamicEntityInfo
+import code.api.dynamic.entity.helper.{DynamicEntityInfo, DynamicEntitySpace}
 import code.api.util.APIUtil.{HTTPParam, createQueriesByHttpParamsFuture, unboxFull, unboxFullOrFail}
 import code.api.util.{ApiVersionUtils, CertificateUtil, CommonsEmailWrapper, RateLimitingUtil}
 import code.api.v2_0_0.{BasicViewJson, JSONFactory200}
@@ -110,7 +110,7 @@ import code.util.Helper.SILENCE_IS_GOLDEN
 import com.openbankproject.commons.dto.GetProductsParam
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model.{CreditLimit, CreditRating, CustomerFaceImage}
-import net.liftweb.common.{Empty, Failure}
+import net.liftweb.common.{Box, Empty, Failure}
 
 import scala.util.Random
 import code.metrics.APIMetrics
@@ -168,7 +168,7 @@ object Http4s600 {
     // Mirrors v6 Lift root — both bare prefix and /root return the same
     // info JSON. Reuses JSONFactory510.getApiInfoJSON because v6's API-info
     // shape is unchanged from v5.1.
-    lazy val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val root: Http4sRoute = Http4sRoute {
       case GET -> `prefixPath` =>
         Ok(convertAnyToJsonString(
           JSONFactory510.getApiInfoJSON(implementedInApiVersion, versionStatus)
@@ -183,12 +183,16 @@ object Http4s600 {
     // Route: GET /obp/v6.0.0/api/versions
     // Returns the list of scanned API versions with `is_active` reflecting
     // current `api_disabled_versions`/`api_enabled_versions` props.
-    lazy val getScannedApiVersions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getScannedApiVersions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "api" / "versions" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future {
+            // ApiVersionUtils.versions, not ApiVersion.allScannedApiVersion: the latter is every
+            // ScannedApiVersion value ever *constructed* (they self-register in their constructor),
+            // so a leftover constant advertises a standard whose code is gone. This list is the OBP
+            // versions plus the live class scan for other standards — what this API actually serves.
             val versions: List[ScannedApiVersionJsonV600] =
-              ApiVersion.allScannedApiVersion.asScala.toList
+              ApiVersionUtils.versions
                 .filter(v => v.urlPrefix.trim.nonEmpty)
                 .map { v =>
                   ScannedApiVersionJsonV600(
@@ -209,7 +213,7 @@ object Http4s600 {
     // Auth-only. Returns the logged-in user enriched with entitlements,
     // virtual roles (super_admin / oidc_operator), permissions, and the
     // optional on-behalf-of user when the request runs under a consent.
-    lazy val getCurrentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCurrentUser: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "current" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -254,7 +258,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks
-    lazy val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -265,7 +269,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID
-    lazy val getBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           for {
@@ -276,7 +280,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers
-    lazy val getCustomersAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomersAtOneBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "customers" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           val bankId = BankId(bankIdStr)
@@ -293,7 +297,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID
-    lazy val getCustomerByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerByCustomerId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerId =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -307,7 +311,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/my/banks/BANK_ID/accounts/ACCOUNT_ID/account
-    lazy val getCoreAccountByIdV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCoreAccountByIdV600: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "banks" / _ / "accounts" / _ / "account" =>
         EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
           for {
@@ -324,7 +328,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/my/dynamic-entities
-    lazy val getMyDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMyDynamicEntities: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "dynamic-entities" =>
         EndpointHelpers.withUser(req) { (user, _) =>
           for {
@@ -342,10 +346,11 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/system-dynamic-entities
-    lazy val getSystemDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemDynamicEntities: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "system-dynamic-entities" =>
-        EndpointHelpers.withUser(req) { (_, _) =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
           for {
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canGetDynamicEntityDefinitions, cc)
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None, false))
           } yield {
             // See getSystemDynamicEntities above for why this isn't a blind asInstanceOf cast.
@@ -361,7 +366,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/banks/BANK_ID/dynamic-entities
-    lazy val getBankLevelDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankLevelDynamicEntities: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-entities" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, _) =>
           for {
@@ -380,7 +385,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID
-    lazy val getConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConsumer: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -398,7 +403,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/customers
-    lazy val getCustomersAtAllBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomersAtAllBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "customers" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -414,7 +419,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/users/USER_ID/attributes
-    lazy val getUserAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getUserAttributes: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userIdStr / "attributes" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -426,7 +431,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account
-    lazy val getPrivateAccountByIdFull: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getPrivateAccountByIdFull: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "account" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -448,7 +453,7 @@ object Http4s600 {
     // POST that GETs (returns 200) — used to fetch a customer by their customer_number.
     // Body is parsed manually so we preserve v6 Lift's "The Json body should be the …"
     // wording verbatim, which the test suites assert on.
-    lazy val getCustomerByCustomerNumber: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerByCustomerNumber: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "customers" / "customer-number" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -469,7 +474,7 @@ object Http4s600 {
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/customers/legal-name
     // POST that GETs (returns 200) — fetch customers by legal name.
-    lazy val getCustomersByLegalName: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomersByLegalName: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "customers" / "legal-name" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -488,7 +493,7 @@ object Http4s600 {
 
     // Inlined helpers — match the v6 Lift private versions in APIMethods600.
     private val validEntityNamePattern = "^[a-z][a-z0-9_]*$".r.pattern
-    private def validateEntityNameV600(entityName: String, cc: CallContext): Future[Unit] =
+    private[api] def validateEntityNameV600(entityName: String, cc: CallContext): Future[Unit] =
       if (validEntityNamePattern.matcher(entityName).matches()) Future.successful(())
       else Future.failed(new RuntimeException(s"$InvalidDynamicEntityName Current value: '$entityName'"))
 
@@ -500,13 +505,19 @@ object Http4s600 {
         !NewStyle.function.getMethodRoutings(Some("dynamicEntityProcess"))
           .exists(_.parameters.exists(p => p.key == "entityName" && p.value == dynamicEntity.entityName))
 
-    private def createDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
+    // A failure the checks already shaped, an OBP message or the encoded failure Helper.booleanToFuture
+    // raises (with its own code, such as 409 for an ambiguous path), passes through as it is; anything
+    // else is wrapped as a 400 InvalidJsonFormat below.
+    private def isOwnApiFailure(e: Throwable): Boolean =
+      Option(e.getMessage).map(_.trim).exists(message => message.startsWith("OBP-") || message.startsWith("{\"failMsg\""))
+
+    private[api] def createDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
       _ <- Helper.booleanToFuture(RowLevelAccessRequiresLocalBacking, 400, cc = Some(cc)) { localBackingOkForRowLevel(dynamicEntity) }
       // Wrap the connector call so a thrown RuntimeException (bad schema, etc.)
       // becomes a 400 InvalidJsonFormat — matches v6 Lift's dispatch wrapper.
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
         .recoverWith {
-          case e: Throwable if !Option(e.getMessage).exists(_.startsWith("OBP-")) =>
+          case e: Throwable if !isOwnApiFailure(e) =>
             val json = org.json4s.native.Serialization.write(
               code.api.APIFailureNewStyle(s"$InvalidJsonFormat ${e.getMessage}", 400, Some(cc).map(_.toLight))
             )(org.json4s.DefaultFormats)
@@ -526,17 +537,25 @@ object Http4s600 {
     } yield {
       // Creator grants target the HUMAN (see createBank): a per-consent shadow principal
       // must not end up owning the entity's admin roles.
+      // The Record Roles name a space, and a definition with no bank belongs to the system space, so
+      // the creator's grants go to DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID rather than the empty bank id.
+      // Granting at "" would write rows nothing reads, and the creator would be locked out of the
+      // entity they had just defined.
       crudRoles.foreach(role =>
-        Entitlement.entitlement.vend.addEntitlement(dynamicEntity.bankId.getOrElse(""), cc.onBehalfOfUserId, role.toString(),
+        Entitlement.entitlement.vend.addEntitlement(DynamicEntitySpace.bankIdOrSystem(dynamicEntity.bankId), cc.onBehalfOfUserId, role.toString(),
           grantedByUserId = Some(cc.userId)))
       JSONFactory600.createMyDynamicEntitiesJson(List(result: DynamicEntityCommons)).dynamic_entities.head
     }
 
-    private def updateDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
+    private[api] def updateDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
       _ <- Helper.booleanToFuture(RowLevelAccessRequiresLocalBacking, 400, cc = Some(cc)) { localBackingOkForRowLevel(dynamicEntity) }
+      // Look the definition up in its own space first, so that an id from another space, or no id at
+      // all, is a 404. Left to the update below, the not-found error is caught by the recoverWith and
+      // reported as a 400 InvalidJsonFormat.
+      _ <- NewStyle.function.getDynamicEntityById(dynamicEntity.bankId, dynamicEntity.dynamicEntityId.getOrElse(""), Some(cc))
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
         .recoverWith {
-          case e: Throwable if !Option(e.getMessage).exists(_.startsWith("OBP-")) =>
+          case e: Throwable if !isOwnApiFailure(e) =>
             val json = org.json4s.native.Serialization.write(
               code.api.APIFailureNewStyle(s"$InvalidJsonFormat ${e.getMessage}", 400, Some(cc).map(_.toLight))
             )(org.json4s.DefaultFormats)
@@ -547,7 +566,7 @@ object Http4s600 {
     }
 
     // Route: POST /obp/v6.0.0/management/system-dynamic-entities (201)
-    lazy val createSystemDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createSystemDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "system-dynamic-entities" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -557,6 +576,7 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateDynamicEntityRequestJsonV600]
             }
             _ <- validateEntityNameV600(request.entity_name, cc)
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canCreateDynamicEntityDefinition, cc, code.api.util.APIUtil.UserXORApplication)
             dynamicEntity <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               DynamicEntityCommons(JSONFactory600.convertV600RequestToInternal(request), None, cc.userId, None)
             }
@@ -567,7 +587,7 @@ object Http4s600 {
 
 
     // Route: POST /obp/v6.0.0/management/banks/BANK_ID/dynamic-entities (201)
-    lazy val createBankLevelDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createBankLevelDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-entities" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -587,7 +607,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/management/system-dynamic-entities/DYNAMIC_ENTITY_ID (200)
-    lazy val updateSystemDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateSystemDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "system-dynamic-entities" / dynamicEntityId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -598,6 +618,7 @@ object Http4s600 {
             _ <- validateEntityNameV600(request.entity_name, cc)
             internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
             dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, None)
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canUpdateDynamicEntityDefinition, cc)
             result <- updateDynamicEntityV600(cc, dynamicEntity)
           } yield result
         }
@@ -605,7 +626,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID (200)
-    lazy val updateBankLevelDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateBankLevelDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-entities" / dynamicEntityId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -623,7 +644,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/my/dynamic-entities/DYNAMIC_ENTITY_ID (200)
-    lazy val updateMyDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateMyDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "my" / "dynamic-entities" / dynamicEntityId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -649,7 +670,7 @@ object Http4s600 {
     // Route: PUT /obp/v6.0.0/system-views/UPD_VIEW_ID (200)
     // Uses UPD_VIEW_ID (non-standard ALL_CAPS) so middleware skips view validation;
     // system views aren't in the regular view tables that VIEW_ID resolution checks.
-    lazy val updateSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateSystemView: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "system-views" / viewIdStr if viewIdStr.nonEmpty =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -673,7 +694,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/metrics
-    lazy val getMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMetrics: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "metrics" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -685,9 +706,9 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/aggregate-metrics
-    lazy val getAggregateMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAggregateMetrics: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "aggregate-metrics" =>
-        EndpointHelpers.withUser(req) { (_, cc) =>
+        EndpointHelpers.executeAndRespond(req) { cc =>
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
             _ <- NewStyle.function.tryons(ExcludeParametersNotSupported, 400, Some(cc)) {
@@ -699,8 +720,9 @@ object Http4s600 {
                 throw new Exception(s"$ExcludeParametersNotSupported Parameters found: [${excludes.map(_.name).mkString(", ")}]")
               else true
             }
-            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(
+            limitedHttpParams <- APIMetrics.limitAggregateMetricsWindow(
               APIMetrics.applyMetricsFromDateDefault(httpParams), cc.callContext)
+            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(limitedHttpParams, cc.callContext)
             // isNewVersion = true: v6 is include_* style (exclude_* is rejected above). With
             // false the include_app_names / include_url_patterns /
             // include_implemented_by_partial_functions filters were silently ignored.
@@ -713,7 +735,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/metrics/top-apis
-    lazy val getTopAPIs: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getTopAPIs: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "metrics" / "top-apis" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -744,7 +766,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/webui-props
-    lazy val getWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getWebUiProps: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "webui-props" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val what = req.uri.query.params.getOrElse("what", "active")
@@ -775,7 +797,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts
-    lazy val getAccountsAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAccountsAtBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           val filteredParams: Map[String, List[String]] = req.uri.query.multiParams
@@ -809,7 +831,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions
-    lazy val getTransactionsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getTransactionsForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" =>
         EndpointHelpers.withView(req) { (user, bankAccount, view, cc) =>
           for {
@@ -830,19 +852,21 @@ object Http4s600 {
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/products
     // Simplified port — skips the Redis cache layer (perf optimization only).
-    lazy val getProductsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getProductsV600: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "products" =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           val params = req.uri.query.multiParams.toList.map { case (k, vs) => GetProductsParam(k, vs.toList) }
           for {
             (products, _) <- NewStyle.function.getProducts(bank.bankId, params, Some(cc))
-          } yield JSONFactory600.createProductsJsonV600(products, Map.empty)
+            // one batch lookup of every listed product's tags, as Lift did, so the documented tags field is filled
+            tagsByCode <- Future(code.products.ProductTagsProvider.getTagsByProductCodes(bank.bankId, products.map(_.code.value)))
+          } yield JSONFactory600.createProductsJsonV600(products, tagsByCode)
         }
     }
 
 
     // Route: GET /obp/v6.0.0/users
-    lazy val getUsers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getUsers: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -865,7 +889,7 @@ object Http4s600 {
 
 
     // Route: POST /obp/v6.0.0/banks (201)
-    lazy val createBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createBank: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -920,7 +944,7 @@ object Http4s600 {
 
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/customers (201)
-    lazy val createCustomer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createCustomer: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "customers" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -1053,7 +1077,7 @@ object Http4s600 {
     }
 
     // Route: POST /obp/v6.0.0/users (201)
-    lazy val createUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createUser: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -1101,7 +1125,7 @@ object Http4s600 {
       }
 
     // Route: POST /obp/v6.0.0/management/user/reset-password-url (201)
-    lazy val resetPasswordUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val resetPasswordUrl: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "user" / "reset-password-url" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -1171,7 +1195,7 @@ object Http4s600 {
     // ─── Phase 2: system bucket (8 GETs) — wholly new in v6, no override risk ────
 
     // Route: GET /obp/v6.0.0/system/connectors
-    lazy val getConnectors: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConnectors: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "connectors" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful {
@@ -1188,7 +1212,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/system/cache/config
-    lazy val getCacheConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCacheConfig: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "cache" / "config" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future.successful(JSONFactory600.createCacheConfigJsonV600())
@@ -1197,7 +1221,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/system/cache/info
-    lazy val getCacheInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCacheInfo: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "cache" / "info" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future.successful(JSONFactory600.createCacheInfoJsonV600())
@@ -1206,7 +1230,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/system/cache/namespaces
-    lazy val getCacheNamespaces: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCacheNamespaces: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "cache" / "namespaces" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1218,6 +1242,7 @@ object Http4s600 {
               (Constant.STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX, "Static resource documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
               (Constant.ALL_RESOURCE_DOC_CACHE_KEY_PREFIX, "All resource documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
               (Constant.STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX, "Swagger documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
+              (Constant.MESSAGE_DOCS_CACHE_KEY_PREFIX, "Message docs and connector JSON Schemas", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
               (Constant.CONNECTOR_PREFIX, "Connector method names and metadata", "3600", "Connector"),
               (Constant.METRICS_STABLE_PREFIX, "Stable metrics (historical)", "86400", "Metrics"),
               (Constant.METRICS_RECENT_PREFIX, "Recent metrics", "7", "Metrics"),
@@ -1235,7 +1260,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/system/database/pool
-    lazy val getDatabasePoolInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getDatabasePoolInfo: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "database" / "pool" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future.successful(JSONFactory600.createDatabasePoolInfoJsonV600())
@@ -1244,7 +1269,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/system/migrations
-    lazy val getMigrations: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMigrations: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "migrations" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1256,7 +1281,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/system/connectors/stored_procedure_vDec2019/health
-    lazy val getStoredProcedureConnectorHealth: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getStoredProcedureConnectorHealth: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "connectors" / "stored_procedure_vDec2019" / "health" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1275,7 +1300,7 @@ object Http4s600 {
 
     // Route: GET /obp/v6.0.0/system/connector-method-names
     // Simplified port — skips the Redis cache wrapper (perf only).
-    lazy val getConnectorMethodNames: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConnectorMethodNames: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system" / "connector-method-names" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1291,13 +1316,14 @@ object Http4s600 {
     // `my_resources` (the granting User's own resources the consent user may act on). Owned, not granted,
     // so no Role is checked for the block: Consent.validateMyResources checks kind, shape and existence.
     // Lives in v6 because v5.1.0 is next in line to be frozen. ideas/CONSENT_MY_RESOURCES.md
-    lazy val createConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createConsent: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "my" / "consents" / scaMethod
         if scaMethod == "EMAIL" || scaMethod == "SMS" || scaMethod == "IMPLICIT" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
           val callContextOpt = Some(cc)
           for {
+            _ <- code.api.util.Consent.checkConsentsAllowed(callContextOpt)
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc = callContextOpt) {
               List(StrongCustomerAuthentication.SMS.toString(),
@@ -1335,11 +1361,11 @@ object Http4s600 {
                   e.viewId == rv.view_id && e.bankId == rv.bank_id && e.accountId == rv.account_id))
             }
             _ <- Consent.validateMyResources(consentJson.my_resources, callContextOpt)
-            consumerFromBodyTuple <- consentJson.consumer_id match {
-              case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContextOpt).map(c => (Some(c), c.description))
-              case None     => Future.successful((None: Option[Consumer], "Any application"))
-            }
-            (consumerFromRequestBody, applicationText) = consumerFromBodyTuple
+            // Every Consent names the Consumer it is for -- the body's consumer_id, else the caller.
+            // NewStyle.function.resolveConsentConsumer says why a Consent may not be created without one.
+            consentConsumer <- NewStyle.function.resolveConsentConsumer(consentJson.consumer_id, callContextOpt)
+            consumerFromRequestBody = Some(consentConsumer)
+            applicationText = consentConsumer.description
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
               case _                   => SecureRandomUtil.numeric()
@@ -1360,7 +1386,7 @@ object Http4s600 {
             _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil))
               .map(i => APIUtil.connectorEmptyResponse(i, callContextOpt))
             grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId)).getOrElse("Unknown")
-            granteeConsumerId = consentJson.consumer_id.getOrElse("Unknown")
+            granteeConsumerId = consentConsumer.consumerId
             shouldSkip = APIUtil.skipConsentScaForConsumerIdPairs.contains(
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
             mappedConsent <- if (shouldSkip) {
@@ -1441,7 +1467,10 @@ object Http4s600 {
       |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
       |}
       |
-      |Please note that consumer_id is optional field
+      |Please note that consumer_id is an optional field. It names the Consumer the Consent is for --
+      |set it when the Consent is for a different application than the caller (for example a portal
+      |creating a Consent for an agent to use), omit it when the Consent is for the caller. Either way
+      |the resulting Consent is pinned to exactly one Consumer, and only that Consumer can present it.
       |Example 2:
       |{
       |  "everything": true,
@@ -1473,268 +1502,274 @@ object Http4s600 {
       postConsentBodyJsonV600, consentJsonV310,
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, ConsentAllowedScaMethods,
         RolesAllowedInConsent, RolesForbiddenInConsent, ViewsAllowedInConsent, ConsumerNotFoundByConsumerId, ConsumerIsDisabled,
+        ConsentConsumerIsRequired,
         MissingPropsValueAtThisInstance, SmsServerNotResponding, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
       http4sPartialFunction = Some(createConsent)
     )
 
-    val allRoutes: HttpRoutes[IO] =
-      Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
-        root(req)
-          .orElse(getScannedApiVersions(req))
-          .orElse(getCurrentUser(req))
-          .orElse(createConsent(req))
-          .orElse(getBanks(req))
-          .orElse(getBank(req))
-          .orElse(getCustomersAtOneBank(req))
-          .orElse(getCustomerByCustomerId(req))
-          .orElse(getCoreAccountByIdV600(req))
-          .orElse(getMyDynamicEntities(req))
-          .orElse(getSystemDynamicEntities(req))
-          .orElse(getBankLevelDynamicEntities(req))
-          .orElse(getConsumer(req))
-          .orElse(getCustomersAtAllBanks(req))
-          .orElse(getUserAttributes(req))
-          .orElse(getPrivateAccountByIdFull(req))
-          .orElse(getCustomerByCustomerNumber(req))
-          .orElse(getCustomersByLegalName(req))
-          .orElse(createSystemDynamicEntity(req))
-          .orElse(createBankLevelDynamicEntity(req))
-          .orElse(updateSystemDynamicEntity(req))
-          .orElse(updateBankLevelDynamicEntity(req))
-          .orElse(updateMyDynamicEntity(req))
-          .orElse(updateSystemView(req))
-          .orElse(getMetrics(req))
-          .orElse(getAggregateMetrics(req))
-          .orElse(getTopAPIs(req))
-          .orElse(getWebUiProps(req))
-          .orElse(getAccountsAtBank(req))
-          .orElse(getTransactionsForBankAccount(req))
-          .orElse(getProductsV600(req))
-          .orElse(getUsers(req))
-          .orElse(createBank(req))
-          .orElse(createCustomer(req))
-          .orElse(createUser(req))
-          .orElse(resetPasswordUrl(req))
-          .orElse(getConnectors(req))
-          .orElse(getCacheConfig(req))
-          .orElse(getCacheInfo(req))
-          .orElse(getCacheNamespaces(req))
-          .orElse(getDatabasePoolInfo(req))
-          .orElse(getMigrations(req))
-          .orElse(getStoredProcedureConnectorHealth(req))
-          .orElse(getConnectorMethodNames(req))
-          .orElse(createMandate(req))
-          .orElse(getMandates(req))
-          .orElse(getMandate(req))
-          .orElse(updateMandate(req))
-          .orElse(deleteMandate(req))
-          .orElse(createMandateProvision(req))
-          .orElse(getMandateProvisions(req))
-          .orElse(getMandateProvision(req))
-          .orElse(updateMandateProvision(req))
-          .orElse(deleteMandateProvision(req))
-          .orElse(createApiProduct(req))
-          .orElse(createOrUpdateApiProduct(req))
-          .orElse(getApiProduct(req))
-          .orElse(getApiProducts(req))
-          .orElse(deleteApiProduct(req))
-          .orElse(createApiProductAttribute(req))
-          .orElse(updateApiProductAttribute(req))
-          .orElse(getApiProductAttribute(req))
-          .orElse(deleteApiProductAttribute(req))
-          .orElse(createFeaturedApiCollection(req))
-          .orElse(getFeaturedApiCollectionsAdmin(req))
-          .orElse(updateFeaturedApiCollection(req))
-          .orElse(deleteFeaturedApiCollection(req))
-          .orElse(createPersonalDataField(req))
-          .orElse(getPersonalDataFields(req))
-          .orElse(getPersonalDataFieldById(req))
-          .orElse(updatePersonalDataField(req))
-          .orElse(deletePersonalDataField(req))
-          .orElse(getConsumerCallCounters(req))
-          .orElse(createCallLimits(req))
-          .orElse(updateRateLimits(req))
-          .orElse(deleteCallLimits(req))
-          .orElse(getActiveRateLimitsNow(req))
-          .orElse(getActiveRateLimitsAtDate(req))
-          .orElse(createGroup(req))
-          .orElse(getGroup(req))
-          .orElse(getGroups(req))
-          .orElse(updateGroup(req))
-          .orElse(deleteGroup(req))
-          .orElse(getGroupEntitlements(req))
-          .orElse(createAbacRule(req))
-          .orElse(getAbacRule(req))
-          .orElse(getAbacRules(req))
-          .orElse(getAbacRulesByPolicy(req))
-          .orElse(updateAbacRule(req))
-          .orElse(deleteAbacRule(req))
-          .orElse(getFeatures(req))
-          .orElse(getProviders(req))
-          .orElse(getCurrentConsumer(req))
-          .orElse(getPopularApis(req))
-          .orElse(getAccountDirectory(req))
-          .orElse(getConfigProps(req))
-          .orElse(getAppDirectory(req))
-          .orElse(getCustomViews(req))
-          .orElse(getRolesWithEntitlementCountsAtAllBanks(req))
-          .orElse(getCustomViewById(req))
-          .orElse(invalidateCacheNamespace(req))
-          .orElse(createCustomerLink(req))
-          .orElse(getCustomerLinksByBankId(req))
-          .orElse(getCustomerLinkById(req))
-          .orElse(updateCustomerLink(req))
-          .orElse(deleteCustomerLink(req))
-          .orElse(getCorporateCustomersAtOneBank(req))
-          .orElse(getCorporateCustomerByCustomerId(req))
-          .orElse(getCorporateCustomerSubsidiaries(req))
-          .orElse(getRetailCustomersAtOneBank(req))
-          .orElse(getRetailCustomerByCustomerId(req))
-          .orElse(getCustomerChildren(req))
-          .orElse(getCustomerLinksByCustomerId(req))
-          .orElse(getCustomerInvestigationReport(req))
-          .orElse(getSystemViews(req))
-          .orElse(getSystemViewById(req))
-          .orElse(getAbacPolicies(req))
-          .orElse(getConnectorCallCounts(req))
-          .orElse(getConnectorTraces(req))
-          .orElse(getDynamicEntityDiagnostics(req))
-          .orElse(cleanupOrphanedDynamicEntityRecords(req))
-          .orElse(createWebUiProps(req))
-          .orElse(createOrUpdateWebUiProps(req))
-          .orElse(deleteWebUiProps(req))
-          .orElse(createCustomViewManagement(req))
-          .orElse(getProductTagsV600(req))
-          .orElse(updateProductTagsV600(req))
-          .orElse(getOidcClient(req))
-          .orElse(verifyOidcClient(req))
-          .orElse(getUserAttributeById(req))
-          .orElse(createUserAttribute(req))
-          .orElse(updateUserAttribute(req))
-          .orElse(deleteUserAttribute(req))
-          .orElse(addUserToGroup(req))
-          .orElse(removeUserFromGroup(req))
-          .orElse(deleteEntitlement(req))
-          .orElse(getAvailablePersonalDynamicEntities(req))
-          .orElse(getReferenceTypes(req))
-          .orElse(joinSystemChatRoom(req))
-          .orElse(createCounterpartyAttribute(req))
-          .orElse(deleteCounterpartyAttribute(req))
-          .orElse(getCounterpartyAttributeById(req))
-          .orElse(getAllCounterpartyAttributes(req))
-          .orElse(updateCounterpartyAttribute(req))
-          .orElse(hasAccountAccess(req))
-          .orElse(getMyAccountAccessRequests(req))
-          .orElse(getWebUiProp(req))
-          .orElse(getMessageDocsJsonSchema(req))
-          .orElse(verifyUserCredentials(req))
-          .orElse(getViewPermissions(req))
-          .orElse(getAllApiProductsV600(req))
-          .orElse(getAllProductsV600(req))
-          .orElse(getAccountAccessRequestsForAccount(req))
-          .orElse(getAccountAccessRequestById(req))
-          .orElse(getHoldingAccountByReleaser(req))
-          .orElse(createAccountAccessRequest(req))
-          .orElse(approveAccountAccessRequest(req))
-          .orElse(rejectAccountAccessRequest(req))
-          .orElse(getSignalChannels(req))
-          .orElse(getSignalChannelInfo(req))
-          .orElse(getSignalStats(req))
-          .orElse(publishSignalMessage(req))
-          .orElse(getSignalMessages(req))
-          .orElse(deleteSignalChannel(req))
-          .orElse(getBankChatRooms(req))
-          .orElse(getSystemChatRooms(req))
-          .orElse(getBankChatRoom(req))
-          .orElse(getSystemChatRoom(req))
-          .orElse(getMyChatRooms(req))
-          .orElse(getMyUnreadCounts(req))
-          .orElse(markChatRoomRead(req))
-          .orElse(getMyMentions(req))
-          .orElse(searchChatRooms(req))
-          .orElse(getBulkReactions(req))
-          .orElse(archiveBankChatRoom(req))
-          .orElse(archiveSystemChatRoom(req))
-          .orElse(joinBankChatRoom(req))
-          .orElse(refreshBankJoiningKey(req))
-          .orElse(refreshSystemJoiningKey(req))
-          .orElse(createBankChatRoom(req))
-          .orElse(createSystemChatRoom(req))
-          .orElse(updateBankChatRoom(req))
-          .orElse(updateSystemChatRoom(req))
-          .orElse(deleteBankChatRoom(req))
-          .orElse(deleteSystemChatRoom(req))
-          .orElse(setBankChatRoomOpenRoom(req))
-          .orElse(setSystemChatRoomOpenRoom(req))
-          .orElse(addBankChatRoomParticipant(req))
-          .orElse(addSystemChatRoomParticipant(req))
-          .orElse(getBankChatRoomParticipants(req))
-          .orElse(getSystemChatRoomParticipants(req))
-          .orElse(updateBankParticipantPermissions(req))
-          .orElse(updateSystemParticipantPermissions(req))
-          .orElse(removeBankChatRoomParticipant(req))
-          .orElse(removeSystemChatRoomParticipant(req))
-          .orElse(sendBankChatMessage(req))
-          .orElse(sendSystemChatMessage(req))
-          .orElse(getBankChatMessages(req))
-          .orElse(getSystemChatMessages(req))
-          .orElse(getBankChatMessage(req))
-          .orElse(getSystemChatMessage(req))
-          .orElse(editBankChatMessage(req))
-          .orElse(editSystemChatMessage(req))
-          .orElse(deleteBankChatMessage(req))
-          .orElse(deleteSystemChatMessage(req))
-          .orElse(getBankThreadReplies(req))
-          .orElse(getSystemThreadReplies(req))
-          .orElse(replyInBankThread(req))
-          .orElse(replyInSystemThread(req))
-          .orElse(addBankReaction(req))
-          .orElse(addSystemReaction(req))
-          .orElse(removeBankReaction(req))
-          .orElse(removeSystemReaction(req))
-          .orElse(getBankReactions(req))
-          .orElse(getSystemReactions(req))
-          .orElse(signalBankTyping(req))
-          .orElse(signalSystemTyping(req))
-          .orElse(getBankTypingUsers(req))
-          .orElse(getSystemTypingUsers(req))
-          .orElse(createSignatoryPanel(req))
-          .orElse(getSignatoryPanels(req))
-          .orElse(getSignatoryPanel(req))
-          .orElse(updateSignatoryPanel(req))
-          .orElse(deleteSignatoryPanel(req))
-          .orElse(validateUserEmail(req))
-          .orElse(resetPasswordComplete(req))
-          .orElse(resetPasswordUrlAnonymous(req))
-          .orElse(validateDynamicResourceDoc(req))
-          .orElse(createTransactionRequestHold(req))
-          .orElse(createTransactionRequestCardano(req))
-          .orElse(createTransactionRequestEthereumeSendTransaction(req))
-          .orElse(createTransactionRequestEthSendRawTransaction(req))
-          .orElse(getUserGroupMemberships(req))
-          .orElse(getUsersWithAccountAccess(req))
-          .orElse(createRetailCustomer(req))
-          .orElse(createCorporateCustomer(req))
-          .orElse(getUserByUserId(req))
-          .orElse(directLoginEndpoint(req))
-          .orElse(validateAbacRule(req))
-          .orElse(executeAbacRule(req))
-          .orElse(executeAbacPolicy(req))
-          .orElse(getAbacRuleSchema(req))
-          .orElse(backupSystemDynamicEntity(req))
-          .orElse(backupBankLevelDynamicEntity(req))
-          .orElse(deleteSystemDynamicEntityCascade(req))
-          // createCorporateCustomer + createRetailCustomer deferred — share
-          // the 60-line date-parsing/customer-number generation logic of
-          // createCustomer (already migrated); will batch as a focused pass.
-      }
+    // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
+    // route that serves a request, so it is given the docs in this same order.
+    lazy val routesInOrder: List[Http4sHandler] = List(
+      root,
+      getScannedApiVersions,
+      getCurrentUser,
+      createConsent,
+      getBanks,
+      getBank,
+      getCustomersAtOneBank,
+      getCustomerByCustomerId,
+      getCoreAccountByIdV600,
+      getMyDynamicEntities,
+      getSystemDynamicEntities,
+      getBankLevelDynamicEntities,
+      getConsumer,
+      getCustomersAtAllBanks,
+      getUserAttributes,
+      getPrivateAccountByIdFull,
+      getCustomerByCustomerNumber,
+      getCustomersByLegalName,
+      createSystemDynamicEntity,
+      createBankLevelDynamicEntity,
+      updateSystemDynamicEntity,
+      updateBankLevelDynamicEntity,
+      updateMyDynamicEntity,
+      updateSystemView,
+      getMetrics,
+      getAggregateMetrics,
+      getTopAPIs,
+      getWebUiProps,
+      getAccountsAtBank,
+      getTransactionsForBankAccount,
+      getProductsV600,
+      getUsers,
+      createBank,
+      createCustomer,
+      createUser,
+      resetPasswordUrl,
+      getConnectors,
+      getCacheConfig,
+      getCacheInfo,
+      getCacheNamespaces,
+      getDatabasePoolInfo,
+      getMigrations,
+      getStoredProcedureConnectorHealth,
+      getConnectorMethodNames,
+      createMandate,
+      getMandates,
+      getMandate,
+      updateMandate,
+      deleteMandate,
+      createMandateProvision,
+      getMandateProvisions,
+      getMandateProvision,
+      updateMandateProvision,
+      deleteMandateProvision,
+      createApiProduct,
+      createOrUpdateApiProduct,
+      getApiProduct,
+      getApiProducts,
+      deleteApiProduct,
+      createApiProductAttribute,
+      updateApiProductAttribute,
+      getApiProductAttribute,
+      deleteApiProductAttribute,
+      createFeaturedApiCollection,
+      getFeaturedApiCollectionsAdmin,
+      updateFeaturedApiCollection,
+      deleteFeaturedApiCollection,
+      createPersonalDataField,
+      getPersonalDataFields,
+      getPersonalDataFieldById,
+      updatePersonalDataField,
+      deletePersonalDataField,
+      getConsumerCallCounters,
+      createCallLimits,
+      updateRateLimits,
+      deleteCallLimits,
+      getActiveRateLimitsNow,
+      getActiveRateLimitsAtDate,
+      createGroup,
+      getGroup,
+      getGroups,
+      updateGroup,
+      deleteGroup,
+      getGroupEntitlements,
+      createAbacRule,
+      getAbacRule,
+      getAbacRules,
+      getAbacRulesByPolicy,
+      updateAbacRule,
+      deleteAbacRule,
+      getFeatures,
+      getProviders,
+      getCurrentConsumer,
+      getPopularApis,
+      getAccountDirectory,
+      getConfigProps,
+      getAppDirectory,
+      getCustomViews,
+      getRolesWithEntitlementCountsAtAllBanks,
+      getCustomViewById,
+      invalidateCacheNamespace,
+      createCustomerLink,
+      getCustomerLinksByBankId,
+      getCustomerLinkById,
+      updateCustomerLink,
+      deleteCustomerLink,
+      getCorporateCustomersAtOneBank,
+      getCorporateCustomerByCustomerId,
+      getCorporateCustomerSubsidiaries,
+      getRetailCustomersAtOneBank,
+      getRetailCustomerByCustomerId,
+      getCustomerChildren,
+      getCustomerLinksByCustomerId,
+      getCustomerInvestigationReport,
+      getSystemViews,
+      getSystemViewById,
+      getAbacPolicies,
+      getConnectorCallCounts,
+      getConnectorTraces,
+      getDynamicEntityDiagnostics,
+      cleanupOrphanedDynamicEntityRecords,
+      createWebUiProps,
+      createOrUpdateWebUiProps,
+      deleteWebUiProps,
+      createCustomViewManagement,
+      getProductTagsV600,
+      updateProductTagsV600,
+      getOidcClient,
+      verifyOidcClient,
+      getUserAttributeById,
+      createUserAttribute,
+      updateUserAttribute,
+      deleteUserAttribute,
+      addUserToGroup,
+      removeUserFromGroup,
+      deleteEntitlement,
+      getAvailablePersonalDynamicEntities,
+      getReferenceTypes,
+      joinSystemChatRoom,
+      createCounterpartyAttribute,
+      deleteCounterpartyAttribute,
+      getCounterpartyAttributeById,
+      getAllCounterpartyAttributes,
+      updateCounterpartyAttribute,
+      hasAccountAccess,
+      getMyAccountAccessRequests,
+      getWebUiProp,
+      getMessageDocsJsonSchema,
+      verifyUserCredentials,
+      getViewPermissions,
+      getAllApiProductsV600,
+      getAllProductsV600,
+      getAccountAccessRequestsForAccount,
+      getAccountAccessRequestById,
+      getHoldingAccountByReleaser,
+      createAccountAccessRequest,
+      approveAccountAccessRequest,
+      rejectAccountAccessRequest,
+      getSignalChannels,
+      getSignalChannelInfo,
+      getSignalStats,
+      publishSignalMessage,
+      getSignalMessages,
+      deleteSignalChannel,
+      getBankChatRooms,
+      getSystemChatRooms,
+      getBankChatRoom,
+      getSystemChatRoom,
+      getMyChatRooms,
+      getMyUnreadCounts,
+      markChatRoomRead,
+      getMyMentions,
+      searchChatRooms,
+      getBulkReactions,
+      archiveBankChatRoom,
+      archiveSystemChatRoom,
+      joinBankChatRoom,
+      refreshBankJoiningKey,
+      refreshSystemJoiningKey,
+      createBankChatRoom,
+      createSystemChatRoom,
+      updateBankChatRoom,
+      updateSystemChatRoom,
+      deleteBankChatRoom,
+      deleteSystemChatRoom,
+      setBankChatRoomOpenRoom,
+      setSystemChatRoomOpenRoom,
+      addBankChatRoomParticipant,
+      addSystemChatRoomParticipant,
+      getBankChatRoomParticipants,
+      getSystemChatRoomParticipants,
+      updateBankParticipantPermissions,
+      updateSystemParticipantPermissions,
+      removeBankChatRoomParticipant,
+      removeSystemChatRoomParticipant,
+      sendBankChatMessage,
+      sendSystemChatMessage,
+      getBankChatMessages,
+      getSystemChatMessages,
+      getBankChatMessage,
+      getSystemChatMessage,
+      editBankChatMessage,
+      editSystemChatMessage,
+      deleteBankChatMessage,
+      deleteSystemChatMessage,
+      getBankThreadReplies,
+      getSystemThreadReplies,
+      replyInBankThread,
+      replyInSystemThread,
+      addBankReaction,
+      addSystemReaction,
+      removeBankReaction,
+      removeSystemReaction,
+      getBankReactions,
+      getSystemReactions,
+      signalBankTyping,
+      signalSystemTyping,
+      getBankTypingUsers,
+      getSystemTypingUsers,
+      createSignatoryPanel,
+      getSignatoryPanels,
+      getSignatoryPanel,
+      updateSignatoryPanel,
+      deleteSignatoryPanel,
+      validateUserEmail,
+      resetPasswordComplete,
+      resetPasswordUrlAnonymous,
+      validateDynamicResourceDoc,
+      createTransactionRequestHold,
+      createTransactionRequestCardano,
+      createTransactionRequestEthereumeSendTransaction,
+      createTransactionRequestEthSendRawTransaction,
+      getUserGroupMemberships,
+      getUsersWithAccountAccess,
+      createRetailCustomer,
+      createCorporateCustomer,
+      getUserByUserId,
+      directLoginEndpoint,
+      validateAbacRule,
+      executeAbacRule,
+      executeAbacPolicy,
+      getAbacRuleSchema,
+      backupSystemDynamicEntity,
+      backupBankLevelDynamicEntity,
+      deleteSystemDynamicEntityCascade
+      // createCorporateCustomer + createRetailCustomer deferred — share
+      // the 60-line date-parsing/customer-number generation logic of
+      // createCustomer (already migrated); will batch as a focused pass.
+    )
+
+    lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
+
+    lazy val allRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 
     // ─── Phase 2: corporate-customers + retail-customers + banks/customers/* (8) ───
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/corporate-customers
-    lazy val getCorporateCustomersAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCorporateCustomersAtOneBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "corporate-customers" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -1748,7 +1783,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/corporate-customers/CUSTOMER_ID
-    lazy val getCorporateCustomerByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCorporateCustomerByCustomerId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "corporate-customers" / customerId =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -1763,7 +1798,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/corporate-customers/CUSTOMER_ID/subsidiaries
-    lazy val getCorporateCustomerSubsidiaries: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCorporateCustomerSubsidiaries: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "corporate-customers" / customerId / "subsidiaries" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -1778,7 +1813,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/retail-customers
-    lazy val getRetailCustomersAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getRetailCustomersAtOneBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "retail-customers" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -1792,7 +1827,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/retail-customers/CUSTOMER_ID
-    lazy val getRetailCustomerByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getRetailCustomerByCustomerId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "retail-customers" / customerId =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -1807,7 +1842,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID/children
-    lazy val getCustomerChildren: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerChildren: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerId / "children" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -1819,7 +1854,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID/customer-links
-    lazy val getCustomerLinksByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerLinksByCustomerId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerId / "customer-links" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -1836,7 +1871,7 @@ object Http4s600 {
     // deleteSystemDynamicEntityCascade (private deleteDynamicEntityCascadeMethod).
 
     // GET /obp/v6.0.0/management/system-views
-    lazy val getSystemViews: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemViews: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "system-views" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Views.views.vend.getSystemViews().map(JSONFactory600.createViewsJsonV600)
@@ -1844,7 +1879,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/system-views/SYS_VIEW_ID  (non-standard var so middleware skips view validation)
-    lazy val getSystemViewById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemViewById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "system-views" / viewIdStr =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           ViewNewStyle.systemView(ViewId(viewIdStr), Some(cc)).map(JSONFactory600.createViewJsonV600)
@@ -1852,7 +1887,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/abac-policies
-    lazy val getAbacPolicies: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAbacPolicies: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "abac-policies" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1866,7 +1901,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/connector/metrics/counts
-    lazy val getConnectorCallCounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConnectorCallCounts: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "connector" / "metrics" / "counts" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1884,7 +1919,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/connector/traces
-    lazy val getConnectorTraces: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConnectorTraces: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "connector" / "traces" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -1896,7 +1931,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/diagnostics/dynamic-entities
-    lazy val getDynamicEntityDiagnostics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getDynamicEntityDiagnostics: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "diagnostics" / "dynamic-entities" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1912,7 +1947,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/management/diagnostics/dynamic-entities/orphaned-records
-    lazy val cleanupOrphanedDynamicEntityRecords: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val cleanupOrphanedDynamicEntityRecords: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "diagnostics" / "dynamic-entities" / "orphaned-records" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -1922,11 +1957,11 @@ object Http4s600 {
             orphaned.foreach { orphan =>
               // Community scoping is right here: an orphaned entity's records go regardless of
               // owner or personal flag.
-              // orphan.bankId is a String where empty means system-level, so it is narrowed to the
-              // Option the store takes.
-              val orphanBankId = if (orphan.bankId.isEmpty) None else Some(orphan.bankId)
+              // orphan.bankId is the stored form, SYS (or, on an older row, empty) for the system space,
+              // so it is narrowed to the Option the store takes.
+              val orphanBankId = DynamicEntitySpace.bankIdOrNoneForSystem(orphan.bankId)
               val records = DynamicData.findAllCommunity(orphanBankId, orphan.entityName)
-              records.foreach { r => DynamicData.delete(r.dynamicDataId.getOrElse("")); totalDeleted += 1 }
+              records.foreach { r => DynamicData.delete(orphanBankId, orphan.entityName, r.dynamicDataId.getOrElse("")); totalDeleted += 1 }
             }
             val orphanedJson = orphaned.map(o => JSONFactory600.OrphanedDynamicEntityJsonV600(o.entityName, o.bankId, o.recordCount))
             JSONFactory600.CleanupOrphanedDynamicEntityResponseJsonV600(orphanedJson, totalDeleted)
@@ -1935,7 +1970,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/management/webui_props
-    lazy val createWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createWebUiProps: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "webui_props" =>
         EndpointHelpers.withUserAndBodyCreated[WebUiPropsCommons, Any](req) { (user, postedData, cc) =>
           for {
@@ -1952,7 +1987,7 @@ object Http4s600 {
 
 
     // PUT /obp/v6.0.0/management/webui_props/WEBUI_PROP_NAME
-    lazy val createOrUpdateWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createOrUpdateWebUiProps: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "webui_props" / webUiPropName =>
         implicit val cc: CallContext = req.callContext
         implicit val formats: Formats = code.api.util.CustomJsonFormats.formats
@@ -1986,7 +2021,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/management/webui_props/WEBUI_PROP_NAME
-    lazy val deleteWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteWebUiProps: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "webui_props" / webUiPropName =>
         EndpointHelpers.executeDelete(req) { cc =>
           val nameLower = webUiPropName.toLowerCase
@@ -2012,7 +2047,7 @@ object Http4s600 {
     // ─── Phase 2: 3 small mixed buckets (5 endpoints) ─────────────────────
 
     // POST /obp/v6.0.0/management/banks/BANK_ID/accounts/ACCOUNT_ID/views (201)
-    lazy val createCustomViewManagement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createCustomViewManagement: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "accounts" / accountIdStr / "views" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2033,7 +2068,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/products/PRODUCT_CODE/tags
-    lazy val getProductTagsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getProductTagsV600: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "products" / productCodeStr / "tags" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           val productCode = com.openbankproject.commons.model.ProductCode(productCodeStr)
@@ -2045,7 +2080,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/banks/BANK_ID/products/PRODUCT_CODE/tags
-    lazy val updateProductTagsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateProductTagsV600: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "products" / productCodeStr / "tags" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -2070,7 +2105,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/oidc/clients/CLIENT_ID
-    lazy val getOidcClient: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getOidcClient: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "oidc" / "clients" / clientId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -2082,8 +2117,8 @@ object Http4s600 {
               }
             }
           } yield {
-            val redirectUris = Option(consumer.redirectURL).filter(_.nonEmpty)
-              .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList).getOrElse(List.empty)
+            // Stored entries that fail the redirect URL rules (written before they existed) are never handed out.
+            val redirectUris = code.api.util.RedirectUrlValidation.validEntries(consumer.redirectURL)
             GetOidcClientResponseJsonV600(
               client_id = clientId, client_name = consumer.name,
               consumer_id = consumer.consumerId,
@@ -2093,7 +2128,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/oidc/clients/verify
-    lazy val verifyOidcClient: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val verifyOidcClient: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "oidc" / "clients" / "verify" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -2105,8 +2140,7 @@ object Http4s600 {
           } yield {
             consumerBox match {
               case Full(consumer) if consumer.isActive && consumer.secret == postedData.client_secret =>
-                val redirectUris = Option(consumer.redirectURL).filter(_.nonEmpty)
-                  .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList)
+                val redirectUris = Some(code.api.util.RedirectUrlValidation.validEntries(consumer.redirectURL)).filter(_.nonEmpty)
                 VerifyOidcClientResponseJsonV600(
                   valid = true,
                   client_id = Some(postedData.client_id),
@@ -2121,7 +2155,7 @@ object Http4s600 {
     // ─── Phase 2: users bucket (6 of 16; chat-room + special-purpose deferred) ───
 
     // GET /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID
-    lazy val getUserAttributeById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getUserAttributeById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userIdStr / "attributes" / userAttributeId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -2134,7 +2168,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/users/USER_ID/attributes (201)
-    lazy val createUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createUserAttribute: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / userIdStr / "attributes" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2154,7 +2188,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID
-    lazy val updateUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateUserAttribute: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "users" / userIdStr / "attributes" / userAttributeId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -2176,7 +2210,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID
-    lazy val deleteUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteUserAttribute: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "users" / userIdStr / "attributes" / userAttributeId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -2190,7 +2224,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/users/USER_ID/group-entitlements (201)
-    lazy val addUserToGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val addUserToGroup: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / userIdStr / "group-entitlements" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2212,6 +2246,9 @@ object Http4s600 {
               .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Group not found", 404))
             _ <- groupRoleCheck(group.bankId, user.userId, canAddUserToGroupAtOneBank, canAddUserToGroupAtAllBanks, cc)
             _ <- Helper.booleanToFuture(s"$UnknownError Group is not enabled", 400, Some(cc))(group.isEnabled)
+            // Recorded even when every Role is skipped below: the Entitlements alone would not show it.
+            _ <- Future(code.group.GroupMemberships.addMembership(group.groupId, userIdStr, Some(user.userId)))
+              .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Cannot record the group membership", 400))
             existingEntitlements <- Future(Entitlement.entitlement.vend.getEntitlementsByUserId(userIdStr))
             entitlementResults <- Future.sequence(group.listOfRoles.map { roleName =>
               Future {
@@ -2240,7 +2277,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/users/USER_ID/group-entitlements/GROUP_ID
-    lazy val removeUserFromGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val removeUserFromGroup: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "users" / userIdStr / "group-entitlements" / groupId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
@@ -2249,13 +2286,20 @@ object Http4s600 {
             group <- Future(code.group.GroupTrait.group.vend.getGroup(groupId))
               .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Group not found", 404))
             _ <- groupRoleCheck(group.bankId, user.userId, canRemoveUserFromGroupAtOneBank, canRemoveUserFromGroupAtAllBanks, cc)
+            _ <- Future(code.group.GroupMemberships.removeMembership(groupId, userIdStr))
+              .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Cannot remove the group membership", 400))
             entitlements <- Future(Entitlement.entitlement.vend.getEntitlementsByUserId(userIdStr))
             // group_id alone identifies group-born rows (only group grants set it) and holds
             // for legacy rows too; the old `process == GROUP_MEMBERSHIP` conjunct was redundant.
             groupEntitlements = entitlements.toOption.getOrElse(List.empty).filter(e =>
               e.groupId == Some(groupId))
-            _ <- Future.sequence(groupEntitlements.map(e =>
-              Future(Entitlement.entitlement.vend.deleteEntitlement(Full(e)))))
+            // A Role another of the user's Groups also grants is kept, and recorded against that Group.
+            _ <- Future.sequence(groupEntitlements.map(e => Future {
+              code.group.GroupMemberships.otherGroupGranting(userIdStr, e.bankId, e.roleName, groupId) match {
+                case Some(other) => Entitlement.entitlement.vend.setEntitlementGroupId(e.entitlementId, other.groupId)
+                case None => Entitlement.entitlement.vend.deleteEntitlement(Full(e))
+              }
+            }))
           } yield ""
         }
     }
@@ -2263,7 +2307,7 @@ object Http4s600 {
     // ─── Phase 2: 4 more single-endpoint buckets ──────────────────────────
 
     // DELETE /obp/v6.0.0/entitlements/ENTITLEMENT_ID
-    lazy val deleteEntitlement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteEntitlement: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "entitlements" / entitlementId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -2277,7 +2321,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/personal-dynamic-entities/available
-    lazy val getAvailablePersonalDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAvailablePersonalDynamicEntities: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "personal-dynamic-entities" / "available" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future(NewStyle.function.getDynamicEntities(None, true))
@@ -2287,11 +2331,13 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/dynamic-entities/reference-types
-    lazy val getReferenceTypes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getReferenceTypes: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "dynamic-entities" / "reference-types" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
-            val referenceTypeNames = code.dynamicEntity.ReferenceType.referenceTypeNames
+            // The catalogue of every reference type on the instance. A definition is validated against
+            // the types of its own space (ReferenceType.referenceTypeNames), which is the narrower list.
+            val referenceTypeNames = code.dynamicEntity.ReferenceType.allReferenceTypeNames
             val dynamicEntityNames = NewStyle.function.getDynamicEntities(None, true)
               .map(e => s"reference:${e.entityName}").toSet
             val exampleId1 = APIUtil.generateUUID()
@@ -2328,7 +2374,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/chat-room-participants (201) — join a system chat room by joining_key
-    lazy val joinSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val joinSystemChatRoom: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-room-participants" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2353,13 +2399,22 @@ object Http4s600 {
 
     private val counterpartyAttributeTypeErrorMsg =
       s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-        s"${com.openbankproject.commons.model.enums.CounterpartyAttributeType.DOUBLE}(12.1234), " +
-        s"${com.openbankproject.commons.model.enums.CounterpartyAttributeType.STRING}(TAX_NUMBER), " +
-        s"${com.openbankproject.commons.model.enums.CounterpartyAttributeType.INTEGER}(123) and " +
-        s"${com.openbankproject.commons.model.enums.CounterpartyAttributeType.DATE_WITH_DAY}(2012-04-23)"
+        AttributeTypeDocs.typesWithExamples
+
+    /**
+     * This returns the attribute COUNTERPARTY_ATTRIBUTE_ID only if it belongs to the counterparty in the URL.
+     * The middleware has already checked that the counterparty belongs to the bank and account in the URL
+     * (COUNTERPARTY_ID); an attribute is found by its own id, so it could belong to any counterparty.
+     */
+    private def counterpartyAttributeOfCounterparty(counterpartyIdStr: String,
+                                                    attributeId: String): Future[com.openbankproject.commons.model.CounterpartyAttributeTrait] =
+      for {
+        attributeBox <- code.counterpartyattribute.CounterpartyAttributeX.counterpartyAttributeProvider.vend.getCounterpartyAttributeById(attributeId)
+      } yield unboxFullOrFail(
+        attributeBox.filter(_.counterpartyId.value == counterpartyIdStr), None, CounterpartyAttributeNotFound, 404)
 
     // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes (201)
-    lazy val createCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createCounterpartyAttribute: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2384,25 +2439,28 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
-    lazy val deleteCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / _ / "attributes" / attributeId =>
+    lazy val deleteCounterpartyAttribute: Http4sRoute = Http4sRoute {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" / attributeId =>
         EndpointHelpers.executeDelete(req) { cc =>
-          code.api.util.newstyle.CounterpartyAttributeNewStyle.deleteCounterpartyAttribute(attributeId, Some(cc))
+          for {
+            _ <- counterpartyAttributeOfCounterparty(counterpartyId, attributeId)
+            deleted <- code.api.util.newstyle.CounterpartyAttributeNewStyle.deleteCounterpartyAttribute(attributeId, Some(cc))
+          } yield deleted
         }
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
-    lazy val getCounterpartyAttributeById: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / _ / "attributes" / attributeId =>
+    lazy val getCounterpartyAttributeById: Http4sRoute = Http4sRoute {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" / attributeId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
-            (attribute, _) <- code.api.util.newstyle.CounterpartyAttributeNewStyle.getCounterpartyAttributeById(attributeId, Some(cc))
+            attribute <- counterpartyAttributeOfCounterparty(counterpartyId, attributeId)
           } yield JSONFactory600.createCounterpartyAttributeJson(attribute)
         }
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes
-    lazy val getAllCounterpartyAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAllCounterpartyAttributes: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -2413,11 +2471,12 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
-    lazy val updateCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateCounterpartyAttribute: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" / attributeId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
           for {
+            _ <- counterpartyAttributeOfCounterparty(counterpartyId, attributeId)
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CounterpartyAttributeRequestJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CounterpartyAttributeRequestJsonV600]
             }
@@ -2437,7 +2496,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/has-account-access
-    lazy val hasAccountAccess: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val hasAccountAccess: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "has-account-access" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val bankId = BankId(bankIdStr)
@@ -2470,7 +2529,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/my/account-access-requests
-    lazy val getMyAccountAccessRequests: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMyAccountAccessRequests: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "account-access-requests" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -2481,10 +2540,10 @@ object Http4s600 {
         }
     }
 
-    // ─── Phase 2: 3 anonymous/UserOrApplication endpoints ─────────────────
+    // ─── Phase 2: 3 anonymous/UserXORApplication endpoints ─────────────────
 
     // GET /obp/v6.0.0/webui-props/WEBUI_PROP_NAME
-    lazy val getWebUiProp: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getWebUiProp: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "webui-props" / webUiPropName =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val active = req.uri.query.params.getOrElse("active", "false")
@@ -2520,11 +2579,11 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/message-docs/CONNECTOR/json-schema
-    lazy val getMessageDocsJsonSchema: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMessageDocsJsonSchema: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "message-docs" / connector / "json-schema" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val cacheKey = s"message-docs-json-schema-$connector"
-          val cacheValueFromRedis = code.api.cache.Caching.getStaticSwaggerDocCache(cacheKey)
+          val cacheValueFromRedis = code.api.cache.Caching.getMessageDocsCache(cacheKey)
           for {
             jsonSchema <- if (cacheValueFromRedis.isDefined) {
               NewStyle.function.tryons(s"$UnknownError Cannot parse cached JSON Schema.", 400, Some(cc)) {
@@ -2540,7 +2599,7 @@ object Http4s600 {
                 val schema = code.api.util.JsonSchemaGenerator.messageDocsToJsonSchema(
                   connectorObject.messageDocs.toList, connector)
                 val schemaString = com.openbankproject.commons.util.JsonAliases.compactRender(schema)
-                code.api.cache.Caching.setStaticSwaggerDocCache(cacheKey, schemaString)
+                code.api.cache.Caching.setMessageDocsCache(cacheKey, schemaString)
                 schema
               }
             }
@@ -2549,7 +2608,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/users/verify-credentials
-    lazy val verifyUserCredentials: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val verifyUserCredentials: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / "verify-credentials" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -2579,7 +2638,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/management/view-permissions
-    lazy val getViewPermissions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getViewPermissions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "view-permissions" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           Future {
@@ -2607,7 +2666,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/api-products  (all banks; auth-required; cached)
-    lazy val getAllApiProductsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAllApiProductsV600: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "api-products" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           val tagFilter = req.uri.query.params.get("tag").map(_.trim).filter(_.nonEmpty)
@@ -2635,7 +2694,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/products  (all banks; auth-required; cached)
-    lazy val getAllProductsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAllProductsV600: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "products" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           val params = req.uri.query.multiParams.toList.map { case (k, vs) => GetProductsParam(k, vs.toList) }
@@ -2669,7 +2728,7 @@ object Http4s600 {
     // ─── Phase 2: account-access-requests + holding-accounts (3 endpoints) ─
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests
-    lazy val getAccountAccessRequestsForAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAccountAccessRequestsForAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" =>
         EndpointHelpers.withBankAccount(req) { (_, _, cc) =>
           val status = req.uri.query.params.get("status")
@@ -2691,7 +2750,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID
-    lazy val getAccountAccessRequestById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAccountAccessRequestById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" / requestId =>
         EndpointHelpers.withBankAccount(req) { (_, _, cc) =>
           for {
@@ -2707,7 +2766,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/holding-accounts
-    lazy val getHoldingAccountByReleaser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getHoldingAccountByReleaser: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr / "holding-accounts" =>
         EndpointHelpers.withView(req) { (user, _, view, cc) =>
           val bankId = BankId(bankIdStr)
@@ -2741,7 +2800,7 @@ object Http4s600 {
     // ─── Phase 2: account-access-request lifecycle (3 endpoints) ─────────
 
     // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests (201)
-    lazy val createAccountAccessRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createAccountAccessRequest: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2786,7 +2845,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/.../approval (201)
-    lazy val approveAccountAccessRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val approveAccountAccessRequest: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" / requestIdStr / "approval" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2845,7 +2904,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/.../rejection (201)
-    lazy val rejectAccountAccessRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val rejectAccountAccessRequest: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" / requestIdStr / "rejection" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2886,7 +2945,7 @@ object Http4s600 {
     // ─── Phase 2: Signal bucket (6 endpoints) ────────────────────────────
 
     // GET /obp/v6.0.0/signal-channels
-    lazy val getSignalChannels: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSignalChannels: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "signal-channels" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           // Shared with the gRPC SignalChannelsService.ListChannels, see code.signal.SignalChannels
@@ -2895,7 +2954,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/signal-channels/CHANNEL_NAME/info
-    lazy val getSignalChannelInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSignalChannelInfo: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "signal-channels" / channelName / "info" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -2921,7 +2980,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/signal-channels/stats
-    lazy val getSignalStats: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSignalStats: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "signal-channels" / "stats" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           Future {
@@ -2940,7 +2999,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/signal-channels/CHANNEL_NAME/messages (201)
-    lazy val publishSignalMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val publishSignalMessage: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "signal-channels" / channelName / "messages" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -2974,7 +3033,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/signal-channels/CHANNEL_NAME/messages
-    lazy val getSignalMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSignalMessages: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "signal-channels" / channelName / "messages" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3001,7 +3060,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/signal-channels/CHANNEL_NAME (200 with body — not 204)
-    lazy val deleteSignalChannel: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteSignalChannel: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "signal-channels" / channelName =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -3035,7 +3094,7 @@ object Http4s600 {
       }.toMap
 
     // GET /obp/v6.0.0/banks/BANK_ID/chat-rooms
-    lazy val getBankChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankChatRooms: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "chat-rooms" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -3050,7 +3109,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/chat-rooms
-    lazy val getSystemChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemChatRooms: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3065,7 +3124,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID
-    lazy val getBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankChatRoom: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -3078,7 +3137,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID
-    lazy val getSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemChatRoom: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3093,7 +3152,7 @@ object Http4s600 {
     // ─── Phase 2: Chat-room my-views (6 endpoints) ────────────────────────
 
     // GET /obp/v6.0.0/users/current/chat-rooms
-    lazy val getMyChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMyChatRooms: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "current" / "chat-rooms" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3122,7 +3181,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/users/current/chat-rooms/unread
-    lazy val getMyUnreadCounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMyUnreadCounts: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "current" / "chat-rooms" / "unread" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3146,7 +3205,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/users/current/chat-rooms/CHAT_ROOM_ID/read-marker
-    lazy val markChatRoomRead: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val markChatRoomRead: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "users" / "current" / "chat-rooms" / chatRoomId / "read-marker" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val user = cc.user.openOrThrowException("User not found in CallContext")
@@ -3163,7 +3222,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/users/current/mentions
-    lazy val getMyMentions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMyMentions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "current" / "mentions" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val qp = req.uri.query.params
@@ -3185,7 +3244,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/chat-rooms/search (200, NOT 201)
-    lazy val searchChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val searchChatRooms: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-rooms" / "search" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3207,7 +3266,7 @@ object Http4s600 {
     }
 
     // GET /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/messages/reactions
-    lazy val getBulkReactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBulkReactions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / "reactions" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3228,7 +3287,7 @@ object Http4s600 {
     // ─── Phase 2: Chat-room admin (5 endpoints) ───────────────────────────
 
     // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/archive-status
-    lazy val archiveBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val archiveBankChatRoom: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "archive-status" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -3243,7 +3302,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/archive-status
-    lazy val archiveSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val archiveSystemChatRoom: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "archive-status" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -3258,7 +3317,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/banks/BANK_ID/chat-room-participants (201)
-    lazy val joinBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val joinBankChatRoom: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "chat-room-participants" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3283,7 +3342,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/joining-key
-    lazy val refreshBankJoiningKey: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val refreshBankJoiningKey: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "joining-key" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -3300,7 +3359,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/joining-key
-    lazy val refreshSystemJoiningKey: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val refreshSystemJoiningKey: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "joining-key" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3319,7 +3378,7 @@ object Http4s600 {
     // ─── Phase 2: Chat-room mutations (8 endpoints) ───────────────────────
 
     // POST /obp/v6.0.0/banks/BANK_ID/chat-rooms (201)
-    lazy val createBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createBankChatRoom: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "chat-rooms" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3348,7 +3407,7 @@ object Http4s600 {
     }
 
     // POST /obp/v6.0.0/chat-rooms (201)
-    lazy val createSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createSystemChatRoom: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-rooms" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3377,7 +3436,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID
-    lazy val updateBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateBankChatRoom: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3402,7 +3461,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID
-    lazy val updateSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateSystemChatRoom: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3427,7 +3486,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID (204)
-    lazy val deleteBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteBankChatRoom: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId =>
         EndpointHelpers.executeDelete(req) { cc =>
           for {
@@ -3441,7 +3500,7 @@ object Http4s600 {
     }
 
     // DELETE /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID (204)
-    lazy val deleteSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteSystemChatRoom: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "chat-rooms" / chatRoomId =>
         EndpointHelpers.executeDelete(req) { cc =>
           for {
@@ -3455,7 +3514,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/open-room
-    lazy val setBankChatRoomOpenRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val setBankChatRoomOpenRoom: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "open-room" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3474,7 +3533,7 @@ object Http4s600 {
     }
 
     // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/open-room
-    lazy val setSystemChatRoomOpenRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val setSystemChatRoomOpenRoom: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "open-room" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3497,7 +3556,7 @@ object Http4s600 {
     // registrations live in a separate private def to keep <init> under
     // the JVM 64KB method-size limit. Apply this pattern for future batches.
 
-    lazy val addBankChatRoomParticipant: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val addBankChatRoomParticipant: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "participants" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3535,7 +3594,7 @@ object Http4s600 {
         }
     }
 
-    lazy val addSystemChatRoomParticipant: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val addSystemChatRoomParticipant: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-rooms" / chatRoomId / "participants" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3573,7 +3632,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getBankChatRoomParticipants: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankChatRoomParticipants: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "participants" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -3588,7 +3647,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSystemChatRoomParticipants: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemChatRoomParticipants: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "participants" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3603,7 +3662,7 @@ object Http4s600 {
         }
     }
 
-    lazy val updateBankParticipantPermissions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateBankParticipantPermissions: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "participants" / targetUserId =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3627,7 +3686,7 @@ object Http4s600 {
         }
     }
 
-    lazy val updateSystemParticipantPermissions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateSystemParticipantPermissions: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "participants" / targetUserId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3651,7 +3710,7 @@ object Http4s600 {
         }
     }
 
-    lazy val removeBankChatRoomParticipant: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val removeBankChatRoomParticipant: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "participants" / targetUserId =>
         EndpointHelpers.executeDelete(req) { cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -3672,7 +3731,7 @@ object Http4s600 {
         }
     }
 
-    lazy val removeSystemChatRoomParticipant: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val removeSystemChatRoomParticipant: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "chat-rooms" / chatRoomId / "participants" / targetUserId =>
         EndpointHelpers.executeDelete(req) { cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -3699,7 +3758,7 @@ object Http4s600 {
 
     // ─── Phase 2: Chat messages (10 endpoints) ────────────────────────────
 
-    lazy val sendBankChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val sendBankChatMessage: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3749,7 +3808,7 @@ object Http4s600 {
         }
     }
 
-    lazy val sendSystemChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val sendSystemChatMessage: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -3799,7 +3858,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getBankChatMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankChatMessages: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           val qp = req.uri.query.params
@@ -3818,7 +3877,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSystemChatMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemChatMessages: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val qp = req.uri.query.params
@@ -3837,7 +3896,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getBankChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankChatMessage: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -3845,14 +3904,14 @@ object Http4s600 {
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             msg <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
             reactions <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId).openOr(List.empty))
           } yield JSONFactory600.createChatMessageJson(msg, reactions)
         }
     }
 
-    lazy val getSystemChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemChatMessage: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -3860,14 +3919,14 @@ object Http4s600 {
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             msg <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
             reactions <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId).openOr(List.empty))
           } yield JSONFactory600.createChatMessageJson(msg, reactions)
         }
     }
 
-    lazy val editBankChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val editBankChatMessage: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3903,7 +3962,7 @@ object Http4s600 {
         }
     }
 
-    lazy val editSystemChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val editSystemChatMessage: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -3939,16 +3998,20 @@ object Http4s600 {
         }
     }
 
-    lazy val deleteBankChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ DELETE -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
+    lazy val deleteBankChatMessage: Http4sRoute = Http4sRoute {
+      // bankIdStr is read so the room can be checked against the bank in the path
+      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.executeDelete(req) { cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
           for {
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
-            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            // the room must belong to the bank in the path, else it is treated as not found
+            _ <- Helper.booleanToFuture(ChatRoomNotFound, 404, cc = Some(cc)) { room.bankId == bankIdStr }
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else a participant of one room deletes messages of any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             msg <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
             _ <- if (msg.senderUserId == u.userId) Future.successful(())
             else Future(code.chat.ChatPermissions.checkParticipantPermission(
@@ -3963,7 +4026,7 @@ object Http4s600 {
         }
     }
 
-    lazy val deleteSystemChatMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteSystemChatMessage: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.executeDelete(req) { cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -3972,7 +4035,8 @@ object Http4s600 {
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else a participant of one room deletes messages of any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             msg <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
             _ <- if (msg.senderUserId == u.userId) Future.successful(())
             else Future(code.chat.ChatPermissions.checkParticipantPermission(
@@ -3993,7 +4057,7 @@ object Http4s600 {
 
     // ─── Phase 2: Chat threads + reactions + typing (14 endpoints) ────────
 
-    lazy val getBankThreadReplies: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankThreadReplies: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "thread" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -4001,7 +4065,8 @@ object Http4s600 {
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else a participant of one room reads threads of any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             _ <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
             repliesBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getThreadReplies(chatMessageId))
             replies <- Future(unboxFullOrFail(repliesBox, Some(cc),
@@ -4016,7 +4081,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSystemThreadReplies: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemThreadReplies: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "thread" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -4024,7 +4089,8 @@ object Http4s600 {
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else a participant of one room reads threads of any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             _ <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
             repliesBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getThreadReplies(chatMessageId))
             replies <- Future(unboxFullOrFail(repliesBox, Some(cc),
@@ -4039,7 +4105,7 @@ object Http4s600 {
         }
     }
 
-    lazy val replyInBankThread: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val replyInBankThread: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "thread" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4094,7 +4160,7 @@ object Http4s600 {
         }
     }
 
-    lazy val replyInSystemThread: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val replyInSystemThread: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "thread" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4149,7 +4215,7 @@ object Http4s600 {
         }
     }
 
-    lazy val addBankReaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val addBankReaction: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "reactions" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4177,7 +4243,7 @@ object Http4s600 {
         }
     }
 
-    lazy val addSystemReaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val addSystemReaction: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "reactions" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4205,7 +4271,7 @@ object Http4s600 {
         }
     }
 
-    lazy val removeBankReaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val removeBankReaction: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "reactions" / emoji =>
         EndpointHelpers.executeDelete(req) { cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -4228,7 +4294,7 @@ object Http4s600 {
         }
     }
 
-    lazy val removeSystemReaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val removeSystemReaction: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "reactions" / emoji =>
         EndpointHelpers.executeDelete(req) { cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -4251,7 +4317,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getBankReactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankReactions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "reactions" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -4259,16 +4325,17 @@ object Http4s600 {
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else a participant of one room reads reactions of any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             _ <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
-            reactionsBox <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId))
+            reactionsBox <-Future(code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId))
             reactions <- Future(unboxFullOrFail(reactionsBox, Some(cc),
               s"$UnknownError Cannot get reactions", 400))
           } yield JSONFactory600.createReactionsJson(reactions)
         }
     }
 
-    lazy val getSystemReactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemReactions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / chatMessageId / "reactions" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -4276,16 +4343,17 @@ object Http4s600 {
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else a participant of one room reads reactions of any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             _ <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
-            reactionsBox <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId))
+            reactionsBox <-Future(code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId))
             reactions <- Future(unboxFullOrFail(reactionsBox, Some(cc),
               s"$UnknownError Cannot get reactions", 400))
           } yield JSONFactory600.createReactionsJson(reactions)
         }
     }
 
-    lazy val signalBankTyping: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val signalBankTyping: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "typing-indicators" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -4303,7 +4371,7 @@ object Http4s600 {
         }
     }
 
-    lazy val signalSystemTyping: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val signalSystemTyping: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "typing-indicators" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val u = cc.user.openOrThrowException("User not found in CallContext")
@@ -4321,7 +4389,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getBankTypingUsers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBankTypingUsers: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "typing-indicators" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -4351,7 +4419,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSystemTypingUsers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemTypingUsers: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "typing-indicators" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -4387,7 +4455,7 @@ object Http4s600 {
 
     // ─── Phase 2: Signatory Panels (5 endpoints) ─────────────────────────
 
-    lazy val createSignatoryPanel: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createSignatoryPanel: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "mandates" / mandateId / "signatory-panels" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4405,7 +4473,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSignatoryPanels: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSignatoryPanels: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "mandates" / mandateId / "signatory-panels" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -4417,7 +4485,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getSignatoryPanel: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSignatoryPanel: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "mandates" / _ / "signatory-panels" / panelId =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -4429,7 +4497,7 @@ object Http4s600 {
         }
     }
 
-    lazy val updateSignatoryPanel: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateSignatoryPanel: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "mandates" / _ / "signatory-panels" / panelId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -4447,7 +4515,7 @@ object Http4s600 {
         }
     }
 
-    lazy val deleteSignatoryPanel: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteSignatoryPanel: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "mandates" / _ / "signatory-panels" / panelId =>
         EndpointHelpers.executeDelete(req) { cc =>
           for {
@@ -4465,7 +4533,7 @@ object Http4s600 {
 
     // ─── Phase 2: Auth/JWT/validation/transaction-request endpoints (7) ──
 
-    lazy val validateUserEmail: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val validateUserEmail: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / "email-validation" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -4514,7 +4582,7 @@ object Http4s600 {
         }
     }
 
-    lazy val resetPasswordComplete: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val resetPasswordComplete: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / "password" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4556,7 +4624,7 @@ object Http4s600 {
         }
     }
 
-    lazy val resetPasswordUrlAnonymous: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val resetPasswordUrlAnonymous: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / "password-reset-url" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4611,7 +4679,7 @@ object Http4s600 {
         }
     }
 
-    lazy val validateDynamicResourceDoc: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val validateDynamicResourceDoc: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "dynamic-resource-docs" / "validate" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -4635,25 +4703,53 @@ object Http4s600 {
                 case _ => true
               }
             }
-          } yield try {
-            code.api.dynamic.endpoint.helper.CompiledObjects(
-              body.exampleRequestBody, body.successResponseBody, body.methodBody).validateDependency()
-            ValidateDynamicResourceDocSuccessJsonV600(
-              valid = true,
-              message = "Dynamic Resource Doc method body is valid Scala and uses allowed dependencies.")
-          } catch {
-            case e: code.api.JsonResponseException =>
-              val errorText = e.jsonResponse match {
-                case code.api.util.APIUtil.JsonResponseExtractor(msg, _) => msg
-                case _ => ""
-              }
-              ValidateDynamicResourceDocFailureJsonV600(
-                valid = false, error = errorText, message = DynamicResourceDocMethodDependency,
-                details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "DependencyError"))
-            case e: Exception =>
-              ValidateDynamicResourceDocFailureJsonV600(
-                valid = false, error = Option(e.getMessage).getOrElse(""), message = DynamicCodeCompileFail,
-                details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "CompilationError"))
+            // Mirrors Http4s400's validateDynamicResourceDocBody: fail fast on an unsupported
+            // programming_lang here too, rather than reporting `valid = true` for a language
+            // create would actually reject with 400 DynamicCodeLangNotSupport (CompiledObjects
+            // silently falls through to the Scala compile path for any value it doesn't
+            // recognise as Java, so an unsupported/misspelled language would otherwise still
+            // "validate" successfully as Scala).
+            _ <- Helper.booleanToFuture(
+              s"""$DynamicCodeLangNotSupport programming_lang ${body.programmingLang}, currently supported languages: ${code.api.dynamic.endpoint.helper.CompiledObjects.supportedLanguagesText}""",
+              cc = Some(cc)) {
+              code.api.dynamic.endpoint.helper.CompiledObjects.isSupportedLanguage(body.programmingLang)
+            }
+            _ <- Helper.booleanToFuture(s"$DynamicQueryInvalid${code.api.dynamic.endpoint.helper.CompiledObjects.queryVerbMessage}", cc = Some(cc)) {
+              code.api.dynamic.endpoint.helper.CompiledObjects.verbAllowed(body.programmingLang, body.requestVerb)
+            }
+          } yield {
+            val isQuery = code.api.dynamic.endpoint.helper.CompiledObjects.isQuery(body.programmingLang)
+            try {
+              code.api.dynamic.endpoint.helper.CompiledObjects(
+                body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang, body.bankId).validateDependency()
+              ValidateDynamicResourceDocSuccessJsonV600(
+                valid = true,
+                message =
+                  if (isQuery) "Dynamic Query declaration is valid."
+                  else s"Dynamic Resource Doc method body is valid ${body.programmingLang} and uses allowed dependencies.")
+            } catch {
+              // A Dynamic Query is checked against the entity definitions, not a dependency allowlist.
+              case e: code.api.JsonResponseException if isQuery =>
+                val errorText = e.jsonResponse match {
+                  case code.api.util.APIUtil.JsonResponseExtractor(msg, _) => msg
+                  case _ => ""
+                }
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false, error = errorText, message = DynamicQueryInvalid,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "QueryError"))
+              case e: code.api.JsonResponseException =>
+                val errorText = e.jsonResponse match {
+                  case code.api.util.APIUtil.JsonResponseExtractor(msg, _) => msg
+                  case _ => ""
+                }
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false, error = errorText, message = DynamicResourceDocMethodDependency,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "DependencyError"))
+              case e: Exception =>
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false, error = Option(e.getMessage).getOrElse(""), message = DynamicCodeCompileFail,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "CompilationError"))
+            }
           }
         }
     }
@@ -4671,30 +4767,30 @@ object Http4s600 {
         for {
           json <- Future(com.openbankproject.commons.util.JsonAliases.parse(rawBody))
           (resp, _) <- code.bankconnectors.LocalMappedConnectorInternal
-            .createTransactionRequest(bankId, accountId, viewId, txType, json)
+            .createTransactionRequest(bankId, accountId, viewId, txType, json, Some(cc))
         } yield resp
       }
     }
 
-    lazy val createTransactionRequestHold: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createTransactionRequestHold: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr /
         "transaction-request-types" / "HOLD" / "transaction-requests" =>
         txReqDelegate(req, bankIdStr, accountIdStr, viewIdStr, "HOLD")
     }
 
-    lazy val createTransactionRequestCardano: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createTransactionRequestCardano: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr /
         "transaction-request-types" / "CARDANO" / "transaction-requests" =>
         txReqDelegate(req, bankIdStr, accountIdStr, viewIdStr, "CARDANO")
     }
 
-    lazy val createTransactionRequestEthereumeSendTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createTransactionRequestEthereumeSendTransaction: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr /
         "transaction-request-types" / "ETH_SEND_TRANSACTION" / "transaction-requests" =>
         txReqDelegate(req, bankIdStr, accountIdStr, viewIdStr, "ETH_SEND_TRANSACTION")
     }
 
-    lazy val createTransactionRequestEthSendRawTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createTransactionRequestEthSendRawTransaction: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr /
         "transaction-request-types" / "ETH_SEND_RAW_TRANSACTION" / "transaction-requests" =>
         txReqDelegate(req, bankIdStr, accountIdStr, viewIdStr, "ETH_SEND_RAW_TRANSACTION")
@@ -4713,7 +4809,7 @@ object Http4s600 {
 
     // ─── Phase 2: User memberships, access listing, customer creation (4) ─
 
-    lazy val getUserGroupMemberships: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getUserGroupMemberships: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userId / "group-entitlements" =>
         EndpointHelpers.withUser(req) { (u, cc) =>
           for {
@@ -4721,7 +4817,8 @@ object Http4s600 {
             entitlements <- Future(code.entitlement.Entitlement.entitlement.vend.getEntitlementsByUserId(userId))
             // group_id alone identifies group-born rows (see removeUserFromGroup).
             groupEntitlements = entitlements.toOption.getOrElse(List.empty).filter(_.groupId.isDefined)
-            groupIds = groupEntitlements.flatMap(_.groupId).distinct
+            // Includes Groups that granted the user nothing because they already held every Role.
+            groupIds = code.group.GroupMemberships.groupIdsOfUser(userId)
             _ <- Future.sequence {
               groupIds.flatMap { gid =>
                 code.group.GroupTrait.group.vend.getGroup(gid).toOption.map { g =>
@@ -4750,7 +4847,7 @@ object Http4s600 {
         }
     }
 
-    lazy val getUsersWithAccountAccess: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getUsersWithAccountAccess: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "users-with-access" =>
         EndpointHelpers.withBankAccount(req) { (_, _, cc) =>
           val bankId = BankId(bankIdStr)
@@ -4800,7 +4897,7 @@ object Http4s600 {
         }
     }
 
-    lazy val createRetailCustomer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createRetailCustomer: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "retail-customers" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4860,7 +4957,7 @@ object Http4s600 {
         }
     }
 
-    lazy val createCorporateCustomer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createCorporateCustomer: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "corporate-customers" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -4907,7 +5004,7 @@ object Http4s600 {
 
     // ─── Phase 2: Final batch — getUserByUserId, directLogin, ABAC (5), dynamic-entity backup/cascade (3) ─
 
-    lazy val getUserByUserId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getUserByUserId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "user-id" / userId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -4938,53 +5035,15 @@ object Http4s600 {
         }
     }
 
-    // DirectLogin header parser — mirrors the parsing in code.api.directlogin.DirectLogin.getAllParameters
-    // but reads from CallContext.requestHeaders (populated by the http4s context builder) instead of
-    // Lift's thread-local S.request.
-    private def parseDirectLoginParams(cc: CallContext): Map[String, String] = {
-      def find(name: String): Option[String] = cc.requestHeaders
-        .find(_.name.equalsIgnoreCase(name))
-        .flatMap(_.values.headOption)
-      val directLoginHeader = find("DirectLogin")
-      val authHeader = find("Authorization")
-      val raw = directLoginHeader
-        .orElse(authHeader.filter(h => h.startsWith("DirectLogin") || h.contains("DirectLogin")))
-        .getOrElse("")
-      val cleaned = raw.stripPrefix("DirectLogin").split(",").map(_.trim).toList
-      val keys = Set("consumer_key", "token", "username", "password")
-      cleaned.flatMap { entry =>
-        if (entry.contains("=")) {
-          val s = entry.split("=", 2)
-          val v = s(1).replaceAll("^\"|\"$", "")
-          if (keys.contains(s(0)) && v.nonEmpty) Some(s(0) -> v) else None
-        } else None
-      }.toMap
-    }
-
-    lazy val directLoginEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    // The token flow, including the allow_direct_login check, is shared with the unversioned route.
+    lazy val directLoginEndpoint: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "my" / "logins" / "direct" =>
         EndpointHelpers.executeFutureCreated(req) {
-          implicit val cc: CallContext = req.callContext
-          // If the parser found nothing usable, fall back to a single "error" key so that
-          // validatorFutureWithParams returns the MissingDirectLoginHeader message (preserves
-          // Lift's getAllParameters behaviour for the no-header case).
-          val parsed = parseDirectLoginParams(cc)
-          val params =
-            if (parsed.isEmpty) Map("error" -> code.api.util.ErrorMessages.MissingDirectLoginHeader)
-            else parsed
-          for {
-            triple <- code.api.DirectLogin.validatorFutureWithParams("authorizationToken", "POST", params)
-            (httpCode, message, dlParams) = triple
-            tokenTriple = code.api.DirectLogin.createTokenCommonPart(httpCode, message, dlParams)
-            _ <- Future(code.api.DirectLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(tokenTriple._3))
-          } yield {
-            if (tokenTriple._1 == 200) JSONFactory600.createTokenJSON(tokenTriple._2)
-            else unboxFullOrFail(Empty, None, tokenTriple._2, tokenTriple._1)
-          }
+          code.api.DirectLoginRoutes.issueToken(req.callContext)
         }
     }
 
-    lazy val validateAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val validateAbacRule: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "abac-rules" / "validate" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -4999,38 +5058,49 @@ object Http4s600 {
             box <- code.abacrule.AbacRuleEngine.validateRuleCodeAsync(validateJson.rule_code)
           } yield box match {
             case Full(msg) => ValidateAbacRuleSuccessJsonV600(valid = true, message = msg): Any
-            case Failure(errorMsg, _, _) =>
-              val cleanError = errorMsg.replace("Invalid ABAC rule code: ", "")
-                .replace("Failed to compile ABAC rule: ", "")
-              val (obpMsg, errorType) =
-                if (cleanError.toLowerCase.contains("too permissive") || cleanError.toLowerCase.contains("tautological")) {
-                  val ec = if (cleanError.toLowerCase.contains("statistical"))
-                    AbacRuleStatisticallyTooPermissive else AbacRuleTooPermissive
-                  (ec, "PermissivenessError")
-                } else if (cleanError.toLowerCase.contains("type mismatch") ||
-                  (cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")))
-                  (AbacRuleTypeMismatch, "TypeError")
-                else if (cleanError.toLowerCase.contains("syntax") || cleanError.toLowerCase.contains("parse"))
-                  (AbacRuleSyntaxError, "SyntaxError")
-                else if (cleanError.toLowerCase.contains("not found") || cleanError.toLowerCase.contains("not a member"))
-                  (AbacRuleFieldReferenceError, "FieldReferenceError")
-                else if (cleanError.toLowerCase.contains("compilation failed") ||
-                  cleanError.toLowerCase.contains("reflective compilation has failed"))
-                  (AbacRuleCompilationFailed, "CompilationError")
-                else (AbacRuleValidationFailed, "ValidationError")
+            case failed =>
+              val (obpMsg, errorType, error) = classifyAbacRuleCodeFailure(failed)
               ValidateAbacRuleFailureJsonV600(
-                valid = false, error = cleanError, message = obpMsg,
+                valid = false, error = error, message = obpMsg,
                 details = ValidateAbacRuleErrorDetailsJsonV600(error_type = errorType))
-            case _ =>
-              ValidateAbacRuleFailureJsonV600(
-                valid = false, error = "Unknown validation error",
-                message = AbacRuleValidationFailed,
-                details = ValidateAbacRuleErrorDetailsJsonV600(error_type = "UnknownError"))
           }
         }
     }
 
-    lazy val executeAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    /** The OBP error message, error type and engine message of a failed ABAC rule code validation. */
+    private def classifyAbacRuleCodeFailure(validation: Box[String]): (String, String, String) = validation match {
+      case Failure(errorMsg, _, _) =>
+        val cleanError = errorMsg.replace("Invalid ABAC rule code: ", "")
+          .replace("Failed to compile ABAC rule: ", "")
+        val (obpMsg, errorType) =
+          if (cleanError.toLowerCase.contains("too permissive") || cleanError.toLowerCase.contains("tautological")) {
+            val ec = if (cleanError.toLowerCase.contains("statistical"))
+              AbacRuleStatisticallyTooPermissive else AbacRuleTooPermissive
+            (ec, "PermissivenessError")
+          } else if (cleanError.toLowerCase.contains("type mismatch") ||
+            (cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")))
+            (AbacRuleTypeMismatch, "TypeError")
+          else if (cleanError.toLowerCase.contains("syntax") || cleanError.toLowerCase.contains("parse"))
+            (AbacRuleSyntaxError, "SyntaxError")
+          else if (cleanError.toLowerCase.contains("not found") || cleanError.toLowerCase.contains("not a member"))
+            (AbacRuleFieldReferenceError, "FieldReferenceError")
+          else if (cleanError.toLowerCase.contains("compilation failed") ||
+            cleanError.toLowerCase.contains("reflective compilation has failed") ||
+            // The Scala 3 compiler words an incomplete expression as "expression expected but ... found".
+            cleanError.toLowerCase.contains("expected but"))
+            (AbacRuleCompilationFailed, "CompilationError")
+          else (AbacRuleValidationFailed, "ValidationError")
+        (obpMsg, errorType, cleanError)
+      case _ => (AbacRuleValidationFailed, "UnknownError", "Unknown validation error")
+    }
+
+    /** Fails with the same OBP error the validate endpoint reports, followed by the engine's message. */
+    private def failOnInvalidAbacRuleCode(validation: Box[String], cc: CallContext): Future[Box[Unit]] = {
+      val (obpMsg, _, error) = classifyAbacRuleCodeFailure(validation)
+      Helper.booleanToFuture(s"$obpMsg $error", 400, Some(cc)) { validation.isDefined }
+    }
+
+    lazy val executeAbacRule: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "abac-rules" / ruleId / "execute" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -5056,7 +5126,7 @@ object Http4s600 {
         }
     }
 
-    lazy val executeAbacPolicy: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val executeAbacPolicy: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "abac-policies" / policy / "execute" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -5182,7 +5252,7 @@ object Http4s600 {
         AbacObjectTypeJsonV600("UserAttributeTrait", "User attribute", List(
           AbacObjectPropertyJsonV600("name", "String", "Attribute name"),
           AbacObjectPropertyJsonV600("value", "String", "Attribute value"),
-          AbacObjectPropertyJsonV600("attributeType", "AttributeType", "Attribute type (STRING, INTEGER, DOUBLE, DATE_WITH_DAY)")
+          AbacObjectPropertyJsonV600("attributeType", "AttributeType", s"Attribute type (${AttributeTypeDocs.examples.map(_._1).mkString(", ")})")
         )),
         AbacObjectTypeJsonV600("AccountAttribute", "Account attribute", List(
           AbacObjectPropertyJsonV600("name", "String", "Attribute name"),
@@ -5285,7 +5355,7 @@ object Http4s600 {
       )
     )
 
-    lazy val getAbacRuleSchema: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAbacRuleSchema: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "abac-rules-schema" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           Future.successful(buildAbacRuleSchemaJson())
@@ -5354,7 +5424,7 @@ object Http4s600 {
       }
     }
 
-    private def backupDynamicEntityFut(
+    private[api] def backupDynamicEntityFut(
         bankIdOpt: Option[String],
         dynamicEntityId: String,
         cc: CallContext
@@ -5362,7 +5432,7 @@ object Http4s600 {
       for {
         (entity, _) <- NewStyle.function.getDynamicEntityById(bankIdOpt, dynamicEntityId, Some(cc))
         canGetRole = code.api.dynamic.entity.helper.DynamicEntityInfo.canGetRole(entity.entityName, entity.bankId)
-        _ <- NewStyle.function.hasEntitlement(entity.bankId.getOrElse(""), cc.userId, canGetRole, Some(cc))
+        _ <- NewStyle.function.hasEntitlement(DynamicEntitySpace.bankIdOrSystem(entity.bankId), cc.userId, canGetRole, Some(cc))
         (box, _) <- NewStyle.function.invokeDynamicConnector(
           com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL,
           entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
@@ -5374,7 +5444,7 @@ object Http4s600 {
         _ <- Future(backupDynamicEntityIo(entity, backupName, resultList))
         backupCanGetRole = code.api.dynamic.entity.helper.DynamicEntityInfo.canGetRole(backupName, entity.bankId)
         _ <- Future(code.entitlement.Entitlement.entitlement.vend.addEntitlement(
-          entity.bankId.getOrElse(""), cc.userId, backupCanGetRole.toString(),
+          DynamicEntitySpace.bankIdOrSystem(entity.bankId), cc.userId, backupCanGetRole.toString(),
           grantedByUserId = Some(cc.userId)))
         backupEntity <- Future {
           code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend
@@ -5387,15 +5457,16 @@ object Http4s600 {
       }
     }
 
-    lazy val backupSystemDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val backupSystemDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "system-dynamic-entities" / dynamicEntityId / "backup" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
-          backupDynamicEntityFut(None, dynamicEntityId, cc)
+          DynamicEntitySpace.requireRoleAtSystemSpace(canBackupDynamicEntityDefinition, cc)
+            .flatMap(_ => backupDynamicEntityFut(None, dynamicEntityId, cc))
         }
     }
 
-    lazy val backupBankLevelDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val backupBankLevelDynamicEntity: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-entities" / dynamicEntityId / "backup" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -5403,35 +5474,55 @@ object Http4s600 {
         }
     }
 
-    lazy val deleteSystemDynamicEntityCascade: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    /**
+     * This function deletes a Dynamic Entity together with all its records, after copying both to a
+     * `ZZ_BAK_` entity. `bankIdOpt` is the space, None for the system space. It is shared by the v6.0.0
+     * system endpoint and the v7.0.0 endpoint, which names the space in its URL.
+     */
+    private[api] def deleteDynamicEntityCascadeFut(bankIdOpt: Option[String], dynamicEntityId: String, cc: CallContext): Future[JObject] =
+      for {
+        (entity, _) <- NewStyle.function.getDynamicEntityById(bankIdOpt, dynamicEntityId, Some(cc))
+        _ <- Helper.booleanToFuture(CannotDeleteCascadePersonalEntity, cc = Some(cc)) {
+          !entity.hasPersonalEntity
+        }
+        // The records are read from the table so that each one comes with the id of its row. The stored JSON
+        // of a record written by an earlier version may lack `<entity>_id`; its row id is put back, because
+        // the backup and the delete below both go by that id.
+        idField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(entity.entityName)
+        resultList <- Future {
+          org.json4s.JsonAST.JArray(
+            code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend
+              .getAll(entity.bankId, entity.entityName, None, false)
+              .map { row =>
+                val stored = com.openbankproject.commons.util.JsonAliases.parse(row.dataJson).asInstanceOf[org.json4s.JObject]
+                (stored \ idField, row.dynamicDataId) match {
+                  case (org.json4s.JString(_), _) => stored
+                  case (_, Some(rowId)) => org.json4s.JObject(stored.obj.filterNot(_._1 == idField) :+ org.json4s.JField(idField, org.json4s.JString(rowId)))
+                  case _ => stored
+                }
+              })
+        }
+        _ <- Future {
+          if (!entity.entityName.startsWith("ZZ_BAK_"))
+            backupDynamicEntityIo(entity, s"ZZ_BAK_${entity.entityName}", resultList)
+        }
+        _ <- Future.sequence {
+          resultList.arr.map { record =>
+            val recordId = (record \ idField).asInstanceOf[org.json4s.JString].s
+            Future(code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend.delete(
+              entity.bankId, entity.entityName, recordId, None, false))
+          }
+        }
+        _ <- NewStyle.function.deleteDynamicEntity(bankIdOpt, dynamicEntityId)
+      } yield JObject(Nil)
+
+    lazy val deleteSystemDynamicEntityCascade: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "system-dynamic-entities" / "cascade" / dynamicEntityId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
-            (entity, _) <- NewStyle.function.getDynamicEntityById(None, dynamicEntityId, Some(cc))
-            _ <- Helper.booleanToFuture(CannotDeleteCascadePersonalEntity, cc = Some(cc)) {
-              !entity.hasPersonalEntity
-            }
-            (box, _) <- NewStyle.function.invokeDynamicConnector(
-              com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL,
-              entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
-            resultList <- Future {
-              box.asInstanceOf[net.liftweb.common.Box[org.json4s.JsonAST.JArray]]
-                .openOrThrowException(s"$UnknownError ")
-            }
-            _ <- Future {
-              if (!entity.entityName.startsWith("ZZ_BAK_"))
-                backupDynamicEntityIo(entity, s"ZZ_BAK_${entity.entityName}", resultList)
-            }
-            _ <- Future.sequence {
-              resultList.arr.map { record =>
-                val idField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(entity.entityName)
-                val recordId = (record \ idField).asInstanceOf[org.json4s.JString].s
-                Future(code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend.delete(
-                  entity.bankId, entity.entityName, recordId, None, false))
-              }
-            }
-            _ <- NewStyle.function.deleteDynamicEntity(None, dynamicEntityId)
-          } yield JObject(Nil)
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canDeleteCascadeDynamicEntityDefinition, cc)
+            result <- deleteDynamicEntityCascadeFut(None, dynamicEntityId, cc)
+          } yield result
         }
     }
 
@@ -5440,7 +5531,7 @@ object Http4s600 {
     initFinal9ResourceDocs()
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID/investigation-report
-    lazy val getCustomerInvestigationReport: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerInvestigationReport: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerId / "investigation-report" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           val qp = req.uri.query.params
@@ -5476,7 +5567,7 @@ object Http4s600 {
     // ─── Phase 2: banks/.../customer-links bucket (5 endpoints) ───────────
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/customer-links (201)
-    lazy val createCustomerLink: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createCustomerLink: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "customer-links" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -5504,7 +5595,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customer-links
-    lazy val getCustomerLinksByBankId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerLinksByBankId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customer-links" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -5515,7 +5606,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID
-    lazy val getCustomerLinkById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomerLinkById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customer-links" / customerLinkId =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -5526,7 +5617,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID
-    lazy val updateCustomerLink: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateCustomerLink: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "customer-links" / customerLinkId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -5541,7 +5632,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID
-    lazy val deleteCustomerLink: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteCustomerLink: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "customer-links" / customerLinkId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -5552,7 +5643,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID
-    lazy val getCustomViewById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomViewById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -5566,7 +5657,7 @@ object Http4s600 {
 
 
     // Route: POST /obp/v6.0.0/management/cache/namespaces/invalidate
-    lazy val invalidateCacheNamespace: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val invalidateCacheNamespace: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "cache" / "namespaces" / "invalidate" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -5594,7 +5685,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/config-props
-    lazy val getConfigProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConfigProps: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "config-props" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future {
@@ -5608,7 +5699,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/app-directory
-    lazy val getAppDirectory: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAppDirectory: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "app-directory" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future {
@@ -5620,7 +5711,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/custom-views
-    lazy val getCustomViews: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCustomViews: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "custom-views" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future(JSONFactory600.createViewsJsonV600(code.views.system.ViewDefinition.getCustomViews()))
@@ -5629,7 +5720,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/roles-with-entitlement-counts
-    lazy val getRolesWithEntitlementCountsAtAllBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getRolesWithEntitlementCountsAtAllBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "roles-with-entitlement-counts" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           val allRoles = code.api.util.ApiRole.availableRoles.sorted
@@ -5645,7 +5736,7 @@ object Http4s600 {
     // ─── Phase 2: 5 small single-endpoint buckets ─────────────────────────
 
     // Route: GET /obp/v6.0.0/features
-    lazy val getFeatures: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getFeatures: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "features" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful(FeaturesJsonV600(
@@ -5667,7 +5758,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/providers
-    lazy val getProviders: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getProviders: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "providers" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future(code.model.dataAccess.ResourceUser.getDistinctProviders)
@@ -5677,7 +5768,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/consumers/current
-    lazy val getCurrentConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getCurrentConsumer: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "consumers" / "current" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -5697,7 +5788,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/api/popular-endpoints
-    lazy val getPopularApis: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getPopularApis: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "api" / "popular-endpoints" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -5719,7 +5810,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/account-directory
-    lazy val getAccountDirectory: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAccountDirectory: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "account-directory" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           val allowedParams = List("limit", "offset", "sort_direction")
@@ -5760,7 +5851,7 @@ object Http4s600 {
         list_of_roles = group.listOfRoles, is_enabled = group.isEnabled)
 
     // Route: POST /obp/v6.0.0/management/groups (201)
-    lazy val createGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createGroup: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "groups" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -5784,7 +5875,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/groups/GROUP_ID
-    lazy val getGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getGroup: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "groups" / groupId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -5797,7 +5888,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/groups
-    lazy val getGroups: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getGroups: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "groups" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val bankIdParam = req.uri.query.params.get("bank_id")
@@ -5819,7 +5910,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/management/groups/GROUP_ID
-    lazy val updateGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateGroup: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "groups" / groupId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -5841,7 +5932,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/management/groups/GROUP_ID
-    lazy val deleteGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteGroup: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "groups" / groupId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
@@ -5849,15 +5940,27 @@ object Http4s600 {
             existing <- Future(code.group.GroupTrait.group.vend.getGroup(groupId))
               .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Group not found", 404))
             _ <- groupRoleCheck(existing.bankId, user.userId, canDeleteGroupAtOneBank, canDeleteGroupAtAllBanks, cc)
+            // The Entitlements this Group granted, loaded while the Group still exists, so its members do not keep its Roles after the delete.
+            groupEntitlements <- Entitlement.entitlement.vend.getEntitlementsByGroupId(groupId)
+              .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot get entitlements", 400))
+            // As in removeUserFromGroup: a Role another of the member's Groups also grants is kept and recorded against that Group, any other is revoked.
+            _ <- Future.sequence(groupEntitlements.map(e => Future {
+              code.group.GroupMemberships.otherGroupGranting(e.userId, e.bankId, e.roleName, groupId) match {
+                case Some(other) => Entitlement.entitlement.vend.setEntitlementGroupId(e.entitlementId, other.groupId)
+                case None => Entitlement.entitlement.vend.deleteEntitlement(Full(e))
+              }
+            }))
             _ <- Future(code.group.GroupTrait.group.vend.deleteGroup(groupId))
               .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot delete group", 400))
+            _ <- Future(code.group.GroupMemberships.removeMembershipsOfGroup(groupId))
+              .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot delete the group's memberships", 400))
           } yield ""
         }
     }
 
 
     // Route: GET /obp/v6.0.0/management/groups/GROUP_ID/entitlements
-    lazy val getGroupEntitlements: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getGroupEntitlements: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "groups" / groupId / "entitlements" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -5884,7 +5987,7 @@ object Http4s600 {
     // classification + rule-engine integration warrants its own batch.
 
     // Route: POST /obp/v6.0.0/management/abac-rules (201)
-    lazy val createAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createAbacRule: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "abac-rules" =>
         EndpointHelpers.executeFutureWithStatus(req) {
           implicit val cc: CallContext = req.callContext
@@ -5897,8 +6000,8 @@ object Http4s600 {
             }
             _ <- Helper.booleanToFuture("Rule name must not be empty", cc = Some(cc)) { createJson.rule_name.nonEmpty }
             _ <- Helper.booleanToFuture("Rule code must not be empty", cc = Some(cc)) { createJson.rule_code.nonEmpty }
-            _ <- AbacRuleEngine.validateRuleCodeAsync(createJson.rule_code)
-              .map(unboxFullOrFail(_, Some(cc), "Invalid ABAC rule code", 400))
+            validation <- AbacRuleEngine.validateRuleCodeAsync(createJson.rule_code)
+            _ <- failOnInvalidAbacRuleCode(validation, cc)
             // Maker/checker: a managed instance queues the rule for a second user's approval (202)
             intercepted <- Future(MakerChecker.intercept(
               com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType.ABAC_RULE,
@@ -5918,7 +6021,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
-    lazy val getAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAbacRule: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "abac-rules" / ruleId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -5930,7 +6033,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/abac-rules
-    lazy val getAbacRules: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAbacRules: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "abac-rules" =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future(createAbacRulesJsonV600(MappedAbacRuleProvider.getAllAbacRules()))
@@ -5939,7 +6042,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/abac-rules/policy/POLICY
-    lazy val getAbacRulesByPolicy: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getAbacRulesByPolicy: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "abac-rules" / "policy" / policy =>
         EndpointHelpers.withUser(req) { (_, _) =>
           Future(createAbacRulesJsonV600(MappedAbacRuleProvider.getAbacRulesByPolicy(policy)))
@@ -5948,7 +6051,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
-    lazy val updateAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateAbacRule: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "abac-rules" / ruleId =>
         EndpointHelpers.executeFutureWithStatus(req) {
           implicit val cc: CallContext = req.callContext
@@ -5959,8 +6062,8 @@ object Http4s600 {
             updateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UpdateAbacRuleJsonV600]
             }
-            _ <- AbacRuleEngine.validateRuleCodeAsync(updateJson.rule_code)
-              .map(unboxFullOrFail(_, Some(cc), "Invalid ABAC rule code", 400))
+            validation <- AbacRuleEngine.validateRuleCodeAsync(updateJson.rule_code)
+            _ <- failOnInvalidAbacRuleCode(validation, cc)
             _ <- Future(MappedAbacRuleProvider.getAbacRuleById(ruleId))
               .map(unboxFullOrFail(_, Some(cc), s"ABAC Rule not found with ID: $ruleId", 404))
             intercepted <- Future(MakerChecker.intercept(
@@ -5985,7 +6088,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
-    lazy val deleteAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteAbacRule: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "abac-rules" / ruleId =>
         EndpointHelpers.executeFutureWithStatus(req) {
           implicit val cc: CallContext = req.callContext
@@ -6014,10 +6117,10 @@ object Http4s600 {
     // Auth-only; the v6 Lift docs declare `Some(List())` empty role list.
 
     private val personalDataTypeErrorMsg =
-      s"$InvalidJsonFormat The `type` field can only accept: ${UserAttributeType.DOUBLE}, ${UserAttributeType.STRING}, ${UserAttributeType.INTEGER}, ${UserAttributeType.DATE_WITH_DAY}"
+      s"$InvalidJsonFormat The `type` field can only accept: ${AttributeTypeDocs.typesWithExamples}"
 
     // Route: POST /obp/v6.0.0/my/personal-data-fields (201)
-    lazy val createPersonalDataField: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createPersonalDataField: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "my" / "personal-data-fields" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6038,7 +6141,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/my/personal-data-fields
-    lazy val getPersonalDataFields: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getPersonalDataFields: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "personal-data-fields" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -6049,7 +6152,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID
-    lazy val getPersonalDataFieldById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getPersonalDataFieldById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "personal-data-fields" / userAttributeId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -6062,7 +6165,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID
-    lazy val updatePersonalDataField: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updatePersonalDataField: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "my" / "personal-data-fields" / userAttributeId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -6085,7 +6188,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID
-    lazy val deletePersonalDataField: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deletePersonalDataField: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "my" / "personal-data-fields" / userAttributeId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
@@ -6102,7 +6205,7 @@ object Http4s600 {
     // ─── Phase 2: management/consumers bucket (6 endpoints) ───────────────
 
     // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID/call-counters
-    lazy val getConsumerCallCounters: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getConsumerCallCounters: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId / "call-counters" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -6114,7 +6217,7 @@ object Http4s600 {
 
 
     // Route: POST /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits (201)
-    lazy val createCallLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createCallLimits: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6124,9 +6227,13 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CallLimitPostJsonV600]
             }
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            scopeFields = RateLimitingUtil.rateLimitScopeFields(postJson.api_name, postJson.api_version, postJson.bank_id)
+            _ <- Helper.booleanToFuture(s"$RateLimitScopeNotSupported Remove: ${scopeFields.mkString(", ")}", 400, Some(cc)) {
+              scopeFields.isEmpty
+            }
             rateLimitingBox <- RateLimitingDI.rateLimiting.vend.createConsumerCallLimits(
               consumerId, postJson.from_date, postJson.to_date,
-              postJson.api_version, postJson.api_name, postJson.bank_id,
+              None, None, None, // rateLimitScopeFields has refused any value that is not blank
               Some(postJson.per_second_call_limit), Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit), Some(postJson.per_day_call_limit),
               Some(postJson.per_week_call_limit), Some(postJson.per_month_call_limit))
@@ -6137,7 +6244,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID
-    lazy val updateRateLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateRateLimits: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" / rateLimitingId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -6146,9 +6253,16 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CallLimitPostJsonV400]
             }
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            scopeFields = RateLimitingUtil.rateLimitScopeFields(postJson.api_name, postJson.api_version, postJson.bank_id)
+            _ <- Helper.booleanToFuture(s"$RateLimitScopeNotSupported Remove: ${scopeFields.mkString(", ")}", 400, Some(cc)) {
+              scopeFields.isEmpty
+            }
+            existing <- RateLimitingDI.rateLimiting.vend.getByRateLimitingId(rateLimitingId)
             _ <- RateLimitingDI.rateLimiting.vend.updateConsumerCallLimits(
               rateLimitingId, postJson.from_date, postJson.to_date,
-              postJson.api_version, postJson.api_name, postJson.bank_id,
+              // rateLimitScopeFields has refused any value that is not blank; the bank_id of a record an
+              // API Product Subscription wrote is kept.
+              None, None, existing.toOption.flatMap(_.bankId),
               Some(postJson.per_second_call_limit), Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit), Some(postJson.per_day_call_limit),
               Some(postJson.per_week_call_limit), Some(postJson.per_month_call_limit))
@@ -6160,7 +6274,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID
-    lazy val deleteCallLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteCallLimits: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" / rateLimitingId =>
         EndpointHelpers.executeDelete(req) { cc =>
           for {
@@ -6172,7 +6286,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID/active-rate-limits
-    lazy val getActiveRateLimitsNow: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getActiveRateLimitsNow: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId / "active-rate-limits" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -6185,7 +6299,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID/active-rate-limits/DATE_WITH_HOUR
-    lazy val getActiveRateLimitsAtDate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getActiveRateLimitsAtDate: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId / "active-rate-limits" / dateWithHourString =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -6197,7 +6311,7 @@ object Http4s600 {
               val ldt = java.time.LocalDateTime.parse(dateWithHourString, fmt)
               java.util.Date.from(ldt.atZone(java.time.ZoneOffset.UTC).toInstant())
             }
-            (rateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, date)
+            (rateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, date, exact = false)
           } yield JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(rateLimit, ids, date)
         }
     }
@@ -6206,7 +6320,7 @@ object Http4s600 {
     // ─── Phase 2: management/api-collections bucket (4 endpoints) ─────────
 
     // Route: POST /obp/v6.0.0/management/api-collections/featured (201)
-    lazy val createFeaturedApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createFeaturedApiCollection: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "api-collections" / "featured" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6228,7 +6342,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/management/api-collections/featured
-    lazy val getFeaturedApiCollectionsAdmin: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getFeaturedApiCollectionsAdmin: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "api-collections" / "featured" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
@@ -6239,7 +6353,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/management/api-collections/featured/API_COLLECTION_ID
-    lazy val updateFeaturedApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateFeaturedApiCollection: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "api-collections" / "featured" / apiCollectionId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -6255,7 +6369,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/management/api-collections/featured/API_COLLECTION_ID
-    lazy val deleteFeaturedApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteFeaturedApiCollection: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "api-collections" / "featured" / apiCollectionId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -6271,7 +6385,7 @@ object Http4s600 {
     // gating would be a Phase 3 follow-up if needed.
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE (201)
-    lazy val createApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createApiProduct: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6299,7 +6413,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE (201 — Lift returns 201)
-    lazy val createOrUpdateApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createOrUpdateApiProduct: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6327,7 +6441,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE
-    lazy val getApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getApiProduct: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -6339,7 +6453,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/api-products
-    lazy val getApiProducts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getApiProducts: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "api-products" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           val tagFilter = req.uri.query.params.get("tag").map(_.trim).filter(_.nonEmpty)
@@ -6351,7 +6465,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE
-    lazy val deleteApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteApiProduct: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -6363,7 +6477,7 @@ object Http4s600 {
 
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attribute (201)
-    lazy val createApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createApiProductAttribute: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode / "attribute" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6383,7 +6497,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID
-    lazy val updateApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateApiProductAttribute: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode / "attributes" / apiProductAttributeId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -6402,7 +6516,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID
-    lazy val getApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getApiProductAttribute: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "api-products" / _ / "attributes" / apiProductAttributeId =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -6413,7 +6527,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID
-    lazy val deleteApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteApiProductAttribute: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "api-products" / _ / "attributes" / apiProductAttributeId =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -6437,7 +6551,7 @@ object Http4s600 {
       }
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates (201)
-    lazy val createMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createMandate: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6462,7 +6576,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates
-    lazy val getMandates: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMandates: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" =>
         EndpointHelpers.withBankAccount(req) { (_, account, cc) =>
           for {
@@ -6475,7 +6589,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID
-    lazy val getMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMandate: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" / mandateId =>
         EndpointHelpers.withBankAccount(req) { (_, _, cc) =>
           for {
@@ -6487,7 +6601,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID
-    lazy val updateMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateMandate: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" / mandateId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -6508,7 +6622,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID (204)
-    lazy val deleteMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteMandate: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" / mandateId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -6525,7 +6639,7 @@ object Http4s600 {
     }
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions (201)
-    lazy val createMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createMandateProvision: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "mandates" / mandateId / "provisions" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -6550,7 +6664,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions
-    lazy val getMandateProvisions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMandateProvisions: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "mandates" / mandateId / "provisions" =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -6562,7 +6676,7 @@ object Http4s600 {
 
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID
-    lazy val getMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getMandateProvision: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "mandates" / _ / "provisions" / provisionId =>
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           for {
@@ -6574,7 +6688,7 @@ object Http4s600 {
 
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID
-    lazy val updateMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateMandateProvision: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "mandates" / _ / "provisions" / provisionId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
@@ -6598,7 +6712,7 @@ object Http4s600 {
 
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID (204)
-    lazy val deleteMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteMandateProvision: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "mandates" / _ / "provisions" / provisionId =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -6619,7 +6733,7 @@ object Http4s600 {
     // Deferring index construction to first request (post object-init) lets every
     // registration land before the snapshot is taken.
     lazy val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
+      ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 
     // ─── path-rewriting bridge: /obp/v6.0.0/… → /obp/v5.1.0/… ─────────────
     // Targets v5.1.0; Http4s510 has its own working cascade down to v5.0.0 → v4.0.0 → …
@@ -6627,7 +6741,7 @@ object Http4s600 {
     lazy val v600ToV510Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       val rawPath = req.uri.path.renderString
       if (rawPath.startsWith("/obp/v6.0.0/") &&
-          ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, v6ResourceDocIndex).isEmpty) {
+          ResourceDocMatcher.selectByRoute(req, v6RouteIndex).isEmpty) {
         val rewritten = rawPath.replaceFirst("/obp/v6\\.0\\.0/", "/obp/v5.1.0/")
         val newUri = req.uri.withPath(Uri.Path.unsafeFromString(rewritten))
         Http4s510.wrappedRoutesV510Services.run(req.withUri(newUri))
@@ -6989,9 +7103,9 @@ object Http4s600 {
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canGetSystemLevelDynamicEntities :: Nil),
+        Some(canGetDynamicEntityDefinitions :: Nil),
         http4sPartialFunction = Some(getSystemDynamicEntities)
-      )
+      ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(getBankLevelDynamicEntities),
@@ -7028,7 +7142,7 @@ object Http4s600 {
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canGetBankLevelDynamicEntities :: canGetAnyBankLevelDynamicEntities :: Nil),
+        Some(canGetDynamicEntityDefinitions :: Nil),
         http4sPartialFunction = Some(getBankLevelDynamicEntities)
       )
       resourceDocs += ResourceDoc(
@@ -7041,7 +7155,7 @@ object Http4s600 {
         |
         |This endpoint returns all consumer fields including:
         |- Basic info: consumer_id, app_name, app_type, description, developer_email, company
-        |- OAuth: consumer_key, redirect_url
+        |- OAuth: redirect_url
         |- Status: enabled, created
         |- Certificate: certificate_pem, certificate_info (subject, issuer, validity dates, PSD2 roles)
         |- Branding: logo_url
@@ -7049,7 +7163,8 @@ object Http4s600 {
         |- Rate limits: active_rate_limits showing current rate limiting configuration
         |- Call counters: call_counters showing current API call usage from Redis
         |
-        |Note: consumer_secret is never returned for security reasons.
+        |Note: consumer_secret is never returned, and consumer_key is returned as `${APIUtil.RedactedConsumerKey}`:
+        |both are credentials. Get Consumer v7.0.0 leaves consumer_key out.
         |
         |${userAuthenticationMessage(true)}
         |
@@ -7244,6 +7359,7 @@ object Http4s600 {
         |  "has_public_access": false,
         |  "has_community_access": false,
         |  "personal_requires_role": false,
+        |  "use_row_level_access": false,
         |  "schema": {
         |    "description": "User preferences",
         |    "required": ["theme"],
@@ -7264,13 +7380,14 @@ object Http4s600 {
         |* Each property MUST include an `example` field with a valid example value.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
-        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
+        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserXORApplication` (the Consumer's Scopes when the application acts as itself, the User's Entitlements when a person acts; `UserOrApplication` is accepted as its former name) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
-        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         CreateDynamicEntityRequestJsonV600(
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
@@ -7278,7 +7395,7 @@ object Http4s600 {
           has_community_access = Some(false),
           personal_requires_role = Some(false),
           use_row_level_access = Some(false),
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (write_role)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (read_role_required)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (read_role)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -7289,14 +7406,14 @@ object Http4s600 {
           has_public_access = false,
           has_community_access = false,
           personal_requires_role = false,
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (write_role)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (read_role_required)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (read_role)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canCreateSystemLevelDynamicEntity :: Nil),
-        authMode = code.api.util.APIUtil.UserOrApplication,
+        Some(canCreateDynamicEntityDefinition :: Nil),
+        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(createSystemDynamicEntity)
-      )
+      ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(createBankLevelDynamicEntity),
@@ -7315,6 +7432,7 @@ object Http4s600 {
         |  "has_public_access": false,
         |  "has_community_access": false,
         |  "personal_requires_role": false,
+        |  "use_row_level_access": false,
         |  "schema": {
         |    "description": "User preferences",
         |    "required": ["theme"],
@@ -7335,13 +7453,14 @@ object Http4s600 {
         |* Each property MUST include an `example` field with a valid example value.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
-        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
+        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserXORApplication` (the Consumer's Scopes when the application acts as itself, the User's Entitlements when a person acts; `UserOrApplication` is accepted as its former name) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
-        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         CreateDynamicEntityRequestJsonV600(
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
@@ -7349,7 +7468,7 @@ object Http4s600 {
           has_community_access = Some(false),
           personal_requires_role = Some(false),
           use_row_level_access = Some(false),
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (write_role)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (read_role_required)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (read_role)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -7360,18 +7479,19 @@ object Http4s600 {
           has_public_access = false,
           has_community_access = false,
           personal_requires_role = false,
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (write_role)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (read_role_required)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (read_role)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List(
           $BankNotFound,
           $AuthenticatedUserIsRequired,
           UserHasMissingRoles,
           InvalidJsonFormat,
+          DynamicPathAmbiguous,
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canCreateBankLevelDynamicEntity :: Nil),
-        authMode = code.api.util.APIUtil.UserOrApplication,
+        Some(canCreateDynamicEntityDefinition :: Nil),
+        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(createBankLevelDynamicEntity)
       )
       resourceDocs += ResourceDoc(
@@ -7392,6 +7512,7 @@ object Http4s600 {
         |  "has_public_access": false,
         |  "has_community_access": false,
         |  "personal_requires_role": false,
+        |  "use_row_level_access": false,
         |  "schema": {
         |    "description": "User preferences updated",
         |    "required": ["theme"],
@@ -7408,13 +7529,14 @@ object Http4s600 {
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
-        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
+        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserXORApplication` (the Consumer's Scopes when the application acts as itself, the User's Entitlements when a person acts; `UserOrApplication` is accepted as its former name) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
-        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         UpdateDynamicEntityRequestJsonV600(
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
@@ -7433,11 +7555,11 @@ object Http4s600 {
           has_public_access = false,
           schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canUpdateSystemDynamicEntity :: Nil),
+        Some(canUpdateDynamicEntityDefinition :: Nil),
         http4sPartialFunction = Some(updateSystemDynamicEntity)
-      )
+      ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(updateBankLevelDynamicEntity),
@@ -7456,6 +7578,7 @@ object Http4s600 {
         |  "has_public_access": false,
         |  "has_community_access": false,
         |  "personal_requires_role": false,
+        |  "use_row_level_access": false,
         |  "schema": {
         |    "description": "User preferences updated",
         |    "required": ["theme"],
@@ -7472,13 +7595,14 @@ object Http4s600 {
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
-        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
+        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserXORApplication` (the Consumer's Scopes when the application acts as itself, the User's Entitlements when a person acts; `UserOrApplication` is accepted as its former name) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
-        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         UpdateDynamicEntityRequestJsonV600(
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
@@ -7502,10 +7626,11 @@ object Http4s600 {
           $AuthenticatedUserIsRequired,
           UserHasMissingRoles,
           InvalidJsonFormat,
+          DynamicPathAmbiguous,
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canUpdateBankLevelDynamicEntity :: Nil),
+        Some(canUpdateDynamicEntityDefinition :: Nil),
         http4sPartialFunction = Some(updateBankLevelDynamicEntity)
       )
       resourceDocs += ResourceDoc(
@@ -7526,6 +7651,7 @@ object Http4s600 {
         |  "has_public_access": false,
         |  "has_community_access": false,
         |  "personal_requires_role": false,
+        |  "use_row_level_access": false,
         |  "schema": {
         |    "description": "User preferences updated",
         |    "required": ["theme"],
@@ -7542,13 +7668,14 @@ object Http4s600 {
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
-        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
+        |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
-        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserOrApplication` (either) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
+        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserXORApplication` (the Consumer's Scopes when the application acts as itself, the User's Entitlements when a person acts; `UserOrApplication` is accepted as its former name) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
         |
-        |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
+        |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         UpdateDynamicEntityRequestJsonV600(
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
@@ -7570,6 +7697,7 @@ object Http4s600 {
         List(
           $AuthenticatedUserIsRequired,
           InvalidJsonFormat,
+          DynamicPathAmbiguous,
           UnknownError
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
@@ -7743,6 +7871,8 @@ object Http4s600 {
            |
            |18 certificate_trust (if null ignore) - Returns calls by how the caller's certificate was established: direct (the TLS peer was the caller), forwarded (a trusted proxy forwarded the caller's certificate) or none (certificate material was present but no caller was identified). eg: certificate_trust=forwarded
            |
+           |19 domain_api_url (if null ignore) - Returns calls made under a Domain API whose called URL (the metric's domain_api_url) starts with this value: a base path gives every call through that Domain API, a longer value the calls to one of its paths. eg: domain_api_url=/carbon-registry/v1/
+           |
         """.stripMargin,
         EmptyBody,
         metricsJsonV600,
@@ -7763,7 +7893,8 @@ object Http4s600 {
         "Get Aggregate Metrics",
         s"""Returns aggregate metrics on api usage eg. total count, response time (in ms), etc.
            |
-           |require CanReadAggregateMetrics role
+           |**Who may call it.** A User with the Role CanReadAggregateMetrics, or an application whose Consumer holds it
+           |as a Scope, such as a monitoring service run as a Platform App (see ${Glossary.getGlossaryItemLink("Platform Apps")}).
            |
            |**NOTE: Automatic from_date Default**
            |
@@ -7772,6 +7903,8 @@ object Http4s600 {
            |
            |This prevents accidentally querying all metrics since Unix Epoch and ensures reasonable response times.
            |For historical/reporting queries, always explicitly specify your desired `from_date`.
+           |
+           |**Date range limit.** One call covers at most ${code.metrics.MetricsProps.aggregateMetricsMaxDays} days of metrics on this instance. A longer range between from_date and to_date is refused with 400 (OBP-10069); to report on a longer period, make one call per period.
            |
            |**IMPORTANT: Smart Caching & Performance**
            |
@@ -7857,10 +7990,12 @@ object Http4s600 {
         List(
           AuthenticatedUserIsRequired,
           UserHasMissingRoles,
+          AggregateMetricsDateRangeTooLong,
           UnknownError
         ),
         List(apiTagMetric, apiTagAggregateMetrics),
         Some(canReadAggregateMetrics :: Nil),
+        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(getAggregateMetrics)
       )
       resourceDocs += ResourceDoc(
@@ -8234,6 +8369,9 @@ object Http4s600 {
         |
         |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.
         |
+        |**Who may call it.** A User with the Role CanCreateCustomer at BANK_ID, or an application acting as itself whose
+        |Consumer holds it as a Scope (for example a website that onboards its applicants as Customers).
+        |
         |${userAuthenticationMessage(true)}
         |""",
         postCustomerJsonV600,
@@ -8254,6 +8392,7 @@ object Http4s600 {
         ),
         List(apiTagCustomer, apiTagPerson),
         Some(canCreateCustomer :: Nil),
+        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(createCustomer)
       )
       resourceDocs += ResourceDoc(
@@ -9128,7 +9267,7 @@ object Http4s600 {
           UnknownError
         ),
         List(apiTagMetric, apiTagApi),
-        None,
+        Some(List(canGetConnectorTrace)),
         http4sPartialFunction = Some(getConnectorTraces)
       )
       resourceDocs += ResourceDoc(
@@ -9467,6 +9606,10 @@ object Http4s600 {
         |Returns client information including name, consumer_id, redirect_uris, and enabled status.
         |This endpoint does not verify the client secret - use POST /oidc/clients/verify for authentication.
         |
+        |redirect_uris lists only the Consumer's redirect URLs that meet the redirect URL rules (https; http only for localhost,
+        |127.0.0.1 or [::1]; or an app scheme in reverse-domain form; no wildcard, user information or fragment). A stored entry
+        |that fails them is left out, so an OIDC provider never redirects to it. See ${Glossary.getGlossaryItemLink("Redirect URL")}
+
         |${userAuthenticationMessage(true)}
         |""",
         EmptyBody,
@@ -9480,7 +9623,7 @@ object Http4s600 {
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         apiTagOIDC :: apiTagConsumer :: apiTagOAuth :: Nil,
         Some(canGetOidcClient :: Nil),
-        authMode = code.api.util.APIUtil.UserOrApplication,
+        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(getOidcClient)
       )
       resourceDocs += ResourceDoc(
@@ -9494,6 +9637,10 @@ object Http4s600 {
         |Returns `valid: true` if the client_id and client_secret match an active consumer.
         |Also returns the consumer_id and redirect_uris for use by the OIDC provider.
         |
+        |redirect_uris lists only the Consumer's redirect URLs that meet the redirect URL rules (https; http only for localhost,
+        |127.0.0.1 or [::1]; or an app scheme in reverse-domain form; no wildcard, user information or fragment). A stored entry
+        |that fails them is left out, so an OIDC provider never redirects to it. See ${Glossary.getGlossaryItemLink("Redirect URL")}
+
         |${userAuthenticationMessage(true)}
         |""",
         VerifyOidcClientRequestJsonV600(
@@ -9509,7 +9656,7 @@ object Http4s600 {
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         apiTagOIDC :: apiTagConsumer :: apiTagOAuth :: Nil,
         Some(canVerifyOidcClient :: Nil),
-        authMode = code.api.util.APIUtil.UserOrApplication,
+        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(verifyOidcClient)
       )
       resourceDocs += ResourceDoc(
@@ -9548,7 +9695,7 @@ object Http4s600 {
         |
         |For personal attributes that users manage themselves, see the /my/personal-data-fields endpoints.
         |
-        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY"
+        |${AttributeTypeDocs.typeFieldDescription}
         |
         |${userAuthenticationMessage(true)}
         |""".stripMargin,
@@ -9631,6 +9778,9 @@ object Http4s600 {
         |This endpoint creates entitlements for every Role in the Group. If the user
         |already has a particular role at the same bank, that entitlement is skipped (not duplicated).
         |
+        |The membership itself is recorded too, so the user is a member of the Group even when every
+        |Role was skipped.
+        |
         |Each entitlement created will have:
         |- group_id set to the group ID
         |- process set to "GROUP_MEMBERSHIP"
@@ -9681,6 +9831,9 @@ object Http4s600 {
         |
         |Only removes entitlements with:
         |- group_id matching GROUP_ID
+        |
+        |An entitlement for a Role that another Group the user is in (at the same bank) also grants is kept,
+        |and recorded against that Group instead.
         |
         |Requires either:
         |- CanRemoveUserFromGroupAtAllBanks (for any group)
@@ -9743,7 +9896,7 @@ object Http4s600 {
         |Use case: Portals and apps can show users what personal data types are available
         |without needing admin access to view all dynamic entity definitions.
         |
-        |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
+        |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")} and ${Glossary.getGlossaryItemLink("Dynamic-Entity-Access-Model")}""",
         EmptyBody,
         MyDynamicEntitiesJsonV600(
           dynamic_entities = List(
@@ -9875,18 +10028,18 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(createCounterpartyAttribute),
         "POST",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes",
         "Create Counterparty Attribute",
         s"""
             | Create a new Counterparty Attribute for a given COUNTERPARTY_ID.
             |
-            | The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY".
+            | ${AttributeTypeDocs.typeFieldDescription}
             | Authentication is Required
             |
         """.stripMargin,
         counterpartyAttributeRequestJsonV600,
         counterpartyAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, $CounterpartyNotFoundByCounterpartyId, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canCreateCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(createCounterpartyAttribute)
@@ -9895,7 +10048,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(deleteCounterpartyAttribute),
         "DELETE",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
         "Delete Counterparty Attribute",
         s"""
             | Delete a Counterparty Attribute specified by COUNTERPARTY_ATTRIBUTE_ID.
@@ -9905,7 +10058,7 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, UnknownError),
+        List($AuthenticatedUserIsRequired, $CounterpartyNotFoundByCounterpartyId, CounterpartyAttributeNotFound, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canDeleteCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(deleteCounterpartyAttribute)
@@ -9914,7 +10067,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(getCounterpartyAttributeById),
         "GET",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
         "Get Counterparty Attribute By ID",
         s"""
             | Get a specific Counterparty Attribute by its COUNTERPARTY_ATTRIBUTE_ID.
@@ -9924,7 +10077,7 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         counterpartyAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, UnknownError),
+        List($AuthenticatedUserIsRequired, $CounterpartyNotFoundByCounterpartyId, CounterpartyAttributeNotFound, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canGetCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(getCounterpartyAttributeById)
@@ -9933,7 +10086,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(getAllCounterpartyAttributes),
         "GET",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes",
         "Get All Counterparty Attributes",
         s"""
             | Get all attributes for the specified Counterparty.
@@ -9943,7 +10096,7 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         counterpartyAttributesJsonV600,
-        List($AuthenticatedUserIsRequired, UnknownError),
+        List($AuthenticatedUserIsRequired, $CounterpartyNotFoundByCounterpartyId, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canGetCounterpartyAttributes :: Nil),
         http4sPartialFunction = Some(getAllCounterpartyAttributes)
@@ -9952,7 +10105,7 @@ object Http4s600 {
         implementedInApiVersion,
         nameOf(updateCounterpartyAttribute),
         "PUT",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
         "Update Counterparty Attribute",
         s"""
             | Update an existing Counterparty Attribute specified by COUNTERPARTY_ATTRIBUTE_ID.
@@ -9962,7 +10115,7 @@ object Http4s600 {
         """.stripMargin,
         counterpartyAttributeRequestJsonV600,
         counterpartyAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, $CounterpartyNotFoundByCounterpartyId, CounterpartyAttributeNotFound, UnknownError),
         List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canUpdateCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(updateCounterpartyAttribute)
@@ -10164,7 +10317,7 @@ object Http4s600 {
         List(UserHasMissingRoles, InvalidJsonFormat, InvalidLoginCredentials, UsernameHasBeenLocked, UnknownError),
         apiTagUser :: Nil,
         Some(canVerifyUserCredentials :: Nil),
-        authMode = code.api.util.APIUtil.UserOrApplication,
+        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(verifyUserCredentials)
       )
       resourceDocs += ResourceDoc(
@@ -10476,8 +10629,10 @@ object Http4s600 {
         |of the OpenID discovery document listed by GET /obp/v6.0.0/well-known), exchange the returned client_id
         |and client_secret for an access token with grant_type=client_credentials, and send it as
         |`Authorization: Bearer <token>`. OBP creates a Consumer and a User for the client automatically; that
-        |identity has no Roles, which is enough for this endpoint. The walkthrough is in the glossary under
-        |"Signal Channels". (POST /obp/v6.0.0/dynamic-registration/consumers is the PSD2 certificate path, not this.)
+        |identity has no Roles, which is enough for this endpoint. The walkthrough is the glossary item
+        |"Signal Channels", which an agent can fetch on its own with
+        |`GET /obp/v7.0.0/api/glossary/Signal%20Channels`. (POST /obp/v6.0.0/dynamic-registration/consumers
+        |is the PSD2 certificate path, not this.)
         |
         |Authentication is Required.
         |
@@ -10569,8 +10724,10 @@ object Http4s600 {
         |of the OpenID discovery document listed by GET /obp/v6.0.0/well-known), exchange the returned client_id
         |and client_secret for an access token with grant_type=client_credentials, and send it as
         |`Authorization: Bearer <token>`. OBP creates a Consumer and a User for the client automatically; that
-        |identity has no Roles, which is enough for this endpoint. The walkthrough is in the glossary under
-        |"Signal Channels". (POST /obp/v6.0.0/dynamic-registration/consumers is the PSD2 certificate path, not this.)
+        |identity has no Roles, which is enough for this endpoint. The walkthrough is the glossary item
+        |"Signal Channels", which an agent can fetch on its own with
+        |`GET /obp/v7.0.0/api/glossary/Signal%20Channels`. (POST /obp/v6.0.0/dynamic-registration/consumers
+        |is the PSD2 certificate path, not this.)
         |
         |Authentication is Required.
         |
@@ -12729,14 +12886,14 @@ object Http4s600 {
           s"""Dry-run validation of a Dynamic Resource Doc. Send the same payload you would send to `Create Dynamic Resource Doc` and this endpoint will:
           |
           |- Parse `method_body` (URL-decoded) as Scala code and run the ToolBox compiler against it, wrapped in the same template used at runtime (request/response case classes generated from `example_request_body` / `success_response_body`).
-          |- Run the OBP compilation-dependency guard (when the OBP prop `dynamic_code_compile_validate_enable` is set to `true`).
+          |- Run the OBP call allowlist guard (when the OBP prop `dynamic_code_obp_calls_are_restricted` is set to `true`).
           |
           |Always returns HTTP 200. Inspect the `valid` field in the response:
           |
           |* `true`  — the Scala compiles and all referenced OBP methods are on the allowlist.
           |* `false` — the response includes `error` (raw compiler / guard message), `message` (OBP error constant) and `details.error_type` — one of:
           |  * `CompilationError` — `method_body` failed to compile.
-          |  * `DependencyError` — compiled, but references OBP types/methods that the admin has not allowed in `dynamic_code_compile_validate_dependencies`.
+          |  * `DependencyError` — compiled, but references OBP types/methods that the admin has not allowed in `dynamic_code_allowed_obp_methods`.
           |  * `UnknownError` — any other unexpected exception.
           |
           |Nothing is persisted and no endpoint is served as a result of calling this.
@@ -12889,7 +13046,7 @@ object Http4s600 {
           "Get User's Group Memberships",
           s"""Get all groups a user is a member of.
           |
-          |Returns groups where the user has entitlements carrying a group_id.
+          |Returns the groups the user was added to, and groups where the user has entitlements carrying a group_id.
           |
           |The response includes:
           |- list_of_entitlements: entitlements the user currently has from this group membership
@@ -13095,10 +13252,13 @@ object Http4s600 {
           |
           |    DirectLogin: token=YOUR_TOKEN
           |
+          |On this instance DirectLogin is ${if (APIUtil.getPropsAsBoolValue("allow_direct_login", true)) "enabled" else "disabled: this endpoint refuses every request with DirectLoginIsDisabled, without checking any credentials"}.
+          |
           |""".stripMargin,
           EmptyBody,
           JSONFactory600.createTokenJSON("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJpYXQiOjE0NTU4OTQyNzYsImV4cCI6MTQ1NTg5Nzg3NiwiYXVkIjoib2JwLWFwaSIsInN1YiI6IjA2Zjc0YjUwLTA5OGYtNDYwNi1hOGNjLTBjNDc5MjAyNmI5ZCIsImNvbnN1bWVyX2tleSI6IjYwNGY3ZTAyNGQ5MWU2MzMwNGMzOGM0YzRmZjc0MjMwZGU5NDk4NTEwNjgxZWNjM2Q5MzViNWQ5MGEwOTI3ODciLCJyb2xlIjoiY2FuX2FjY2Vzc19hcGkifQ.f8xHvXP5fDxo5-LlfTj1OQS9oqHNZfFd7N-WkV2o4Cc"),
           List(
+            DirectLoginIsDisabled,
             InvalidDirectLoginParameters,
             InvalidLoginCredentials,
             InvalidConsumerCredentials,
@@ -13358,9 +13518,9 @@ object Http4s600 {
           ),
           List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
           apiTagManageDynamicEntity :: apiTagApi :: Nil,
-          Some(canBackupSystemDynamicEntity :: Nil),
+          Some(canBackupDynamicEntityDefinition :: Nil),
           http4sPartialFunction = Some(backupSystemDynamicEntity)
-        )
+        ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
         resourceDocs += ResourceDoc(
           implementedInApiVersion,
           nameOf(backupBankLevelDynamicEntity),
@@ -13391,7 +13551,7 @@ object Http4s600 {
           ),
           List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
           apiTagManageDynamicEntity :: apiTagApi :: Nil,
-          Some(canBackupBankLevelDynamicEntity :: Nil),
+          Some(canBackupDynamicEntityDefinition :: Nil),
           http4sPartialFunction = Some(backupBankLevelDynamicEntity)
         )
     }
@@ -13432,9 +13592,9 @@ object Http4s600 {
             UnknownError
           ),
           apiTagManageDynamicEntity :: apiTagApi :: Nil,
-          Some(canDeleteCascadeSystemDynamicEntity :: Nil),
+          Some(canDeleteCascadeDynamicEntityDefinition :: Nil),
           http4sPartialFunction = Some(deleteSystemDynamicEntityCascade)
-        )
+        ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(getCustomerInvestigationReport),
@@ -13734,7 +13894,7 @@ object Http4s600 {
           UnknownError
         ),
         apiTagApi :: Nil,
-        None,
+        Some(List(canGetConfigProps)),
         http4sPartialFunction = Some(getConfigProps)
       )
       // Intentional drift from Lift's APIMethods600.scala source-of-truth:
@@ -13751,7 +13911,7 @@ object Http4s600 {
         "Get App Directory",
         s"""Get connectivity information for apps in the OBP ecosystem.
         |
-        |Returns config (configuration) properties that apps (Portal, API Explorer, API Manager,
+        |Returns config (configuration) properties that apps (Portal, API Explorer, API Manager, Cohort,
         |Sandbox Populator, OIDC, Keycloak, Hola, MCP, Opey) and agents can use to discover
         |endpoints in the OBP ecosystem.
         |
@@ -14486,7 +14646,7 @@ object Http4s600 {
         |
         |For non-personal attributes that can be used in ABAC rules, see the /users/USER_ID/attributes endpoints.
         |
-        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY"
+        |${AttributeTypeDocs.typeFieldDescription}
         |
         |Each Personal Data Field is identified by its own USER_ATTRIBUTE_ID. The "name" is not a unique key:
         |this endpoint always creates a new field, so the same "name" can occur on multiple fields for the same user
@@ -14562,7 +14722,7 @@ object Http4s600 {
         |USER_ATTRIBUTE_ID identifies the exact field to update; this updates that one field in place and never
         |creates a new one. The body's "name", "type" and "value" all replace the existing field's values, so a
         |field can be renamed by changing "name". Returns 404 if no field with that USER_ATTRIBUTE_ID belongs to the user.
-        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY".
+        |${AttributeTypeDocs.typeFieldDescription}
         |
         |${userAuthenticationMessage(true)}
         |""".stripMargin,
@@ -14664,8 +14824,11 @@ object Http4s600 {
         |
         |A consumer with no records at all gets the system defaults (`rate_limiting_per_*` props).
         |
+        |A record applies to every call of the consumer from `from_date` to `to_date`. `api_name`, `api_version` and `bank_id` cannot be set yet: a request that names one is refused with 400, and an empty value is stored as not set.
+        |
         |A record created by an API Product Subscription is managed by that subscription: it is rewritten on the
-        |subscription's next status change and removed when the subscription is cancelled.
+        |subscription's next status change and removed when the subscription is cancelled. Such a record shows the
+        |subscription's `bank_id` for reference; it too applies to every call of the consumer.
         |
         |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for details.
         |
@@ -14679,6 +14842,7 @@ object Http4s600 {
           InvalidJsonFormat,
           InvalidConsumerId,
           ConsumerNotFoundByConsumerId,
+          RateLimitScopeNotSupported,
           UserHasMissingRoles,
           UnknownError
         ),
@@ -14712,8 +14876,11 @@ object Http4s600 {
         |
         |A consumer with no records at all gets the system defaults (`rate_limiting_per_*` props).
         |
+        |A record applies to every call of the consumer from `from_date` to `to_date`. `api_name`, `api_version` and `bank_id` cannot be set yet: a request that names one is refused with 400, and an empty value is stored as not set.
+        |
         |A record created by an API Product Subscription is managed by that subscription: it is rewritten on the
-        |subscription's next status change and removed when the subscription is cancelled.
+        |subscription's next status change and removed when the subscription is cancelled. Such a record shows the
+        |subscription's `bank_id` for reference; it too applies to every call of the consumer.
         |
         |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for details.
         |
@@ -14727,6 +14894,7 @@ object Http4s600 {
           InvalidJsonFormat,
           InvalidConsumerId,
           ConsumerNotFoundByConsumerId,
+          RateLimitScopeNotSupported,
           UserHasMissingRoles,
           UpdateConsumerError,
           UnknownError
@@ -15544,8 +15712,8 @@ object Http4s600 {
     }
 }
 
-  private lazy val v6ResourceDocIndex: ResourceDocMatcher.ResourceDocIndex =
-    ResourceDocMatcher.buildIndex(resourceDocs)
+  private lazy val v6RouteIndex: ResourceDocMatcher.RouteIndex =
+    ResourceDocMatcher.buildRouteIndex(Implementations6_0_0.orderedResourceDocs)
 
   // `lazy val`, not `val`: other objects reference
   // `Http4s600.Implementations6_0_0` directly via getstatic. When either is loaded

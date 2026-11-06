@@ -122,6 +122,7 @@ class SuccessSweepTest extends ServerSetupWithTestData with DefaultUsers with Sw
     "OBPv4.0.0-getMyApiCollectionEndpoints" -> "400 OBP-30079: no ApiCollection named API_COLLECTION_NAME",
     "OBPv6.0.0-getWebUiProp"                -> "400 OBP-08003: no WebUi prop named WEBUI_PROP_NAME",
     "OBPv7.0.0-getRoutingScheme"            -> "404 OBP-30514: no routing scheme named SCHEME",
+    "OBPv7.0.0-getGlossaryItem"             -> "404 OBP-30571: no Glossary Item titled TITLE",
 
     // ── needs a consent the generic fixture does not create ──
     // omniscientCaller grants every OBP role directly through the Entitlement provider -- it
@@ -130,7 +131,9 @@ class SuccessSweepTest extends ServerSetupWithTestData with DefaultUsers with Sw
     // logged-in caller with no consent at all is correctly refused. This is the endpoint doing
     // its job, not a defect: the anonymous case (no auth at all) is what AuthSweepTest covers.
     "BGv1-getAccountList"   -> "403 OBP-35015 or similar: Berlin Group AIS requires an established PSU consent",
+    "BGv1-getCardAccounts"  -> "403 OBP-35015 or similar: Berlin Group AIS requires an established PSU consent",
     "BGv1.3-getAccountList" -> "403 OBP-35015 or similar: Berlin Group AIS requires an established PSU consent",
+    "BGv1.3-getCardAccounts" -> "403 OBP-35015 or similar: Berlin Group AIS requires an established PSU consent",
     "UKv3.1-getAccounts"    -> ("403 OBP-35036: The Consent was created by a different API standard " +
       "than the endpoint using it -- UK Open Banking requires a UK-tagged consent"),
     "UKv3.1-getBalances"    -> ("403 OBP-35036: The Consent was created by a different API standard " +

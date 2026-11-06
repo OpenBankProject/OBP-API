@@ -72,7 +72,6 @@ object PractiseEndpoint extends DynamicCompileEndpoint {
   case class ResponseRootJsonClass(my_user_id: String, name: String, age: Long, hobby: List[String])
 
   // * is any bankId, if bound to other bankId, just modify this value to correct one
-  override val boundBankId = "*"
 
   // copy the whole method body as "dynamicResourceDoc" method body
   override protected def

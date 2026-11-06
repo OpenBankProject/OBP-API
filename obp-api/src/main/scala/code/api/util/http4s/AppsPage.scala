@@ -53,7 +53,7 @@ object AppsPage {
       }
   }
 
-  private val acronyms = Set("obp", "api", "mcp")
+  private val acronyms = Set("obp", "api", "mcp", "oidc")
 
   // Render order for probe endpoints (also controls which endpoints are known).
   private val probeEndpoints = List("status", "health", "ready")
@@ -63,11 +63,13 @@ object AppsPage {
   private val appProbes: Map[String, Set[String]] = Map(
     "public_obp_portal_url"       -> Set("status", "health"),
     "public_obp_api_manager_url"  -> Set("status", "health"),
+    "public_obp_cohort_url"       -> Set("health"),
     "public_obp_oidc_url"         -> Set("status"),
     "public_obp_api_url"          -> Set("status", "health"),
     "public_obp_opey_url"         -> Set("status", "health"),
     "public_obp_api_explorer_url" -> Set("status", "health"),
     "public_obp_mcp_url"          -> Set("status", "health", "ready"),
+    "public_obp_mcp_internal_url" -> Set("status", "health", "ready"),
     "public_obp_hola_url"         -> Set("status", "health"),
     "public_obp_stripe_url"       -> Set("status"),
   )

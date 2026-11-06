@@ -468,7 +468,9 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
   override def deletePhysicalCardForBank(bankId: BankId, cardId: String,
                                          callContext: Option[CallContext]): Box[Boolean] =
     MappedPhysicalCard.findByBankAndCardId(bankId.value, cardId)
-      .map(_ => MappedPhysicalCard.delete(bankId.value, cardId))
+      .map(_ =>
+        code.cardattribute.DoobieCardAttributeProvider.deleteForCards(bankId.value, List(cardId)) &&
+          MappedPhysicalCard.delete(bankId.value, cardId))
 }
 
 // The Lift entity `CardAction` used to be declared here. It was never registered for schema

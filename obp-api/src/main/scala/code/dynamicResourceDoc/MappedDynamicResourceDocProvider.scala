@@ -64,6 +64,9 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
     }
   }
 
+  override def getAllInSpace(bankId: Option[String]): List[JsonDynamicResourceDoc] =
+    DynamicResourceDoc.findAllInSpace(bankId).map(DynamicResourceDoc.getJsonDynamicResourceDoc)
+
   override def create(bankId: Option[String], entity: JsonDynamicResourceDoc,
                       createdByUserId: Option[String]): Box[JsonDynamicResourceDoc] =
     tryo {
@@ -81,10 +84,11 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
         tags = entity.tags,
         roles = entity.roles,
         methodBody = entity.methodBody,
+        programmingLang = entity.programmingLang,
         // Provenance comes from the authenticated user and a hash computed here - never from the
         // request body, which the caller controls.
         createdByUserId = createdByUserId,
-        methodBodyHash = Some(APIUtil.sha256Hex(entity.decodedMethodBody)))
+        methodBodyHash = Some(APIUtil.dynamicCodeHash(entity.programmingLang, entity.decodedMethodBody)))
     }.map(DynamicResourceDoc.getJsonDynamicResourceDoc)
 
   override def update(bankId: Option[String], entity: JsonDynamicResourceDoc,
@@ -109,8 +113,9 @@ object MappedDynamicResourceDocProvider extends DynamicResourceDocProvider {
             tags = entity.tags,
             roles = entity.roles,
             methodBody = entity.methodBody,
+            programmingLang = entity.programmingLang,
             updatedByUserId = updatedByUserId,
-            methodBodyHash = Some(APIUtil.sha256Hex(entity.decodedMethodBody)))
+            methodBodyHash = Some(APIUtil.dynamicCodeHash(entity.programmingLang, entity.decodedMethodBody)))
         }.flatMap(box => box).map(DynamicResourceDoc.getJsonDynamicResourceDoc)
       case _ => Empty
     }

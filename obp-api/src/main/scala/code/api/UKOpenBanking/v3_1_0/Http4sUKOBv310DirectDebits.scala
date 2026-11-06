@@ -30,7 +30,7 @@ package code.api.UKOpenBanking.v3_1_0
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, mockedDataText}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, mockedDataText}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -59,7 +59,7 @@ object Http4sUKOBv310DirectDebits extends MdcLoggable {
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
   private val tag = ApiTag("Direct Debits") :: apiTagMockedData :: Nil
 
-  lazy val getAccountsAccountIdDirectDebits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdDirectDebits: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "accounts" / _ / "direct-debits" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -114,7 +114,7 @@ object Http4sUKOBv310DirectDebits extends MdcLoggable {
     http4sPartialFunction = Some(getAccountsAccountIdDirectDebits)
   )
 
-  lazy val getDirectDebits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDirectDebits: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "direct-debits" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -169,7 +169,10 @@ object Http4sUKOBv310DirectDebits extends MdcLoggable {
     http4sPartialFunction = Some(getDirectDebits)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    getAccountsAccountIdDirectDebits(req).orElse(getDirectDebits(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    getAccountsAccountIdDirectDebits,
+    getDirectDebits
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

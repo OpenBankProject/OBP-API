@@ -38,6 +38,23 @@ import scala.collection.immutable.List
 object DynamicResourceDocsEndpointGroup extends EndpointGroup with code.util.Helper.MdcLoggable {
   override lazy val urlPrefix: String = APIUtil.getPropsValue("url.prefix.dynamic.resourceDoc", "dynamic-resource-doc")
 
+  /** The space a doc belongs to, as its URL names it: its bank's id, or SYS for the system space. */
+  def spaceOf(doc: APIUtil.ResourceDoc): String = code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrSystem(doc.createdByBankId)
+
+  /**
+   * Every doc is served under the space it belongs to: /banks/BANK_ID/dynamic-resource-doc/REQUEST_URL,
+   * with SYS as BANK_ID for the system space, as the v7.0.0 Dynamic Entity URLs and the Dynamic Endpoints
+   * created from Swagger name theirs. Without the space, two banks could each have a doc at the same URL
+   * and which one answered would not depend on anything the caller sent. (The URL without the space is
+   * still answered when it is unambiguous; see DynamicEndpoints.findEndpoint.)
+   */
+  override def docs: List[APIUtil.ResourceDoc] = resourceDocs map { doc =>
+    val newUrl = s"/banks/${spaceOf(doc)}/$urlPrefix/${doc.requestUrl}".replaceAll("/+", "/")
+    val newDoc = doc.copy(requestUrl = newUrl) // copy preserves dynamicHttp4sFunction
+    newDoc.connectorMethods = doc.connectorMethods // copy does not keep the var; reset it, as EndpointGroup.docs does
+    newDoc
+  }
+
 
   override protected def resourceDocs: List[APIUtil.ResourceDoc] =
     // Per-row isolation: a stored methodBody written against the deprecated Lift contract
@@ -52,6 +69,24 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup with code.util.Hel
       try {
         Some(toResourceDoc(dynamicDoc))
       } catch {
+        // Validation.validateDependency / createJavaHttp4sEndpoint's own rejection path both throw
+        // this specifically for a dependency-whitelist miss -- distinct from a genuine compile
+        // failure, and reachable here (not just at create/update time) because CompiledObjects'
+        // validation runs fresh on every construction and dynamic_code_allowed_obp_methods
+        // can be tightened after a doc was already registered. Logging it as a "deprecated Lift
+        // contract" problem sends whoever reads this log to re-author a body that is not the
+        // problem, instead of at the whitelist they (or someone else) just edited.
+        case e: code.api.JsonResponseException =>
+          val reason = e.jsonResponse match {
+            case APIUtil.JsonResponseExtractor(msg, _) => msg
+            case _ => Option(e.getMessage).getOrElse("")
+          }
+          val rejectedBy =
+            if (CompiledObjects.isQuery(dynamicDoc.programmingLang)) "its Dynamic Query declaration is not valid"
+            else "rejected by dependency validation (dynamic_code_allowed_obp_methods)"
+          logger.error(s"[DynamicResourceDocsEndpointGroup] skipping dynamic resource doc '${dynamicDoc.requestVerb} ${dynamicDoc.requestUrl}' " +
+            s"(id=${dynamicDoc.dynamicResourceDocId.getOrElse("")}, programming_lang=${dynamicDoc.programmingLang}): $rejectedBy. $reason")
+          None
         case e: Throwable =>
           logger.error(s"[DynamicResourceDocsEndpointGroup] skipping dynamic resource doc '${dynamicDoc.requestVerb} ${dynamicDoc.requestUrl}' " +
             s"(id=${dynamicDoc.dynamicResourceDocId.getOrElse("")}): its methodBody could not be compiled under the native http4s contract. " +
@@ -80,11 +115,12 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup with code.util.Hel
    * 
    */
   private val toResourceDoc: JsonDynamicResourceDoc => ResourceDoc = { dynamicDoc =>
-    val compiledObjects = CompiledObjects(dynamicDoc.exampleRequestBody, dynamicDoc.successResponseBody, dynamicDoc.methodBody)
+    val compiledObjects = CompiledObjects(dynamicDoc.exampleRequestBody, dynamicDoc.successResponseBody, dynamicDoc.methodBody,
+      dynamicDoc.programmingLang, dynamicDoc.bankId)
     ResourceDoc(
       // partialFunction is a no-op stub — the runtime dispatch uses the native handler in
       // dynamicHttp4sFunction (the compiled artifact is OBPEndpointIO, not the Lift OBPEndpoint).
-      dynamicHttp4sFunction = Some(compiledObjects.sandboxEndpoint(dynamicDoc.bankId)),
+      dynamicHttp4sFunction = Some(compiledObjects.compiledEndpoint()),
       implementedInApiVersion = apiVersion,
       partialFunctionName = dynamicDoc.partialFunctionName + "_" + (dynamicDoc.requestVerb + dynamicDoc.requestUrl).hashCode,
       requestVerb = dynamicDoc.requestVerb,
@@ -101,7 +137,9 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup with code.util.Hel
             StringUtils.split(it, ",")
               .map(ApiRole.getOrCreateDynamicApiRole(_))
               .toList
-        }
+        },
+      // The bank level resource-docs endpoints list a space's docs by this field.
+      createdByBankId = dynamicDoc.bankId.flatMap(Option(_)).filter(_.nonEmpty)
     )
   }
 }

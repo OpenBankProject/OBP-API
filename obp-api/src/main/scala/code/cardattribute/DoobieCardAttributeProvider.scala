@@ -114,4 +114,12 @@ object DoobieCardAttributeProvider extends CardAttributeProvider {
         sql"DELETE FROM mappedcardattribute WHERE mcardattributeid = $cardAttributeId".update.run) > 0
     }
   }
+
+  /** Delete the attributes that the bank holds for the given cards, for when the cards themselves are deleted. */
+  def deleteForCards(bankId: String, cardIds: List[String]): Boolean =
+    cardIds.isEmpty || {
+      val in = Fragments.in(fr"mcardid", cats.data.NonEmptyList.fromListUnsafe(cardIds.distinct))
+      DoobieUtil.runUpdate((fr"DELETE FROM mappedcardattribute WHERE mbankid = $bankId AND" ++ in).update.run)
+      true
+    }
 }

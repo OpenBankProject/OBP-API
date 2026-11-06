@@ -35,15 +35,15 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.Glossary
 import code.api.util.ExampleValue._
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, _}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, _}
 import code.api.util.ApiRole
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CertificateUtil
-import code.api.util.{ApiTrigger, Consent, Glossary, SecureRandomUtil}
+import code.api.util.{ApiTrigger, AttributeTypeDocs, Consent, Glossary, SecureRandomUtil}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
-import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.newstyle.{BalanceNewStyle, ViewNewStyle}
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle, OBPBankId, RateLimitingUtil}
@@ -120,61 +120,6 @@ object Http4s310 {
   private val supportedConnectorNames =
     NewStyle.function.getSupportedConnectorNames().mkString("[", " | ", "]")
 
-  private val generalObpConsentText: String =
-    s"""
-       |
-       |An OBP Consent allows the holder of the Consent to call one or more endpoints.
-       |
-       |Consents must be created and authorisied using SCA (Strong Customer Authentication).
-       |
-       |That is, Consents can be created by an authorised User via the OBP REST API but they must be confirmed via an out of band (OOB) mechanism such as a code sent to a mobile phone.
-       |
-       |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(", ") }.
-       |
-       |Each Consent is bound to a consumer i.e. you need to identify yourself over request header value Consumer-Key.
-       |For example:
-       |GET /obp/v4.0.0/users/current HTTP/1.1
-       |Host: 127.0.0.1:8080
-       |Consent-JWT: eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOlt7InJvbGVfbmFtZSI6IkNhbkdldEFueVVzZXIiLCJiYW5rX2lkIjoiIn
-       |1dLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIzNDc1MDEzZi03YmY5LTQyNj
-       |EtOWUxYy0xZTdlNWZjZTJlN2UiLCJhdWQiOiI4MTVhMGVmMS00YjZhLTQyMDUtYjExMi1lNDVmZDZmNGQzYWQiLCJuYmYiOjE1ODA3NDE2NjcsIml
-       |zcyI6Imh0dHA6XC9cLzEyNy4wLjAuMTo4MDgwIiwiZXhwIjoxNTgwNzQ1MjY3LCJpYXQiOjE1ODA3NDE2NjcsImp0aSI6ImJkYzVjZTk5LTE2ZTY
-       |tNDM4Yi1hNjllLTU3MTAzN2RhMTg3OCIsInZpZXdzIjpbXX0.L3fEEEhdCVr3qnmyRKBBUaIQ7dk1VjiFaEBW8hUNjfg
-       |
-       |Consumer-Key: ejznk505d132ryomnhbx1qmtohurbsbb0kijajsk
-       |cache-control: no-cache
-       |
-       |Maximum time to live of the token is specified over props value consents.max_time_to_live. In case isn't defined default value is 7776000 seconds (90 days).
-       |
-       |Example of POST JSON:
-       |{
-       |  "everything": false,
-       |  "views": [
-       |    {
-       |      "bank_id": "GENODEM1GLS",
-       |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
-       |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
-       |    }
-       |  ],
-       |  "entitlements": [
-       |    {
-       |      "bank_id": "GENODEM1GLS",
-       |      "role_name": "CanGetCustomersAtOneBank"
-       |    }
-       |  ],
-       |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
-       |  "email": "eveline@example.com",
-       |  "valid_from": "2020-02-07T08:43:34Z",
-       |  "time_to_live": 3600
-       |}
-       |Please note that only optional fields are: consumer_id, valid_from and time_to_live.
-       |In case you omit they the default values are used:
-       |consumer_id = consumer of current user
-       |valid_from = current time
-       |time_to_live = consents.max_time_to_live
-       |
-    """.stripMargin
-
   object Implementations3_1_0 {
     val prefixPath: Path = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
@@ -198,13 +143,18 @@ object Http4s310 {
          |That is, Consents can be created by an authorised User via the OBP REST API but they must be confirmed via an out of band (OOB) mechanism such as a code sent to a mobile phone.
          |
          |Each Consent has one of the following states: ${code.consent.ConsentStatus.values.toList.sorted.mkString(", ")}.
+         |
+         |Each Consent is pinned to one Consumer, and only that Consumer can present the resulting Consent JWT -- any
+         |other gets ConsentNotFound. Set consumer_id in the body when the Consent is for a different application than
+         |the caller, for example a portal creating a Consent for an agent to use. Omit it when the Consent is for the
+         |caller. A Consent that names no Consumer is refused.
          |""".stripMargin
 
     private val supportedConnectorNames = NewStyle.function.getSupportedConnectorNames().mkString("[", " | ", "]")
 
     // ─── root ─────────────────────────────────────────────────────────────────
 
-    val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val root: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v3_1_0, versionStatus))
@@ -236,7 +186,7 @@ object Http4s310 {
 
     // ─── getCheckbookOrders ───────────────────────────────────────────────────
 
-    val getCheckbookOrders: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCheckbookOrders: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "checkbook" / "orders" =>
         EndpointHelpers.withView(req) { (_, account, _, cc) =>
           for {
@@ -261,7 +211,7 @@ object Http4s310 {
 
     // ─── getStatusOfCreditCardOrder ───────────────────────────────────────────
 
-    val getStatusOfCreditCardOrder: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getStatusOfCreditCardOrder: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "credit_cards" / "orders" =>
         EndpointHelpers.withView(req) { (_, account, _, cc) =>
           for {
@@ -293,7 +243,7 @@ object Http4s310 {
 
     // ─── getTopAPIs ───────────────────────────────────────────────────────────
 
-    val getTopAPIs: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getTopAPIs: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "metrics" / "top-apis" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           val httpParams = req.headers.headers.toList.map(h => HTTPParam(h.name.toString, h.value)) :::
@@ -367,7 +317,7 @@ object Http4s310 {
 
     // ─── getMetricsTopConsumers ───────────────────────────────────────────────
 
-    val getMetricsTopConsumers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getMetricsTopConsumers: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "metrics" / "top-consumers" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           val httpParams = req.headers.headers.toList.map(h => HTTPParam(h.name.toString, h.value)) :::
@@ -446,7 +396,7 @@ object Http4s310 {
     // Firehose pattern: prop check (→400) before role check (→403) before bank lookup (→404).
     // Uses non-standard ALL_CAPS template var FIREHOSE_BANK_ID so middleware skips bank validation.
 
-    val getFirehoseCustomers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getFirehoseCustomers: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "firehose" / "customers" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val roles = ApiRole.canUseCustomerFirehose :: canUseCustomerFirehoseAtAnyBank :: Nil
@@ -505,7 +455,7 @@ object Http4s310 {
 
     // ─── getBadLoginStatus ────────────────────────────────────────────────────
 
-    val getBadLoginStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getBadLoginStatus: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / username / "lock-status" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -542,7 +492,7 @@ object Http4s310 {
 
     // ─── getCallsLimit ────────────────────────────────────────────────────────
 
-    val getCallsLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCallsLimit: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" / consumerIdStr / "consumer" / "call-limits" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -575,7 +525,7 @@ object Http4s310 {
 
     // ─── getConsumer ──────────────────────────────────────────────────────────
 
-    val getConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getConsumer: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" / consumerIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -606,7 +556,7 @@ object Http4s310 {
 
     // ─── getConsumersForCurrentUser ──────────────────────────────────────────
 
-    val getConsumersForCurrentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getConsumersForCurrentUser: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "users" / "current" / "consumers" =>
         EndpointHelpers.withUser(req) { (user, _) =>
           for {
@@ -634,7 +584,7 @@ object Http4s310 {
 
     // ─── getConsumers ────────────────────────────────────────────────────────
 
-    val getConsumers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getConsumers: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "consumers" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -671,7 +621,7 @@ object Http4s310 {
 
     // ─── getAccountWebhooks ──────────────────────────────────────────────────
 
-    val getAccountWebhooks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAccountWebhooks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "banks" / _ / "account-web-hooks" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
@@ -712,7 +662,7 @@ object Http4s310 {
 
     // ─── config ───────────────────────────────────────────────────────────────
 
-    val config: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val config: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "config" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -743,7 +693,7 @@ object Http4s310 {
 
     // ─── getAdapterInfo ───────────────────────────────────────────────────────
 
-    val getAdapterInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAdapterInfo: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "adapter" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -775,7 +725,7 @@ object Http4s310 {
     // ─── getRateLimitingInfo ──────────────────────────────────────────────────
     // Anonymous endpoint — no auth required.
 
-    val getRateLimitingInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getRateLimitingInfo: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "rate-limiting" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
@@ -815,12 +765,18 @@ object Http4s310 {
 
     // ─── getCustomerByCustomerId ──────────────────────────────────────────────
 
-    val getCustomerByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomerByCustomerId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerIdStr =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canGetCustomersAtOneBank, Some(cc))
             (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller read customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             (customerAttributes, _) <- NewStyle.function.getCustomerAttributes(
               bank.bankId, CustomerId(customerIdStr), Some(cc))
           } yield JSONFactory310.createCustomerWithAttributesJson(customer, customerAttributes)
@@ -845,6 +801,8 @@ object Http4s310 {
         AuthenticatedUserIsRequired,
         UserHasMissingRoles,
         UserCustomerLinksNotFoundForUser,
+        // 404 when the customer does not exist or is at another bank than the one in the path
+        CustomerNotFoundByCustomerId,
         UnknownError
       ),
       List(apiTagCustomer),
@@ -854,7 +812,7 @@ object Http4s310 {
 
     // ─── getUserAuthContexts ─────────────────────────────────────────────────
 
-    val getUserAuthContexts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getUserAuthContexts: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userIdStr / "auth-context" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -887,12 +845,18 @@ object Http4s310 {
 
     // ─── getTaxResidence ─────────────────────────────────────────────────────
 
-    val getTaxResidence: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getTaxResidence: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "tax-residences" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canGetTaxResidence, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller read tax residences of customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             (taxResidences, _) <- NewStyle.function.getTaxResidences(customerIdStr, Some(cc))
           } yield JSONFactory310.createTaxResidences(taxResidences)
         }
@@ -912,7 +876,8 @@ object Http4s310 {
       |""",
       EmptyBody,
       taxResidencesJsonV310,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // CustomerNotFoundByCustomerId: the customer is not found, or is at another bank than the one in the path
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, CustomerNotFoundByCustomerId, UnknownError),
       List(apiTagCustomer, apiTagKyc),
       Some(List(canGetTaxResidence)),
       http4sPartialFunction = Some(getTaxResidence)
@@ -920,7 +885,7 @@ object Http4s310 {
 
     // ─── getAllEntitlements ──────────────────────────────────────────────────
 
-    val getAllEntitlements: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAllEntitlements: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "entitlements" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val roleName = req.uri.query.params.getOrElse("role", "")
@@ -960,12 +925,18 @@ object Http4s310 {
 
     // ─── getCustomerAddresses ────────────────────────────────────────────────
 
-    val getCustomerAddresses: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomerAddresses: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "addresses" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canGetCustomerAddress, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller read addresses of customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             (addresses, _) <- NewStyle.function.getCustomerAddress(customerIdStr, Some(cc))
           } yield JSONFactory310.createAddresses(addresses)
         }
@@ -985,7 +956,8 @@ object Http4s310 {
       |""",
       EmptyBody,
       customerAddressesJsonV310,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // CustomerNotFoundByCustomerId: the customer is not found, or is at another bank than the one in the path
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, CustomerNotFoundByCustomerId, UnknownError),
       List(apiTagCustomer, apiTagKyc),
       Some(List(canGetCustomerAddress)),
       http4sPartialFunction = Some(getCustomerAddresses)
@@ -993,13 +965,19 @@ object Http4s310 {
 
     // ─── getProductAttribute ─────────────────────────────────────────────────
 
-    val getProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / _ / "attributes" / productAttributeIdStr =>
+    val getProductAttribute: Http4sRoute = Http4sRoute {
+      // productCodeStr is read so the attribute can be checked against the product in the path
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attributes" / productAttributeIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canGetProductAttribute, Some(cc))
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
             (productAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // the attribute must belong to the bank and product in the path, else a role at one bank reads any bank's attribute
+            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              productAttribute.bankId.value == bankIdStr &&
+                productAttribute.productCode.value == productCodeStr
+            }
           } yield createProductAttributeJson(productAttribute)
         }
     }
@@ -1021,7 +999,8 @@ object Http4s310 {
       |""",
       EmptyBody,
       productAttributeResponseJson,
-      List(UserHasMissingRoles, UnknownError),
+      // ProductAttributeNotFound: the attribute is not at the bank and product in the path
+      List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canGetProductAttribute)),
       http4sPartialFunction = Some(getProductAttribute)
@@ -1029,7 +1008,7 @@ object Http4s310 {
 
     // ─── getAccountApplications ──────────────────────────────────────────────
 
-    val getAccountApplications: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAccountApplications: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "account-applications" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -1063,15 +1042,24 @@ object Http4s310 {
 
     // ─── getAccountApplication ───────────────────────────────────────────────
 
-    val getAccountApplication: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAccountApplication: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "account-applications" / accountApplicationIdStr =>
-        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+        EndpointHelpers.withUserAndBank(req) { (loggedInUser, bank, cc) =>
           for {
             (accountApplication, _) <- NewStyle.function.getAccountApplicationById(accountApplicationIdStr, Some(cc))
+            // only the applicant, or a holder of canGetAccountApplications (the role the list endpoint requires), may read an application
+            _ <- if (accountApplication.userId == loggedInUser.userId) Future.successful(Full(()))
+                 else code.util.Helper.booleanToFuture(s"$UserHasMissingRoles$canGetAccountApplications", failCode = 403, cc = Some(cc)) {
+                   APIUtil.hasEntitlement("", loggedInUser.userId, canGetAccountApplications)
+                 }
             userId = Option(accountApplication.userId)
             customerId = Option(accountApplication.customerId)
             user <- unboxOptionOBPReturnType(userId.map(NewStyle.function.findByUserId(_, Some(cc))))
             customer <- unboxOptionOBPReturnType(customerId.map(NewStyle.function.getCustomerByCustomerId(_, Some(cc))))
+            // an application has no bank of its own: its customer must be at the bank in the path, else answer as if it did not exist
+            _ <- code.util.Helper.booleanToFuture(AccountApplicationNotFound, 404, Some(cc)) {
+                   customer.forall(_.bankId == bank.bankId.value)
+                 }
           } yield createAccountApplicationJson(accountApplication, user, customer)
         }
     }
@@ -1090,7 +1078,8 @@ object Http4s310 {
       |""",
       EmptyBody,
       accountApplicationResponseJson,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // AccountApplicationNotFound: the application is not found, or its customer is at another bank than the one in the path
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, AccountApplicationNotFound, UnknownError),
       List(apiTagAccountApplication, apiTagAccount),
       None,
       http4sPartialFunction = Some(getAccountApplication)
@@ -1098,7 +1087,7 @@ object Http4s310 {
 
     // ─── getMeetings ─────────────────────────────────────────────────────────
 
-    val getMeetings: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getMeetings: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "meetings" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
@@ -1131,7 +1120,7 @@ object Http4s310 {
 
     // ─── getMeeting ──────────────────────────────────────────────────────────
 
-    val getMeeting: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getMeeting: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "meetings" / meetingIdStr =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
@@ -1165,7 +1154,7 @@ object Http4s310 {
 
     // ─── getServerJWK ────────────────────────────────────────────────────────
 
-    val getServerJWK: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getServerJWK: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "certs" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful(com.openbankproject.commons.util.JsonAliases.parse(CertificateUtil.convertRSAPublicKeyToAnRSAJWK()))
@@ -1192,7 +1181,7 @@ object Http4s310 {
 
     // ─── getOAuth2ServerJWKsURIs ─────────────────────────────────────────────
 
-    val getOAuth2ServerJWKsURIs: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getOAuth2ServerJWKsURIs: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "jwks-uris" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful(JSONFactory310.getOAuth2ServerJwksUrisJson())
@@ -1219,7 +1208,7 @@ object Http4s310 {
 
     // ─── getMethodRoutings ───────────────────────────────────────────────────
 
-    val getMethodRoutings: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getMethodRoutings: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "method_routings" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val methodNameParam = req.uri.query.params.get("method_name").map(Full(_)).getOrElse(net.liftweb.common.Empty)
@@ -1297,7 +1286,7 @@ object Http4s310 {
     // (non-standard ALL_CAPS) to make middleware skip view validation; we look up via
     // ViewNewStyle.systemView inline.
 
-    val getSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getSystemView: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system-views" / viewIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -1332,7 +1321,7 @@ object Http4s310 {
 
     // ─── getCardsForBank ─────────────────────────────────────────────────────
 
-    val getCardsForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCardsForBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "banks" / _ / "cards" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           val httpParams = req.headers.headers.toList.map(h => HTTPParam(h.name.toString, h.value)) :::
@@ -1371,7 +1360,7 @@ object Http4s310 {
 
     // ─── getCardForBank ──────────────────────────────────────────────────────
 
-    val getCardForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCardForBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "banks" / _ / "cards" / cardIdStr =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
@@ -1412,7 +1401,7 @@ object Http4s310 {
 
     // ─── getBankAccountsBalances ─────────────────────────────────────────────
 
-    val getBankAccountsBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getBankAccountsBalances: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "balances" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
@@ -1434,7 +1423,7 @@ object Http4s310 {
 
     // ─── checkFundsAvailable ─────────────────────────────────────────────────
 
-    val checkFundsAvailable: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val checkFundsAvailable: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "funds-available" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           val amountKey = "amount"
@@ -1461,7 +1450,7 @@ object Http4s310 {
           } yield {
             val fundsAvailable = (view.allowed_actions.exists(_ == CAN_QUERY_AVAILABLE_FUNDS), account.balance, account.currency) match {
               case (false, _, _) => ""
-              case (true, _, c) if c != ccy => "no"
+              case (true, _, c) if !code.asset.CurrencyCodes.same(c, ccy) => "no"
               case (true, b, _) if b.compare(available) >= 0 => "yes"
               case _ => "no"
             }
@@ -1495,7 +1484,7 @@ object Http4s310 {
 
     // ─── getTransactionByIdForBankAccount ────────────────────────────────────
 
-    val getTransactionByIdForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getTransactionByIdForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" / transactionIdStr / "transaction" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -1504,8 +1493,9 @@ object Http4s310 {
               TransactionId(transactionIdStr), view, Full(user), Some(cc)) map {
               unboxFullOrFail(_, Some(cc), GetTransactionsException)
             }
-            (transactionAttributes, _) <- NewStyle.function.getTransactionAttributes(
-              account.bankId, TransactionId(transactionIdStr), Some(cc))
+            // only the attributes whose Attribute Definition lists this view, so a limited view does not see attributes meant for other views
+            (transactionAttributes, _) <- NewStyle.function.getModeratedTransactionAttributes(
+              account.bankId, TransactionId(transactionIdStr), view.viewId, Some(cc))
           } yield JSONFactory300.createTransactionJSON(moderatedTransaction, transactionAttributes)
         }
     }
@@ -1540,7 +1530,7 @@ object Http4s310 {
 
     // ─── getTransactionRequests ──────────────────────────────────────────────
 
-    val getTransactionRequests: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getTransactionRequests: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "transaction-requests" =>
         EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
           for {
@@ -1600,7 +1590,7 @@ object Http4s310 {
     // Conditional auth: middleware uses `userAuthenticationMessage(!getProductsIsPublic)`
     // in description to drive needsAuthentication. When public, anonymous is OK.
 
-    val getProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getProduct: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
@@ -1642,7 +1632,7 @@ object Http4s310 {
 
     // ─── getProductTree ──────────────────────────────────────────────────────
 
-    val getProductTree: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getProductTree: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "product-tree" / productCodeStr =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
@@ -1688,7 +1678,7 @@ object Http4s310 {
 
     // ─── getProducts ─────────────────────────────────────────────────────────
 
-    val getProducts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getProducts: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           val params = req.uri.query.multiParams.toList.map { case (k, vs) => GetProductsParam(k, vs.toList) }
@@ -1727,7 +1717,7 @@ object Http4s310 {
 
     // ─── getProductCollection ────────────────────────────────────────────────
 
-    val getProductCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getProductCollection: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "product-collections" / collectionCodeStr =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
@@ -1756,7 +1746,7 @@ object Http4s310 {
 
     // ─── getConsents ─────────────────────────────────────────────────────────
 
-    val getConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getConsents: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "my" / "consents" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, _) =>
           val params = req.uri.query.params
@@ -1807,7 +1797,7 @@ object Http4s310 {
 
     // ─── getPrivateAccountByIdFull ───────────────────────────────────────────
 
-    val getPrivateAccountByIdFull: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getPrivateAccountByIdFull: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "account" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -1855,7 +1845,7 @@ object Http4s310 {
 
     // ─── getWebUiProps ───────────────────────────────────────────────────────
 
-    val getWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getWebUiProps: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "webui_props" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val activeRaw = req.uri.query.params.getOrElse("active", "false")
@@ -1934,7 +1924,7 @@ object Http4s310 {
 
     // ─── deleteUserAuthContexts ──────────────────────────────────────────────
 
-    val deleteUserAuthContexts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteUserAuthContexts: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "users" / userIdStr / "auth-context" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -1967,7 +1957,7 @@ object Http4s310 {
 
     // ─── deleteUserAuthContextById ──────────────────────────────────────────
 
-    val deleteUserAuthContextById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteUserAuthContextById: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "users" / userIdStr / "auth-context" / userAuthContextIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -2000,12 +1990,24 @@ object Http4s310 {
 
     // ─── deleteTaxResidence ──────────────────────────────────────────────────
 
-    val deleteTaxResidence: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteTaxResidence: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "tax_residencies" / taxResidenceIdStr =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canDeleteTaxResidence, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // Keep the customer: its bank is checked next
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller delete tax residences of customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
+            // The tax residence must be one of this customer's, else any tax residence id could be deleted
+            (taxResidences, _) <- NewStyle.function.getTaxResidences(customerIdStr, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(TaxResidenceNotFound, 404, Some(cc)) {
+              taxResidences.exists(_.taxResidenceId == taxResidenceIdStr)
+            }
             (deleted, _) <- NewStyle.function.deleteTaxResidence(taxResidenceIdStr, Some(cc))
           } yield Full(deleted)
         }
@@ -2025,7 +2027,9 @@ object Http4s310 {
       |""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // CustomerNotFoundByCustomerId and TaxResidenceNotFound (404): the customer must be at the bank in the path,
+      // and the tax residence must be the customer's
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, CustomerNotFoundByCustomerId, TaxResidenceNotFound, UnknownError),
       List(apiTagCustomer, apiTagKyc),
       Some(List(canDeleteTaxResidence)),
       http4sPartialFunction = Some(deleteTaxResidence)
@@ -2033,12 +2037,24 @@ object Http4s310 {
 
     // ─── deleteCustomerAddress ───────────────────────────────────────────────
 
-    val deleteCustomerAddress: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCustomerAddress: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "addresses" / customerAddressIdStr =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canDeleteCustomerAddress, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // Keep the customer: its bank is checked next
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller delete addresses of customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
+            // The address must be one of this customer's, else any address id could be deleted
+            (addresses, _) <- NewStyle.function.getCustomerAddress(customerIdStr, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(CustomerAddressNotFound, 404, Some(cc)) {
+              addresses.exists(_.customerAddressId == customerAddressIdStr)
+            }
             (deleted, _) <- NewStyle.function.deleteCustomerAddress(customerAddressIdStr, Some(cc))
           } yield Full(deleted)
         }
@@ -2058,7 +2074,10 @@ object Http4s310 {
       |""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // CustomerNotFoundByCustomerId and CustomerAddressNotFound (404): the customer must be at the bank in the path,
+      // and the address must be the customer's
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, CustomerNotFoundByCustomerId, CustomerAddressNotFound,
+        UnknownError),
       List(apiTagCustomer, apiTagKyc),
       Some(List(canDeleteCustomerAddress)),
       http4sPartialFunction = Some(deleteCustomerAddress)
@@ -2067,12 +2086,20 @@ object Http4s310 {
     // ─── deleteProductAttribute ──────────────────────────────────────────────
     // Note: this DELETE returns 204 (matches original v3.1.0 behavior).
 
-    val deleteProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "products" / _ / "attributes" / productAttributeIdStr =>
+    val deleteProductAttribute: Http4sRoute = Http4sRoute {
+      // productCodeStr is read so the attribute can be checked against the product in the path
+      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attributes" / productAttributeIdStr =>
         EndpointHelpers.withUserDelete(req) { (user, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canDeleteProductAttribute, Some(cc))
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+            // load the attribute so it can be checked against the path
+            (existingAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // the attribute must belong to the bank and product in the path, else a role at one bank deletes any bank's attribute
+            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              existingAttribute.bankId.value == bankIdStr &&
+                existingAttribute.productCode.value == productCodeStr
+            }
             (deleted, _) <- NewStyle.function.deleteProductAttribute(productAttributeIdStr, Some(cc))
           } yield deleted
         }
@@ -2098,6 +2125,8 @@ object Http4s310 {
       List(
         UserHasMissingRoles,
         BankNotFound,
+        // the attribute is not at the bank and product in the path
+        ProductAttributeNotFound,
         UnknownError
       ),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
@@ -2107,7 +2136,7 @@ object Http4s310 {
 
     // ─── deleteBranch ────────────────────────────────────────────────────────
 
-    val deleteBranch: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteBranch: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "branches" / branchIdStr =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           val allowedEntitlements = canDeleteBranch :: canDeleteBranchAtAnyBank :: Nil
@@ -2142,7 +2171,7 @@ object Http4s310 {
 
     // ─── deleteSystemView ────────────────────────────────────────────────────
 
-    val deleteSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteSystemView: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "system-views" / viewIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -2165,7 +2194,7 @@ object Http4s310 {
 
     // ─── deleteMethodRouting ─────────────────────────────────────────────────
 
-    val deleteMethodRouting: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteMethodRouting: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "method_routings" / methodRoutingIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -2199,7 +2228,7 @@ object Http4s310 {
     // ─── deleteCardForBank ───────────────────────────────────────────────────
     // Note: original v3.1.0 returns 204 — use withUserAndBankDelete.
 
-    val deleteCardForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCardForBank: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "banks" / _ / "cards" / cardIdStr =>
         EndpointHelpers.withUserAndBankDelete(req) { (user, bank, cc) =>
           for {
@@ -2223,13 +2252,13 @@ object Http4s310 {
       EmptyBody,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, AllowedValuesAre, UnknownError),
       List(apiTagCard),
-      Some(List(canCreateCardsForBank)),
+      Some(List(canDeleteCardsForBank)),
       http4sPartialFunction = Some(deleteCardForBank)
     )
 
     // ─── deleteWebUiProps ────────────────────────────────────────────────────
 
-    val deleteWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteWebUiProps: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "webui_props" / webUiPropsIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -2264,7 +2293,7 @@ object Http4s310 {
     // ─── revokeConsent ───────────────────────────────────────────────────────
     // Routed as GET in Lift — keep matching shape.
 
-    val revokeConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val revokeConsent: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "my" / "consents" / consentIdStr / "revoke" =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           for {
@@ -2308,12 +2337,19 @@ object Http4s310 {
 
     // ─── createTaxResidence (POST) ───────────────────────────────────────────
 
-    val createTaxResidence: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createTaxResidence: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "tax-residence" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[PostTaxResidenceJsonV310, Any](req) { (user, bank, postedData, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canCreateTaxResidence, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // Keep the customer: its bank is checked next
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller add tax residences to customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             (taxResidence, _) <- NewStyle.function.createTaxResidence(
               customerIdStr, postedData.domain, postedData.tax_number, Some(cc))
           } yield JSONFactory310.createTaxResidence(taxResidence)
@@ -2334,7 +2370,9 @@ object Http4s310 {
       |""",
       postTaxResidenceJsonV310,
       taxResidenceV310,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      // CustomerNotFoundByCustomerId: the customer does not exist, or is not at BANK_ID (the guard above)
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, CustomerNotFoundByCustomerId,
+        UnknownError),
       List(apiTagCustomer, apiTagKyc),
       Some(List(canCreateTaxResidence)),
       http4sPartialFunction = Some(createTaxResidence)
@@ -2342,18 +2380,26 @@ object Http4s310 {
 
     // ─── createCustomerAddress (POST) ────────────────────────────────────────
 
-    val createCustomerAddress: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createCustomerAddress: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "address" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[PostCustomerAddressJsonV310, Any](req) { (user, bank, postedData, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canCreateCustomerAddress, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // Keep the customer: its bank is checked next
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller add addresses to customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             (address, _) <- NewStyle.function.createCustomerAddress(
               customerIdStr,
               postedData.line_1, postedData.line_2, postedData.line_3,
               postedData.city, postedData.county, postedData.state,
               postedData.postcode, postedData.country_code,
-              postedData.state,
+              // The status parameter takes the posted status, so the address keeps the status the caller sent
+              postedData.status,
               postedData.tags.mkString(","),
               Some(cc))
           } yield JSONFactory310.createAddress(address)
@@ -2374,7 +2420,9 @@ object Http4s310 {
       |""",
       postCustomerAddressJsonV310,
       customerAddressJsonV310,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      // CustomerNotFoundByCustomerId: the customer does not exist, or is not at BANK_ID (the guard above)
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, CustomerNotFoundByCustomerId,
+        UnknownError),
       List(apiTagCustomer),
       Some(List(canCreateCustomerAddress)),
       http4sPartialFunction = Some(createCustomerAddress)
@@ -2382,18 +2430,31 @@ object Http4s310 {
 
     // ─── updateCustomerAddress (PUT) ─────────────────────────────────────────
 
-    val updateCustomerAddress: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCustomerAddress: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "addresses" / customerAddressIdStr =>
         EndpointHelpers.withUserAndBankAndBody[PostCustomerAddressJsonV310, Any](req) { (user, bank, postedData, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canCreateCustomer, Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // Keep the customer: its bank is checked next
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The customer must be at the bank in the path, where the Role is held, else the Role at one bank
+            // would let the caller change customers at any bank
+            // 404, as for a customer that does not exist, so nothing is told about other banks' customers
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
+            // The address must be one of this customer's, else any address id could be overwritten
+            (addresses, _) <- NewStyle.function.getCustomerAddress(customerIdStr, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(CustomerAddressNotFound, 404, Some(cc)) {
+              addresses.exists(_.customerAddressId == customerAddressIdStr)
+            }
             (address, _) <- NewStyle.function.updateCustomerAddress(
               customerAddressIdStr,
               postedData.line_1, postedData.line_2, postedData.line_3,
               postedData.city, postedData.county, postedData.state,
               postedData.postcode, postedData.country_code,
-              postedData.state,
+              // The status argument takes the posted status, so the address keeps the status sent, not the state
+              postedData.status,
               postedData.tags.mkString(","),
               Some(cc))
           } yield JSONFactory310.createAddress(address)
@@ -2414,7 +2475,10 @@ object Http4s310 {
       |""",
       postCustomerAddressJsonV310,
       customerAddressJsonV310,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      // CustomerNotFoundByCustomerId and CustomerAddressNotFound: the customer is not at BANK_ID, or the address
+      // is not this customer's (the guards above)
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, CustomerNotFoundByCustomerId,
+        CustomerAddressNotFound, UnknownError),
       List(apiTagCustomer),
       Some(List(canCreateCustomer)),
       http4sPartialFunction = Some(updateCustomerAddress)
@@ -2422,7 +2486,7 @@ object Http4s310 {
 
     // ─── createUserAuthContext (POST) ────────────────────────────────────────
 
-    val createUserAuthContext: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createUserAuthContext: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / userIdStr / "auth-context" =>
         EndpointHelpers.withUserAndBodyCreated[PostUserAuthContextJson, Any](req) { (user, postedData, cc) =>
           for {
@@ -2454,7 +2518,7 @@ object Http4s310 {
 
     // ─── createProductAttribute (POST) ───────────────────────────────────────
 
-    val createProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createProductAttribute: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attribute" =>
         EndpointHelpers.withUserAndBodyCreated[ProductAttributeJson, Any](req) { (user, postedData, cc) =>
           for {
@@ -2462,7 +2526,7 @@ object Http4s310 {
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
             productAttributeType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
             (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankIdStr), ProductCode(productCodeStr), None,
@@ -2495,7 +2559,7 @@ object Http4s310 {
       |See [FPML](http://www.fpml.org/) for more examples.
       |
       |
-      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |${AttributeTypeDocs.typeFieldDescription}
       |
       |
       |
@@ -2521,7 +2585,7 @@ object Http4s310 {
          |
          |This functionality is work in progress! Please note that only implemented trigger is: ${ApiTrigger.onBalanceChange}"""
 
-    val createAccountWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createAccountWebhook: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "account-web-hooks" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[AccountWebhookPostJson, Any](req) { (user, bank, postJson, cc) =>
           for {
@@ -2566,7 +2630,7 @@ object Http4s310 {
 
     // ─── unlockUser (PUT) ────────────────────────────────────────────────────
 
-    val unlockUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val unlockUser: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "users" / username / "lock-status" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -2608,12 +2672,15 @@ object Http4s310 {
 
     // ─── callsLimit (PUT) ────────────────────────────────────────────────────
 
-    val callsLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val callsLimit: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerIdStr / "consumer" / "call-limits" =>
         EndpointHelpers.withUserAndBody[CallLimitPostJson, Any](req) { (user, postJson, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement("", user.userId, canUpdateRateLimits, Some(cc))
             _ <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
+            // The consumer's one rate limit is changed; with several, which one is meant is not known.
+            sameScope <- RateLimitingDI.rateLimiting.vend.countConsumerCallLimits(consumerIdStr, None, None, None)
+            _ <- code.util.Helper.booleanToFuture(RateLimitNotUnique, 400, Some(cc)) { sameScope <= 1 }
             rateLimiting <- RateLimitingDI.rateLimiting.vend.createOrUpdateConsumerCallLimits(
               consumerIdStr,
               postJson.from_date,
@@ -2648,6 +2715,9 @@ object Http4s310 {
       |Per Week
       |Per Month
       |
+      |This changes the Consumer's rate limit, or creates it when there is none. A Consumer given several rate limits
+      |with Create Rate Limits (v6.0.0) is refused with 400: change one of them by its RATE_LIMITING_ID instead.
+      |
       |
       |${userAuthenticationMessage(true)}
       |
@@ -2655,7 +2725,7 @@ object Http4s310 {
       callLimitPostJson,
       callLimitPostJson,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidConsumerId,
-      ConsumerNotFoundByConsumerId, UserHasMissingRoles, UpdateConsumerError, UnknownError),
+      ConsumerNotFoundByConsumerId, RateLimitNotUnique, UserHasMissingRoles, UpdateConsumerError, UnknownError),
       List(apiTagConsumer),
       Some(List(canUpdateRateLimits)),
       http4sPartialFunction = Some(callsLimit)
@@ -2663,7 +2733,7 @@ object Http4s310 {
 
     // ─── enableDisableAccountWebhook (PUT) ───────────────────────────────────
 
-    val enableDisableAccountWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val enableDisableAccountWebhook: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "account-web-hooks" =>
         EndpointHelpers.withUserAndBankAndBody[AccountWebhookPutJson, Any](req) { (user, bank, putJson, cc) =>
           for {
@@ -2703,7 +2773,7 @@ object Http4s310 {
 
     // ─── enableDisableConsumers (PUT) ────────────────────────────────────────
 
-    val enableDisableConsumers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val enableDisableConsumers: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerIdStr =>
         EndpointHelpers.withUserAndBody[PutEnabledJSON, Any](req) { (user, putData, cc) =>
           for {
@@ -2733,7 +2803,7 @@ object Http4s310 {
 
     // ─── updateSystemView (PUT) ──────────────────────────────────────────────
 
-    val updateSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateSystemView: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "system-views" / viewIdStr =>
         EndpointHelpers.withUserAndBody[UpdateViewJSON, Any](req) { (user, updateJson, cc) =>
           for {
@@ -2769,7 +2839,7 @@ object Http4s310 {
 
     // ─── updateProductAttribute (PUT) ────────────────────────────────────────
 
-    val updateProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateProductAttribute: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attributes" / productAttributeIdStr =>
         EndpointHelpers.withUserAndBody[ProductAttributeJson, Any](req) { (user, postedData, cc) =>
           for {
@@ -2777,9 +2847,15 @@ object Http4s310 {
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
             productAttributeType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${ProductAttributeType.DOUBLE}(12.1234), ${ProductAttributeType.STRING}(TAX_NUMBER), ${ProductAttributeType.INTEGER}(123) and ${ProductAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
-            (_, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // keep the existing attribute so it can be checked against the path
+            (existingAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // the attribute must belong to the bank and product in the path, else a role at one bank overwrites and moves any bank's attribute
+            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              existingAttribute.bankId.value == bankIdStr &&
+                existingAttribute.productCode.value == productCodeStr
+            }
             (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankIdStr), ProductCode(productCodeStr), Some(productAttributeIdStr),
               postedData.name, productAttributeType, postedData.value, None, Some(cc))
@@ -2805,7 +2881,8 @@ object Http4s310 {
       |""",
       productAttributeJson,
       productAttributeResponseJson,
-      List(UserHasMissingRoles, UnknownError),
+      // ProductAttributeNotFound: the attribute is not at the bank and product in the path
+      List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canUpdateProductAttribute)),
       http4sPartialFunction = Some(updateProductAttribute)
@@ -2813,7 +2890,7 @@ object Http4s310 {
 
     // ─── updateCustomerEmail (PUT) ───────────────────────────────────────────
 
-    val updateCustomerEmail: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCustomerEmail: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "email" =>
         EndpointHelpers.withUserAndBankAndBody[PutUpdateCustomerEmailJsonV310, Any](req) { (user, bank, putData, cc) =>
           for {
@@ -2847,7 +2924,7 @@ object Http4s310 {
 
     // ─── updateCustomerNumber (PUT) ──────────────────────────────────────────
 
-    val updateCustomerNumber: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCustomerNumber: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "number" =>
         EndpointHelpers.withUserAndBankAndBody[PutUpdateCustomerNumberJsonV310, Any](req) { (user, bank, putData, cc) =>
           for {
@@ -2885,7 +2962,7 @@ object Http4s310 {
 
     // ─── updateCustomerMobileNumber (PUT) ────────────────────────────────────
 
-    val updateCustomerMobileNumber: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCustomerMobileNumber: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "mobile-number" =>
         EndpointHelpers.withUserAndBankAndBody[PutUpdateCustomerMobilePhoneNumberJsonV310, Any](req) { (user, bank, putData, cc) =>
           for {
@@ -2919,7 +2996,7 @@ object Http4s310 {
 
     // ─── updateCustomerIdentity (PUT) ────────────────────────────────────────
 
-    val updateCustomerIdentity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCustomerIdentity: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "identity" =>
         EndpointHelpers.withUserAndBankAndBody[PutUpdateCustomerIdentityJsonV310, Any](req) { (user, bank, putData, cc) =>
           for {
@@ -2957,7 +3034,7 @@ object Http4s310 {
 
     // ─── updateCustomerCreditLimit (PUT) ─────────────────────────────────────
 
-    val updateCustomerCreditLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCustomerCreditLimit: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "credit-limit" =>
         EndpointHelpers.withUserAndBankAndBody[PutUpdateCustomerCreditLimitJsonV310, Any](req) { (user, bank, putData, cc) =>
           for {
@@ -2991,7 +3068,7 @@ object Http4s310 {
 
     // ─── updateCustomerCreditRatingAndSource (PUT) ───────────────────────────
 
-    val updateCustomerCreditRatingAndSource: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCustomerCreditRatingAndSource: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "credit-rating-and-source" =>
         EndpointHelpers.withUserAndBankAndBody[PutUpdateCustomerCreditRatingAndSourceJsonV310, Any](req) { (user, bank, putData, cc) =>
           for {
@@ -3026,7 +3103,7 @@ object Http4s310 {
 
     // ─── updateCustomerBranch (PUT) ──────────────────────────────────────────
 
-    val updateCustomerBranch: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCustomerBranch: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "branch" =>
         EndpointHelpers.withUserAndBankAndBody[PutUpdateCustomerBranchJsonV310, Any](req) { (user, bank, putData, cc) =>
           for {
@@ -3062,7 +3139,7 @@ object Http4s310 {
 
     // ─── updateCustomerData (PUT) ────────────────────────────────────────────
 
-    val updateCustomerData: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCustomerData: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "data" =>
         EndpointHelpers.withUserAndBankAndBody[PutUpdateCustomerDataJsonV310, Any](req) { (user, bank, putData, cc) =>
           for {
@@ -3107,7 +3184,7 @@ object Http4s310 {
     // APPLICANT (the application's user) becomes its holder. The Lift implementation
     // (and its verbatim port) made the logged-in approver the holder — fixed 2026-09.
 
-    val updateAccountApplicationStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateAccountApplicationStatus: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "account-applications" / accountApplicationIdStr =>
         EndpointHelpers.withUserAndBankAndBody[AccountApplicationUpdateStatusJson, Any](req) { (user, bank, putJson, cc) =>
           for {
@@ -3174,7 +3251,7 @@ object Http4s310 {
 
     // ─── createCustomer (POST) ───────────────────────────────────────────────
 
-    val createCustomer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createCustomer: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "customers" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[PostCustomerJsonV310, Any](req) { (user, bank, postedData, cc) =>
           for {
@@ -3235,7 +3312,7 @@ object Http4s310 {
 
     // ─── getCustomerByCustomerNumber (POST → 200) ────────────────────────────
 
-    val getCustomerByCustomerNumber: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomerByCustomerNumber: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "customers" / "customer-number" =>
         EndpointHelpers.withUserAndBankAndBody[PostCustomerNumberJsonV310, Any](req) { (user, bank, postedData, cc) =>
           for {
@@ -3269,7 +3346,7 @@ object Http4s310 {
 
     // ─── createAccountApplication (POST) ─────────────────────────────────────
 
-    val createAccountApplication: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createAccountApplication: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "account-applications" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[AccountApplicationJson, Any](req) { (_, bank, postedData, cc) =>
           for {
@@ -3317,13 +3394,13 @@ object Http4s310 {
 
     // ─── createAccountAttribute (POST) ───────────────────────────────────────
 
-    val createAccountAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createAccountAttribute: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "products" / productCodeStr / "attribute" =>
         EndpointHelpers.withUserAndBodyCreated[AccountAttributeJson, Any](req) { (user, postedData, cc) =>
           for {
             accountAttributeType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${AccountAttributeType.DOUBLE}(2012-04-23), ${AccountAttributeType.STRING}(TAX_NUMBER), ${AccountAttributeType.INTEGER}(123) and ${AccountAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { AccountAttributeType.withName(postedData.`type`) }
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
             (_, _) <- NewStyle.function.getBankAccount(BankId(bankIdStr), AccountId(accountIdStr), Some(cc))
@@ -3360,7 +3437,7 @@ object Http4s310 {
       |
       |See [FPML](http://www.fpml.org/) for more examples.
       |
-      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |${AttributeTypeDocs.typeFieldDescription}
       |
       |${userAuthenticationMessage(true)}
       |
@@ -3375,7 +3452,7 @@ object Http4s310 {
 
     // ─── updateAccountAttribute (PUT) ────────────────────────────────────────
 
-    val updateAccountAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateAccountAttribute: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "products" / productCodeStr / "attributes" / accountAttributeIdStr =>
         EndpointHelpers.withUserAndBodyCreated[AccountAttributeJson, Any](req) { (user, postedData, cc) =>
           for {
@@ -3383,11 +3460,18 @@ object Http4s310 {
             _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canUpdateAccountAttribute, Some(cc))
             accountAttributeType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${AccountAttributeType.DOUBLE}(2012-04-23), ${AccountAttributeType.STRING}(TAX_NUMBER), ${AccountAttributeType.INTEGER}(123) and ${AccountAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { AccountAttributeType.withName(postedData.`type`) }
             (_, _) <- NewStyle.function.getBankAccount(BankId(bankIdStr), AccountId(accountIdStr), Some(cc))
             (_, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
-            (_, _) <- NewStyle.function.getAccountAttributeById(accountAttributeIdStr, Some(cc))
+            // keep the existing attribute so it can be checked against the path
+            (existingAttribute, _) <- NewStyle.function.getAccountAttributeById(accountAttributeIdStr, Some(cc))
+            // the attribute must belong to the bank, account and product in the path, else a role at one bank overwrites and moves any bank's attribute
+            _ <- code.util.Helper.booleanToFuture(AccountAttributeNotFound, 404, Some(cc)) {
+              existingAttribute.bankId.value == bankIdStr &&
+                existingAttribute.accountId.value == accountIdStr &&
+                existingAttribute.productCode.value == productCodeStr
+            }
             (accountAttribute, _) <- NewStyle.function.createOrUpdateAccountAttribute(
               BankId(bankIdStr), AccountId(accountIdStr), ProductCode(productCodeStr),
               Some(accountAttributeIdStr), postedData.name, accountAttributeType, postedData.value,
@@ -3424,7 +3508,8 @@ object Http4s310 {
       |""",
       accountAttributeJson,
       accountAttributeResponseJson,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      // AccountAttributeNotFound: the attribute is not under the BANK_ID / ACCOUNT_ID / PRODUCT_CODE in the path
+      List(AuthenticatedUserIsRequired, InvalidJsonFormat, AccountAttributeNotFound, UnknownError),
       List(apiTagAccount, apiTagAccountAttribute, apiTagAttribute),
       Some(List(canUpdateAccountAttribute)),
       http4sPartialFunction = Some(updateAccountAttribute)
@@ -3432,7 +3517,7 @@ object Http4s310 {
 
     // ─── createMeeting (POST) ────────────────────────────────────────────────
 
-    val createMeeting: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createMeeting: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "meetings" =>
         // Manual body parsing to preserve Lift's error message format:
         //   "$InvalidJsonFormat The Json body should be the $CreateMeetingJson "
@@ -3486,7 +3571,7 @@ object Http4s310 {
 
     // ─── createSystemView (POST) ─────────────────────────────────────────────
 
-    val createSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createSystemView: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "system-views" =>
         EndpointHelpers.withUserAndBodyCreated[CreateViewJsonV300, Any](req) { (user, createViewJson, cc) =>
           for {
@@ -3536,7 +3621,7 @@ object Http4s310 {
 
     // ─── createProductCollection (PUT — "Create or Update") ──────────────────
 
-    val createProductCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createProductCollection: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "product-collections" / collectionCodeStr =>
         EndpointHelpers.withUserAndBankAndBodyCreated[PutProductCollectionsV310, Any](req) { (user, bank, product, cc) =>
           for {
@@ -3592,7 +3677,7 @@ object Http4s310 {
 
     // ─── addCardForBank (POST) ───────────────────────────────────────────────
 
-    val addCardForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addCardForBank: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "banks" / _ / "cards" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[CreatePhysicalCardJsonV310, Any](req) { (user, bank, postJson, cc) =>
           for {
@@ -3672,7 +3757,7 @@ object Http4s310 {
 
     // ─── updatedCardForBank (PUT) ────────────────────────────────────────────
 
-    val updatedCardForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updatedCardForBank: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "banks" / _ / "cards" / cardIdStr =>
         EndpointHelpers.withUserAndBankAndBody[UpdatePhysicalCardJsonV310, Any](req) { (user, bank, postJson, cc) =>
           for {
@@ -3742,7 +3827,7 @@ object Http4s310 {
 
     // ─── createCardAttribute (POST) ──────────────────────────────────────────
 
-    val createCardAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createCardAttribute: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "cards" / cardIdStr / "attribute" =>
         EndpointHelpers.executeFutureWithBodyCreated[CardAttributeJson, Any](req) { (postedData, cc) =>
           for {
@@ -3750,7 +3835,7 @@ object Http4s310 {
             (_, _) <- NewStyle.function.getPhysicalCardForBank(BankId(bankIdStr), cardIdStr, Some(cc))
             cardAttrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${CardAttributeType.DOUBLE}(12.1234), ${CardAttributeType.STRING}(TAX_NUMBER), ${CardAttributeType.INTEGER}(123) and ${CardAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { CardAttributeType.withName(postedData.`type`) }
             (cardAttribute, _) <- NewStyle.function.createOrUpdateCardAttribute(
               Some(BankId(bankIdStr)), Some(cardIdStr), None,
@@ -3771,7 +3856,7 @@ object Http4s310 {
       |
       |Each Card Attribute is linked to its Card by CARD_ID
       |
-      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |${AttributeTypeDocs.typeFieldDescription}
       |
       |${userAuthenticationMessage(true)}
       |
@@ -3788,15 +3873,17 @@ object Http4s310 {
       cardAttributeNameExample.value,
       CardAttributeType.DOUBLE,
       cardAttributeValueExample.value),
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      // UserHasMissingRoles: the middleware answers 403 without the role below
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       List(apiTagCard, apiTagCardAttribute, apiTagAttribute),
-      None,
+      // the role at BANK_ID is required, else any logged-in user writes attributes on any bank's cards
+      Some(List(canCreateCardsForBank)),
       http4sPartialFunction = Some(createCardAttribute)
     )
 
     // ─── updateCardAttribute (PUT) ───────────────────────────────────────────
 
-    val updateCardAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCardAttribute: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "banks" / bankIdStr / "cards" / cardIdStr / "attributes" / cardAttributeIdStr =>
         EndpointHelpers.executeFutureWithBody[CardAttributeJson, Any](req) { (postedData, cc) =>
           for {
@@ -3805,7 +3892,7 @@ object Http4s310 {
             (_, _) <- NewStyle.function.getCardAttributeById(cardAttributeIdStr, Some(cc))
             cardAttrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                s"${CardAttributeType.DOUBLE}(12.1234), ${CardAttributeType.STRING}(TAX_NUMBER), ${CardAttributeType.INTEGER}(123) and ${CardAttributeType.DATE_WITH_DAY}(2012-04-23)",
+                AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { CardAttributeType.withName(postedData.`type`) }
             (cardAttribute, _) <- NewStyle.function.createOrUpdateCardAttribute(
               Some(BankId(bankIdStr)), Some(cardIdStr), Some(cardAttributeIdStr),
@@ -3841,15 +3928,17 @@ object Http4s310 {
       cardAttributeNameExample.value,
       CardAttributeType.DOUBLE,
       cardAttributeValueExample.value),
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      // UserHasMissingRoles: the middleware answers 403 without the role below
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       List(apiTagCard, apiTagCardAttribute, apiTagAttribute),
-      None,
+      // the role at BANK_ID is required, else any logged-in user overwrites attributes of any bank's cards
+      Some(List(canUpdateCardsForBank)),
       http4sPartialFunction = Some(updateCardAttribute)
     )
 
     // ─── createWebUiProps (POST) ─────────────────────────────────────────────
 
-    val createWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createWebUiProps: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "webui_props" =>
         EndpointHelpers.withUserAndBodyCreated[WebUiPropsCommons, Any](req) { (user, postedData, cc) =>
           for {
@@ -3921,15 +4010,11 @@ object Http4s310 {
 
     // ─── createUserAuthContextUpdateRequest (POST) ───────────────────────────
 
-    val createUserAuthContextUpdateRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createUserAuthContextUpdateRequest: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "users" / "current" / "auth-context-updates" / scaMethod =>
         EndpointHelpers.withUserAndBankAndBodyCreated[PostUserAuthContextJson, Any](req) { (user, bank, postedData, cc) =>
           for {
-            _ <- code.util.Helper.booleanToFuture(
-              failMsg = ConsumerHasMissingRoles + ApiRole.canCreateUserAuthContextUpdate,
-              cc = Some(cc)) {
-              APIUtil.checkScope(bank.bankId.value, APIUtil.getConsumerPrimaryKey(Some(cc)), ApiRole.canCreateUserAuthContextUpdate)
-            }
+            _ <- NewStyle.function.checkCanRequestUserAuthContextUpdate(bank.bankId, user, Some(cc))
             _ <- code.util.Helper.booleanToFuture(UserAuthContextUpdateRequestAllowedScaMethods, cc = Some(cc)) {
               List(StrongCustomerAuthentication.SMS.toString, StrongCustomerAuthentication.EMAIL.toString).contains(scaMethod)
             }
@@ -3948,13 +4033,19 @@ object Http4s310 {
       s"""Create User Auth Context Update Request.
       |${userAuthenticationMessage(true)}
       |
-      |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
+      |A User uses this to prove that they are a Customer of the bank BANK_ID, for example by naming their CUSTOMER_NUMBER.
+      |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the Customer's own contact details,
+      |via the transport defined in SCA_METHOD, and the User then answers it with Answer User Auth Context Update Challenge.
       |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
+      |
+      |Because this sends a message to a Customer of the bank, the request must come either from an App (Consumer) that has
+      |the Scope ${canCreateUserAuthContextUpdate} at BANK_ID, or from a User that has the Role ${canCreateUserAuthContextUpdate} at BANK_ID.
+      |Either one is enough. A Scope is granted with Create Scope for a Consumer (POST /consumers/CONSUMER_ID/scopes).
       |
       |""",
       postUserAuthContextJson,
       userAuthContextUpdateJson,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, CreateUserAuthContextError, UnknownError),
+      List(AuthenticatedUserIsRequired, InvalidJsonFormat, ConsumerHasMissingRoles, CreateUserAuthContextError, UnknownError),
       List(apiTagUser),
       None,
       http4sPartialFunction = Some(createUserAuthContextUpdateRequest)
@@ -3962,25 +4053,13 @@ object Http4s310 {
 
     // ─── answerUserAuthContextUpdateChallenge (POST → 200) ───────────────────
 
-    val answerUserAuthContextUpdateChallenge: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val answerUserAuthContextUpdateChallenge: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "users" / "current" / "auth-context-updates" / authContextUpdateIdStr / "challenge" =>
         EndpointHelpers.executeFutureWithBody[PostUserAuthContextUpdateJsonV310, Any](req) { (postBody, cc) =>
           for {
-            (userAuthContextUpdate, _) <- NewStyle.function.checkAnswer(authContextUpdateIdStr, postBody.answer, Some(cc))
-            (subjectUser, _) <- NewStyle.function.getUserByUserId(userAuthContextUpdate.userId, Some(cc))
-            _ <- userAuthContextUpdate.status match {
-              case status if status == com.openbankproject.commons.model.UserAuthContextUpdateStatus.ACCEPTED.toString =>
-                NewStyle.function.createUserAuthContext(
-                  subjectUser, userAuthContextUpdate.key, userAuthContextUpdate.value, Some(cc)
-                ).map(x => (Some(x._1), x._2))
-              case _ => Future((None, Some(cc)))
-            }
-            _ <- userAuthContextUpdate.key match {
-              case "CUSTOMER_NUMBER" =>
-                NewStyle.function.getOCreateUserCustomerLink(
-                  BankId(bankIdStr), userAuthContextUpdate.value, subjectUser.userId, Some(cc))
-              case _ => Future((None, Some(cc)))
-            }
+            (userAuthContextUpdate, _) <- NewStyle.function.answerUserAuthContextUpdateChallenge(
+              BankId(bankIdStr), authContextUpdateIdStr, postBody.answer,
+              cc.user.openOrThrowException(AuthenticatedUserIsRequired), Some(cc))
           } yield createUserAuthContextUpdateJson(userAuthContextUpdate)
         }
     }
@@ -3993,10 +4072,17 @@ object Http4s310 {
       "Answer Auth Context Update Challenge",
       s"""
       |Answer Auth Context Update Challenge.
+      |
+      |Only the User who requested the update can answer it, and only at the bank (BANK_ID) it was requested at.
+      |An update of another User or another bank is reported as not found, and its challenge is not used up.
+      |
+      |A right answer sets the status to ACCEPTED and adds the User Auth Context. For the key CUSTOMER_NUMBER it also
+      |links the User to the Customer with that number at the bank. A wrong answer sets the status to REJECTED and
+      |changes nothing else.
       |""",
       PostUserAuthContextUpdateJsonV310(answer = "12345678"),
       userAuthContextUpdateJson,
-      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, InvalidConnectorResponse, UnknownError),
+      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, UserAuthContextUpdateNotFound, InvalidConnectorResponse, UnknownError),
       apiTagUser :: Nil,
       None,
       http4sPartialFunction = Some(answerUserAuthContextUpdateChallenge)
@@ -4004,7 +4090,7 @@ object Http4s310 {
 
     // ─── refreshUser (POST) ──────────────────────────────────────────────────
 
-    val refreshUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val refreshUser: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / userIdStr / "refresh" =>
         // Lift returns 201 (CREATED) for this POST — middleware has already validated auth
         // and the canRefreshUser role, so we use executeFutureCreated to preserve the status.
@@ -4043,7 +4129,7 @@ object Http4s310 {
 
     // ─── createProduct (PUT — "Create or Update") ────────────────────────────
 
-    val createProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createProduct: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
         EndpointHelpers.withUserAndBankAndBodyCreated[PostPutProductJsonV310, Any](req) { (user, bank, product, cc) =>
           for {
@@ -4103,7 +4189,7 @@ object Http4s310 {
 
     // ─── createMethodRouting (POST) ──────────────────────────────────────────
 
-    val createMethodRouting: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createMethodRouting: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "method_routings" =>
         EndpointHelpers.withUserAndBodyCreated[MethodRoutingCommons, Any](req) { (user, raw, cc) =>
           for {
@@ -4202,7 +4288,7 @@ object Http4s310 {
 
     // ─── updateMethodRouting (PUT) ───────────────────────────────────────────
 
-    val updateMethodRouting: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateMethodRouting: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "method_routings" / methodRoutingIdStr =>
         EndpointHelpers.withUserAndBody[MethodRoutingCommons, Any](req) { (user, raw, cc) =>
           for {
@@ -4295,7 +4381,7 @@ object Http4s310 {
 
     // ─── updateAccount (PUT) ─────────────────────────────────────────────────
 
-    val updateAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateAccount: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "banks" / _ / "accounts" / accountIdStr =>
         EndpointHelpers.withUserAndBankAndBody[UpdateAccountRequestJsonV310, Any](req) { (user, bank, body, cc) =>
           for {
@@ -4353,7 +4439,7 @@ object Http4s310 {
     // (403 on missing). booleanToFuture is used to enforce 403, matching CLAUDE.md
     // guidance for conditional roles.
 
-    val createAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createAccount: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr =>
         EndpointHelpers.withUserAndBankAndBodyCreated[CreateAccountRequestJsonV310, Any](req) { (user, bank, body, cc) =>
           for {
@@ -4442,11 +4528,12 @@ object Http4s310 {
 
     // ─── createConsent (POST) ────────────────────────────────────────────────
 
-    val createConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createConsent: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "my" / "consents" / scaMethod =>
         EndpointHelpers.withUserAndBodyCreated[PostConsentBodyCommonJson, Any](req) { (user, consentJson, cc) =>
           val raw = cc.httpBody.getOrElse("")
           for {
+            _ <- code.api.util.Consent.checkConsentsAllowed(Some(cc))
             _ <- code.util.Helper.booleanToFuture(ConsentAllowedScaMethods, cc = Some(cc)) {
               List(StrongCustomerAuthentication.SMS.toString,
                 StrongCustomerAuthentication.EMAIL.toString,
@@ -4476,13 +4563,12 @@ object Http4s310 {
               consentJson.views.forall(rv => assignedViews.exists(e =>
                 e.viewId == rv.view_id && e.bankId == rv.bank_id && e.accountId == rv.account_id))
             }
-            consumerTuple <- consentJson.consumer_id match {
-              case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, Some(cc)) map {
-                c => (Some(c.consumerId), c.description, Some(c))
-              }
-              case None => Future((None, "Any application", None))
-            }
-            (consumerId, applicationText, consumer) = consumerTuple
+            // Every Consent names the Consumer it is for -- the body's consumer_id, else the caller.
+            // NewStyle.function.resolveConsentConsumer says why a Consent may not be created without one.
+            consentConsumer <- NewStyle.function.resolveConsentConsumer(consentJson.consumer_id, Some(cc))
+            consumerId = Some(consentConsumer.consumerId)
+            applicationText = consentConsumer.description
+            consumer = Some(consentConsumer)
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
               case _ => SecureRandomUtil.numeric()
@@ -4501,7 +4587,7 @@ object Http4s310 {
               i => connectorEmptyResponse(i, Some(cc))
             }
             grantorConsumerId = cc.consumer.toOption.map(_.consumerId).getOrElse("Unknown")
-            granteeConsumerId = consentJson.consumer_id.getOrElse("Unknown")
+            granteeConsumerId = consentConsumer.consumerId
             shouldSkipConsentSca = APIUtil.skipConsentScaForConsumerIdPairs.contains(
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
             _ <- if (shouldSkipConsentSca) {
@@ -4563,10 +4649,9 @@ object Http4s310 {
 
     // Lift registered three separate endpoints with concrete SCA-method URL segments.
     // Preserve those names so FrozenClassTest (STABLE API contract) stays green.
-    val createConsentEmail: HttpRoutes[IO] = createConsent
-    val createConsentSms: HttpRoutes[IO] = createConsent
-    val createConsentImplicit: HttpRoutes[IO] = createConsent
-
+    val createConsentEmail: Http4sRoute = createConsent
+    val createConsentSms: Http4sRoute = createConsent
+    val createConsentImplicit: Http4sRoute = createConsent
     resourceDocs += ResourceDoc(
       implementedInApiVersion,
       nameOf(createConsentEmail),
@@ -4640,6 +4725,7 @@ object Http4s310 {
         ViewsAllowedInConsent,
         ConsumerNotFoundByConsumerId,
         ConsumerIsDisabled,
+        ConsentConsumerIsRequired,
         InvalidConnectorResponse,
         UnknownError
       ),
@@ -4721,6 +4807,7 @@ object Http4s310 {
         ViewsAllowedInConsent,
         ConsumerNotFoundByConsumerId,
         ConsumerIsDisabled,
+        ConsentConsumerIsRequired,
         MissingPropsValueAtThisInstance,
         SmsServerNotResponding,
         InvalidConnectorResponse,
@@ -4801,6 +4888,7 @@ object Http4s310 {
         ViewsAllowedInConsent,
         ConsumerNotFoundByConsumerId,
         ConsumerIsDisabled,
+        ConsentConsumerIsRequired,
         MissingPropsValueAtThisInstance,
         SmsServerNotResponding,
         InvalidConnectorResponse,
@@ -4813,7 +4901,7 @@ object Http4s310 {
 
     // ─── answerConsentChallenge (POST → 201) ─────────────────────────────────
 
-    val answerConsentChallenge: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val answerConsentChallenge: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "consents" / consentIdStr / "challenge" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[PostConsentChallengeJsonV310, Any](req) { (_, _, body, cc) =>
           for {
@@ -4857,7 +4945,7 @@ object Http4s310 {
 
     // ─── getObpConnectorLoopback ─────────────────────────────────────────────
 
-    val getObpConnectorLoopback: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getObpConnectorLoopback: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "connector" / "loopback" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
@@ -4924,7 +5012,7 @@ object Http4s310 {
 
     // ─── saveHistoricalTransaction (POST) ────────────────────────────────────
 
-    val saveHistoricalTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val saveHistoricalTransaction: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "historical" / "transactions" =>
         EndpointHelpers.withUserAndBodyCreated[PostHistoricalTransactionJson, Any](req) { (user, body, cc) =>
           for {
@@ -5088,109 +5176,115 @@ object Http4s310 {
 
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
-    private val allOwnRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-      root.run(req)
-        .orElse(getCheckbookOrders.run(req))
-        .orElse(getStatusOfCreditCardOrder.run(req))
-        .orElse(getTopAPIs.run(req))
-        .orElse(getMetricsTopConsumers.run(req))
-        .orElse(getFirehoseCustomers.run(req))
-        .orElse(getBadLoginStatus.run(req))
-        .orElse(getCallsLimit.run(req))
-        .orElse(getConsumer.run(req))
-        .orElse(getConsumersForCurrentUser.run(req))
-        .orElse(getConsumers.run(req))
-        .orElse(getAccountWebhooks.run(req))
-        .orElse(config.run(req))
-        .orElse(getAdapterInfo.run(req))
-        .orElse(getRateLimitingInfo.run(req))
-        .orElse(getCustomerByCustomerId.run(req))
-        .orElse(getUserAuthContexts.run(req))
-        .orElse(getTaxResidence.run(req))
-        .orElse(getAllEntitlements.run(req))
-        .orElse(getCustomerAddresses.run(req))
-        .orElse(getProductAttribute.run(req))
-        .orElse(getAccountApplications.run(req))
-        .orElse(getAccountApplication.run(req))
-        .orElse(getMeetings.run(req))
-        .orElse(getMeeting.run(req))
-        .orElse(getServerJWK.run(req))
-        .orElse(getOAuth2ServerJWKsURIs.run(req))
-        .orElse(getMethodRoutings.run(req))
-        .orElse(getSystemView.run(req))
-        .orElse(getCardsForBank.run(req))
-        .orElse(getCardForBank.run(req))
-        .orElse(getBankAccountsBalances.run(req))
-        .orElse(checkFundsAvailable.run(req))
-        .orElse(getTransactionByIdForBankAccount.run(req))
-        .orElse(getTransactionRequests.run(req))
-        .orElse(getProduct.run(req))
-        .orElse(getProductTree.run(req))
-        .orElse(getProducts.run(req))
-        .orElse(getProductCollection.run(req))
-        .orElse(getConsents.run(req))
-        .orElse(getPrivateAccountByIdFull.run(req))
-        .orElse(getWebUiProps.run(req))
-        .orElse(deleteUserAuthContexts.run(req))
-        .orElse(deleteUserAuthContextById.run(req))
-        .orElse(deleteTaxResidence.run(req))
-        .orElse(deleteCustomerAddress.run(req))
-        .orElse(deleteProductAttribute.run(req))
-        .orElse(deleteBranch.run(req))
-        .orElse(deleteSystemView.run(req))
-        .orElse(deleteMethodRouting.run(req))
-        .orElse(deleteCardForBank.run(req))
-        .orElse(deleteWebUiProps.run(req))
-        .orElse(revokeConsent.run(req))
-        .orElse(createTaxResidence.run(req))
-        .orElse(createCustomerAddress.run(req))
-        .orElse(updateCustomerAddress.run(req))
-        .orElse(createUserAuthContext.run(req))
-        .orElse(createProductAttribute.run(req))
-        .orElse(createAccountWebhook.run(req))
-        .orElse(unlockUser.run(req))
-        .orElse(callsLimit.run(req))
-        .orElse(enableDisableAccountWebhook.run(req))
-        .orElse(enableDisableConsumers.run(req))
-        .orElse(updateSystemView.run(req))
-        .orElse(updateProductAttribute.run(req))
-        .orElse(updateCustomerEmail.run(req))
-        .orElse(updateCustomerNumber.run(req))
-        .orElse(updateCustomerMobileNumber.run(req))
-        .orElse(updateCustomerIdentity.run(req))
-        .orElse(updateCustomerCreditLimit.run(req))
-        .orElse(updateCustomerCreditRatingAndSource.run(req))
-        .orElse(updateCustomerBranch.run(req))
-        .orElse(updateCustomerData.run(req))
-        .orElse(updateAccountApplicationStatus.run(req))
-        .orElse(createCustomer.run(req))
-        .orElse(getCustomerByCustomerNumber.run(req))
-        .orElse(createAccountApplication.run(req))
-        .orElse(createAccountAttribute.run(req))
-        .orElse(updateAccountAttribute.run(req))
-        .orElse(createMeeting.run(req))
-        .orElse(createSystemView.run(req))
-        .orElse(createProductCollection.run(req))
-        .orElse(addCardForBank.run(req))
-        .orElse(updatedCardForBank.run(req))
-        .orElse(createCardAttribute.run(req))
-        .orElse(updateCardAttribute.run(req))
-        .orElse(createWebUiProps.run(req))
-        .orElse(createUserAuthContextUpdateRequest.run(req))
-        .orElse(answerUserAuthContextUpdateChallenge.run(req))
-        .orElse(refreshUser.run(req))
-        .orElse(createProduct.run(req))
-        .orElse(createMethodRouting.run(req))
-        .orElse(updateMethodRouting.run(req))
-        .orElse(updateAccount.run(req))
-        .orElse(createAccount.run(req))
-        .orElse(createConsent.run(req))
-        .orElse(answerConsentChallenge.run(req))
-        .orElse(saveHistoricalTransaction.run(req))
-        .orElse(getObpConnectorLoopback.run(req))
-    }
+    // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
+    // route that serves a request, so it is given the docs in this same order.
+    lazy val routesInOrder: List[Http4sHandler] = List(
+      root,
+      getCheckbookOrders,
+      getStatusOfCreditCardOrder,
+      getTopAPIs,
+      getMetricsTopConsumers,
+      getFirehoseCustomers,
+      getBadLoginStatus,
+      getCallsLimit,
+      getConsumer,
+      getConsumersForCurrentUser,
+      getConsumers,
+      getAccountWebhooks,
+      config,
+      getAdapterInfo,
+      getRateLimitingInfo,
+      getCustomerByCustomerId,
+      getUserAuthContexts,
+      getTaxResidence,
+      getAllEntitlements,
+      getCustomerAddresses,
+      getProductAttribute,
+      getAccountApplications,
+      getAccountApplication,
+      getMeetings,
+      getMeeting,
+      getServerJWK,
+      getOAuth2ServerJWKsURIs,
+      getMethodRoutings,
+      getSystemView,
+      getCardsForBank,
+      getCardForBank,
+      getBankAccountsBalances,
+      checkFundsAvailable,
+      getTransactionByIdForBankAccount,
+      getTransactionRequests,
+      getProduct,
+      getProductTree,
+      getProducts,
+      getProductCollection,
+      getConsents,
+      getPrivateAccountByIdFull,
+      getWebUiProps,
+      deleteUserAuthContexts,
+      deleteUserAuthContextById,
+      deleteTaxResidence,
+      deleteCustomerAddress,
+      deleteProductAttribute,
+      deleteBranch,
+      deleteSystemView,
+      deleteMethodRouting,
+      deleteCardForBank,
+      deleteWebUiProps,
+      revokeConsent,
+      createTaxResidence,
+      createCustomerAddress,
+      updateCustomerAddress,
+      createUserAuthContext,
+      createProductAttribute,
+      createAccountWebhook,
+      unlockUser,
+      callsLimit,
+      enableDisableAccountWebhook,
+      enableDisableConsumers,
+      updateSystemView,
+      updateProductAttribute,
+      updateCustomerEmail,
+      updateCustomerNumber,
+      updateCustomerMobileNumber,
+      updateCustomerIdentity,
+      updateCustomerCreditLimit,
+      updateCustomerCreditRatingAndSource,
+      updateCustomerBranch,
+      updateCustomerData,
+      updateAccountApplicationStatus,
+      createCustomer,
+      getCustomerByCustomerNumber,
+      createAccountApplication,
+      createAccountAttribute,
+      updateAccountAttribute,
+      createMeeting,
+      createSystemView,
+      createProductCollection,
+      addCardForBank,
+      updatedCardForBank,
+      createCardAttribute,
+      updateCardAttribute,
+      createWebUiProps,
+      createUserAuthContextUpdateRequest,
+      answerUserAuthContextUpdateChallenge,
+      refreshUser,
+      createProduct,
+      createMethodRouting,
+      updateMethodRouting,
+      updateAccount,
+      createAccount,
+      createConsent,
+      answerConsentChallenge,
+      saveHistoricalTransaction,
+      getObpConnectorLoopback
+    )
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allOwnRoutes))
+    lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
+
+    private lazy val allOwnRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
+
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 
     // ─── path-rewriting bridge: /obp/v3.1.0/… → /obp/v3.0.0/… ──────────────
 

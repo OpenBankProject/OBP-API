@@ -25,6 +25,8 @@ TESOBE (http://www.tesobe.com/)
  */
 package code.api.v4_0_0
 
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
+import code.api.util.ApiVersionUtils
 import code.api.util.APIUtil
 import org.json4s.jvalue2extractable
 import code.api.util.ApiRole._
@@ -53,7 +55,7 @@ class GetScannedApiVersionsTest extends V400ServerSetup with PropsReset {
     Scenario("We get all the scanned API versions with disabled versions filtered out", ApiEndpoint, VersionOfApi) {
       //  api_disabled_versions=[OBPv3.0.0,BGv1.3]
       setPropsValues("api_disabled_versions"-> "[OBPv3.0.0,BGv1.3]")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "api" / "versions").GET
 
@@ -63,7 +65,11 @@ class GetScannedApiVersionsTest extends V400ServerSetup with PropsReset {
 
       val listResult = response.body.extract[ListResult[List[ScannedApiVersion]]]
       val responseApiVersions = listResult.results
-      val scannedApiVersions = ApiVersion.allScannedApiVersion.asScala.toList.filter { version =>
+      // The same source the endpoint uses: the OBP versions plus the live ScannedApis scan.
+      // Building this from ApiVersion.allScannedApiVersion would assert against the registry of
+      // every ScannedApiVersion ever constructed, which is how six retired standards stayed on
+      // the wire after their code was deleted.
+      val scannedApiVersions = ApiVersionUtils.versions.filter { version =>
         version.urlPrefix.trim.nonEmpty && APIUtil.versionIsAllowed(version)
       }
 
@@ -80,7 +86,7 @@ class GetScannedApiVersionsTest extends V400ServerSetup with PropsReset {
     Scenario("We get all the scanned API versions with disabled versions filtered out", ApiEndpoint, VersionOfApi) {
       //  api_enabled_versions=[OBPv2.2.0,OBPv3.0.0,UKv2.0]
       setPropsValues("api_enabled_versions"-> "[OBPv2.2.0,OBPv3.0.0,UKv2.0,OBPv4.0.0]")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "api" / "versions").GET
 
@@ -90,7 +96,11 @@ class GetScannedApiVersionsTest extends V400ServerSetup with PropsReset {
 
       val listResult = response.body.extract[ListResult[List[ScannedApiVersion]]]
       val responseApiVersions = listResult.results
-      val scannedApiVersions = ApiVersion.allScannedApiVersion.asScala.toList.filter { version =>
+      // The same source the endpoint uses: the OBP versions plus the live ScannedApis scan.
+      // Building this from ApiVersion.allScannedApiVersion would assert against the registry of
+      // every ScannedApiVersion ever constructed, which is how six retired standards stayed on
+      // the wire after their code was deleted.
+      val scannedApiVersions = ApiVersionUtils.versions.filter { version =>
         version.urlPrefix.trim.nonEmpty && APIUtil.versionIsAllowed(version)
       }
 
@@ -107,7 +117,7 @@ class GetScannedApiVersionsTest extends V400ServerSetup with PropsReset {
   Feature("Get all scanned API versions should works") {
 
     Scenario("We get all the scanned API versions", ApiEndpoint, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+      Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "api" / "versions").GET
 
@@ -117,7 +127,7 @@ class GetScannedApiVersionsTest extends V400ServerSetup with PropsReset {
 
       val listResult = response.body.extract[ListResult[List[ScannedApiVersion]]]
       val responseApiVersions = listResult.results
-      val scannedApiVersions = ApiVersion.allScannedApiVersion.asScala.toList.filter { version =>
+      val scannedApiVersions = ApiVersionUtils.versions.filter { version =>
         version.urlPrefix.trim.nonEmpty
       }
 

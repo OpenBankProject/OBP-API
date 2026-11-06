@@ -138,14 +138,23 @@ class Boot extends MdcLoggable {
     }
 
     if (Props.mode == Props.RunModes.Development) logger.info("OBP-API Props all fields : \n" + Props.props.mkString("\n"))
+    // Make the effective root log level visible at start-up. DEBUG/TRACE is expensive on this
+    // code base and is only meant to be enabled deliberately (LOG_LEVEL), so say so loudly.
+    try {
+      org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME) match {
+        case l: ch.qos.logback.classic.Logger =>
+          val level = l.getEffectiveLevel
+          if (level.levelInt <= ch.qos.logback.classic.Level.DEBUG_INT)
+            logger.warn(s"Effective root log level is $level (LOG_LEVEL override); expect higher CPU and log volume")
+          else logger.info(s"Effective root log level is $level")
+        case _ => ()
+      }
+    } catch { case _: Throwable => () }
     logger.info("external props folder: " + propsPath)
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
     logger.info("Current Project TimeZone: " + TimeZone.getDefault)
 
 
-    // set dynamic_code_sandbox_enable to System.properties, so com.openbankproject.commons.ExecutionContext can read this value
-    APIUtil.getPropsValue("dynamic_code_sandbox_enable")
-      .foreach(it => System.setProperty("dynamic_code_sandbox_enable", it))
   }
 
 
@@ -201,6 +210,10 @@ class Boot extends MdcLoggable {
     // Please note that migration scripts are executed after Lift Mapper Schemifier
     Migration.database.executeScripts(startedBeforeSchemifier = false)
 
+    // Code hashes cover the programming language as well as the body; move existing rows (and the
+    // approvals still valid for them) to that form once. Must run before the seed below.
+    code.dynamicchangerequest.MakerChecker.rehashDynamicCodeWithLanguage()
+
     // The OIDC views come last, after the legacy migrations have finished reshaping the columns
     // they read. Creating them with the rest of the schema aborts the boot on Postgres, which
     // refuses `ALTER TABLE consumer ALTER COLUMN aud TYPE text` while a view depends on that
@@ -213,6 +226,10 @@ class Boot extends MdcLoggable {
     // Idempotent seed of country-qualified routing schemes (TZ.MSISDN, bill, utility, etc.).
     // Toggle off via routing_schemes.seed_defaults_at_boot=false in environments that don't want defaults.
     code.routingscheme.RoutingSchemeSeed.runIfEnabled()
+
+    // Idempotent seed of the asset registry (ISO currencies, precious metals, accounting units,
+    // XBT, ADA, ETH) at the decimal places OBP uses today. Currency validation and decimal places read it.
+    code.asset.AssetSeed.run()
 
     // Report which static Glossary Items the database is currently displacing. A developer editing
     // Glossary.scala has no other way to find out that their text is being overridden.
@@ -267,24 +284,12 @@ class Boot extends MdcLoggable {
       }
 
       // The remaining two stay opt-in: nothing in the code requires them to exist, so whether an
-      // instance has them is still the operator's call. Their permission sets ARE code-defined
-      // though, so where they do exist they are kept current the same way -- the prop decides
-      // existence, not whether the code is authoritative about what a view grants.
-      APIUtil.getPropsValue("additional_system_views") match {
-        case Full(value) =>
-          val additionalSystemViewsFromProps = value.split(",").map(_.trim).toList
-          val additionalSystemViews = List(
-            SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID,
-            SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
-          )
-          for {
-            systemView <- additionalSystemViewsFromProps
-            if additionalSystemViews.exists(_ == systemView)
-          } {
-            Views.views.vend.ensureSystemViewUpToDate(systemView)
-          }
-        case _ => // Do nothing
-      }
+      // instance has them is still the operator's call. (The mapped connector is the exception: it lists
+      // both in viewsToGenerate, so a refresh creates them and grants them to the holders of their accounts
+      // whether or not they are listed here.) Their permission sets ARE code-defined though, so wherever they
+      // exist, listed or not, they are kept current the same way, unless reconcile_permissions_at_boot is false --
+      // the prop decides existence, not whether the code is authoritative about what a view grants.
+      Views.views.vend.ensureOptInSystemViewsUpToDate(APIUtil.getPropsValue("additional_system_views"))
 
     }
 
@@ -300,6 +305,8 @@ class Boot extends MdcLoggable {
     warnAboutSuperAdminUsers()
 
     warnAboutEmailDeliveryConfiguration()
+
+    warnAboutRemovedProps()
 
     OAuth2Login.logConfigWarnings()
 
@@ -404,6 +411,7 @@ class Boot extends MdcLoggable {
 
     logger.info("running mode: " + runningMode)
     logger.info(s"ApiPathZero (the bit before version) is $ApiPathZero")
+    logger.info(s"Boot says: redirect URL host allow list (redirect_url_allowed_hosts): ${code.api.util.RedirectUrlValidation.allowedHostsDescription}")
 
     logger.debug(s"If you can read this, logging level is debug")
 
@@ -446,8 +454,8 @@ class Boot extends MdcLoggable {
     // DirectLogin (POST /my/logins/direct) and aliveCheck (GET /alive) are now served
     // by their native http4s counterparts wired into Http4sApp.baseServices
     // (DirectLoginRoutes / AliveCheckRoutes). The Lift dispatches were retired in the
-    // http4s migration; any prop gates (e.g. `allow_direct_login`) live with those
-    // routes. The OBP-as-relying-party OpenID Connect callback was removed: OBP is a
+    // http4s migration; any prop gates live with those routes (`allow_direct_login` is
+    // checked in DirectLoginRoutes.issueToken, which the v6.0.0 route also uses). The OBP-as-relying-party OpenID Connect callback was removed: OBP is a
     // pure OAuth2 resource server (Bearer-JWT validation), login is done by the client/BFF.
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -464,6 +472,11 @@ class Boot extends MdcLoggable {
 
     // Sandbox account creation menu removed - API-only mode, no portal pages
 
+
+    // Telemetry (aggregated numbers about this instance, for Prometheus). Not API Metrics: see
+    // docs/telemetry_conventions.md. Recording is always on; the prop telemetry.port.enabled
+    // decides whether the separate port is opened.
+    code.telemetry.Telemetry.start()
 
     // API Metrics (logs of API calls)
     // If set to true we will write each URL with params to a datastore / log file
@@ -505,11 +518,10 @@ class Boot extends MdcLoggable {
       val delay = APIUtil.getPropsAsLongValue("transaction_request_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_request_status_scheduler_delay, please provide number of seconds.")
       TransactionRequestStatusScheduler.start(delay)
     }
-    // Open Corridor: the transactional-outbox relay publishing Interface C messages
-    // (credit notifications + settlement instructions) to the banks' own vhosts.
-    if (APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)) {
-      MessageOutboxRelay.start(APIUtil.getPropsAsLongValue("open_corridor.outbox_relay_interval", 10L))
-    }
+    // The transactional-outbox relay: sends queued emails (e.g. "you have been granted a Role") and,
+    // when Open Corridor is enabled, publishes Interface C messages (credit notifications +
+    // settlement instructions) to the banks' own vhosts.
+    MessageOutboxRelay.start(APIUtil.getPropsAsLongValue("message_outbox.relay_interval_seconds", 10L))
     // Chat: emails users an occasional digest of unread messages (computed at
     // send time from read markers — see ChatEmailDigestScheduler for why this
     // is not the transactional message outbox).
@@ -533,6 +545,9 @@ class Boot extends MdcLoggable {
       case false => // Do not start it
     }
 
+    // Data retention: runs the enabled retention policies (see RETENTION_PLAN.md). Off by default.
+    code.scheduler.RetentionScheduler.startIfEnabled()
+
 
     // ConnectorEndpoints (connector.name.export.as.endpoints) registered via Lift statelessDispatch
     // which is no longer reachable (Lift bridge removed in Phase B). Disabled until migrated to http4s.
@@ -544,6 +559,13 @@ class Boot extends MdcLoggable {
   def createDefaultChatRoom() = {
     // Create default system-level "general" chat room (is_open_room = true)
     code.chat.ChatRoomTrait.chatRoomProvider.vend.getOrCreateDefaultRoom()
+  }
+
+  private def upgradeSqlServerDateTimeColumns(): Unit = {
+    val result = code.api.util.SqlServerDateTimeUpgrade.upgradeAll()
+    if (result.failed.nonEmpty) {
+      logger.warn(s"upgradeSqlServerDateTimeColumns: ${result.failed.size} DATETIME columns could not be altered to DATETIME2 and keep the 1753 date floor: ${result.failed.mkString("; ")}")
+    }
   }
 
   /**
@@ -668,6 +690,38 @@ class Boot extends MdcLoggable {
   }
 
   /**
+   * Warn at startup about props that this instance still sets but that OBP no longer reads.
+   *
+   * A prop that has been removed from the code is simply ignored, so an operator who set it
+   * deliberately gets a silent change of behaviour on upgrade and no way to find out. Naming it
+   * here turns that into one line in the boot log. Entries are (prop name, what to know now).
+   */
+  private def warnAboutRemovedProps(): Unit = {
+    val removedProps = List(
+      "experimental_become_user_that_created_consent" ->
+        ("A Consent-JWT now always authenticates as the consent user (the agent identity the " +
+          "Consent minted), never as the human who created the Consent. Setting this to true used " +
+          "to log that human on instead. The human is still recorded on what the call creates - " +
+          "see on_behalf_of_user_id - but the caller's own permissions are the Consent's.")
+    )
+    val stillSet = removedProps.filter { case (name, _) =>
+      APIUtil.getPropsValue(name).exists(_.trim.nonEmpty)
+    }
+    if (stillSet.nonEmpty) {
+      logger.warn("========================================================================")
+      logger.warn("WARNING: this instance sets props that OBP no longer reads:")
+      stillSet.foreach { case (name, explanation) =>
+        logger.warn("")
+        logger.warn(s"  $name")
+        logger.warn(s"    $explanation")
+      }
+      logger.warn("")
+      logger.warn("Remove them from your props file; they have no effect.")
+      logger.warn("========================================================================")
+    }
+  }
+
+  /**
    * Warn at startup about email-delivery configuration that would silently break
    * signup-validation and password-reset flows. Both flows embed a link built from
    * `portal_external_url`; if the prop is missing the signup endpoint skips the
@@ -705,7 +759,7 @@ class Boot extends MdcLoggable {
   /**
    * Bootstrap OIDC Operator User
    * Given the following credentials, OBP will create a user *if it does not exist already*.
-   * This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers
+   * This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetOidcConsent, CanGetConsumers, CanCreateConsumer
    */
   private def createBootstrapOidcOperatorUser() = {
 
@@ -744,7 +798,9 @@ class Boot extends MdcLoggable {
           CanVerifyUserCredentials,
           CanVerifyOidcClient,
           CanGetOidcClient,
-          CanGetConsumers
+          CanGetOidcConsent,
+          CanGetConsumers,
+          CanCreateConsumer
         )
 
         userBox match {
@@ -765,7 +821,7 @@ class Boot extends MdcLoggable {
   /**
    * Bootstrap OIDC Operator Consumer
    * Given the following key and secret, OBP will create a consumer *if it does not exist already*.
-   * This consumer will be granted scopes: CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient
+   * This consumer will be granted scopes: CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient, CanGetOidcConsent
    * This allows OBP-OIDC to authenticate as an application (without a user) and manage consumers via the API.
    */
   private def createBootstrapOidcOperatorConsumer() = {
@@ -811,7 +867,7 @@ class Boot extends MdcLoggable {
     consumerBox match {
       case Full(consumer) =>
         logger.info(s"createBootstrapOidcOperatorConsumer says: Consumer created successfully with consumer_id: ${consumer.consumerId}")
-        val scopes = List(CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient)
+        val scopes = List(CanGetConsumers, CanCreateConsumer, CanVerifyOidcClient, CanGetOidcClient, CanGetOidcConsent)
         scopes.foreach { role =>
           val resultBox = Scope.scope.vend.addScope("", consumer.id.toString, role.toString)
           if (resultBox.isEmpty) {

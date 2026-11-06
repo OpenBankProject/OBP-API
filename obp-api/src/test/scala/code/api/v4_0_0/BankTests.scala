@@ -112,6 +112,23 @@ class BankTests extends V400ServerSetup with DefaultUsers {
       defaultOutgoingAccount._1.accountId.value should equal(OUTGOING_SETTLEMENT_ACCOUNT_ID)
       defaultIncomingAccount._1.accountId.value should equal(INCOMING_SETTLEMENT_ACCOUNT_ID)
     }
+
+    // An existing BANK_ID is refused, so CanCreateBank cannot overwrite another bank or gain its entitlement admin role
+    scenario("We try to create a bank with the BANK_ID of an existing bank - Authorized access", ApiEndpoint1, VersionOfApi) {
+      Given("A bank that already exists and a user with CanCreateBank")
+      val existingBankId = createBank("testBank0").bankId.value
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
+      When("We post a bank with that BANK_ID")
+      val request = (v4_0_0_Request / "banks").POST <@ (user1)
+      val response = makePostRequest(request, write(bankJson400.copy(id = existingBankId)))
+      Then("We should get a 400 with bankIdAlreadyExists")
+      response.code should equal(400)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.bankIdAlreadyExists)
+      And("The caller is not given CanCreateEntitlementAtOneBank at that bank")
+      Await.result(
+        NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None), 10.seconds
+      ).exists(e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == existingBankId) should equal(false)
+    }
   }
 
 

@@ -125,6 +125,15 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
       response300.body.toString contains EntitlementIsSystemRole should be (true)
     }
     
+    Scenario("create entitlement request at SYS, the system space of Dynamic Entities", VersionOfApi, ApiEndpoint1) {
+      When("We request a Dynamic Entity Role at SYS, where such Roles are granted although no Bank has that id")
+      val postJson = s"""{"bank_id":"${code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID}", "role_name":"CanGetDynamicEntityDefinitions"}"""
+      val request300 = (v3_0Request / "entitlement-requests").POST <@(user1)
+      val response300 = makePostRequest(request300, postJson)
+      Then("We should get a 201, not a 404 for an unknown bank")
+      response300.code should equal(201)
+    }
+
     Scenario("create entitlement request- successfully", VersionOfApi, ApiEndpoint1) {
       When("We make a request v3.0.0")
       val postJson = s"""{"bank_id":"${testBankId1.value}", "role_name":"CanCreateBankLevelEndpointTag"}"""
@@ -268,6 +277,29 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
       responseGetMyUserALl.code should equal(200)
       val resultGetMyUserALl = responseGetMyUserALl.body.extract[EntitlementRequestsJSON]
       resultGetMyUserALl.entitlement_requests.length should be (0)
+    }
+
+    Scenario("a super admin sees and deletes entitlement requests without stored Entitlements", VersionOfApi,
+      ApiEndpoint1, ApiEndpoint2, ApiEndpoint3) {
+      Given("user1 is listed in super_admin_user_ids and holds no Entitlements")
+      setPropsValues("super_admin_user_ids" -> resourceUser1.userId)
+      Entitlement.entitlement.vend.getEntitlementsByUserId(resourceUser1.userId).map(_.size).openOr(0) should equal(0)
+
+      val postJson = s"""{"bank_id":"${testBankId1.value}", "role_name":"CanCreateBankLevelEndpointTag"}"""
+      val response300 = makePostRequest((v3_0Request / "entitlement-requests").POST <@(user1), postJson)
+      response300.code should equal(201)
+      val entitlementRequestId = response300.body.extract[EntitlementRequestJSON].entitlement_request_id
+
+      When("they list every entitlement request")
+      val responseGetAll = makeGetRequest((v3_0Request / "entitlement-requests").GET <@(user1))
+      Then("the virtual CanGetEntitlementRequestsAtAnyBank lets them")
+      responseGetAll.code should equal(200)
+      responseGetAll.body.extract[EntitlementRequestsJSON].entitlement_requests.map(_.entitlement_request_id) should contain (entitlementRequestId)
+
+      When("they delete the request, as accepting one does")
+      val deleteResponse = makeDeleteRequest((v3_0Request / "entitlement-requests" / entitlementRequestId).DELETE <@(user1))
+      Then("the virtual CanDeleteEntitlementRequestsAtAnyBank lets them")
+      deleteResponse.code should equal(200)
     }
 
   }

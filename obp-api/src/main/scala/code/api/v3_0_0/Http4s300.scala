@@ -35,13 +35,13 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.v2_0_0.AccountsHelper._
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, _}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, _}
 import code.api.util.{ApiRole, FutureUtil, Glossary}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
-import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle}
@@ -90,7 +90,7 @@ object Http4s300 {
 
     // ─── root ─────────────────────────────────────────────────────────────────
 
-    val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val root: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v3_0_0, versionStatus))
@@ -122,7 +122,7 @@ object Http4s300 {
 
     // ─── getViewsForBankAccount ───────────────────────────────────────────────
 
-    val getViewsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getViewsForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" =>
         EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
           for {
@@ -178,7 +178,7 @@ object Http4s300 {
 
     // ─── createViewForBankAccount ─────────────────────────────────────────────
 
-    val createViewForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createViewForBankAccount: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "views" =>
         EndpointHelpers.withUserAndBankCreated(req) { (user, bank, cc) =>
           for {
@@ -241,7 +241,7 @@ object Http4s300 {
 
     // ─── updateViewForBankAccount ─────────────────────────────────────────────
 
-    val updateViewForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateViewForBankAccount: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" / viewIdStr =>
         EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
           updateViewImpl300(user, account, ViewId(viewIdStr), cc.httpBody.getOrElse(""), cc)
@@ -262,7 +262,8 @@ object Http4s300 {
       |of a view is not editable (it is only set when a view is created)""",
       updateViewJsonV300,
       viewJsonV300,
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
+      // SourceViewHasLessPermission: the body asks for actions none of the caller's views on the account has
+      List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, SourceViewHasLessPermission, UnknownError),
       List(apiTagView, apiTagAccount),
       None,
       http4sPartialFunction = Some(updateViewForBankAccount)
@@ -289,13 +290,18 @@ object Http4s300 {
         _ <- code.util.Helper.booleanToFuture(
           s"${ViewDoesNotPermitAccess} You need the `${CAN_UPDATE_CUSTOM_VIEW}` permission on any your views",
           cc = Some(cc)) { anyCanUpdate }
+        // the view may only get actions the caller already has on one of their views of this account, else they grant themselves more (as v5.1.0 does)
+        callerActions = permission.views.flatMap(_.allowed_actions).toSet
+        _ <- code.util.Helper.booleanToFuture(
+          s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${updateBodyJson.allowed_actions})",
+          failCode = 403, cc = Some(cc)) { updateBodyJson.allowed_actions.toSet.subsetOf(callerActions) }
         (updatedView, _) <- ViewNewStyle.updateCustomView(BankIdAccountId(account.bankId, account.accountId), viewId, updateBodyJson.toUpdateViewJson, Some(cc))
       } yield JSONFactory300.createViewJSON(updatedView)
     }
 
     // ─── getPermissionForUserForBankAccount ───────────────────────────────────
 
-    val getPermissionForUserForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getPermissionForUserForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "permissions" / providerStr / providerIdStr =>
         EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
           for {
@@ -338,7 +344,7 @@ object Http4s300 {
 
     // ─── getPrivateAccountById ────────────────────────────────────────────────
 
-    val getPrivateAccountById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getPrivateAccountById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "account" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -379,7 +385,7 @@ object Http4s300 {
 
     // ─── getPublicAccountById ─────────────────────────────────────────────────
 
-    val getPublicAccountById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getPublicAccountById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "public" / "accounts" / _ / _ / "account" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
@@ -425,7 +431,7 @@ object Http4s300 {
 
     // ─── getCoreAccountById ───────────────────────────────────────────────────
 
-    val getCoreAccountById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCoreAccountById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "banks" / _ / "accounts" / _ / "account" =>
         EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
           for {
@@ -470,7 +476,7 @@ object Http4s300 {
 
     // ─── corePrivateAccountsAllBanks ──────────────────────────────────────────
 
-    val corePrivateAccountsAllBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val corePrivateAccountsAllBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "accounts" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -507,7 +513,7 @@ object Http4s300 {
     // does NOT resolve the bank/view (validateBank checks pathParams("BANK_ID") exactly).
     // Order: prop check (400) → role check (403) → bank lookup (404) — matches test expectations.
 
-    val getFirehoseAccountsAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getFirehoseAccountsAtOneBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "firehose" / "accounts" / "views" / viewIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val roles = ApiRole.canUseAccountFirehose :: canUseAccountFirehoseAtAnyBank :: Nil
@@ -595,7 +601,7 @@ object Http4s300 {
     // Uses non-standard FIREHOSE_* vars so middleware skips bank/account/view validation.
     // Order: prop check (400) → role check (403) → bank/account/view lookups — matches tests.
 
-    val getFirehoseTransactionsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getFirehoseTransactionsForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "firehose" / "accounts" / accountIdStr / "views" / viewIdStr / "transactions" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val roles = ApiRole.canUseAccountFirehose :: canUseAccountFirehoseAtAnyBank :: Nil
@@ -623,7 +629,8 @@ object Http4s300 {
             }
             moderatedTransactionsWithAttributes <- Future.sequence(
               transactions.map(transaction =>
-                NewStyle.function.getTransactionAttributes(account.bankId, transaction.id, Some(cc))
+                // only the attributes whose Attribute Definition lists this view, so a limited view does not see attributes meant for other views
+                NewStyle.function.getModeratedTransactionAttributes(account.bankId, transaction.id, view.viewId, Some(cc))
                   .map(attributes => ModeratedTransactionWithAttributes(transaction, attributes._1))
               )
             )
@@ -664,7 +671,7 @@ object Http4s300 {
 
     // ─── getCoreTransactionsForBankAccount ────────────────────────────────────
 
-    val getCoreTransactionsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCoreTransactionsForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "banks" / _ / "accounts" / _ / "transactions" =>
         EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
           for {
@@ -677,7 +684,8 @@ object Http4s300 {
             }
             moderatedTransactionsCoreWithAttributes <- Future.sequence(
               transactionsCore.map(transaction =>
-                NewStyle.function.getTransactionAttributes(account.bankId, transaction.id, Some(cc))
+                // only the attributes whose Attribute Definition lists the owner view used here, as for the other transaction endpoints
+                NewStyle.function.getModeratedTransactionAttributes(account.bankId, transaction.id, view.viewId, Some(cc))
                   .map(attributes => ModeratedTransactionCoreWithAttributes(transaction, attributes._1))
               )
             )
@@ -709,7 +717,7 @@ object Http4s300 {
 
     // ─── getTransactionsForBankAccount ────────────────────────────────────────
 
-    val getTransactionsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getTransactionsForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transactions" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -721,7 +729,8 @@ object Http4s300 {
             }
             moderatedTransactionsWithAttributes <- Future.sequence(
               transactions.map(transaction =>
-                NewStyle.function.getTransactionAttributes(account.bankId, transaction.id, Some(cc))
+                // only the attributes whose Attribute Definition lists this view, so a limited view does not see attributes meant for other views
+                NewStyle.function.getModeratedTransactionAttributes(account.bankId, transaction.id, view.viewId, Some(cc))
                   .map(attributes => ModeratedTransactionWithAttributes(transaction, attributes._1))
               )
             )
@@ -757,7 +766,7 @@ object Http4s300 {
 
     private val esw = new elasticsearchWarehouse
 
-    val dataWarehouseSearch: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val dataWarehouseSearch: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "search" / "warehouse" / indexStr =>
         implicit val cc: CallContext = req.callContext
         val io = for {
@@ -831,7 +840,7 @@ object Http4s300 {
 
     // ─── dataWarehouseStatistics ──────────────────────────────────────────────
 
-    val dataWarehouseStatistics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val dataWarehouseStatistics: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "search" / "warehouse" / "statistics" / indexStr / fieldStr =>
         implicit val cc: CallContext = req.callContext
         val io = for {
@@ -906,7 +915,7 @@ object Http4s300 {
 
     // ─── getUser (by email) ───────────────────────────────────────────────────
 
-    val getUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getUser: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "email" / emailStr / "terminator" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -938,7 +947,7 @@ object Http4s300 {
 
     // ─── getUserByUserId ──────────────────────────────────────────────────────
 
-    val getUserByUserId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getUserByUserId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "user_id" / userIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -973,7 +982,7 @@ object Http4s300 {
 
     // ─── getUserByUsername ────────────────────────────────────────────────────
 
-    val getUserByUsername: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getUserByUsername: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "username" / usernameStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -1009,7 +1018,7 @@ object Http4s300 {
 
     // ─── getAdapterInfoForBank ────────────────────────────────────────────────
 
-    val getAdapterInfoForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAdapterInfoForBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "adapter" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
@@ -1040,7 +1049,7 @@ object Http4s300 {
 
     // ─── createBranch ─────────────────────────────────────────────────────────
 
-    val createBranch: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createBranch: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "branches" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[BranchJsonV300, BranchJsonV300](req) { (user, bank, body, cc) =>
           for {
@@ -1078,7 +1087,7 @@ object Http4s300 {
 
     // ─── updateBranch ─────────────────────────────────────────────────────────
 
-    val updateBranch: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateBranch: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "branches" / branchIdStr =>
         EndpointHelpers.withUserAndBankAndBodyCreated[PostBranchJsonV300, BranchJsonV300](req) { (user, bank, body, cc) =>
           for {
@@ -1120,7 +1129,7 @@ object Http4s300 {
 
     // ─── createAtm ────────────────────────────────────────────────────────────
 
-    val createAtm: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createAtm: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "atms" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[AtmJsonV300, AtmJsonV300](req) { (user, bank, body, cc) =>
           for {
@@ -1160,7 +1169,7 @@ object Http4s300 {
 
     private val getBranchesIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getBranchesIsPublic", true)
 
-    val getBranch: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getBranch: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "branches" / branchIdStr =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           for {
@@ -1219,7 +1228,7 @@ object Http4s300 {
       }
     }
 
-    val getBranches: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getBranches: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "branches" =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           val qp = req.uri.query.params
@@ -1315,7 +1324,7 @@ object Http4s300 {
 
     private val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
-    val getAtm: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAtm: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "atms" / atmIdStr =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           for {
@@ -1352,7 +1361,7 @@ object Http4s300 {
 
     // ─── getAtms ──────────────────────────────────────────────────────────────
 
-    val getAtms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAtms: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "atms" =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           val qp     = req.uri.query.params
@@ -1415,7 +1424,7 @@ object Http4s300 {
 
     // ─── getUsers ─────────────────────────────────────────────────────────────
 
-    val getUsers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getUsers: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -1453,7 +1462,7 @@ object Http4s300 {
 
     // ─── getCustomersForUser ──────────────────────────────────────────────────
 
-    val getCustomersForUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomersForUser: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "current" / "customers" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -1487,7 +1496,7 @@ object Http4s300 {
 
     // ─── getCurrentUser ───────────────────────────────────────────────────────
 
-    val getCurrentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCurrentUser: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "current" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -1519,7 +1528,7 @@ object Http4s300 {
 
     // ─── privateAccountsAtOneBank ─────────────────────────────────────────────
 
-    val privateAccountsAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val privateAccountsAtOneBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / "private" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
@@ -1554,7 +1563,7 @@ object Http4s300 {
 
     // ─── getPrivateAccountIdsbyBankId ─────────────────────────────────────────
 
-    val getPrivateAccountIdsbyBankId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getPrivateAccountIdsbyBankId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / "account_ids" / "private" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
@@ -1593,7 +1602,7 @@ object Http4s300 {
 
     // ─── getOtherAccountsForBankAccount ───────────────────────────────────────
 
-    val getOtherAccountsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getOtherAccountsForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -1622,7 +1631,7 @@ object Http4s300 {
 
     // ─── getOtherAccountByIdForBankAccount ────────────────────────────────────
 
-    val getOtherAccountByIdForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getOtherAccountByIdForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountIdStr =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -1651,12 +1660,13 @@ object Http4s300 {
 
     // ─── addEntitlementRequest ────────────────────────────────────────────────
 
-    val addEntitlementRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addEntitlementRequest: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "entitlement-requests" =>
         EndpointHelpers.withUserAndBodyCreated[CreateEntitlementRequestJSON, EntitlementRequestJSON](req) { (user, body, cc) =>
           for {
-            _ <- if (body.bank_id.isEmpty) Future.successful(())
-                 else NewStyle.function.getBank(BankId(body.bank_id), Some(cc)).map(_ => ())
+            _ <- code.util.Helper.booleanToFuture(s"$BankNotFound Current BankId is ${body.bank_id}", failCode = 404, cc = Some(cc)) {
+                   APIUtil.isBankIdWhereRolesCanBeHeld(body.bank_id, Some(cc))
+                 }
             _ <- code.util.Helper.booleanToFuture(
               IncorrectRoleName + body.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", "),
               cc = Some(cc)) { availableRoles.exists(_ == body.role_name) }
@@ -1709,7 +1719,7 @@ object Http4s300 {
 
     // ─── getAllEntitlementRequests ─────────────────────────────────────────────
 
-    val getAllEntitlementRequests: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAllEntitlementRequests: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "entitlement-requests" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val allowedEntitlements    = canGetEntitlementRequestsAtAnyBank :: Nil
@@ -1746,7 +1756,7 @@ object Http4s300 {
 
     // ─── getEntitlementRequests ───────────────────────────────────────────────
 
-    val getEntitlementRequests: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getEntitlementRequests: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userIdStr / "entitlement-requests" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val allowedEntitlements    = canGetEntitlementRequestsAtAnyBank :: Nil
@@ -1782,7 +1792,7 @@ object Http4s300 {
 
     // ─── getEntitlementRequestsForCurrentUser ─────────────────────────────────
 
-    val getEntitlementRequestsForCurrentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getEntitlementRequestsForCurrentUser: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "entitlement-requests" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -1815,7 +1825,7 @@ object Http4s300 {
 
     // ─── deleteEntitlementRequest ─────────────────────────────────────────────
 
-    val deleteEntitlementRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteEntitlementRequest: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "entitlement-requests" / entitlementRequestIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           val allowedEntitlements = canDeleteEntitlementRequestsAtOneBank :: canDeleteEntitlementRequestsAtAnyBank :: Nil
@@ -1853,7 +1863,7 @@ object Http4s300 {
 
     // ─── getEntitlementsForCurrentUser ────────────────────────────────────────
 
-    val getEntitlementsForCurrentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getEntitlementsForCurrentUser: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "entitlements" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -1914,7 +1924,7 @@ object Http4s300 {
       }
     }
 
-    val getApiGlossary: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getApiGlossary: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "api" / "glossary" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
@@ -1938,7 +1948,7 @@ object Http4s300 {
       |Returns the glossary of the API: the union of
       |
       |* **Static Glossary Items**, compiled into the API and only changing when the API is redeployed, and
-      |* **Dynamic Glossary Items**, held in the database and maintained at runtime over the Glossary Item endpoints (POST / PUT / DELETE /obp/v7.0.0/glossary-items).
+      |* **Dynamic Glossary Items**, held in the database and maintained at runtime over the Glossary endpoints (POST /obp/v7.0.0/api/glossary, PUT and DELETE /obp/v7.0.0/api/glossary/TITLE).
       |
       |A Dynamic Glossary Item whose title matches a static one (compared case insensitively) replaces it, so an operator can correct or localise shipped text without a redeploy.
       |
@@ -1957,7 +1967,7 @@ object Http4s300 {
 
     // ─── getAccountsHeld ──────────────────────────────────────────────────────
 
-    val getAccountsHeld: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAccountsHeld: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts-held" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
@@ -1995,13 +2005,14 @@ object Http4s300 {
 
     // ─── getAggregateMetrics ──────────────────────────────────────────────────
 
-    val getAggregateMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAggregateMetrics: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "aggregate-metrics" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canReadAggregateMetrics, Some(cc))
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            limitedHttpParams <- APIMetrics.limitAggregateMetricsWindow(httpParams, Some(cc))
+            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(limitedHttpParams, Some(cc))
             aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams, false) map {
               x => unboxFullOrFail(x, Some(cc), GetAggregateMetricsError)
             }
@@ -2025,7 +2036,9 @@ object Http4s300 {
          |&verb=GET&anon=false&app_name=MapperPostman
          |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
          |
-         |1 from_date (defaults to the day before the current date): eg:from_date=$DateWithMsExampleString
+         |**Date range limit.** One call covers at most ${code.metrics.MetricsProps.aggregateMetricsMaxDays} days of metrics on this instance. A longer range between from_date and to_date is refused with 400 (OBP-10069); to report on a longer period, make one call per period.
+         |
+         |1 from_date (defaults to ${code.metrics.MetricsProps.aggregateMetricsMaxDays} days before to_date): eg:from_date=$DateWithMsExampleString
          |
          |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
          |
@@ -2060,7 +2073,7 @@ object Http4s300 {
       """.stripMargin,
       EmptyBody,
       aggregateMetricsJSONV300,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, AggregateMetricsDateRangeTooLong, UnknownError),
       List(apiTagMetric, apiTagAggregateMetrics),
       Some(List(canReadAggregateMetrics)),
       http4sPartialFunction = Some(getAggregateMetrics)
@@ -2068,7 +2081,7 @@ object Http4s300 {
 
     // ─── addScope ─────────────────────────────────────────────────────────────
 
-    val addScope: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addScope: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "consumers" / consumerIdStr / "scopes" =>
         EndpointHelpers.withUserAndBodyCreated[CreateScopeJson, ScopeJson](req) { (user, body, cc) =>
           for {
@@ -2088,7 +2101,7 @@ object Http4s300 {
             allowedEntitlementsTxt = s"$UserHasMissingRoles ${allowedEntitlements.mkString(", ")}!"
             _ <- NewStyle.function.hasAtLeastOneEntitlement(allowedEntitlementsTxt)(body.bank_id, user.userId, allowedEntitlements, Some(cc))
             _ <- code.util.Helper.booleanToFuture(BankNotFound, cc = Some(cc)) {
-              body.bank_id.nonEmpty == false || BankX(BankId(body.bank_id), Some(cc)).map(_._1).isDefined
+              APIUtil.isBankIdWhereRolesCanBeHeld(body.bank_id, Some(cc))
             }
             _ <- code.util.Helper.booleanToFuture(EntitlementAlreadyExists, cc = Some(cc)) {
               !hasScope(body.bank_id, consumerIdStr, role)
@@ -2124,7 +2137,7 @@ object Http4s300 {
 
     // ─── deleteScope ──────────────────────────────────────────────────────────
 
-    val deleteScope: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteScope: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "consumers" / consumerIdStr / "scope" / scopeIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -2170,7 +2183,7 @@ object Http4s300 {
 
     // ─── getScopes ────────────────────────────────────────────────────────────
 
-    val getScopes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getScopes: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "consumers" / consumerIdStr / "scopes" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -2207,7 +2220,7 @@ object Http4s300 {
 
     // ─── getBanks ─────────────────────────────────────────────────────────────
 
-    val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
@@ -2242,7 +2255,7 @@ object Http4s300 {
 
     // ─── bankById ─────────────────────────────────────────────────────────────
 
-    val bankById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val bankById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           Future.successful(code.api.v4_0_0.JSONFactory400.createBankJSON400(bank))
@@ -2286,57 +2299,63 @@ object Http4s300 {
 
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
-    private val allOwnRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-      root.run(req)
-        .orElse(getViewsForBankAccount.run(req))
-        .orElse(createViewForBankAccount.run(req))
-        .orElse(updateViewForBankAccount.run(req))
-        .orElse(getPermissionForUserForBankAccount.run(req))
-        .orElse(getPrivateAccountById.run(req))
-        .orElse(getPublicAccountById.run(req))
-        .orElse(getCoreAccountById.run(req))
-        .orElse(corePrivateAccountsAllBanks.run(req))
-        .orElse(getFirehoseAccountsAtOneBank.run(req))
-        .orElse(getFirehoseTransactionsForBankAccount.run(req))
-        .orElse(getCoreTransactionsForBankAccount.run(req))
-        .orElse(getTransactionsForBankAccount.run(req))
-        .orElse(dataWarehouseSearch.run(req))
-        .orElse(dataWarehouseStatistics.run(req))
-        .orElse(getUser.run(req))
-        .orElse(getUserByUserId.run(req))
-        .orElse(getUserByUsername.run(req))
-        .orElse(getAdapterInfoForBank.run(req))
-        .orElse(createBranch.run(req))
-        .orElse(updateBranch.run(req))
-        .orElse(createAtm.run(req))
-        .orElse(getBranch.run(req))
-        .orElse(getBranches.run(req))
-        .orElse(getAtm.run(req))
-        .orElse(getAtms.run(req))
-        .orElse(getUsers.run(req))
-        .orElse(getCustomersForUser.run(req))
-        .orElse(getCurrentUser.run(req))
-        .orElse(privateAccountsAtOneBank.run(req))
-        .orElse(getPrivateAccountIdsbyBankId.run(req))
-        .orElse(getOtherAccountsForBankAccount.run(req))
-        .orElse(getOtherAccountByIdForBankAccount.run(req))
-        .orElse(addEntitlementRequest.run(req))
-        .orElse(getAllEntitlementRequests.run(req))
-        .orElse(getEntitlementRequests.run(req))
-        .orElse(getEntitlementRequestsForCurrentUser.run(req))
-        .orElse(deleteEntitlementRequest.run(req))
-        .orElse(getEntitlementsForCurrentUser.run(req))
-        .orElse(getApiGlossary.run(req))
-        .orElse(getAccountsHeld.run(req))
-        .orElse(getAggregateMetrics.run(req))
-        .orElse(addScope.run(req))
-        .orElse(deleteScope.run(req))
-        .orElse(getScopes.run(req))
-        .orElse(getBanks.run(req))
-        .orElse(bankById.run(req))
-    }
+    // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
+    // route that serves a request, so it is given the docs in this same order.
+    lazy val routesInOrder: List[Http4sHandler] = List(
+      root,
+      getViewsForBankAccount,
+      createViewForBankAccount,
+      updateViewForBankAccount,
+      getPermissionForUserForBankAccount,
+      getPrivateAccountById,
+      getPublicAccountById,
+      getCoreAccountById,
+      corePrivateAccountsAllBanks,
+      getFirehoseAccountsAtOneBank,
+      getFirehoseTransactionsForBankAccount,
+      getCoreTransactionsForBankAccount,
+      getTransactionsForBankAccount,
+      dataWarehouseSearch,
+      dataWarehouseStatistics,
+      getUser,
+      getUserByUserId,
+      getUserByUsername,
+      getAdapterInfoForBank,
+      createBranch,
+      updateBranch,
+      createAtm,
+      getBranch,
+      getBranches,
+      getAtm,
+      getAtms,
+      getUsers,
+      getCustomersForUser,
+      getCurrentUser,
+      privateAccountsAtOneBank,
+      getPrivateAccountIdsbyBankId,
+      getOtherAccountsForBankAccount,
+      getOtherAccountByIdForBankAccount,
+      addEntitlementRequest,
+      getAllEntitlementRequests,
+      getEntitlementRequests,
+      getEntitlementRequestsForCurrentUser,
+      deleteEntitlementRequest,
+      getEntitlementsForCurrentUser,
+      getApiGlossary,
+      getAccountsHeld,
+      getAggregateMetrics,
+      addScope,
+      deleteScope,
+      getScopes,
+      getBanks,
+      bankById
+    )
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allOwnRoutes))
+    lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
+
+    private lazy val allOwnRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
+
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 
     // ─── path-rewriting bridge: /obp/v3.0.0/… → /obp/v2.2.0/… ──────────────
 

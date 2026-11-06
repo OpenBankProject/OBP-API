@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.DynamicData
 
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.DoobieUtil
 import doobie._
 import doobie.implicits._
@@ -36,11 +37,10 @@ import net.liftweb.util.Helpers.tryo
 import scala.collection.mutable
 
 /**
- * One user's access to one dynamic-entity data row.
+ * One row of a Dynamic Entity record's access list: what one user may do with one record.
  *
- * `bankId` genuinely holds NULL for system-level entities, and the scoped queries use `IS NULL`
- * when no bank is supplied — Lift's NullRef, not "no filter". A row storing "" would be invisible
- * to them, so the column stays nullable and the distinction is preserved.
+ * A system level row stores the SYS sentinel (Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) in bankid
+ * rather than a SQL NULL; it is filtered back out of `bankId`, so every reader still sees None.
  */
 case class DynamicDataAccess(
   dynamicDataId: String,
@@ -51,8 +51,11 @@ case class DynamicDataAccess(
   canGrant: Boolean,
   grantedBy: String,
   entityName: String,
-  bankId: Option[String]
-) extends DynamicDataAccessT
+  private val bankIdRaw: Option[String]
+) extends DynamicDataAccessT {
+  override def bankId: Option[String] =
+    bankIdRaw.filter(b => b.nonEmpty && b != DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+}
 
 object DynamicDataAccess {
 
@@ -84,66 +87,77 @@ object DynamicDataAccess {
   private def query(condition: Fragment): List[DynamicDataAccess] =
     DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
 
-  /** `None` means the column must be NULL, matching Lift's NullRef — not "do not filter". */
-  private def scopedBank(bankId: Option[String]): Fragment =
-    bankId.map(b => fr"bankid = $b").getOrElse(fr"bankid IS NULL")
+  /** The value bankid holds for a space: the bank's id, or SYS for the system space (None). */
+  def storedBankId(bankId: Option[String]): String =
+    bankId.filter(_.nonEmpty).getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
 
-  def find(dynamicDataId: String, userId: String): Box[DynamicDataAccess] =
-    query(fr"WHERE dynamicdataid = $dynamicDataId AND userid = $userId ORDER BY id ASC LIMIT 1")
+  /**
+   * One record: DynamicDataId alone does not identify a record -- ids repeat across spaces -- so every
+   * query names the space and the entity as well, in the order of the unique index.
+   */
+  private def thisRecord(bankId: Option[String], entityName: String, dynamicDataId: String): Fragment =
+    fr"WHERE bankid = ${storedBankId(bankId)} AND entityname = $entityName AND dynamicdataid = $dynamicDataId"
+
+  def find(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String): Box[DynamicDataAccess] =
+    query(thisRecord(bankId, entityName, dynamicDataId) ++ fr"AND userid = $userId ORDER BY id ASC")
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty
       }
 
-  def findAllForRow(dynamicDataId: String): List[DynamicDataAccess] =
-    query(fr"WHERE dynamicdataid = $dynamicDataId ORDER BY id ASC")
+  def findAllForRow(bankId: Option[String], entityName: String, dynamicDataId: String): List[DynamicDataAccess] =
+    query(thisRecord(bankId, entityName, dynamicDataId) ++ fr"ORDER BY id ASC")
 
-  def findGrantedBy(dynamicDataId: String, grantedBy: String): List[DynamicDataAccess] =
-    query(fr"WHERE dynamicdataid = $dynamicDataId AND grantedby = $grantedBy ORDER BY id ASC")
+  def findGrantedBy(bankId: Option[String], entityName: String, dynamicDataId: String,
+                    grantedBy: String): List[DynamicDataAccess] =
+    query(thisRecord(bankId, entityName, dynamicDataId) ++ fr"AND grantedby = $grantedBy ORDER BY id ASC")
 
-  def findReadable(userId: String, entityName: String, bankId: Option[String]): List[DynamicDataAccess] =
-    query(fr"WHERE userid = $userId AND entityname = $entityName AND canread = true AND " ++
-      scopedBank(bankId) ++ fr"ORDER BY id ASC")
+  def findReadable(bankId: Option[String], entityName: String, userId: String): List[DynamicDataAccess] =
+    query(fr"WHERE bankid = ${storedBankId(bankId)} AND entityname = $entityName AND userid = $userId" ++
+      fr"AND canread = true ORDER BY id ASC")
 
-  /** Upsert on (dynamicdataid, userid) — the unique index is what makes that pair single-valued. */
-  def grant(dynamicDataId: String, userId: String, canRead: Boolean, canUpdate: Boolean,
-            canDelete: Boolean, canGrant: Boolean, entityName: String, bankId: Option[String],
+  /** Upsert on (space, entity, record, user) — the unique index is what makes that tuple single-valued. */
+  def grant(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String,
+            canRead: Boolean, canUpdate: Boolean, canDelete: Boolean, canGrant: Boolean,
             grantedBy: String): DynamicDataAccess = {
     val updated = DoobieUtil.runUpdate(
-      sql"""UPDATE dynamicdataaccess SET canread = $canRead, canupdate = $canUpdate,
-              candelete = $canDelete, cangrant = $canGrant, entityname = ${Option(entityName)},
-              bankid = $bankId, grantedby = ${Option(grantedBy)}
-            WHERE dynamicdataid = $dynamicDataId AND userid = $userId""".update.run)
+      (fr"""UPDATE dynamicdataaccess SET canread = $canRead, canupdate = $canUpdate,
+              candelete = $canDelete, cangrant = $canGrant, grantedby = ${Option(grantedBy)}""" ++
+        thisRecord(bankId, entityName, dynamicDataId) ++ fr"AND userid = $userId").update.run)
     if (updated == 0) {
       DoobieUtil.runUpdate(
         sql"""INSERT INTO dynamicdataaccess
               (dynamicdataid, userid, canread, canupdate, candelete, cangrant, grantedby,
                entityname, bankid)
               VALUES ($dynamicDataId, $userId, $canRead, $canUpdate, $canDelete, $canGrant,
-               ${Option(grantedBy)}, ${Option(entityName)}, $bankId)"""
+               ${Option(grantedBy)}, ${Option(entityName)}, ${storedBankId(bankId)})"""
           .update.run)
     }
-    find(dynamicDataId, userId)
+    find(bankId, entityName, dynamicDataId, userId)
       .openOrThrowException("the access row just written must be readable")
   }
 
-  def delete(dynamicDataId: String, userId: String): Int =
+  def delete(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String): Int =
     DoobieUtil.runUpdate(
-      sql"DELETE FROM dynamicdataaccess WHERE dynamicdataid = $dynamicDataId AND userid = $userId"
-        .update.run)
+      (fr"DELETE FROM dynamicdataaccess" ++ thisRecord(bankId, entityName, dynamicDataId) ++
+        fr"AND userid = $userId").update.run)
 
-  def deleteAllForRow(dynamicDataId: String): Boolean = {
-    DoobieUtil.runUpdate(
-      sql"DELETE FROM dynamicdataaccess WHERE dynamicdataid = $dynamicDataId".update.run)
+  def deleteAllForRow(bankId: Option[String], entityName: String, dynamicDataId: String): Boolean = {
+    DoobieUtil.runUpdate((fr"DELETE FROM dynamicdataaccess" ++ thisRecord(bankId, entityName, dynamicDataId)).update.run)
     true
   }
 
-  def deleteAllForEntity(entityName: String, bankId: Option[String]): Boolean = {
+  def deleteAllForEntity(bankId: Option[String], entityName: String): Boolean = {
     DoobieUtil.runUpdate(
-      (fr"DELETE FROM dynamicdataaccess WHERE entityname = $entityName AND " ++
-        scopedBank(bankId)).update.run)
+      sql"""DELETE FROM dynamicdataaccess
+            WHERE bankid = ${storedBankId(bankId)} AND entityname = $entityName""".update.run)
     true
   }
+
+  /** Every access row held at one bank, whatever its entity. Never the system space: SYS is not a bank. */
+  def deleteAllAtBank(bankId: String): Int =
+    if (bankId == null || bankId.isEmpty || bankId == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) 0
+    else DoobieUtil.runUpdate(sql"DELETE FROM dynamicdataaccess WHERE bankid = $bankId".update.run)
 
   def deleteAll(): Unit = {
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicdataaccess".update.run)
@@ -153,14 +167,14 @@ object DynamicDataAccess {
 
 object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
 
-  override def grant(dynamicDataId: String, userId: String,
+  override def grant(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String,
                      canRead: Boolean, canUpdate: Boolean, canDelete: Boolean, canGrant: Boolean,
-                     entityName: String, bankId: Option[String], grantedBy: String): Box[DynamicDataAccessT] = tryo {
-    DynamicDataAccess.grant(dynamicDataId, userId, canRead, canUpdate, canDelete, canGrant,
-      entityName, bankId, grantedBy)
+                     grantedBy: String): Box[DynamicDataAccessT] = tryo {
+    DynamicDataAccess.grant(bankId, entityName, dynamicDataId, userId, canRead, canUpdate, canDelete,
+      canGrant, grantedBy)
   }
 
-  override def revoke(dynamicDataId: String, userId: String): Box[Int] = tryo {
+  override def revoke(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String): Box[Int] = tryo {
     // Walk the GrantedBy edges within this single data row: remove the target user and
     // everyone they granted downstream. The visited-set makes re-share cycles terminate
     // and absorbs the owner row's self-edge (GrantedBy == UserId).
@@ -172,7 +186,7 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
       frontier = frontier.tail
       if (!visited.contains(current)) {
         visited += current
-        val children = DynamicDataAccess.findGrantedBy(dynamicDataId, current)
+        val children = DynamicDataAccess.findGrantedBy(bankId, entityName, dynamicDataId, current)
           .map(_.userId).filterNot(visited.contains)
         children.foreach { child =>
           toRemove += child
@@ -182,18 +196,19 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
     }
     // Counts the users whose row actually went, as the Mapper version's count(identity) over
     // delete_! results did — a user in the walk with no row here contributes nothing.
-    toRemove.toList.map(uid => DynamicDataAccess.delete(dynamicDataId, uid)).count(_ > 0)
+    toRemove.toList.map(uid => DynamicDataAccess.delete(bankId, entityName, dynamicDataId, uid)).count(_ > 0)
   }
 
-  override def getAccessForRow(dynamicDataId: String): List[DynamicDataAccessT] =
-    DynamicDataAccess.findAllForRow(dynamicDataId)
+  override def getAccessForRow(bankId: Option[String], entityName: String, dynamicDataId: String): List[DynamicDataAccessT] =
+    DynamicDataAccess.findAllForRow(bankId, entityName, dynamicDataId)
 
-  override def getReadableDynamicDataIds(userId: String, entityName: String, bankId: Option[String]): List[String] =
-    DynamicDataAccess.findReadable(userId, entityName, bankId).map(_.dynamicDataId)
+  override def getReadableDynamicDataIds(bankId: Option[String], entityName: String, userId: String): List[String] =
+    DynamicDataAccess.findReadable(bankId, entityName, userId).map(_.dynamicDataId)
 
-  override def allows(dynamicDataId: String, userId: String, permission: DynamicDataAccessPermission): Boolean = {
+  override def allows(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String,
+                      permission: DynamicDataAccessPermission): Boolean = {
     import DynamicDataAccessPermission._
-    DynamicDataAccess.find(dynamicDataId, userId).map { row =>
+    DynamicDataAccess.find(bankId, entityName, dynamicDataId, userId).map { row =>
       permission match {
         case Read   => row.canRead
         case Update => row.canUpdate
@@ -203,9 +218,9 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
     }.getOrElse(false)
   }
 
-  override def deleteAllForRow(dynamicDataId: String): Box[Boolean] =
-    tryo(DynamicDataAccess.deleteAllForRow(dynamicDataId))
+  override def deleteAllForRow(bankId: Option[String], entityName: String, dynamicDataId: String): Box[Boolean] =
+    tryo(DynamicDataAccess.deleteAllForRow(bankId, entityName, dynamicDataId))
 
-  override def deleteAllForEntity(entityName: String, bankId: Option[String]): Box[Boolean] =
-    tryo(DynamicDataAccess.deleteAllForEntity(entityName, bankId))
+  override def deleteAllForEntity(bankId: Option[String], entityName: String): Box[Boolean] =
+    tryo(DynamicDataAccess.deleteAllForEntity(bankId, entityName))
 }

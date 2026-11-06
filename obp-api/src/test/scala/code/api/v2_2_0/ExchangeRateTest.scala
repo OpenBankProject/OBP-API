@@ -28,11 +28,12 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v2_2_0
 
 import com.openbankproject.commons.model.ErrorMessage
-import org.json4s.jvalue2extractable
+import org.json4s.{jvalue2extractable, jvalue2monadic}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ErrorMessages.InvalidISOCurrencyCode
 import code.consumer.Consumers
+import code.entitlement.Entitlement
 import code.scope.Scope
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
@@ -41,6 +42,15 @@ import org.scalatest.Tag
 import code.api.v2_2_0.Http4s220
 
 class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
+
+  /** Whether a rate is stored for exactly this bank and currency pair, in this direction. */
+  private def fxRateExists(bankId: String, fromCurrencyCode: String, toCurrencyCode: String): Boolean = {
+    import doobie.implicits._
+    code.api.util.DoobieUtil.runQuery(
+      sql"""SELECT COUNT(*) FROM mappedfxrate
+            WHERE mbankid = $bankId AND mfromcurrencycode = $fromCurrencyCode AND mtocurrencycode = $toCurrencyCode"""
+        .query[Int].unique) > 0
+  }
 
   /**
     * Test tags
@@ -51,6 +61,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
     */
   object VersionOfApi extends Tag(ApiVersion.v2_2_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Http4s220.Implementations2_2_0.getCurrentFxRate))
+  object ApiEndpoint2 extends Tag(nameOf(Http4s220.Implementations2_2_0.createFx))
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -93,7 +104,45 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
       responseGet.code should equal(400)
       responseGet.body.extract[ErrorMessage].message should startWith (InvalidISOCurrencyCode)
     }
-    
-  }
 
+    scenario("Currency codes in any letter case name the same currency", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
+      val testBank = testBankId1
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.toString).getOrElse("")
+      Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
+      Entitlement.entitlement.vend.addEntitlement(testBank.value, resourceUser1.userId, ApiRole.canCreateFxRate.toString())
+
+      When("We create an FX rate with the currency codes in lower case")
+      val body =
+        s"""{"bank_id":"${testBank.value}","from_currency_code":"eur","to_currency_code":"usd",
+           |"conversion_value":1.5,"inverse_conversion_value":0.6666666666666666,"effective_date":"2026-10-06T00:00:00Z"}""".stripMargin
+      val responsePut = makePutRequest((v2_2Request / "banks" / testBank.value / "fx").PUT <@ (user1), body)
+      Then("We should get a 201, and the codes are stored in upper case")
+      responsePut.code should equal(201)
+      (responsePut.body \ "from_currency_code").extract[String] should equal("EUR")
+      (responsePut.body \ "to_currency_code").extract[String] should equal("USD")
+
+      When("We get the rate, naming the currencies in lower case")
+      val responseGet = makeGetRequest((v2_2Request / "banks" / testBank.value / "fx" / "eur" / "usd").GET <@ (user1))
+      Then("We should get the rate we created")
+      responseGet.code should equal(200)
+      (responseGet.body \ "conversion_value").extract[Double] should equal(1.5)
+    }
+
+    // CanCreateFxRate at the path bank must not write another bank's rate through the body's bank_id
+    scenario("Create Fx writes the rate at the bank in the path, not at the body's bank_id", VersionOfApi, ApiEndpoint2) {
+      val pathBank = testBankId1
+      val otherBank = testBankId2
+      Entitlement.entitlement.vend.addEntitlement(pathBank.value, resourceUser1.userId, ApiRole.canCreateFxRate.toString())
+
+      When("We create an FX rate at the path bank, naming another bank in the body")
+      val body =
+        s"""{"bank_id":"${otherBank.value}","from_currency_code":"GBP","to_currency_code":"JPY",
+           |"conversion_value":190.0,"inverse_conversion_value":0.005263157894736842,"effective_date":"2026-10-06T00:00:00Z"}""".stripMargin
+      val responsePut = makePutRequest((v2_2Request / "banks" / pathBank.value / "fx").PUT <@ (user1), body)
+      Then("We should get a 201 for the path bank, and no rate at the other bank")
+      responsePut.code should equal(201)
+      (responsePut.body \ "bank_id").extract[String] should equal(pathBank.value)
+      fxRateExists(otherBank.value, "GBP", "JPY") should equal(false)
+    }
+  }
 }

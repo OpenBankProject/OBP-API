@@ -32,14 +32,14 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, _}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, _}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.Glossary
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import java.util.Date
-import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle}
@@ -83,7 +83,7 @@ object Http4s220 {
 
     // ─── root ─────────────────────────────────────────────────────────────────
 
-    val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val root: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful(JSONFactory121.getApiInfoJSON(ApiVersion.v2_2_0, versionStatus))
@@ -108,7 +108,7 @@ object Http4s220 {
 
     // ─── getViewsForBankAccount ───────────────────────────────────────────────
 
-    val getViewsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getViewsForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" =>
         EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
           for {
@@ -160,7 +160,7 @@ object Http4s220 {
 
     // ─── createViewForBankAccount ─────────────────────────────────────────────
 
-    val createViewForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createViewForBankAccount: Http4sRoute = Http4sRoute {
       // VIEW_ACCOUNT_ID (non-standard name) bypasses middleware account-existence check so the
       // handler can return 400 (not 404) for a missing account, matching Lift behaviour.
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "views" =>
@@ -227,7 +227,7 @@ object Http4s220 {
 
     // ─── updateViewForBankAccount ─────────────────────────────────────────────
 
-    val updateViewForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateViewForBankAccount: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" / viewIdStr =>
         EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
           updateViewImpl(user, account, ViewId(viewIdStr), cc.httpBody.getOrElse(""), cc)
@@ -245,7 +245,8 @@ object Http4s220 {
       |The json sent is the same as during view creation (above), with one difference: the 'name' field
       |of a view is not editable (it is only set when a view is created)""",
       updateViewJsonV121, viewJSONV220,
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
+      // SourceViewHasLessPermission: the body asks for actions none of the caller's views on the account has
+      List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, SourceViewHasLessPermission, UnknownError),
       List(apiTagAccount, apiTagView, apiTagOldStyle), None,
       http4sPartialFunction = Some(updateViewForBankAccount))
 
@@ -265,6 +266,11 @@ object Http4s220 {
         _ <- code.util.Helper.booleanToFuture(
           s"${CreateCustomViewError} You need the `${CAN_UPDATE_CUSTOM_VIEW}` permission on any your views",
           cc = Some(cc)) { anyCanUpdate }
+        // the view may only get actions the caller already has on one of their views of this account, else they grant themselves more (as v5.1.0 does)
+        callerActions = permission.views.flatMap(_.allowed_actions).toSet
+        _ <- code.util.Helper.booleanToFuture(
+          s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${updateBodyJson.allowed_actions})",
+          failCode = 403, cc = Some(cc)) { updateBodyJson.allowed_actions.toSet.subsetOf(callerActions) }
         updateViewJson = UpdateViewJSON(
           description                = updateBodyJson.description,
           metadata_view              = view.metadataView,
@@ -281,7 +287,7 @@ object Http4s220 {
 
     private val getCurrentFxRateIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getCurrentFxRateIsPublic", false)
 
-    val getCurrentFxRate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCurrentFxRate: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "fx" / fromCurrencyCode / toCurrencyCode =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           val fromUpper = fromCurrencyCode.toUpperCase
@@ -347,7 +353,7 @@ object Http4s220 {
 
     // ─── getExplicitCounterpartiesForAccount ──────────────────────────────────
 
-    val getExplicitCounterpartiesForAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getExplicitCounterpartiesForAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" =>
         EndpointHelpers.withView(req) { (user, account, view, cc) =>
           for {
@@ -386,7 +392,7 @@ object Http4s220 {
 
     // ─── getExplicitCounterpartyById ──────────────────────────────────────────
 
-    val getExplicitCounterpartyById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getExplicitCounterpartyById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" / _ =>
         EndpointHelpers.withCounterparty(req) { (_, account, view, counterparty, cc) =>
           for {
@@ -416,7 +422,7 @@ object Http4s220 {
 
     // ─── getMessageDocs ───────────────────────────────────────────────────────
 
-    val getMessageDocs: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getMessageDocs: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "message-docs" / connector =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           Future {
@@ -425,7 +431,9 @@ object Http4s220 {
               Some(cc),
               s"$InvalidConnector Current Input is $connector. It should be eg: rest_vMar2019..."
             )
-            JSONFactory220.createMessageDocsJson(connectorObject.messageDocs.toList)
+            MessageDocsJsonCache.getOrCompute(connector) {
+              Extraction.decompose(JSONFactory220.createMessageDocsJson(connectorObject.messageDocs.toList))
+            }
           }
         }
     }
@@ -448,7 +456,7 @@ object Http4s220 {
 
     // ─── createBank ───────────────────────────────────────────────────────────
 
-    val createBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createBank: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" =>
         EndpointHelpers.withUserAndBodyCreated[BankJSONV220, BankJSONV220](req) { (user, bank, cc) =>
           val checkShort = APIUtil.checkShortString(bank.id)
@@ -467,6 +475,12 @@ object Http4s220 {
               unboxFullOrFail(
                 NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.toString, canCreateBank, Some(cc)),
                 Some(cc), UserHasMissingRoles + canCreateBank)
+            }
+            // Refuse an existing BANK_ID (as v5.0.0 / v6.0.0 do): createOrUpdateBank would overwrite that
+            // bank and the grants below would make the caller entitlement admin at a bank they did not create.
+            (banks, _) <- NewStyle.function.getBanks(Some(cc))
+            _ <- code.util.Helper.booleanToFuture(bankIdAlreadyExists, cc = Some(cc)) {
+              !banks.exists(_.bankId.value == bank.id)
             }
             (success, _) <- NewStyle.function.createOrUpdateBank(
               bank.id, bank.full_name, bank.short_name, bank.logo_url, bank.website_url,
@@ -499,14 +513,15 @@ object Http4s220 {
       s"""Create a new bank (Authenticated access).
          |${userAuthenticationMessage(true)}""",
       bankJSONV220, bankJSONV220,
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired, InsufficientAuthorisationToCreateBank, UnknownError),
+      // bankIdAlreadyExists: the BANK_ID in the body is already taken (400)
+      List(InvalidJsonFormat, AuthenticatedUserIsRequired, InsufficientAuthorisationToCreateBank, bankIdAlreadyExists, UnknownError),
       List(apiTagBank, apiTagOldStyle),
       Some(List(canCreateBank)),
       http4sPartialFunction = Some(createBank))
 
     // ─── createBranch ─────────────────────────────────────────────────────────
 
-    val createBranch: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createBranch: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "branches" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[BranchJsonV220, BranchJsonV220](req) { (user, bank, body, cc) =>
           for {
@@ -540,7 +555,7 @@ object Http4s220 {
 
     // ─── createAtm ────────────────────────────────────────────────────────────
 
-    val createAtm: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createAtm: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "atms" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[AtmJsonV220, AtmJsonV220](req) { (user, bank, body, cc) =>
           for {
@@ -573,7 +588,7 @@ object Http4s220 {
 
     // ─── createProduct ────────────────────────────────────────────────────────
 
-    val createProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createProduct: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "products" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[ProductJsonV220, ProductJsonV220](req) { (user, bank, body, cc) =>
           for {
@@ -617,7 +632,7 @@ object Http4s220 {
     val createFxEntitlementsRequiredForSpecificBank = canCreateFxRate :: Nil
     val createFxEntitlementsRequiredForAnyBank      = canCreateFxRateAtAnyBank :: Nil
 
-    val createFx: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createFx: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "fx" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[FXRateJsonV220, FXRateJsonV220](req) { (user, bank, body, cc) =>
           for {
@@ -631,7 +646,8 @@ object Http4s220 {
             _ <- NewStyle.function.isValidCurrencyISOCode(body.from_currency_code, Some(cc))
             _ <- NewStyle.function.isValidCurrencyISOCode(body.to_currency_code, Some(cc))
             (fxRate, _) <- NewStyle.function.createOrUpdateFXRate(
-              bankId                = body.bank_id,
+              // the rate is written at the bank in the path, where the Role was checked, not at the body's bank_id, else CanCreateFxRate at one bank writes any bank's rates
+              bankId                = bank.bankId.value,
               fromCurrencyCode      = body.from_currency_code,
               toCurrencyCode        = body.to_currency_code,
               conversionValue       = body.conversion_value,
@@ -672,7 +688,7 @@ object Http4s220 {
 
     // ─── createAccount ────────────────────────────────────────────────────────
 
-    val createAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createAccount: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr =>
         EndpointHelpers.withUserAndBankAndBody[CreateAccountJSONV220, CreateAccountJSONV220](req) { (user, bank, body, cc) =>
           for {
@@ -681,9 +697,19 @@ object Http4s220 {
             }
             _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bank.bankId.value) }
             accountId = AccountId(accountIdStr)
+            // An existing ACCOUNT_ID must be refused: creating it again would return the existing account
+            // and make the caller one of its holders.
+            (existingAccount, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, accountId, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(AccountIdAlreadyExists, failCode = 409, cc = Some(cc)) { existingAccount.isEmpty }
             loggedInUserId = user.userId
-            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else loggedInUserId
+            // Implicit owner resolves to the HUMAN: under a Consent the caller is the
+            // per-consent shadow, and an account held by it strands when the consent dies.
+            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.onBehalfOfUserId
             (postedOrLoggedInUser, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
+            // Explicit target: a consent user named in user_id is refused, so no account is held by an agent identity.
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+              failCode = 400, cc = Some(cc))(!postedOrLoggedInUser.isConsentUser)
             _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
                  else code.util.Helper.booleanToFuture(
                    s"$UserHasMissingRoles $canCreateAccount", failCode = 403, cc = Some(cc)) {
@@ -732,7 +758,7 @@ object Http4s220 {
 
     // ─── config ───────────────────────────────────────────────────────────────
 
-    val config: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val config: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "config" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -759,7 +785,7 @@ object Http4s220 {
 
     // ─── getConnectorMetrics ──────────────────────────────────────────────────
 
-    val getConnectorMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getConnectorMetrics: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "connector" / "metrics" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -812,7 +838,7 @@ object Http4s220 {
 
     // ─── createConsumer ───────────────────────────────────────────────────────
 
-    val createConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createConsumer: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "consumers" =>
         EndpointHelpers.withUserAndBodyCreated[ConsumerPostJSON, ConsumerJson](req) { (user, body, cc) =>
           for {
@@ -821,6 +847,7 @@ object Http4s220 {
                 NewStyle.function.ownEntitlement("", user.userId, canCreateConsumer, Some(cc)),
                 Some(cc), UserHasMissingRoles + canCreateConsumer)
             }
+            _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(body.redirect_url, Some(cc))
             consumer <- Future {
               Consumers.consumers.vend.createConsumer(
                 Some(generateUUID()), Some(generateUUID()),
@@ -850,7 +877,7 @@ object Http4s220 {
         "Test",
         "Description",
         "some@email.com",
-        "redirecturl",
+        "https://app.example.com/callback",
         "createdby",
         true,
         new Date(),
@@ -863,7 +890,7 @@ object Http4s220 {
         "App type",
         "Description",
         "some.email@example.com",
-        "Some redirect url",
+        "https://app.example.com/callback",
         "Created by UUID",
         true,
         new Date(),
@@ -871,14 +898,14 @@ object Http4s220 {
           |client_certificate_content
           |-----END CERTIFICATE-----""".stripMargin
       ),
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
       List(apiTagConsumer, apiTagOldStyle),
       Some(List(canCreateConsumer)),
       http4sPartialFunction = Some(createConsumer))
 
     // ─── createCounterparty ───────────────────────────────────────────────────
 
-    val createCounterparty: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createCounterparty: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" =>
         EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
           createCounterpartyImpl(user, account, view, cc.httpBody.getOrElse(""), cc)
@@ -1042,28 +1069,34 @@ object Http4s220 {
 
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
-    private val allOwnRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-      root.run(req)
-        .orElse(getViewsForBankAccount.run(req))
-        .orElse(createViewForBankAccount.run(req))
-        .orElse(updateViewForBankAccount.run(req))
-        .orElse(getCurrentFxRate.run(req))
-        .orElse(getExplicitCounterpartiesForAccount.run(req))
-        .orElse(getExplicitCounterpartyById.run(req))
-        .orElse(getMessageDocs.run(req))
-        .orElse(createBank.run(req))
-        .orElse(createBranch.run(req))
-        .orElse(createAtm.run(req))
-        .orElse(createProduct.run(req))
-        .orElse(createFx.run(req))
-        .orElse(createAccount.run(req))
-        .orElse(config.run(req))
-        .orElse(getConnectorMetrics.run(req))
-        .orElse(createConsumer.run(req))
-        .orElse(createCounterparty.run(req))
-    }
+    // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
+    // route that serves a request, so it is given the docs in this same order.
+    lazy val routesInOrder: List[Http4sHandler] = List(
+      root,
+      getViewsForBankAccount,
+      createViewForBankAccount,
+      updateViewForBankAccount,
+      getCurrentFxRate,
+      getExplicitCounterpartiesForAccount,
+      getExplicitCounterpartyById,
+      getMessageDocs,
+      createBank,
+      createBranch,
+      createAtm,
+      createProduct,
+      createFx,
+      createAccount,
+      config,
+      getConnectorMetrics,
+      createConsumer,
+      createCounterparty
+    )
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allOwnRoutes))
+    lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
+
+    private lazy val allOwnRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
+
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 
     // ─── path-rewriting bridge: /obp/v2.2.0/… → /obp/v2.1.0/… ──────────────
 

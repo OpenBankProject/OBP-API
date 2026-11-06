@@ -77,6 +77,16 @@ object ConsentScheduler extends MdcLoggable {
       logger.warn("|---> Skipping expiredObpConsents task: obp_expired_consents_interval_in_seconds set to 0")
     }
 
+    // OBP consents still INITIATED: their challenge was never answered (or could not be), so they are rejected
+    // after a while instead of waiting forever. An app that reuses a pending consent is then not blocked by one.
+    val obpUnfinishedInterval = APIUtil.getPropsAsIntValue("obp_unfinished_consents_interval_in_seconds", 593)
+    if (obpUnfinishedInterval > 0) {
+      val time = APIUtil.getPropsAsIntValue("obp_unfinished_consents_time_in_seconds", 21600)
+      SchedulerUtil.startTask(interval = obpUnfinishedInterval, () => unfinishedObpConsents(time), initialDelay)
+      initialDelay = initialDelay + 10
+    } else {
+      logger.warn("|---> Skipping unfinishedObpConsents task: obp_unfinished_consents_interval_in_seconds set to 0")
+    }
     // UK Open Banking. checkUKConsent (ConsentUtil.scala) also reactively rejects an expired
     // AUTHORISED consent on every request regardless of this task's timing -- this proactive
     // sweep just keeps the stored status accurate for GET/dashboard purposes.
@@ -204,7 +214,41 @@ object ConsentScheduler extends MdcLoggable {
       case Success(_) => logger.debug("|---> Task executed successfully")
     }
   }
-  private def expiredUKConsents(): Unit = {
+  /**
+   * Rejects OBP consents that are still INITIATED and have not changed for `seconds`. An INITIATED consent waits
+   * only for the answer to its challenge; it never granted any access, so there is nothing to give back.
+   */
+  private[scheduler] def unfinishedObpConsents(seconds: Int): Unit = {
+    Try {
+      logger.debug("|---> Checking for unfinished OBP consents...")
+      val unfinishedConsents = MappedConsent.findAllByStatusAndStandardNotUpdatedSince(
+        ConsentStatus.INITIATED.toString, ApiStandards.obp.toString, SchedulerUtil.someSecondsAgo(seconds))
+      logger.debug(s"|---> Found ${unfinishedConsents.size} unfinished OBP consents")
+      unfinishedConsents.foreach { consent =>
+        Try {
+          val message = s"|---> Changed status from ${consent.status} to ${ConsentStatus.REJECTED} for consent ID: ${consent.consentPrimaryKey}: not accepted within $seconds seconds"
+          val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("")
+          val rows = code.bankconnectors.DoobieConsentSchedulerQueries.conditionallyUpdateStatus(
+            consentPrimaryKey = consent.consentPrimaryKey,
+            guardStatus  = ConsentStatus.INITIATED.toString,
+            newStatus    = ConsentStatus.REJECTED.toString,
+            newNote      = newNote
+          )
+          if (rows > 0) logger.warn(message)
+          else logger.debug(s"|---> Skipped stale update for OBP consent ${consent.consentPrimaryKey}: status already changed")
+        } match {
+          case Failure(ex) => logger.error(s"Failed to update consent ID: ${consent.consentPrimaryKey}", ex)
+          case Success(_) => // Already logged
+        }
+      }
+    } match {
+      case Failure(ex) => logger.error("Error in unfinishedObpConsents!", ex)
+      case Success(_) => logger.debug("|---> Task executed successfully")
+    }
+  }
+
+  // private[code] so a test can run one sweep without waiting for the schedule.
+  private[code] def expiredUKConsents(): Unit = {
     Try {
       logger.debug("|---> Checking for expired UK Open Banking consents...")
 
@@ -229,6 +273,9 @@ object ConsentScheduler extends MdcLoggable {
           if (rows > 0) {
             // An expired consent must give its granted access back, exactly as a revoked one does.
             Consent.revokeConsentAccountAccess(consent)
+            // Only UK consents are authorised through OBP_CONSENT_CHALLENGEs, so this is the one
+            // expiry sweep that can leave such a challenge behind.
+            Consent.removeConsentChallenges(consent.consentId)
             logger.warn(message)
           }
           else logger.debug(s"|---> Skipped stale update for UK consent ${consent.consentPrimaryKey}: status already changed")

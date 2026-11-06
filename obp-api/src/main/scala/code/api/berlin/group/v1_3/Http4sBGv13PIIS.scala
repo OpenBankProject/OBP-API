@@ -70,7 +70,7 @@ object Http4sBGv13PIIS extends MdcLoggable {
   // ── POST /funds-confirmations ─────────────────────────────────────
   // Lift source: code.api.builder.ConfirmationOfFundsServicePIISApi.checkAvailabilityOfFunds
   // Auth: authenticatedAccess → authMode UserOnly (default); user resolved by ResourceDocMiddleware.
-  val checkAvailabilityOfFunds: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  val checkAvailabilityOfFunds: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / "funds-confirmations" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -144,7 +144,9 @@ in the header. This field is contained but commented out in this specification. 
     http4sPartialFunction = Some(checkAvailabilityOfFunds)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    checkAvailabilityOfFunds(req)
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    checkAvailabilityOfFunds
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

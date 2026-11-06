@@ -93,11 +93,8 @@ object Http4sApp extends MdcLoggable {
   // OBPAPIDynamicEntity dispatch.
   private val dynamicEntityRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-entity`, code.api.dynamic.entity.Http4sDynamicEntity.wrappedRoutesDynamicEntity)
   // DynamicEndpoint dispatch (/obp/dynamic-endpoint/*) — fully-native http4s: proxy (DynamicReq)
-  // + runtime-compiled resource docs, no Lift dispatch. Replaces the LiftRules.statelessDispatch
-  // registration. Must sit AHEAD of the Lift bridge (the bridge no longer carries dynamic-endpoint).
-  // DynamicEndpoint dispatch (/obp/dynamic-endpoint/*) — proxy (DynamicReq) + runtime-compiled
-  // resource docs / practise. Runs the OBPAPIDynamicEndpoint.routes in-process via an adapter,
-  // replacing the former LiftRules.statelessDispatch registration.
+  // + runtime-compiled resource docs, no Lift dispatch. Replaces the former
+  // LiftRules.statelessDispatch registration.
   private val dynamicEndpointRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-endpoint`, code.api.dynamic.endpoint.Http4sDynamicEndpoint.wrappedRoutesDynamicEndpoint)
   // UK Open Banking (non-/obp prefixes /open-banking/v2.0 and /open-banking/v3.1) — native
   // http4s, replaces the classpath-scanned Lift ScannedApis. All endpoints (v2.0: 5, v3.1: ~67)
@@ -158,16 +155,8 @@ object Http4sApp extends MdcLoggable {
     }
   }
 
-  // One empty holder per incoming request for the caller resolved on a no-ResourceDoc hop, shared by
-  // every link of the fallthrough chain below (see ResourceDocMiddleware.resolveCallerOnce). Bridges
-  // rewrite the URI between hops with `req.withUri`, which keeps attributes, so the holder travels
-  // the chain and dies with the request.
-  private def installCallerResolvedOnThisRequest(req: Request[IO]): Request[IO] =
-    if (req.attributes.lookup(Http4sRequestAttributes.callerResolvedOnThisRequestKey).isDefined) req
-    else req.withAttribute(Http4sRequestAttributes.callerResolvedOnThisRequestKey, Http4sRequestAttributes.newCallerResolvedOnThisRequest)
-
   private def baseServices: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
-    OptionT.liftF(cacheBodyOnce(req).map(installCallerResolvedOnThisRequest)).flatMap { req =>
+    OptionT.liftF(cacheBodyOnce(req)).flatMap { req =>
       corsHandler.run(req)
         .orElse(AppsPage.routes.run(req))
         .orElse(StatusPage.routes.run(req))
@@ -196,6 +185,9 @@ object Http4sApp extends MdcLoggable {
         .orElse(code.api.DirectLoginRoutes.routes.run(req))
         .orElse(code.api.SIWERoutes.routes.run(req))
         .orElse(code.api.AliveCheckRoutes.routes.run(req))
+        // Domain APIs: a space's dynamic endpoints under a base path of its own. Last, so no OBP route can be
+        // hidden by a base path.
+        .orElse(code.api.dynamic.domainapi.Http4sDomainApi.routes.run(req))
         .orElse(notFoundCatchAll.run(req))
     }
   }
@@ -216,7 +208,11 @@ object Http4sApp extends MdcLoggable {
       // trusted forwarder naming it. Unconditional on purpose — the deployment where the answer is
       // least obvious, a proxy forwarding the header over a hop with no client certificate, enables
       // no TLS middleware at all, so neither step can live in Http4sServer's mtls.enabled branch.
+      // The traffic note travels with the request; inner layers fill it in (see TrafficSources).
+      val note = new code.telemetry.TrafficSources.Note
       val req = CallerCertificate.resolveCaller(Psd2CertIngress.canonicalize(rawReq))
+        .withAttribute(Http4sRequestAttributes.trafficNoteKey, note)
+      val startNanos = System.nanoTime()
       // Self-service rate limiting (sign-up, password reset, consent requests, consumer
       // registration, lookups, signal channel creation) runs here, before routing, keyed by the
       // client IP. In shadow mode it only adds X-Rate-Limit-* headers; in enforce mode a trip
@@ -233,6 +229,12 @@ object Http4sApp extends MdcLoggable {
               .withEntity(body.getBytes("UTF-8"))
               .withHeaders(Headers(Header.Raw(CIString("Content-Type"), "application/json; charset=utf-8"))))))
         }
+        .flatTap(resp => IO {
+          // Where the traffic is coming from: every request, served, refused or unmatched, once.
+          try code.telemetry.TrafficSources.record(note, Http4sCallContextBuilder.clientIpResolution(req), resp.status.code,
+            (System.nanoTime() - startNanos) / 1000000L)
+          catch { case e: Throwable => logger.debug(s"Http4sApp says: could not record traffic: ${e.getMessage}") }
+        })
     }
   }
 }

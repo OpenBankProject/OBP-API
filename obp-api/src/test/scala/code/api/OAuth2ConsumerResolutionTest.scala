@@ -34,7 +34,7 @@ import code.setup.ServerSetup
 import com.nimbusds.jose.crypto.MACSigner
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
-import net.liftweb.common.Empty
+import net.liftweb.common.{Empty, Failure}
 
 import java.net.URI
 
@@ -96,6 +96,38 @@ class OAuth2ConsumerResolutionTest extends ServerSetup {
       Then("each issuer gets its own consumer for that client ID")
       otherConsumer.consumerId should not equal googleConsumer.consumerId
       Consumer.findAllByAzp(clientId).size should equal(2)
+    }
+  }
+
+  // A client_credentials-style token: no azp, optionally a client_id claim, sub = the client.
+  private def clientCredentialsToken(clientId: Option[String], iss: String): String = {
+    val builder = new JWTClaimsSet.Builder().issuer(iss).subject(clientId.getOrElse(APIUtil.generateUUID())).audience(iss)
+    clientId.foreach(builder.claim("client_id", _))
+    val jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), builder.build())
+    jwt.sign(new MACSigner("0123456789abcdef0123456789abcdef"))
+    jwt.serialize()
+  }
+
+  Feature("tokens without an azp claim") {
+
+    Scenario("the client_id claim stands in for azp, so repeated calls reuse one consumer") {
+      val clientId = APIUtil.generateUUID()
+      When("the same client presents two tokens carrying client_id but no azp")
+      val first = resolve(clientCredentialsToken(Some(clientId), googleIssuer))
+      val second = resolve(clientCredentialsToken(Some(clientId), googleIssuer))
+      Then("both resolve to one consumer keyed by the client_id")
+      second.consumerId should equal(first.consumerId)
+      first.azp should equal(clientId)
+      Consumer.findAllByAzp(clientId).size should equal(1)
+    }
+
+    Scenario("a token with neither azp nor client_id does not auto-create a consumer") {
+      val before = Consumer.findAll().size
+      When("a token identifies no client")
+      val result = oidcProvider.getOrCreateConsumer(clientCredentialsToken(None, googleIssuer), Empty, Some("OpenID Connect"))
+      Then("resolution fails and no consumer is created")
+      result shouldBe a[Failure]
+      Consumer.findAll().size should equal(before)
     }
   }
 

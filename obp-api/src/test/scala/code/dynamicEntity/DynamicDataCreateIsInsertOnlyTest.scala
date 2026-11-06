@@ -53,7 +53,7 @@ class DynamicDataCreateIsInsertOnlyTest extends ServerSetup {
       attackerResult.isDefined should equal(false)
 
       // The victim's row is intact: same data, same owner, same bank.
-      DynamicData.findPersonal(victimBank, entityName, victimId, victimUser) match {
+      DynamicData.find(victimBank, entityName, victimId, Some(DynamicData.Ownership(true, victimUser))) match {
         case Full(row) =>
           row.dataJson should include("victim data")
           row.dataJson should not include "attacker data"
@@ -62,7 +62,7 @@ class DynamicDataCreateIsInsertOnlyTest extends ServerSetup {
         case other => fail(s"the victim's record must still be there, got $other")
       }
 
-      DynamicData.delete(victimId)
+      DynamicData.delete(victimBank, entityName, victimId)
     }
   }
 
@@ -79,14 +79,14 @@ class DynamicDataCreateIsInsertOnlyTest extends ServerSetup {
       MappedDynamicDataProvider.update(bank, entityName, body(id, "after"), id, user,
         isPersonalEntity = true).isDefined should equal(true)
 
-      DynamicData.findPersonal(bank, entityName, id, user) match {
+      DynamicData.find(bank, entityName, id, Some(DynamicData.Ownership(true, user))) match {
         case Full(row) =>
           row.dataJson should include("after")
           row.userId should equal(user)
         case other => fail(s"the updated record must be readable, got $other")
       }
 
-      DynamicData.delete(id)
+      DynamicData.delete(bank, entityName, id)
     }
   }
 }

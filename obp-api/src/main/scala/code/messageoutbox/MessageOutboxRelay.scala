@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.messageoutbox
 
 import code.actorsystem.ObpActorSystem
+import code.api.util.CommonsEmailWrapper
 import code.bankconnectors.opencorridor.OpenCorridorPublisher
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.{Box, Failure, Full}
@@ -35,6 +36,7 @@ import org.json4s._
 import org.json4s.native.Serialization
 
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -66,6 +68,20 @@ import scala.concurrent.duration._
  *    the bank's CBS refusing the credit itself (unknown account, name
  *    mismatch) — the asynchronous beneficiary refusal, distinct from the
  *    transient CBS-DELIVERY-FAILED.
+ *  - Every outcome that keeps a row PENDING counts an attempt. Once a row has
+ *    used open_corridor.outbox_max_attempts of them (a transport failure that
+ *    never clears, a retryable error that keeps coming back, or a settlement
+ *    that never reaches FINAL), it goes STICKY and is logged at ERROR, so an
+ *    operator reconciles it instead of the relay resending it for ever. Its
+ *    last_error keeps the underlying cause.
+ *
+ * EMAIL: each row is first claimed (MessageOutbox.claimForDelivery), so with
+ * several instances only one sends it. Sent → DELIVERED. Not sent → stays
+ * PENDING and is retried with the same backoff, until maxEmailAttempts, then
+ * STICKY (an address or mail server an operator must look at).
+ *
+ * WEBHOOK: claimed the same way, then posted by WebhookOutbox.deliver, which
+ * says which replies are retried and which go STICKY at once.
  */
 object MessageOutboxRelay extends MdcLoggable {
 
@@ -76,6 +92,17 @@ object MessageOutboxRelay extends MdcLoggable {
   private val maxBackoff = 10.minutes
   /** Cap on how long one row's publish may block the (serial) relay pass. */
   private val perRowTimeout = 60.seconds
+  /** Attempts after which an EMAIL row that could not be sent goes STICKY. */
+  private val maxEmailAttempts = 8
+  /** Attempts after which an OPEN_CORRIDOR row still PENDING goes STICKY. The backoff reaches its
+    * 10 minute cap after 6 attempts, so the default of 144 gives up after roughly a day. Read on
+    * every row so that a change to the prop applies without a restart. */
+  val defaultMaxOpenCorridorAttempts = 144
+  def maxOpenCorridorAttemptsInEffect: Int =
+    code.api.util.APIUtil.getPropsAsIntValue("open_corridor.outbox_max_attempts", defaultMaxOpenCorridorAttempts)
+  /** A pass can outlast the interval (many emails, or a slow publish); the scheduler would then
+    * start another over the same PENDING rows and deliver them twice. */
+  private val passRunning = new AtomicBoolean(false)
 
   // OPEN_CORRIDOR errors retrying cannot fix. CBS-DELIVERY-FAILED is
   // deliberately NOT here: a CBS being down is transient, and with credit
@@ -98,8 +125,11 @@ object MessageOutboxRelay extends MdcLoggable {
       interval = scala.concurrent.duration.Duration(intervalSeconds, TimeUnit.SECONDS),
       runnable = new Runnable {
         def run(): Unit =
-          try relayOnePass()
-          catch { case e: Throwable => logger.error("message outbox relay pass failed", e) }
+          if (passRunning.compareAndSet(false, true)) {
+            try relayOnePass()
+            catch { case e: Throwable => logger.error("message outbox relay pass failed", e) }
+            finally passRunning.set(false)
+          }
       }
     )
     logger.info(s"message outbox relay started (interval ${intervalSeconds}s)")
@@ -108,7 +138,11 @@ object MessageOutboxRelay extends MdcLoggable {
   /** One pass over the PENDING rows that are due (backoff by attempts). */
   def relayOnePass(): Unit = {
     val now = System.currentTimeMillis()
-    val due = MessageOutbox.pending().filter { row =>
+    // Open Corridor rows are only relayed where Open Corridor is enabled; emails always are.
+    val openCorridorEnabled = code.api.util.APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)
+    val due = MessageOutbox.pending()
+      .filter(row => row.outboxType != MessageOutbox.TYPE_OPEN_CORRIDOR || openCorridorEnabled)
+      .filter { row =>
       val backoff = (baseBackoff * math.pow(2, math.min(row.attempts, 6)).toLong).min(maxBackoff)
       row.updatedAt.getTime + backoff.toMillis <= now || row.attempts == 0
     }
@@ -118,11 +152,39 @@ object MessageOutboxRelay extends MdcLoggable {
 
   def relayRow(row: MessageOutbox): Unit = row.outboxType match {
     case MessageOutbox.TYPE_OPEN_CORRIDOR => relayOpenCorridorRow(row)
+    case MessageOutbox.TYPE_EMAIL => relayEmailRow(row)
+    case MessageOutbox.TYPE_WEBHOOK => WebhookOutbox.deliver(row)
     case other =>
-      MessageOutbox.markSticky(row.id, row.attempts + 1,
-        s"no publisher registered for outbox_type '$other'")
+      MessageOutbox.markSticky(row.id, row.attempts + 1, s"no publisher registered for outbox_type '$other'")
       logger.error(s"message outbox row ${row.id}: unknown outbox_type '$other' — STICKY")
   }
+
+  private def relayEmailRow(read: MessageOutbox): Unit =
+    // Another instance's relay may have claimed it first; then it is theirs to send.
+    if (MessageOutbox.claimForDelivery(read)) {
+      val row = MessageOutbox.findById(read.id).openOrThrowException("claimed row")
+      val sent: Box[String] =
+        try {
+          val email = MessageOutbox.emailPayload(row).toEmailContent
+          if (email.htmlContent.isDefined) CommonsEmailWrapper.sendHtmlEmail(email)
+          else CommonsEmailWrapper.sendTextEmail(email)
+        } catch { case e: Throwable => Failure(s"email send failed: ${e.getMessage}") }
+      sent match {
+        case Full(messageId) =>
+          MessageOutbox.markDelivered(row.id, messageId)
+          logger.info(s"message outbox row ${row.id}: ${row.operationName} to ${row.targetId} DELIVERED")
+        case failure =>
+          val error = failure match {
+            case Failure(msg, _, _) => msg
+            case _ => "not sent (see the email log)"
+          }
+          // The claim already counted this attempt.
+          val status = if (row.attempts >= maxEmailAttempts) MessageOutbox.STATUS_STICKY else MessageOutbox.STATUS_PENDING
+          MessageOutbox.setStatusAndError(row.id, status, error.take(2000))
+          logger.warn(s"message outbox row ${row.id}: ${row.operationName} to ${row.targetId} " +
+            s"not sent (attempt ${row.attempts}, now $status): $error")
+      }
+    }
 
   private def relayOpenCorridorRow(row: MessageOutbox): Unit = {
     val replyBox: Box[com.openbankproject.commons.dto.InBoundOpenCorridorReply] =
@@ -146,8 +208,8 @@ object MessageOutboxRelay extends MdcLoggable {
             else ""
           if (row.operationName == "obp_settlement_instruction" && settlementStatus != "FINAL") {
             // Broadcast but not final — keep polling by redelivery (§4.4).
-            MessageOutbox.recordAttempt(row.id, row.attempts + 1, "", replyJson)
-            logger.info(s"message outbox row ${row.id}: settlement ${row.subjectId} status '$settlementStatus' — will re-poll")
+            keepPendingOrGiveUp(row, error = "", replyJson = Some(replyJson), cause = s"settlement status '$settlementStatus' is not FINAL",
+              logRetry = () => logger.info(s"message outbox row ${row.id}: settlement ${row.subjectId} status '$settlementStatus' — will re-poll"))
           } else {
             MessageOutbox.markDelivered(row.id, replyJson)
             logger.info(s"message outbox row ${row.id}: ${row.operationName} to ${row.targetId} DELIVERED")
@@ -158,18 +220,47 @@ object MessageOutboxRelay extends MdcLoggable {
             s"STICKY error $errorCode — operator reconciliation required (subject ${row.subjectId})")
         } else {
           // Retryable business failure (e.g. SETTLEMENT-FAILED, CBS-DELIVERY-FAILED).
-          MessageOutbox.recordAttempt(row.id, row.attempts + 1, errorCode, replyJson)
-          logger.warn(s"message outbox row ${row.id}: ${row.operationName} to ${row.targetId} " +
-            s"replied $errorCode — will retry")
+          keepPendingOrGiveUp(row, error = errorCode, replyJson = Some(replyJson), cause = s"replied $errorCode",
+            logRetry = () => logger.warn(s"message outbox row ${row.id}: ${row.operationName} to ${row.targetId} " +
+              s"replied $errorCode — will retry"))
         }
       case failure =>
         val error = failure match {
           case Failure(msg, _, _) => msg
           case _ => "no reply"
         }
-        MessageOutbox.recordAttempt(row.id, row.attempts + 1, error.take(2000))
-        logger.warn(s"message outbox row ${row.id}: ${row.operationName} to ${row.targetId} " +
-          s"transport failure (attempt ${row.attempts}): $error")
+        keepPendingOrGiveUp(row, error = error, replyJson = None, cause = s"transport failure: $error",
+          logRetry = () => logger.warn(s"message outbox row ${row.id}: ${row.operationName} to ${row.targetId} " +
+            s"transport failure (attempt ${row.attempts}): $error"))
+    }
+  }
+
+  /**
+   * This method records one more attempt on an OPEN_CORRIDOR row whose outcome would keep it
+   * PENDING. Below the attempt limit the row stays PENDING and `logRetry` reports the retry. At the
+   * limit the row goes STICKY instead, with the cause kept in last_error, and is logged at ERROR:
+   * without a limit a message that can never be delivered is resent every backoff interval for ever
+   * and never reaches the operator's reconciliation list. `replyJson`, when the node replied, is kept
+   * as last_reply_json either way; with no reply the column keeps what an earlier attempt recorded.
+   */
+  private def keepPendingOrGiveUp(row: MessageOutbox, error: String, replyJson: Option[String], cause: String,
+                                  logRetry: () => Unit): Unit = {
+    val attempts = row.attempts + 1
+    val maxAttempts = maxOpenCorridorAttemptsInEffect
+    if (attempts >= maxAttempts) {
+      val gaveUp = s"gave up after $attempts attempts: $cause".take(2000)
+      replyJson match {
+        case Some(reply) => MessageOutbox.markSticky(row.id, attempts, gaveUp, reply)
+        case None        => MessageOutbox.markSticky(row.id, attempts, gaveUp)
+      }
+      logger.error(s"message outbox row ${row.id}: ${row.operationName} to ${row.targetId} " +
+        s"STICKY after $attempts attempts ($cause) — operator reconciliation required (subject ${row.subjectId})")
+    } else {
+      replyJson match {
+        case Some(reply) => MessageOutbox.recordAttempt(row.id, attempts, error.take(2000), reply)
+        case None        => MessageOutbox.recordAttempt(row.id, attempts, error.take(2000))
+      }
+      logRetry()
     }
   }
 }

@@ -45,6 +45,12 @@ connector=star
 #hikari.keepaliveTime=30000
 #hikari.maxLifetime=1800000
 
+# Write a warning to the log (and so to the log cache) when a database connection has been out of
+# the pool for longer than this many seconds. The warning names the thread that took it and the
+# OBP-API code that thread is running, and a second warning gives the total time once the
+# connection goes back. 0 turns this off.
+#database_connection_hold_warning_seconds=60
+
 ## if connector = star, then need to set which connectors will be used. For now, obp support rest, akka.
 starConnector_supported_types=mapped,internal
 
@@ -94,6 +100,10 @@ starConnector_supported_types=mapped,internal
 ## DynamicEntity cache time-to-live in seconds, default is 30, the value is 0 at test environment
 ## no 0 value will cause new dynamic entity will be shown after that seconds
 dynamicEntity.cache.ttl.seconds=30
+## How long each node keeps the parsed map of every Dynamic Entity definition, which the access and
+## field checks consult many times per request. A definition created, updated or deleted on this node
+## is seen at once; on another node, within this many seconds. Default 300. Not kept in test mode.
+#dynamicEntity.definitions_map.cache.ttl.seconds=300
 ## no 0 value will cause new dynamic endpoints will be shown after that seconds, default is 32, the value is 0 at test environment
 ## DynamicEndpoint cache time-to-live in seconds, default is 0, should set a no 0 value at product environment
 dynamicEndpoint.cache.ttl.seconds=32
@@ -140,6 +150,27 @@ long_endpoint_timeout = 55000
 ## Retrieves transactionRequest status from south-side connector.
 ## Scheduler will be disabled if delay is not set.
 #transaction_status_scheduler_delay=300
+
+## Message outbox relay interval in seconds.
+## How often the relay sends the queued messages in the message outbox: emails (e.g. "you have been
+## granted a Role") and, where Open Corridor is enabled, Interface C messages to the banks. The relay
+## always runs. A message that cannot be delivered is retried with backoff, on top of this interval.
+#message_outbox.relay_interval_seconds=10
+
+## Webhook requests sent through the message outbox (Dynamic Entity webhooks).
+## Attempts after which a webhook request that keeps failing (5xx, 408, 429, timeout, no connection)
+## stops being retried and is left STICKY. With the relay's backoff, 144 is roughly a day.
+#webhook.outbox_max_attempts=144
+## Allow webhook URLs with plain http. For local development only.
+#webhook.allow_http=false
+## Allow webhook URLs whose host is a loopback, private or link-local address, such as localhost or
+## 10.0.0.5. For local development and tests only: in production this would let a webhook reach
+## services inside OBP's own network.
+#webhook.allow_private_addresses=false
+## A webhook that has had this many requests queued within one minute is turned off with
+## deactivated_reason CIRCUIT_BREAKER instead of firing again: the backstop against a receiver whose
+## reply writes a record that fires the same webhook again.
+#webhook.circuit_breaker_per_minute=60
 
 
 ## Enable user authentication via the connector
@@ -240,6 +271,13 @@ jwt.use.ssl=false
 ## Unit is a second
 # obp_expired_consents_interval_in_seconds =
 
+## Reject OBP consents still "INITIATED" (their challenge was never answered) after a defined time.
+## They never granted access; rejecting them stops an app that reuses a pending consent from being stuck on one.
+## Both have defaults: the task runs every 593 seconds, and rejects consents unchanged for 21600 seconds (6 hours).
+## Set the interval to 0 to stop the task.
+# obp_unfinished_consents_time_in_seconds = 21600
+# obp_unfinished_consents_interval_in_seconds = 593
+
 ## Expire UK Open Banking consents with status "Authorised"
 ## Unlike the three keys above this one HAS a default (601 seconds, a prime near 10 minutes, so the
 ## sweep does not settle into step with other periodic schedulers). Set it to 0 to stop the task.
@@ -256,6 +294,36 @@ jwt.use.ssl=false
 write_connector_metrics=false
 ## Enable writing connector traces (full outbound/inbound message payloads per call) to RDBMS table `connector_trace`. Verbose — keep off in prod unless debugging.
 write_connector_trace=false
+
+## Client addresses behind a proxy. By default OBP-API takes the client address from the TCP peer,
+## which behind a reverse proxy, load balancer or server-side application is the proxy's address: every
+## per-IP limit, IP penalty and the busiest-callers view would then see one address. When a proxy sits
+## in front, let it set a header with the client's address (it MUST overwrite any value the client sent,
+## e.g. NGINX `proxy_set_header X-Real-IP $remote_addr;`) and trust that header here.
+## X-Forwarded-For is also accepted. It carries a chain to which each hop appends the address it received
+## the request from (NGINX `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`, and API Explorer II,
+## Opey and OBP-MCP do the same). OBP-API reads it from the right: it skips the addresses in trust.proxy.peers
+## and the first address that is not listed is the client, so every hop must be listed.
+## trust.proxy.peers limits whose header is believed: the addresses or CIDR ranges of the proxies (and
+## of server-side applications that pass on their users' addresses). A header from any other peer is
+## ignored. Unset, the header is believed from anyone (and for X-Forwarded-For the leftmost address, which
+## the client itself can write, is used), so a caller that reaches OBP-API directly can name any address it likes. Deployment Checks (GET /obp/v7.0.0/management/system/diagnostics/deployment,
+## or Observe > Deployment Checks in API Manager) shows whether these are right for the traffic seen.
+# trust.proxy.enabled=false
+# trust.proxy.header=X-Real-IP
+# trust.proxy.peers=10.0.0.0/8, 2001:db8::/32
+
+## Telemetry: aggregated numbers about this instance (request rates and durations per endpoint,
+## Connector calls, caches, the database pool, memory, garbage collection, threads) for Prometheus.
+## Not API Metrics: see docs/telemetry_conventions.md. Telemetry is always recorded; these props
+## only decide whether a separate port serves it. Prometheus scrapes each instance's port at the
+## path /telemetry (set `metrics_path: /telemetry` in the scrape configuration). Never publish the
+## port outside the host or cluster: it has no authentication. People can also read Telemetry
+## through GET /obp/v7.0.0/management/telemetry with the Role CanGetTelemetry.
+## Defaults live in code.telemetry.Telemetry.
+# telemetry.port.enabled=false
+# telemetry.host=0.0.0.0
+# telemetry.port=9464
 
 ## ElasticSearch
 #allow_elasticsearch=true
@@ -361,6 +429,7 @@ public_obp_api_url=http://localhost:8080
 public_obp_portal_url=http://localhost:5174
 public_obp_api_explorer_url=http://localhost:5173
 public_obp_api_manager_url=http://localhost:3003
+public_obp_cohort_url=http://localhost:5183
 public_obp_sandbox_populator_url=http://localhost:5178
 public_obp_oidc_url=http://localhost:9000
 public_keycloak_url=http://localhost:7787
@@ -369,7 +438,38 @@ public_keycloak_url=http://localhost:7787
 #   Docker (Dockerfile EXPOSE 8087)        -> 8087  (or override via SERVER_PORT env var)
 # The default below matches Docker; for local non-Docker dev use http://localhost:48123 instead.
 public_obp_hola_url=http://localhost:8087
-public_obp_mcp_url=http://localhost:9100
+# ---------------------------------------------------------------------------
+# OBP-MCP — the Model Context Protocol tool surface for OBP-API.
+#
+# Two instances may run side by side. They expose the same tools; they differ
+# in who they serve, and therefore how they authenticate:
+#
+#   external  run_server_oauth.sh, :9101 (mirrors k8s-mcp2)
+#             AUTH_PROVIDER=obp-oidc, OBP_AUTHORIZATION_VIA=oauth
+#             Full OAuth 2.1 + Dynamic Client Registration. For MCP clients
+#             that sign a user in and cannot drive a consent flow themselves
+#             — Claude Code, VS Code, Claude Desktop.
+#
+#   internal  run_server.sh, :9100
+#             AUTH_PROVIDER=bearer-only, OBP_AUTHORIZATION_VIA=consent
+#             For agents running inside the deployment — Opey reaches it via
+#             its own mcp_servers.json, not via this prop.
+#
+# public_obp_mcp_url is the one the App Directory advertises, so it must name
+# an instance an outside client can actually authenticate against. Pointed at
+# the internal instance it yields a server that connects and lists tools, then
+# fails every call with consent_required.
+#
+# The public_ prefix marks a prop as an App Directory entry (see
+# APIUtil.publicAppUrlDefaults) — it is not a claim that the target is
+# internet-facing. The internal instance is listed so operators can see and
+# health-probe it.
+#
+# Each instance reports its own live mode at <url>/status, which is the source
+# of truth. These props only say where the instances are.
+# ---------------------------------------------------------------------------
+public_obp_mcp_url=http://localhost:9101
+public_obp_mcp_internal_url=http://localhost:9100
 public_obp_opey_url=http://localhost:5000
 # OBP-Stripe subscription / payment service (Go server, default port 4242)
 public_obp_stripe_url=http://localhost:4242
@@ -416,6 +516,9 @@ mail.smtp.port=25
 mail.smtp.auth=false
 mail.smtp.user=
 mail.smtp.password=
+## Milliseconds to wait for the SMTP server to connect, answer and accept data (Default: 30000).
+## Mail such as the consent challenge is sent inside the request, so a server that goes quiet must not hold it.
+#mail.smtp.timeout_millis=30000
 
 ## TLS/SSL Configuration
 ## ---------------------
@@ -535,6 +638,20 @@ messageQueue.createBankAccounts=true
 
 ## Set this to true if you want to allow users to delete accounts (local ones like HBCI connected)
 allow_account_deletion=true
+
+## Cascade-delete endpoints: each deletes a bank object together with everything stored under it.
+##   DELETE /obp/v4.0.0/management/cascading/banks/BANK_ID
+##   DELETE /obp/v4.0.0/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID
+##   DELETE /obp/v4.0.0/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID
+##   DELETE /obp/v4.0.0/management/cascading/banks/BANK_ID/products/PRODUCT_CODE
+##   DELETE /obp/v4.0.0/management/cascading/banks/BANK_ID/customers/CUSTOMER_ID
+## When false (the default) they are not routed and not listed in the Resource Docs of any version,
+## so a request gets 404. Set to true to make them available. Read at startup. The Dynamic Entity
+## cascade deletes (.../dynamic-entities/cascade/DYNAMIC_ENTITY_ID) are not affected.
+## The Resource Docs responses are cached in Redis (staticResourceDocsObp.cache.ttl.seconds), so after a
+## change and restart they can list the old set of endpoints until that TTL passes, or until the rd_static
+## and rd_all cache namespaces are invalidated (POST /obp/v6.0.0/management/cache/namespaces/invalidate).
+allow_cascade_delete=false
 
 ## Secret key that allows access to api calls to get info about oauth tokens. You should change this
 ## to your own secret key
@@ -822,6 +939,8 @@ defaultBank.bank_id=OBP
 ## CanCreateEntitlementAtAnyBank
 ## CanCreateEntitlementAtOneBank
 ## CanGetAnyUser
+## CanGetEntitlementRequestsAtAnyBank
+## CanDeleteEntitlementRequestsAtAnyBank
 ## After they have granted these roles, they can grant further roles and remove their
 # user_id from the super_admin_user_ids list because its redundant.
 ## Once you have the roles above you can grant any other system or bank related roles to yourself.
@@ -836,7 +955,7 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 
 ##################################################################################
 # List of Users that should automatically have roles needed to call endpoints used by OBP-OIDC or OBP Keycloak Provider.
-# The following users will automatically have: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient
+# The following users will automatically have: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers, CanCreateConsumer
 # oidc_operator_user_ids=USER_ID1,USER_ID2,
 ####################################################################################
 
@@ -894,8 +1013,21 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 # Configure Bearer-JWT validation via the oauth2.* props further below
 # (oauth2.jwk_set.url, oauth2.keycloak.*, oauth2.obp_oidc.*).
 
+# The longest delay GET /obp/v5.1.0/waiting-for-godot?sleep=N will make, in milliseconds.
+# A larger requested value is reduced to this. (The endpoint also needs the Role CanGetWaitingForGodot.)
+#waiting_for_godot_max_sleep_in_milliseconds = 5000
+
 # When new consumers inserted they should use this setting.
 consumers_enabled_by_default=true
+
+# Optional. Limits which hosts a Consumer redirect URL may point to.
+# Empty (the default) puts no limit on hosts: any host that passes the redirect URL rules
+# (https, http only for localhost, reverse-domain app schemes) is accepted.
+# When set: a comma-separated list of exact hosts (portal.example.com) or domains (.example.com,
+# which allows example.com and any host under it). The API's own host (hostname) is always included.
+# Checked when a Consumer redirect URL is created or updated. App schemes, Berlin Group dynamic
+# registration and TPP-Redirect-URI headers, and redirect URLs already stored are not affected.
+#redirect_url_allowed_hosts =
 
 # Autocomplete for login form has to be explicitly set
 autocomplete_at_login_form_enabled=false
@@ -1119,6 +1251,7 @@ display_internal_errors=false
 # Please note that in case that redirect_url_value contains special word PLACEHOLDER it will be replaced with actual ID
 # http://127.0.0.1:8080/confirm-bg-consent-request?PAYMENT_ID=PLACEHOLDER
 # psu_make_payment_sca_redirect_url = redirect_url_value
+# When it is not set (or blank), the response to a payment initiation has no scaRedirect link.
 # -------------------------------------------------------------- Authentication methods --
 
 ## This property is used for documenting at Resource Doc. It may include the port also (but not /obp)
@@ -1199,15 +1332,23 @@ featured_apis=elasticSearchWarehouseV300
 #   consumer_registration POST /dynamic-registration/consumers
 #   lookup                POST /account/check/scheme/iban
 #   signal_channel_create POST /signal-channels/CHANNEL_NAME/messages when the channel does not exist yet
+#   documentation         GET of the public documentation, any version prefix: resource-docs (obp, swagger,
+#                         openapi, openapi.yaml, bank level), message-docs (plain, json-schema, swagger2.0),
+#                         api/glossary, api/tags, api/versions, api/error-messages, api/popular-endpoints,
+#                         endpoints/json-schema-validations, endpoints/authentication-type-validations
 # Enabled by default in shadow mode: a trip is logged (event=self_service_rate_limit_shadow_trip)
 # and reported to the caller in the X-Rate-Limit-Warning header (OBP-10059), but the request is
 # allowed. Set mode to enforce to answer 429 OBP-10060 instead. Counters live in Redis and fail open.
 # self_service.rate_limit.enabled = true
 # self_service.rate_limit.mode = shadow
+# A scope can have its own mode, which overrides the one above. The documentation scope stays in
+# shadow mode unless its own mode is set, even when the mode above is enforce:
+# self_service.rate_limit.documentation.mode = shadow
 # Generic per-IP limits; -1 switches a window off, 0 blocks every call in it.
 # Built-in per-scope defaults (applied when neither a scope prop nor a generic prop is set):
 #   signup 3/5/10 | password_reset 3/5/10 | consent_request 10/30/100
 #   consumer_registration 5/10/20 | lookup 20/60/200 | signal_channel_create 5/20/50
+#   documentation 60/1000/10000
 # self_service.rate_limit.per_ip.per_minute = 10
 # self_service.rate_limit.per_ip.per_hour = 60
 # self_service.rate_limit.per_ip.per_day = 200
@@ -1283,6 +1424,13 @@ featured_apis=elasticSearchWarehouseV300
 # Only relevant on an instance that has Open Corridor turned on and settles platform fees.
 # open_corridor.platform_bank_id=
 
+# How many delivery attempts an Open Corridor outbox message gets before the relay stops resending
+# it and marks it STICKY for operator reconciliation (GET /management/message-outbox, then its
+# /retry). Every attempt that leaves the message undelivered counts: a broker that cannot be reached,
+# a retryable error reply, and a settlement instruction whose settlement is not yet FINAL. The wait
+# between attempts doubles up to 10 minutes, so the default gives up after roughly a day.
+# open_corridor.outbox_max_attempts=144
+
 
 # -- Scopes -----------------------------------------------------
 # Scopes can be used to limit the APIs a Consumer can call.
@@ -1303,6 +1451,7 @@ create_just_in_time_entitlements=false
 # This speeds up the process of granting of roles. Certain roles are excluded from this automation:
 # - CanCreateEntitlementAtOneBank
 # - CanCreateEntitlementAtAnyBank
+# Nothing is granted this way in the system space (the space whose bank id is the literal SYS): a Role there is always granted by hand.
 # If create_just_in_time_entitlements is again set to false after it was true for a while, any auto granted Entitlements to roles are kept in place.
 # Note: In the entitlements model we set createdbyprocess="create_just_in_time_entitlements". For manual operations we set createdbyprocess="manual"
 # -------------------------------------------------------------
@@ -1314,7 +1463,8 @@ database_messages_scheduler_interval=3600
 # ---------------------------------------------------
 
 # -- Consents ---------------------------------------------
-# In case isn't defined default value is "false"
+# In case isn't defined default value is "false". While false, no consent is accepted as a login (OBP-35007)
+# and none is created either: every endpoint that creates a consent or a consent request answers OBP-35007.
 # consents.allowed=true
 #
 # In order to pin a consent to a consumer we can use the property consumer_validation_method_for_consent
@@ -1588,11 +1738,20 @@ default_auth_context_update_request_key=CUSTOMER_NUMBER
 #berlin_group_mandatory_headers = Content-Type,Date,Digest,PSU-Device-ID,PSU-Device-Name,PSU-IP-Address,Signature,TPP-Signature-Certificate,X-Request-ID
 #berlin_group_mandatory_header_consent = TPP-Redirect-URI
 
+# Require the TPP signature to cover TPP-Redirect-URI and TPP-Nok-Redirect-URI whenever they are sent.
+# When true, the Signature header's headers list must include each of them that the request carries.
+#berlin_group_require_signed_tpp_redirect_uri = false
+
 ## Berlin Group Create Consent Frequency per Day Upper Limit
 #berlin_group_frequency_per_day_upper_limit = 4
 
 ## Berlin Group Create Consent ASPSP-SCA-Approach response header value
 #berlin_group_aspsp_sca_approach = redirect
+
+# Whether a Berlin Group signing basket may be authorised (PUT /signing-baskets/{basketId}/authorisations/{authorisationId}).
+# Default false: the call answers 403 SERVICE_BLOCKED. Answering the authorisation books the basket's payments one
+# after another. Creating, reading, starting an authorisation on and deleting baskets are not affected.
+#signing_basket_authorisation_enabled = false
 
 # Support multiple brands on one instance. Note this needs checking on a clustered environment
 #brands_enabled=false
@@ -1744,37 +1903,43 @@ personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgari
 # it must be set to true explicitly, there is no run-mode-based fallback.
 allow_user_generated_scala_code=false
 
-# Second, deliberate acceptance required when the sandbox cannot enforce anything: on JDK 24+
-# SecurityManager is gone (JEP 486), so dynamic_code_sandbox_enable and the permission list
-# below have no effect and enabled dynamic code runs with the full rights of the JVM. With
-# this prop false (the default), compileScalaCode refuses on such a JVM and returns OBP-50021
-# rather than silently running unsandboxed. Set it to true only on an instance where running
+# Second, deliberate acceptance required for running user-supplied code at all on this JVM. On
+# JDK 24+ SecurityManager is gone (JEP 486), so nothing confines dynamic code: it runs with the
+# full rights of the OBP process. allow_user_generated_scala_code may have been switched on when a
+# sandbox still restricted file, network and reflection access, and the same switch now means
+# something much larger. With this prop false (the default), compileScalaCode refuses with
+# OBP-50021 rather than running the code. Set it to true only on an instance where running
 # user-supplied Scala with no confinement is genuinely acceptable.
 allow_user_generated_scala_code_without_sandbox=false
 
-# enable dynamic code sandbox, default is false, this will make sandbox works for code running in Future, will make performance lower than disable
-dynamic_code_sandbox_enable=false
-# Here is the default permissions if you set the dynamic_code_sandbox_enable = true. If you need more permission need to add it manually here.
-# Better search for comment code `val allowedRuntimePermissions = List[Permission]( ....` need to provide the fully qualified class name and proper parameters.
-dynamic_code_sandbox_permissions=[\
-    new java.net.NetPermission("specifyStreamHandler"),\
-    new java.lang.reflect.ReflectPermission("suppressAccessChecks"),\
-    new java.lang.RuntimePermission("getenv.*"),\
-    new java.util.PropertyPermission("cglib.useCache", "read"),\
-    new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"),\
-    new java.util.PropertyPermission("cglib.debugLocation", "read"),\
-    new java.lang.RuntimePermission("accessDeclaredMembers"),\
-    new java.lang.RuntimePermission("getClassLoader")\
-]
+# NOTE: dynamic_code_sandbox_enable and dynamic_code_sandbox_permissions were removed.
+# They wrapped dynamic code in AccessController.doPrivileged with a restricted permission
+# set, which stopped being enforceable when SecurityManager was removed in JDK 24 (JEP 486);
+# OBP requires JVM 25, so the sandbox could never restrict file, network or reflection
+# access while still costing a privileged wrapper on every dynamic call. Dynamic code runs
+# with the full privileges of the OBP process. The controls that do work are
+# allow_user_generated_scala_code (below), dynamic_code_compile_validate_enable and
+# dynamic_code_requires_approval.
 
 
-# enable dynamic code compile validation, default is false, if set it to true, it will validate all the dynamic method body when you create/update any
-# dynamic scala method. Note, it only check all the obp code dependents for all the method in OBP code.
-dynamic_code_compile_validate_enable=false
-# The default support dependencies if set dynamic_code_compile_validate_enable = true. it can be the class level or the method level,
-# you can add them in the following list. Better check search for comment code: val allowedCompilationMethods: Map[String, Set[String]] = Map( ...
-# need to prepare the correct OBP scala code.
-dynamic_code_compile_validate_dependencies=[\
+# When true, dynamic code may call ONLY the OBP methods listed in
+# dynamic_code_allowed_obp_methods below; creating or updating a body that calls anything
+# else is rejected with OBP-40047 naming the offending method. It is an allowlist on OBP's
+# own API surface -- NOT a sandbox: it does not restrict file, network or reflection access,
+# and it does not check general scala/java library calls.
+#
+# Renamed from dynamic_code_compile_validate_enable, which read as "check that it compiles".
+# The old name is still honoured with a deprecation warning at boot.
+#
+# Defaults to false, so dynamic code may call any OBP method. Only relevant once
+# allow_user_generated_scala_code is true.
+dynamic_code_obp_calls_are_restricted=false
+# The allowlist used when the above is true: typeName -> allowed methods ("*" for all).
+# Renamed from dynamic_code_compile_validate_dependencies. Search the code for
+# `val allowedCompilationMethods` for how it is parsed; entries must be valid OBP scala.
+# NOTE: this default list allows no data access, so an endpoint that reads dynamic entities
+# (e.g. code.DynamicData.DynamicDataProvider) must be added here before it can be created.
+dynamic_code_allowed_obp_methods=[\
       NewStyle.function.getClass.getTypeName -> "*",\
       CompiledObjects.getClass.getTypeName -> "sandbox",\
       HttpCode.getClass.getTypeName -> "200",\
@@ -1783,14 +1948,13 @@ dynamic_code_compile_validate_dependencies=[\
       ErrorMessages.getClass.getTypeName -> "*",\
       ExecutionContext.Implicits.getClass.getTypeName -> "global",\
       JSONFactory400.getClass.getTypeName -> "createBanksJson",\
-      classOf[Sandbox].getTypeName -> "runInSandbox",\
       classOf[CallContext].getTypeName -> "*",\
       classOf[ResourceDoc].getTypeName -> "getPathParams",\
       "scala.reflect.runtime.package\$" -> "universe",\
       PractiseEndpoint.getClass.getTypeName + "*" -> "*"\
 ]
 
-# --- Dynamic code requires approval (maker/checker, see MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md) ---
+# --- Dynamic code requires approval (maker/checker, see docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md) ---
 # dynamic_code_requires_approval=true enforces two things for the target types listed below:
 #  1. Writes are queued, not applied. Create/update/delete via the v4.0.0/v6.0.0 endpoints still check the
 #     caller's role, validate and compile the body, then store a DynamicChangeRequest and answer 202 Accepted.
@@ -1870,6 +2034,35 @@ user_account_is_validated = false
 # than 600 so successive runs drift across the wall clock instead of phase-locking
 # to every 10th minute and to other periodic schedulers.
 # retain_metrics_scheduler_interval_in_seconds = 599
+# The longest date range, in days, that one GET /management/aggregate-metrics call may cover.
+# An aggregate reads every metric row in its range, so the cost grows with the range; a
+# longer range is refused with 400. A call without from_date covers this many days.
+# aggregate_metrics_max_days = 31
+
+
+# Data retention: how long the resources of a space (a bank, or SYS) stay live, and what happens to
+# them then, is set per space with the retention policy endpoints
+# (/obp/v7.0.0/management/banks/BANK_ID/retention-policies). Periods are set there, not here, except
+# for the minimum below; the other props only switch the destructive steps on. Defaults live in
+# code.retention.RetentionProps; the values shown here MUST match. See RETENTION_PLAN.md.
+# The shortest retention period allowed, in days: no resource is archived, deleted or anonymised sooner
+# than this after its trigger date. A policy with a shorter retain_days is refused, and an existing one
+# runs as though its retain_days were this. 1825 days is five years.
+# retention.minimum_retain_days = 1825
+# Allow runs that move resources out of the live tables into the retention archive. While false,
+# such a run is refused with an error. A preview always works.
+# retention.archive.enabled = false
+# Allow runs that delete or anonymise resources, and the deletion of archived resources whose archive
+# period has ended. While false, such a run is refused with an error. A preview always works.
+# retention.delete.enabled = false
+# Run the enabled retention policies on a timer. A policy that requires approval gets a pending run
+# for a second user to approve; the others are executed, as far as the two props above allow.
+# retention.scheduler.enabled = false
+# Seconds between two scheduler runs. 3593, a prime just under an hour, so the runs drift across the
+# clock rather than lining up with other schedulers.
+# retention.scheduler.interval_in_seconds = 3593
+# The most resources one run disposes of; what is left is disposed of by the next run.
+# retention.run.max_items = 1000
 
 
 # Defines endpoints we want to store responses at Metric table
@@ -1915,7 +2108,7 @@ regulated_entities = []
 
 # Bootstrap OIDC Operator User
 # Given the following credentials, OBP will create a user if they do not already exist.
-# This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers
+# This user will be granted: CanGetAnyUser, CanVerifyUserCredentials, CanVerifyOidcClient, CanGetOidcClient, CanGetConsumers, CanCreateConsumer
 # If you want to use this feature, please set up all three values properly at the same time.
 # oidc_operator_username=...
 # oidc_operator_initial_password=...
@@ -1955,6 +2148,13 @@ ethereum.rpc.url=http://127.0.0.1:8545
 ## Enable Redis logging (true/false)
 redis_logging_enabled = false
 
+## Lowest level shipped to Redis when redis_logging_enabled is true (TRACE/DEBUG/INFO/WARNING/ERROR).
+## Defaults to INFO so enabling Redis log shipping doesn't also force every DEBUG/TRACE call site
+## (which can be extremely high-volume) to pay the cost of formatting and masking a message that
+## would otherwise be skipped locally. Set to DEBUG or TRACE only when you actually want that volume
+## shipped, e.g. temporarily while investigating an issue.
+redis_logging_min_level = INFO
+
 ## Batch size for sending logs to Redis
 ## Smaller batch size reduces latency for logging critical messages.
 redis_logging_batch_size = 50
@@ -1984,6 +2184,27 @@ redis_logging_info_queue_max_entries = 1000      # Max INFO messages
 redis_logging_warning_queue_max_entries = 1000   # Max WARNING messages
 redis_logging_error_queue_max_entries = 1000     # Max ERROR messages
 redis_logging_all_queue_max_entries = 1000       # Max ALL messages
+
+
+
+##########################################################
+#                   MDC Logging Dispatch                #
+##########################################################
+## Number of threads used to run secret-masking (SecureLogging.maskSensitive) and the local/
+## Redis log write itself, once a call to logger.debug/info/warn/error/trace has determined
+## the message will actually be consumed. This work used to run inline on whatever thread
+## called the logger, including http4s/cats-effect fiber-managed threads -- CPU-bound work
+## that doesn't yield can trip the runtime's own fiber-starvation detector the same way real
+## blocking I/O would, and its response (spinning up more worker/blocker threads that are
+## never reclaimed) only adds overhead. Keep this small; it's meant to decouple from the
+## calling thread, not to parallelize heavy logging.
+mdc_logging_dispatch_thread_pool_size = 2
+
+## Maximum number of log entries that may wait for a dispatch thread. The queue is bounded so a
+## burst of log calls cannot become heap growth. When it is full, DEBUG/TRACE/INFO entries are
+## dropped (and counted) while WARN/ERROR entries run on the calling thread, so a warning or an
+## error is never silently lost. Default 10000.
+mdc_logging_dispatch_queue_size = 10000
 
 ## Optional: Circuit breaker reset interval (ms)
 ## How long before retrying after circuit breaker opens. Default 60s.

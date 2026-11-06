@@ -60,7 +60,12 @@ case class JsonDynamicResourceDoc(
    successResponseBody: Option[JValue],
    errorResponseBodies: String,
    tags: String,
-   roles: String
+   roles: String,
+   // Source language of methodBody: "Scala" (default) or "Java". Mirrors
+   // JsonConnectorMethod.programmingLang / JsonDynamicMessageDoc.programmingLang. Appended last
+   // (not inserted alphabetically) so existing named-arg call sites and JSON payloads that predate
+   // this field keep compiling/deserializing unchanged.
+   programmingLang: String = "Scala"
 ) extends JsonFieldReName {
   def decodedMethodBody: String = URLDecoder.decode(methodBody, "UTF-8")
 }
@@ -73,6 +78,12 @@ trait DynamicResourceDocProvider {
   def getAll(bankId: Option[String]): List[JsonDynamicResourceDoc] = getAllAndConvert(bankId, identity)
 
   def getAllAndConvert[T: Manifest](bankId: Option[String], transform: JsonDynamicResourceDoc => T): List[T]
+
+  /**
+   * The docs of one space (None for the system space), read from the database every time. Unlike
+   * [[getAll]], which is cached and treats None as every space, this is what a check before a write needs.
+   */
+  def getAllInSpace(bankId: Option[String]): List[JsonDynamicResourceDoc]
 
   def create(bankId: Option[String], entity: JsonDynamicResourceDoc, createdByUserId: Option[String]): Box[JsonDynamicResourceDoc]
   def update(bankId: Option[String], entity: JsonDynamicResourceDoc, updatedByUserId: Option[String]): Box[JsonDynamicResourceDoc]

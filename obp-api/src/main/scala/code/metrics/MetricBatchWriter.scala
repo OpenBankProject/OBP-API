@@ -67,11 +67,29 @@ object MetricBatchWriter extends MdcLoggable {
     responseBody: String,
     sourceIp: String,
     targetIp: String,
+    forwardedFor: String,
     apiInstanceId: String,
     consentReferenceId: String,
     certificateTrust: String,
     certificateTrustDetail: String,
-    authType: String
+    authType: String,
+    // The URL called under a Domain API; null for every other call.
+    domainApiUrl: String = null
+  )
+
+  /**
+   * This holds one row's values in the order of the INSERT's columns. It is a case class, not a tuple,
+   * because the row has more than 22 values and Scala tuples stop at 22. Each text value is an Option so
+   * that Doobie writes a null as SQL NULL (its Put[String] refuses a null).
+   */
+  private case class InsertValues(
+    userId: Option[String], url: Option[String], date: Timestamp, duration: Long, userName: Option[String],
+    appName: Option[String], developerEmail: Option[String], consumerId: Option[String],
+    implementedByPartialFunction: Option[String], implementedInVersion: Option[String], verb: Option[String],
+    httpCode: Int, correlationId: Option[String], responseBody: Option[String], sourceIp: Option[String],
+    targetIp: Option[String], forwardedFor: Option[String], apiInstanceId: Option[String],
+    consentReferenceId: Option[String], certificateTrust: Option[String], certificateTrustDetail: Option[String],
+    authType: Option[String], domainApiUrl: Option[String]
   )
 
   private val queue = new ConcurrentLinkedQueue[MetricRow]()
@@ -104,14 +122,64 @@ object MetricBatchWriter extends MdcLoggable {
    * Enqueue a metric for batched writing. Never blocks the calling thread.
    * The background scheduler handles all flushing.
    */
+  // Rows queued, written and lost, and the queue depth, for Telemetry.
+  private lazy val telemetry = new code.telemetry.BatchWriterTelemetry("api_metrics")
+
   def enqueue(row: MetricRow): Unit = {
-    queue.add(row)
+    queue.add(fitToColumns(row))
+    telemetry.queued()
+  }
+
+  /**
+   * This cuts each text value of a row to the width of its column in the metric table.
+   *
+   * The rows of one flush are inserted as a single batch, and the database rejects a value that
+   * is longer than its column ("value too long for type character varying(N)"). One such value
+   * would therefore lose every metric in the flush, not only its own. Several values come from
+   * the caller (X-Forwarded-For, X-Forwarded-Host, the correlation id, the URL), so without this
+   * any caller could make everyone's metrics disappear with one long header. The widths are those
+   * the changelog declares for the metric table (MetricColumnWidthsTest holds them to it), and
+   * metricarchive has the same widths, so a fitted row also archives.
+   */
+  private[metrics] def fitToColumns(row: MetricRow): MetricRow = {
+    def fit(value: String, width: Int): String =
+      if (value != null && value.length > width) value.substring(0, width) else value
+    val w = MetricColumnWidths
+    row.copy(
+      userId = fit(row.userId, w.userId),
+      url = fit(row.url, w.url),
+      userName = fit(row.userName, w.userName),
+      appName = fit(row.appName, w.appName),
+      developerEmail = fit(row.developerEmail, w.developerEmail),
+      consumerId = fit(row.consumerId, w.consumerId),
+      implementedByPartialFunction = fit(row.implementedByPartialFunction, w.implementedByPartialFunction),
+      implementedInVersion = fit(row.implementedInVersion, w.implementedInVersion),
+      verb = fit(row.verb, w.verb),
+      correlationId = fit(row.correlationId, w.correlationId),
+      sourceIp = fit(row.sourceIp, w.sourceIp),
+      targetIp = fit(row.targetIp, w.targetIp),
+      forwardedFor = fit(row.forwardedFor, w.forwardedFor),
+      apiInstanceId = fit(row.apiInstanceId, w.apiInstanceId),
+      consentReferenceId = fit(row.consentReferenceId, w.consentReferenceId),
+      certificateTrust = fit(row.certificateTrust, w.certificateTrust),
+      certificateTrustDetail = fit(row.certificateTrustDetail, w.certificateTrustDetail),
+      authType = fit(row.authType, w.authType),
+      domainApiUrl = fit(row.domainApiUrl, w.domainApiUrl)
+    )
   }
 
   /**
    * Drain the queue and batch-insert all pending metrics via Doobie.
+   *
+   * This is synchronized so that one flush finishes before the next starts. The background scheduler
+   * and a caller (a test that flushes before reading the metric table) may flush at the same time.
+   * Without the lock, a caller could find the queue empty because the scheduler had just drained it,
+   * and return while those rows were still being inserted, so a read straight after saw none of them.
    */
-  private[code] def flush(): Unit = {
+  private[code] def flush(): Unit = synchronized {
+    val flushStart = System.nanoTime()
+    // Rows taken off the queue by this flush. If the write fails they are lost, so Telemetry counts them.
+    var drainedRows = 0
     try {
       val batch = new java.util.ArrayList[MetricRow]()
       var item = queue.poll()
@@ -119,6 +187,7 @@ object MetricBatchWriter extends MdcLoggable {
         batch.add(item)
         item = queue.poll()
       }
+      drainedRows = batch.size()
 
       if (!batch.isEmpty) {
         val rows = {
@@ -133,31 +202,23 @@ object MetricBatchWriter extends MdcLoggable {
             userid, url, date_c, duration, username, appname,
             developeremail, consumerid, implementedbypartialfunction,
             implementedinversion, verb, httpcode, correlationid,
-            responsebody, sourceip, targetip, apiinstanceid, consent_reference_id,
-            certificate_trust, certificate_trust_detail, auth_type
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            responsebody, sourceip, targetip, forwarded_for, apiinstanceid, consent_reference_id,
+            certificate_trust, certificate_trust_detail, auth_type, domain_api_url
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
-        // Use Option[String] so Doobie handles nullable fields via Put[Option[String]]
-        // instead of Put[String] which throws "oops, null" on null values
-        val insert = Update[
-          (Option[String], Option[String], Timestamp, Long, Option[String], Option[String],
-           Option[String], Option[String], Option[String],
-           Option[String], Option[String], Int, Option[String],
-           Option[String], Option[String], Option[String], Option[String], Option[String],
-           Option[String], Option[String], Option[String])
-        ](insertSql)
+        val insert = Update[InsertValues](insertSql)
 
         val values = rows.map { r =>
-          (
+          InsertValues(
             Option(r.userId), Option(r.url), new Timestamp(if (r.date != null) r.date.getTime else 0L),
             r.duration, Option(r.userName), Option(r.appName),
             Option(r.developerEmail), Option(r.consumerId), Option(r.implementedByPartialFunction),
             Option(r.implementedInVersion), Option(r.verb), r.httpCode, Option(r.correlationId),
-            Option(r.responseBody), Option(r.sourceIp), Option(r.targetIp), Option(r.apiInstanceId),
+            Option(r.responseBody), Option(r.sourceIp), Option(r.targetIp), Option(r.forwardedFor), Option(r.apiInstanceId),
             Option(r.consentReferenceId),
             Option(r.certificateTrust), Option(r.certificateTrustDetail),
-            Option(r.authType)
+            Option(r.authType), Option(r.domainApiUrl)
           )
         }
 
@@ -170,6 +231,7 @@ object MetricBatchWriter extends MdcLoggable {
         } yield n
         val count = DoobieUtil.runQuery(program)
         logger.debug(s"MetricBatchWriter says: flushed $count metrics via doobie-pool")
+        telemetry.written(drainedRows, System.nanoTime() - flushStart)
       }
     } catch {
       case e: Exception =>
@@ -179,6 +241,7 @@ object MetricBatchWriter extends MdcLoggable {
         // (e.g. "value too long for type character varying(N)") is lost and metrics are
         // silently dropped. Walk the chain so the root cause is always logged.
         logger.error(s"MetricBatchWriter says: flush failed${sqlChainDetail(e)}", e)
+        if (drainedRows > 0) telemetry.lost(drainedRows, System.nanoTime() - flushStart)
     }
   }
 
@@ -201,4 +264,27 @@ object MetricBatchWriter extends MdcLoggable {
     }
     if (details.isEmpty) "" else details.mkString(" [SQL chain: ", " | ", "]")
   }
+}
+
+/** The widths of the text columns of the metric table (and of metricarchive, which mirrors it). */
+object MetricColumnWidths {
+  val userId = 44
+  val url = 2000
+  val userName = 64
+  val appName = 64
+  val developerEmail = 64
+  val consumerId = 250
+  val implementedByPartialFunction = 128
+  val implementedInVersion = 16
+  val verb = 16
+  val correlationId = 256
+  val sourceIp = 64
+  val targetIp = 64
+  val forwardedFor = 512
+  val apiInstanceId = 255
+  val consentReferenceId = 36
+  val certificateTrust = 32
+  val certificateTrustDetail = 255
+  val authType = 32
+  val domainApiUrl = 2000
 }

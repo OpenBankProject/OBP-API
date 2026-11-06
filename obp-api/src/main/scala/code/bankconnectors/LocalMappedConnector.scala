@@ -67,7 +67,7 @@ import code.kycdocuments.KycDocuments
 import code.kycmedias.KycMedias
 import code.kycstatuses.KycStatuses
 import code.meetings.Meetings
-import code.metadata.counterparties.Counterparties
+import code.metadata.counterparties.{Counterparties, MappedCounterparty}
 import code.model._
 import code.model.dataAccess._
 import code.productattribute.{DoobieProductAttributeProvider, ProductAttributeX}
@@ -326,9 +326,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
         callContext
       )
-      challenge.map(_.challengeId).toList
+      challenge.map(_.challengeId)
     }
-    (Full(challenges.flatten), callContext)
+    challengesOrFailure(challenges, callContext)
   }
 
   override def createChallengesC2(
@@ -355,9 +355,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         challengeType = challengeType.toString,
         callContext
       )
-      challengeId.toList
+      challengeId
     }
-    (Full(challenges.flatten), callContext)
+    challengesOrFailure(challenges, callContext)
   }
 
   override def createChallengesC3(
@@ -385,10 +385,37 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         challengeType = challengeType.toString,
         callContext
       )
-      challengeId.toList
+      challengeId
     }
-    (Full(challenges.flatten), callContext)
+    challengesOrFailure(challenges, callContext)
   }
+
+  /**
+   * The challenges of the users who could be sent one, or the first failure when no one could. A caller that needs
+   * a number of answers checks how many challenges it got.
+   */
+  private def challengesOrFailure[T](results: List[Box[T]], callContext: Option[CallContext]): (Box[List[T]], Option[CallContext]) = {
+    val created = results.flatMap(_.toList)
+    results.collectFirst { case failure: Failure => failure } match {
+      case Some(failure) if created.isEmpty => (failure, callContext)
+      case Some(failure) =>
+        logger.warn(s"challengesOrFailure says: ${results.size - created.size} of ${results.size} users could not be sent a challenge: ${failure.msg}")
+        (Full(created), callContext)
+      case None => (Full(created), callContext)
+    }
+  }
+
+  /** The values that hold an address: a customer's e-mail or mobile number may be blank or NULL. */
+  private def nonBlank(values: List[String]): List[String] =
+    values.flatMap(value => Option(value).map(_.trim).filter(_.nonEmpty))
+
+  /** The user's own address, when the user signed up on this instance and has confirmed it. */
+  private def validatedOwnEmail(userId: String): Box[String] =
+    for {
+      user <- Users.users.vend.getUserByUserId(userId)
+      authUser <- AuthUser.findByResourceUserPrimaryKey(user.userPrimaryKey.value)
+      if authUser.validated
+    } yield authUser.email
 
   private def createChallengeInternal(
     userId: String,
@@ -425,52 +452,66 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case Some(StrongCustomerAuthentication.DUMMY) =>
         createHashedPassword("123")
       case Some(StrongCustomerAuthentication.EMAIL) =>
-        val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
-        val hashedPassword = createHashedPassword(challengeAnswer)
-        APIUtil.getEmailsByUserId(userId) map {
-          pair =>
-            val emailContent = CommonsEmailWrapper.EmailContent(
+        // The customers linked to the user; else the user's own address, once the user has confirmed it.
+        val linkedCustomerEmails = nonBlank(APIUtil.getEmailsByUserId(userId).map(_._2)).distinct
+        val recipients =
+          if (linkedCustomerEmails.nonEmpty) linkedCustomerEmails
+          else nonBlank(validatedOwnEmail(userId).toList)
+        if (recipients.isEmpty) {
+          (Failure(ChallengeRecipientNotFound), callContext)
+        } else {
+          val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
+          // sendTextEmail answers Full only once the mail has been handed to the SMTP server.
+          val sent = recipients forall { to =>
+            CommonsEmailWrapper.sendTextEmail(CommonsEmailWrapper.EmailContent(
               from = mailUsersUserinfoSenderAddress,
-              to = List(pair._2),
+              to = List(to),
               subject = "Challenge",
               textContent = Some(s"Your OTP challenge : ${challengeAnswer}")
-            )
-            CommonsEmailWrapper.sendTextEmail(emailContent)
+            )).isDefined
+          }
+          // The challenge is saved once its passcode has been sent, so a failed send leaves no challenge no one can answer.
+          if (sent) createHashedPassword(challengeAnswer) else (Failure(EmailSendingFailed), callContext)
         }
-        hashedPassword
       case Some(StrongCustomerAuthentication.SMS) | Some(StrongCustomerAuthentication.SMS_OTP) =>
-        val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
-        logger.debug(s"${scaMethod.toString} challengeAnswer is $challengeAnswer")
-        val hashedPassword = createHashedPassword(challengeAnswer)
-        val sendingResult: Seq[Box[Boolean]] = APIUtil.getPhoneNumbersByUserId(userId) map {
-          tuple =>
-            for {
-              smsProviderApiKey <- APIUtil.getPropsValue("sca_phone_api_key") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_key"
-              smsProviderApiSecret <- APIUtil.getPropsValue("sca_phone_api_secret") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
-              scaPhoneApiId <- APIUtil.getPropsValue("sca_phone_api_id") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_id"
-              client = Twilio.init(smsProviderApiKey, smsProviderApiSecret) //TODO, move this to other place, we only need to init it once.
-              phoneNumber = tuple._2
-              messageText = s"Your consent challenge : ${challengeAnswer}";
-              message: Message <- tryo {Message.creator(
-                new PhoneNumber(phoneNumber), 
-                scaPhoneApiId, 
-                messageText).create()}
-              
-              isSuccess <- tryo {message.getErrorMessage == null}
-              
-              _ = logger.debug(s"createChallengeInternal.send message to $phoneNumber, detail is $message")
-              
-              failMsg = if (message.getErrorMessage ==null) 
-                  s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first. ${message.getErrorMessage}"
-                else
-                  s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first."
-                  
-              _ <- Helper.booleanToBox(isSuccess, failMsg)
-            } yield true
+        val phoneNumbers = nonBlank(APIUtil.getPhoneNumbersByUserId(userId).map(_._2)).distinct
+        if (phoneNumbers.isEmpty) {
+          // No linked customer with a phone number: there is no one to send the passcode to.
+          (Failure(ChallengeRecipientNotFound), callContext)
+        } else {
+          val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
+          logger.debug(s"${scaMethod.toString} challengeAnswer is $challengeAnswer")
+          // The caller may not be the owner of the phone number, so the number stays in the log.
+          val sendFailed = s"${SmsServerNotResponding.stripSuffix(":")}. Please use EMAIL instead."
+          val sendingResult: Seq[Box[Boolean]] = phoneNumbers map {
+            phoneNumber =>
+              for {
+                smsProviderApiKey <- APIUtil.getPropsValue("sca_phone_api_key") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_key"
+                smsProviderApiSecret <- APIUtil.getPropsValue("sca_phone_api_secret") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
+                scaPhoneApiId <- APIUtil.getPropsValue("sca_phone_api_id") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_id"
+                client = Twilio.init(smsProviderApiKey, smsProviderApiSecret) //TODO, move this to other place, we only need to init it once.
+                messageText = s"Your consent challenge : ${challengeAnswer}";
+                message: Message <- tryo {Message.creator(
+                  new PhoneNumber(phoneNumber), 
+                  scaPhoneApiId, 
+                  messageText).create()} match {
+                  case Full(message) => Full(message)
+                  case failure =>
+                    logger.warn(s"createChallengeInternal could not send the passcode to $phoneNumber: $failure")
+                    Failure(sendFailed)
+                }
+                
+                _ = logger.debug(s"createChallengeInternal.send message to $phoneNumber, detail is $message")
+                
+                _ = if (message.getErrorMessage != null)
+                  logger.warn(s"createChallengeInternal could not send the passcode to $phoneNumber: ${message.getErrorMessage}")
+                _ <- Helper.booleanToBox(message.getErrorMessage == null, sendFailed)
+              } yield true
+          }
+          val errorMessages = sendingResult.collect { case failure: Failure => failure.msg }
+          // As with EMAIL, the challenge is saved once its passcode has been sent.
+          if (errorMessages.isEmpty) createHashedPassword(challengeAnswer) else (Failure(errorMessages.toSet.mkString(" <- ")), callContext)
         }
-        val errorMessage = sendingResult.filter(_.isInstanceOf[Failure]).map(_.asInstanceOf[Failure].msg)
-
-        if (sendingResult.forall(_ == Full(true))) hashedPassword else (Failure(errorMessage.toSet.mkString(" <- ")), callContext)
       case _ => // All versions which precede v4.0.0 i.e. to keep backward compatibility 
         createHashedPassword("123")
     }
@@ -668,7 +709,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    */
   override def getBankAccountsForUserLegacy(provider: String, username:String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
     //1st: get the accounts from userAuthContext
-    val viewsToGenerate = List(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID,SYSTEM_OWNER_VIEW_ID, SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID) //TODO, so far only set the `owner` view, later need to simulate other views.
+    val viewsToGenerate = List(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID,SYSTEM_OWNER_VIEW_ID, SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID) //TODO, so far only set the `owner` view, later need to simulate other views.
     val user = Users.users.vend.getUserByProviderId(provider, username).getOrElse(throw new RuntimeException(s"$RefreshUserError at getBankAccountsForUserLegacy($username, ${callContext})"))
     val userId = user.userId
     tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.user says: provider($provider), username($username)")}
@@ -1295,6 +1336,26 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       maps
     }
 
+    val ownersConcat = if (code.api.util.DBUtil.isSqlServer) {
+      fr"CAST(CONCAT('user_id:', resourceuser.userid_, ',provider:', resourceuser.provider_, ',user_name:', resourceuser.name_) AS NVARCHAR(MAX))"
+    } else {
+      fr"'user_id:' || resourceuser.userid_ || ',provider:' || resourceuser.provider_ || ',user_name:' || resourceuser.name_"
+    }
+
+    val routingConcat = if (code.api.util.DBUtil.isSqlServer) {
+      fr"CAST(CONCAT('bank_id:', bankaccountrouting.bankid, ',account_id:', bankaccountrouting.accountid) AS NVARCHAR(MAX))"
+    } else {
+      fr"'bank_id:' || bankaccountrouting.bankid || ',account_id:' || bankaccountrouting.accountid"
+    }
+
+    val attrConcat = if (code.api.util.DBUtil.isSqlServer) {
+      fr"CAST(CONCAT('type:', mappedaccountattribute.mtype, ',code:', mappedaccountattribute.mcode, ',value:', mappedaccountattribute.mvalue) AS NVARCHAR(MAX))"
+    } else {
+      fr"'type:' || mappedaccountattribute.mtype || ',code:' || mappedaccountattribute.mcode || ',value:' || mappedaccountattribute.mvalue"
+    }
+
+    val pagination = DoobieUtil.pagination(limit, offset)
+
     val query = (fr"""
        select
            mappedbankaccount.theaccountid as account_id,
@@ -1302,13 +1363,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
            mappedbankaccount.accountlabel as account_label,
            mappedbankaccount.accountnumber as account_number,
            (select
-               string_agg(
-                   'user_id:'
-                   || resourceuser.userid_
-                   ||',provider:'
-                   ||resourceuser.provider_
-                   ||',user_name:'
-                   ||resourceuser.name_,
+               string_agg(""" ++ ownersConcat ++ fr""",
                 '::') as owners
             from resourceuser
             where
@@ -1318,11 +1373,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
            mappedbankaccount.accountcurrency as account_currency ,
            mappedbankaccount.accountbalance as account_balance,
            (select
-               string_agg(
-                   'bank_id:'
-                   ||bankaccountrouting.bankid
-                   ||',account_id:'
-                   ||bankaccountrouting.accountid,
+               string_agg(""" ++ routingConcat ++ fr""",
                    '::'
                    ) as account_routings
                from bankaccountrouting
@@ -1330,13 +1381,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                      bankaccountrouting.accountid = mappedbankaccount.theaccountid
             ),
            (select
-               string_agg(
-                       'type:'
-                       || mappedaccountattribute.mtype
-                       ||',code:'
-                       ||mappedaccountattribute.mcode
-                       ||',value:'
-                       ||mappedaccountattribute.mvalue,
+               string_agg(""" ++ attrConcat ++ fr""",
                    '::') as account_attributes
            from mappedaccountattribute
            where
@@ -1346,10 +1391,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 LEFT JOIN mapperaccountholders
                           ON (mappedbankaccount.bank = mapperaccountholders.accountbankpermalink and mappedbankaccount.theaccountid = mapperaccountholders.accountpermalink)
        WHERE mappedbankaccount.bank = ${bankId.value}
-       ORDER BY mappedbankaccount.theaccountid """ ++ Fragment.const(ordering) ++ fr"""
-       LIMIT $limit
-       OFFSET $offset
-       """)
+       ORDER BY mappedbankaccount.theaccountid """ ++ Fragment.const(ordering) ++ fr" " ++ pagination)
       .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.math.BigDecimal], Option[String], Option[String])]
       .to[List]
       .map(_.map { case (id, bankIdCol, label, number, owners, kind, currency, balance, routings, attributes) =>
@@ -1431,6 +1473,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       maps
     }
 
+    val routingConcat = if (code.api.util.DBUtil.isSqlServer) {
+      fr"CAST(CONCAT('scheme:', bankaccountrouting.accountroutingscheme, ',address:', bankaccountrouting.accountroutingaddress) AS NVARCHAR(MAX))"
+    } else {
+      fr"'scheme:' || bankaccountrouting.accountroutingscheme || ',address:' || bankaccountrouting.accountroutingaddress"
+    }
+
+    val attrConcat = if (code.api.util.DBUtil.isSqlServer) {
+      fr"CAST(CONCAT('type:', mappedaccountattribute.mtype, ',code:', mappedaccountattribute.mcode, ',value:', mappedaccountattribute.mvalue) AS NVARCHAR(MAX))"
+    } else {
+      fr"'type:' || mappedaccountattribute.mtype || ',code:' || mappedaccountattribute.mcode || ',value:' || mappedaccountattribute.mvalue"
+    }
+
+    val pagination = DoobieUtil.pagination(limit, offset)
+
     val query = (fr"""
        select
            mappedbankaccount.theaccountid as account_id,
@@ -1440,11 +1496,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
            mappedbankaccount.kind as kind,
            mappedbankaccount.mbranchid as branch_id,
            (select
-               string_agg(
-                   'scheme:'
-                   ||bankaccountrouting.accountroutingscheme
-                   ||',address:'
-                   ||bankaccountrouting.accountroutingaddress,
+               string_agg(""" ++ routingConcat ++ fr""",
                    '::'
                    ) as account_routings
                from bankaccountrouting
@@ -1453,13 +1505,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                  and bankaccountrouting.bankid = mappedbankaccount.bank
             ),
            (select
-               string_agg(
-                       'type:'
-                       || mappedaccountattribute.mtype
-                       ||',code:'
-                       ||mappedaccountattribute.mcode
-                       ||',value:'
-                       ||mappedaccountattribute.mvalue,
+               string_agg(""" ++ attrConcat ++ fr""",
                    '::') as account_attributes
            from mappedaccountattribute
            where
@@ -1468,9 +1514,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
        from mappedbankaccount
        WHERE mappedbankaccount.bank = ${bankId.value}
        ORDER BY mappedbankaccount.theaccountid """ ++ Fragment.const(ordering) ++ fr"""
-       LIMIT $limit
-       OFFSET $offset
-       """)
+       """ ++ pagination)
       .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])]
       .to[List]
       .map(_.map { case (id, bankIdCol, label, number, kind, branchId, routings, attributes) =>
@@ -1569,7 +1613,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def getCounterpartyTrait(bankId: BankId, accountId: AccountId, counterpartyId: String, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = {
-    getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId), callContext)
+    getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId), callContext).map { case (counterparty, callContext) =>
+      (counterparty.filter(found => found.thisBankId == bankId.value && found.thisAccountId == accountId.value), callContext)
+    }
   }
 
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId, callContext: Option[CallContext]): OBPReturnType[Box[CounterpartyTrait]] = Future {
@@ -1599,19 +1645,28 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     otherAccountSecondaryRoutingAddress: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[CounterpartyTrait]] = Future {
-    lazy val counterpartyFromRoutings= Counterparties.counterparties.vend.getCounterpartyByRoutings(
-      otherBankRoutingScheme: String,
-      otherBankRoutingAddress: String,
-      otherBranchRoutingScheme: String,
-      otherBranchRoutingAddress: String,
-      otherAccountRoutingScheme: String,
-      otherAccountRoutingAddress: String
-    )
+    // Empty routing values must never be used as a lookup key: matching on ("", "") returns an
+    // arbitrary counterparty that happens to have the field empty, and a payment to it goes to
+    // whatever account that counterparty points at. Same guard as getOrCreateCounterparty.
+    lazy val counterpartyFromRoutings =
+      if (otherAccountRoutingScheme.trim.nonEmpty && otherAccountRoutingAddress.trim.nonEmpty)
+        Counterparties.counterparties.vend.getCounterpartyByRoutings(
+          otherBankRoutingScheme: String,
+          otherBankRoutingAddress: String,
+          otherBranchRoutingScheme: String,
+          otherBranchRoutingAddress: String,
+          otherAccountRoutingScheme: String,
+          otherAccountRoutingAddress: String
+        )
+      else Empty
 
-    lazy val counterpartyFromSecondaryRouting = Counterparties.counterparties.vend.getCounterpartyBySecondaryRouting(
-      otherAccountSecondaryRoutingScheme: String,
-      otherAccountSecondaryRoutingAddress: String
-    )
+    lazy val counterpartyFromSecondaryRouting =
+      if (otherAccountSecondaryRoutingScheme.trim.nonEmpty && otherAccountSecondaryRoutingAddress.trim.nonEmpty)
+        Counterparties.counterparties.vend.getCounterpartyBySecondaryRouting(
+          otherAccountSecondaryRoutingScheme: String,
+          otherAccountSecondaryRoutingAddress: String
+        )
+      else Empty
 
     if(counterpartyFromRoutings.isDefined) {
       (counterpartyFromRoutings, callContext)
@@ -1951,6 +2006,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  override def deleteCardAttribute(cardAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
+    CardAttributeX.cardAttributeProvider.vend.deleteCardAttribute(cardAttributeId) map {
+      (_, callContext)
+    }
+
   override def createOrUpdateCardAttribute(
                                             bankId: Option[BankId],
                                             cardId: Option[String],
@@ -2257,7 +2317,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             settlementAccount.flatMap(settlementAccount => {
               val fromTransAmtSettlementAccount: BigDecimal = {
               // In the case we selected the default settlement account INCOMING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
-                if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && settlementAccount._1.currency != fromAccount.currency) {
+                if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, fromAccount.currency)) {
                   val rate = fx.exchangeRate(currency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
                   Try(-fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
                 } else fromTransAmt
@@ -2282,7 +2342,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             settlementAccount.flatMap(settlementAccount => {
               val toTransAmtSettlementAccount: BigDecimal = {
                 // In the case we selected the default settlement account OUTGOING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
-                if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && settlementAccount._1.currency != toAccount.currency) {
+                if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, toAccount.currency)) {
                   val rate = fx.exchangeRate(currency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
                   Try(fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
                 } else toTransAmt
@@ -2412,7 +2472,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             settlementAccount.flatMap(settlementAccount => {
               val fromTransAmtSettlementAccount = {
                 // In the case we selected the default settlement account INCOMING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
-                if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && settlementAccount._1.currency != fromAccount.currency) {
+                if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, fromAccount.currency)) {
                   val rate = fx.exchangeRate(transactionCurrency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
                   Try(-fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
                 } else fromTransAmt
@@ -2437,7 +2497,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             settlementAccount.flatMap(settlementAccount => {
               val toTransAmtSettlementAccount = {
                 // In the case we selected the default settlement account OUTGOING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
-                if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && settlementAccount._1.currency != toAccount.currency) {
+                if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, toAccount.currency)) {
                   val rate = fx.exchangeRate(transactionCurrency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
                   Try(fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
                 } else toTransAmt
@@ -2612,7 +2672,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           case Some(tagSet) => codesFromAttrs.filter(tagSet.contains)
           case None => codesFromAttrs
         }
-        MappedProduct.findAllByCodes(finalCodes)
+        // Product codes are unique only within a bank, so the bank has to be named here as well.
+        MappedProduct.findAllByBankAndCodes(bankId.value, finalCodes)
       }
     }
   }}.map(products => (products, callContext))
@@ -2625,15 +2686,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     def getProduct(bankId: BankId, productCode: ProductCode) =
       MappedProduct.find(bankId.value, productCode.value)
     
-    def getProductTre(bankId : BankId, productCode : ProductCode): List[Product] = {
+    // visited holds the codes already in the tree, so a product that is its own (or a cyclic) parent ends the walk instead of recursing until the stack overflows
+    def getProductTre(bankId : BankId, productCode : ProductCode, visited: Set[String]): List[Product] = {
       getProduct(bankId, productCode) match {
-        case Full(p) if p.parentProductCode.value.nonEmpty => p :: getProductTre(p.bankId, p.parentProductCode)
+        case Full(p) if visited.contains(p.code.value) => List() // code already in the tree: a parent cycle, stop here
+        case Full(p) if p.parentProductCode.value.nonEmpty => p :: getProductTre(p.bankId, p.parentProductCode, visited + p.code.value)
         case Full(p) => List(p)
         case _ => List()
       }
     }
 
-    Full(getProductTre(bankId : BankId, productCode : ProductCode))
+    Full(getProductTre(bankId : BankId, productCode : ProductCode, Set.empty[String]))
     
   }.map(product => (product, callContext))
 
@@ -3083,6 +3146,35 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (getCounterpartiesLegacy(thisBankId, thisAccountId, viewId, callContext) map (i => i._1), callContext)
   }
 
+  /**
+   * Who a newly created Bank is recorded as having been created by.
+   *
+   * The HUMAN, not the caller. Under a Consent the caller is the per-consent agent identity, which
+   * dies with the Consent — a bank stamped with it would drop out of every "banks created by me"
+   * read the moment the consent was revoked. Seen in the wild 2026-09-03: a bank created through
+   * Opey under a temporary consent had `createdbyuserid` set to the consent user.
+   *
+   * Two sources, in the order CallContext.onBehalfOfUserId uses:
+   *  - the request layer (`consentCreator` / `consenter`) knows things the stored chain cannot,
+   *    because a Berlin Group / UK consent carries its consenter on the request;
+   *  - otherwise the attribution, which walks the stored consent chain, applies the
+   *    `Bank_CreatedByUserId` policy and is the one place a delegated write is logged.
+   *
+   * ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
+   */
+  private def bankCreatorUserId(callContext: Option[CallContext]): String =
+    callContext.flatMap(_.user.toOption).map(_.userId).filter(_.nonEmpty) match {
+      case None => ""
+      case Some(callerUserId) =>
+        val fromStoredChain = Users.users.vend
+          .attributedUserId(callerUserId, code.users.UserReference.Bank_CreatedByUserId)
+          .openOr(callerUserId)
+        callContext
+          .flatMap(cc => cc.consentCreator.or(cc.consenter).toOption)
+          .map(_.userId).filter(_.nonEmpty)
+          .getOrElse(fromStoredChain)
+    }
+
   override def createOrUpdateBank(
                                    bankId: String,
                                    fullBankName: String,
@@ -3108,7 +3200,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           // Only a create records who made the bank; an update leaves the original creator alone.
           MappedBank.insert(bankId, fullBankName, shortBankName, logoURL, websiteURL, swiftBIC,
             national_identifier, bankRoutingScheme, bankRoutingAddress,
-            callContext.map(_.user).flatMap(_.toOption).map(_.userId).getOrElse(""))
+            bankCreatorUserId(callContext))
         } ?~! ErrorMessages.UpdateBankError
     }
 
@@ -3550,7 +3642,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                            value: String,
                                            callContext: Option[CallContext]): OBPReturnType[Box[UserAuthContextUpdate]] = {
     val consumerId = callContext.map(_.consumer.map(_.consumerId).getOrElse("")).getOrElse("")
-    UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.createUserAuthContextUpdates(userId,consumerId, key, value) map {
+    // This connector method has no bank, so the update it creates is bound to none and its answer is refused
+    // at every bank. validateUserAuthContextUpdateRequest creates updates bound to their bank.
+    UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.createUserAuthContextUpdates(userId, consumerId, "", key, value) map {
       (_, callContext)
     }
   }
@@ -4442,6 +4536,75 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     */
 
 
+  /**
+   * This works out which person has to answer the Strong Customer Authentication challenge for a
+   * payment, which is not always the caller that started that payment.
+   *
+   * A payment can be started by an agent: a consent user, minted by a Consent that a person granted
+   * to an application such as Opey or an MCP client. The money being moved is still the person's, so
+   * the challenge has to reach that person. They are the one an OTP can actually be delivered to --
+   * an agent identity has no email address and no phone number of its own -- and they are the one
+   * whose authorisation Strong Customer Authentication exists to obtain in the first place. Leaving
+   * the challenge on the agent gives one of two bad outcomes: on an instance that sends a real OTP
+   * nothing is delivered and the payment sits at INITIATED for ever behind a challenge nobody can
+   * answer, and on an instance configured with the DUMMY SCA method the agent simply authorises its
+   * own payment.
+   *
+   * The person is read back from the transaction request that has just been written rather than
+   * resolved a second time here. That row has already applied
+   * UserReference.TransactionRequest_UserId to the caller, and it also honours the consentCreator /
+   * consenter that a Berlin Group or UK consent carries on the request itself, which the stored
+   * consent chain cannot know. Reading it back keeps the challenge and the payment naming one and
+   * the same person, where a second independent resolution could drift from it. The policy
+   * governing the column this ends up in is
+   * UserReference.ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest.
+   *
+   * @return the person to address the challenge to, or a Failure when no such person can be
+   *         determined. That happens when the caller is an agent whose Consent does not name the
+   *         person it acts for, and it is deliberately fail-closed: the payment is refused rather
+   *         than parked behind a challenge that can never be answered.
+   */
+  // Visible to the rest of `code` rather than fully private so that AgentDelegationTest can put the
+  // decision itself under test; driving it through createTransactionRequestv210 would need a whole
+  // bank, account and view fixture to reach one branch.
+  private[code] def paymentChallengeRecipient(transactionRequest: TransactionRequest, initiator: User): Box[User] = {
+    // Applying the policy here is what logs the delegation against the column about to be written,
+    // and it is what decides the answer if the transaction request row carries none.
+    val attributedUserId: Option[String] = Users.users.vend
+      .attributionOf(initiator.userId, code.users.UserReference.ExpectedChallengeAnswer_ExpectedUserId_TransactionRequest)
+      .toOption.map(_.onBehalfOfUserId).filter(_.nonEmpty)
+    val recipientUserId = transactionRequest.on_behalf_of_user_id.filter(_.nonEmpty)
+      .orElse(attributedUserId)
+      .getOrElse(initiator.userId)
+    if (recipientUserId == initiator.userId) {
+      // The caller is acting for themselves. This is the ordinary case for a person logging in
+      // directly, and it is also what a broken consent chain collapses to, so an agent that has
+      // landed here must still be refused.
+      if (initiator.isOriginalUser) Full(initiator)
+      else {
+        logger.warn(s"paymentChallengeRecipient says: the caller (${initiator.userId}) of transaction request " +
+          s"(${transactionRequest.id.value}) is a consent user and its Consent does not name the user it acts for, " +
+          s"so there is nobody to address the payment challenge to. Refusing the payment.")
+        Failure(PaymentChallengeHasNoOnBehalfOfUser)
+      }
+    } else {
+      // Delegated. The plan's invariant is that an on-behalf-of user is always an original user, so
+      // a stored chain saying otherwise is a data bug, and it is refused rather than acted on.
+      Users.users.vend.getUserByUserId(recipientUserId) match {
+        case Full(recipient) if recipient.isOriginalUser => Full(recipient)
+        case Full(_) =>
+          logger.warn(s"paymentChallengeRecipient says: the on-behalf-of user ($recipientUserId) of transaction " +
+            s"request (${transactionRequest.id.value}) is itself a consent user, which breaks the one-hop " +
+            s"invariant. Refusing the payment.")
+          Failure(PaymentChallengeHasNoOnBehalfOfUser)
+        case _ =>
+          logger.warn(s"paymentChallengeRecipient says: the on-behalf-of user ($recipientUserId) of transaction " +
+            s"request (${transactionRequest.id.value}) does not exist. Refusing the payment.")
+          Failure(PaymentChallengeHasNoOnBehalfOfUser)
+      }
+    }
+  }
+
   override def createTransactionRequestv210(initiator: User,
                                             viewId: ViewId,
                                             fromAccount: BankAccount,
@@ -4541,11 +4704,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           }
         case TransactionRequestStatus.INITIATED =>
           for {
+            // The challenge belongs to the person the payment is for, who is not the caller when an
+            // agent started it. See paymentChallengeRecipient.
+            challengeRecipient <- Future { paymentChallengeRecipient(transactionRequest, initiator) } map {
+              unboxFullOrFail(_, callContext, PaymentChallengeHasNoOnBehalfOfUser, 400)
+            }
             //if challenge necessary, create a new one
             (challengeId, callContext) <- createChallenge(
               fromAccount.bankId,
               fromAccount.accountId,
-              initiator.userId,
+              challengeRecipient.userId,
               transactionRequestType: TransactionRequestType,
               transactionRequest.id.value,
               scaMethod,
@@ -4713,7 +4881,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           } else {
             // return the lists of users, who need to be answered the challenges
             def getUsersForChallenges(bankId: BankId,
-                                      accountId: AccountId) = {
+                                      accountId: AccountId,
+                                      challengeRecipient: User) = {
               Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
                 _._1.map {
                   x => {
@@ -4721,21 +4890,38 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                       for (
                         permission <- Views.views.vend.permissions(BankIdAccountId(bankId, accountId))
                       ) yield {
-                        permission.views.exists(view =>view.view.allowed_actions.exists( _ == CAN_ANSWER_TRANSACTION_REQUEST_CHALLENGE))
+                        // An agent that holds a view on this account is skipped even when that view
+                        // carries the permission: a payment challenge is answered by a person, and
+                        // an agent identity has no email address or phone number an OTP could reach.
+                        // See paymentChallengeRecipient for the whole argument.
+                        (permission.views.exists(view =>view.view.allowed_actions.exists( _ == CAN_ANSWER_TRANSACTION_REQUEST_CHALLENGE)) &&
+                          permission.user.isOriginalUser)
                         match {
                           case true => Some(permission.user)
                           case _ => None
                         }
                       }
-                    } else List(Some(initiator))
+                    } else List(Some(challengeRecipient))
                   }.flatten.distinct
                 }
               }
             }
   
+            // How many of those users have to answer, as getUsersForChallenges reads it.
+            def requiredChallengeAnswers(bankId: BankId, accountId: AccountId): Future[Int] =
+              Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
+                _._1.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
+              }
+
             for {
+              // The challenge belongs to the person the payment is for, who is not the caller when
+              // an agent started it. See paymentChallengeRecipient.
+              challengeRecipient <- Future { paymentChallengeRecipient(transactionRequest, initiator) } map {
+                unboxFullOrFail(_, callContext, PaymentChallengeHasNoOnBehalfOfUser, 400)
+              }
               //if challenge necessary, create a new one
-              users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId)
+              users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId, challengeRecipient)
+              requiredAnswers <- requiredChallengeAnswers(fromAccount.bankId, fromAccount.accountId)
               //now we support multiple challenges. We can support multiple people to answer the challenges.
               //So here we return the challengeIds. 
               (challenges, callContext) <- Connector.connector.vend.createChallengesC2(
@@ -4747,8 +4933,21 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 consentId = None, // Note: consentId and transactionRequestId are exclusive here.
                 authenticationMethodId = None,
                 callContext = callContext
-                ) map { i =>
-                (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
+                ) flatMap {
+                case (Full(challenges), callContext) if challenges.length >= requiredAnswers => Future.successful((challenges, callContext))
+                case (result, callContext) =>
+                  // With fewer challenges than the answers it needs, the request can never be answered.
+                  val mayAnswer = users.toList.flatten.size
+                  val failure: Box[List[ChallengeTrait]] = result match {
+                    case _ if mayAnswer < requiredAnswers =>
+                      Failure(s"$ChallengeAnswerersTooFew $mayAnswer may answer, $requiredAnswers answers are required.")
+                    case Full(challenges) =>
+                      Failure(s"$ChallengeRecipientNotFound ${challenges.length} of the $requiredAnswers users who have to answer could be sent a challenge.")
+                    case other => other
+                  }
+                  saveTransactionRequestStatusImpl(transactionRequest.id, TransactionRequestStatus.FAILED.toString, callContext) map { _ =>
+                    (unboxFullOrFail(failure, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), callContext)
+                  }
               }
              
               //NOTE:this is only for Backward compatibility, now we use the MappedExpectedChallengeAnswer tables instead of the single field in TransactionRequest.
@@ -4849,9 +5048,54 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId).map(transactionRequest => (transactionRequest, callContext))
 
   override def getTransactionRequestTypes(initiator: User, fromAccount: BankAccount, callContext: Option[CallContext]):Box[(List[TransactionRequestType], Option[CallContext])] = {
-    Full((APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").map(x => TransactionRequestType(x)).toList, callContext))
+    Full((APIUtil.advertisedTransactionRequestTypes.map(x => TransactionRequestType(x)), callContext))
   }
   
+  /**
+   * This finds the counterparty a SIMPLE transaction request pays, when its challenge is answered.
+   *
+   * The counterparty was resolved from the payer's routing when the request was created, and its id
+   * is recorded on the request (`LocalMappedConnectorInternal.recordTransactionRequestCounterparty`).
+   * When the id is there, that counterparty is paid and nothing is resolved again.
+   *
+   * Requests created before the id was recorded have only the routing in their body, as the payer
+   * wrote it. Resolving that used to pay an unrelated account: the schemes were stored normalised
+   * (`obp` as `OBP`) but looked up as written, so the case-sensitive match missed, and the fallback
+   * to the secondary routing then matched ("", "") and returned any counterparty with an empty
+   * secondary routing, owned by anyone. For those requests the routing is now normalised the same
+   * way as at creation, an empty routing is never used as a lookup key, and only counterparties of
+   * the paying account are considered. If none matches, the payment fails rather than guess.
+   */
+  private def simpleTransactionRequestCounterparty(
+    transactionRequest: TransactionRequest,
+    fromAccount: BankAccount,
+    bodyToSimple: TransactionRequestSimple,
+    callContext: Option[CallContext]
+  ): OBPReturnType[CounterpartyTrait] = {
+    val recordedCounterpartyId = Option(transactionRequest.counterparty_id).flatMap(id => Option(id.value)).filter(_.trim.nonEmpty)
+    recordedCounterpartyId match {
+      case Some(counterpartyId) =>
+        NewStyle.function.getCounterpartyByCounterpartyId(CounterpartyId(counterpartyId), callContext)
+      case None => Future {
+        def normalisedScheme(scheme: String): String = net.liftweb.util.StringHelpers.snakify(scheme).toUpperCase
+        val byPrimaryRouting: Box[CounterpartyTrait] =
+          if (bodyToSimple.otherAccountRoutingScheme.trim.nonEmpty && bodyToSimple.otherAccountRoutingAddress.trim.nonEmpty)
+            MappedCounterparty.findByRoutingsOfAccount(fromAccount.bankId.value, fromAccount.accountId.value,
+              normalisedScheme(bodyToSimple.otherBankRoutingScheme), bodyToSimple.otherBankRoutingAddress,
+              normalisedScheme(bodyToSimple.otherBranchRoutingScheme), bodyToSimple.otherBranchRoutingAddress,
+              normalisedScheme(bodyToSimple.otherAccountRoutingScheme), bodyToSimple.otherAccountRoutingAddress)
+          else Empty
+        val bySecondaryRouting: Box[CounterpartyTrait] =
+          if (byPrimaryRouting.isEmpty &&
+            bodyToSimple.otherAccountSecondaryRoutingScheme.trim.nonEmpty && bodyToSimple.otherAccountSecondaryRoutingAddress.trim.nonEmpty)
+            MappedCounterparty.findBySecondaryRoutingOfAccount(fromAccount.bankId.value, fromAccount.accountId.value,
+              normalisedScheme(bodyToSimple.otherAccountSecondaryRoutingScheme), bodyToSimple.otherAccountSecondaryRoutingAddress)
+          else Empty
+        (unboxFullOrFail(byPrimaryRouting or bySecondaryRouting, callContext, CounterpartyNotFoundByRoutings, 400), callContext)
+      }
+    }
+  }
+
   override def createTransactionAfterChallengeV210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
     // OPEN_CORRIDOR_PROMISE never posts at challenge-answer: a successfully answered challenge
     // (four-eyes control) admits the promise into the corridor at PENDING, where it accumulates
@@ -4903,7 +5147,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               body.to_counterparty.get
             }
             counterpartyId = CounterpartyId(bodyToCounterparty.counterparty_id)
-            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByCounterpartyId(counterpartyId, callContext)
+            // The payee was checked against the paying account when the request was created; check it again
+            // here, so a stored request can never pay a counterparty of another account.
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyTrait(fromAccount.bankId, fromAccount.accountId, counterpartyId.value, callContext)
             (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
             counterpartyBody = TransactionRequestBodyCounterpartyJSON(
               to = CounterpartyIdJson(counterpartyId.value),
@@ -4966,17 +5212,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             bodyToSimple <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON", 400, callContext) {
               body.to_simple.get
             }
-            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByRoutings(
-              bodyToSimple.otherBankRoutingScheme,
-              bodyToSimple.otherBankRoutingAddress,
-              bodyToSimple.otherBranchRoutingScheme,
-              bodyToSimple.otherBranchRoutingAddress,
-              bodyToSimple.otherAccountRoutingScheme,
-              bodyToSimple.otherAccountRoutingAddress,
-              bodyToSimple.otherAccountSecondaryRoutingScheme,
-              bodyToSimple.otherAccountSecondaryRoutingAddress,
-              callContext
-            )
+            (toCounterparty, callContext) <- simpleTransactionRequestCounterparty(transactionRequest, fromAccount, bodyToSimple, callContext)
             (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
             counterpartyBody = TransactionRequestBodySimpleJsonV400(
               to = PostSimpleCounterpartyJson400(
@@ -5030,6 +5266,31 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 for {
                   (fromCounterparty, callContext) <- NewStyle.function.getCounterpartyByIbanAndBankAccountId(fromCounterpartyIban, toAccount.bankId, toAccount.accountId, callContext)
                   (fromAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(fromCounterparty, false, callContext)
+                  // Here the caller is the party being refunded, so the money comes from the other party.
+                  // The caller was authorised only on their own account, so the other party may not be an
+                  // account on this instance: OBP-API can't debit an account the caller has no access to.
+                  // The other party is an external account, and the payment goes through an adapter
+                  // (for example a SEPA recall that the other bank has accepted).
+                  (otherPartyAccountOnThisInstance, callContext) <- checkBankAccountExists(fromAccount.bankId, fromAccount.accountId, callContext)
+                  _ <- Helper.booleanToFuture(
+                    s"$InsufficientAuthorisationToCreateTransactionRequest A REFUND can't debit the account BANK_ID(${fromAccount.bankId.value}) ACCOUNT_ID(${fromAccount.accountId.value}), because the caller is not authorised on it.",
+                    cc = callContext) {
+                    otherPartyAccountOnThisInstance.isEmpty
+                  }
+                  // Money from an external account can only arrive through an adapter that really collects
+                  // it (the SEPA adapter routes makePaymentv210 to itself). When this connector would make
+                  // the payment, it would credit the account from a stand-in for the external account with
+                  // no money behind it, so the refund is refused.
+                  paymentConnectorName = code.api.Constant.CONNECTOR.openOr("mapped") match {
+                    case "star" => code.bankconnectors.getConnectorNameAndMethodRouting(
+                      "makePaymentv210", Array[(String, AnyRef)]("bankId" -> toAccount.bankId.value))._2
+                    case connectorName => connectorName
+                  }
+                  _ <- Helper.booleanToFuture(
+                    s"$InvalidTransactionRequestType A REFUND that takes money from an external account needs an adapter that makes the payment (makePaymentv210); on this instance it would be made by the $paymentConnectorName connector.",
+                    cc = callContext) {
+                    paymentConnectorName != "mapped"
+                  }
                 } yield (fromAccount, toAccount, callContext)
               }
             }
@@ -5192,8 +5453,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       }
       //1st: check if the customer is existing 
       (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(value, BankId(bankId), callContext)
-      //2rd: if the customer is existing, we can create the userAuthContextUpdateChallenge
-      (userAuthContextUpdate, callContext) <- NewStyle.function.createUserAuthContextUpdate(userId, key, value, callContext)
+      //2rd: if the customer is existing, we can create the userAuthContextUpdateChallenge, bound to this bank and only answerable here
+      consumerId = callContext.map(_.consumer.map(_.consumerId).getOrElse("")).getOrElse("")
+      userAuthContextUpdate <- UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend
+        .createUserAuthContextUpdates(userId, consumerId, bankId, key, value)
+        .map(update => unboxFullOrFail(update, callContext, CreateUserAuthContextError, 400))
       //3rd: send the challenge to the user.
       _ <- Future{
         scaMethod match {
@@ -5837,7 +6101,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     orderId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketOrder]] = Future {
-    val order = Option(marketOrders.get(orderId))
+    // the order must belong to the account in the path, else anyone with access to one account reads any order
+    val order = Option(marketOrders.get(orderId)).filter(_.accountId == accountId.value)
     (Box(order), callContext)
   }
 
@@ -5847,7 +6112,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     orderId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketOrder]] = Future {
-    val order = Option(marketOrders.get(orderId))
+    // the order must belong to the account in the path, else anyone with access to one account cancels any order
+    val order = Option(marketOrders.get(orderId)).filter(_.accountId == accountId.value)
 
     order match {
       case Some(o) =>
@@ -5917,7 +6183,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     tradeId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[MarketTrade]] = Future {
-    val trade = Option(marketTrades.get(tradeId))
+    // the trade's buy or sell order must belong to the account in the path, else anyone with access to one account reads any trade
+    val trade = Option(marketTrades.get(tradeId)).filter(t =>
+      List(t.buyOrderId, t.sellOrderId).exists(orderId => Option(marketOrders.get(orderId)).exists(_.accountId == accountId.value))
+    )
     (Box(trade), callContext)
   }
 

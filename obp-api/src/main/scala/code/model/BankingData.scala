@@ -432,7 +432,11 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext) match {
       case Full(true) =>
         for{
-          (counterparty, callContext) <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(counterpartyID), callContext)
+          (counterpartyFoundById, callContext) <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(counterpartyID), callContext)
+          // The lookup by id searches every account, but the caller's access was checked for this account only,
+          // so a counterparty that belongs to another account is treated as not found.
+          counterparty = counterpartyFoundById.filter(found =>
+            found.thisBankId == bankIdAccountId.bankId.value && found.thisAccountId == bankIdAccountId.accountId.value)
           moderateOtherAccount <- if(counterparty.isDefined) {
            Future{
             counterparty.map(BankAccountX.toInternalCounterparty).flatten.map(view.moderateOtherAccount).flatten

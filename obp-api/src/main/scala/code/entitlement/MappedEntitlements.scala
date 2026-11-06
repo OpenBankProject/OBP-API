@@ -27,7 +27,6 @@ TESOBE (http://www.tesobe.com/)
 
 package code.entitlement
 
-import code.api.dynamic.entity.helper.DynamicEntityInfo
 import code.api.Constant
 import code.api.util.{APIUtil, DoobieUtil, NotificationUtil}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -35,6 +34,8 @@ import doobie._
 import doobie.implicits._
 import doobie.implicits.javasql._
 import net.liftweb.common.{Box, Empty, Failure, Full}
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
+import code.api.dynamic.entity.helper.{DynamicEntityInfo, DynamicEntitySpace}
 import code.api.util.ApiRole.{
   CanCreateEntitlementAtAnyBank,
   CanCreateEntitlementAtOneBank
@@ -189,6 +190,22 @@ object MappedEntitlement {
       true
     }
 
+  def updateGroupId(entitlementId: String, groupId: String): Int =
+    DoobieUtil.runUpdate(
+      sql"""UPDATE mappedentitlement SET group_id = ${Option(groupId)},
+              updatedat = ${new java.sql.Timestamp(System.currentTimeMillis())}
+            WHERE mentitlementid = $entitlementId""".update.run)
+
+  /** Matching Mapper's ByList on both columns: an empty list on either side deletes nothing. */
+  def deleteByRoleNamesAndBankIds(roleNames: List[String], bankIds: List[String]): Boolean =
+    if (roleNames.isEmpty || bankIds.isEmpty) true
+    else {
+      val roles = Fragments.in(fr"mrolename", cats.data.NonEmptyList.fromListUnsafe(roleNames.distinct))
+      val banks = Fragments.in(fr"mbankid", cats.data.NonEmptyList.fromListUnsafe(bankIds.distinct))
+      DoobieUtil.runUpdate((fr"DELETE FROM mappedentitlement WHERE " ++ roles ++ fr"AND" ++ banks).update.run)
+      true
+    }
+
   def deleteByBankIdAndUserIds(bankId: String, userIds: List[String]): Boolean =
     if (userIds.isEmpty) true
     else {
@@ -252,8 +269,23 @@ object MappedEntitlementsProvider extends EntitlementProvider with MdcLoggable {
         findEntitlement.roleName)
     } yield MappedEntitlement.deleteByEntitlementId(foundEntitlement.entitlementId)
 
-  override def deleteDynamicEntityEntitlement(entityName: String, bankId: Option[String]): Box[Boolean] =
-    deleteEntitlements(DynamicEntityInfo.roleNames(entityName, bankId))
+  override def setEntitlementGroupId(entitlementId: String, groupId: String): Box[Entitlement] =
+    MappedEntitlement.findByEntitlementId(entitlementId).flatMap { _ =>
+      tryo(MappedEntitlement.updateGroupId(entitlementId, groupId)).flatMap(_ => MappedEntitlement.findByEntitlementId(entitlementId))
+    }
+
+  override def deleteDynamicEntityEntitlement(entityName: String, bankId: Option[String]): Box[Boolean] = {
+    val roleNames = DynamicEntityInfo.roleNames(entityName, bankId)
+    // A Role name carries no bank (CanGetDynamicEntityRecord_country), so the same names serve an
+    // entity of this name in every space: deleting by name alone would take every bank's grants with
+    // it. Only the grants of the deleted entity's space go: its bank id, or for the system space SYS
+    // and the empty bank id older grants were written at.
+    val bankIds = DynamicEntitySpace.bankIdOrNoneForSystem(bankId.getOrElse("")) match {
+      case Some(bank) => List(bank)
+      case None => List(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, "")
+    }
+    Box.tryo(MappedEntitlement.deleteByRoleNamesAndBankIds(roleNames, bankIds))
+  }
 
   override def deleteEntitlements(entityNames: List[String]): Box[Boolean] =
     Box.tryo(MappedEntitlement.deleteByRoleNames(entityNames))
@@ -280,8 +312,8 @@ object MappedEntitlementsProvider extends EntitlementProvider with MdcLoggable {
     // (ConsentEntitlementUser); every other grant is written to the on-behalf-of user
     // (EntitlementUser). The resolver logs the redirect. ON_BEHALF_OF_USER_ID_PLAN.md.
     val ref =
-      if (createdByProcess == code.api.Constant.consent_user) code.users.UserReference.ConsentEntitlementUser
-      else code.users.UserReference.EntitlementUser
+      if (createdByProcess == code.api.Constant.consent_user) code.users.UserReference.Entitlement_UserId_ConsentScope
+      else code.users.UserReference.Entitlement_UserId
     val targetUserId = code.users.Users.users.vend.attributedUserId(userId, ref) match {
       case Full(id) => id
       case f: Failure => return f

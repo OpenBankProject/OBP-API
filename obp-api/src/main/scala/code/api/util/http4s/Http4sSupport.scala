@@ -83,6 +83,17 @@ object Http4sRequestAttributes {
     Key.newKey[IO, CallContext].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
 
   /**
+   * Vault key for the traffic note of a request: what inner layers learn about it (its endpoint, its
+   * Consumer, a refusal) for TrafficSources, which Http4sApp records once the response is ready.
+   * Installed by Http4sApp on every request; bridge hops keep it, because `withUri` keeps attributes.
+   */
+  val trafficNoteKey: Key[code.telemetry.TrafficSources.Note] =
+    Key.newKey[IO, code.telemetry.TrafficSources.Note].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
+
+  /** The request's traffic note, when Http4sApp installed one (tests that call routes directly have none). */
+  def trafficNote(req: Request[IO]): Option[code.telemetry.TrafficSources.Note] = req.attributes.lookup(trafficNoteKey)
+
+  /**
    * Vault key for caching the (already-read) request body across bridge cascade hops.
    *
    * Http4s body streams are single-shot: `request.bodyText.compile.string` drains the stream.
@@ -95,6 +106,13 @@ object Http4sRequestAttributes {
     Key.newKey[IO, Option[String]].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
 
   /**
+   * Set on a response whose body is a file's bytes (EndpointHelpers.executeAndRespondBytes), so that
+   * ResourceDocMiddleware keeps its Content-Type instead of making it application/json.
+   */
+  val fileContentResponseKey: Key[Unit] =
+    Key.newKey[IO, Unit].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
+
+  /**
    * Vault key for how the caller's certificate was established — the full PeerTrust.Resolution,
    * from which the CallContext takes certificateTrust (the mode: "direct" / "forwarded" / "none")
    * and certificateTrustDetail (the forwarding proxy's subject DN, or the rejection reason).
@@ -105,26 +123,6 @@ object Http4sRequestAttributes {
    */
   val callerCertificateTrustKey: Key[code.api.util.PeerTrust.Resolution] =
     Key.newKey[IO, code.api.util.PeerTrust.Resolution].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
-
-  /** Outcome of resolving the caller from the request credentials: the user (or a Failure) and the
-    * CallContext enriched by that resolution (Consumer, session, rate-limit config, ...). */
-  type ResolvedCaller = (Box[User], Option[CallContext])
-
-  /**
-   * The caller resolved on THIS request by a fallthrough hop that has no ResourceDoc for it (see
-   * ResourceDocMiddleware.resolveCallerOnce). Http4sApp attaches one empty holder to each incoming
-   * request; the first such hop fills it and every later link of the version fallthrough chain
-   * reads it instead of re-validating the credentials (JWKS lookups, Consumer lookup and save).
-   * The holder is a request attribute: it lives in memory for the duration of that one request,
-   * is never stored anywhere else and is unreachable from any other request. When it is absent
-   * (e.g. the middleware used on its own in a test) the middleware still resolves, just on every hop.
-   */
-  val callerResolvedOnThisRequestKey: Key[java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]]] =
-    Key.newKey[IO, java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]]].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
-
-  def newCallerResolvedOnThisRequest: java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]] =
-    new java.util.concurrent.atomic.AtomicReference[Option[ResolvedCaller]](None)
-
 
   /**
    * Implicit class that adds .callContext accessor to Request[IO].
@@ -181,8 +179,22 @@ object Http4sRequestAttributes {
         case (r, (name, value)) => r.putHeaders(Header.Raw(CIString(name), value))
       }
 
+    /**
+     * Renders a handler's result as JSON. On the way it records, for Telemetry, how many items a
+     * list response carried. The count is taken from the JSON this method builds for rendering, so
+     * the result is not decomposed a second time. What counting does cost, on a list response, is
+     * one walk of the list (json4s holds array elements in a linked List, whose size is counted),
+     * a registry lookup of the operation's meter, and an atomic update: small next to decomposing
+     * and rendering the same list, but not nothing.
+     */
+    private def renderJson[A](result: A)(implicit formats: Formats, cc: CallContext): String = {
+      val json = Extraction.decompose(result)
+      cc.operationId.foreach(operationId => code.telemetry.Telemetry.recordResponseItems(operationId, json))
+      prettyRender(json)
+    }
+
     private def toJsonOk[A](result: A)(implicit formats: Formats, cc: CallContext): IO[Response[IO]] = {
-      val jsonString = prettyRender(Extraction.decompose(result))
+      val jsonString = renderJson(result)
       Ok(jsonString, jsonContentType).map(withCallContextHeaders)
     }
 
@@ -195,14 +207,31 @@ object Http4sRequestAttributes {
     // Not fired as a background fiber: response waits for metric to be written,
     // matching v6 behaviour and avoiding unbounded concurrent H2 write contention.
     private def recordMetric(responseBody: Any, response: Response[IO])(implicit cc: CallContext): IO[Unit] =
-      if (!code.metrics.MetricsProps.writeMetrics) IO.unit
+      IO(WriteMetricUtil.recordConsumerLastCall(cc.consumer.map(_.consumerId).toOption, cc.startTime)) >>
+      (if (!code.metrics.MetricsProps.writeMetrics) IO.unit
       else IO.blocking {
         val endTime = new Date()
         val duration = cc.startTime.map(s => endTime.getTime - s.getTime).getOrElse(-1L)
         val ccLight = cc.copy(httpCode = Some(response.status.code), endTime = Some(endTime)).toLight
         logger.info(s"Endpoint (${cc.verb}) ${cc.url} returned ${response.status.code}, took $duration Milliseconds")
         WriteMetricUtil.writeEndpointMetric(responseBody, Some(ccLight))
-      }
+      })
+
+    /**
+     * This records the endpoint metric for a response that was built outside these helpers, such as
+     * the handler of a Dynamic Resource Doc, which builds its own Response. Every other endpoint gets
+     * its metric from the helper it runs in; without this, calls to those handlers left no metric row.
+     *
+     * The body is read only when metrics are written at all. Those handlers build their bodies from
+     * in-memory strings, so reading it here does not consume what the client receives.
+     */
+    def recordMetricFor(response: Response[IO])(implicit cc: CallContext): IO[Response[IO]] =
+      if (!code.metrics.MetricsProps.writeMetrics)
+        IO(WriteMetricUtil.recordConsumerLastCall(cc.consumer.map(_.consumerId).toOption, cc.startTime)).as(response)
+      else response.bodyText.compile.string.flatMap { text =>
+        val body: Any = scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(text)).getOrElse(text)
+        recordMetric(body, response)
+      }.as(response)
 
     /**
      * Execute Future-based business logic and return JSON response.
@@ -215,6 +244,48 @@ object Http4sRequestAttributes {
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
+
+    /** A file's bytes and what to send with them; see [[executeAndRespondBytes]]. */
+    case class BytesResponse(bytes: Array[Byte], mediaType: MediaType, fileName: String, inline: Boolean,
+                             etag: String, cacheControl: String, metricSummary: Map[String, Any])
+
+    /**
+     * Execute Future-based business logic that returns a file's bytes rather than JSON: 200 with the
+     * file's own Content-Type. Errors are JSON, converted via ErrorResponseConverter, as everywhere else.
+     *
+     * The bytes may come from anyone, so the response stops a browser treating them as anything other
+     * than the declared type: X-Content-Type-Options nosniff, and a sandbox Content-Security-Policy so a
+     * document opened from this origin cannot run scripts. The metric records metricSummary, never the bytes.
+     */
+    def executeAndRespondBytes(req: Request[IO])(f: CallContext => Future[BytesResponse]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      RequestScopeConnection.fromFuture(f(cc)).attempt.flatMap {
+        case Right(file) =>
+          val disposition = (if (file.inline) "inline" else "attachment") +
+            "; filename=\"" + file.fileName.replaceAll("[\"\\\\\r\n]", "_") + "\""
+          val response = Response[IO](Status.Ok)
+            .withEntity(file.bytes)
+            .withContentType(`Content-Type`(file.mediaType))
+            .putHeaders(
+              Header.Raw(CIString("Content-Disposition"), disposition),
+              Header.Raw(CIString("X-Content-Type-Options"), "nosniff"),
+              Header.Raw(CIString("Content-Security-Policy"), "sandbox; default-src 'none'"),
+              Header.Raw(CIString("ETag"), "\"" + file.etag + "\""),
+              Header.Raw(CIString("Cache-Control"), file.cacheControl))
+          IO.pure(withCallContextHeaders(response).withAttribute(Http4sRequestAttributes.fileContentResponseKey, ()))
+            .flatTap(recordMetric(file.metricSummary, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /** [[executeAndRespondBytes]] for a validated User. */
+    def withUserBytes(req: Request[IO])(f: (User, CallContext) => Future[BytesResponse]): IO[Response[IO]] =
+      executeAndRespondBytes(req) { cc =>
+        cc.user.toOption match {
+          case Some(user) => f(user, cc)
+          case None => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
+        }
+      }
 
     /**
      * Execute business logic requiring validated User.
@@ -278,7 +349,7 @@ object Http4sRequestAttributes {
       } yield result
       io.attempt.flatMap {
         case Right(result) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
@@ -322,7 +393,7 @@ object Http4sRequestAttributes {
         case Right(body) =>
           RequestScopeConnection.fromFuture(f(body, cc)).attempt.flatMap {
             case Right(result) =>
-              val jsonString = prettyRender(Extraction.decompose(result))
+              val jsonString = renderJson(result)
               Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
@@ -364,7 +435,7 @@ object Http4sRequestAttributes {
           } yield result
           io.attempt.flatMap {
             case Right(result) =>
-              val jsonString = prettyRender(Extraction.decompose(result))
+              val jsonString = renderJson(result)
               Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
@@ -408,7 +479,7 @@ object Http4sRequestAttributes {
           } yield result
           io.attempt.flatMap {
             case Right(result) =>
-              val jsonString = prettyRender(Extraction.decompose(result))
+              val jsonString = renderJson(result)
               Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
@@ -446,7 +517,7 @@ object Http4sRequestAttributes {
       } yield result
       io.attempt.flatMap {
         case Right(result) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
@@ -469,7 +540,7 @@ object Http4sRequestAttributes {
           } yield result
           io.attempt.flatMap {
             case Right(result) =>
-              val jsonString = prettyRender(Extraction.decompose(result))
+              val jsonString = renderJson(result)
               Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
@@ -534,7 +605,7 @@ object Http4sRequestAttributes {
       implicit val cc: CallContext = req.callContext
       RequestScopeConnection.fromFuture(f).attempt.flatMap {
         case Right(result) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           Created(jsonString, jsonContentType).map(withCallContextHeaders).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
@@ -554,7 +625,7 @@ object Http4sRequestAttributes {
       implicit val cc: CallContext = req.callContext
       RequestScopeConnection.fromFuture(f).attempt.flatMap {
         case Right((result, code)) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           val status = Status.fromInt(code).getOrElse(Status.Ok)
           IO.pure(withCallContextHeaders(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType))).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
@@ -576,7 +647,7 @@ object Http4sRequestAttributes {
       io.attempt.flatMap {
         case Right((_, 204)) => NoContent().map(withCallContextHeaders).flatTap(recordMetric("", _))
         case Right((result, code)) =>
-          val jsonString = prettyRender(Extraction.decompose(result))
+          val jsonString = renderJson(result)
           val status = Status.fromInt(code).getOrElse(Status.Ok)
           IO.pure(withCallContextHeaders(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType))).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
@@ -657,6 +728,11 @@ object Http4sCallContextBuilder {
       }
     } yield CallContext(
       url = request.uri.renderString,
+      domainApiUrl = request.attributes.lookup(code.api.dynamic.domainapi.DomainApiPaths.domainApiCallKey).map(_.calledUrl),
+      forwardedFor = RemoteIpUtil.forwardedForPath(
+        request.remoteAddr.map(_.toUriString).getOrElse(""),
+        requestHeaderValues(request, "X-Forwarded-For")
+      ),
       verb = request.method.name,
       implementedInVersion = apiVersion,
       correlationId = extractCorrelationId(request),
@@ -697,13 +773,19 @@ object Http4sCallContextBuilder {
    *  request-level middleware (SelfServiceRateLimitMiddleware) keys on the same value. */
   def clientIp(request: Request[IO]): String = extractIpAddress(request)
 
-  private def extractIpAddress(request: Request[IO]): String = {
-    val socketPeer = request.remoteAddr.map(_.toUriString).getOrElse("")
-    RemoteIpUtil.resolveClientIp(
-      socketPeer,
-      name => request.headers.get(CIString(name)).map(_.head.value)
+  /** How the request's client address was decided (for TrafficSources and Deployment Checks). */
+  def clientIpResolution(request: Request[IO]): RemoteIpUtil.Resolution =
+    RemoteIpUtil.resolve(
+      request.remoteAddr.map(_.toUriString).getOrElse(""),
+      name => requestHeaderValues(request, name)
     )
-  }
+
+  /** A request header's value. A header sent on several lines is joined in order, so an
+   *  X-Forwarded-For line the client wrote cannot hide the lines the proxies added after it. */
+  private def requestHeaderValues(request: Request[IO], name: String): Option[String] =
+    request.headers.get(CIString(name)).map(_.toList.map(_.value).mkString(", "))
+
+  private def extractIpAddress(request: Request[IO]): String = clientIpResolution(request).clientIp
   
   /**
    * Extract Authorization header value as Box[String]
@@ -739,161 +821,134 @@ object Http4sCallContextBuilder {
 }
 
 /**
- * Matches http4s requests to ResourceDoc entries.
- * 
- * ResourceDoc entries use URL templates with uppercase variable names:
- * - BANK_ID, ACCOUNT_ID, VIEW_ID, COUNTERPARTY_ID
- * 
- * This matcher finds the corresponding ResourceDoc for a given request
- * and extracts path parameters.
+ * Selects the ResourceDoc of the http4s route that serves a request, and reads the path parameters
+ * the middleware validates (BANK_ID, ACCOUNT_ID, VIEW_ID, COUNTERPARTY_ID) from the doc's template.
+ *
+ * A doc is never chosen by comparing the request URL with its template: the template is documentation
+ * (resource-docs, Swagger), and which route serves a request is asked of the routes themselves.
  */
 object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
 
   // API prefix pattern: /<urlPrefix>/v<version> — handles both OBP (/obp/vX.X.X) and BG (/berlin-group/v1.3)
   private val apiPrefixPattern = """^/[^/]+/v[\d.]+""".r
 
-  // Pre-built index type: (VERB, apiVersion, segmentCount) -> candidates
-  type ResourceDocIndex = Map[(String, String, Int), List[ResourceDoc]]
-
-  /**
-   * Build a lookup index from a collection of ResourceDocs.
-   * Call this once at middleware startup; pass the result to findResourceDoc.
-   */
-  def buildIndex(resourceDocs: Iterable[ResourceDoc]): ResourceDocIndex =
-    resourceDocs.groupBy { doc =>
-      val segCount = doc.requestUrl.split("/").count(_.nonEmpty)
-      (doc.requestVerb.toUpperCase, doc.implementedInApiVersion.toString, segCount)
-    }.map { case (k, v) => k -> v.toList }
-
-  /**
-   * Find ResourceDoc matching the given verb and path using a pre-built index.
-   * O(1) map lookup + O(k) scan where k is the number of docs with the same
-   * verb/version/segment-count (typically 1–3 in practice).
-   *
-   * @param verb         HTTP verb (GET, POST, PUT, DELETE, etc.)
-   * @param path         Request path
-   * @param index        Index built by buildIndex — create once, reuse per request
-   * @return Option[ResourceDoc] if a match is found
-   */
-  def findResourceDoc(
-    verb: String,
-    path: Uri.Path,
-    index: ResourceDocIndex
-  ): Option[ResourceDoc] = {
-    val pathString   = path.renderString
-    val apiVersion   = pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
-    val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
-    val segCount     = strippedPath.split("/").count(_.nonEmpty)
-    val lookupKey    = (verb.toUpperCase, apiVersion, segCount)
-    val candidates   = index.getOrElse(lookupKey, Nil)
-    // Most specific match wins, not the first registered. Two docs can share (verb, version,
-    // segment count) and both match a path when one of them spells a segment as an all-caps
-    // wildcard: `/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests` is a
-    // deliberate catch-all that also matches `/FREE_FORM/`. Picking by registration order made
-    // the catch-all shadow the per-type docs, and with it their roles - the FREE_FORM doc's
-    // canCreateAnyTransactionRequest was never enforced because the matched doc declared none.
-    // Ordering by literal-segment count puts the per-type doc first; sortBy is stable, so docs
-    // of equal specificity keep the order they were registered in.
-    val result       = candidates
-      .filter(doc => matchesUrlTemplate(strippedPath, doc.requestUrl))
-      .sortBy(doc => -literalSegmentCount(doc.requestUrl))
-      .headOption
-    if (result.isEmpty) {
-      logger.debug(
-        s"[ResourceDocMatcher] No match for $verb $pathString. " +
-        s"lookupKey=$lookupKey strippedPath='$strippedPath'. " +
-        s"Candidates with that key: ${if (candidates.isEmpty) "(none)" else candidates.map(d => s"${d.requestVerb} ${d.requestUrl}(${d.implementedInApiVersion})").mkString(", ")}. " +
-        s"Index keys for apiVersion=$apiVersion: ${index.keys.filter(_._2 == apiVersion).mkString(", ")}"
-      )
-    }
-    result
-  }
-
-  /**
-   * Find ResourceDoc matching the given verb and path.
-   * Builds a transient index on every call — use for tests or one-off lookups.
-   * For hot paths, prefer buildIndex + findResourceDoc(verb, path, index).
-   *
-   * @param verb         HTTP verb (GET, POST, PUT, DELETE, etc.)
-   * @param path         Request path
-   * @param resourceDocs Collection of ResourceDoc entries to search
-   * @return Option[ResourceDoc] if a match is found
-   */
-  def findResourceDoc(
-    verb: String,
-    path: Uri.Path,
-    resourceDocs: ArrayBuffer[ResourceDoc]
-  ): Option[ResourceDoc] =
-    findResourceDoc(verb, path, buildIndex(resourceDocs))
-  
-  /** How many of a template's segments are literals rather than wildcards - its specificity. */
-  private def literalSegmentCount(template: String): Int =
-    template.split("/").count(seg => seg.nonEmpty && !isTemplateVariable(seg))
-
-  /**
-   * Check if a path matches a URL template
-   * Template segments in uppercase are treated as variables
-   */
-  private def matchesUrlTemplate(path: String, template: String): Boolean = {
-    val pathSegments = path.split("/").filter(_.nonEmpty)
-    val templateSegments = template.split("/").filter(_.nonEmpty)
-    
-    if (pathSegments.length != templateSegments.length) {
-      false
-    } else {
-      pathSegments.zip(templateSegments).forall { case (pathSeg, templateSeg) =>
-        // Uppercase segments are variables (BANK_ID, ACCOUNT_ID, etc.)
-        isTemplateVariable(templateSeg) || pathSeg == templateSeg
-      }
-    }
-  }
-  
-  /**
-   * Check if a template segment is a variable (uppercase)
-   */
-  /**
-   * All-caps URL-segment literals that historically broke the matcher.
-   *
-   * `isTemplateVariable` originally returned true for every all-caps + underscore +
-   * digit segment. That made literals like `SANDBOX_TAN`, `ACCOUNT`, `SEPA` etc.
-   * indistinguishable from real placeholders like `BANK_ID`, so a ResourceDoc URL
-   * `/banks/BANK_ID/.../transaction-request-types/SANDBOX_TAN/transaction-requests`
-   * matched any trans-req-type URL — including v4-only `ACCOUNT` — and the v4
-   * request never reached the Lift fallback that knows how to handle it.
-   *
-   * We special-case the known literal segments. Anything else stays a wildcard so
-   * the existing non-standard placeholder convention (NEW_ACCOUNT_ID, GRANT_VIEW_ID,
-   * FIREHOSE_BANK_ID, EXPLICIT_COUNTERPARTY_ID, SYS_VIEW_ID, …) keeps working
-   * without an explicit allow-list.
-   *
-   * Add a value here when a new path uses an all-caps literal (e.g. a new
-   * transaction-request type or SCA method).
-   */
-  private val literalAllCapsSegments: Set[String] = Set(
-    // transaction-request types
-    "SANDBOX_TAN", "COUNTERPARTY", "SEPA", "FREE_FORM",
-    "ACCOUNT", "ACCOUNT_OTP", "REFUND", "SIMPLE",
-    "AGENT_CASH_WITHDRAWAL", "CARD",
-    "OPEN_CORRIDOR_PROMISE", "OPEN_CORRIDOR_SETTLEMENT",
-    "BULK", "HOLD", "MOBILE_WALLET", "UTILITY", "CARDANO",
-    "ETH_SEND_TRANSACTION", "ETH_SEND_RAW_TRANSACTION",
-    // SCA methods (POST /banks/BANK_ID/my/consents/{EMAIL|SMS|IMPLICIT})
-    "EMAIL", "SMS", "IMPLICIT", "NOT_EMAIL_NEITHER_SMS"
+  /** A doc that carries its route, with the docs of the same bucket that share that route. */
+  final case class RouteBoundDoc(
+    doc: ResourceDoc,
+    route: code.api.util.APIUtil.Http4sRoutePF,
+    sharingTheRoute: List[ResourceDoc]
   )
 
-  private def isTemplateVariable(segment: String): Boolean = {
-    segment.nonEmpty &&
-      segment.forall(c => c.isUpper || c == '_' || c.isDigit) &&
-      !literalAllCapsSegments.contains(segment)
-  }
-  
   /**
-   * Extract path parameters from matched ResourceDoc
-   * 
+   * The docs that carry their route, by (VERB, apiVersion) and in the order given. A request is only
+   * put to the routes of its own verb and version, and which docs share a route is worked out once
+   * here instead of on every request.
+   */
+  final case class RouteIndex(byVerbAndVersion: Map[(String, String), List[RouteBoundDoc]])
+
+  private def routeOf(doc: ResourceDoc): Option[code.api.util.APIUtil.Http4sRoutePF] =
+    doc.http4sPartialFunction.flatMap(handler => Option(handler)).flatMap(_.route)
+
+  /**
+   * The docs in the order their routes are tried: the order the middleware must select from, so the doc
+   * that validates a request is the doc of the route that runs it. Docs that share a route stay together,
+   * in registration order.
+   *
+   * A doc whose route is not in `routesInOrder` is an error (a route left out of the chain would never be
+   * served, or served without its doc's checks), unless it is named in `outsideTheChain`: routes that are
+   * deliberately run before the middleware, and so have no place in the order it selects from. A doc
+   * with no route at all documents an endpoint served somewhere else (the message-docs Swagger is served
+   * by Http4sResourceDocs); it is left out, because there is nothing for the middleware to validate it against.
+   */
+  def orderByRoutes(
+    docs: Iterable[ResourceDoc],
+    routesInOrder: Iterable[code.api.util.APIUtil.Http4sHandler],
+    outsideTheChain: Iterable[code.api.util.APIUtil.Http4sHandler] = Nil
+  ): ArrayBuffer[ResourceDoc] = {
+    // Routes are compared by identity: an alias of a route (`val b = a`) is the same route.
+    def keyOf(h: code.api.util.APIUtil.Http4sHandler): AnyRef = h.routes
+    val position = new java.util.IdentityHashMap[AnyRef, Integer]()
+    routesInOrder.zipWithIndex.foreach { case (h, i) => if (!position.containsKey(keyOf(h))) position.put(keyOf(h), i) }
+    val outside = new java.util.IdentityHashMap[AnyRef, Boolean]()
+    outsideTheChain.foreach(h => outside.put(keyOf(h), true))
+    val withRoute = docs.toSeq.filter(_.http4sPartialFunction.exists(_ != null))
+    val kept = withRoute.filterNot(doc => outside.containsKey(keyOf(doc.http4sPartialFunction.get)))
+    val missing = kept.filterNot(doc => position.containsKey(keyOf(doc.http4sPartialFunction.get)))
+    if (missing.nonEmpty)
+      throw new IllegalStateException(
+        "ResourceDocs whose route is not in the route chain: " +
+          missing.map(d => s"${d.partialFunctionName} (${d.requestVerb} ${d.requestUrl})").mkString(", "))
+    ArrayBuffer(kept.sortBy(doc => position.get(keyOf(doc.http4sPartialFunction.get)).intValue): _*)
+  }
+
+  /** The API version a request path is for: the segment after the API prefix, as in the route index. */
+  private def apiVersionOf(pathString: String): String =
+    pathString.split("/").filter(_.nonEmpty).drop(1).headOption.getOrElse("")
+
+  /**
+   * Build the index [[selectByRoute]] uses. Call this once, at middleware construction; docs without a
+   * route are left out.
+   */
+  def buildRouteIndex(docs: Iterable[ResourceDoc]): RouteIndex = {
+    val bound = docs.toList.flatMap(doc => routeOf(doc).map(doc -> _))
+    val buckets = bound.groupBy { case (doc, _) => (doc.requestVerb.toUpperCase, doc.implementedInApiVersion.apiShortVersion) }
+    RouteIndex(buckets.map { case (key, inBucket) =>
+      key -> inBucket.map { case (doc, route) =>
+        RouteBoundDoc(doc, route, inBucket.collect { case (other, otherRoute) if otherRoute eq route => other })
+      }
+    })
+  }
+
+  /**
+   * Select the ResourceDoc of the route that serves `req`.
+   *
+   * A ResourceDoc whose `http4sPartialFunction` is an [[code.api.util.APIUtil.Http4sRoute]] carries
+   * the pattern match of its handler, so the request is put to that match instead of being compared
+   * with the doc's URL template. The doc that comes back is the doc of the route that will run,
+   * whatever the template says, and nothing about a segment has to be guessed to be a placeholder
+   * or a fixed word.
+   *
+   * Only the routes of the request's verb and API version are asked, in the order the docs were given,
+   * which must be the order the routes are tried in when a request could be served by more than one.
+   * Several docs may share one route (a handler that serves every transaction-request type has a doc
+   * per type); the segments the request has in common with each doc's template then tell them apart.
+   * When no doc has a word of the request (an empty segment, a type that has no doc of its own) the
+   * first of them is used: the request is served by that handler either way, so it is still validated
+   * under the roles and errors of the endpoint that serves it rather than run with no validation.
+   */
+  def selectByRoute(req: Request[IO], index: RouteIndex): Option[ResourceDoc] = {
+    val key = (req.method.name.toUpperCase, apiVersionOf(req.uri.path.renderString))
+    index.byVerbAndVersion.getOrElse(key, Nil)
+      .find(_.route.isDefinedAt(req))
+      .map { first =>
+        if (first.sharingTheRoute.size <= 1) first.doc
+        else {
+          // The docs that share this route differ in a fixed word of the URL (a transaction-request type,
+          // an SCA method). The request carries that word as it is, so the doc that agrees with the request
+          // in the most segments is the doc the request is for; a word no doc has leaves them all level and
+          // the first doc is used.
+          val requestSegments = apiPrefixPattern.replaceFirstIn(req.uri.path.renderString, "").split("/").filter(_.nonEmpty)
+          def agreement(doc: ResourceDoc): Int =
+            doc.requestUrl.split("/").filter(_.nonEmpty).zip(requestSegments).count { case (template, actual) => template == actual }
+          first.sharingTheRoute.maxBy(agreement)
+        }
+      }
+  }
+
+  /** Select by route from docs that have not been indexed; builds the index on every call, so use it for tests. */
+  def selectByRoute(req: Request[IO], docs: Iterable[ResourceDoc]): Option[ResourceDoc] =
+    selectByRoute(req, buildRouteIndex(docs))
+
+  /**
+   * Extract path parameters from the selected ResourceDoc
+   *
    * @param path Request path
    * @param resourceDoc Matched ResourceDoc
    * @return Map with keys: BANK_ID, ACCOUNT_ID, VIEW_ID, COUNTERPARTY_ID (if present)
    */
+  /** The path parameters the middleware validates; any other capitalised word in a template is documentation. */
+  private val pathParamNames = Set("BANK_ID", "ACCOUNT_ID", "VIEW_ID", "COUNTERPARTY_ID")
+
   def extractPathParams(
     path: Uri.Path,
     resourceDoc: ResourceDoc
@@ -901,15 +956,21 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
     val pathString = path.renderString
     // Strip the API prefix (/obp/vX.X.X) from the path for matching
     val strippedPath = apiPrefixPattern.replaceFirstIn(pathString, "")
-    val pathSegments = strippedPath.split("/").filter(_.nonEmpty)
     val templateSegments = resourceDoc.requestUrl.split("/").filter(_.nonEmpty)
-    
+    // A route can serve a path with an empty segment (`/banks/B/api-products//subscriptions`), and the
+    // doc selected for it is the route's. Read the parameters by position with the empty segment kept,
+    // so BANK_ID and the other checks see the value the request carries (an empty one) instead of finding
+    // no parameters at all and skipping validation.
+    val positionalSegments = strippedPath.split("/", -1).drop(1)
+    val pathSegments =
+      if (positionalSegments.length == templateSegments.length) positionalSegments
+      else strippedPath.split("/").filter(_.nonEmpty)
+
     if (pathSegments.length != templateSegments.length) {
       Map.empty
     } else {
       pathSegments.zip(templateSegments).collect {
-        case (pathSeg, templateSeg) if isTemplateVariable(templateSeg) =>
-          templateSeg -> pathSeg
+        case (pathSeg, templateSeg) if pathParamNames.contains(templateSeg) => templateSeg -> pathSeg
       }.toMap
     }
   }

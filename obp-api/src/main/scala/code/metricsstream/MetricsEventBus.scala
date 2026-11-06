@@ -128,14 +128,10 @@ object MetricsEventBus extends MdcLoggable {
     }
 
     subscriberThread = new Thread(() => {
-      try {
-        subscriberJedis = Redis.newSubscriberConnection()
+      // reopens the subscriber connection after a Redis disconnect, so metrics streams keep getting events until stop()
+      Redis.runSubscriber("MetricsEventBus", running, subscriberJedis = _) { jedis =>
         logger.info(s"MetricsEventBus says: Redis subscriber started, subscribing to $ALL_CHANNEL")
-        subscriberJedis.subscribe(pubSub, ALL_CHANNEL)
-      } catch {
-        case e: Throwable if running =>
-          logger.error(s"MetricsEventBus says: Redis subscriber thread died: ${e.getMessage}")
-        case _: Throwable => // shutting down
+        jedis.subscribe(pubSub, ALL_CHANNEL)
       }
     }, "metrics-event-bus-subscriber")
     subscriberThread.setDaemon(true)
@@ -159,6 +155,9 @@ object MetricsEventBus extends MdcLoggable {
 
   // --- Buffered delivery (per-subscriber backpressure) ---
 
+  // Drops across every subscriber, for Telemetry. The per-subscriber count below is only logged.
+  private lazy val StreamDropsCounter = code.telemetry.Telemetry.counter("obp.api.stream.messages.dropped", "stream" -> "metrics")
+
   private class BufferedObserver(
     inner: StreamObserver[String],
     queueSize: Int
@@ -174,6 +173,7 @@ object MetricsEventBus extends MdcLoggable {
       if (!queue.offer(msg)) {
         queue.poll() // drop oldest
         queue.offer(msg)
+        StreamDropsCounter.increment()
         val d = dropped.incrementAndGet()
         if (d == 1L || d % 1000L == 0L) {
           logger.warn(s"MetricsEventBus says: Dropping messages (slow consumer); dropped so far: $d")

@@ -84,6 +84,12 @@ case class CallContext(
                         consentMyResources: Option[ConsentMyResources] = None,
                         consumer: Box[Consumer] = Empty,
                         ipAddress: String = "",
+                        // The hops the request passed through: the X-Forwarded-For chain it arrived
+                        // with, followed by the TCP peer. Recorded in API Metrics; see RemoteIpUtil.
+                        forwardedFor: String = "",
+                        // The path and query string a caller used under a Domain API, before the request was
+                        // rewritten to the OBP URL in `url`; None for every other call. Recorded in API Metrics.
+                        domainApiUrl: Option[String] = None,
                         resourceDocument: Option[ResourceDoc] = None,
                         startTime: Option[Date] = Some(Helpers.now),
                         endTime: Option[Date] = None,
@@ -124,7 +130,7 @@ case class CallContext(
                         // request, but only the data-read endpoints run on the principal; the consent-management
                         // endpoints (GET/DELETE account-access-consents) do not, and they are how a TPP inspects
                         // or revokes the very consent that cannot be resolved. Failing at authentication would
-                        // lock that door too -- and, since those endpoints are UserOrApplication, would report it
+                        // lock that door too -- and, since those endpoints are UserXORApplication, would report it
                         // as ApplicationNotIdentified rather than as anything to do with the consent.
                         ukConsentUnresolved: Option[String] = None,
                         // How the caller's certificate was established (PeerTrust.Resolution.mode):
@@ -245,7 +251,10 @@ case class CallContext(
       paginationLimit = this.paginationLimit,
       consentReferenceId = this.consentReferenceId,
       certificateTrust = this.certificateTrust,
-      certificateTrustDetail = this.certificateTrustDetail
+      certificateTrustDetail = this.certificateTrustDetail,
+      ipAddress = this.ipAddress,
+      forwardedFor = this.forwardedFor,
+      domainApiUrl = this.domainApiUrl
     )
   }
 
@@ -276,9 +285,9 @@ case class CallContext(
     val delegatedUserId = consentCreator.or(consenter).map(_.userId).filter(_.nonEmpty)
     delegatedUserId.openOr {
       val authenticatedUserId = user.map(_.userId).openOr("")
-      // The resolver (Users.onBehalfOfUserIdOf) owns the consent chain; a Failure there (invariant
+      // The resolver (Users.resolveOnBehalfOfUserId) owns the consent chain; a Failure there (invariant
       // broken) is already logged and, at this String-typed level, can only fall back to the caller.
-      code.users.Users.users.vend.onBehalfOfUserIdOf(authenticatedUserId).openOr(authenticatedUserId)
+      code.users.Users.users.vend.resolveOnBehalfOfUserId(authenticatedUserId).openOr(authenticatedUserId)
     }
   }
   def userPrimaryKey: UserPrimaryKey = user.map(_.userPrimaryKey).openOrThrowException(AuthenticatedUserIsRequired)
@@ -289,7 +298,7 @@ case class CallContext(
   def authType: AuthenticationType = {
     if(hasGatewayHeader(authReqHeaderField)) {
       GatewayLogin
-    } else if(requestHeaders.exists(_.name==DAuthHeaderKey)) { // DAuth Login
+    } else if(RequestHeadersUtil.exists(requestHeaders, DAuthHeaderKey)) { // DAuth Login
       DAuth
     } else if(has2021DirectLoginHeader(requestHeaders)) { // Direct Login
       DirectLogin
@@ -344,7 +353,13 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             paginationLimit : Option[String] = None,
                             consentReferenceId: Option[String] = None,
                             certificateTrust: Option[String] = None,
-                            certificateTrustDetail: Option[String] = None
+                            certificateTrustDetail: Option[String] = None,
+                            // The client address OBP-API decided on (CallContext.ipAddress)
+                            ipAddress: String = "",
+                            // The hops the request passed through (CallContext.forwardedFor)
+                            forwardedFor: String = "",
+                            // The URL called under a Domain API (CallContext.domainApiUrl)
+                            domainApiUrl: Option[String] = None
                            )
 
 trait LoginParam

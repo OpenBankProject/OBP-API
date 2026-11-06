@@ -27,7 +27,6 @@ TESOBE (http://www.tesobe.com/)
 
 package code.views
 
-import code.accountholders.MapperAccountHolders
 import code.api.APIFailure
 import code.api.Constant._
 import code.api.util.APIUtil._
@@ -273,15 +272,13 @@ object MapperViews extends Views with MdcLoggable {
     
     val isRevokedSystemViewAccess =
       for {
-        systemViewDefinition <- ViewDefinition.findSystemView(bankIdAccountIdViewId.viewId.value)
+        _ <- ViewDefinition.findSystemView(bankIdAccountIdViewId.viewId.value)
         accountAccess  <- AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
           bankIdAccountIdViewId.bankId,
           bankIdAccountIdViewId.accountId,
           bankIdAccountIdViewId.viewId,
           user.userPrimaryKey
         ) ?~! CannotFindAccountAccess
-        // Check if we are allowed to remove the View from the User
-        _ <- canRevokeOwnerAccessAsBox(bankIdAccountIdViewId.bankId, bankIdAccountIdViewId.accountId,systemViewDefinition, user)
       } yield {
         AccountAccess.deleteRow(accountAccess)
       }
@@ -293,15 +290,13 @@ object MapperViews extends Views with MdcLoggable {
   def revokeAccessToSystemView(bankId: BankId, accountId: AccountId, view : View, user : User) : Box[Boolean] = {
     val res =
     for {
-      systemViewDefinition <- ViewDefinition.findByPrimaryKey(view.id)
+      _ <- ViewDefinition.findByPrimaryKey(view.id)
       accountAccess  <- AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
         bankId,
         accountId,
         view.viewId,
         user.userPrimaryKey
       ) ?~! CannotFindAccountAccess
-      // Check if we are allowed to remove the View from the User
-      _ <- canRevokeOwnerAccessAsBox(bankId: BankId, accountId: AccountId, systemViewDefinition, user)
     } yield {
       AccountAccess.deleteRow(accountAccess)
     }
@@ -368,9 +363,8 @@ object MapperViews extends Views with MdcLoggable {
 
     val isRevokedSystemViewAccess =
       for {
-        systemViewDefinition <- ViewDefinition.findSystemView(bankIdAccountIdViewId.viewId.value)
+        _ <- ViewDefinition.findSystemView(bankIdAccountIdViewId.viewId.value)
         accountAccess <- accountAccessRow
-        _ <- canRevokeOwnerAccessAsBox(bankIdAccountIdViewId.bankId, bankIdAccountIdViewId.accountId, systemViewDefinition, user)
       } yield {
         AccountAccess.deleteRow(accountAccess)
       }
@@ -382,40 +376,15 @@ object MapperViews extends Views with MdcLoggable {
     AccountAccess.findAllByUserPrimaryKeyAndConsumer(user.userPrimaryKey, consumerId).map(row => BankIdAccountIdViewId(BankId(row.bankId), AccountId(row.accountId), ViewId(row.viewId)))
   }
 
-  //returns Full if deletable, Failure if not
-  def canRevokeOwnerAccessAsBox(bankId: BankId, accountId: AccountId, viewDefinition : ViewDefinition, user : User) : Box[Unit] = {
-    if(canRevokeOwnerAccess(bankId: BankId, accountId: AccountId, viewDefinition, user)) Full(())
-    else Failure("access cannot be revoked")
-  }
-
-
-  def canRevokeOwnerAccess(bankId: BankId, accountId: AccountId, viewDefinition: ViewDefinition, user : User) : Boolean = {
-    if(viewDefinition.viewId == ViewId(SYSTEM_OWNER_VIEW_ID)) {
-      //if the user is an account holder, we can't revoke access to the owner view
-      val accountHolders = MapperAccountHolders.getAccountHolders(viewDefinition.bankId, viewDefinition.accountId)
-      if(accountHolders.map(h => h.userPrimaryKey).contains(user.userPrimaryKey)) {
-        false
-      } else {
-        // if it's the owner view, we can only revoke access if there would then still be someone else
-        // with access
-        AccountAccess.findAllByBankIdAccountIdViewId(
-          bankId: BankId, 
-          accountId: AccountId,
-          viewDefinition.viewId
-        ).length > 1
-      }
-    } else {
-      true
-    }
-  }
-
-
   /**
-   * remove all the accountAccess for one user and linked account.
-   * we already has the guard `canRevokeAccessToAllViews` on the top level.
+   * This removes every account access the user has to one account, whichever views they are, the owner
+   * view included, and whether or not the user is an account holder.
+   *
+   * The caller's right to revoke is checked by the caller (`canRevokeAccessToAllViews`), and the endpoints
+   * refuse a request in which the caller names themselves (`CannotRevokeOwnAccountAccess`).
    */
   def revokeAllAccountAccess(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
-    AccountAccess.findByBankIdAccountIdUser(bankId, accountId, user.userPrimaryKey).foreach(AccountAccess.deleteRow)
+    AccountAccess.findAllByBankIdAccountIdUser(bankId, accountId, user.userPrimaryKey).foreach(AccountAccess.deleteRow)
     Full(true)
   }
 
@@ -712,6 +681,17 @@ object MapperViews extends Views with MdcLoggable {
       }
       saved
     }
+  }
+
+  def ensureOptInSystemViewsUpToDate(additionalSystemViews: Box[String]) : List[Box[View]] = {
+    val listed = additionalSystemViews.toList.flatMap(_.split(",").map(_.trim))
+    // Listing a view creates it. One that exists without being listed is kept current too, unless
+    // system_views.reconcile_permissions_at_boot is false: a refresh of the mapped connector creates both of them for
+    // the holders of its accounts.
+    val reconcileExisting = APIUtil.getPropsAsBoolValue("system_views.reconcile_permissions_at_boot", true)
+    List(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)
+      .filter(viewId => listed.contains(viewId) || (reconcileExisting && ViewDefinition.findSystemView(viewId).isDefined))
+      .map(ensureSystemViewUpToDate)
   }
 
   def getOrCreateSystemView(viewId: String) : Box[View] = {

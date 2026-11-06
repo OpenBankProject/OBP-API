@@ -56,6 +56,28 @@ databaseChangeLog:
       name: text.type
       value: CLOB
       dbms: oracle
+  # Binary content has no portable spelling either: Liquibase's BLOB is an oid reference on Postgres,
+  # which a plain bytea value cannot be written to.
+  - property:
+      name: blob.type
+      value: BLOB
+      dbms: h2
+  - property:
+      name: blob.type
+      value: BYTEA
+      dbms: postgresql
+  - property:
+      name: blob.type
+      value: LONGBLOB
+      dbms: mysql
+  - property:
+      name: blob.type
+      value: VARBINARY(MAX)
+      dbms: mssql
+  - property:
+      name: blob.type
+      value: BLOB
+      dbms: oracle
   - include:
       file: db/changelog/db.changelog-dedup.yaml
   - include:
@@ -66,6 +88,10 @@ databaseChangeLog:
       file: db/changelog/db.changelog-develop-merge.yaml
   - include:
       file: db/changelog/db.changelog-develop-merge-2.yaml
+  - include:
+      file: db/changelog/db.changelog-develop-merge-3.yaml
+  - include:
+      file: db/changelog/db.changelog-dynamic-entity-space.yaml
   - include:
       file: db/changelog/db.changelog-oidc-views.yaml
   - include:

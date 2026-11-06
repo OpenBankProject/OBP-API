@@ -42,7 +42,7 @@ object DoobieConsentSchedulerQueries {
     sql"""UPDATE mappedconsent
           SET mstatus = $newStatus,
               mnote = $newNote,
-              mstatusupdatedatetime = NOW()
+              mstatusupdatedatetime = CURRENT_TIMESTAMP
           WHERE id = $consentPrimaryKey
             AND mstatus = $guardStatus""".update.run
   )
@@ -54,7 +54,7 @@ object DoobieConsentSchedulerQueries {
     sql"""UPDATE mappedconsent
           SET mstatus = ${"expired"},
               mnote = $newNote,
-              mstatusupdatedatetime = NOW()
+              mstatusupdatedatetime = CURRENT_TIMESTAMP
           WHERE id = $consentPrimaryKey
             AND mstatus IN ('valid', 'VALID')""".update.run
   )

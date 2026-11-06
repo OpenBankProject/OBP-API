@@ -143,6 +143,12 @@ object AccountAccess {
     one(fr"""WHERE bank_id = ${opt(bankId.value)} AND account_id = ${opt(accountId.value)}
              AND user_fk = ${userPrimaryKey.value}""")
 
+  /** Every row the user holds on the account, whichever view each one grants. */
+  def findAllByBankIdAccountIdUser(bankId: BankId, accountId: AccountId,
+                                   userPrimaryKey: UserPrimaryKey): List[AccountAccess] =
+    query(fr"""WHERE bank_id = ${opt(bankId.value)} AND account_id = ${opt(accountId.value)}
+               AND user_fk = ${userPrimaryKey.value} ORDER BY id ASC""")
+
   /** Public system views are matched on view id alone; public custom views on all three. */
   def findAllByViewIds(viewIds: List[String]): List[AccountAccess] =
     // Mapper's ByList with an empty list rendered "0 = 1", i.e. no rows — not "no filter".

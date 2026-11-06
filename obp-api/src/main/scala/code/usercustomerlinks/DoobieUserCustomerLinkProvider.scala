@@ -55,19 +55,43 @@ object DoobieUserCustomerLinkProvider extends UserCustomerLinkProvider {
     UserCustomerLinkRow(id, userId, customerId, new Date(now.getTime), isActive)
   }
 
-  override def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] =
-    Some(insert(userId, customerId, isActive))
+  /**
+   * On-behalf-of guard (attribution policy UserReference.UserCustomerLink_UserId): a User-Customer
+   * link is owned by the on-behalf-of user. When the caller is a consent user the row is written
+   * for the user the consent names, so the link does not strand when the consent dies. For an
+   * original user this is a no-op. The resolver logs every redirect.
+   *
+   * The three methods keyed by a single user id -- create, get-or-create and the two-argument
+   * lookup -- all resolve, and they have to move together: the lookup is used as the
+   * "already linked?" pre-check immediately before a create, and the table is unique on
+   * (muserid, mcustomerid). A redirected create paired with an unredirected pre-check would let
+   * the check pass on the consent user, then break the index on the human.
+   *
+   * getUserCustomerLinksByUserId is deliberately NOT resolved: it also serves the admin lookup at
+   * GET /banks/BANK_ID/user_customer_links/users/USER_ID, where the id is an explicit target and
+   * rewriting it would silently answer a different question. Endpoints that mean "my links" pass
+   * the resolved id themselves.
+   *
+   * ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2 row 2.
+   */
+  private def linkOwnerUserId(userId: String): String =
+    code.users.Users.users.vend.attributedUserId(userId, code.users.UserReference.UserCustomerLink_UserId).openOr(userId)
 
-  override def getOCreateUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] =
-    getUserCustomerLink(userId, customerId) match {
+  override def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] =
+    Some(insert(linkOwnerUserId(userId), customerId, isActive))
+
+  override def getOCreateUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] = {
+    val ownerUserId = linkOwnerUserId(userId)
+    getUserCustomerLinkRow(ownerUserId, customerId) match {
       case Empty =>
-        scala.util.Try(insert(userId, customerId, isActive)) match {
+        scala.util.Try(insert(ownerUserId, customerId, isActive)) match {
           case scala.util.Success(link) => Full(link)
           case scala.util.Failure(_) =>
-            getUserCustomerLink(userId, customerId)
+            getUserCustomerLinkRow(ownerUserId, customerId)
         }
       case everythingElse => everythingElse
     }
+  }
 
   override def getUserCustomerLinkByCustomerId(customerId: String): Box[UserCustomerLink] =
     DoobieUtil.runQuery(
@@ -90,7 +114,13 @@ object DoobieUserCustomerLinkProvider extends UserCustomerLinkProvider {
         .query[(Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[Boolean])].to[List]
     ).map(rowOf)
 
+  /** Resolves the caller: see linkOwnerUserId. Callers use this as the pre-check for a create,
+    * so it must ask about the same row the create would write. */
   override def getUserCustomerLink(userId: String, customerId: String): Box[UserCustomerLink] =
+    getUserCustomerLinkRow(linkOwnerUserId(userId), customerId)
+
+  /** The raw lookup, on an id that has already been resolved. */
+  private def getUserCustomerLinkRow(userId: String, customerId: String): Box[UserCustomerLink] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE muserid = $userId AND mcustomerid = $customerId LIMIT 1")
         .query[(Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[Boolean])].option

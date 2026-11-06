@@ -141,17 +141,14 @@ object ConnectorMetrics extends ConnectorMetricsProvider {
 
   override def getAllConnectorMetrics(queryParams: List[OBPQueryParam]): List[MappedConnectorMetric] = {
     val cacheKey = ("code.metrics.ConnectorMetrics", "getAllConnectorMetrics", List(queryParams).mkString("_"))
-    Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedAllConnectorMetrics.days) {
+    // the TTL is in seconds, as the prop name says, so newly written connector metrics show up after seconds, not days
+    Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cachedAllConnectorMetrics.seconds) {
       MappedConnectorMetric.findAllFiltered(queryParams)
     }
   }
 
-  // Deletes MappedMetric, not MappedConnectorMetric. That is a pre-existing defect — the method
-  // named bulkDeleteConnectorMetrics empties the API-metric table and leaves connector metrics
-  // untouched — and it is preserved verbatim rather than corrected under a storage swap, because
-  // any caller relying on it today is relying on the API metrics being cleared.
   override def bulkDeleteConnectorMetrics(): Boolean = {
-    MappedMetric.deleteAll()
+    MappedConnectorMetric.deleteAll()
     true
   }
 }

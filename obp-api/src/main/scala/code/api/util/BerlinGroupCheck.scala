@@ -55,9 +55,15 @@ object BerlinGroupCheck extends MdcLoggable {
     .map(_.trim.toLowerCase)
     .toList.filterNot(_.isEmpty)
 
+  // When true, a request carrying TPP-Redirect-URI or TPP-Nok-Redirect-URI must list that header in its
+  // Signature header, so the redirect target cannot be swapped without breaking the TPP's signature.
+  private def requireSignedTppRedirectUri: Boolean =
+    APIUtil.getPropsAsBoolValue("berlin_group_require_signed_tpp_redirect_uri", defaultValue = false)
+
+  private val tppRedirectHeaders = List(RequestHeader.`TPP-Redirect-URI`, RequestHeader.`TPP-Nok-Redirect-URI`)
+
   def hasUnwantedConsentIdHeaderForBGEndpoint(path: String, reqHeaders: List[HTTPParam]): Boolean = {
-    val headerMap: Map[String, HTTPParam] = reqHeaders.map(h => h.name.toLowerCase -> h).toMap
-    val hasConsentIdId = headerMap.get(RequestHeader.`Consent-ID`.toLowerCase).flatMap(_.values.headOption).isDefined
+    val hasConsentIdId = RequestHeadersUtil.find(reqHeaders, RequestHeader.`Consent-ID`).flatMap(_.values.headOption).isDefined
 
     val parts = path.stripPrefix("/").stripSuffix("/").split("/").toList
     val doesNotRequireConsentId = parts.reverse match {
@@ -78,18 +84,17 @@ object BerlinGroupCheck extends MdcLoggable {
                                forwardResult: (Box[User], Option[CallContext])
                              ): (Box[User], Option[CallContext]) = {
 
-    val headerMap: Map[String, HTTPParam] = reqHeaders.map(h => h.name.toLowerCase -> h).toMap
-    val maybeRequestId: Option[String] = headerMap.get(RequestHeader.`X-Request-ID`.toLowerCase).flatMap(_.values.headOption)
+    val maybeRequestId: Option[String] = RequestHeadersUtil.find(reqHeaders, RequestHeader.`X-Request-ID`).flatMap(_.values.headOption)
 
     val missingHeaders: List[String] = {
       if (url.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) && url.endsWith("/consents"))
-        (berlinGroupMandatoryHeaders ++ berlinGroupMandatoryHeaderConsent).filterNot(headerMap.contains)
+        (berlinGroupMandatoryHeaders ++ berlinGroupMandatoryHeaderConsent).filterNot(RequestHeadersUtil.exists(reqHeaders, _))
       else
-        berlinGroupMandatoryHeaders.filterNot(headerMap.contains)
+        berlinGroupMandatoryHeaders.filterNot(RequestHeadersUtil.exists(reqHeaders, _))
     }
 
     val resultWithWrongDateHeaderCheck: Option[(Box[User], Option[CallContext])] = {
-      val date: Option[String] = headerMap.get(RequestHeader.Date.toLowerCase).flatMap(_.values.headOption)
+      val date: Option[String] = RequestHeadersUtil.find(reqHeaders, RequestHeader.Date).flatMap(_.values.headOption)
       if (date.isDefined && !DateTimeUtil.isValidRfc7231Date(date.get)) {
         val message = ErrorMessages.NotValidRfc7231Date
         Some(
@@ -152,9 +157,47 @@ object BerlinGroupCheck extends MdcLoggable {
     }
 
 
+    // === TPP redirect URIs ===
+    // The PSU's browser is sent to these after authorisation, so they must meet the same redirect URL
+    // rules as a Consumer's redirect URL: a javascript: or plain-http public target is refused here.
+    val resultWithInvalidTppRedirectUriCheck: Option[(Box[User], Option[CallContext])] =
+      tppRedirectHeaders.iterator.flatMap { headerName =>
+        RequestHeadersUtil.find(reqHeaders, headerName).flatMap(_.values.headOption).flatMap { value =>
+          RedirectUrlValidation.problemWith(value.trim).map(problem => s"${ErrorMessages.InvalidRedirectUrl}$headerName '$value': $problem")
+        }
+      }.toList.headOption.map { message =>
+        (fullBoxOrException(Empty ~> APIFailureNewStyle(message, 400, forwardResult._2.map(_.toLight))), forwardResult._2)
+      }
+
+    val resultWithUnsignedTppRedirectUriCheck: Option[(Box[User], Option[CallContext])] =
+      if (!requireSignedTppRedirectUri) None
+      else {
+        val signedHeaders: List[String] = RequestHeadersUtil.find(reqHeaders, RequestHeader.Signature)
+          .flatMap(_.values.headOption)
+          .flatMap(header => BerlinGroupSignatureHeaderParser.parseSignatureHeader(header).toOption)
+          .map(_.headers.map(_.toLowerCase))
+          .getOrElse(Nil)
+        val unsignedRedirectHeaders = tppRedirectHeaders
+          .filter(RequestHeadersUtil.exists(reqHeaders, _))
+          .filterNot(headerName => signedHeaders.contains(headerName.toLowerCase))
+        if (unsignedRedirectHeaders.isEmpty) None
+        else Some(
+          (
+            fullBoxOrException(
+              Empty ~> APIFailureNewStyle(
+                s"${ErrorMessages.InvalidSignatureHeader} The signature must cover ${unsignedRedirectHeaders.mkString(", ")}.",
+                400,
+                forwardResult._2.map(_.toLight)
+              )
+            ),
+            forwardResult._2
+          )
+        )
+      }
+
     // === Signature Header Parsing ===
     val resultWithInvalidSignatureHeaderCheck: Option[(Box[User], Option[CallContext])] = {
-      val maybeSignature: Option[String] = headerMap.get("signature").flatMap(_.values.headOption)
+      val maybeSignature: Option[String] = RequestHeadersUtil.find(reqHeaders, RequestHeader.Signature).flatMap(_.values.headOption)
       maybeSignature.flatMap { header =>
         BerlinGroupSignatureHeaderParser.parseSignatureHeader(header) match {
           case Right(parsed) =>
@@ -218,6 +261,8 @@ object BerlinGroupCheck extends MdcLoggable {
       .orElse(resultWithWrongDateHeaderCheck)
       .orElse(resultWithInvalidRequestIdCheck)
       .orElse(resultWithRequestIdUsedTwiceCheck)
+      .orElse(resultWithInvalidTppRedirectUriCheck)
+      .orElse(resultWithUnsignedTppRedirectUriCheck)
       .orElse(resultWithInvalidSignatureHeaderCheck)
       .getOrElse(forwardResult)
   }
@@ -240,7 +285,7 @@ object BerlinGroupCheck extends MdcLoggable {
    */
   def isTppRequestsWithoutPsuInvolvement(requestHeaders: List[HTTPParam]): Boolean = {
     def valueOf(name: String): Option[String] =
-      requestHeaders.find(_.name.equalsIgnoreCase(name)).map(_.values.mkString.trim).filter(_.nonEmpty)
+      RequestHeadersUtil.find(requestHeaders, name).map(_.values.mkString.trim).filter(_.nonEmpty)
 
     val psuIpAddress = valueOf(RequestHeader.`PSU-IP-Address`)
     val markedAsUnattended = psuIpAddress.contains("0.0.0.0") ||

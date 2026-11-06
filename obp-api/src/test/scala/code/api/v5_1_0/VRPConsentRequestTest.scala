@@ -34,7 +34,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import code.api.Constant
 import com.openbankproject.commons.model.{AccountId, BankId, ViewId}
-import code.api.util.Consent
+import code.api.util.{APIUtil, Consent}
 import code.consent.Consents
 import code.counterpartylimit.CounterpartyLimitProvider
 import code.metadata.counterparties.Counterparties
@@ -90,6 +90,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
   def getConsentRequestUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId).GET<@(user1)
   def createConsentByConsentRequestIdEmail(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"EMAIL"/"consents").POST<@(user1)
   def createConsentByConsentRequestIdImplicit(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"IMPLICIT"/"consents").POST<@(user1)
+  def createConsentBySmsUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"SMS"/"consents").POST<@(user1)
   def getConsentByRequestIdUrl(requestId:String) = (v5_1_0_Request / "consumer"/ "consent-requests"/requestId/"consents").GET<@(user1)
 
   val fromAccountJson = ConsentRequestFromAccountJson (
@@ -242,6 +243,65 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       response.body.extract[TransactionRequestWithChargeJSON400].status shouldBe("COMPLETED")
     }
   
+
+    Scenario("A VRP consent whose challenge has nowhere to go leaves no mandate behind", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      When("the PSU converts a VRP consent request that names no email address with an EMAIL challenge")
+      val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestMonthlyGuardJson.copy(email = None)))
+      createConsentResponse.code should equal(201)
+      val consentRequestId = createConsentResponse.body.extract[ConsentRequestResponseJson].consent_request_id
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
+      def vrpViews = ViewDefinition.findAll().count(_.viewId.value.startsWith(Constant.VRP_VIEW_ID_PREFIX))
+      def counterparties = { import doobie.implicits._; code.api.util.DoobieUtil.runQuery(sql"SELECT COUNT(*) FROM mappedcounterparty".query[Long].unique) }
+      val (viewsBefore, counterpartiesBefore) = (vrpViews, counterparties)
+      val response = makePostRequest(createConsentByConsentRequestIdEmail(consentRequestId), write(""))
+
+      Then("the request is refused before the view, its grant, the counterparty or its limit are written")
+      response.code should equal(400)
+      response.body.extract[ErrorMessage].message should include ("email")
+      vrpViews should equal(viewsBefore)
+      counterparties should equal(counterpartiesBefore)
+    }
+
+    Scenario("A VRP consent with too long a time to live leaves no mandate behind", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      When("consents.max_time_to_live is lowered after a VRP consent request was lodged, and the PSU then converts it")
+      // Lodging the request checks the same limit, so only a limit lowered in between reaches this check.
+      val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestMonthlyGuardJson.copy(time_to_live = Some(1000L))))
+      createConsentResponse.code should equal(201)
+      val consentRequestId = createConsentResponse.body.extract[ConsentRequestResponseJson].consent_request_id
+      setPropsValues("consents.max_time_to_live" -> "999")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
+      def vrpViews = ViewDefinition.findAll().count(_.viewId.value.startsWith(Constant.VRP_VIEW_ID_PREFIX))
+      def counterparties = { import doobie.implicits._; code.api.util.DoobieUtil.runQuery(sql"SELECT COUNT(*) FROM mappedcounterparty".query[Long].unique) }
+      val (viewsBefore, counterpartiesBefore) = (vrpViews, counterparties)
+      val response = makePostRequest(createConsentByConsentRequestIdEmail(consentRequestId), write(""))
+
+      Then("the request is refused before the mandate is written")
+      response.code should equal(400)
+      response.body.extract[ErrorMessage].message should include (ConsentMaxTTL)
+      vrpViews should equal(viewsBefore)
+      counterparties should equal(counterpartiesBefore)
+    }
+
+    Scenario("A VRP consent whose SMS challenge cannot be sent is rejected and its mandate released", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      // With an SMS provider configured this would send a real message; the scenario needs none.
+      assume(APIUtil.getPropsValue("sca_phone_api_key").isEmpty, "sca_phone_api_key is set, so an SMS would be sent")
+      When("the PSU converts a VRP consent request with an SMS challenge on an instance with no SMS provider")
+      val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestMonthlyGuardJson))
+      createConsentResponse.code should equal(201)
+      val consentRequestId = createConsentResponse.body.extract[ConsentRequestResponseJson].consent_request_id
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
+      def vrpViews = ViewDefinition.findAll().count(_.viewId.value.startsWith(Constant.VRP_VIEW_ID_PREFIX))
+      def vrpGrants = AccountAccess.findAll().count(_.viewId.startsWith(Constant.VRP_VIEW_ID_PREFIX))
+      val (viewsBefore, grantsBefore) = (vrpViews, vrpGrants)
+      val response = makePostRequest(createConsentBySmsUrl(consentRequestId), write(""))
+
+      Then("the send fails, the consent is rejected, and the view and the PSU's grant on it are released")
+      response.code should equal(400)
+      val getConsent = makeGetRequest(getConsentByRequestIdUrl(consentRequestId))
+      getConsent.body.extract[ConsentJsonV500].status should equal(ConsentStatus.REJECTED.toString)
+      vrpGrants should equal(grantsBefore)
+      vrpViews should equal(viewsBefore)
+    }
 
     Scenario("Revoking a VRP consent releases the mandate it created", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
       When("the PSU creates a VRP consent request and converts it")

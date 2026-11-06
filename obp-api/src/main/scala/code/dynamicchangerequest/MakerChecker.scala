@@ -32,8 +32,9 @@ import java.util.Date
 
 import code.abacrule.{AbacRule, AbacRuleEngine, MappedAbacRuleProvider}
 import code.api.Constant
+import code.api.dynamic.domainapi.DomainApiPaths
 import code.api.dynamic.endpoint.helper.CompiledObjects
-import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsAsIntValue, getPropsValue, sha256Hex}
+import code.api.util.APIUtil.{dynamicCodeHash, getPropsAsBoolValue, getPropsAsIntValue, getPropsValue, sha256Hex}
 import code.api.util.DynamicUtil.Validation
 import code.api.util.{CallContext, ErrorMessages}
 import code.api.v6_0_0.{CreateAbacRuleJsonV600, UpdateAbacRuleJsonV600}
@@ -55,7 +56,7 @@ import org.apache.commons.lang3.StringUtils
 import org.json4s.JsonAST.{JArray, JNothing, JObject, JValue}
 
 /**
- * Maker/checker for runtime-supplied code and configuration. Design: MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md.
+ * Maker/checker for runtime-supplied code and configuration. Design: docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md.
  *
  * Three responsibilities:
  *  - configuration + hashing (what is managed, what "the same content" means);
@@ -111,15 +112,21 @@ object MakerChecker extends MdcLoggable {
 
   private def blank(s: String): Boolean = StringUtils.isBlank(s)
 
-  private def bodyHashOf(storedHash: String, encodedBody: String): String =
-    if (!blank(storedHash)) storedHash
-    else sha256Hex(URLDecoder.decode(Option(encodedBody).getOrElse(""), "UTF-8"))
+  /**
+   * The hash of a code row as it is now: its language and its decoded body (see APIUtil.dynamicCodeHash).
+   *
+   * Always recomputed from the row, never read from the stored MethodBodyHash column. The guard
+   * compares this with ApprovedHash, and a stored hash would let a direct database edit of the body
+   * or the language keep the approval of the code it replaced.
+   */
+  private def bodyHashOf(programmingLang: String, encodedBody: String): String =
+    dynamicCodeHash(programmingLang, URLDecoder.decode(Option(encodedBody).getOrElse(""), "UTF-8"))
 
   /** The live target's body hash, Empty when the target does not exist. */
   def currentBodyHash(targetType: DynamicChangeRequestTargetType, targetId: String): Box[String] = targetType match {
-    case DYNAMIC_RESOURCE_DOC => DynamicResourceDoc.findById(None, targetId).map(r => bodyHashOf(r.methodBodyHash.orNull, r.methodBody))
-    case DYNAMIC_MESSAGE_DOC  => DynamicMessageDoc.findById(None, targetId).map(r => bodyHashOf(r.methodBodyHash.orNull, r.methodBody))
-    case CONNECTOR_METHOD     => DoobieConnectorMethodProvider.getByIdWithProvenance(targetId).map(r => bodyHashOf(r.methodBodyHash.orNull, r.connectorMethod.methodBody))
+    case DYNAMIC_RESOURCE_DOC => DynamicResourceDoc.findById(None, targetId).map(r => bodyHashOf(r.programmingLang, r.methodBody))
+    case DYNAMIC_MESSAGE_DOC  => DynamicMessageDoc.findById(None, targetId).map(r => bodyHashOf(r.programmingLang, r.methodBody))
+    case CONNECTOR_METHOD     => DoobieConnectorMethodProvider.getByIdWithProvenance(targetId).map(r => bodyHashOf(r.connectorMethod.programmingLang, r.connectorMethod.methodBody))
     case ABAC_RULE            => AbacRule.findById(targetId).map(r => sha256Hex(Option(r.ruleCode).getOrElse("")))
     case _                    => Empty
   }
@@ -138,18 +145,18 @@ object MakerChecker extends MdcLoggable {
 
   def isExecutableDynamicResourceDoc(dynamicResourceDocId: String): Boolean =
     DynamicResourceDoc.findById(None, dynamicResourceDocId)
-      .map(r => executable(r.isActive, bodyHashOf(r.methodBodyHash.orNull, r.methodBody), r.approvedHash.orNull, DYNAMIC_RESOURCE_DOC))
+      .map(r => executable(r.isActive, bodyHashOf(r.programmingLang, r.methodBody), r.approvedHash.orNull, DYNAMIC_RESOURCE_DOC))
       .getOrElse(false)
 
   def isExecutableDynamicMessageDoc(dynamicMessageDocId: String): Boolean = memoGuard("dmd_" + dynamicMessageDocId) {
     DynamicMessageDoc.findById(None, dynamicMessageDocId)
-      .map(r => executable(r.isActive, bodyHashOf(r.methodBodyHash.orNull, r.methodBody), r.approvedHash.orNull, DYNAMIC_MESSAGE_DOC))
+      .map(r => executable(r.isActive, bodyHashOf(r.programmingLang, r.methodBody), r.approvedHash.orNull, DYNAMIC_MESSAGE_DOC))
       .getOrElse(false)
   }
 
   def isExecutableConnectorMethod(connectorMethodId: String): Boolean = memoGuard("cm_" + connectorMethodId) {
     DoobieConnectorMethodProvider.getByIdWithProvenance(connectorMethodId)
-      .map(r => executable(r.isActive, bodyHashOf(r.methodBodyHash.orNull, r.connectorMethod.methodBody), r.approvedHash.orNull, CONNECTOR_METHOD))
+      .map(r => executable(r.isActive, bodyHashOf(r.connectorMethod.programmingLang, r.connectorMethod.methodBody), r.approvedHash.orNull, CONNECTOR_METHOD))
       .getOrElse(false)
   }
 
@@ -355,8 +362,16 @@ object MakerChecker extends MdcLoggable {
       case CREATE | UPDATE =>
         for {
           body <- parseAs[JsonDynamicResourceDoc](request.proposedPayload)
+          // Checked again here, as the space may have changed since the request was made.
+          _ <- {
+            val unchangedPath = operation == UPDATE && p.getById(bankId, request.targetId)
+              .exists(stored => stored.requestVerb == body.requestVerb && stored.requestUrl == body.requestUrl)
+            val ambiguities = if (unchangedPath) Nil else DomainApiPaths.storedResourceDocAmbiguities(
+              bankId, Some(request.targetId).filter(_ => operation == UPDATE), body.requestVerb, body.requestUrl, body.partialFunctionName)
+            boolBox(ambiguities.isEmpty, s"${ErrorMessages.DynamicPathAmbiguous}${ambiguities.mkString("; ")}")
+          }
           _ <- compileBox("dynamic resource doc") {
-            val compiled = CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody)
+            val compiled = CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody, body.programmingLang, bankId)
             compiled.validateDependency()
             Full(compiled)
           }
@@ -462,16 +477,16 @@ object MakerChecker extends MdcLoggable {
     targetType match {
       case DYNAMIC_RESOURCE_DOC =>
         DynamicResourceDoc.findById(None, targetId).map { r =>
-          DynamicResourceDoc.setApproved(targetId, bodyHashOf(r.methodBodyHash.orNull, r.methodBody)); ()
+          DynamicResourceDoc.setApproved(targetId, bodyHashOf(r.programmingLang, r.methodBody)); ()
         }
       case DYNAMIC_MESSAGE_DOC =>
         DynamicMessageDoc.findById(None, targetId).map { r =>
-          DynamicMessageDoc.setApproved(targetId, bodyHashOf(r.methodBodyHash.orNull, r.methodBody)); ()
+          DynamicMessageDoc.setApproved(targetId, bodyHashOf(r.programmingLang, r.methodBody)); ()
         }
       case CONNECTOR_METHOD =>
         DoobieConnectorMethodProvider.getByIdWithProvenance(targetId).map { r =>
           DoobieConnectorMethodProvider.setApproved(
-            targetId, bodyHashOf(r.methodBodyHash.orNull, r.connectorMethod.methodBody)); ()
+            targetId, bodyHashOf(r.connectorMethod.programmingLang, r.connectorMethod.methodBody)); ()
         }
       case ABAC_RULE =>
         AbacRule.findById(targetId).map { r =>
@@ -494,6 +509,106 @@ object MakerChecker extends MdcLoggable {
   }
 
   // ─── boot ──────────────────────────────────────────────────────────────────
+
+  /** MigrationScriptLog entry that records the one-off rehash below. */
+  val rehashMigrationName = "rehashDynamicCodeWithLanguage"
+
+  /**
+   * This moves stored code hashes from the old form (SHA-256 of the body alone) to the current form
+   * (SHA-256 of the language and the body, see APIUtil.dynamicCodeHash). It runs once per database,
+   * at every boot until it has succeeded, whether or not maker/checker is enabled, because
+   * MethodBodyHash is also reported as provenance.
+   *
+   * It runs from Boot rather than as a Migration.database script because those run only on instances
+   * that switch migration scripts on. Without this step, every approved row on any other instance
+   * would stop executing at the upgrade, since its ApprovedHash would no longer equal the hash the
+   * guard computes.
+   *
+   * For each Dynamic Resource Doc, Dynamic Message Doc and Connector Method:
+   *  - MethodBodyHash is recomputed in the new form;
+   *  - ApprovedHash is moved to the new form only when it equals the old-form hash of the row's
+   *    current body, so the approval is carried over exactly where it was still valid. A row whose
+   *    body no longer matches its approval stays unexecutable, as it was before;
+   *  - a pending change request whose CurrentPayloadHash equals the old-form hash of its target is
+   *    moved too, so it does not turn stale merely because of this rehash.
+   *
+   * What it cannot do: an approval granted before this change bound the body only, so a row whose
+   * language was changed after approval (through the API, without a new body) keeps that approval,
+   * now bound to its current language. From this change on, changing the language requires approval.
+   *
+   * Rerunning it is harmless: once moved, an ApprovedHash no longer equals the old form and is left
+   * alone, so several nodes booting at once cannot do damage.
+   */
+  def rehashDynamicCodeWithLanguage(): Unit = {
+    val logProvider = code.migration.MigrationScriptLogProvider.migrationScriptLogProvider.vend
+    if (!logProvider.isExecuted(rehashMigrationName)) {
+      val start = System.currentTimeMillis()
+      // targetType -> (old-form hash -> new-form hash) of every row, for moving pending change requests.
+      val moved = scala.collection.mutable.Map[(String, String), (String, String)]()
+      def rehash[T](targetType: DynamicChangeRequestTargetType, rows: List[T])(
+        id: T => String, lang: T => String, encodedBody: T => String, approvedHash: T => String, write: (T, String, Option[String]) => Unit
+      ): String = {
+        var approvalsMoved = 0
+        rows.foreach { r =>
+          val decoded = URLDecoder.decode(Option(encodedBody(r)).getOrElse(""), "UTF-8")
+          val oldHash = sha256Hex(decoded)
+          val newHash = dynamicCodeHash(lang(r), decoded)
+          val approvalStillValid = approvedHash(r) == oldHash
+          if (approvalStillValid) approvalsMoved += 1
+          write(r, newHash, if (approvalStillValid) Some(newHash) else None)
+          moved((targetType.toString, id(r))) = (oldHash, newHash)
+        }
+        s"$targetType: ${rows.size} rows, $approvalsMoved approvals moved"
+      }
+      // The three code tables share the columns this reads and writes, so one row shape serves them all:
+      // (id, lang, encoded body, approved hash).
+      def codeRows(table: String, idColumn: String): List[(String, String, String, String)] = {
+        import doobie.implicits._
+        code.api.util.DoobieUtil.runQuery(
+          (doobie.Fragment.const(s"SELECT $idColumn, lang, methodbody, approvedhash FROM $table"))
+            .query[(Option[String], Option[String], Option[String], Option[String])].to[List])
+          .map { case (id, lang, body, approved) => (id.orNull, lang.orNull, body.orNull, approved.orNull) }
+      }
+      def writeHash(table: String, idColumn: String)(row: (String, String, String, String), hash: String,
+                                                    approved: Option[String]): Unit = {
+        import doobie.implicits._
+        code.api.util.DoobieUtil.runUpdate(
+          (doobie.Fragment.const(s"UPDATE $table SET methodbodyhash =") ++ fr"$hash" ++
+            approved.map(a => fr", approvedhash = $a").getOrElse(doobie.Fragment.empty) ++
+            doobie.Fragment.const(s"WHERE $idColumn =") ++ fr"${row._1}").update.run)
+        ()
+      }
+      tryo {
+        val summary = List(
+          rehash(DYNAMIC_RESOURCE_DOC, codeRows("dynamicresourcedoc", "dynamicresourcedocid"))(
+            _._1, _._2, _._3, _._4, writeHash("dynamicresourcedoc", "dynamicresourcedocid")),
+          rehash(DYNAMIC_MESSAGE_DOC, codeRows("dynamicmessagedoc", "dynamicmessagedocid"))(
+            _._1, _._2, _._3, _._4, writeHash("dynamicmessagedoc", "dynamicmessagedocid")),
+          rehash(CONNECTOR_METHOD, codeRows("connectormethod", "connectormethodid"))(
+            _._1, _._2, _._3, _._4, writeHash("connectormethod", "connectormethodid"))
+        )
+        val pending = DynamicChangeRequest.findAll(Some(DynamicChangeRequestStatus.INITIATED.toString), None, None, None)
+        var requestsMoved = 0
+        pending.foreach { request =>
+          moved.get((request.targetType, request.targetId)).foreach { case (oldHash, newHash) =>
+            if (request.currentPayloadHash == oldHash) {
+              DynamicChangeRequest.setCurrentPayloadHash(request.dynamicChangeRequestId, newHash); requestsMoved += 1
+            }
+          }
+        }
+        (summary :+ s"pending change requests moved: $requestsMoved").mkString(", ")
+      } match {
+        case Full(summary) =>
+          val comment = s"Code hashes now cover the programming language as well as the body ($summary)"
+          logger.warn(s"rehashDynamicCodeWithLanguage says: $comment")
+          logProvider.saveLog(rehashMigrationName, code.api.util.APIUtil.gitCommit, true, start, System.currentTimeMillis(), comment)
+        case f: Failure =>
+          logger.error(s"rehashDynamicCodeWithLanguage says: failed, will retry at next boot: ${f.messageChain}")
+          logProvider.saveLog(rehashMigrationName, code.api.util.APIUtil.gitCommit, false, start, System.currentTimeMillis(), f.messageChain)
+        case _ => ()
+      }
+    }
+  }
 
   /** MigrationScriptLog entry that records the one-off seeding below; the seed never runs twice on a database. */
   val seedMigrationName = "seedDynamicCodeApprovedHashes"
@@ -520,13 +635,13 @@ object MakerChecker extends MdcLoggable {
       tryo {
         List(
           seed("DynamicResourceDoc", DynamicResourceDoc.findAllWithoutApprovedHash())(
-            r => bodyHashOf(r.methodBodyHash.orNull, r.methodBody),
+            r => bodyHashOf(r.programmingLang, r.methodBody),
             (r, h) => { DynamicResourceDoc.setApproved(r.dynamicResourceDocId, h); () }),
           seed("DynamicMessageDoc", DynamicMessageDoc.findAllWithoutApprovedHash())(
-            r => bodyHashOf(r.methodBodyHash.orNull, r.methodBody),
+            r => bodyHashOf(r.programmingLang, r.methodBody),
             (r, h) => { DynamicMessageDoc.setApproved(r.dynamicMessageDocId, h); () }),
           seed("ConnectorMethod", DoobieConnectorMethodProvider.findAllWithoutApprovedHash())(
-            r => bodyHashOf(r.methodBodyHash.orNull, r.connectorMethod.methodBody),
+            r => bodyHashOf(r.connectorMethod.programmingLang, r.connectorMethod.methodBody),
             (r, h) => { DoobieConnectorMethodProvider.setApproved(r.connectorMethod.connectorMethodId.getOrElse(""), h); () }),
           seed("AbacRule", AbacRule.findAllWithoutApprovedHash())(
             r => sha256Hex(Option(r.ruleCode).getOrElse("")),

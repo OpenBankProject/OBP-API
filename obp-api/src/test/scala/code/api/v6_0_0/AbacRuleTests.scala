@@ -29,7 +29,7 @@ package code.api.v6_0_0
 
 import org.json4s._
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{canCreateAbacRule, canExecuteAbacRule}
+import code.api.util.ApiRole.{canCreateAbacRule, canExecuteAbacRule, canUpdateAbacRule}
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.v6_0_0.Http4s600.Implementations6_0_0
@@ -59,6 +59,7 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
   object ApiEndpoint1 extends Tag(nameOf(Implementations6_0_0.executeAbacRule))
   object ApiEndpoint2 extends Tag(nameOf(Implementations6_0_0.executeAbacPolicy))
   object ApiEndpoint3 extends Tag(nameOf(Implementations6_0_0.createAbacRule))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations6_0_0.updateAbacRule))
 
   /**
    * Helper to create an ABAC rule via the API and return its ID.
@@ -389,6 +390,57 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
       val response = makePostRequest(request, write(createJson))
       Then("We should get a 201")
       response.code should equal(201)
+    }
+  }
+
+  // ==================== Error Codes of Rejected Rule Code ====================
+
+  feature(s"Creating or updating a rule with invalid code answers the error validate reports - $VersionOfApi") {
+
+    // Each kind of invalid rule code, with the error the validate endpoint must classify it as.
+    val invalidRuleCodes = List(
+      ("field reference", "authenticatedUser.noSuchField == \"x\"", ErrorMessages.AbacRuleFieldReferenceError),
+      // The compiler reports an incomplete expression as a failed compilation, not by the word "syntax".
+      ("compilation", "authenticatedUser.emailAddress ==", ErrorMessages.AbacRuleCompilationFailed),
+      ("tautology", "true", ErrorMessages.AbacRuleTooPermissive)
+    )
+
+    def obpCode(message: String): String = "OBP-\\d+".r.findFirstIn(message).getOrElse(message)
+
+    def validatedCode(ruleCode: String): String = {
+      val response = makePostRequest(
+        (v6_0_0_Request / "management" / "abac-rules" / "validate").POST <@ (user1),
+        write(ValidateAbacRuleJsonV600(rule_code = ruleCode)))
+      response.code should equal(200)
+      (response.body \ "valid").extract[Boolean] should equal(false)
+      obpCode((response.body \ "message").extract[String])
+    }
+
+    invalidRuleCodes.foreach { case (kind, ruleCode, expectedError) =>
+      scenario(s"Creating a rule with a $kind error", ApiEndpoint3, VersionOfApi) {
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
+        val expectedCode = validatedCode(ruleCode)
+        withClue(s"validate classifies the $kind error: ") { expectedCode should equal(obpCode(expectedError)) }
+        val response = makePostRequest(
+          (v6_0_0_Request / "management" / "abac-rules").POST <@ (user1),
+          write(CreateAbacRuleJsonV600(s"invalid-$kind", ruleCode, "Should be rejected", "account-access", is_active = true)))
+        Then(s"We should get a 400 with $expectedCode")
+        response.code should equal(400)
+        response.body.extract[ErrorMessage].message should startWith(expectedCode)
+      }
+
+      scenario(s"Updating a rule with a $kind error", ApiEndpoint4, VersionOfApi) {
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateAbacRule.toString)
+        val ruleId = createAbacRuleViaApi(s"to-update-$kind", "false")
+        val expectedCode = validatedCode(ruleCode)
+        withClue(s"validate classifies the $kind error: ") { expectedCode should equal(obpCode(expectedError)) }
+        val response = makePutRequest(
+          (v6_0_0_Request / "management" / "abac-rules" / ruleId).PUT <@ (user1),
+          write(UpdateAbacRuleJsonV600(s"to-update-$kind", ruleCode, "Should be rejected", "account-access", is_active = true)))
+        Then(s"We should get a 400 with $expectedCode")
+        response.code should equal(400)
+        response.body.extract[ErrorMessage].message should startWith(expectedCode)
+      }
     }
   }
 }

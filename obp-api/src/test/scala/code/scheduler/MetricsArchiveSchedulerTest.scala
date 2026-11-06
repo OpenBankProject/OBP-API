@@ -29,8 +29,10 @@ package code.scheduler
 
 import java.util.Date
 
+import code.api.util.DoobieUtil
 import code.metrics.{MappedMetric, MetricArchive, MetricBatchWriter, MetricsArchiveRun}
 import code.setup.ServerSetup
+import doobie.implicits._
 
 /**
  * Exercises the actual metrics-archiving logic (not just the HTTP wiring) by seeding
@@ -85,6 +87,9 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       consentReferenceId = "",
       certificateTrust = null,
       certificateTrustDetail = null)
+    // The store's insert does not take forwarded_for, so the seed writes that column on its own.
+    DoobieUtil.runUpdate(
+      sql"UPDATE metric SET forwarded_for = ${"203.0.113.9, 127.0.0.1"} WHERE id = $id".update.run)
     MappedMetric.findByPrimaryKey(id).openOrThrowException("the metric just seeded must be readable")
   }
 
@@ -107,11 +112,13 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       responseBody = "body",
       sourceIp = "127.0.0.1",
       targetIp = "127.0.0.1",
+      forwardedFor = null,
       apiInstanceId = "test",
       consentReferenceId = "",
       certificateTrust = null,
       certificateTrustDetail = null,
-      authType = null)
+      authType = null,
+      domainApiUrl = null)
     MetricArchive.findByMetricId(metricId)
       .openOrThrowException("the archive row just seeded must be readable")
   }
@@ -127,7 +134,8 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
 
       Then("the old row is gone from metric and present in the archive")
       MappedMetric.findByPrimaryKey(oldRow.metricPrimaryKey).isDefined should equal(false)
-      MetricArchive.findByMetricId(oldRow.metricPrimaryKey).isDefined should equal(true)
+      MetricArchive.findByMetricId(oldRow.metricPrimaryKey).map(_.getForwardedFor()) should equal(
+        net.liftweb.common.Full("203.0.113.9, 127.0.0.1"))
 
       And("the recent row is untouched")
       MappedMetric.findByPrimaryKey(recentRow.metricPrimaryKey).isDefined should equal(true)

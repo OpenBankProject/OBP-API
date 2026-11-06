@@ -30,7 +30,7 @@ package code.api.UKOpenBanking.v3_1_0
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, mockedDataText}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, mockedDataText}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -59,7 +59,7 @@ object Http4sUKOBv310ScheduledPayments extends MdcLoggable {
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
   private val tag = ApiTag("Scheduled Payments") :: apiTagMockedData :: Nil
 
-  lazy val getAccountsAccountIdScheduledPayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountsAccountIdScheduledPayments: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "accounts" / _ / "scheduled-payments" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -132,7 +132,7 @@ object Http4sUKOBv310ScheduledPayments extends MdcLoggable {
     http4sPartialFunction = Some(getAccountsAccountIdScheduledPayments)
   )
 
-  lazy val getScheduledPayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getScheduledPayments: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "scheduled-payments" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -205,7 +205,10 @@ object Http4sUKOBv310ScheduledPayments extends MdcLoggable {
     http4sPartialFunction = Some(getScheduledPayments)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    getAccountsAccountIdScheduledPayments(req).orElse(getScheduledPayments(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    getAccountsAccountIdScheduledPayments,
+    getScheduledPayments
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

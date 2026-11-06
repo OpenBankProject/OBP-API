@@ -467,8 +467,11 @@ case class MetricJsonV600(
     verb: String,
     correlation_id: String,
     duration: Long,
+    // The client address OBP-API decided on (see the Client IP Address glossary item)
     source_ip: String,
     target_ip: String,
+    // The hops the request passed through: the X-Forwarded-For chain it arrived with, then the TCP peer
+    forwarded_for: String,
     response_body: org.json4s.JValue,
     status_code: Int,
     operation_id: String,
@@ -482,7 +485,10 @@ case class MetricJsonV600(
     // absent when the request carried no certificate material. See PeerTrust.Resolution.
     certificate_trust: Option[String],
     // The forwarding proxy's subject DN, or the reason no caller was identified.
-    certificate_trust_detail: Option[String]
+    certificate_trust_detail: Option[String],
+    // The path and query string the caller used under a Domain API, before it was rewritten to the OBP
+    // URL in `url`. Absent for every call that did not come through a Domain API.
+    domain_api_url: Option[String] = None
 )
 case class MetricsJsonV600(metrics: List[MetricJsonV600])
 
@@ -1037,7 +1043,7 @@ case class CreateDynamicEntityRequestJsonV600(
     has_community_access: Option[Boolean] = None,  // defaults to false if not provided
     personal_requires_role: Option[Boolean] = None,  // defaults to false if not provided
     use_row_level_access: Option[Boolean] = None,  // defaults to false if not provided
-    auth_mode: Option[String] = None,  // UserOnly | ApplicationOnly | UserOrApplication | UserAndApplication; defaults to UserOnly
+    auth_mode: Option[String] = None,  // UserOnly | ApplicationOnly | UserXORApplication | UserAndApplication; defaults to UserOnly
     schema: org.json4s.JsonAST.JObject
 )
 
@@ -1450,7 +1456,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
     ConsumerJsonV600(
       consumer_id = c.consumerId,
-      consumer_key = c.key,
+      // v7.0.0 Get Consumer leaves the field out
+      consumer_key = code.api.util.APIUtil.redactConsumerKey(c.key),
       app_name = c.name,
       // consumer.apptype is nullable too, and the same .toString() on a raw String throws.
       // No row in the reference data holds NULL there today, which is the only reason this is
@@ -1773,6 +1780,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       duration = metric.getDuration(),
       source_ip = metric.getSourceIp(),
       target_ip = metric.getTargetIp(),
+      forwarded_for = Option(metric.getForwardedFor()).getOrElse(""),
       response_body = com.openbankproject.commons.util.JsonAliases.parseOpt(metric.getResponseBody()).getOrElse(org.json4s.JString("Not enabled")),
       status_code = metric.getHttpCode(),
       operation_id = operationId,
@@ -1780,7 +1788,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       consent_reference_id = Option(metric.getConsentReferenceId()).filter(_.nonEmpty),
       auth_type = Option(metric.getAuthType()).filter(_.nonEmpty),
       certificate_trust = Option(metric.getCertificateTrust()).filter(_.nonEmpty),
-      certificate_trust_detail = Option(metric.getCertificateTrustDetail()).filter(_.nonEmpty)
+      certificate_trust_detail = Option(metric.getCertificateTrustDetail()).filter(_.nonEmpty),
+      domain_api_url = Option(metric.getDomainApiUrl()).filter(_.nonEmpty)
     )
   }
 
@@ -2429,7 +2438,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       Constant.CALL_COUNTER_NAMESPACE -> ("Rate limit call counters", "Rate Limiting"),
       Constant.RL_ACTIVE_NAMESPACE -> ("Active rate limit states", "Rate Limiting"),
       Constant.RD_LOCALISED_NAMESPACE -> ("Localized resource docs", "API Documentation"),
-      Constant.RD_DYNAMIC_NAMESPACE -> ("Dynamic resource docs", "API Documentation"),
+      Constant.RD_DYNAMIC_NAMESPACE -> (s"Dynamic resource docs. ${code.api.util.ResourceDocVocabulary.describe()}", "API Documentation"),
       Constant.RD_STATIC_NAMESPACE -> ("Static resource docs", "API Documentation"),
       Constant.RD_ALL_NAMESPACE -> ("All resource docs", "API Documentation"),
       Constant.SWAGGER_STATIC_NAMESPACE -> ("Static Swagger docs", "API Documentation"),
@@ -2438,7 +2447,18 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       Constant.METRICS_RECENT_NAMESPACE -> ("Recent metrics data", "Metrics"),
       Constant.ABAC_RULE_NAMESPACE -> ("ABAC rule cache", "Authorization"),
       Constant.FINANCIAL_PRODUCTS_NAMESPACE -> ("Financial product list (bank-scoped and all-banks)", "Products"),
-      Constant.API_PRODUCTS_NAMESPACE -> ("Api product list (all banks)", "Products")
+      Constant.API_PRODUCTS_NAMESPACE -> ("Api product list (all banks)", "Products"),
+      Constant.MESSAGE_DOCS_NAMESPACE -> ("Message docs and connector JSON Schemas (Redis, and each instance's memory)", "API Documentation"),
+      Constant.GLOSSARY_NAMESPACE -> ("Glossary items held in each instance's memory; bumping also rebuilds cached resource docs", "API Documentation"),
+      Constant.DYNAMIC_ENTITY_NAMESPACE -> ("Dynamic entity definitions: the definition lists in Redis and each instance's definitions map", "Dynamic Entities")
+    )
+
+    // Caches held in this instance's memory outside the shared in-memory store, which follow their
+    // namespace's version through their own keys. Counted here so the page shows their real size.
+    val inProcessEntries: Map[String, () => Long] = Map(
+      Constant.MESSAGE_DOCS_NAMESPACE -> (() => code.api.v2_2_0.MessageDocsJsonCache.size + code.api.util.JsonSchemaGenerator.cacheSize),
+      Constant.GLOSSARY_NAMESPACE -> (() => code.api.util.Glossary.loadedItemCount.toLong),
+      Constant.DYNAMIC_ENTITY_NAMESPACE -> (() => code.api.dynamic.entity.helper.DynamicEntityHelper.keptDefinitionCount.toLong)
     )
 
     var redisAvailable = true
@@ -2486,7 +2506,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       }
 
       try {
-        memoryKeyCount = InMemory.countKeys(pattern)
+        memoryKeyCount = InMemory.countKeys(pattern) + inProcessEntries.get(namespaceId).map(count => count().toInt).getOrElse(0)
         totalKeys += memoryKeyCount
 
         if (memoryKeyCount > 0 && redisKeyCount == 0) {
@@ -3384,11 +3404,19 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
 
 }
 
-/** One personal dynamic entity the Consent may act on for the granting User: bank_id "" for a
- *  system-level entity; actions are "read" and/or "write". ideas/CONSENT_MY_RESOURCES.md */
+/** One personal dynamic entity the Consent may act on for the granting User: bank_id "SYS" for a
+ *  system-level entity (the empty string is still accepted for it); actions are "read" and/or "write".
+ *  ideas/CONSENT_MY_RESOURCES.md */
 case class PostConsentPersonalDynamicEntityJson(bank_id: String, entity_name: String, actions: List[String])
+/** The granting User's linked Customers at one Bank that the Consent may act on. bank_id is required:
+ *  a Customer belongs to a Bank, and naming it keeps the grant as narrow as the User meant it.
+ *  actions are "read" and/or "write". ideas/CONSENT_MY_RESOURCES.md */
+case class PostConsentLinkedCustomersJson(bank_id: String, actions: List[String])
 /** The User's own resources a Consent may act on (owned, not granted): one typed list per kind. */
-case class PostConsentMyResourcesJson(personal_dynamic_entities: Option[List[PostConsentPersonalDynamicEntityJson]])
+case class PostConsentMyResourcesJson(
+  personal_dynamic_entities: Option[List[PostConsentPersonalDynamicEntityJson]],
+  linked_customers: Option[List[PostConsentLinkedCustomersJson]] = None
+)
 /**
  * v6.0.0 create-consent body: the v3.1.0 body plus `my_resources`. Older versions are STABLE or
  * next in line to be frozen, so the field lives here. Appended at the end of the file on purpose:

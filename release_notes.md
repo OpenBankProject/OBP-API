@@ -3,6 +3,599 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+06/11/2026    TBD           FIXED: the consumer quota. A per-second limit held for only about half of each second:
+                            Redis rounds TTL to the nearest second, so a 1-second counter read TTL 0 for its last
+                            ~500 ms while still holding its count, and was treated as expired, letting every call
+                            through. The quota script now decides on PTTL, and reports the X-Rate-Limit-Reset
+                            rounded up, so a live counter never reads 0 (the headers were also missing in that
+                            half-second). And a Consumer blocked with a limit of 0 is refused again while Redis is
+                            unreachable, as before the single-script quota; other limits still fail open, now with
+                            a warning per request instead of an error with a stack trace.
+06/11/2026    TBD           ADDED: Consumer Account Access. A view of an account can be granted to a Consumer, as it
+                            can to a User, so an application acting as itself (OAuth2 client credentials, its own
+                            obp-oidc#client User) can use that view. v7.0.0 POST, GET and DELETE
+                            /banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/consumer-account-access[/CONSUMER_ACCOUNT_
+                            ACCESS_ID] grant, list and revoke it, with the same view permissions as granting a view to
+                            a User (can_grant_access_to_views / can_grant_access_to_custom_views, and the revoke ones;
+                            listing needs can_see_views_with_permissions_for_all_users); the grant records who gave
+                            it. The owner view and public views can't be granted to a Consumer (400 OBP-30629); a
+                            second grant is 409 OBP-30627; an unknown grant is 404 OBP-30628. The access counts only
+                            for the Consumer's own client-credentials User, never for a person logging in through the
+                            Consumer or a caller identified by Consumer Key alone, and only on endpoints whose auth
+                            mode admits an application (ApplicationOnly, UserXORApplication). New table
+                            consumer_account_access. Glossary: Consumer Account Access.
+06/11/2026    TBD           CHANGED: v7.0.0 Create Transaction Request (OPEN_CORRIDOR_PROMISE) is UserXORApplication:
+                            an application acting as itself may create the promise through a view its Consumer has
+                            been given (Consumer Account Access). The Transaction Request records the Consumer, as
+                            before. Called with no credentials at all it now answers 401 OBP-20200 (application not
+                            identified) instead of 401 OBP-20001.
+03/11/2026    TBD           CHANGED: the cascade-delete endpoints under /management/cascading are off by
+                            default, behind the new prop allow_cascade_delete (default false). While it is
+                            false they are not routed and not listed in the Resource Docs of any version,
+                            so a request gets 404: DELETE /obp/v4.0.0/management/cascading/banks/BANK_ID,
+                            .../accounts/ACCOUNT_ID, .../accounts/ACCOUNT_ID/transactions/TRANSACTION_ID,
+                            .../products/PRODUCT_CODE and .../customers/CUSTOMER_ID. Set
+                            allow_cascade_delete=true to keep using them. The prop is read at startup. The
+                            Dynamic Entity cascade deletes are not affected.
+01/11/2026    TBD           CHANGED: with consents.allowed false (the default) consents are now refused when they are
+                            created, not only when they are used: every endpoint that creates a consent or a consent
+                            request (OBP v3.1.0, v5.0.0, v5.1.0 and v6.0.0, Berlin Group v1.3, UK Open Banking v3.1 and
+                            v4.0.1) answers 401 OBP-35007 first, before a challenge is sent or anything is stored.
+                            Before, such consents were created (and could even be accepted) but could never be used.
+01/11/2026    TBD           ADDED: OBP consents left INITIATED (their challenge never answered) are now rejected by
+                            a new ConsentScheduler task, unfinishedObpConsents, once unchanged for
+                            obp_unfinished_consents_time_in_seconds (default 21600, 6 hours). It runs every
+                            obp_unfinished_consents_interval_in_seconds (default 593; 0 stops it) and notes the reason
+                            on the consent. Before, an INITIATED OBP consent stayed INITIATED forever, so an app that
+                            reuses a pending consent (as the Portal and other OBP-Frontend apps do for Opey) could be
+                            stuck on one. Berlin Group consents already had the equivalent task.
+01/11/2026    TBD           CHANGED: v7.0.0 Organisation is now Tenant: a customer of the operator of this OBP
+                            instance, which belongs to no bank (banks will later name their Tenant). The endpoints
+                            move from /banks/BANK_ID/organisations[/ORGANISATION_ID] to /tenants[/TENANT_ID]. JSON
+                            field organisation_id becomes tenant_id; bank_id and organisation_type are gone. The
+                            Roles become system Roles: CanCreateTenant, CanGetTenant, CanUpdateTenant,
+                            CanDeleteTenant. REMOVED: Organisation members (/banks/BANK_ID/organisations/
+                            ORGANISATION_ID/members[/USER_ID], GET /my/organisations), their four Roles and the
+                            OrganisationMember table's use. Error codes OBP-30506..30513 keep their numbers with
+                            Tenant wording; OBP-30553..30559 and OBP-30597 are gone. New table Tenant; the
+                            migration renameOrganisationsToTenants copies the rows of Organisation (left in place,
+                            unread) and moves the old Roles held at SYS or the empty bank id to the new system
+                            Roles. This replaces moveOrganisationsIntoSpaces.
+01/11/2026    TBD           CHANGED: Create Customer (v6.0.0 POST /banks/BANK_ID/customers) and Create User Customer
+                            Link (v4.0.0 POST /banks/BANK_ID/user_customer_links) are UserXORApplication: an
+                            application acting as itself may call them with CanCreateCustomer and
+                            CanCreateUserCustomerLink as Scopes. Called with no credentials at all, Create User
+                            Customer Link now answers 401 OBP-20200 (application not identified) instead of 401
+                            OBP-20001.
+01/11/2026    TBD           ADDED: v7.0.0 Send Email to Customer. POST /banks/BANK_ID/customers/CUSTOMER_ID/emails
+                            queues a plain-text email (subject, text, optional reference) to one of the bank's
+                            Customers, at the address on the Customer record, through the message outbox; the
+                            address is never returned. Needs the new Role CanSendEmailToCustomerAtOneBank (or the
+                            Scope, for an application acting as itself). Only a Customer of BANK_ID is emailed, and
+                            not in a self-service bank (made with Create My Bank); at most
+                            customer_emails.max_per_customer_per_day (default 20) per Customer in 24 hours. From:
+                            customer_emails.sender_address, else mail.api.consumer.registered.sender.address.
+                            MessageOutbox.enqueueEmail takes optional metadata.
+31/10/2026    TBD           ADDED: v7.0.0 personal files and scan status. POST /banks/BANK_ID/my/files stores a
+                            file in the caller's own name without a Role, attached to one of their own personal
+                            Dynamic Entity records. Off unless the space is in files.personal.enabled_bank_ids;
+                            needs the owner's email address validated (a User of another identity provider
+                            needs only to have one); limited by
+                            files.personal.allowed_media_types, files.personal.max_size_in_bytes,
+                            files.personal.max_files_per_user and files.personal.max_total_bytes_per_user; never
+                            public. Every file now has scan_status (pending, clean, rejected): personal files start
+                            pending, files stored with CanCreateFileAtOneBank and existing files count as clean,
+                            except in self-service banks (made with Create My Bank), where every file starts
+                            pending. CHANGED: Create My Bank (POST /my/banks), still enabled by
+                            self_service_bank_creation.limit > 0, is refused with OBP-30232 unless OBP stores banks
+                            itself (the mapped connector, or star routing createOrUpdateBank to mapped), so a User
+                            never creates a bank on a backend system. It records each bank in the new table
+                            SelfServiceBank; its quota counts those rows, so banks made with CanCreateBank no longer
+                            count. The migration markSelfServiceBanks records existing banks whose id has the
+                            generated shape, and sets unscanned files in those banks to pending.
+                            Until clean, content is served only to the owner and holders of the new Role
+                            CanUpdateFileScanStatusAtOneBank, which PUT /banks/BANK_ID/files/FILE_ID/scan-status
+                            needs; rejected content is not served. Get Files of a Space takes scan_status=pending.
+                            File responses gain is_personal, scan_status, scan_status_reason and
+                            scan_status_updated_at. New File columns: IsPersonal, ScanStatus, ScanStatusReason,
+                            ScanStatusUpdatedAt, ScanStatusUpdatedByUserId.
+30/10/2026    TBD           ADDED: v7.0.0 Organisation members. POST/GET /banks/BANK_ID/organisations/
+                            ORGANISATION_ID/members and GET/PUT/DELETE .../members/USER_ID link Users to an
+                            Organisation with a member_role (owner, admin, member), an optional title, a status
+                            (invited, active, suspended, left) and is_primary. New Roles, granted at the space:
+                            CanCreateOrganisationMember, CanGetOrganisationMembers, CanUpdateOrganisationMember,
+                            CanDeleteOrganisationMember. An active owner or admin member manages members without a
+                            Role, any active member reads the list, and a member may accept, leave and change their
+                            own title. GET /my/organisations lists the current User's memberships. Each write
+                            records both the caller and the person it acted for. New table: OrganisationMember.
+30/10/2026    TBD           CHANGED: v7.0.0 Organisations live in a space. The endpoints moved from
+                            /obp/v7.0.0/organisations[/ORGANISATION_ID] to
+                            /obp/v7.0.0/banks/BANK_ID/organisations[/ORGANISATION_ID], where BANK_ID is a bank or
+                            SYS for the system space; responses carry bank_id, and an optional organisation_type
+                            can be set. The four Roles now name a space (requiresBankId = true), and
+                            CanGetAnyOrganisation is renamed CanGetOrganisation. The migration
+                            moveOrganisationsIntoSpaces puts every existing Organisation in SYS and moves the
+                            Roles' Entitlements, Entitlement Requests, Consumer Scopes and Groups from the empty
+                            bank id to SYS, so existing grants keep exactly the access they had. A Group that also
+                            holds non-Organisation Roles stays at the empty bank id and is named in the
+                            migration log: grant its Organisation Roles at SYS another way.
+29/10/2026    TBD           CHANGED: Super admins (super_admin_user_ids) also hold the virtual Roles
+                            CanGetEntitlementRequestsAtAnyBank and CanDeleteEntitlementRequestsAtAnyBank,
+                            so on a fresh instance they can see and accept entitlement requests (accepting
+                            deletes the request) without first granting themselves those Roles. No new
+                            power: a super admin could already grant themselves any Role.
+29/10/2026    TBD           FIXED: Endpoints that check their Roles again in the handler
+                            (hasAtLeastOneEntitlement, hasAllEntitlements, NewStyle hasEntitlement; e.g. Get
+                            Entitlement Requests, v3.0.0 Get User by id / email / username, v3.1.0 Get Consumers)
+                            now honour the virtual Roles of super_admin_user_ids and oidc_operator_user_ids,
+                            as the ResourceDoc Role check already did, instead of answering 403.
+29/10/2026    TBD           ADDED: Files in v7.0.0: documents and photographs stored in a space (a bank, or
+                            SYS) and attached to records. POST /banks/BANK_ID/files stores one, base64 in
+                            JSON (Role CanCreateFileAtOneBank; is_public true also needs
+                            CanCreatePublicFileAtOneBank). GET .../files/FILE_ID, .../content (the bytes,
+                            with the file's Content-Type, ETag and Content-Disposition), .../attachments,
+                            GET .../files?record_type=&record_id= and GET .../my/files, for the owner, a
+                            User given access, or CanGetFileAtOneBank. GET /management/banks/BANK_ID/files
+                            lists every file of a space, paginated (CanGetFileAtOneBank). PUT .../files/FILE_ID/is-public
+                            (CanCreatePublicFileAtOneBank). POST/DELETE .../attachments and .../access.
+                            Public files are served without login by GET .../public-files,
+                            .../public-files/FILE_ID and .../public-files/FILE_ID/content, which serve
+                            public files only. No AtAnyBank Roles; a Role at SYS covers the system space.
+                            Media types are at most image/jpeg, image/png, image/webp, application/pdf
+                            (files.allowed_media_types can narrow them); size limit files.max_size_in_bytes
+                            (default 10 MB). New column File.IsPublic, new Roles, new tag File, new errors
+                            OBP-30586 to OBP-30596, new Glossary item Files.
+29/10/2026    TBD           CHANGED: the endpoint auth mode UserOrApplication is replaced by UserXORApplication.
+                            A request is either a person acting or an application acting as itself,
+                            never a mix. The application acts as itself when there is no User, or the User
+                            is its own, the one an OBP-OIDC client-credentials token resolves to (provider
+                            obp-oidc#client, named after the client id): then only its Consumer's Scopes
+                            count. Otherwise only the User's Entitlements count; a person calling through a
+                            Consumer that holds a Scope no longer gets it (DirectLogin needs only the
+                            consumer key, so anyone with an account and the key could). Who is let in is
+                            now who is recorded as acting. Applies to every endpoint that was
+                            UserOrApplication (log cache, telemetry, Platform Apps, Grants, OIDC / Consumer
+                            bootstrap, Dynamic Entity definitions, Get My Role, verify credentials, ...).
+                            require_scopes_for_all_roles / require_scopes_for_listed_roles no longer make
+                            an application acting as itself on an ApplicationOnly or UserXORApplication
+                            endpoint also need Entitlements. Dynamic Entity auth_mode accepts the former
+                            value UserOrApplication and stores and returns it as UserXORApplication; rows
+                            already stored with it read as UserXORApplication. Get My Role's
+                            allowed_for_auth_modes names UserXORApplication, and application_only is true
+                            only for a User of provider obp-oidc#client.
+29/10/2026    TBD           CHANGED: v7.0.0 Attach Open Corridor Promise Evidence, Create Open Corridor
+                            Settlement, Create Open Corridor Fee Settlement and Get Open Corridor
+                            Settlement are UserXORApplication: a person with the Role at BANK_ID as an
+                            Entitlement, or an application acting as itself whose Consumer holds it as a
+                            Scope at BANK_ID, such as a bank's Bank Node with a client-credentials token.
+                            reported_by_user_id is the application's own User when it acted. A call with no
+                            credentials still gets 401, now with ApplicationNotIdentified instead of
+                            AuthenticatedUserIsRequired. Response bodies are unchanged.
+13/10/2026    TBD           ADDED: Domain APIs have is_publicly_discoverable (new column
+                            domain_api.is_publicly_discoverable, false by default). The new public
+                            GET /obp/v7.0.0/banks/BANK_ID/domain-apis lists, without authentication, the
+                            space's Domain APIs that have it set, with base path, version, title,
+                            description, url and openapi_url. POST and PUT .../management/banks/BANK_ID/
+                            domain-apis take it as an optional field: false when left out on create,
+                            unchanged when left out on update. The management responses include it.
+                            ADDED: public GET /obp/v7.0.0/domain-apis lists the publicly discoverable
+                            Domain APIs of every space. Public GET /obp/v7.0.0/banks/BANK_ID/domain-apis/
+                            resource-docs?base_path=BASE_PATH gives a Domain API's endpoints as OBP
+                            Resource Docs, at their full published paths, for API Explorer.
+07/10/2026    TBD           CHANGED: GET /management/aggregate-metrics (v3.0.0, v5.1.0 and v6.0.0)
+                            covers at most 31 days of metrics per call, set by the new prop
+                            aggregate_metrics_max_days (default 31). A range between from_date and
+                            to_date longer than that returns 400 with the new error OBP-10069. In
+                            v3.0.0 and v5.1.0 a call without from_date used to aggregate the whole
+                            metric table; it now covers the 31 days before to_date (or before now).
+                            v6.0.0 keeps its own default of the last few minutes. Response bodies are
+                            unchanged. The query is also given the endpoint timeout, so the database
+                            stops it once the caller has already been answered.
+                            FIXED: v3.1.0 top-consumers with anon=true or anon=false returned no rows;
+                            it now filters as documented. v5.1.0 and v6.0.0 aggregate-metrics with
+                            several include_url_patterns now count a url matching any of them, not
+                            only one matching all of them.
+04/10/2026    TBD           CHANGED: GET /obp/v5.1.0/system/log-cache/LEVEL (trace, debug, info, warning,
+                            error, all) and GET /obp/v7.0.0/management/telemetry accept a Consumer that
+                            holds the Role as a Scope, as well as a User who holds it as an Entitlement
+                            (authMode UserOrApplication), so a monitoring service can read them as a
+                            Platform App with its own application token. A call with no credentials
+                            still gets 401, now with ApplicationNotIdentified instead of
+                            AuthenticatedUserIsRequired. Response bodies are unchanged.
+03/10/2026    TBD           CHANGED: a Dynamic Resource Doc is served under its space, at
+                            /obp/dynamic-endpoint/banks/BANK_ID/dynamic-resource-doc/REQUEST_URL, with
+                            SYS for the system space. A verb and URL are unique within a space instead of
+                            across every space, so the system space and several banks may each have a doc
+                            at the same URL. The URL without a space
+                            (/obp/dynamic-endpoint/dynamic-resource-doc/REQUEST_URL) still works while
+                            only one space has a doc there; when more than one does it returns 409 with
+                            the new error OBP-40067, naming the spaces to call it under. API Metrics
+                            record the URL with its space, also for a call made without it.
+                            CHANGED: a system level Dynamic Resource Doc stores SYS as its bank id
+                            instead of NULL, as a Dynamic Entity does. v4.0.0 responses for a system
+                            level doc no longer include "bank_id": null.
+                            CHANGED index on DynamicResourceDoc: the unique index on
+                            (RequestUrl, RequestVerb) is replaced by one on
+                            (BankId, RequestUrl, RequestVerb). On every start, before the tables are
+                            checked, existing NULL bank ids are set to SYS and the old index is dropped;
+                            this does not depend on the migration_scripts props.
+30/09/2026    TBD           CHANGED in v7.0.0: a Dynamic Entity record at
+                            /obp/v7.0.0/banks/BANK_ID/dynamic-entities/... is followed by a metadata
+                            object: created and updated, each with at (UTC), user_id (the User who made
+                            the call, an agent's own id when an agent made it) and on_behalf_of_user_id
+                            (the User it was made for). List items change shape to
+                            {"<entity>": {...}, "metadata": {...}}. Public reads carry the times only.
+                            A record held by another connector has no metadata. The unversioned
+                            /obp/dynamic-entity/ URLs are unchanged.
+                            NEW columns on DynamicData: createdat, updatedat, createdbyuserid,
+                            createdbyonbehalfofuserid, updatedbyuserid, updatedbyonbehalfofuserid. They
+                            are null for records written before this change; updated* is filled on a
+                            record's next save, created* stays null.
+29/09/2026    TBD           CHANGED: the "you have been granted a Role" email is queued in the message
+                            outbox (outbox_type EMAIL, subject_id = the entitlement_id) in the granting
+                            transaction, and sent by the outbox relay. A grant that is rolled back (a
+                            request that fails or times out) emails nobody, and SMTP sends no longer run
+                            on the shared thread pool, where a burst of grants (e.g. a Group member sync)
+                            could stall the API. The relay now always runs (Open Corridor rows are still
+                            only relayed when open_corridor_enabled=true); an email not sent is retried
+                            with backoff and goes STICKY after 8 attempts, visible and retryable through
+                            GET /management/message-outbox?outbox_type=EMAIL. Each email row is claimed
+                            before it is sent, so several instances never send it twice, and relay
+                            passes no longer overlap. The relay interval prop has a new name:
+                            message_outbox.relay_interval_seconds (default 10), replacing
+                            open_corridor.outbox_relay_interval, which is no longer read.
+29/09/2026    TBD           NEW in v7.0.0: POST /management/groups/GROUP_ID/sync-members[?dry_run=true]
+                            brings the Entitlements of a Group's members in line with its current Roles:
+                            grants the Roles they lack, deletes those the Group granted but no longer
+                            has, and keeps (recorded against that Group) any Role another of the
+                            member's Groups still grants. Needs the add-to-group and remove-from-group
+                            Roles at the Group's bank.
+29/09/2026    TBD           CHANGED: Group memberships are recorded in a new table GroupMembership, so a
+                            user added to a Group whose Roles they already held is still its member.
+                            POST /users/USER_ID/group-entitlements writes the row; DELETE
+                            /users/USER_ID/group-entitlements/GROUP_ID removes it and keeps (re-tagged)
+                            any Entitlement another of the user's Groups also grants, instead of
+                            deleting it; GET /users/USER_ID/group-entitlements also lists Groups that
+                            granted the user nothing; DELETE /management/groups/GROUP_ID removes the
+                            Group's rows. Members from before this change are still found through the
+                            Entitlements their Groups granted. Responses are unchanged.
+29/09/2026    TBD           CHANGED in v7.0.0: POST /users/USER_ID/entitlements returns 404 BankNotFound
+                            when bank_id is neither empty, SYS, nor an existing Bank's id (matched
+                            exactly, case included). It used to store a grant no Role check would read.
+28/09/2026    TBD           NEW in v7.0.0: Platform Apps, the Consumers an installation runs as part of
+                            its own deployment (Portal, API Manager, ...). POST, GET
+                            /management/platform-apps and DELETE /management/platform-apps/CONSUMER_ID
+                            (new Roles CanCreatePlatformApp, CanGetPlatformApps, CanDeletePlatformApp)
+                            mark, list and unmark them; the list shows each app's declared Scopes, held
+                            or not. PUT /consumers/current/platform-app (no Role, an Application on its
+                            own may call it) lets a marked app declare the Scopes it needs and what for.
+                            New tables platform_app and platform_app_required_scope. New error codes
+                            OBP-35045 to OBP-35048. New Glossary item "Platform Apps".
+28/09/2026    TBD           NEW in v7.0.0: POST /consumers/CONSUMER_ID/scopes. As v4.0.0's, but bank_id may
+                            be SYS, the system space of Dynamic Entities (v4.0.0 refuses it with
+                            BankNotFound), so the Definition Roles can be granted to a Consumer as
+                            Scopes through the API. The granting Role (CanCreateScopeAtAnyBank, or
+                            CanCreateScopeAtOneBank at bank_id) is checked at the body's bank_id.
+28/09/2026    TBD           NEW in v7.0.0: GET /consumers/current/scopes, the Roles the calling Consumer
+                            holds as Scopes (role_name, bank_id). No Role; a User or an Application on
+                            its own may call it, like GET /consumers/current/identity. For services
+                            (Portal, API Manager) to report on their status pages which Scopes they lack.
+28/09/2026    TBD           CHANGED: CanCreateConsumer is added to the Roles of an OIDC operator: a
+                            virtual Entitlement for users in oidc_operator_user_ids, and granted to the
+                            bootstrap user created from oidc_operator_username (only when that user is
+                            first created; an existing user keeps its stored Entitlements). OBP-OIDC
+                            checks for it at startup when dynamic client registration or client
+                            bootstrap is on.
+                            CanGetConsumers is also added to the virtual Entitlements of users in
+                            oidc_operator_user_ids (the bootstrap user already had it), so that list
+                            alone satisfies OBP-OIDC's startup Role check.
+28/09/2026    TBD           CHANGED in v7.0.0: GET and PUT /management/banks/BANK_ID/dynamic-entities
+                            (list and update Dynamic Entity definitions) accept an Application on its
+                            own (auth mode UserOrApplication), as POST already did, so a Consumer
+                            holding CanGetDynamicEntityDefinitions / CanUpdateDynamicEntityDefinition
+                            as a Scope can call them with a client-credentials token.
+28/09/2026    TBD           NEW in v7.0.0: GET /management/system/diagnostics/deployment (Role
+                            CanGetConfig), Deployment Checks: whether client addresses are passed on
+                            and used, believed only from the proxy, spread across real clients;
+                            whether applications pass on their users' addresses; rate-limit set-up;
+                            root log level, Telemetry collection, Redis, API Metrics losses. Worked out
+                            from props and the last 15 minutes of traffic.
+                            NEW prop trust.proxy.peers: addresses or CIDR ranges whose forwarding header
+                            is believed. Unset, behaviour is unchanged (believed from anyone).
+                            FIXED: an IPv6 client address is now used without the brackets http4s puts
+                            round it, in canonical form. IP penalties could not match IPv6 clients.
+28/09/2026    TBD           NEW in v7.0.0: GET /management/traffic/top-callers?window=1|5|15, where the
+                            traffic on the answering instance is coming from: the busiest Consumers,
+                            client IP addresses (every request, authenticated or not), and callers and
+                            endpoints, over the last 1, 5 or 15 minutes. Estimated counts from
+                            fixed-size tables (the Space-Saving algorithm of Metwally, Agrawal and
+                            El Abbadi, 2005), in memory only, 15 minutes kept. New Role
+                            CanGetTrafficSources (empty bank id). New error code OBP-10067.
+28/09/2026    TBD           NEW cache namespaces message_docs and glossary, shown and invalidated like
+                            the others (system/cache in API Manager, POST
+                            /management/cache/namespaces/invalidate).
+                            message_docs holds the rendered message docs and the connector JSON
+                            Schemas, in Redis (moved out of swagger_static) and in each instance's
+                            memory; bumping it rebuilds both on every instance within a second.
+                            glossary: bumping it reloads the Glossary each instance holds in memory
+                            and rebuilds every cached resource-docs document, whose keys carry the
+                            Glossary version.
+                            The rd_dynamic row now also reports the tag and function list used to
+                            check resource-docs filters (size, and when it was last rebuilt).
+28/09/2026    e71c90ca0     NEW: IP penalties, an operator's temporary per-minute limit on one IP
+                            address, on every endpoint, checked before all other rate limiters.
+                            per_minute_limit 0 refuses every request. Always enforced, kept in Redis
+                            (shared by every instance), removed automatically on expiry (at most one
+                            week). A refused request gets 429 OBP-10062.
+                            NEW in v7.0.0: POST, GET /management/ip-penalties and
+                            DELETE /management/ip-penalties/IP_ADDRESS, with the new Roles
+                            CanCreateIpPenalty, CanGetIpPenalties, CanDeleteIpPenalty (empty bank id).
+                            The penalty endpoints are never refused, so a mistake can be undone.
+                            NEW error codes: OBP-10062 to OBP-10066.
+28/09/2026    TBD           NEW rate-limit scope "documentation" in the self-service (per client IP)
+                            limiter, covering every public documentation read under any version prefix:
+                            resource-docs, message-docs, api/glossary, api/tags, api/versions,
+                            api/error-messages, api/popular-endpoints and the endpoints/*-validations
+                            lists. Built-in limits 60 a minute, 1000 an hour, 10000 a day per IP. It
+                            stays in shadow mode (X-Rate-Limit-Warning, no 429) even when
+                            self_service.rate_limit.mode is enforce, until
+                            self_service.rate_limit.documentation.mode = enforce is set.
+                            NEW prop: self_service.rate_limit.<scope>.mode, a mode per scope.
+                            CHANGED: the resource-docs tags and functions filters are sorted,
+                            de-duplicated and limited to values some ResourceDoc carries (static or
+                            dynamic, see ResourceDocVocabulary), so every spelling of the same filter,
+                            with or without made-up values, shares one cached document. Responses are
+                            unchanged: the filters match by membership, and a filter of only unknown
+                            values still returns no documents. Cache keys now accept only a
+                            ResourceDocFilters, which can only be built this way.
+                            NEW Telemetry: resource-docs, Swagger, OpenAPI and message-docs Swagger
+                            requests are timed; hits, misses and errors of the Redis-backed document
+                            and product caches; outcomes of the self-service limiter per scope.
+27/09/2026    TBD           NEW: Telemetry, aggregated numbers about each running instance for
+                            Prometheus and Grafana (not API Metrics; see the Glossary entry
+                            "Telemetry" and docs/telemetry_conventions.md). Recorded always:
+                            requests per endpoint (by operation id, API version and status class),
+                            Connector calls per method, Redis commands, cache hits and misses, the
+                            database pool, the log dispatch queue, memory, garbage collection and
+                            threads.
+                            NEW props: telemetry.port.enabled (default false), telemetry.host
+                            (default 0.0.0.0), telemetry.port (default 9464). When enabled, a
+                            separate port serves Telemetry at /telemetry in the Prometheus text
+                            format. It has no authentication: never publish it outside the host or
+                            cluster.
+                            NEW in v7.0.0: GET /management/telemetry, the same figures as JSON, with
+                            the new Role CanGetTelemetry (instance-wide, empty bank id).
+                            NEW dependency: Micrometer 1.17.1 (micrometer-core,
+                            micrometer-registry-prometheus).
+27/09/2026    785f1a4b7     FIXED: three endpoints had lost their Role in the move to http4s and
+                            now require it again, so callers without it get 403:
+                              GET /obp/v6.0.0/management/connector/traces  CanGetConnectorTrace
+                              GET /obp/v6.0.0/management/config-props      CanGetConfigProps
+                              PUT /obp/v4.0.0/banks/BANK_ID/atms/ATM_ID    CanUpdateAtm (at BANK_ID)
+                            updateAtm had accepted CanCreateAtmAtAnyBank by mistake; it now accepts
+                            only CanUpdateAtm at the bank, in line with retiring any-bank Roles.
+24/09/2026    TBD           RENAMED and RE-SCOPED: the Roles that gate a Dynamic Entity's
+                            DEFINITION, completing the change below. Each System and BankLevel pair
+                            is now one Role, granted at a bank's id or at SYS for the system space:
+
+                              CanCreateSystemLevelDynamicEntity, CanCreateBankLevelDynamicEntity
+                                -> CanCreateDynamicEntityDefinition
+                              CanUpdateSystemLevelDynamicEntity, CanUpdateBankLevelDynamicEntity
+                                -> CanUpdateDynamicEntityDefinition
+                              CanDeleteSystemLevelDynamicEntity, CanDeleteBankLevelDynamicEntity
+                                -> CanDeleteDynamicEntityDefinition
+                              CanGetSystemLevelDynamicEntities, CanGetBankLevelDynamicEntities
+                                -> CanGetDynamicEntityDefinitions
+                              CanBackupSystemDynamicEntity, CanBackupBankLevelDynamicEntity
+                                -> CanBackupDynamicEntityDefinition
+                              CanDeleteCascadeSystemDynamicEntity
+                                -> CanDeleteCascadeDynamicEntityDefinition
+
+                            NEW in v7.0.0: one set of management endpoints for every space,
+                            /management/banks/BANK_ID/dynamic-entities (list, create, update, delete,
+                            backup, cascade delete), where BANK_ID is a bank's id or SYS. The Role is
+                            checked at that BANK_ID, and every response carries bank_id, SYS included.
+                            SYS is accepted as BANK_ID only by endpoints that declare it; everywhere
+                            else it is still an unknown bank (404).
+
+                            NEW in v7.0.0: the records themselves, at
+                            /obp/v7.0.0/banks/BANK_ID/dynamic-entities/ENTITY_NAME[/RECORD_ID], and the
+                            my/, public/, community/ and .../access forms after dynamic-entities/.
+                            Same checks and storage as /obp/dynamic-entity/, but every response carries
+                            bank_id, SYS included. The unversioned URLs are unchanged.
+
+                            The older /management/system-dynamic-entities endpoints (v4.0.0, v6.0.0)
+                            keep working and check the same Roles at SYS.
+
+                            NOTHING TO DO for an ordinary upgrade: a second migration renames the
+                            stored Roles across Entitlements, Entitlement Requests, Consumer Scopes and
+                            Group Role lists, moving system level ones to SYS. A system level Group the
+                            first migration left behind because it also held a Definition Role now
+                            moves to SYS, unless it holds a Role from outside Dynamic Entities. An
+                            instance that runs with migration scripts disabled must re-grant by hand.
+
+                            FIXED, found while doing this:
+                            - DELETE /management/diagnostics/dynamic-entities/orphaned-records treated
+                              every system level record as orphaned, because records store SYS while
+                              definitions call the system space None, and so deleted them all. It now
+                              compares the two in the same form.
+                            - GET /obp/v6.0.0/management/system-dynamic-entities reported a
+                              record_count of 0 for every entity: it counted records with a NULL bank id.
+                            - Backing up a system level entity (v6.0.0) always returned 403, because it
+                              checked the entity's Get Record Role at the empty bank id, and it granted
+                              that Role on the backup there too, where nothing reads it. Both use SYS.
+                            - Updating a Dynamic Entity definition (v6.0.0) whose id does not exist in
+                              that space answered 400 InvalidJsonFormat; it now answers 404
+                              DynamicEntityNotFoundByDynamicEntityId.
+
+24/09/2026    TBD           RENAMED and RE-SCOPED: the Roles that gate a Dynamic Entity's records.
+                            A Role that was called CanCreateDynamicEntity_SystemCountry or
+                            CanCreateDynamicEntity_Country is now CanCreateDynamicEntityRecord_Country
+                            in both cases, and the same for Get, Update and Delete, for
+                            CanGrantDynamicEntityRowAccess_, and for the auto-generated field Roles
+                            CanWriteDynamicEntityField_ and CanGetDynamicEntityField_.
+
+                            The name no longer says which space the Role applies to; the Entitlement's
+                            bank id does. A Role for a bank's entity is granted at that bank as before.
+                            A Role for a system level entity is now granted at the bank id SYS rather
+                            than at the empty bank id, because a Role that names its space cannot be
+                            granted at no space at all.
+
+                            Two Roles are gone and cannot be migrated:
+                            CanCreateAnyBankLevelDynamicEntity and CanGetAnyBankLevelDynamicEntities.
+                            One Entitlement row for either authorised every bank on the instance,
+                            including banks onboarded later, which is what this work removes. Their
+                            holders are named in the migration log; grant the per bank Role instead, at
+                            each bank where it is needed.
+
+                            NOTHING TO DO for an ordinary upgrade: a migration rewrites the stored
+                            names and moves the system level ones to SYS, across Entitlements,
+                            Entitlement Requests, Consumer Scopes and the Role list on a Group. A Group
+                            holding only these Roles moves to SYS with them; one that also holds other
+                            Roles stays where it is and is named in the migration log, because its
+                            Dynamic Entity Roles then need granting another way.
+
+                            An instance that runs with migration scripts disabled must re-grant by
+                            hand; the log entry names what would have moved.
+
+                            The Roles that gate a Dynamic Entity's DEFINITION -- creating, editing and
+                            deleting the entity itself -- are NOT part of this change. They keep their
+                            names and their empty bank id for now, because the system level management
+                            endpoints carry no space in their URL for the framework to read. They
+                            change in the release that gives those endpoints a space.
+
+```
+Date          Commit        Action
+23/09/2026    TBD           CHANGED, action required: seven Roles are now granted per bank
+                            rather than instance wide. They are the five Counterparty Attribute
+                            Roles (CanCreateCounterpartyAttribute, CanGetCounterpartyAttribute,
+                            CanGetCounterpartyAttributes, CanUpdateCounterpartyAttribute,
+                            CanDeleteCounterpartyAttribute), CanGetAdapterInfoAtOneBank and
+                            CanConfigureAmqpBankBroker.
+
+                            All seven were declared requiresBankId = false. That flag does more
+                            than widen what a Role is called: it tells OBP to look the
+                            Entitlement up at the empty bank id, ignoring whichever bank the
+                            request was about, so one row let its holder act at every bank on
+                            the instance, including banks onboarded later. Each of these Roles
+                            acts on something belonging to a single bank -- a Counterparty
+                            Attribute hangs off one bank's account, adapter information is asked
+                            for one bank, and an AMQP broker registration is where one bank's
+                            settlement and credit messages are published -- and every comparable
+                            Role in OBP already names a bank.
+
+                            ACTION FOR OPERATORS: existing Entitlements are NOT migrated. A row
+                            held at the system scope (bank_id empty) stops authorising these
+                            endpoints on upgrade. Grant the Role again at each bank where the
+                            holder needs it:
+
+                              POST /obp/v7.0.0/users/USER_ID/entitlements
+                              { "bank_id": "BANK_ID", "role_name": "CanConfigureAmqpBankBroker" }
+
+                            Find who is affected before upgrading with
+                            GET /obp/v6.0.0/entitlements (or the roles-with-counts endpoint) and
+                            look for these Role names with an empty bank_id. There is no
+                            automatic expansion on purpose: the old grant covered every bank, and
+                            reproducing that would write one row per bank per holder for
+                            permissions an operator may only have wanted at one or two of them.
+
+                            The stale system scoped rows authorise nothing after the upgrade and
+                            can be deleted once the per bank grants are in place.
+
+                            This is the first instalment of a longer direction: Roles that let a
+                            holder act on ANY bank are being retired in favour of Roles that name
+                            one bank. System Roles, whose subject is the instance rather than a
+                            bank, are not affected.
+
+```
+Date          Commit        Action
+23/09/2026    TBD           RENAMED props: dynamic_code_compile_validate_enable is now
+                            dynamic_code_obp_calls_are_restricted, and
+                            dynamic_code_compile_validate_dependencies is now
+                            dynamic_code_allowed_obp_methods.
+
+                            The old names read as "validate that the dynamic code compiles",
+                            which is not what they do -- the code is compiled either way. What
+                            they control is an allowlist of the OBP methods dynamic code may
+                            call: with the gate on, creating or updating a body that calls an
+                            OBP method outside the list is rejected with OBP-40047 naming the
+                            method. It is an allowlist on OBP's own API surface, NOT a sandbox:
+                            it does not restrict file, network or reflection access, and does
+                            not check general scala/java library calls.
+
+                            Both old names are still read, so an instance that set either keeps
+                            its behaviour; using one logs a deprecation warning naming the new
+                            name. Set the new name and the old one is ignored. Nothing changes
+                            for an instance that set neither -- the gate still defaults to false,
+                            meaning dynamic code may call any OBP method, and only matters once
+                            allow_user_generated_scala_code is true.
+
+                            No behaviour change, names only.
+
+Date          Commit        Action
+23/09/2026    TBD           REMOVED: the dynamic-code sandbox, and with it the props
+                            dynamic_code_sandbox_enable and dynamic_code_sandbox_permissions.
+                            An instance that still sets either will simply ignore them.
+
+                            It wrapped runtime-compiled dynamic endpoint / connector code in
+                            AccessController.doPrivileged with a restricted permission set, to
+                            limit file, network and reflection access. SecurityManager was
+                            removed in JDK 24 (JEP 411, completed by JEP 486) and OBP now
+                            requires JVM 25, so doPrivileged is a pass-through on every runtime
+                            that can run this code: the sandbox could not restrict anything,
+                            while still costing a privileged wrapper on each dynamic call and
+                            an ExecutionContext wrapper on every task. It is deleted rather
+                            than left as a switch implying isolation it cannot deliver.
+
+                            Behaviour is unchanged, because the sandbox already enforced nothing
+                            on a supported JVM. What changes is that this is now explicit:
+                            dynamic code runs with the full privileges of the OBP process. The
+                            controls that DO work are allow_user_generated_scala_code (the
+                            master gate, still false by default),
+                            dynamic_code_obp_calls_are_restricted (the allowlist of
+                            callable OBP methods) and dynamic_code_requires_approval
+                            (maker-checker). Anyone who believed the sandbox was containing
+                            untrusted dynamic code should re-read those three.
+
+                            The early-return recovery that lived in the same wrapper is kept as
+                            DynamicUtil.DynamicCodeBody.force, so `return errorResponse(...)` in
+                            a dynamic body still yields its response rather than a 500.
+                            CompiledObjects.sandboxEndpoint(bankId) becomes compiledEndpoint()
+                            and DynamicCompileEndpoint.boundBankId is gone; both existed only to
+                            select the per-bank permission set. Five Sandbox scenarios in
+                            DynamicUtilTest are removed - three of them had been silently
+                            cancelling on every run since the build moved to JDK 21+.
+
+Date          Commit        Action
+22/09/2026    TBD           CONFIG CHANGE: public_obp_mcp_url now denotes the MCP instance that
+                            external clients can authenticate against (AUTH_PROVIDER=obp-oidc,
+                            OBP_AUTHORIZATION_VIA=oauth, full OAuth 2.1 + Dynamic Client
+                            Registration), rather than simply "the MCP server". Its built-in
+                            default moves from http://localhost:9100 to http://localhost:9101.
+
+                            A second prop, public_obp_mcp_internal_url, names the internal
+                            instance that Opey uses (AUTH_PROVIDER=bearer-only,
+                            OBP_AUTHORIZATION_VIA=consent), default http://localhost:9100.
+
+                            DevOps action: in each environment, check what
+                            OBP_PUBLIC_OBP_MCP_URL is set to. If it points at the internal /
+                            Opey instance, move that value to OBP_PUBLIC_OBP_MCP_INTERNAL_URL
+                            and set OBP_PUBLIC_OBP_MCP_URL to the external OAuth instance. If it
+                            already points at the external instance, leave it and add the
+                            internal one. If either variable is unset, note that the built-in
+                            default for public_obp_mcp_url has moved port.
+
+                            Why it matters: these props feed the public App Directory (GET /apps,
+                            authentication not required), which external clients and agents use
+                            for discovery. If public_obp_mcp_url names the internal instance, a
+                            client connects and can list tools but every call then fails with
+                            consent_required - a failure that presents as a healthy server.
+
+                            Verify with: curl -H 'Accept: application/json' <api>/apps and confirm
+                            both MCP entries appear with the expected URLs. Each instance reports
+                            its own live mode at <url>/status (field: Outbound to OBP-API
+                            (OBP_AUTHORIZATION_VIA)); that is the source of truth, while the props
+                            only say where the instances are.
 03/09/2026    (pending)     RETIRED PROP: mapper_rules.create_foreign_keys. It configured Lift
                             Schemifier's foreign-key creation, and Schemifier is no longer called
                             anywhere in obp-api - the whole net.liftweb.mapper surface was removed

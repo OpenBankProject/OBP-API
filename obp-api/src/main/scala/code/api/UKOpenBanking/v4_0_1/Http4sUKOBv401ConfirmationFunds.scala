@@ -29,7 +29,7 @@ package code.api.UKOpenBanking.v4_0_1
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError}
@@ -113,7 +113,7 @@ object Http4sUKOBv401ConfirmationFunds extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createFundsConfirmationConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createFundsConfirmationConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "cbpii" / "funds-confirmation-consents" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createFundsConfirmationConsents)))
   }
@@ -170,7 +170,7 @@ object Http4sUKOBv401ConfirmationFunds extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getFundsConfirmationConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getFundsConfirmationConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "cbpii" / "funds-confirmation-consents" / consentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getFundsConfirmationConsentsConsentId)) }
   }
@@ -189,7 +189,7 @@ object Http4sUKOBv401ConfirmationFunds extends MdcLoggable {
   )
 
   private val EX_deleteFundsConfirmationConsentsConsentId: String = """{}"""
-  lazy val deleteFundsConfirmationConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deleteFundsConfirmationConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `ukV401Prefix` / "cbpii" / "funds-confirmation-consents" / consentId =>
       EndpointHelpers.executeDelete(req) { cc => Future.successful(()) }
   }
@@ -242,7 +242,7 @@ object Http4sUKOBv401ConfirmationFunds extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createFundsConfirmations: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createFundsConfirmations: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "cbpii" / "funds-confirmations" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createFundsConfirmations)))
   }
@@ -260,10 +260,12 @@ object Http4sUKOBv401ConfirmationFunds extends MdcLoggable {
     http4sPartialFunction = Some(createFundsConfirmations)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    createFundsConfirmationConsents(req)
-      .orElse(getFundsConfirmationConsentsConsentId(req)
-      .orElse(deleteFundsConfirmationConsentsConsentId(req)
-      .orElse(createFundsConfirmations(req))))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    createFundsConfirmationConsents,
+    getFundsConfirmationConsentsConsentId,
+    deleteFundsConfirmationConsentsConsentId,
+    createFundsConfirmations
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

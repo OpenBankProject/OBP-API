@@ -171,6 +171,28 @@ class AccountAttributeTest extends V310ServerSetup {
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canUpdateAccountAttribute.toString()) should be (true)
     }
+    // a role at one bank must not let the caller overwrite (and move) an attribute of another bank's account
+    scenario("We will call the Update endpoint with an attribute of another bank", ApiEndpoint2, VersionOfApi) {
+      val productCode = APIUtil.generateUUID()
+      createProduct(bankId = testBankId1.value, code = productCode, json = parentPostPutProductJsonV310)
+      createProduct(bankId = testBankId2.value, code = productCode, json = parentPostPutProductJsonV310)
+      Entitlement.entitlement.vend.addEntitlement(testBankId2.value, resourceUser1.userId, CanCreateAccountAttributeAtOneBank.toString)
+      val requestCreate310 = (v3_1_0_Request / "banks" / testBankId2.value / "accounts" / testAccountId0.value /
+        "products" / productCode / "attribute").POST <@(user1)
+      val responseCreate310 = makePostRequest(requestCreate310, write(postAccountAttributeJson))
+      responseCreate310.code should equal(201)
+      val otherBanksAttribute = responseCreate310.body.extract[AccountAttributeResponseJson]
+
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanUpdateAccountAttribute.toString)
+      When(s"We make a request $VersionOfApi at bank 1 with the attribute of bank 2")
+      val requestPut310 = (v3_1_0_Request / "banks" / testBankId1.value / "accounts" / testAccountId0.value
+        / "products" / productCode / "attributes" / otherBanksAttribute.account_attribute_id).PUT <@(user1)
+      val responsePut310 = makePutRequest(requestPut310, write(putAccountAttributeJson))
+      Then("We should get a 404")
+      responsePut310.code should equal(404)
+      And("error should be " + AccountAttributeNotFound)
+      responsePut310.body.extract[ErrorMessage].message should equal (AccountAttributeNotFound)
+    }
   }
 
 }

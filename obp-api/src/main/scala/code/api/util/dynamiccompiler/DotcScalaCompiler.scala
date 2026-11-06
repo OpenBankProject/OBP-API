@@ -83,9 +83,9 @@ object DotcScalaCompiler extends DynamicScalaCompiler with MdcLoggable {
    *
    * It goes through the same wrapping/hoisting as `compileAndEvaluate` on purpose - the wrapper
    * object and the prepended imports change what compiles, so checking the bare snippet would
-   * report errors the real compile never sees (and miss ones it does). Positions are therefore
-   * reported in the wrapped unit; they are useful for ordering and for the message, not as an
-   * exact offset into the caller's own text.
+   * report errors the real compile never sees (and miss ones it does). The compiler positions
+   * refer to the wrapped unit, so each reported line is moved back to the line of `code` it came
+   * from, found by its text; a line that only exists in the wrapper keeps the wrapped number.
    */
   def check(code: String): List[DynamicCompileDiagnostic] = {
     val wrapperName = s"DynCheck_${nextId.incrementAndGet()}"
@@ -117,6 +117,16 @@ object DotcScalaCompiler extends DynamicScalaCompiler with MdcLoggable {
         sourceFile.toString
       )
 
+      val wrappedLines = source.split("\n", -1)
+      val codeLines = code.split("\n", -1)
+      // The compiler's line numbers count from 0; the line reported is the 1-based line of `code`.
+      def lineInCode(wrappedLine: Int): Int =
+        if (wrappedLine < 0 || wrappedLine >= wrappedLines.length) wrappedLine
+        else {
+          val index = codeLines.indexWhere(_ == wrappedLines(wrappedLine))
+          if (index >= 0) index + 1 else wrappedLine + 1
+        }
+
       val reporter = new Driver().process(args)
       reporter.allErrors.reverse.map { error =>
         // Same Java-facing interfaces API as formatErrors, and for the same reason: the
@@ -125,7 +135,7 @@ object DotcScalaCompiler extends DynamicScalaCompiler with MdcLoggable {
         val position = diagnostic.position()
         val (line, column) =
           if (position.isPresent) (position.get().line(), position.get().column()) else (0, 0)
-        DynamicCompileDiagnostic(line, column, "ERROR", diagnostic.message())
+        DynamicCompileDiagnostic(lineInCode(line), column, "ERROR", diagnostic.message())
       }
     } catch {
       case NonFatal(e) =>

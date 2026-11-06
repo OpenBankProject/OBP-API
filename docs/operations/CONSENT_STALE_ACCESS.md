@@ -43,30 +43,15 @@ stale row. Treat the WARN as live over-exposure, not as a cosmetic inconsistency
 
 ## Why the revoke was refused
 
-`revokeAccess` ([`MapperViews.scala:270`](../../obp-api/src/main/scala/code/views/MapperViews.scala#L270))
-delegates to `canRevokeOwnerAccess`
-([`MapperViews.scala:405`](../../obp-api/src/main/scala/code/views/MapperViews.scala#L405)), which
-refuses in exactly two cases, and **only for the `owner` view**:
+Until 2026-10-19 `MapperViews` had a rule, `canRevokeOwnerAccess`, that refused to revoke the `owner`
+view from an account holder, or from the only user holding `owner` on the account. That rule produced
+the `Failure(access cannot be revoked)` in the example above. It has been removed: every revoke path,
+the consent reconciliation included, now removes any view, `owner` included.
 
-1. the user is an account holder on that account (`MapperAccountHolders`), or
-2. that `AccountAccess` row is the **only** `owner` row on the account —
-   `findAllByBankIdAccountIdViewId(...).length > 1` is false
-
-Any other view id returns `true` unconditionally, so a WARN naming a view other than `owner` means
-something outside these two rules failed — read the `Failure(...)` text at the end of the line
-rather than following this runbook.
-
-### Case 2 is a signal about the account, not just the consent
-
-A shadow user is never an account holder, so in practice you are looking at case 2. And case 2 says
-something stronger than "this consent is stuck":
-
-> **Nobody else holds `owner` on that account — not even the PSU.**
-
-A healthy account has the PSU's own `owner` row, which makes the count 2 and lets the revoke
-succeed. If a consent's shadow user is the *sole* `owner` holder, the account has lost its real
-owner access. **Investigate that before deleting anything**, or you will clear the symptom and leave
-an account nobody owns.
+On a build with that change, this WARN means something else failed. Read the `Failure(...)` text at
+the end of the line (for example `CannotFindAccountAccess`) rather than following the rest of this
+runbook. On an older build, the rule above is the likely cause, and the diagnosis and resolution below
+apply.
 
 ## Diagnosis
 
@@ -80,8 +65,9 @@ JOIN resourceuser ru ON ru.id = aa.user_fk
 WHERE ru.userid_ = '<user id from the log>'
   AND aa.bank_id = '<bank>' AND aa.account_id = '<account>' AND aa.view_id = 'owner';
 
--- 2. Who else holds owner on this account? An empty result besides row 1 is case 2,
---    and is the finding that matters.
+-- 2. Who else holds owner on this account? An empty result besides row 1 means the shadow user
+--    was the only owner, which the old rule refused to revoke, and means the account has lost its
+--    real owner access: investigate that before deleting anything.
 SELECT aa.id, ru.userid_, ru.createdbyconsentid, aa.consumer_id
 FROM accountaccess aa
 JOIN resourceuser ru ON ru.id = aa.user_fk
@@ -144,8 +130,8 @@ for revoked consent 84d5a583-…. The access outlives the consent: Failure(acces
 
 `revokeConsentAccountAccess`
 ([`ConsentUtil.scala:920`](../../obp-api/src/main/scala/code/api/util/ConsentUtil.scala#L920)) goes
-through `revokeAccessToViewForUserAndConsumer`, which applies the same `canRevokeOwnerAccess` rule,
-so it can be refused for exactly the reasons above.
+through `revokeAccessToViewForUserAndConsumer`, which applied the same `canRevokeOwnerAccess` rule on
+builds before 2026-10-19, so it could be refused for exactly the reasons above.
 
 **Treat this as higher priority than the `grantAccessToViews` line.** In that case a live consent is
 over-serving, and revoking the consent would still clean up. Here the consent is *already gone* and

@@ -37,7 +37,7 @@ import net.liftweb.common.{Box, Empty, Full}
 
 /**
  * One Consumer holding one API Product for a period, with a status.
- * See API_PRODUCT_SUBSCRIPTION_PLAN.md and the Glossary item "API Product Subscription".
+ * See docs/API_PRODUCT_SUBSCRIPTION_PLAN.md and the Glossary item "API Product Subscription".
  *
  * Upstream declares this as a Lift Mapper entity; this branch has no Lift Mapper and no
  * Schemifier, so it is a case class over a Doobie store with its table in

@@ -151,6 +151,10 @@ object MappedExpectedChallengeAnswer {
   def findAllByBasketId(basketId: String): List[MappedExpectedChallengeAnswer] =
     query(fr"WHERE basketid = $basketId ORDER BY id ASC")
 
+  def deleteByConsentIdAndChallengeType(consentId: String, challengeType: String): Int =
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM expectedchallengeanswer WHERE consentid = $consentId AND challengetype = $challengeType".update.run)
+
   def deleteAll(): Unit = {
     DoobieUtil.runUpdate(sql"DELETE FROM expectedchallengeanswer".update.run)
     ()

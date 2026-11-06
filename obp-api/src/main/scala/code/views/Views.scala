@@ -160,6 +160,12 @@ trait Views {
    */
   def ensureSystemViewUpToDate(viewId: String) : Box[View]
 
+  /**
+   * Keeps the opt-in system views (ReadTransactionsBerlinGroup, InitiatePaymentsBerlinGroup) current as
+   * ensureSystemViewUpToDate does. `additionalSystemViews` is the value of the additional_system_views prop.
+   */
+  def ensureOptInSystemViewsUpToDate(additionalSystemViews: Box[String]) : List[Box[View]]
+
   def getOwners(view: View): Set[User]
   
   def removeAllAccountAccess(bankId: BankId, accountId: AccountId) : Boolean

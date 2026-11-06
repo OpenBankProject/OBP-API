@@ -262,5 +262,53 @@ class SignalChannelsGrpcTest extends ServerSetupWithTestData {
 
       code.api.cache.RedisMessaging.deleteChannel(channelName)
     }
+
+    scenario("Subscribe still streams after Redis drops the bus's subscriber connection", GrpcSignal) {
+      if (!redisReachable) cancel("Redis is not reachable from this test JVM")
+      SignalEventBus.isRunning should equal(true)
+      val channelName = s"grpc-reconnect-${java.util.UUID.randomUUID().toString.take(8)}"
+
+      // Addresses of the pattern subscribers (the event buses) currently connected to Redis.
+      def patternSubscribers: Seq[String] = {
+        val jedis = Redis.jedisPool.getResource
+        try jedis.clientList().split("\n").toSeq.filter(_.contains("cmd=psubscribe")).flatMap(_.split(" ").find(_.startsWith("addr="))).map(_.stripPrefix("addr="))
+        finally jedis.close()
+      }
+      val before = patternSubscribers
+      before should not be empty
+      // Drop them, as a Redis restart or network blip would: each bus's subscribe call ends with an error.
+      before.foreach { addr =>
+        val jedis = Redis.jedisPool.getResource
+        try Try(jedis.clientKill(addr)) finally jedis.close()
+      }
+
+      // The buses open new connections after their backoff.
+      val deadline = System.currentTimeMillis() + 15000
+      while (patternSubscribers.forall(before.contains) && System.currentTimeMillis() < deadline) Thread.sleep(100)
+      patternSubscribers.exists(a => !before.contains(a)) should equal(true)
+
+      val received = new java.util.concurrent.ConcurrentLinkedQueue[SignalMessage]()
+      val latch = new CountDownLatch(1)
+      val observer = new StreamObserver[SignalMessage] {
+        override def onNext(value: SignalMessage): Unit = { received.add(value); latch.countDown() }
+        override def onError(t: Throwable): Unit = ()
+        override def onCompleted(): Unit = ()
+      }
+      asyncStub(tokenOf(user1)).subscribe(SubscribeRequest(channelName), observer)
+      val registered = System.currentTimeMillis() + 10000
+      while (SignalEventBus.subscriberCount(channelName) == 0 && System.currentTimeMillis() < registered) Thread.sleep(50)
+      SignalEventBus.subscriberCount(channelName) should equal(1)
+
+      // Several buses reconnect independently: publish until the Signal bus's new subscription delivers.
+      val publishDeadline = System.currentTimeMillis() + 15000
+      while (latch.getCount > 0 && System.currentTimeMillis() < publishDeadline) {
+        blockingStub(tokenOf(user2)).publish(PublishRequest(channelName, "", "hello", """{"after":"reconnect"}"""))
+        latch.await(500, TimeUnit.MILLISECONDS)
+      }
+      latch.getCount should equal(0L)
+      received.peek().payloadJson should equal("""{"after":"reconnect"}""")
+
+      code.api.cache.RedisMessaging.deleteChannel(channelName)
+    }
   }
 }

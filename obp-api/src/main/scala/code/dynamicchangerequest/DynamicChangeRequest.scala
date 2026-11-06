@@ -172,6 +172,15 @@ object DynamicChangeRequest {
    * the checker approved, on a request the same code path has just moved out of INITIATED, so
    * there is no second writer to race.
    */
+  /** Used once, by MakerChecker.rehashDynamicCodeWithLanguage, to move a pending request onto the new hash form. */
+  def setCurrentPayloadHash(dynamicChangeRequestId: String, hash: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE dynamicchangerequest SET currentpayloadhash = ${Option(hash)},
+              updatedat = ${new java.sql.Timestamp(System.currentTimeMillis())}
+            WHERE dynamicchangerequestid = ${Option(dynamicChangeRequestId)}""".update.run)
+    ()
+  }
+
   def setTargetId(dynamicChangeRequestId: String, targetId: String): Unit = {
     val now = new java.sql.Timestamp(System.currentTimeMillis())
     DoobieUtil.runUpdate(

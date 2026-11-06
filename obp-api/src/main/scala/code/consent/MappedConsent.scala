@@ -57,8 +57,11 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
       case Full(consent) =>
         Consent.expireAllPreviousValidBerlinGroupConsents(consent, status)
         //maybe not right, but for the create we use the `now`, we need to update it later.
-        tryo(MappedConsent.setStatusAndLastActionDate(consentId, status.toString, now)
+        val updated = tryo(MappedConsent.setStatusAndLastActionDate(consentId, status.toString, now)
           .openOrThrowException(ErrorMessages.ConsentNotFound))
+        if (updated.isDefined && Consent.consentChallengeEndingStatuses.contains(status))
+          Consent.removeConsentChallenges(consentId)
+        updated
       case Empty =>
         Empty ?~! ErrorMessages.ConsentNotFound
       case Failure(msg, _, _) =>
@@ -387,6 +390,7 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
                 ex.map(e => s" (${e.getClass.getSimpleName}: ${e.getMessage})").getOrElse(""))
             case _ =>
           }
+          Consent.removeConsentChallenges(consentId)
           MappedConsent.findByConsentId(consentId)
         }
         else Failure(ErrorMessages.ConsentAlreadyRevoked)
@@ -658,7 +662,9 @@ object MappedConsent {
 
   /** Consents with a JWT but no decoded payload yet - what the payload backfill repairs. */
   def findAllWithJwtButNoPayload(): List[MappedConsent] =
-    query(fr"WHERE mjsonwebtokenpayload IS NULL AND mjsonwebtoken > ''")
+    // IS NOT NULL rather than > '': SQL Server refuses an ordering comparison on its unbounded
+    // text type, and develop made the same change to the Mapper query this replaced.
+    query(fr"WHERE mjsonwebtokenpayload IS NULL AND mjsonwebtoken IS NOT NULL")
 
   def setJsonWebTokenPayload(consentId: String, payload: String): Box[MappedConsent] =
     update(consentId, List(fr"mjsonwebtokenpayload = ${opt(payload)}"))

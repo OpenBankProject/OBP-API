@@ -177,6 +177,30 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] =
     Full(MappedCounterparty.findAllByAccountAndView(thisBankId.value, thisAccountId.value, viewId.value))
 
+  /**
+   * (who made the call, who they were acting for) for a counterparty about to be written.
+   *
+   * Record-both rather than redirect. A counterparty is the control on where money may be sent,
+   * so "which agent created this" must be answerable from the row itself — not reconstructed by
+   * matching a timestamp against a metrics table that has its own retention. And mCreatedByUserId
+   * is published as `created_by_user_id` on the v2.2.0 and v4.0.0 counterparty responses, so
+   * redirecting it would make a STABLE field report a human for something an agent did.
+   *
+   * Only the caller's id is needed to get both: attributionOf resolves the human from it. What a
+   * provider cannot do without a CallContext is honour the request layer's consentCreator /
+   * consenter, which a Berlin Group or UK consent carries on the request rather than in the
+   * stored chain — for those, an unbound consent falls back to the caller, which is the
+   * documented fail-closed behaviour.
+   *
+   * ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
+   */
+  private def counterpartyCreators(createdByUserId: String): (String, String) =
+    if (createdByUserId == null || createdByUserId.isEmpty) (createdByUserId, createdByUserId)
+    else Users.users.vend.attributionOf(createdByUserId, code.users.UserReference.Counterparty_CreatedByUserId) match {
+      case Full(attribution) => (attribution.userId, attribution.onBehalfOfUserId)
+      case _                 => (createdByUserId, createdByUserId)
+    }
+
   override def createCounterparty(
                                   createdByUserId: String,
                                   thisBankId: String,
@@ -197,10 +221,12 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
                                   bespoke: List[CounterpartyBespoke]
                                  ): Box[CounterpartyTrait] = {
     tryo{
+      val (actorUserId, onBehalfOfUserId) = counterpartyCreators(createdByUserId)
       val mappedCounterparty = MappedCounterparty.insert(
         counterpartyId = APIUtil.createExplicitCounterpartyId(), //We create the Counterparty_Id here, it means, it will be created in each connector.
         name = name,
-        createdByUserId = createdByUserId,
+        createdByUserId = actorUserId,
+        createdByOnBehalfOfUserId = onBehalfOfUserId,
         thisBankId = thisBankId,
         thisAccountId = thisAccountId,
         thisViewId = thisViewId,
@@ -674,6 +700,28 @@ object MappedCounterparty {
                AND motheraccountroutingscheme = ${opt(otherAccountRoutingScheme)}
                AND motheraccountroutingaddress = ${opt(otherAccountRoutingAddress)}""")
 
+  /** A counterparty the paying account created, matched on all six routing values. */
+  def findByRoutingsOfAccount(thisBankId: String, thisAccountId: String,
+                              otherBankRoutingScheme: String, otherBankRoutingAddress: String,
+                              otherBranchRoutingScheme: String, otherBranchRoutingAddress: String,
+                              otherAccountRoutingScheme: String,
+                              otherAccountRoutingAddress: String): Box[MappedCounterparty] =
+    one(fr"""WHERE mthisbankid = ${opt(thisBankId)} AND mthisaccountid = ${opt(thisAccountId)}
+               AND motherbankroutingscheme = ${opt(otherBankRoutingScheme)}
+               AND motherbankroutingaddress = ${opt(otherBankRoutingAddress)}
+               AND motherbranchroutingscheme = ${opt(otherBranchRoutingScheme)}
+               AND motherbranchroutingaddress = ${opt(otherBranchRoutingAddress)}
+               AND motheraccountroutingscheme = ${opt(otherAccountRoutingScheme)}
+               AND motheraccountroutingaddress = ${opt(otherAccountRoutingAddress)}""")
+
+  /** A counterparty the paying account created, matched on its secondary routing. */
+  def findBySecondaryRoutingOfAccount(thisBankId: String, thisAccountId: String,
+                                      otherAccountSecondaryRoutingScheme: String,
+                                      otherAccountSecondaryRoutingAddress: String): Box[MappedCounterparty] =
+    one(fr"""WHERE mthisbankid = ${opt(thisBankId)} AND mthisaccountid = ${opt(thisAccountId)}
+               AND motheraccountsecondaryroutingscheme = ${opt(otherAccountSecondaryRoutingScheme)}
+               AND motheraccountsecondaryroutingaddress = ${opt(otherAccountSecondaryRoutingAddress)}""")
+
   def findBySecondaryRouting(otherAccountSecondaryRoutingScheme: String,
                              otherAccountSecondaryRoutingAddress: String): Box[MappedCounterparty] =
     one(fr"""WHERE motheraccountsecondaryroutingscheme = ${opt(otherAccountSecondaryRoutingScheme)}
@@ -689,7 +737,15 @@ object MappedCounterparty {
     one(fr"""WHERE mname = ${opt(name)} AND mthisbankid = ${opt(thisBankId)}
                AND mthisaccountid = ${opt(thisAccountId)} AND mthisviewid = ${opt(thisViewId)}""")
 
-  def insert(counterpartyId: String, name: String, createdByUserId: String, thisBankId: String,
+  /**
+   * `createdByOnBehalfOfUserId` is the human the creator was acting for, when a Consent was involved;
+   * otherwise the same as createdByUserId. Record-both, as MappedTransactionRequest does: a
+   * counterparty controls where money may be sent, so both "who did this" and "whose is this" have
+   * to be answerable from the row. It is not on CounterpartyTrait and not in any JSON - an internal
+   * audit column (ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2) - so the row type does not carry it.
+   */
+  def insert(counterpartyId: String, name: String, createdByUserId: String,
+             createdByOnBehalfOfUserId: String, thisBankId: String,
              thisAccountId: String, thisViewId: String, otherAccountRoutingScheme: String,
              otherAccountRoutingAddress: String, otherBankRoutingScheme: String,
              otherBankRoutingAddress: String, otherBranchRoutingScheme: String,
@@ -699,13 +755,14 @@ object MappedCounterparty {
     val now = new java.sql.Timestamp(System.currentTimeMillis())
     val id = DoobieUtil.runUpdate(
       sql"""INSERT INTO mappedcounterparty
-            (mcounterpartyid, mname, mcreatedbyuserid, mthisbankid, mthisaccountid, mthisviewid,
+            (mcounterpartyid, mname, mcreatedbyuserid, mcreatedbyonbehalfofuserid, mthisbankid,
+             mthisaccountid, mthisviewid,
              motherbankroutingscheme, motherbankroutingaddress, motherbranchroutingscheme,
              motherbranchroutingaddress, motheraccountroutingscheme, motheraccountroutingaddress,
              motheraccountsecondaryroutingscheme, motheraccountsecondaryroutingaddress,
              misbeneficiary, mdescription, mcurrency, createdat, updatedat)
             VALUES (${opt(counterpartyId)}, ${opt(name)}, ${opt(createdByUserId)},
-             ${opt(thisBankId)}, ${opt(thisAccountId)}, ${opt(thisViewId)},
+             ${opt(createdByOnBehalfOfUserId)}, ${opt(thisBankId)}, ${opt(thisAccountId)}, ${opt(thisViewId)},
              ${opt(otherBankRoutingScheme)}, ${opt(otherBankRoutingAddress)},
              ${opt(otherBranchRoutingScheme)}, ${opt(otherBranchRoutingAddress)},
              ${opt(otherAccountRoutingScheme)}, ${opt(otherAccountRoutingAddress)},

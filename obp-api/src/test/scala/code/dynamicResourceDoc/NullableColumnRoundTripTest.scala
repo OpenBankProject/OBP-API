@@ -45,7 +45,7 @@ class NullableColumnRoundTripTest extends ServerSetup {
         errorResponseBodies = null,
         tags = null,
         roles = null,
-        methodBody = "()",
+        methodBody = "()", programmingLang = "Scala",
         // provenance is not what this test exercises; it wants the NULL shape
         createdByUserId = None, methodBodyHash = None)
 
@@ -78,7 +78,7 @@ class NullableColumnRoundTripTest extends ServerSetup {
         errorResponseBodies = "[]",
         tags = "[]",
         roles = "[]",
-        methodBody = "()",
+        methodBody = "()", programmingLang = "Scala",
         // provenance is not what this test exercises; it wants the NULL shape
         createdByUserId = None, methodBodyHash = None)
 
@@ -151,7 +151,7 @@ class NullableColumnRoundTripTest extends ServerSetup {
         errorResponseBodies = longBody,
         tags = "tag",
         roles = "role",
-        methodBody = "()",
+        methodBody = "()", programmingLang = "Scala",
         createdByUserId = None, methodBodyHash = None)
 
       inserted.successResponseBody should equal(Some(longBody))

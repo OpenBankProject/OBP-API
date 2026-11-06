@@ -51,7 +51,7 @@ class ConnectorMethodProvenanceEdgeTest extends ServerSetup {
       val id = created.connectorMethodId.getOrElse("")
       DoobieConnectorMethodProvider.getByIdWithProvenance(id)
         .openOrThrowException("just created").methodBodyHash shouldBe
-        Some(APIUtil.sha256Hex("() => 1"))
+        Some(APIUtil.dynamicCodeHash("Scala", "() => 1"))
 
       val newBody = java.net.URLEncoder.encode("() => 2", "UTF-8")
       DoobieConnectorMethodProvider.update(id, newBody, "Scala", Some("updater-1"))
@@ -63,7 +63,7 @@ class ConnectorMethodProvenanceEdgeTest extends ServerSetup {
         after.createdByUserId shouldBe Some("creator-1")
       }
       withClue("the hash must track the new body, not stay on the old one or go null: ") {
-        after.methodBodyHash shouldBe Some(APIUtil.sha256Hex("() => 2"))
+        after.methodBodyHash shouldBe Some(APIUtil.dynamicCodeHash("Scala", "() => 2"))
       }
       withClue("the updater must be recorded: ") {
         after.updatedByUserId shouldBe Some("updater-1")

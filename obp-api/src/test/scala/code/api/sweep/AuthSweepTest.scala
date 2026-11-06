@@ -154,16 +154,9 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers with Sweep
    * Deviations that are deliberate, with the reason each one is not a defect.
    *
    * A signed-off list rather than a hard zero, for the same reason KryoGoldenCompatTest keeps
-   * knownDrift: a permanently red suite is one people learn to ignore, and the entry here is
-   * behaviour somebody chose and wrote down. Anything NOT listed still fails, and adding a line
-   * costs a written justification.
-   *
-   * createTransactionRequestFreeForm used to be the second entry: it answered 400 rather than the
-   * 403 its doc declares, because the doc the middleware matched was v4's wildcard catch-all,
-   * which declares no roles at all - so no role check ran and the decision fell through to the
-   * connector. With the matcher preferring the most specific template the per-type doc wins, its
-   * canCreateAnyTransactionRequest is enforced, and the deviation is gone. This scenario is what
-   * caught that the exemption had outlived the behaviour it excused.
+   * knownDrift: a permanently red suite is one people learn to ignore, and an entry here is
+   * behaviour somebody chose and wrote down. Anything NOT listed still fails, and
+   * adding a line costs a written justification.
    */
   private val expectedAuthDeviation: Map[String, String] = Map(
     "OBPv4.0.0-verifyRequestSignResponse" ->

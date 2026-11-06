@@ -31,7 +31,7 @@ import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.berlin.group.ConstantsBG
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CustomJsonFormats
@@ -73,7 +73,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     http4sPartialFunction = Some(initiatePayment)
   )
 
-  val initiatePayment: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val initiatePayment: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV2Prefix` / "payments" / paymentProduct =>
       Created(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockPaymentInitiation(paymentProduct)))
   }
@@ -94,7 +94,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     http4sPartialFunction = Some(initiateBulkPayment)
   )
 
-  val initiateBulkPayment: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val initiateBulkPayment: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV2Prefix` / "bulk-payments" / paymentProduct =>
       Created(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockPaymentInitiation(paymentProduct)))
   }
@@ -115,7 +115,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     http4sPartialFunction = Some(initiatePeriodicPayment)
   )
 
-  val initiatePeriodicPayment: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val initiatePeriodicPayment: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV2Prefix` / "periodic-payments" / paymentProduct =>
       Created(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockPaymentInitiation(paymentProduct)))
   }
@@ -137,7 +137,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     http4sPartialFunction = Some(getBulkPaymentExtendedStatus)
   )
 
-  val getBulkPaymentExtendedStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getBulkPaymentExtendedStatus: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / "bulk-payments" / paymentProduct / paymentId / "extended-status" =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockBulkPaymentExtendedStatus(paymentProduct, paymentId)))
   }
@@ -158,7 +158,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     http4sPartialFunction = Some(getPaymentStatus)
   )
 
-  val getPaymentStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getPaymentStatus: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / paymentService / paymentProduct / paymentId / "status"
       if Set("payments", "bulk-payments", "periodic-payments").contains(paymentService) =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockPaymentStatus))
@@ -180,7 +180,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     http4sPartialFunction = Some(getPayment)
   )
 
-  val getPayment: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getPayment: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / paymentService / paymentProduct / paymentId
       if Set("payments", "bulk-payments", "periodic-payments").contains(paymentService) =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockPaymentDetails(paymentService, paymentProduct, paymentId)))
@@ -202,7 +202,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     http4sPartialFunction = Some(deletePayment)
   )
 
-  val deletePayment: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deletePayment: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `bgV2Prefix` / paymentService / paymentProduct / paymentId
       if Set("payments", "bulk-payments", "periodic-payments").contains(paymentService) =>
       NoContent()
@@ -224,7 +224,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     http4sPartialFunction = Some(startAuthorisation)
   )
 
-  val startAuthorisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val startAuthorisation: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV2Prefix` / paymentService / paymentProduct / resourceId / authorisationCategory
       if Set("payments", "bulk-payments", "periodic-payments").contains(paymentService) &&
          Set("authorisations", "cancellation-authorisations").contains(authorisationCategory) =>
@@ -248,7 +248,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     http4sPartialFunction = Some(getAuthorisationSubResources)
   )
 
-  val getAuthorisationSubResources: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAuthorisationSubResources: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / paymentService / paymentProduct / resourceId / authorisationCategory
       if Set("payments", "bulk-payments", "periodic-payments").contains(paymentService) &&
          Set("authorisations", "cancellation-authorisations").contains(authorisationCategory) =>
@@ -272,7 +272,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     http4sPartialFunction = Some(getAuthorisationStatus)
   )
 
-  val getAuthorisationStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAuthorisationStatus: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV2Prefix` / paymentService / paymentProduct / resourceId / authorisationCategory / authorisationId
       if Set("payments", "bulk-payments", "periodic-payments").contains(paymentService) &&
          Set("authorisations", "cancellation-authorisations").contains(authorisationCategory) =>
@@ -295,7 +295,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     http4sPartialFunction = Some(updatePsuData)
   )
 
-  val updatePsuData: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val updatePsuData: Http4sRoute = Http4sRoute {
     case req @ PUT -> `bgV2Prefix` / paymentService / paymentProduct / resourceId / authorisationCategory / authorisationId
       if Set("payments", "bulk-payments", "periodic-payments").contains(paymentService) &&
          Set("authorisations", "cancellation-authorisations").contains(authorisationCategory) =>
@@ -318,7 +318,7 @@ object Http4sBGv2PIS extends MdcLoggable {
     http4sPartialFunction = Some(updateResourceWithDebtorAccount)
   )
 
-  val updateResourceWithDebtorAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val updateResourceWithDebtorAccount: Http4sRoute = Http4sRoute {
     case req @ PUT -> `bgV2Prefix` / paymentService / paymentProduct / resourceId
       if Set("payments", "bulk-payments", "periodic-payments").contains(paymentService) =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockUpdateDebtorAccount(resourceId)))
@@ -327,26 +327,20 @@ object Http4sBGv2PIS extends MdcLoggable {
   // ── Combined routes (ordering matters!) ───────────────────────────
   // More specific paths first, then generic patterns
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    // POST routes (2-segment after prefix)
-    initiatePayment(req)
-      .orElse(initiateBulkPayment(req))
-      .orElse(initiatePeriodicPayment(req))
-      // GET specific 4-segment: bulk extended status
-      .orElse(getBulkPaymentExtendedStatus(req))
-      // GET/DELETE generic 4-segment: status
-      .orElse(getPaymentStatus(req))
-      // 5-segment: authorisation with ID
-      .orElse(getAuthorisationStatus(req))
-      .orElse(updatePsuData(req))
-      // 4-segment: authorisation list / start
-      .orElse(startAuthorisation(req))
-      .orElse(getAuthorisationSubResources(req))
-      // DELETE 3-segment
-      .orElse(deletePayment(req))
-      // GET 3-segment: payment details
-      .orElse(getPayment(req))
-      // PUT 3-segment: debtor account update
-      .orElse(updateResourceWithDebtorAccount(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    initiatePayment,
+    initiateBulkPayment,
+    initiatePeriodicPayment,
+    getBulkPaymentExtendedStatus,
+    getPaymentStatus,
+    getAuthorisationStatus,
+    updatePsuData,
+    startAuthorisation,
+    getAuthorisationSubResources,
+    deletePayment,
+    getPayment,
+    updateResourceWithDebtorAccount
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

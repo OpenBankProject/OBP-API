@@ -140,138 +140,132 @@ object ResourceDocMiddleware extends MdcLoggable {
       (enabledOperationIds.isEmpty || enabledOperationIds.contains(rd.operationId))
 
   /**
-   * Middleware factory: wraps HttpRoutes with ResourceDoc validation.
-   * Finds the matching ResourceDoc, validates the request, and enriches CallContext.
+   * Middleware factory: validates a request under the ResourceDoc of the route that serves it, then runs
+   * that route.
+   *
+   * Each doc carries its route ([[code.api.util.APIUtil.Http4sRoute]]). The doc is found by asking the
+   * routes whether they serve the request (`ResourceDocMatcher.selectByRoute`, docs tried in the order
+   * given, which must be the order the routes are tried in), and that route alone is run, wrapped in
+   * `wrap`. A request no route serves is passed on to the next link of the chain at once.
    */
-  def apply(resourceDocs: ArrayBuffer[ResourceDoc]): HttpRoutes[IO] => HttpRoutes[IO] = { routes =>
-    // Build the lookup index once per middleware instance (at startup), not per request.
-    val resourceDocIndex = ResourceDocMatcher.buildIndex(resourceDocs)
+  def apply(
+    resourceDocs: ArrayBuffer[ResourceDoc],
+    wrap: HttpRoutes[IO] => HttpRoutes[IO] = identity
+  ): HttpRoutes[IO] = {
+    // A route declared after the `resourceDocs +=` line that refers to it is still null when the doc is
+    // built (Rule 5 in CLAUDE.md). Say which endpoint it is now, rather than failing with an NPE here or
+    // on the first request.
+    resourceDocs.foreach { doc =>
+      if (doc.http4sPartialFunction.forall(_ == null))
+        throw new IllegalStateException(
+          s"The route of ${doc.partialFunctionName} (${doc.requestVerb} ${doc.requestUrl}) is missing or null: declare " +
+            "each endpoint val before the resourceDocs += line that uses it, and give the doc its route.")
+    }
+    // Build the lookup structure once per middleware instance (at startup), not per request.
+    val routeIndex = ResourceDocMatcher.buildRouteIndex(resourceDocs)
+    // A ResourceDoc is a case class holding JSON bodies: look it up by identity, not by equality.
+    val routeOfDoc = new java.util.IdentityHashMap[ResourceDoc, HttpRoutes[IO]]()
+    resourceDocs.foreach(doc => routeOfDoc.put(doc, wrap(doc.http4sPartialFunction.get.routes)))
     Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
-      // Read enable/disable Props per request so runtime changes (e.g. `setPropsValues` in
-      // tests or live config reloads) take effect immediately. Cost is a few Lift Props
-      // lookups — negligible per request, but lets disabled endpoints be toggled without
-      // restarting the server. A disabled endpoint yields OptionT.none so the request
-      // falls through to the next handler in the chain (typically the Lift bridge).
-      //
-      // Version-level enable/disable is NOT re-checked here — that's enforced once at
-      // startup by `Http4sApp.gate` for the URL prefix the request arrives at, so that
-      // disabling vX.Y.Z retires `/obp/vX.Y.Z/...` but leaves the same endpoints
-      // reachable via newer enabled prefixes through the cascade. See
-      // `isEndpointEnabled`'s docstring for the rationale.
-      val disabledOperationIds = APIUtil.getDisabledEndpointOperationIds().toSet
-      val enabledOperationIds = APIUtil.getEnabledEndpointOperationIds().toSet
-      def endpointIsEnabled(rd: ResourceDoc): Boolean =
-        isEndpointEnabled(rd, disabledOperationIds, enabledOperationIds)
-      val apiVersionFromPath = req.uri.path.segments.map(_.encoded).toList match {
-        case apiPathZero :: version :: _ if apiPathZero == APIUtil.getPropsValue("apiPathZero", "obp") => version
-        case _ => ApiShortVersions.`v7.0.0`.toString
-      }
-      // Build initial CallContext from request
-      OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, apiVersionFromPath)).flatMap { cc =>
-        // Cache the body so bridge-cascade hops (v400→v310→v300→…) don't re-read the now-empty stream.
-        // First read won the body in fromRequest; we replay it from cc.httpBody onwards.
-        val reqWithCachedBody = req.withAttribute(Http4sRequestAttributes.cachedBodyKey, cc.httpBody)
-        ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocIndex) match {
-          case Some(resourceDoc) if !endpointIsEnabled(resourceDoc) =>
-            // Disabled by api_disabled_endpoints / api_enabled_endpoints / api_disabled_versions /
-            // api_enabled_versions. Fall through so the Lift bridge can serve or 404.
-            OptionT.none[IO, Response[IO]]
-          case Some(resourceDoc) =>
-            val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
-            val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
-            // Validate first (read-only, outside any transaction), then run business logic.
-            // GET/HEAD are safe methods — no writes, no transaction needed; they run on
-            // auto-commit vendor connections (same as validation).  All other methods
-            // (POST/PUT/DELETE/PATCH) wrap routes.run in withBusinessDBTransaction.
-            val work: IO[Option[Response[IO]]] =
-              validateOnly(reqWithCachedBody, resourceDoc, pathParams, ccWithDoc).flatMap {
-                case Left(errorResponse) =>
-                  IO.pure(Option(errorResponse))
-                case Right(enrichedReq) =>
-                  val routeIO =
-                    routes.run(enrichedReq)
-                      .map(ensureJsonContentType)
-                      .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
-                  val executed =
-                    if (req.method == Method.GET || req.method == Method.HEAD) routeIO
-                    else RequestScopeConnection.withBusinessDBTransaction(routeIO)
-                  executed.map(Option(_))
+      val selected: Option[(ResourceDoc, HttpRoutes[IO])] =
+        ResourceDocMatcher.selectByRoute(req, routeIndex).map(doc => doc -> routeOfDoc.get(doc))
+      if (selected.isEmpty) OptionT.none[IO, Response[IO]]
+      else {
+        // Read enable/disable Props per request so runtime changes (e.g. `setPropsValues` in
+        // tests or live config reloads) take effect immediately. Cost is a few Lift Props
+        // lookups — negligible per request, but lets disabled endpoints be toggled without
+        // restarting the server. A disabled endpoint yields OptionT.none so the request
+        // falls through to the next handler in the chain (the bridge to the version below, then `notFoundCatchAll`).
+        //
+        // Version-level enable/disable is NOT re-checked here — that's enforced once at
+        // startup by `Http4sApp.gate` for the URL prefix the request arrives at, so that
+        // disabling vX.Y.Z retires `/obp/vX.Y.Z/...` but leaves the same endpoints
+        // reachable via newer enabled prefixes through the cascade. See
+        // `isEndpointEnabled`'s docstring for the rationale.
+        val disabledOperationIds = APIUtil.getDisabledEndpointOperationIds().toSet
+        val enabledOperationIds = APIUtil.getEnabledEndpointOperationIds().toSet
+        def endpointIsEnabled(rd: ResourceDoc): Boolean =
+          isEndpointEnabled(rd, disabledOperationIds, enabledOperationIds)
+        val apiVersionFromPath = req.uri.path.segments.map(_.encoded).toList match {
+          case apiPathZero :: version :: _ if apiPathZero == APIUtil.getPropsValue("apiPathZero", "obp") => version
+          case _ => ApiShortVersions.`v7.0.0`.toString
+        }
+        // Build initial CallContext from request
+        OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, apiVersionFromPath)).flatMap { cc =>
+          // Cache the body so bridge-cascade hops (v400→v310→v300→…) don't re-read the now-empty stream.
+          // First read won the body in fromRequest; we replay it from cc.httpBody onwards.
+          val reqWithOriginalBody = req.withAttribute(Http4sRequestAttributes.cachedBodyKey, cc.httpBody)
+          selected match {
+            case Some((resourceDoc, _)) if !endpointIsEnabled(resourceDoc) =>
+              // Disabled by api_disabled_endpoints / api_enabled_endpoints / api_disabled_versions /
+              // api_enabled_versions. Fall through so the next handler in the chain can serve or 404.
+              OptionT.none[IO, Response[IO]]
+            case Some((resourceDoc, routesToRun)) =>
+              Http4sRequestAttributes.trafficNote(req).foreach { note =>
+                note.operationId = Some(resourceDoc.operationId)
+                note.apiVersion = Some(resourceDoc.implementedInApiVersion.apiShortVersion)
               }
-            OptionT(work.timeoutTo(endpointTimeoutMs.millis, endpointTimeoutResponse(req)))
+              val (reqWithCachedBody, ccForDoc) = withCurrencyCodesUpperCased(reqWithOriginalBody, cc, resourceDoc)
+              val ccWithDoc = ResourceDocMatcher.attachToCallContext(ccForDoc, resourceDoc)
+              val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
+              // Validate first (read-only, outside any transaction), then run business logic.
+              // GET/HEAD are safe methods — no writes, no transaction needed; they run on
+              // auto-commit vendor connections (same as validation).  All other methods
+              // (POST/PUT/DELETE/PATCH) wrap routes.run in withBusinessDBTransaction.
+              val work: IO[Option[Response[IO]]] =
+                validateOnly(reqWithCachedBody, resourceDoc, pathParams, ccWithDoc).flatMap {
+                  case Left(errorResponse) =>
+                    IO.pure(Option(errorResponse))
+                  case Right(enrichedReq) =>
+                    // The caller is known now: record its Consumer for TrafficSources.
+                    for {
+                      note <- Http4sRequestAttributes.trafficNote(req)
+                      consumer <- enrichedReq.attributes.lookup(Http4sRequestAttributes.callContextKey).flatMap(_.consumer.toOption)
+                    } {
+                      note.consumerId = Some(consumer.consumerId)
+                      note.consumerName = Some(consumer.name)
+                    }
+                    for {
+                      note <- Http4sRequestAttributes.trafficNote(req)
+                      user <- enrichedReq.attributes.lookup(Http4sRequestAttributes.callContextKey).flatMap(_.user.toOption)
+                    } note.userId = Some(user.userId)
+                    val routeIO =
+                      routesToRun.run(enrichedReq)
+                        .map(ensureJsonContentType)
+                        .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
+                    val executed =
+                      if (req.method == Method.GET || req.method == Method.HEAD) routeIO
+                      else RequestScopeConnection.withBusinessDBTransaction(routeIO)
+                    executed.map(Option(_))
+                }
+              val startNanos = System.nanoTime()
+              OptionT(work.timeoutTo(endpointTimeoutMs.millis, endpointTimeoutResponse(req)).flatTap(recordTelemetry(resourceDoc, startNanos)))
 
-          case None =>
-            // This group has no ResourceDoc for the request. Almost always the request is simply
-            // not ours: `routes.run` yields None and the request moves to the next link of the
-            // version fallthrough chain (v7 -> v6 -> v5.1 -> bridges -> ... ). No transaction scope
-            // is opened. The cached body is carried forward for the later hops.
-            //
-            // The one case where the inner routes DO serve such a request is a malformed URL with
-            // an empty path segment (e.g. `/banks//accounts`): the matcher counts segments and finds
-            // no doc, but the http4s pattern still matches with an empty id, and its handler needs
-            // the caller in the CallContext to answer 403/404 rather than a misleading 401. That is
-            // why the caller is resolved here at all. It is resolved WITHOUT rate limiting and at
-            // most ONCE per request (see resolveCallerOnce): rate limiting belongs to the hop that
-            // serves the request, and re-validating the credentials on every hop was pure waste.
-            OptionT.liftF(
-              resolveCallerOnce(req, cc).map { resolvedCc =>
-                reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, resolvedCc)
-              }
-            ).flatMap(routes.run)
+            case None =>
+              // Not reachable: a request no route serves was passed on above.
+              OptionT.none[IO, Response[IO]]
+
+          }
         }
       }
     }
   }
 
   /**
-   * Resolve the caller for a hop that has no ResourceDoc for the request, once per request.
-   *
-   * The first such hop runs [[APIUtil.resolveCallerWithoutRateLimiting]] and stores the outcome in
-   * the holder Http4sApp attached to the request (`Http4sRequestAttributes.callerResolvedOnThisRequestKey`);
-   * every later hop of the same request reads it. Before this, each hop authenticated afresh AND counted the call
-   * against the Consumer's rate limit: `GET /obp/v5.1.0/users/current` crossed seven hops before
-   * v3.0.0 served it, so it validated the token seven times, saved the Consumer row seven times,
-   * and cost seven rate-limit units - a Consumer limited to fewer than seven calls per second was
-   * refused with 429 OBP-10018 on the second hop.
-   *
-   * Failures (bad token, unknown consumer, ...) are kept too - they are the outcome for this
-   * request - and leave the CallContext without a user, exactly as before. Only an exception
-   * thrown by the pipeline is not kept; the hop then proceeds with the unresolved context.
+   * Records Telemetry for a request this group served: its duration, status class and, when the
+   * response states its length, its size. Only the hop that matched a ResourceDoc records, so a
+   * request that crossed several version hops is counted once. A request that fell through (a
+   * disabled endpoint) returned no response here and is not recorded.
    */
-  private def resolveCallerOnce(req: Request[IO], cc: CallContext): IO[CallContext] = {
-    val holder = req.attributes.lookup(Http4sRequestAttributes.callerResolvedOnThisRequestKey)
-    holder.flatMap(_.get()) match {
-      case Some(resolved) =>
-        IO.pure(withResolvedCaller(cc, resolved))
-      case None =>
-        IO.fromFuture(IO(APIUtil.resolveCallerWithoutRateLimiting(cc))).attempt.map {
-          case Right(resolved) =>
-            holder.foreach(_.set(Some(resolved)))
-            withResolvedCaller(cc, resolved)
-          case Left(NonFatal(e)) =>
-            logger.debug(s"[ResourceDocMiddleware] caller resolution threw on a no-ResourceDoc hop for ${req.method.name} ${req.uri.path.renderString}: ${e.getMessage}")
-            cc
-          case Left(e) => throw e
-        }
+  private def recordTelemetry(resourceDoc: ResourceDoc, startNanos: Long)(response: Option[Response[IO]]): IO[Unit] =
+    response match {
+      case Some(served) => IO {
+        code.telemetry.Telemetry.recordEndpoint(
+          resourceDoc.operationId, resourceDoc.implementedInApiVersion.apiShortVersion,
+          served.status.code, System.nanoTime() - startNanos, served.contentLength)
+      }
+      case None => IO.unit
     }
-  }
-
-  /**
-   * Merge a resolution into THIS hop's freshly built CallContext. The resolved context may come
-   * from an earlier hop; the bridges rewrite the path between hops (`/obp/v5.1.0/...` ->
-   * `/obp/v5.0.0/...`), so the current hop's `url` and `implementedInVersion` are kept while the
-   * authentication-derived fields (user, consumer, session, rate-limit config, ...) are taken from
-   * the resolution.
-   */
-  private def withResolvedCaller(cc: CallContext, resolved: Http4sRequestAttributes.ResolvedCaller): CallContext = {
-    def carryOver(resolvedCc: CallContext): CallContext =
-      resolvedCc.copy(url = cc.url, implementedInVersion = cc.implementedInVersion)
-    resolved match {
-      case (Full(user), Some(resolvedCc)) => carryOver(resolvedCc).copy(user = Full(user))
-      case (Full(user), None)             => cc.copy(user = Full(user))
-      case (_, Some(resolvedCc))          => carryOver(resolvedCc)
-      case _                              => cc
-    }
-  }
 
   /** 504 response emitted when endpointTimeoutMs elapses before the handler completes. */
   private def endpointTimeoutResponse(req: Request[IO]): IO[Option[Response[IO]]] = IO {
@@ -322,7 +316,7 @@ object ResourceDocMiddleware extends MdcLoggable {
       context <- validateDuplicateQueryParams(cc, initialContext)
       context <- authenticate(req, resourceDoc, context)
       context <- refuseUnresolvedUKConsent(resourceDoc, context)
-      context <- validateBank(pathParams, context)
+      context <- validateBank(resourceDoc, pathParams, context)
       context <- authorizeRoles(resourceDoc, pathParams, context)
       context <- validateAccount(pathParams, context)
       context <- validateView(pathParams, context)
@@ -330,6 +324,7 @@ object ResourceDocMiddleware extends MdcLoggable {
       context <- processForceError(req, resourceDoc, context)
       context <- validateAuthType(resourceDoc, context)
       context <- validateJsonSchema(resourceDoc, context)
+      context <- validateAmountPrecision(req, context)
     } yield context
 
     result.value.map {
@@ -354,14 +349,14 @@ object ResourceDocMiddleware extends MdcLoggable {
     logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
 
     // Dispatch on authMode the same way Lift's wrappedWithAuthCheck (APIUtil.scala:1783-1788) does:
-    //   ApplicationOnly | UserOrApplication → applicationAccess (returns ApplicationNotIdentified
+    //   ApplicationOnly | UserXORApplication → applicationAccess (returns ApplicationNotIdentified
     //     when neither user nor consumer credentials are valid; also accepts consumer-only).
     //   UserOnly | UserAndApplication       → anonymousAccess  (returns AuthenticatedUserIsRequired
     //     when needsAuth is true and user is missing).
     // Without this dispatch, every endpoint behaved as UserOnly — breaking
     // ApplicationNotIdentified semantics for v5.1.0 createConsumer / getConsumers.
     val isAppMode = resourceDoc.authMode match {
-      case APIUtil.ApplicationOnly | APIUtil.UserOrApplication => true
+      case APIUtil.ApplicationOnly | APIUtil.UserXORApplication => true
       case _ => false
     }
     val io = IO.fromFuture(IO(
@@ -377,7 +372,7 @@ object ResourceDocMiddleware extends MdcLoggable {
         case Right((Full(user), None)) =>
           IO.pure(Right(ctx.copy(user = Full(user))))
         // Empty box — no valid credentials provided, and auth is required.
-        // For UserOrApplication / ApplicationOnly: applicationAccess already returned
+        // For UserXORApplication / ApplicationOnly: applicationAccess already returned
         // successfully because the consumer is valid (just no user). Pass through.
         case Right((_, optCC)) if needsAuth && !isAppMode =>
           val cc2 = optCC.getOrElse(ctx.callContext)
@@ -425,10 +420,10 @@ object ResourceDocMiddleware extends MdcLoggable {
           case Full(user) =>
             val bankId = pathParams.getOrElse("BANK_ID", "")
             val consumerId = APIUtil.getConsumerPrimaryKey(Some(ctx.callContext))
-            // Use handleAccessControlWithAuthMode so authMode = UserOrApplication
-            // accepts consumer-scope-only requests (the auth-only handleAccess...
+            // Use handleAccessControlWithAuthMode so authMode = UserXORApplication
+            // accepts an application acting as itself on its Scopes (the auth-only handleAccess...
             // function checks user-entitlements + scopes ANDed and rejects pure
-            // consumer-scope requests with 403 even under UserOrApplication).
+            // consumer-scope requests with 403 even under UserXORApplication).
             val ok = APIUtil.handleAccessControlWithAuthMode(bankId, user.userId, consumerId, roles, resourceDoc.authMode)
             if (ok) success(ctx)
             else EitherT[IO, Response[IO], ValidationContext](
@@ -588,6 +583,32 @@ object ResourceDocMiddleware extends MdcLoggable {
   }
 
   /**
+   * This refuses, with 400, a request carrying an amount with more decimal places than its currency
+   * allows, such as 12.345 EUR. Before this check such an amount was cut off when it was stored, so
+   * part of it silently disappeared. The amounts it looks at, and the currencies it leaves alone, are
+   * described in [[code.asset.AmountPrecision]].
+   *
+   * It runs last, once the caller is known to be allowed to make the request, so an unauthenticated
+   * caller still gets 401 and one without the Role 403. The body it reads is the one in the
+   * CallContext, whose currency codes are already upper case (withCurrencyCodesUpperCased).
+   */
+  private def validateAmountPrecision(req: Request[IO], ctx: ValidationContext): Validation[ValidationContext] = {
+    import DSL._
+    import code.asset.AmountPrecision
+    val excess = ctx.callContext.httpBody.flatMap(AmountPrecision.inJsonBody)
+      .orElse(AmountPrecision.inQuery(req.uri.query.pairs))
+    excess match {
+      case Some(found) =>
+        val message = s"${code.api.util.ErrorMessages.InvalidAmountPrecision} ${found.describe}"
+        EitherT[IO, Response[IO], ValidationContext](
+          ErrorResponseConverter.createErrorResponse(400, message, ctx.callContext)
+            .map[Either[Response[IO], ValidationContext]](Left(_))
+        )
+      case None => success(ctx)
+    }
+  }
+
+  /**
    * Port of `APIUtil.validateQueryParams` (a `beforeAuthenticateInterceptor` in Lift).
    * Rejects requests with duplicate query-parameter names with 400
    * `DuplicateQueryParameters`. Returns a plain OBP `{"message":"..."}` body (not BG
@@ -613,10 +634,18 @@ object ResourceDocMiddleware extends MdcLoggable {
       success(ctx)
   }
 
-  /** Bank validation: checks BANK_ID and fetches bank */
-  private def validateBank(pathParams: Map[String, String], ctx: ValidationContext): Validation[ValidationContext] = {
+  /**
+   * Bank validation: checks BANK_ID and fetches the bank.
+   *
+   * The one exception is the system space. A ResourceDoc that declares allowSystemSpace() accepts
+   * DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID (SYS) as BANK_ID, and the request goes on with no bank
+   * resolved. Every other endpoint still answers 404 for SYS, because no bank has that id.
+   */
+  private def validateBank(resourceDoc: ResourceDoc, pathParams: Map[String, String], ctx: ValidationContext): Validation[ValidationContext] = {
 
     pathParams.get("BANK_ID") match {
+      case Some(bankId) if bankId == code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID && resourceDoc.allowsSystemSpace =>
+        DSL.success(ctx)
       case Some(bankId) =>
         EitherT(
           IO.fromFuture(IO(NewStyle.function.getBank(BankId(bankId), Some(ctx.callContext))))
@@ -673,16 +702,56 @@ object ResourceDocMiddleware extends MdcLoggable {
             .attempt.flatMap {
               case Right((cp, Some(updatedCC))) => IO.pure(Right(ctx.copy(counterparty = Some(cp), callContext = updatedCC)))
               case Right((cp, None))            => IO.pure(Right(ctx.copy(counterparty = Some(cp))))
-              case Left(_)                       => ErrorResponseConverter.createErrorResponse(404, CounterpartyNotFound + s": counterpartyId=$counterpartyId", ctx.callContext).map(Left(_))
+              // The lookup's own failure: 400 CounterpartyNotFoundByCounterpartyId when the counterparty doesn't
+              // exist or belongs to another account, the code Lift's COUNTERPARTY_ID check answered with.
+              case Left(e)                       => ErrorResponseConverter.toHttp4sResponse(e, ctx.callContext).map(Left(_))
             }
         )
       case _ => DSL.success(ctx)
     }
   }
 
-  /** Ensure the response has JSON content type */
+  /**
+   * This upper-cases the currency codes in a request before the endpoint sees it, because currency
+   * codes are case-insensitive (code.asset.CurrencyCodes): `eur` is validated, compared and stored
+   * as `EUR`. It touches the string values of the body fields that the endpoint's documented example
+   * body uses for a currency code, and the values of query parameters whose name says they hold one
+   * (`currency`, `from_currency_code`, ...). Only values that look like a code are changed, and a
+   * request with nothing to change is returned as it came. The body is changed in the CallContext
+   * and in the cached body every later hop reads; the query in the request URI and in `cc.url`.
+   *
+   * It runs only once a static ResourceDoc has matched, so a Dynamic Entity or Dynamic Endpoint
+   * request falling through this middleware keeps its body exactly as sent.
+   */
+  private def withCurrencyCodesUpperCased(req: Request[IO], cc: CallContext, resourceDoc: ResourceDoc): (Request[IO], CallContext) = {
+    import code.asset.CurrencyCodes
+    def upperCasedIfCode(value: String): String =
+      if (CurrencyCodes.looksLikeCode(value)) CurrencyCodes.normalise(value) else value
+
+    val currencyFields = CurrencyCodes.currencyFieldsOf(resourceDoc.operationId, resourceDoc.exampleRequestBody)
+    val body = cc.httpBody.map(CurrencyCodes.normaliseJsonBody(_, currencyFields))
+
+    val pairs = req.uri.query.pairs
+    val queryChanged = pairs.exists { case (name, value) =>
+      CurrencyCodes.isCurrencyKey(name) && value.exists(v => upperCasedIfCode(v) != v)
+    }
+    val uri =
+      if (!queryChanged) req.uri
+      else req.uri.copy(query = Query.fromVector(pairs.map { case (name, value) =>
+        (name, if (CurrencyCodes.isCurrencyKey(name)) value.map(upperCasedIfCode) else value)
+      }))
+
+    if (body == cc.httpBody && !queryChanged) (req, cc)
+    else (
+      req.withUri(uri).withAttribute(Http4sRequestAttributes.cachedBodyKey, body),
+      cc.copy(url = if (queryChanged) uri.renderString else cc.url, httpBody = body)
+    )
+  }
+
+  /** Ensure the response has JSON content type, unless its body is a file's bytes with the file's own type */
   private def ensureJsonContentType(response: Response[IO]): Response[IO] = {
-    response.contentType match {
+    if (response.attributes.contains(Http4sRequestAttributes.fileContentResponseKey)) response
+    else response.contentType match {
       case Some(contentType) if contentType.mediaType == MediaType.application.json => response
       case _ => response.withContentType(jsonContentType)
     }

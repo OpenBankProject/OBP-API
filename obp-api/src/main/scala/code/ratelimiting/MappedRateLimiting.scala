@@ -165,13 +165,6 @@ object RateLimiting {
   }
 
   /** The newest row for a scope; the scope columns are matched exactly, NULL included. */
-  def findMostRecentScoped(consumerId: String, bankId: Option[String], apiVersion: Option[String],
-                           apiName: Option[String]): Option[RateLimiting] =
-    query(fr"WHERE consumerid = $consumerId AND " ++ scoped(fr"bankid", bankId) ++
-      fr"AND " ++ scoped(fr"apiversion", apiVersion) ++
-      fr"AND " ++ scoped(fr"apiname", apiName) ++
-      fr"ORDER BY updatedat DESC, id DESC").headOption
-
   def findByRateLimitingId(rateLimitingId: String): Box[RateLimiting] =
     one(fr"WHERE ratelimitingid = $rateLimitingId")
 
@@ -290,7 +283,25 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait with Logger 
                                     bankId: Option[String],
                                     apiVersion: Option[String],
                                     apiName: Option[String]): Option[RateLimiting] =
-    RateLimiting.findMostRecentScoped(consumerId, bankId, apiVersion, apiName)
+    sameScope(consumerId, bankId, apiVersion, apiName).sortBy(_.updatedAt)(Ordering[java.util.Date].reverse).headOption
+
+  def countConsumerCallLimits(consumerId: String,
+                              bankId: Option[String],
+                              apiVersion: Option[String],
+                              apiName: Option[String]): Future[Int] = Future {
+    sameScope(consumerId, bankId, apiVersion, apiName).size
+  }
+
+  /**
+   * The consumer's rows with exactly this bank_id, api_version and api_name, None matching a row that does not set it.
+   * Compared through the getters, which take an empty column as not set: older versions stored "" there as well as NULL.
+   */
+  private def sameScope(consumerId: String,
+                        bankId: Option[String],
+                        apiVersion: Option[String],
+                        apiName: Option[String]): List[RateLimiting] =
+    RateLimiting.findAllByConsumerId(consumerId)
+      .filter(row => row.bankId == bankId && row.apiVersion == apiVersion && row.apiName == apiName)
 
   def createConsumerCallLimits(consumerId: String,
                                fromDate: Date,
@@ -325,7 +336,7 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait with Logger 
                                        perDay: Option[String],
                                        perWeek: Option[String],
                                        perMonth: Option[String]): Future[Box[RateLimiting]] = Future {
-    findMostRecentRateLimitCommon(consumerId, bankId, apiVersion, apiName) match {
+    val result = findMostRecentRateLimitCommon(consumerId, bankId, apiVersion, apiName) match {
       case Some(limit) =>
         tryo {
           RateLimiting.update(limit.rateLimitingId, fromDate, toDate, apiVersion, apiName, bankId,
@@ -337,8 +348,8 @@ object MappedRateLimitingProvider extends RateLimitingProviderTrait with Logger 
             perMinute, perHour, perDay, perWeek, perMonth)
         }
     }
-    // Deliberately does NOT invalidate the cache — createConsumerCallLimits and
-    // updateConsumerCallLimits both do, this one never did. Preserved.
+    result.foreach(_ => Caching.invalidateRateLimitCache(consumerId))
+    result
   }
 
   def updateConsumerCallLimits(rateLimitingId: String,

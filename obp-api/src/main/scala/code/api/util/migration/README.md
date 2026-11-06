@@ -81,4 +81,4 @@ If it returns a view, follow rule 2 (preferred) or rule 3.
 ## Recovering a database that has already drifted
 
 Drop all objects in the schema and let Schemifier + migrations rebuild from scratch (Schemifier
-`CREATE`s fresh, so no `ALTER` conflicts). Full procedure: `running_tests_on_postgres.md`.
+`CREATE`s fresh, so no `ALTER` conflicts). Full procedure: `docs/testing/running_tests_on_postgres.md`.

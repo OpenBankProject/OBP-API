@@ -28,23 +28,32 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import org.json4s._
+import code.accountholders.MapperAccountHolders
 import code.api.Constant
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole
+import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ApiRole.CanDeleteAccountCascade
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
-import code.entitlement.Entitlement
+import code.cardattribute.DoobieCardAttributeProvider
+import code.cards.MappedPhysicalCard
+import code.entitlement.{Entitlement, MappedEntitlement}
+import code.model.dataAccess.MappedBankAccount
+import code.views.system.AccountAccess
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage}
+import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankId, CardAttribute, ErrorMessage}
+import com.openbankproject.commons.model.enums.CardAttributeType
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.util.Helpers.randomString
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 import java.util.concurrent.TimeUnit
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 class DeleteAccountCascadeTest extends V400ServerSetup {
 
@@ -58,7 +67,27 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.deleteAccountCascade))
 
+  private val deleteAtFirstBank = "We delete the account at the first bank with the cascading endpoint"
+
   lazy val bankId = randomBankId
+
+  /** A card on the account with this primary key, holding only what the scenarios set; returns its card id. */
+  private def insertCard(bank: BankId, accountKey: Long): String =
+    MappedPhysicalCard.insert(
+      cardId = APIUtil.generateUUID(), bankId = bank.value, bankCardNumber = randomString(16), cardType = "",
+      nameOnCard = "", issueNumber = "", serialNumber = randomString(10), validFrom = new java.util.Date(),
+      expires = new java.util.Date(), enabled = false, cancelled = false, onHotList = false, technology = "",
+      networks = "", allows = "", accountKey = accountKey, replacementDate = None, replacementReason = None,
+      collected = None, posted = None, customerId = "", cvv = "", brand = ""
+    ).cardId
+
+  private def insertCardAttribute(bank: BankId, cardId: String, name: String, value: String): Unit =
+    Await.result(DoobieCardAttributeProvider.createOrUpdateCardAttribute(
+      Some(bank), Some(cardId), None, name, CardAttributeType.STRING, value), Duration.Inf)
+      .openOrThrowException("the card attribute must be created")
+
+  private def cardAttributesOf(cardId: String): List[CardAttribute] =
+    Await.result(DoobieCardAttributeProvider.getCardAttributesFromProvider(cardId), Duration.Inf).openOr(Nil)
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
   lazy val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
 
@@ -138,7 +167,193 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       When("We try to delete one more time")
       makeDeleteRequest(request400).code should equal(404)
     }
+    scenario("We delete an account that has paid by transaction requests", ApiEndpoint1, VersionOfApi) {
+      val paymentsBankId = createBank(APIUtil.generateUUID()).bankId.value
+      val (fromAccountId, toAccountId, transactionRequestIds) = createPaymentsForDeleteCascade(paymentsBankId)
+      doubleEntryBookTransactionsOfAccount(paymentsBankId, fromAccountId) should not be empty
+      val (transactionRequestsBefore, challengesBefore) = transactionRequestsAndChallenges(transactionRequestIds)
+      transactionRequestsBefore.size should equal(2)
+      challengesBefore should not be empty
+
+      When("We grant the role")
+      Entitlement.entitlement.vend.addEntitlement(paymentsBankId, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
+      And("We make a delete cascade request v4.0.0")
+      val deleteRequest400 = (v4_0_0_Request / "management" / "cascading" / "banks" / paymentsBankId /
+        "accounts" / fromAccountId).DELETE <@(user1)
+      makeDeleteRequest(deleteRequest400).code should equal(200)
+
+      Then("The double-entry book rows, transaction requests and challenges of the account are deleted")
+      doubleEntryBookTransactionsOfAccount(paymentsBankId, fromAccountId) shouldBe empty
+      val (transactionRequestsAfter, challengesAfter) = transactionRequestsAndChallenges(transactionRequestIds)
+      transactionRequestsAfter shouldBe empty
+      challengesAfter shouldBe empty
+      And("The double-entry book row is gone for the receiving account as well, since it was one row for both sides")
+      doubleEntryBookTransactionsOfAccount(paymentsBankId, toAccountId) shouldBe empty
+    }
   }
-  
+
+  feature(s"test $ApiEndpoint1 version $VersionOfApi - cards") {
+    scenario("Deleting an account keeps the cards of an account with the same ACCOUNT_ID at another bank", ApiEndpoint1, VersionOfApi) {
+      Given("Two banks that each have an account with the same ACCOUNT_ID, each with a card")
+      val bankId = BankId(randomString(10))
+      val otherBankId = BankId(randomString(10))
+      createBank(bankId.value)
+      createBank(otherBankId.value)
+      val accountId = AccountId(randomString(10))
+      createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
+      createAccountRelevantResource(Some(resourceUser1), otherBankId, accountId, "EUR")
+
+      def addCard(bank: BankId): String = {
+        val account = MappedBankAccount.find(bank.value, accountId.value)
+          .openOrThrowException("test account not found")
+        insertCard(bank, account.accountPrimaryKey)
+      }
+      def cardExists(cardId: String): Boolean = MappedPhysicalCard.findAll().exists(_.cardId == cardId)
+      val card = addCard(bankId)
+      val otherBankCard = addCard(otherBankId)
+
+      When(deleteAtFirstBank)
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
+      val request = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId.value /
+        "accounts" / accountId.value).DELETE <@ (user1)
+      val response = makeDeleteRequest(request)
+
+      Then("We should get a 200")
+      response.code should equal(200)
+
+      And("The deleted account's card is gone and the other bank's card is kept")
+      cardExists(card) should equal(false)
+      cardExists(otherBankCard) should equal(true)
+    }
+  }
+
+  feature(s"test $ApiEndpoint1 version $VersionOfApi - card attributes") {
+    scenario("Deleting an account deletes the attributes of its cards and keeps those of the same ACCOUNT_ID at another bank", ApiEndpoint1, VersionOfApi) {
+      Given("Two banks that each have an account with the same ACCOUNT_ID, each with a card that has an attribute")
+      val bankId = BankId(randomString(10))
+      val otherBankId = BankId(randomString(10))
+      createBank(bankId.value)
+      createBank(otherBankId.value)
+      val accountId = AccountId(randomString(10))
+      createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
+      createAccountRelevantResource(Some(resourceUser1), otherBankId, accountId, "EUR")
+
+      def addCardWithAttribute(bank: BankId): String = {
+        val account = MappedBankAccount.find(bank.value, accountId.value)
+          .openOrThrowException("test account not found")
+        val cardId = insertCard(bank, account.accountPrimaryKey)
+        insertCardAttribute(bank, cardId, "TAX_NUMBER", "123")
+        cardId
+      }
+      def attributesOf(cardId: String) = cardAttributesOf(cardId)
+      val card = addCardWithAttribute(bankId)
+      val otherBankCard = addCardWithAttribute(otherBankId)
+      // an attribute that another bank posted for this card id is not the deleted account's data
+      insertCardAttribute(otherBankId, card, "OTHER_BANK", "1")
+
+      When(deleteAtFirstBank)
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
+      val request = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId.value /
+        "accounts" / accountId.value).DELETE <@ (user1)
+      val response = makeDeleteRequest(request)
+
+      Then("We should get a 200")
+      response.code should equal(200)
+
+      And("The deleted account's card has no attributes left and the other bank's card keeps its attribute")
+      attributesOf(card).flatMap(_.bankId.map(_.value)) should equal(List(otherBankId.value))
+      attributesOf(otherBankCard) should have size 1
+    }
+  }
+
+  feature(s"test $ApiEndpoint1 version $VersionOfApi - entitlements") {
+    scenario("Deleting an account keeps the entitlements of users who only use an account with the same ACCOUNT_ID at another bank", ApiEndpoint1, VersionOfApi) {
+      Given("Two banks that each have an account with the same ACCOUNT_ID, owned by different users")
+      val bankId = BankId(randomString(10))
+      val otherBankId = BankId(randomString(10))
+      createBank(bankId.value)
+      createBank(otherBankId.value)
+      val accountId = AccountId(randomString(10))
+      createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
+      createAccountRelevantResource(Some(resourceUser2), otherBankId, accountId, "EUR")
+
+      And("The other bank's account owner has an entitlement at the first bank")
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser2.userId, ApiRole.canCreateAccount.toString)
+      def otherOwnerEntitlements: Long =
+        MappedEntitlement.findAllByBankId(bankId.value).count(_.userId == resourceUser2.userId).toLong
+      otherOwnerEntitlements should equal(1L)
+
+      When(deleteAtFirstBank)
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
+      val request = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId.value /
+        "accounts" / accountId.value).DELETE <@ (user1)
+      val response = makeDeleteRequest(request)
+
+      Then("We should get a 200")
+      response.code should equal(200)
+
+      And("The other bank's account owner keeps the entitlement")
+      otherOwnerEntitlements should equal(1L)
+    }
+  }
+
+  private def accountHolders(bankId: String, accountId: String): List[MapperAccountHolders] =
+    MapperAccountHolders.findAll()
+      .filter(holder => holder.accountBankPermalink == bankId && holder.accountPermalink == accountId)
+
+  private def accountAccess(bankId: String, accountId: String): List[AccountAccess] =
+    AccountAccess.findAllByBankIdAccountId(BankId(bankId), AccountId(accountId))
+
+  feature(s"test $ApiEndpoint1 version $VersionOfApi - account holders") {
+    scenario("Deleting an account removes its holders, so a later refresh of the former holder grants no views on it", ApiEndpoint1, VersionOfApi) {
+      Given("An account created through the API, which makes the user its holder and grants the user its system views")
+      val bankId = createBank(APIUtil.generateUUID()).bankId.value
+      val deletedAccountId = createAccountViaEndpoint(bankId, addAccountJson, user1).account_id
+      accountHolders(bankId, deletedAccountId) should not be empty
+      accountAccess(bankId, deletedAccountId) should not be empty
+
+      When("We delete the account with the cascading endpoint")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
+      val request = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId /
+        "accounts" / deletedAccountId).DELETE <@ (user1)
+      makeDeleteRequest(request).code should equal(200)
+
+      Then("The account's holders and account access are gone")
+      accountHolders(bankId, deletedAccountId) shouldBe empty
+      accountAccess(bankId, deletedAccountId) shouldBe empty
+
+      When("The former holder reads the deleted account")
+      val getRequest = (v5_1_0_Request / "banks" / bankId / "accounts" / deletedAccountId /
+        Constant.SYSTEM_OWNER_VIEW_ID / "account").GET <@ (user1)
+      makeGetRequest(getRequest).code should equal(404)
+
+      And("The former holder creates another account, which refreshes the views of every account the user holds")
+      createAccountViaEndpoint(bankId, addAccountJson, user1)
+
+      Then("No account access is granted on the deleted account again")
+      accountAccess(bankId, deletedAccountId) shouldBe empty
+    }
+
+    scenario("Deleting an account keeps the holders of an account with the same ACCOUNT_ID at another bank", ApiEndpoint1, VersionOfApi) {
+      Given("Two banks that each have an account with the same ACCOUNT_ID, held by the same user")
+      val bankId = BankId(randomString(10))
+      val otherBankId = BankId(randomString(10))
+      createBank(bankId.value)
+      createBank(otherBankId.value)
+      val accountId = AccountId(randomString(10))
+      createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
+      createAccountRelevantResource(Some(resourceUser1), otherBankId, accountId, "EUR")
+
+      When("We delete the first bank's account, keeping the other bank's one")
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
+      val request = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId.value /
+        "accounts" / accountId.value).DELETE <@ (user1)
+      makeDeleteRequest(request).code should equal(200)
+
+      Then("The deleted account's holder is gone and the other bank's holder is kept")
+      accountHolders(bankId.value, accountId.value) shouldBe empty
+      accountHolders(otherBankId.value, accountId.value).size should equal(1)
+    }
+  }
 
 }

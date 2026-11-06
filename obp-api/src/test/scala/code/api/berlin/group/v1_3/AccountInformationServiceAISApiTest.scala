@@ -74,6 +74,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
 
   object getCardAccountTransactionList extends Tag(nameOf(Http4sBGv13AIS.getCardAccountTransactionList))
 
+  object getCardAccounts extends Tag(nameOf(Http4sBGv13AIS.getCardAccounts))
+
   object createConsent extends Tag(nameOf(Http4sBGv13AIS.createConsent))
 
   object deleteConsent extends Tag(nameOf(Http4sBGv13AIS.deleteConsent))
@@ -108,6 +110,18 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
 
     Scenario("Authentication User, test failed", BerlinGroupV1_3, getAccountList) {
       val requestGet = (V1_3_BG / "accounts").GET <@ (user1)
+      val response = makeGetRequest(requestGet)
+
+      Then("We should get a 403 ")
+      response.code should equal(403)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(NoViewReadAccountsBerlinGroup)
+    }
+  }
+
+  Feature(s"BG v1.3 - $getCardAccounts") {
+    // user1 holds the owner view on the test accounts but not ReadAccountsBerlinGroup, so no card account is listed
+    Scenario("Authentication User with only non Berlin Group views, test failed", BerlinGroupV1_3, getCardAccounts) {
+      val requestGet = (V1_3_BG / "card-accounts").GET <@ (user1)
       val response = makeGetRequest(requestGet)
 
       Then("We should get a 403 ")
@@ -432,6 +446,16 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       response2.code should equal(200)
       response2.body.extract[SingleTransactionJsonV13].value.transactionsDetails.transactionId should be (transactionId)
     }
+
+    // With PSD2 certificates required, a caller sending no TPP certificate is refused before the account is read
+    Scenario("PSD2 certificate required but not sent, test failed", BerlinGroupV1_3, getTransactionDetails) {
+      setPropsValues("requirePsd2Certificates" -> "CERTIFICATE")
+      val requestGet = (V1_3_BG / "accounts" / testAccountId1.value / "transactions" / "whatever").GET <@ (user1)
+      val response: APIResponse = makeGetRequest(requestGet)
+      Then("We should get a 401 ")
+      response.code should equal(401)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should include(X509CannotGetCertificate)
+    }
   }
 
   Feature(s"BG v1.3 - $getCardAccountTransactionList") {
@@ -755,6 +779,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
         val consentId =response.body.extract[PostConsentResponseJson].consentId
 
         Then(s"We test the $startConsentAuthorisationTransactionAuthorisation")
+        // a challenge the user can be sent: with the default SMS and no linked customer there is no one to send it to
+        setPropsValues("suggested_default_sca_method" -> "DUMMY")
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/consentId /"authorisations" ).POST <@ (user1)
         val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, """{"scaAuthenticationData":""}""")
         responseStartConsentAuthorisation.code should be (201)
@@ -813,6 +839,8 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
         val consentId =response.body.extract[PostConsentResponseJson].consentId
   
         Then(s"We test the $startConsentAuthorisationTransactionAuthorisation")
+        // a challenge the user can be sent: with the default SMS and no linked customer there is no one to send it to
+        setPropsValues("suggested_default_sca_method" -> "DUMMY")
         val requestStartConsentAuthorisation = (V1_3_BG / "consents"/consentId /"authorisations" ).POST <@ (user1)
         val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, """{"scaAuthenticationData":""}""")
         responseStartConsentAuthorisation.code should be (201)
@@ -956,15 +984,15 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
   //
   // Pinned because nothing else would notice a revert: these keep working for as long as OAuth2
   // token parsing auto-vivifies a user for a client-credentials token, and start 401ing the day
-  // that stops. The consent endpoints in the same file have been UserOrApplication all along, so
+  // that stops. The consent endpoints in the same file have been UserXORApplication all along, so
   // this is also a consistency guard within the family.
   Feature("BG v1.3 - consent authorisation sub-resources accept a client-credentials caller") {
     for (name <- List(nameOf(Http4sBGv13AIS.getConsentAuthorisation), nameOf(Http4sBGv13AIS.getConsentScaStatus))) {
-      Scenario(s"$name declares UserOrApplication", BerlinGroupV1_3) {
+      Scenario(s"$name declares UserXORApplication", BerlinGroupV1_3) {
         val docs = APIUtil.ResourceDoc.getResourceDocs(
           List(APIUtil.buildOperationId(ConstantsBG.berlinGroupVersion1, name)))
         docs should not be empty
-        docs.foreach(_.authMode should equal(APIUtil.UserOrApplication))
+        docs.foreach(_.authMode should equal(APIUtil.UserXORApplication))
       }
     }
   }

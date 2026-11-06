@@ -31,8 +31,10 @@
          command-line -Dtest.tagsToExclude= override actually takes effect: Maven only lets
          -D override a POM-declared value when the config element is a ${property}
          expression, not a fixed string literal. Default excludes PropGatedPublicEndpoint
-         (see run_tests_parallel.sh / the CI job that overrides this to include it). -->
-    <test.tagsToExclude>code.external,GetBanksPerf,PropGatedPublicEndpoint</test.tagsToExclude>
+         (see run_tests_parallel.sh / the CI job that overrides this to include it), and
+         RequiresCardanoWallet, whose scenarios send real payments through a cardano-wallet
+         server that CI does not have (see CardanoTransactionRequestTest). -->
+    <test.tagsToExclude>code.external,GetBanksPerf,PropGatedPublicEndpoint,RequiresCardanoWallet</test.tagsToExclude>
   </properties>
 
   <dependencies>
@@ -114,7 +116,7 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpg-jdk18on</artifactId>
-      <version>1.84</version>
+      <version>1.85</version>
     </dependency>
     <dependency>
       <groupId>org.http4s</groupId>
@@ -129,7 +131,7 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk18on</artifactId>
-      <version>1.84</version>
+      <version>1.85</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
     <dependency>
@@ -403,7 +405,26 @@
       <artifactId>HikariCP</artifactId>
       <version>4.0.3</version>
     </dependency>
+    <!-- Telemetry: Micrometer records it, the Prometheus registry serves it.
+         See docs/telemetry_conventions.md. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+      <version>1.17.1</version>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+      <version>1.17.1</version>
+    </dependency>
     <!-- ********** flexmark END ********** -->
+    <!-- Cleans the HTML rendered from ResourceDoc and Glossary descriptions against an allowlist.
+         See PegdownOptions.sanitiseHtml. -->
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <version>1.18.3</version>
+    </dependency>
     <!--class scanning, replaces classutil for better Fat JAR support-->
     <dependency>
       <groupId>org.reflections</groupId>
@@ -696,7 +717,9 @@
                  observe. Excluded here by default (every ordinary shard/local/IDE run boots with
                  the props unset, i.e. false) and run separately with -Dtest.tagsToExclude=
                  -DtagsToInclude=PropGatedPublicEndpoint plus the two OBP_READ_*_REQUIRES_ROLE
-                 env vars set true (see run_tests_parallel.sh and the CI job that runs them);
+                 env vars set true (see run_tests_parallel.sh and the CI job that runs them).
+                 CascadeDeleteDisabledTest shares the tag and runs there with
+                 OBP_ALLOW_CASCADE_DELETE=false;
                  see the ${test.tagsToExclude} property declared above for why this is not a
                  plain literal. -->
             <tagsToExclude>${test.tagsToExclude}</tagsToExclude>

@@ -45,6 +45,7 @@ import org.scalatest.matchers.should.Matchers
  *   - RequestScopeConnection.makeProxy  — lifecycle methods are no-ops
  *   - RequestAwareConnectionManager     — proxy vs. delegate selection
  *   - RequestScopeConnection.fromFuture — TTL propagation to Future workers
+ *   - RequestScopeConnection.afterCommit — actions held until the transaction succeeds
  *
  * All tests use JDK dynamic proxy to build trackable mock Connections; no
  * mocking framework is needed.  The `after` block resets the global TTL so
@@ -62,6 +63,8 @@ class RequestScopeConnectionTest extends AnyFeatureSpec with Matchers with Given
     RequestScopeConnection.currentProxy.set(null)
     RequestScopeConnection.requestProxyLocal.set(None).unsafeRunSync()
     RequestScopeConnection.requestLazyAcquire.set(None).unsafeRunSync()
+    RequestScopeConnection.currentAfterCommit.set(null)
+    RequestScopeConnection.requestAfterCommitLocal.set(None).unsafeRunSync()
   }
 
   // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -128,6 +131,32 @@ class RequestScopeConnectionTest extends AnyFeatureSpec with Matchers with Given
 
       Then("The real connection's rollback counter remains zero")
       t.rollbackCount shouldBe 0
+    }
+
+    Scenario("rollback to a savepoint on the proxy reaches the real connection") {
+      Given("A real connection that records the savepoint it is rolled back to")
+      val savepoint = new java.sql.Savepoint {
+        def getSavepointId: Int = 1
+        def getSavepointName: String = "cascade"
+      }
+
+      var rolledBackTo: Option[AnyRef] = None
+      val real = JProxy.newProxyInstance(
+        classOf[Connection].getClassLoader,
+        Array(classOf[Connection]),
+        new InvocationHandler {
+          def invoke(proxy: Any, method: Method, args: Array[AnyRef]): AnyRef = {
+            if (method.getName == "rollback" && args != null && args.length == 1) rolledBackTo = Some(args(0))
+            null
+          }
+        }
+      ).asInstanceOf[Connection]
+
+      When("rollback(savepoint) is called on the proxy, as a cascade that failed does")
+      RequestScopeConnection.makeProxy(real).rollback(savepoint)
+
+      Then("The real connection rolls back to that savepoint, so the cascade can undo its own writes")
+      rolledBackTo shouldBe Some(savepoint)
     }
 
     Scenario("close on the proxy does not reach the real connection") {
@@ -329,6 +358,78 @@ class RequestScopeConnectionTest extends AnyFeatureSpec with Matchers with Given
 
       Then("The returned value matches the Future's result")
       result shouldBe 42
+    }
+  }
+
+  // ─── RequestScopeConnection.afterCommit ──────────────────────────────────────
+
+  // These routes make no database call, so withBusinessDBTransaction borrows no connection and
+  // the scenarios need no database. The ordering they check is the same as when a commit runs.
+  Feature("RequestScopeConnection.afterCommit — actions wait for the transaction") {
+
+    Scenario("An action registered inside a transaction runs only after the route has succeeded") {
+      Given("A route that registers an action from a Future callback")
+      val ranAfterCommit = new java.util.concurrent.atomic.AtomicBoolean(false)
+      var ranBeforeRouteFinished = true
+      val route: IO[org.http4s.Response[IO]] = for {
+        _ <- RequestScopeConnection.fromFuture {
+               Future(()).map(_ => RequestScopeConnection.afterCommit(ranAfterCommit.set(true)))
+             }
+        _ <- IO { ranBeforeRouteFinished = ranAfterCommit.get() }
+      } yield org.http4s.Response[IO](org.http4s.Status.Ok)
+
+      When("The route runs inside withBusinessDBTransaction")
+      RequestScopeConnection.withBusinessDBTransaction(route).unsafeRunSync()
+
+      Then("The action had not run while the route was still running")
+      ranBeforeRouteFinished shouldBe false
+      And("It ran once the transaction scope finished successfully")
+      ranAfterCommit.get() shouldBe true
+    }
+
+    Scenario("An action registered inside a transaction is dropped when the route fails") {
+      Given("A route that registers an action and then fails")
+      val ran = new java.util.concurrent.atomic.AtomicBoolean(false)
+      val route: IO[org.http4s.Response[IO]] = for {
+        _ <- RequestScopeConnection.fromFuture(Future(RequestScopeConnection.afterCommit(ran.set(true))))
+        response <- IO.raiseError[org.http4s.Response[IO]](new RuntimeException("route failed"))
+      } yield response
+
+      When("The route runs inside withBusinessDBTransaction")
+      val outcome = RequestScopeConnection.withBusinessDBTransaction(route).attempt.unsafeRunSync()
+
+      Then("The failure reaches the caller and the action never runs")
+      outcome.isLeft shouldBe true
+      ran.get() shouldBe false
+    }
+
+    Scenario("An action registered outside any transaction runs at once") {
+      Given("No transaction scope")
+      val ran = new java.util.concurrent.atomic.AtomicBoolean(false)
+
+      When("An action is registered from a Future")
+      RequestScopeConnection.fromFuture(Future(RequestScopeConnection.afterCommit(ran.set(true)))).unsafeRunSync()
+
+      Then("It has already run")
+      ran.get() shouldBe true
+    }
+
+    Scenario("A failing action does not stop the others or fail the request") {
+      Given("A route that registers a failing action followed by a good one")
+      val goodRan = new java.util.concurrent.atomic.AtomicBoolean(false)
+      val route: IO[org.http4s.Response[IO]] = for {
+        _ <- RequestScopeConnection.fromFuture(Future {
+               RequestScopeConnection.afterCommit(throw new RuntimeException("action failed"))
+               RequestScopeConnection.afterCommit(goodRan.set(true))
+             })
+      } yield org.http4s.Response[IO](org.http4s.Status.Ok)
+
+      When("The route runs inside withBusinessDBTransaction")
+      val response = RequestScopeConnection.withBusinessDBTransaction(route).unsafeRunSync()
+
+      Then("The response is the route's and the good action ran")
+      response.status shouldBe org.http4s.Status.Ok
+      goodRan.get() shouldBe true
     }
   }
 }

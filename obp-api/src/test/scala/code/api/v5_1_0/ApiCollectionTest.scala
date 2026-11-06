@@ -29,7 +29,7 @@ import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
-import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
+import code.api.util.ErrorMessages.{ApiCollectionNotFound, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.api.v4_0_0.{ApiCollectionJson400, ApiCollectionsJson400}
 import code.api.v5_1_0.Http4s510.Implementations5_1_0
@@ -157,6 +157,31 @@ class ApiCollectionTest extends V510ServerSetup {
       val apiCollectionsJsonGetSingleSecond400 = responseGetSingleSecond.body.extract[ApiCollectionJson400]
       apiCollectionsJsonGetSingleSecond400.api_collection_name should be (apiCollectionPutJson400.api_collection_name)
       apiCollectionsJsonGetSingleSecond400.description should be (apiCollectionPutJson400.description)
+    }
+  }
+
+  feature(s"test $ApiEndpoint3 version $VersionOfApi - another user's collection") {
+    scenario("We will try to update the API Collection of another user", ApiEndpoint3, VersionOfApi) {
+      // user1 owns the collection
+      val requestPost510 = (v5_1_0_Request / "my" / "api-collections").POST <@ (user1)
+      val postApiCollectionJson = SwaggerDefinitionsJSON.postApiCollectionJson400.copy(api_collection_name = "owned-by-user1")
+      val responsePost510 = makePostRequest(requestPost510, write(postApiCollectionJson))
+      responsePost510.code should equal(201)
+      val apiCollectionId = responsePost510.body.extract[ApiCollectionJson400].api_collection_id
+
+      // user2 must not rename or share it: answered as not found
+      When(s"user2 makes a request $ApiEndpoint3 on user1's collection")
+      val requestPut510 = (v5_1_0_Request / "my" / "api-collections" / apiCollectionId).PUT <@ (user2)
+      val putApiCollectionJson = postApiCollectionJson.copy(api_collection_name = "renamed-by-user2", is_sharable = true)
+      val responsePut510 = makePutRequest(requestPut510, write(putApiCollectionJson))
+      Then("We should get a 404")
+      responsePut510.code should equal(404)
+      responsePut510.body.extract[ErrorMessage].message should startWith(ApiCollectionNotFound)
+
+      // the collection is unchanged
+      val responseGet = makeGetRequest((v5_1_0_Request / "my" / "api-collections" / apiCollectionId).GET <@ (user1))
+      responseGet.code should equal(200)
+      responseGet.body.extract[ApiCollectionJson400].api_collection_name should be ("owned-by-user1")
     }
   }
 

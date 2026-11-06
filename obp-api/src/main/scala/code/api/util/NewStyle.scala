@@ -33,6 +33,7 @@ import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.Constant.{SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID}
 // checkPaymentServerTypeError was inlined from the retired BG v1.3 PIS builder (see PaymentInitiationServicePISApi.scala)
 import code.api.cache.{Caching, Redis}
+import code.api.dynamic.domainapi.DomainApiPaths
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.util.APIUtil._
@@ -77,6 +78,7 @@ import code.webhook.AccountWebhook
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.dto.{CustomerAndAttribute, GetProductsParam, ProductCollectionItemsTree}
 import com.openbankproject.commons.model._
+import code.context.UserAuthContextUpdateProvider
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{SuppliedAnswerType, _}
@@ -663,6 +665,51 @@ object NewStyle extends MdcLoggable{
       }
     }
 
+    /**
+     * The Consumer a new Consent is pinned to: the one named in the request body, else the one
+     * making the call. A Consent that names neither cannot be created.
+     *
+     * A Consent is a bearer credential carrying the granting User's views and Roles, and the pin is
+     * what stops a leaked JWT being usable by whoever holds it: Consent.checkConsent refuses any
+     * call whose Consumer is not the Consent's own. So a Consent naming no Consumer is not a
+     * permissive Consent, it is a broken one -- unusable by every caller OBP can identify, and a
+     * pure bearer token on an instance that identifies none. Neither is worth creating, hence the
+     * 400 rather than a null column.
+     *
+     * The body value names the grantee, which is how the Portal creates a Consent for another
+     * application (Opey, OBP-MCP) to use: the caller is the grantor, consumer_id is the grantee, and
+     * skip_consent_sca_for_consumer_id_pairs keys off that pair. Omitting it therefore means "for
+     * myself", which is also what the consent-request flow has always done with the Consumer that
+     * lodged the request.
+     *
+     * ==Why the "Any application" consent is gone==
+     *
+     * Omitting consumer_id used to mean a Consent any application could present, and that was
+     * deliberate -- 898879f12 (2020-01-30, "Create consent - POC All application case") added a
+     * fallback putting the granting User's first-registered Consumer in the JWT's aud purely so the
+     * active-Consumer check had something to look up, while the stored row recorded no Consumer. It
+     * worked because checkConsent then compared nothing to the caller.
+     *
+     * b68e26fa6 / bd57de4a4 (2025-07, TPP access control) added tppIsConsentHolder, which compares
+     * the stored row to the calling Consumer. That made pinned Consents genuinely pinned -- the point
+     * of the change -- and in the same stroke made an "Any application" Consent usable by no
+     * identified application at all, since a null column never equals a real consumer id. So the
+     * capability had already been dead for over a year; what remained was a path that created
+     * Consents which silently did not work, and on an instance that identifies no Consumer at all
+     * (consumer_validation_method_for_consent=NONE with no certificates) a pure bearer token.
+     *
+     * If "Any application" is ever wanted back, do not restore the null column: store
+     * Constant.ALL_CONSUMERS and give tppIsConsentHolder an explicit branch for that literal, so the
+     * intent is visible in the row and in the API rather than inferred from an absence.
+     */
+    def resolveConsentConsumer(consumerIdFromBody: Option[String], callContext: Option[CallContext]): Future[Consumer] = {
+      val callerConsumerId = callContext.flatMap(_.consumer.toOption).map(_.consumerId)
+      consumerIdFromBody.filter(_.nonEmpty).orElse(callerConsumerId.filter(_.nonEmpty)) match {
+        case Some(consumerId) => checkConsumerByConsumerId(consumerId, callContext)
+        case None => Future(unboxFullOrFail(Empty, callContext, ConsentConsumerIsRequired, 400))
+      }
+    }
+
     def getAccountWebhooks(queryParams: List[OBPQueryParam], callContext: Option[CallContext]): Future[List[AccountWebhook]] = {
       AccountWebhook.accountWebhook.vend.getAccountWebhooksFuture(queryParams) map {
         unboxFullOrFail(_, callContext, GetWebhooksError)
@@ -884,10 +931,18 @@ object NewStyle extends MdcLoggable{
       } map { unboxFull(_) }
     }
 
-    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = 
+    /**
+     * This returns the counterparty COUNTERPARTY_ID only if it belongs to the account BANK_ID / ACCOUNT_ID.
+     * A counterparty id is unique on its own, but the caller's access is checked for one account, so a
+     * counterparty of any other account must be treated as not found. The check is made here, whatever
+     * the connector returns, so that every endpoint which names a bank and account is held to them.
+     */
+    def getCounterpartyTrait(bankId : BankId, accountId : AccountId, counterpartyId : String, callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] =
     {
       Connector.connector.vend.getCounterpartyTrait(bankId, accountId, counterpartyId, callContext) map { i =>
-        (unboxFullOrFail(i._1, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
+        val counterpartyOfThisAccount = i._1.filter(counterparty =>
+          counterparty.thisBankId == bankId.value && counterparty.thisAccountId == accountId.value)
+        (unboxFullOrFail(counterpartyOfThisAccount, callContext, s"$CounterpartyNotFoundByCounterpartyId Current counterpartyId($counterpartyId) ", 400),
           i._2)
       }
     }
@@ -994,7 +1049,7 @@ object NewStyle extends MdcLoggable{
         else errorMsg
 
       Helper.booleanToFuture(errorInfo, cc=callContext) {
-        APIUtil.hasEntitlement(bankId, userId, role)
+        APIUtil.holdsVirtualRole(userId, role) || APIUtil.hasEntitlement(bankId, userId, role)
       } map validateRequestPayload(callContext)
     }
     // scala not allow overload method both have default parameter, so this method name is just in order avoid the same name with hasEntitlement
@@ -3138,9 +3193,9 @@ object NewStyle extends MdcLoggable{
         s"bank_id_pattern(${methodRouting.bankIdPattern.getOrElse("")})"
       ), callContext)
     }
-    def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) =
+    def getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext], notFoundCode: Int = 400) =
       Connector.connector.vend.getCardAttributeById(cardAttributeId: String, callContext:Option[CallContext]) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$CardAttributeNotFound Current CardAttributeId($cardAttributeId)"), i._2)
+        i => (unboxFullOrFail(i._1, callContext, s"$CardAttributeNotFound Current CardAttributeId($cardAttributeId)", notFoundCode), i._2)
       }
     
     
@@ -3165,6 +3220,12 @@ object NewStyle extends MdcLoggable{
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
+    def deleteCardAttribute(cardAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
+      Connector.connector.vend.deleteCardAttribute(cardAttributeId, callContext) map {
+        i => (connectorEmptyResponse(i._1, callContext), i._2)
+      }
+    }
+
     def getCardAttributesFromProvider(
       cardId: String,
       callContext: Option[CallContext]
@@ -3461,19 +3522,36 @@ object NewStyle extends MdcLoggable{
 
     /**
      * Invalidate the Redis-backed resource-doc caches whose contents include
-     * dynamic-entity documentation (the `dynamic` and `all` views). Bumping the
+     * dynamic documentation (the `dynamic` and `all` views). Bumping the
      * namespace version orphans every cached key under that namespace, so the
      * next `/resource-docs` request regenerates from the database instead of
      * serving a pre-change snapshot (TTL is 1 hour by default).
      *
-     * Call after a dynamic entity is created, updated, or deleted. The static
-     * resource-doc / swagger caches are not touched because dynamic entities
-     * never appear in them.
+     * Call after a Dynamic Endpoint or Dynamic Resource Doc is created, updated,
+     * or deleted: each one generates resource docs. For a Dynamic Entity,
+     * DynamicEntityHelper.forgetDefinitions calls it once the change has
+     * committed. The static resource-doc / swagger caches are not touched because
+     * dynamic docs only reach them through the content=all documents, which are
+     * left to their TTL.
      */
-    private def invalidateDynamicResourceDocCaches(): Unit = {
+    private[code] def invalidateDynamicResourceDocCaches(): Unit = {
       Constant.incrementCacheNamespaceVersion(Constant.RD_DYNAMIC_NAMESPACE)
       Constant.incrementCacheNamespaceVersion(Constant.RD_ALL_NAMESPACE)
     }
+
+    /**
+     * This says whether a new Dynamic Entity name is allowed in every API version: it may not contain a
+     * hyphen or any whitespace. A Domain API reads a hyphen in an entity-name segment of its URLs as an
+     * underscore, so a name with a hyphen could be confused with the name that has an underscore there.
+     * v6.0.0 and later also require lowercase snake_case; v4.0.0 still accepts other letters and digits.
+     * Entities created before this rule keep their names, and only a new or changed name is checked.
+     */
+    private def dynamicEntityNameIsAllowed(entityName: String): Boolean =
+      !entityName.exists(character => character == '-' || character.isWhitespace)
+
+    private def refuseDynamicEntityName(entityName: String, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] =
+      Helper.booleanToFuture(s"$DynamicEntityNameHasHyphenOrSpace Current value: '$entityName'", 400, cc=callContext)(false)
+        .map(_.asInstanceOf[Box[DynamicEntityT]])
 
     private def createDynamicEntity(dynamicEntity: DynamicEntityT, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
       val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.bankId, dynamicEntity.entityName)
@@ -3487,10 +3565,19 @@ object NewStyle extends MdcLoggable{
         return Helper.booleanToFuture(errorMsg, cc=callContext)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
       }
 
+      if (!dynamicEntityNameIsAllowed(dynamicEntity.entityName)) {
+        return refuseDynamicEntityName(dynamicEntity.entityName, callContext)
+      }
+
+      val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName, None)
+      if (ambiguities.nonEmpty) {
+        return Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, cc=callContext)(false).map(_.asInstanceOf[Box[DynamicEntityT]])
+      }
+
       Future {
-        val result = DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
-        if (result.isDefined) invalidateDynamicResourceDocCaches()
-        result
+        // The provider calls DynamicEntityHelper.forgetDefinitions, which also drops the dynamic
+        // resource-doc caches once the change has committed.
+        DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
       }
     }
 
@@ -3516,12 +3603,22 @@ object NewStyle extends MdcLoggable{
             
           return Helper.booleanToFuture(errorMsg, cc=callContext)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
         }
+
+        // Only a new name is checked, so an entity caught in an ambiguity that predates the rule, or named
+        // with a hyphen before hyphens were refused, can still have its definition changed.
+        if (!dynamicEntityNameIsAllowed(dynamicEntity.entityName)) {
+          return refuseDynamicEntityName(dynamicEntity.entityName, callContext)
+        }
+        val ambiguities = DomainApiPaths.storedEntityNameAmbiguities(dynamicEntity.bankId, dynamicEntity.entityName, Some(originEntityName))
+        if (ambiguities.nonEmpty) {
+          return Helper.booleanToFuture(s"$DynamicPathAmbiguous${ambiguities.mkString("; ")}", 409, cc=callContext)(false).map(_.asInstanceOf[Box[DynamicEntityT]])
+        }
       }
 
       Future {
-        val result = DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
-        if (result.isDefined) invalidateDynamicResourceDocCaches()
-        result
+        // The provider calls DynamicEntityHelper.forgetDefinitions, which also drops the dynamic
+        // resource-doc caches once the change has committed.
+        DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
       }
 
     }
@@ -3539,28 +3636,40 @@ object NewStyle extends MdcLoggable{
      */
     def deleteDynamicEntity(bankId: Option[String], dynamicEntityId: String): Future[Box[Boolean]] = {
       validateBankId(bankId, None)
-      Future {
-        val result = for {
-          entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
-          deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
-          deleteEntitleMentResult <- if (deleteEntityResult) {
-            Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName, entity.bankId)
-          } else {
-            Box !! false
-          }
-        } yield {
-          if (deleteEntitleMentResult) {
-            DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
-            // Cascade row-level ACL rows for this entity (§7) — safety net for any rows not already
-            // cleaned up by per-row delete; no-op for non-row-level entities.
-            code.DynamicData.DynamicDataAccessProvider.provider.vend.deleteAllForEntity(entity.entityName, entity.bankId)
-          }
-          deleteEntitleMentResult
+      Future(deleteDynamicEntityNow(bankId, dynamicEntityId))
+    }
+
+    /**
+     * The delete of deleteDynamicEntity on the calling thread, for a caller that deletes inside its own
+     * database transaction (the bank cascade).
+     */
+    def deleteDynamicEntityNow(bankId: Option[String], dynamicEntityId: String): Box[Boolean] = {
+      val result = for {
+        entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
+        deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
+        deleteEntitleMentResult <- if (deleteEntityResult) {
+          Entitlement.entitlement.vend.deleteDynamicEntityEntitlement(entity.entityName, entity.bankId)
+        } else {
+          Box !! false
         }
-        // The entity (and its generated resource docs) are gone — drop the stale doc caches.
-        if (result.exists(deleted => deleted)) invalidateDynamicResourceDocCaches()
-        result
+      } yield {
+        if (deleteEntitleMentResult) {
+          // The Role names carry no bank, so while an entity of this name is left in another space
+          // they are still its Roles and stay registered.
+          val nameStillUsed = DynamicEntityProvider.connectorMethodProvider.vend
+            .getDynamicEntities(None, returnBothBankAndSystemLevel = true)
+            .exists(_.entityName == entity.entityName)
+          if (!nameStillUsed)
+            DynamicEntityInfo.roleNames(entity.entityName, entity.bankId).foreach(ApiRole.removeDynamicApiRole(_))
+          // Cascade row-level ACL rows for this entity (§7) — safety net for any rows not already
+          // cleaned up by per-row delete; no-op for non-row-level entities.
+          code.DynamicData.DynamicDataAccessProvider.provider.vend.deleteAllForEntity(entity.bankId, entity.entityName)
+        }
+        deleteEntitleMentResult
       }
+      // The entity's generated resource docs go with it: the provider's delete calls
+      // DynamicEntityHelper.forgetDefinitions, which drops the doc caches once the delete has committed.
+      result
     }
 
     def getDynamicEntityById(bankId: Option[String], dynamicEntityId : String, callContext: Option[CallContext]): OBPReturnType[DynamicEntityT] = {
@@ -3587,17 +3696,38 @@ object NewStyle extends MdcLoggable{
     }
 
     def getDynamicEntities(bankId: Option[String], returnBothBankAndSystemLevel: Boolean): List[DynamicEntityT] = {
-      import scala.concurrent.duration._
-
       validateBankId(bankId, None)
+      getDynamicEntities(bankId, returnBothBankAndSystemLevel, dynamicEntityDefinitionsVersion)
+    }
+
+    /**
+     * The dynamic_entity cache namespace version, which the memoized definition lists below carry in their
+     * keys. DynamicEntityHelper.forgetDefinitions bumps it once a definition change has committed, so every
+     * list memoized before the change becomes unreachable on every instance, including one that a read still
+     * in flight writes after the bump: it is written under the version that read started with.
+     */
+    private def dynamicEntityDefinitionsVersion: Long =
+      if (dynamicEntityTTL == 0) 0L // nothing is memoized, so no need to ask Redis
+      else Constant.recentCacheNamespaceVersion(Constant.DYNAMIC_ENTITY_NAMESPACE)
+
+    // The version is a parameter so that CacheKeyFromArguments renders it into the key; the name stays
+    // getDynamicEntities so the key and its Telemetry label stay the same apart from the version. Keep
+    // buildCacheKey as the tail expression (see getEndpointMappingsCached): bound to a val first, the macro
+    // renders no arguments and every list would share one key whatever the version. Test mode memoizes
+    // nothing, so no test would notice; the rendering was checked with javap.
+    private def getDynamicEntities(bankId: Option[String], returnBothBankAndSystemLevel: Boolean, definitionsVersion: Long): List[DynamicEntityT] = {
+      import scala.concurrent.duration._
 
       val cacheKey = ("code.api.util.NewStyle.function", "getDynamicEntities", List(bankId, returnBothBankAndSystemLevel).mkString("_"))
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL.second) {
         DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(bankId, returnBothBankAndSystemLevel)
       }
     }
-    
-    def getDynamicEntitiesByUserId(userId: String): List[DynamicEntityT] = {
+
+    def getDynamicEntitiesByUserId(userId: String): List[DynamicEntityT] =
+      getDynamicEntitiesByUserId(userId, dynamicEntityDefinitionsVersion)
+
+    private def getDynamicEntitiesByUserId(userId: String, definitionsVersion: Long): List[DynamicEntityT] = {
       import scala.concurrent.duration._
 
       val cacheKey = ("code.api.util.NewStyle.function", "getDynamicEntitiesByUserId", List(userId).mkString("_"))
@@ -3687,6 +3817,26 @@ object NewStyle extends MdcLoggable{
             case (jField, "") if jField.name == entityIdName => JField(entityIdName, JString(entityId.getOrElse(generateUUID())))
           }.asInstanceOf[JObject]
         }
+      }
+
+      // The id of a Dynamic Entity record is kept in a database column of a fixed width
+      // (code.DynamicData.DynamicData.DynamicDataId). A caller is allowed to supply that id instead of
+      // letting one be generated, which is how an entity is given a natural key such as a country code,
+      // so the value can be any length at all. Check it here and answer with a message that says what is
+      // wrong: without this check an over-long id only fails once it reaches the database driver, and the
+      // caller is told nothing more useful than "value too long for type character varying".
+      val maximumRecordIdLength = code.DynamicData.DynamicData.idColumnWidth
+      val overLongRecordId: Option[String] = requestBodyDynamicInstance.flatMap { body =>
+        body \ DynamicEntityHelper.createEntityId(entityName) match {
+          case JString(recordId) if recordId.length > maximumRecordIdLength => Some(recordId)
+          case _ => None
+        }
+      }
+      if (overLongRecordId.isDefined) {
+        return Helper.booleanToFuture(
+          s"$DynamicEntityRecordIdTooLong The maximum length is $maximumRecordIdLength characters, the given id is ${overLongRecordId.get.length} characters long.",
+          cc = callContext)(false)
+          .map(it => (it.map(_.asInstanceOf[JValue]), callContext))
       }
 
       requestBodyDynamicInstance match {
@@ -3803,7 +3953,9 @@ object NewStyle extends MdcLoggable{
     def createDynamicEndpoint(bankId:Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
       validateBankId(bankId, callContext)
       Future {
-        (DynamicEndpointProvider.connectorMethodProvider.vend.create(bankId: Option[String], userId, swaggerString), callContext)
+        val created = DynamicEndpointProvider.connectorMethodProvider.vend.create(bankId: Option[String], userId, swaggerString)
+        if (created.isDefined) invalidateDynamicResourceDocCaches()
+        (created, callContext)
       } map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
@@ -3812,7 +3964,9 @@ object NewStyle extends MdcLoggable{
     def updateDynamicEndpointHost(bankId: Option[String], userId: String, swaggerString: String, callContext: Option[CallContext]): OBPReturnType[DynamicEndpointT] = {
       validateBankId(bankId, callContext)
       Future {
-        (DynamicEndpointProvider.connectorMethodProvider.vend.updateHost(bankId, userId, swaggerString), callContext)
+        val updated = DynamicEndpointProvider.connectorMethodProvider.vend.updateHost(bankId, userId, swaggerString)
+        if (updated.isDefined) invalidateDynamicResourceDocCaches()
+        (updated, callContext)
       } map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
@@ -3867,6 +4021,7 @@ object NewStyle extends MdcLoggable{
             Full(false)
           }
         } yield {
+          if (deleteSuccess == Full(true)) invalidateDynamicResourceDocCaches()
           deleteSuccess
         }
     }
@@ -4151,7 +4306,7 @@ object NewStyle extends MdcLoggable{
       }
     }
 
-    // ─── API Product Subscriptions (see API_PRODUCT_SUBSCRIPTION_PLAN.md) ───
+    // ─── API Product Subscriptions (see docs/API_PRODUCT_SUBSCRIPTION_PLAN.md) ───
 
     def createApiProductSubscription(
       bankId: String,
@@ -4496,6 +4651,7 @@ object NewStyle extends MdcLoggable{
         // provenance is taken from the authenticated CallContext user, never from the request body
         val createdByUserId = callContext.flatMap(_.user).map(_.userId)
         val newInternalConnector = DynamicResourceDocProvider.provider.vend.create(bankId, dynamicResourceDoc, createdByUserId)
+        if (newInternalConnector.isDefined) invalidateDynamicResourceDocCaches()
         val errorMsg = s"$UnknownError Can not create Dynamic Resource Doc in the backend. "
         (unboxFullOrFail(newInternalConnector, callContext, errorMsg, 400), callContext)
       }
@@ -4504,6 +4660,7 @@ object NewStyle extends MdcLoggable{
       Future {
         val updatedByUserId = callContext.flatMap(_.user).map(_.userId)
         val updatedConnectorMethod = DynamicResourceDocProvider.provider.vend.update(bankId, entity, updatedByUserId)
+        if (updatedConnectorMethod.isDefined) invalidateDynamicResourceDocCaches()
         val errorMsg = s"$UnknownError Can not update Dynamic Resource Doc in the backend. "
         (unboxFullOrFail(updatedConnectorMethod, callContext, errorMsg, 400), callContext)
       }
@@ -4529,6 +4686,7 @@ object NewStyle extends MdcLoggable{
     def deleteJsonDynamicResourceDocById(bankId: Option[String], dynamicResourceDocId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] =
       Future {
         val dynamicResourceDoc = DynamicResourceDocProvider.provider.vend.deleteById(bankId, dynamicResourceDocId)
+        if (dynamicResourceDoc == Full(true)) invalidateDynamicResourceDocCaches()
         (unboxFullOrFail(dynamicResourceDoc, callContext, s"$DynamicResourceDocDeleteError Current DYNAMIC_RESOURCE_DOC_ID(${dynamicResourceDocId})", 400), callContext)
       }
 
@@ -4585,6 +4743,61 @@ object NewStyle extends MdcLoggable{
       Connector.connector.vend.checkAnswer(authContextUpdateId: String, challenge: String, callContext: Option[CallContext]) map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
+    }
+
+    /**
+     * This checks that a User Auth Context Update may be requested at the bank bankId. A request emails a challenge
+     * to a Customer of that bank, so it must come from an App the bank has granted the Scope
+     * CanCreateUserAuthContextUpdate, or from a User it has granted the Role CanCreateUserAuthContextUpdate, in
+     * both cases at that bank. Either is enough. The check applies whatever the instance's scope settings are.
+     */
+    def checkCanRequestUserAuthContextUpdate(bankId: BankId, user: User, callContext: Option[CallContext]): Future[Box[Unit]] = {
+      val role = ApiRole.canCreateUserAuthContextUpdate
+      Helper.booleanToFuture(
+        s"$ConsumerHasMissingRoles $role at bank ${bankId.value}, and the User does not have the Role $role there either.",
+        failCode = 403, cc = callContext) {
+        APIUtil.hasScope(bankId.value, APIUtil.getConsumerPrimaryKey(callContext), role) ||
+          APIUtil.hasEntitlement(bankId.value, user.userId, role)
+      }
+    }
+
+    /**
+     * This answers the challenge of a User Auth Context Update on behalf of the User who requested it, and is
+     * shared by the v3.1.0 and v5.0.0 answer endpoints.
+     *
+     * The update must belong to the answering User and have been requested at the bank bankId. Otherwise any
+     * logged-in User could answer, or simply use up, the challenge of someone else's update, and a User who
+     * answered correctly for a CUSTOMER_NUMBER at one bank could be linked to the Customer with the same number at
+     * another bank. An update of another User or another bank is reported exactly like one that does not exist,
+     * and is checked before the answer, so its challenge is not used up. Only an ACCEPTED answer (the right one-time password) has any effect: it creates the User Auth
+     * Context and, for the key CUSTOMER_NUMBER, links the User to the Customer with that number at the bank. A
+     * REJECTED answer changes nothing, so a wrong answer can never link a User to someone else's Customer.
+     */
+    def answerUserAuthContextUpdateChallenge(
+      bankId: BankId,
+      authContextUpdateId: String,
+      answer: String,
+      answeringUser: User,
+      callContext: Option[CallContext]
+    ): OBPReturnType[UserAuthContextUpdate] = {
+      for {
+        _ <- Helper.booleanToFuture(UserAuthContextUpdateNotFound, cc = callContext) {
+          UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend
+            .getUserAuthContextUpdateOfUserAtBank(authContextUpdateId, answeringUser.userId, bankId.value).isDefined
+        }
+        (userAuthContextUpdate, callContext) <- checkAnswer(authContextUpdateId, answer, callContext)
+        callContext <- if (userAuthContextUpdate.status == UserAuthContextUpdateStatus.ACCEPTED.toString) {
+          val key = userAuthContextUpdate.key.trim
+          val value = userAuthContextUpdate.value.trim
+          for {
+            (_, callContext) <- createUserAuthContext(answeringUser, key, value, callContext)
+            callContext <- key match {
+              case "CUSTOMER_NUMBER" => getOCreateUserCustomerLink(bankId, value, answeringUser.userId, callContext).map(_._2)
+              case _ => Future.successful(callContext)
+            }
+          } yield callContext
+        } else Future.successful(callContext)
+      } yield (userAuthContextUpdate, callContext)
     }
 
     def sendCustomerNotification(
@@ -4899,7 +5112,8 @@ object NewStyle extends MdcLoggable{
       callContext: Option[CallContext]
     ): OBPReturnType[com.openbankproject.commons.model.MarketOrder] = {
       Connector.connector.vend.getMarketOrder(bankId, accountId, orderId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound"), i._2)
+        // 404: a missing order and another account's order look the same
+        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound", 404), i._2)
       }
     }
 
@@ -4910,7 +5124,8 @@ object NewStyle extends MdcLoggable{
       callContext: Option[CallContext]
     ): OBPReturnType[com.openbankproject.commons.model.MarketOrder] = {
       Connector.connector.vend.cancelMarketOrder(bankId, accountId, orderId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound"), i._2)
+        // 404: a missing order and another account's order look the same
+        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound", 404), i._2)
       }
     }
 
@@ -4937,7 +5152,8 @@ object NewStyle extends MdcLoggable{
       callContext: Option[CallContext]
     ): OBPReturnType[com.openbankproject.commons.model.MarketTrade] = {
       Connector.connector.vend.getMarketTrade(bankId, accountId, tradeId, callContext) map {
-        i => (unboxFullOrFail(i._1, callContext, s"$TradeNotFound"), i._2)
+        // 404: a missing trade and another account's trade look the same
+        i => (unboxFullOrFail(i._1, callContext, s"$TradeNotFound", 404), i._2)
       }
     }
 

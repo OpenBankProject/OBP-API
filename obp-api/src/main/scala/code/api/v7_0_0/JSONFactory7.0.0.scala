@@ -61,7 +61,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   // ─── Provenance for runtime-compiled dynamic code (v7.0.0 read-only exposure) ───
   // The v4.0.0 create/update endpoints capture who created / last updated a piece of runtime
-  // code and a SHA-256 of its (decoded) method body into DB columns, but the v4 response shape
+  // code and a SHA-256 of its programming language and (decoded) method body into DB columns, but the v4 response shape
   // is frozen (STABLE) and does not carry them. These v7 GET endpoints expose that provenance,
   // wrapping the unchanged v4 resource JSON alongside a `provenance` object.
   case class ProvenanceJsonV700(
@@ -120,7 +120,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         entity.approvedHash.filter(StringUtils.isNotBlank), Some(entity.isActive))
     )
 
-  // ─── Maker/checker: dynamic change requests (design: MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md) ───
+  // ─── Maker/checker: dynamic change requests (design: docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md) ───
   case class PostDynamicChangeRequestJsonV700(
     target_type: String,
     operation: String,
@@ -244,7 +244,10 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     per_day: Option[Long] = None,
     per_week: Option[Long] = None,
     per_month: Option[Long] = None,
-    global_per_hour: Option[Long] = None
+    global_per_hour: Option[Long] = None,
+    // Self-service scopes only: the scope's own mode (it can differ from the limiter's), and what it counts.
+    mode: Option[String] = None,
+    covers: Option[String] = None
   )
   /** One of the three rate limiters, in the order they are checked. `mode` is shadow or enforce. */
   case class RateLimiterJsonV700(
@@ -263,13 +266,17 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   val rateLimitersJsonV700Example: RateLimitersJsonV700 = RateLimitersJsonV700(List(
     RateLimiterJsonV700("self_service", 1, "OBP-10060", enabled = true, "shadow", "client IP address",
       "before routing and before authentication, on the self-service endpoints", "self_service.rate_limit",
-      // Every window is named here even though the self-service limiter only configures four of
-      // them: swagger takes a List's published element type from its FIRST element, and an
-      // Option[Long] left None there has no type to recover, so the field publishes as a dangling
-      // $ref to Object (SwaggerFactoryUnitTest's "no dangling $ref" scenario catches it). -1 is
-      // the codebase's "not limited" value and reads correctly as one.
-      List(RateLimiterLimitJsonV700("signup", per_second = Some(-1), per_minute = Some(3), per_hour = Some(5),
-        per_day = Some(10), per_week = Some(-1), per_month = Some(-1), global_per_hour = Some(500)))),
+      // Every window is named on the first element even though the self-service limiter only
+      // configures four of them: swagger takes a List's published element type from its FIRST
+      // element, and an Option[Long] left None there has no type to recover, so the field publishes
+      // as a dangling $ref to Object (SwaggerFactoryUnitTest's "no dangling $ref" scenario catches
+      // it). -1 is the codebase's "not limited" value and reads correctly as one.
+      List(
+        RateLimiterLimitJsonV700("documentation", per_second = Some(-1), per_minute = Some(60), per_hour = Some(1000), per_day = Some(10000),
+          per_week = Some(-1), per_month = Some(-1), global_per_hour = Some(-1),
+          mode = Some("shadow"), covers = Some("GET of the public documentation: resource-docs, message-docs, api/glossary, api/tags, api/versions, ...")),
+        RateLimiterLimitJsonV700("signup", per_minute = Some(3), per_hour = Some(5), per_day = Some(10), global_per_hour = Some(500),
+          mode = Some("shadow"), covers = Some("POST /users, /users/email-validation, /banks/BANK_ID/user-invitations")))),
     RateLimiterJsonV700("authentication", 2, "OBP-10061", enabled = false, "shadow", "client IP address and account",
       "inside the credential check of Direct Login, DAuth, Gateway Login and SIWE", "auth.rate_limit",
       List(RateLimiterLimitJsonV700("ip", per_minute = Some(10), per_hour = Some(100)), RateLimiterLimitJsonV700("account", per_minute = Some(6)))),
@@ -288,14 +295,16 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       name = "self_service", order = 1, error_code = errorCode(ErrorMessages.TooManyRequestsSelfService),
       enabled = SelfServiceRateLimiter.enabled, mode = SelfServiceRateLimiter.mode,
       keyed_by = "client IP address",
-      runs = "before routing and before authentication, on the self-service endpoints",
+      runs = "before routing and before authentication, on the self-service endpoints and the public documentation",
       props_prefix = SelfServiceRateLimiter.PropsPrefix,
       limits = SelfServiceRateLimiter.scopeDefaults.keys.toList.sorted.map { scope =>
         RateLimiterLimitJsonV700(scope,
           per_minute = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_minute")),
           per_hour = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_hour")),
           per_day = opt(SelfServiceRateLimiter.perKeyLimit(scope, "per_day")),
-          global_per_hour = opt(SelfServiceRateLimiter.globalPerHourLimit(scope)))
+          global_per_hour = opt(SelfServiceRateLimiter.globalPerHourLimit(scope)),
+          mode = Some(SelfServiceRateLimiter.modeFor(scope)),
+          covers = code.api.util.http4s.SelfServiceRateLimitMiddleware.scopeDescriptions.get(scope))
       }
     )
     val authentication = RateLimiterJsonV700(
@@ -811,55 +820,6 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     abac_trace: AbacEvaluationTraceJsonV700
   )
 
-  // Organisation JSON case classes
-  case class PostOrganisationJsonV700(
-      organisation_id: String,
-      name: String,
-      website: Option[String],
-      logo_url: Option[String],
-      status: Option[String],
-      visibility: Option[String]
-  )
-
-  case class PutOrganisationJsonV700(
-      name: Option[String],
-      website: Option[String],
-      logo_url: Option[String],
-      status: Option[String],
-      visibility: Option[String]
-  )
-
-  case class OrganisationJsonV700(
-      organisation_id: String,
-      name: String,
-      website: Option[String],
-      logo_url: Option[String],
-      status: String,
-      visibility: String,
-      created_by_user_id: String,
-      created_at: java.util.Date,
-      updated_at: java.util.Date
-  )
-
-  case class OrganisationsJsonV700(organisations: List[OrganisationJsonV700])
-
-  def createOrganisationJsonV700(o: code.organisation.OrganisationTrait): OrganisationJsonV700 = {
-    OrganisationJsonV700(
-      organisation_id = o.organisationId,
-      name = o.name,
-      website = o.website,
-      logo_url = o.logoUrl,
-      status = o.status,
-      visibility = o.visibility,
-      created_by_user_id = o.createdByUserId,
-      created_at = o.createdAt,
-      updated_at = o.updatedAt
-    )
-  }
-
-  def createOrganisationsJsonV700(orgs: List[code.organisation.OrganisationTrait]): OrganisationsJsonV700 = {
-    OrganisationsJsonV700(orgs.map(createOrganisationJsonV700))
-  }
 
   // ── Routing Scheme JSON case classes ─────────────────────────────────────────
 
@@ -1000,85 +960,89 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   case class GlossaryItemDescriptionJsonV700(markdown: String, html: String)
 
   case class GlossaryItemJsonV700(
-      glossary_item_id: String,
+      // A static Glossary Item is compiled into the API rather than stored, so it has no id, no
+      // author and no timestamps. These are present for a Dynamic Item and absent for a static one.
+      glossary_item_id: Option[String],
       title: String,
       description: GlossaryItemDescriptionJsonV700,
+      // False when this is a static Glossary Item shipped with the API.
+      is_dynamic: Boolean,
       // What the operator declared when creating or updating the item.
       overrides_static_item: Boolean,
       // What is actually true right now: a static Glossary Item of this title exists. The two
       // differ when a static Item was added after this one, which is worth someone's attention.
       shadows_static_glossary_item: Boolean,
-      created_by_user_id: String,
-      created_at: java.util.Date,
-      updated_at: java.util.Date
-  )
-
-  case class GlossaryItemPaginationJsonV700(total: Int, limit: Int, offset: Int)
-
-  case class GlossaryItemsJsonV700(
-      glossary_items: List[GlossaryItemJsonV700],
-      pagination: GlossaryItemPaginationJsonV700
+      created_by_user_id: Option[String],
+      created_at: Option[java.util.Date],
+      updated_at: Option[java.util.Date]
   )
 
   def createGlossaryItemJsonV700(r: code.glossaryitem.DynamicGlossaryItemTrait): GlossaryItemJsonV700 =
     GlossaryItemJsonV700(
-      glossary_item_id = r.glossaryItemId,
+      glossary_item_id = Some(r.glossaryItemId),
       title = r.title,
       description = GlossaryItemDescriptionJsonV700(
         markdown = r.description,
         html = PegdownOptions.convertPegdownToHtmlTweaked(r.description)
       ),
+      is_dynamic = true,
       overrides_static_item = r.overridesStaticItem,
       // Flagged so a caller can see at a glance that this item is shadowing shipped text.
       shadows_static_glossary_item = Glossary.staticGlossaryItemExists(r.title),
-      created_by_user_id = r.createdByUserId,
-      created_at = r.createdAt,
-      updated_at = r.updatedAt
+      created_by_user_id = Some(r.createdByUserId),
+      created_at = Some(r.createdAt),
+      updated_at = Some(r.updatedAt)
     )
 
   // ── The Glossary as served: static and Dynamic Items merged ─────────────────
-  // Distinct from GlossaryItemJsonV700 above, which is the management view of one Dynamic Item.
-  // v3.0.0 serves the same Glossary without these provenance fields; that version is STABLE and
-  // its JSON must not change, so the flags are offered here instead.
+  // One Item shape for the whole resource. A static Item is compiled into the API, so the
+  // management fields are absent for it; a Dynamic Item carries them. v3.0.0 serves the same
+  // Glossary with its own two-field shape, which is STABLE and must not change.
 
-  case class ApiGlossaryItemJsonV700(
-      title: String,
-      description: GlossaryItemDescriptionJsonV700,
-      // True when this entry comes from the DynamicGlossaryItem table rather than the API source.
-      is_dynamic: Boolean,
-      // True when this Dynamic Item is displacing a static Glossary Item of the same title.
-      overrides_static_item: Boolean
-  )
+  case class GlossaryJsonV700(glossary_items: List[GlossaryItemJsonV700], total_count: Int)
 
-  case class ApiGlossaryJsonV700(glossary_items: List[ApiGlossaryItemJsonV700])
-
-  def createApiGlossaryItemJsonV700(item: Glossary.GlossaryItem): ApiGlossaryItemJsonV700 = {
-    // Glossary Items cross-reference each other, so expand their placeholders as well.
-    val description = Glossary.expandGlossaryPlaceholders(item.description())
-    ApiGlossaryItemJsonV700(
-      title = item.title,
-      description = GlossaryItemDescriptionJsonV700(
-        markdown = description.stripMargin,
-        html = PegdownOptions.convertPegdownToHtmlTweaked(description)
-      ),
-      is_dynamic = item.isDynamic,
-      overrides_static_item = item.shadowsStaticItem
+  /**
+   * The description of one Item as the Glossary serves it, in markdown and in HTML.
+   *
+   * `expanded` controls the Glossary placeholders that Items use to quote each other: true gives
+   * the text a reader wants, false the text as authored, which is what an editor must PUT back.
+   * This is the expensive part of serving an Item (placeholder expansion and a markdown to HTML
+   * conversion), so the Glossary endpoints cache its result rather than calling it per request.
+   */
+  def createGlossaryItemDescriptionJsonV700(item: Glossary.GlossaryItem, expanded: Boolean): GlossaryItemDescriptionJsonV700 = {
+    val raw = item.description()
+    val markdown = if (expanded) Glossary.expandGlossaryPlaceholders(raw) else raw
+    GlossaryItemDescriptionJsonV700(
+      markdown = markdown,
+      html = PegdownOptions.convertPegdownToHtmlTweaked(markdown)
     )
   }
 
-  def createApiGlossaryJsonV700(items: List[Glossary.GlossaryItem]): ApiGlossaryJsonV700 =
-    ApiGlossaryJsonV700(glossary_items = items.map(createApiGlossaryItemJsonV700))
-
-  def createGlossaryItemsJsonV700(
-      rows: List[code.glossaryitem.DynamicGlossaryItemTrait],
-      total: Int,
-      limit: Int,
-      offset: Int
-  ): GlossaryItemsJsonV700 =
-    GlossaryItemsJsonV700(
-      glossary_items = rows.map(createGlossaryItemJsonV700),
-      pagination = GlossaryItemPaginationJsonV700(total = total, limit = limit, offset = offset)
+  /**
+   * One Item as the Glossary serves it, with its description already rendered by
+   * createGlossaryItemDescriptionJsonV700. `includeAuthor` keeps created_by_user_id out of
+   * anonymous responses.
+   */
+  def createServedGlossaryItemJsonV700(
+      item: Glossary.GlossaryItem,
+      meta: Option[code.glossaryitem.DynamicGlossaryItemTrait],
+      description: GlossaryItemDescriptionJsonV700,
+      includeAuthor: Boolean
+  ): GlossaryItemJsonV700 =
+    GlossaryItemJsonV700(
+      glossary_item_id = meta.map(_.glossaryItemId),
+      title = item.title,
+      description = description,
+      is_dynamic = item.isDynamic,
+      overrides_static_item = item.overridesStaticItem,
+      shadows_static_glossary_item = item.shadowsStaticItem,
+      created_by_user_id = if (includeAuthor) meta.map(_.createdByUserId) else None,
+      created_at = meta.map(_.createdAt),
+      updated_at = meta.map(_.updatedAt)
     )
+
+  def createGlossaryJsonV700(items: List[GlossaryItemJsonV700], totalCount: Int): GlossaryJsonV700 =
+    GlossaryJsonV700(glossary_items = items, total_count = totalCount)
 
   // ── Qualified Identifier ────────────────────────────────────────────────────
   // A (scheme, value) triple where the scheme qualifies the value's namespace.
@@ -1562,13 +1526,27 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     balance: AmountOfMoneyJsonV121,
     branch_id: String,
     account_routings: List[AccountRoutingJsonV121],
-    account_attributes: List[AccountAttributeResponseJson]
+    account_attributes: List[AccountAttributeResponseJson],
+    metadata: AccountMetadataJsonV700
   )
+
+  /** Who created the account and for whom, as in a Dynamic Entity record's metadata: `user_id` made
+    * the call (an agent's own id under a Consent), `on_behalf_of_user_id` is the person it was for. */
+  case class AccountCreatedJsonV700(at: String, user_id: String, on_behalf_of_user_id: String, consent_reference_id: Option[String])
+  case class AccountMetadataJsonV700(created: AccountCreatedJsonV700)
+
+  def accountMetadataJsonV700(creation: code.accountcreation.AccountCreationTrait): AccountMetadataJsonV700 =
+    AccountMetadataJsonV700(AccountCreatedJsonV700(
+      at = java.time.format.DateTimeFormatter.ISO_INSTANT.format(creation.createdAt.toInstant.truncatedTo(java.time.temporal.ChronoUnit.SECONDS)),
+      user_id = creation.createdByUserId,
+      on_behalf_of_user_id = creation.createdByOnBehalfOfUserId,
+      consent_reference_id = creation.consentReferenceId))
 
   def createAccountJsonV700(
     userId: String,
     account: BankAccount,
-    accountAttributes: List[AccountAttribute]
+    accountAttributes: List[AccountAttribute],
+    creation: code.accountcreation.AccountCreationTrait
   ): CreateAccountResponseJsonV700 =
     CreateAccountResponseJsonV700(
       account_id = account.accountId.value,
@@ -1582,8 +1560,49 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         account.accountId.value,
         account.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address))
       ),
-      account_attributes = accountAttributes.map(JSONFactory310.createAccountAttributeJson)
+      account_attributes = accountAttributes.map(JSONFactory310.createAccountAttributeJson),
+      metadata = accountMetadataJsonV700(creation)
     )
+
+  /** One account in the v7.0.0 Account Directory: the v6.0.0 fields plus `metadata.created`, which
+    * is present only for an account created through v7.0.0 Create Account (see AccountCreations). */
+  case class AccountDirectoryItemJsonV700(
+    account_id: String,
+    bank_id: String,
+    label: String,
+    account_number: String,
+    account_type: String,
+    branch_id: String,
+    account_routings: List[AccountRoutingJsonV121],
+    account_attributes: List[com.openbankproject.commons.model.FastFirehoseAttributes],
+    view_ids: List[String],
+    metadata: Option[AccountMetadataJsonV700]
+  )
+
+  case class AccountDirectoryJsonV700(accounts: List[AccountDirectoryItemJsonV700])
+
+  def createAccountDirectoryJsonV700(
+    accounts: List[com.openbankproject.commons.model.AccountDirectoryItem],
+    viewsPerAccount: Map[BankIdAccountId, List[String]],
+    creationPerAccountId: Map[String, code.accountcreation.AccountCreationTrait]
+  ): AccountDirectoryJsonV700 =
+    AccountDirectoryJsonV700(accounts.map { account =>
+      AccountDirectoryItemJsonV700(
+        account_id = account.id,
+        bank_id = account.bankId,
+        label = account.label,
+        account_number = account.number,
+        account_type = account.productCode,
+        branch_id = account.branchId,
+        account_routings = Constant.accountRoutingsWithImplicitOBP(
+          account.id,
+          account.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address))
+        ),
+        account_attributes = account.accountAttributes,
+        view_ids = viewsPerAccount.getOrElse(BankIdAccountId(BankId(account.bankId), AccountId(account.id)), Nil),
+        metadata = creationPerAccountId.get(account.id).map(accountMetadataJsonV700)
+      )
+    })
 
   // ─── OPEN_CORRIDOR per-bank broker registry (admin) ────────────────────────
 
@@ -1705,7 +1724,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
    *   SETTLING / SUBMITTED — the node's last reported rail state (with
    *                `settlement_depth` = confirmation depth when reported)
    *   FINAL      — the node reported finality; the instruction row is DELIVERED
-   *   ERROR      — the node replied with a non-retryable error (row STICKY);
+   *   ERROR      — the node replied with a non-retryable error, or the relay
+   *                gave up after its attempt limit (row STICKY);
    *                operator reconciliation required, see the message's last_error
    */
   case class OpenCorridorSettlementStatusJsonV700(
@@ -1719,7 +1739,13 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     settlement_status: String,
     settlement_depth: Option[Int],
     covered_transaction_request_ids: List[String],
-    messages: List[OpenCorridorSettlementMessageJsonV700]
+    messages: List[OpenCorridorSettlementMessageJsonV700],
+    // What the debtor bank's node reported paying on the settlement rail, from its last reply to the
+    // settlement instruction: the rail transaction id, the asset and the amount in the asset's smallest
+    // unit (lovelace for ADA). The creditor bank checks its incoming payment against these. None until reported.
+    settlement_tx_id: Option[String] = None,
+    settlement_asset: Option[String] = None,
+    settlement_asset_amount: Option[String] = None
   )
 
   // Build the originator block for a TR response. Returns None when there's no
@@ -1917,7 +1943,9 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     request_url: String,
     method_body: String,
     example_request_body: Option[JValue],
-    success_response_body: Option[JValue]
+    success_response_body: Option[JValue],
+    // "Scala" (the default when omitted) or "Java", as on Create Dynamic Resource Doc.
+    programming_lang: Option[String] = None
   )
   case class DynamicCompileErrorJsonV700(line: Int, column: Int, severity: String, message: String)
   case class DynamicCompileResultJsonV700(
@@ -1931,13 +1959,81 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     request_url = "/hello/world",
     method_body = java.net.URLEncoder.encode("Future.successful((Map(\"hello\" -> \"world\"), HttpCode.`200`(callContext)))", "UTF-8"),
     example_request_body = None,
-    success_response_body = Some(org.json4s.JsonAST.JObject(List(org.json4s.JsonAST.JField("hello", org.json4s.JsonAST.JString("world")))))
+    success_response_body = Some(org.json4s.JsonAST.JObject(List(org.json4s.JsonAST.JField("hello", org.json4s.JsonAST.JString("world"))))),
+    programming_lang = Some("Scala")
   )
   lazy val dynamicCompileResultJsonV700Example = DynamicCompileResultJsonV700(
     compiles = false,
     errors = List(DynamicCompileErrorJsonV700(1, 24, "ERROR", "not found: value Full")),
     dependency_error = None,
     duration_ms = 850
+  )
+
+  // ─── Dynamic Query explain — the statements a Dynamic Query would run, and the access it needs ──
+
+  case class DynamicQueryExplainJsonV700(
+    // The declaration, URL-encoded as in a Dynamic Resource Doc's method_body.
+    method_body: String,
+    // The Dynamic Entity space to explain it in: a bank id, or SYS (the default) for the system space.
+    bank_id: Option[String] = None,
+    // Parameters a caller would add, as a query string, such as "obp_sort_by=name&obp_limit=10".
+    caller_parameters: Option[String] = None,
+    // Explain it for a caller who is not logged in, rather than for the User making this request.
+    as_anonymous_caller: Option[Boolean] = None
+  )
+  case class ExplainedEntityJsonV700(entity: String, read_role: String, bank_id: String, public_access: Boolean,
+                                     row_level_access: Boolean, caller_may_read: Boolean)
+  case class ExplainedFieldJsonV700(entity: String, field: String, restriction: String, read_role: String, caller_may_read: Boolean)
+  case class ExplainedStepJsonV700(step: Int, purpose: String, backend: String, sql: Option[String], parameter_count: Option[Int], notes: List[String])
+  case class DynamicQueryExplanationJsonV700(
+    space: String,
+    explained_for: String,
+    caller_may_run: Boolean,
+    refusal: Option[String],
+    entities: List[ExplainedEntityJsonV700],
+    restricted_fields: List[ExplainedFieldJsonV700],
+    rules: List[String],
+    steps: List[ExplainedStepJsonV700]
+  )
+
+  def createDynamicQueryExplanationJsonV700(explanation: code.api.dynamic.entity.query.DynamicQueryExplanation, callerUserId: Option[String]): DynamicQueryExplanationJsonV700 =
+    DynamicQueryExplanationJsonV700(
+      space = explanation.space,
+      explained_for = callerUserId.map(id => s"user $id").getOrElse("an anonymous caller"),
+      caller_may_run = explanation.callerMayRun,
+      refusal = explanation.refusal,
+      entities = explanation.entities.map(e => ExplainedEntityJsonV700(e.entity, e.readRole, e.bankId, e.publicAccess, e.rowLevelAccess, e.callerMayRead)),
+      restricted_fields = explanation.restrictedFields.map(f => ExplainedFieldJsonV700(f.entity, f.field, f.restriction, f.readRole, f.callerMayRead)),
+      rules = explanation.rules,
+      steps = explanation.steps.zipWithIndex.map { case (step, index) =>
+        ExplainedStepJsonV700(index + 1, step.purpose, step.backend, step.sql, step.sql.map(_.count(_ == '?')), step.notes)
+      }
+    )
+
+  lazy val dynamicQueryExplainJsonV700Example = DynamicQueryExplainJsonV700(
+    method_body = java.net.URLEncoder.encode(
+      """{"from":"activity","where":{"city":"eq:Berlin"},"join":[{"entity":"certificate","on":"activity_id","cardinality":"exists","as":"certified"}],"envelope":{"rows":"activities","count":"count"}}""",
+      "UTF-8"),
+    bank_id = None,
+    caller_parameters = Some("obp_sort_by=name&obp_limit=10"),
+    as_anonymous_caller = Some(false)
+  )
+  lazy val dynamicQueryExplanationJsonV700Example = DynamicQueryExplanationJsonV700(
+    space = "SYS",
+    explained_for = "user 9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+    caller_may_run = false,
+    refusal = Some("OBP-40066: This Dynamic Query reads Dynamic Entities you may not read: certificate (needs CanGetDynamicEntityRecord_certificate at bank SYS)."),
+    entities = List(
+      ExplainedEntityJsonV700("activity", "CanGetDynamicEntityRecord_activity", "SYS", public_access = true, row_level_access = false, caller_may_read = true),
+      ExplainedEntityJsonV700("certificate", "CanGetDynamicEntityRecord_certificate", "SYS", public_access = false, row_level_access = false, caller_may_read = false)),
+    restricted_fields = Nil,
+    rules = List("Only shared records are used, never a User's personal records, whoever owns them."),
+    steps = List(
+      ExplainedStepJsonV700(1, "Read the page of 'activity'", "projection",
+        Some("SELECT d.datajson FROM de_activity_ad1db27dae39 p JOIN dynamicdata d ON d.dynamicdataid = p.data_id WHERE d.dynamicentityname = ? AND d.bankid = ? AND d.ispersonalentity = ? AND p.c_city_11a62c23412b = CAST( ? AS text ) ORDER BY p.c_name_82a3537ff0db ASC LIMIT ?"),
+        Some(5), List("Filters and the sort run on the projection's indexed columns; only the records of the page are read.")),
+      ExplainedStepJsonV700(2, "Join 1: 'certificate' records whose 'activity_id' names the 'activity' (reverse)", "record provider", None, None,
+        List("Cardinality exists.")))
   )
 
   // ─── Dynamic code approval config — whether maker/checker gates dynamic artefacts on this instance ──
@@ -2188,6 +2284,152 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     consumer_name = "OBP Portal"
   )
 
+  /** A Consumer in the management list. No consumer_key: the key is a credential, a Consumer is referenced by consumer_id. */
+  case class ConsumerJsonV700(
+    consumer_id: String,
+    app_name: String,
+    app_type: String,
+    description: String,
+    developer_email: String,
+    company: String,
+    redirect_url: String,
+    certificate_pem: String,
+    created_by_user: code.api.v2_1_0.ResourceUserJSON,
+    enabled: Boolean,
+    created: Date,
+    logo_url: Option[String]
+  )
+
+  case class ConsumersJsonV700(consumers: List[ConsumerJsonV700])
+
+  def createConsumerJsonV700(consumer: code.model.Consumer): ConsumerJsonV700 = {
+    val c = code.api.v5_1_0.JSONFactory510.createConsumerJSON(consumer)
+    ConsumerJsonV700(
+      consumer_id = c.consumer_id,
+      app_name = c.app_name,
+      app_type = c.app_type,
+      description = c.description,
+      developer_email = c.developer_email,
+      company = c.company,
+      redirect_url = c.redirect_url,
+      certificate_pem = c.certificate_pem,
+      created_by_user = c.created_by_user,
+      enabled = c.enabled,
+      created = c.created,
+      logo_url = c.logo_url
+    )
+  }
+
+  def createConsumersJsonV700(consumers: List[code.model.Consumer]): ConsumersJsonV700 =
+    ConsumersJsonV700(consumers.map(createConsumerJsonV700))
+
+  lazy val consumersJsonV700Example: ConsumersJsonV700 = {
+    val c = code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.consumerJsonV510
+    ConsumersJsonV700(List(ConsumerJsonV700(
+      consumer_id = c.consumer_id,
+      app_name = c.app_name,
+      app_type = c.app_type,
+      description = c.description,
+      developer_email = c.developer_email,
+      company = c.company,
+      redirect_url = c.redirect_url,
+      certificate_pem = c.certificate_pem,
+      created_by_user = c.created_by_user,
+      enabled = c.enabled,
+      created = c.created,
+      logo_url = c.logo_url
+    )))
+  }
+
+  /** One Consumer with its rate limits and call counters. No consumer_key: the key is a credential. */
+  case class ConsumerDetailsJsonV700(
+    consumer_id: String,
+    app_name: String,
+    app_type: String,
+    description: String,
+    developer_email: String,
+    company: String,
+    redirect_url: String,
+    certificate_pem: String,
+    certificate_info: Option[code.api.v5_1_0.CertificateInfoJsonV510],
+    created_by_user: code.api.v2_1_0.ResourceUserJSON,
+    enabled: Boolean,
+    created: Date,
+    logo_url: Option[String],
+    active_rate_limits: code.api.v6_0_0.ActiveRateLimitsJsonV600,
+    call_counters: code.api.v6_0_0.RedisCallCountersJsonV600
+  )
+
+  def createConsumerDetailsJsonV700(c: code.api.v6_0_0.ConsumerJsonV600): ConsumerDetailsJsonV700 =
+    ConsumerDetailsJsonV700(
+      consumer_id = c.consumer_id,
+      app_name = c.app_name,
+      app_type = c.app_type,
+      description = c.description,
+      developer_email = c.developer_email,
+      company = c.company,
+      redirect_url = c.redirect_url,
+      certificate_pem = c.certificate_pem,
+      certificate_info = c.certificate_info,
+      created_by_user = c.created_by_user,
+      enabled = c.enabled,
+      created = c.created,
+      logo_url = c.logo_url,
+      active_rate_limits = c.active_rate_limits,
+      call_counters = c.call_counters
+    )
+
+  lazy val consumerDetailsJsonV700Example: ConsumerDetailsJsonV700 =
+    createConsumerDetailsJsonV700(code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.consumerJsonV600)
+
+  /** One Role the calling Consumer holds as a Scope, and where: a bank id, SYS, or "" for a system Role. */
+  case class CurrentConsumerScopeJsonV700(
+    role_name: String,
+    bank_id: String
+  )
+
+  /** The calling Consumer's own Scopes. */
+  case class CurrentConsumerScopesJsonV700(
+    consumer_id: String,
+    scopes: List[CurrentConsumerScopeJsonV700]
+  )
+
+  def createCurrentConsumerScopesJsonV700(consumer: code.model.Consumer, scopes: List[code.scope.Scope]): CurrentConsumerScopesJsonV700 =
+    CurrentConsumerScopesJsonV700(
+      consumer_id = consumer.consumerId,
+      scopes = scopes.map(s => CurrentConsumerScopeJsonV700(role_name = s.roleName, bank_id = s.bankId))
+        .sortBy(s => (s.role_name, s.bank_id))
+    )
+
+  lazy val currentConsumerScopesJsonV700Example = CurrentConsumerScopesJsonV700(
+    consumer_id = ExampleValue.consumerIdExample.value,
+    scopes = List(CurrentConsumerScopeJsonV700(role_name = "CanGetDynamicEntityDefinitions", bank_id = "SYS"))
+  )
+
+  /** One Scope on this instance: which Consumer holds which Role, and where. */
+  case class ScopeJsonV700(
+    bank_id: String,
+    role_name: String,
+    consumer_id: String
+  )
+
+  case class ScopesJsonV700(scopes: List[ScopeJsonV700])
+
+  def createAllScopesJsonV700(scopes: List[code.scope.Scope]): ScopesJsonV700 =
+    ScopesJsonV700(scopes.map(s => ScopeJsonV700(bank_id = s.bankId, role_name = s.roleName, consumer_id = s.consumerId))
+      .sortBy(s => (s.role_name, s.bank_id, s.consumer_id)))
+
+  lazy val allScopesJsonV700Example = ScopesJsonV700(List(
+    ScopeJsonV700(bank_id = "", role_name = "CanGetTelemetry", consumer_id = ExampleValue.consumerIdExample.value)))
+
+  /** The Role names someone holds, as an Entitlement or a Scope, each once. No Users, Consumers or bank ids. */
+  case class ReachableRolesJsonV700(role_names: List[String])
+
+  def createReachableRolesJsonV700(roleNames: List[String]): ReachableRolesJsonV700 =
+    ReachableRolesJsonV700(roleNames.distinct.sorted)
+
+  lazy val reachableRolesJsonV700Example = ReachableRolesJsonV700(List("CanGetCustomersAtOneBank", "CanGetTelemetry"))
+
   case class PasswordPolicyJsonV700(
     description: String,
     min_length: Int,
@@ -2367,6 +2609,30 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         TopConsumerJsonV700(topConsumer.count, topConsumer.consumerId, topConsumer.appName, topConsumer.developerEmail)
       )
     )
+
+  // ─── Consumer Last Calls (v7.0.0) ───
+  // From Redis (code.metrics.ConsumerLastCall). tracked_since is when recording began; a Consumer
+  // not listed has made no call since then.
+  case class ConsumerLastCallJsonV700(consumer_id: String, last_call_at: java.util.Date)
+  case class ConsumerLastCallsJsonV700(
+      tracked_since: Option[java.util.Date],
+      consumer_last_calls: List[ConsumerLastCallJsonV700]
+  )
+
+  def createConsumerLastCallsJsonV700(lastCalls: code.metrics.ConsumerLastCall.LastCalls): ConsumerLastCallsJsonV700 =
+    ConsumerLastCallsJsonV700(
+      tracked_since = lastCalls.trackedSince,
+      consumer_last_calls = lastCalls.lastCalls.toList
+        .sortBy { case (consumerId, at) => (-at.getTime, consumerId) }
+        .map { case (consumerId, at) => ConsumerLastCallJsonV700(consumerId, at) }
+    )
+
+  lazy val consumerLastCallsJsonV700Example = ConsumerLastCallsJsonV700(
+    tracked_since = Some(APIUtil.DateWithDayExampleObject),
+    consumer_last_calls = List(
+      ConsumerLastCallJsonV700("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", APIUtil.DateWithDayExampleObject)
+    )
+  )
 
   // ─── Top Users (v7.0.0) ───
   // One distinct user and their call count. On-behalf-of aware: consent-borne calls are
@@ -2692,7 +2958,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     everything_as_expected = true
   )
 
-  // ─── API Product Subscription (v7.0.0). See API_PRODUCT_SUBSCRIPTION_PLAN.md ───────────────
+  // ─── API Product Subscription (v7.0.0). See docs/API_PRODUCT_SUBSCRIPTION_PLAN.md ───────────────
 
   case class PostApiProductSubscriptionJsonV700(
     consumer_id: String,

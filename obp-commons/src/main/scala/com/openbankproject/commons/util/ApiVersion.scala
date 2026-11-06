@@ -177,16 +177,17 @@ object ApiVersion {
   //This is other standard versions
   
   val berlinGroupV13 = ScannedApiVersion("berlin-group", "BG", "v1.3")
-  val mxofV100 = ScannedApiVersion("mxof", "MXOF", "v1.0.0")
-  val cnbv9 = ScannedApiVersion("CNBV9", "CNBV9", "v1.0.0")
-  val bahrainObfV100 = ScannedApiVersion("BAHRAIN-OBF", "BAHRAIN-OBF", "v1.0.0")
-  val auOpenBankingV100 = ScannedApiVersion("cds-au", "AU", "v1.0.0")
   val ukOpenBankingV20 = ScannedApiVersion("open-banking", "UK", "v2.0")
   val ukOpenBankingV31 = ScannedApiVersion("open-banking", "UK", "v3.1")
   val ukOpenBankingV401 = ScannedApiVersion("open-banking", "UK", "v4.0.1")
-  val stetV14 = ScannedApiVersion("stet", "STET", "v1.4")
-  val cdsAuV100 = ScannedApiVersion("cds-au", "AU", "v1.0.0")
-  val polishApiV2111 = ScannedApiVersion("polish-api", "PAPI", "v2.1.1.1")
+
+  // STET v1.4, Polish v2.1.1.1, CDS-AU v1.0.0, BAHRAIN-OBF v1.0.0, MxOF v1.0.0 and CNBV9 v1.0.0
+  // were removed with the Lift teardown — code.api.STET, code.api.Polish, code.api.AUOpenBanking,
+  // code.api.BahrainOBF and code.api.MxOF no longer exist, and RetiredApiStandardsTest keeps them
+  // that way. Their constants lived on here, and because a ScannedApiVersion registers itself in
+  // `allScannedApiVersion` when it is constructed, GET /obp/{v}/api/versions kept advertising six
+  // standards this API cannot serve: asking for their resource docs answers OBP-00027. Do not
+  // reinstate a constant without the implementation behind it.
 
   /**
    * the ApiPathZero value must be got by obp-api project, so here is a workaround, let obp-api project modify this value

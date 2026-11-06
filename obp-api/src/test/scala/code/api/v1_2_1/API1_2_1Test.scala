@@ -35,7 +35,9 @@ import code.api.util.APIUtil.isValidSystemViewId
 import code.api.util.ErrorMessages._
 import code.bankconnectors.Connector
 import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, ServerSetupWithTestData}
+import code.accountholders.AccountHolders
 import code.views.Views
+import code.views.system.AccountAccess
 // ErrorMessage is excluded: this file is in package code.api.v1_2_1, which defines its
 // own ErrorMessage, and that one shadows the wildcard-imported commons class. Both are
 // case class ErrorMessage(code: Int, message: String), so resolution never changed the
@@ -1673,7 +1675,25 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
-  
+
+    // the view may only get actions the caller already has on one of their views of the account
+    Scenario("we will not give a view an action that none of the caller's views has", API1_2_1, PutView){
+      Given("A view exists")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomView(true, "")
+      val creationReply = postView(bankId, bankAccount.id, view, user1)
+      creationReply.code should equal (201)
+      val createdView : ViewJSONV121 = creationReply.body.extract[ViewJSONV121]
+
+      When("we ask for an action that no view of the caller has")
+      val reply = putView(bankId, bankAccount.id, createdView.id,
+        viewUpdateJson(createdView).copy(allowed_actions = allowedActions :+ "can_do_what_no_view_of_the_caller_can"), user1)
+      Then("we should get a 403 and the SourceViewHasLessPermission message")
+      reply.code should equal (403)
+      reply.body.extract[ErrorMessage].message should startWith (code.api.util.ErrorMessages.SourceViewHasLessPermission)
+    }
+
     Scenario("we can not update a System view on a bank account") {
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -2075,6 +2095,26 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       viewsAfter should equal(viewsBefore -1)
     }
 
+    Scenario("a user cannot revoke their own access to a view on a bank account, even if another user has access to it", API1_2_1, DeletePermission){
+      Given("The owner view of an account is held by the caller and by another user")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      grantUserAccessToView(bankId, bankAccount.id, resourceUser2.idGivenByProvider, SYSTEM_OWNER_VIEW_ID, user1).code should equal (201)
+
+      When("The caller tries to revoke their own access to the owner view")
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, resourceUser1.idGivenByProvider, SYSTEM_OWNER_VIEW_ID, user1)
+
+      Then("we should get a 403 code")
+      reply.code should equal (403)
+      reply.body.extract[ErrorMessage].message should include (CannotRevokeOwnAccountAccess)
+
+      And("The caller should still have access to the owner view")
+      AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(BankId(bankId), AccountId(bankAccount.id), ViewId(SYSTEM_OWNER_VIEW_ID), resourceUser1.userPrimaryKey).isDefined should equal (true)
+
+      //clean up: the later tests expect user2 to have no access to the test accounts
+      revokeUserAccessToAllViews(bankId, bankAccount.id, resourceUser2.idGivenByProvider, user1).code should equal (204)
+    }
+
     Scenario("we cannot revoke the access to a user that does not exist", API1_2_1, DeletePermission){
       Given("We will use an access token with a random user Id")
       val bankId = randomBank
@@ -2136,13 +2176,13 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
   }
   Feature("Revoke a user access to all the views on a bank account"){
     Scenario("we will revoke the access of a user to all the views on an bank account", API1_2_1, DeletePermissions){
-      Given("We will use an access token")
+      Given("A user with access to several views on the account, the owner view among them")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = resourceUser2.idGivenByProvider
-      val viewId = randomCustomViewPermalink(bankId, bankAccount)
-      val viewsIdsToGrant = viewId :: Nil
-      grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
+      val viewsIdsToGrant = randomCustomViewPermalink(bankId, bankAccount) :: SYSTEM_AUDITOR_VIEW_ID :: SYSTEM_OWNER_VIEW_ID :: Nil
+      grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1).code should equal (201)
+      getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length should be >= 3
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
       Then("we should get a 204 no content code")
@@ -2178,30 +2218,28 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       viewsAfter should equal(viewsBefore)
     }
 
-    Scenario("we cannot revoke the access to the owner view via a revoke all views call if there " +
-      "would then be no one with access to it", API1_2_1, DeletePermissions){
-      Given("We will use an access token")
+    Scenario("a user cannot revoke their own access to all the views on a bank account", API1_2_1, DeletePermissions){
+      Given("A user with access to the owner view of an account")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val viewId = ViewId(SYSTEM_OWNER_VIEW_ID)
-      val view = Views.views.vend.systemView(viewId).openOrThrowException(attemptedToOpenAnEmptyBox)
       val userId = resourceUser1.idGivenByProvider
-
-      Views.views.vend.getOwners(view).toList.length should equal(1)
-      Views.views.vend.getOwners(view).toList(0).idGivenByProvider should equal(userId)
+      val ownerViewUsersBefore = AccountAccess.findAllByBankIdAccountIdViewId(BankId(bankId), AccountId(bankAccount.id), ViewId(SYSTEM_OWNER_VIEW_ID)).flatMap(a => code.model.dataAccess.ResourceUser.findByPrimaryKey(a.userPrimaryKey).toList).map(_.userId).distinct
+      ownerViewUsersBefore should equal (List(resourceUser1.userId))
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
 
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
-      Then("we should get a 204 code")
-      reply.code should equal (204)
+      Then("we should get a 403 code")
+      reply.code should equal (403)
+      reply.body.extract[ErrorMessage].message should include (CannotRevokeOwnAccountAccess)
 
-      And("The user should not have had his access revoked")
-      Views.views.vend.getOwners(view).toList.length should equal(1)
-      Views.views.vend.getOwners(view).toList(0).idGivenByProvider should equal(userId)
+      And("None of the user's access to the account should have been revoked")
+      AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(BankId(bankId), AccountId(bankAccount.id), ViewId(SYSTEM_OWNER_VIEW_ID), resourceUser1.userPrimaryKey).isDefined should equal (true)
+      getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length should equal (viewsBefore)
     }
 
-    Scenario("we can revoke the access of a user to owner view on a bank account via a revoke all views call" +
-      " if that user is an account holder of that account", API1_2_1, DeletePermissions){
+    Scenario("we can revoke the access of an account holder to the owner view on a bank account via a revoke all views call",
+      API1_2_1, DeletePermissions){
       Given("A user is the account holder of an account (and has access to the owner view)")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -2217,9 +2255,11 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       Then("we should get a 204 code")
       reply.code should equal (204)
 
-      And("The user should not have had his access revoked")
-      val view = Views.views.vend.systemView(ViewId(SYSTEM_OWNER_VIEW_ID)).openOrThrowException(attemptedToOpenAnEmptyBox)
-      Views.views.vend.getOwners(view).toList should not contain (resourceUser3)
+      And("The user should no longer have access to the owner view of this account")
+      AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(BankId(bankId), AccountId(bankAccount.id), ViewId(ownerViewId), resourceUser3.userPrimaryKey).isDefined should equal (false)
+
+      //clean up
+      AccountHolders.accountHolders.vend.deleteAccountHolder(resourceUser3, BankIdAccountId(BankId(bankId), AccountId(bankAccount.id)))
     }
   }
 
@@ -5326,6 +5366,22 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       deleteReply.code should equal (400)
     }
 
+    // the public view has can_add_comment but not can_delete_comment, so only the poster check lets the poster delete it
+    Scenario("we will delete a comment we posted for one random transaction through a view without can_delete_comment", API1_2_1, DeleteComment){
+      Given("We will use an access token and will set a comment first through the public view")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = CUSTOM_PUBLIC_VIEW_ID
+      val transaction = randomTransaction(bankId, bankAccount.id, view)
+      val randomComment = PostTransactionCommentJSON(randomString(20))
+      val postedReply = postCommentForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomComment, user2)
+      val postedComment = postedReply.body.extract[TransactionCommentJSON]
+      When("the poster sends the delete request")
+      val deleteReply = deleteCommentForOneTransaction(bankId, bankAccount.id, view, transaction.id, postedComment.id, user2)
+      Then("we should get a 204 code")
+      deleteReply.code should equal (204)
+    }
+
     Scenario("we will not delete a comment for one random transaction because the comment does not exist", API1_2_1, DeleteComment){
       Given("We will use an access token")
       val bankId = randomBank
@@ -6005,6 +6061,22 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val deleteReply = deleteImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, postedImage.id, user3)
       Then("we should get a 400 code")
       deleteReply.code should equal (400)
+    }
+
+    // the public view has can_add_image but not can_delete_image, so only the poster check lets the poster delete it
+    Scenario("we will delete an image we posted for one random transaction through a view without can_delete_image", API1_2_1, DeleteImage){
+      Given("We will use an access token and will set an image first through the public view")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = CUSTOM_PUBLIC_VIEW_ID
+      val transaction = randomTransaction(bankId, bankAccount.id, view)
+      val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
+      val postedReply = postImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomImage, user1)
+      val postedImage = postedReply.body.extract[TransactionImageJSON]
+      When("the poster sends the delete request")
+      val deleteReply = deleteImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, postedImage.id, user1)
+      Then("we should get a 204 code")
+      deleteReply.code should equal (204)
     }
 
     Scenario("we will not delete an image for one random transaction because the image does not exist", API1_2_1, DeleteImage){

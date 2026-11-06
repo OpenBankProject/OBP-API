@@ -1,3 +1,30 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011-2026, TESOBE GmbH.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE GmbH.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
+  */
+
 package code.api.ResourceDocs1_4_0
 
 import org.json4s._
@@ -2936,7 +2963,7 @@ object SwaggerDefinitionsJSON {
     app_type = "Web",
     description = "Account Management",
     developer_email = ExampleValue.emailExample.value,
-    redirect_url = "www.openbankproject.com",
+    redirect_url = redirectUrlExample.value,
     created_by_user_id = ExampleValue.userIdExample.value,
     created_by_user = resourceUserJSON,
     enabled = true,
@@ -2971,7 +2998,7 @@ object SwaggerDefinitionsJSON {
 
   lazy val consumerJsonV600: ConsumerJsonV600 = ConsumerJsonV600(
     consumer_id = consumerIdExample.value,
-    consumer_key = consumerKeyExample.value,
+    consumer_key = code.api.util.APIUtil.RedactedConsumerKey,
     app_name = appNameExample.value,
     app_type = appTypeExample.value,
     description = descriptionExample.value,
@@ -3028,7 +3055,7 @@ object SwaggerDefinitionsJSON {
     app_type = "Web",
     description = "Account Management",
     developer_email = ExampleValue.emailExample.value,
-    redirect_url = "www.openbankproject.com",
+    redirect_url = redirectUrlExample.value,
     created_by_user = resourceUserJSON,
     enabled = true,
     created = DateWithDayExampleObject
@@ -3045,7 +3072,7 @@ object SwaggerDefinitionsJSON {
                            |client_certificate_content
                            |-----END CERTIFICATE-----""".stripMargin,
     developer_email = ExampleValue.emailExample.value,
-    redirect_url = "www.openbankproject.com",
+    redirect_url = redirectUrlExample.value,
     created_by_user_id = ExampleValue.userIdExample.value,
     created_by_user = resourceUserJSON,
     enabled = true,
@@ -3201,6 +3228,7 @@ object SwaggerDefinitionsJSON {
     duration = 39,
     source_ip = ExampleValue.ipAddressExample.value,
     target_ip = ExampleValue.ipAddressExample.value,
+    forwarded_for = s"${ExampleValue.ipAddressExample.value}, 10.0.0.2, 10.0.0.3",
     response_body = json.parse("""{"code":401,"message":"OBP-20001: User not logged in. Authentication is required!"}"""),
     status_code = 401,
     operation_id = "OBPv4.0.0-getBanks",
@@ -3208,7 +3236,8 @@ object SwaggerDefinitionsJSON {
     consent_reference_id = Some(ExampleValue.consentReferenceIdExample.value),
     auth_type = Some("Consent"),
     certificate_trust = Some("forwarded"),
-    certificate_trust_detail = Some("cn=nginx-prod-1,ou=edge,o=tesobe gmbh,c=de")
+    certificate_trust_detail = Some("cn=nginx-prod-1,ou=edge,o=tesobe gmbh,c=de"),
+    domain_api_url = None
   )
   lazy val metricsJsonV600 = MetricsJsonV600(
     metrics = List(metricJsonV600)
@@ -4287,8 +4316,8 @@ object SwaggerDefinitionsJSON {
   lazy val callLimitPostJsonV600 = CallLimitPostJsonV600(
     from_date = DateWithDayExampleObject,
     to_date = DateWithDayExampleObject,
-    api_version = Some(ApiVersion.v6_0_0.toString),
-    api_name = Some("getConsumerCallLimits"),
+    api_version = None,
+    api_name = None,
     bank_id = None,
     per_second_call_limit = "100",
     per_minute_call_limit = "1000",
@@ -4631,6 +4660,10 @@ object SwaggerDefinitionsJSON {
     access = Some(consentAccessJson)
   )
   
+  // The v5.1.0 rendering of the payload above: same fields on the wire, a type v5.1.0 owns.
+  // See ConsentJWTV510 in JSONFactory5.1.0.scala for why the response is not the live ConsentJWT.
+  lazy val consentJWTV510 = code.api.v5_1_0.ConsentJWTV510.fromConsentJWT(consentJWT)
+
   lazy val allConsentJsonV510 = AllConsentJsonV510(
     consent_reference_id = consentReferenceIdExample.value,
     consumer_id = consumerIdExample.value,
@@ -4642,7 +4675,7 @@ object SwaggerDefinitionsJSON {
     status = ConsentStatus.INITIATED.toString,
     api_standard = "Berlin Group",
     api_version = "v1.3",
-    jwt_payload = Some(consentJWT),
+    jwt_payload = Some(consentJWTV510),
     // An Option[Int] left at its None default publishes as a $ref to a definition that does not
     // exist - see refineErasedTypeArgument in SwaggerJSONFactory. The value is what the field's
     // documented type is derived from, so it has to be present.
@@ -4716,7 +4749,7 @@ object SwaggerDefinitionsJSON {
     consent_request_id = None,
     valid_from = Some(new Date()),
     time_to_live = Some(3600),
-    my_resources = Some(code.api.v6_0_0.PostConsentMyResourcesJson(Some(List(code.api.v6_0_0.PostConsentPersonalDynamicEntityJson("", "FooBar", List("read", "write"))))))
+    my_resources = Some(code.api.v6_0_0.PostConsentMyResourcesJson(Some(List(code.api.v6_0_0.PostConsentPersonalDynamicEntityJson("SYS", "FooBar", List("read", "write"))))))
   )
   
   lazy val consentsJsonV310 = ConsentsJsonV310(List(consentJsonV310))
@@ -6104,7 +6137,7 @@ object SwaggerDefinitionsJSON {
   )
   
   lazy val consumersJsonV510 = ConsumersJsonV510(
-    List(consumerJsonV510)
+    List(consumerJsonV510.copy(consumer_key = code.api.util.APIUtil.RedactedConsumerKey))
   )
 
   lazy val agentIdJson = AgentCashWithdrawalJson(
@@ -6366,11 +6399,13 @@ object SwaggerDefinitionsJSON {
       ConfigPropJsonV600("public_obp_portal_url", "http://localhost:5174"),
       ConfigPropJsonV600("public_obp_api_explorer_url", "http://localhost:5173"),
       ConfigPropJsonV600("public_obp_api_manager_url", "http://localhost:3003"),
+      ConfigPropJsonV600("public_obp_cohort_url", "http://localhost:5183"),
       ConfigPropJsonV600("public_obp_sandbox_populator_url", "http://localhost:5178"),
       ConfigPropJsonV600("public_obp_oidc_url", "http://localhost:9000"),
       ConfigPropJsonV600("public_keycloak_url", "http://localhost:7787"),
       ConfigPropJsonV600("public_obp_hola_url", "http://localhost:48123"),
-      ConfigPropJsonV600("public_obp_mcp_url", "http://localhost:9100"),
+      ConfigPropJsonV600("public_obp_mcp_url", "http://localhost:9101"),
+      ConfigPropJsonV600("public_obp_mcp_internal_url", "http://localhost:9100"),
       ConfigPropJsonV600("public_obp_opey_url", "http://localhost:5000"),
       ConfigPropJsonV600("public_obp_stripe_url", "http://localhost:4242")
     )

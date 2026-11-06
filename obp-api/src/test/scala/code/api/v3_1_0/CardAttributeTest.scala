@@ -34,7 +34,18 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createPhysicalCardJsonV
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateCustomer
 import code.api.util.ApiRole
+// for the 403 scenarios: the error body and its message
+import code.api.util.ErrorMessages.UserHasMissingRoles
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.v3_1_0.Http4s310.Implementations3_1_0
+import code.cardattribute.DoobieCardAttributeProvider
+import code.cards.MappedPhysicalCard
+import code.model.dataAccess.MappedBankAccount
+import com.openbankproject.commons.model.BankId
+import com.openbankproject.commons.model.enums.CardAttributeType
+import net.liftweb.util.Helpers.randomString
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
@@ -127,8 +138,60 @@ class CardAttributeTest extends V310ServerSetup with DefaultUsers {
       responseForCreateCardAttribute.body.toString contains (properCreateCardAttributeJson.name) should be (true)
       responseForCreateCardAttribute.body.toString contains (properCreateCardAttributeJson.value) should be (true)
       responseForCreateCardAttribute.body.toString contains (properCreateCardAttributeJson.`type`) should be (true)
-      
+
     }
   }
 
-} 
+  // a logged-in user with no card role at the bank must not write or overwrite that bank's card attributes
+  feature("Card attributes need a card role at the bank") {
+    val cardAttributeJson = CardAttributeJson("TAX_NUMBER", "STRING", "123")
+
+    scenario("Create Card Attribute without CanCreateCardsForBank", ApiEndpointDeleteCardForBank, VersionOfApi) {
+      When("user2, who has no role at the bank, posts a card attribute")
+      val request = (v3_1_0_Request / "management" / "banks" / testBankId1.value / "cards" / "any-card-id" / "attribute").POST <@ (user2)
+      val response = makePostRequest(request, write(cardAttributeJson))
+      Then("We should get a 403 naming the missing role")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + ApiRole.canCreateCardsForBank)
+    }
+
+    scenario("Update Card Attribute without CanUpdateCardsForBank", VersionOfApi) {
+      When("user2, who has no role at the bank, puts a card attribute")
+      val request = (v3_1_0_Request / "management" / "banks" / testBankId1.value / "cards" / "any-card-id" / "attributes" / "any-attribute-id").PUT <@ (user2)
+      val response = makePutRequest(request, write(cardAttributeJson))
+      Then("We should get a 403 naming the missing role")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + ApiRole.canUpdateCardsForBank)
+    }
+  }
+
+  feature("Deleting a card deletes its attributes") {
+    scenario("Delete Card removes the attributes of the card", ApiEndpointDeleteCardForBank, VersionOfApi) {
+      Given("a card with an attribute")
+      val account = MappedBankAccount.find(testBankId1.value, testAccountId1.value)
+        .openOrThrowException("test account not found")
+      val cardId = MappedPhysicalCard.insert(
+        cardId = code.api.util.APIUtil.generateUUID(), bankId = testBankId1.value,
+        bankCardNumber = randomString(16), cardType = "", nameOnCard = "", issueNumber = "",
+        serialNumber = randomString(10), validFrom = new java.util.Date(), expires = new java.util.Date(),
+        enabled = false, cancelled = false, onHotList = false, technology = "", networks = "", allows = "",
+        accountKey = account.accountPrimaryKey, replacementDate = None, replacementReason = None,
+        collected = None, posted = None, customerId = "", cvv = "", brand = ""
+      ).cardId
+      Await.result(DoobieCardAttributeProvider.createOrUpdateCardAttribute(
+        Some(BankId(testBankId1.value)), Some(cardId), None, "TAX_NUMBER", CardAttributeType.STRING, "123"),
+        Duration.Inf).openOrThrowException("the card attribute must be created")
+
+      When("the card is deleted")
+      // the Resource Doc of Delete Card names CanCreateCardsForBank as well as CanDeleteCardsForBank
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canCreateCardsForBank.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canDeleteCardsForBank.toString)
+      val response = makeDeleteRequest((v3_1_0_Request / "management" / "banks" / testBankId1.value / "cards" / cardId).DELETE <@ (user1))
+
+      Then("We should get a 204 and no attribute of the card is left")
+      response.code should equal(204)
+      MappedPhysicalCard.findByBankAndCardId(testBankId1.value, cardId).isDefined should equal(false)
+      Await.result(DoobieCardAttributeProvider.getCardAttributesFromProvider(cardId), Duration.Inf).openOr(Nil) shouldBe empty
+    }
+  }
+}

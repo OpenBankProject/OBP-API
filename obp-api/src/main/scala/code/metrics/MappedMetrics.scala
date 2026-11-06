@@ -139,9 +139,9 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String,
-                          responseBody: String, sourceIp: String, targetIp: String, apiInstanceId: String, consentReferenceId: String,
+                          responseBody: String, sourceIp: String, targetIp: String, forwardedFor: String, apiInstanceId: String, consentReferenceId: String,
                           certificateTrust: String, certificateTrustDetail: String,
-                          authType: String): Unit = {
+                          authType: String, domainApiUrl: String): Unit = {
     // A correlation id is expected on every metric. Rows without one cannot be moved
     // to the archive later (its correlationId column requires a UUID), so flag it at
     // write time where the source of the missing id can actually be traced.
@@ -166,11 +166,13 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         responseBody = responseBody,
         sourceIp = sourceIp,
         targetIp = targetIp,
+        forwardedFor = forwardedFor,
         apiInstanceId = apiInstanceId,
         consentReferenceId = consentReferenceId,
         certificateTrust = certificateTrust,
         certificateTrustDetail = certificateTrustDetail,
-        authType = authType
+        authType = authType,
+        domainApiUrl = domainApiUrl
       )
     )
   }
@@ -179,10 +181,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                                   appName: String, developerEmail: String, consumerId: String,
                                   implementedByPartialFunction: String, implementedInVersion: String,
                                   verb: String, httpCode: Option[Int], correlationId: String,
-                                  responseBody: String, sourceIp: String, targetIp: String,
+                                  responseBody: String, sourceIp: String, targetIp: String, forwardedFor: String,
                                   apiInstanceId: String, consentReferenceId: String,
                                   certificateTrust: String, certificateTrustDetail: String,
-                                  authType: String): Boolean = {
+                                  authType: String, domainApiUrl: String): Boolean = {
     // Dedup by the source metric's primary key stored in `metricId`, NOT by the archive's own
     // auto-increment `id`. The two are unrelated id-spaces; matching on `id` overwrites an
     // unrelated archived row once the archive's id sequence grows into the live metric id range.
@@ -192,8 +194,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     // silently stalling.
     val saved = MetricArchive.upsertByMetricId(primaryKey, userId, url, date, duration, userName,
       appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion,
-      verb, httpCode, correlationId, responseBody, sourceIp, targetIp, apiInstanceId,
-      consentReferenceId, certificateTrust, certificateTrustDetail, authType)
+      verb, httpCode, correlationId, responseBody, sourceIp, targetIp, forwardedFor, apiInstanceId,
+      consentReferenceId, certificateTrust, certificateTrustDetail, authType, domainApiUrl)
     if (!saved) {
       logger.error(s"saveMetricsArchive: failed to persist MetricArchive row for metricId=$primaryKey (url=$url, date=$date)")
     }
@@ -228,22 +230,6 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         MappedMetric.findAll(getQueryParams(queryParams))
     }
   }
-  
-  
-  
-    /**
-      * Example of a Tuple response
-      * (List(count, avg, min, max),List(List(7503, 70.3398640543782487, 0, 9039)))
-      * First value of the Tuple is a List of field names returned by SQL query.
-      * Second value of the Tuple is a List of rows of the result returned by SQL query. Please note it's only one row.
-      */
-      
-  private def extendPrepareStement(startLine: Int, stmt:PreparedStatement, excludeFiledValues : Set[String]) = {
-    for(i <- 0 until  excludeFiledValues.size) yield {
-      stmt.setString(startLine+i, excludeFiledValues.toList(i))
-    }
-  }
-  
 
   // Smart caching applied - uses determineMetricsCacheTTL based on query date range
   /**
@@ -460,6 +446,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   val cacheTTL = determineMetricsCacheTTL(queryParams)
   Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
   
+      // Built by DoobieMetricsQueries with every filter value as a bound parameter; see
+      // getAllAggregateMetricsBox.
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
       val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(500)
@@ -508,6 +496,7 @@ case class MetricQuery(
   httpStatusCode: Option[Int],
   consentReferenceId: Option[String],
   certificateTrust: Option[String],
+  domainApiUrl: Option[String],
   anon: Option[Boolean],
   excludeAppNames: Option[List[String]]
 )
@@ -562,6 +551,7 @@ object MetricQuery {
       httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption,
       consentReferenceId = queryParams.collect { case OBPConsentReferenceId(value) => value }.headOption,
       certificateTrust = queryParams.collect { case OBPCertificateTrust(value) => value }.headOption,
+      domainApiUrl = queryParams.collect { case OBPDomainApiUrl(value) => value }.headOption,
       anon = queryParams.collect { case OBPAnon(value) => value }.headOption,
       excludeAppNames = queryParams.collect { case OBPExcludeAppNames(values) => values }.headOption)
 }
@@ -585,11 +575,13 @@ case class MappedMetric(
   responseBody: String,
   sourceIp: String,
   targetIp: String,
+  forwardedFor: String,
   apiInstanceId: String,
   consentReferenceId: String,
   certificateTrust: String,
   certificateTrustDetail: String,
-  authType: String
+  authType: String,
+  domainApiUrl: String
 ) extends APIMetric {
   override def getMetricId(): Long = metricPrimaryKey
   override def getUrl(): String = url
@@ -608,6 +600,8 @@ case class MappedMetric(
   override def getResponseBody(): String = responseBody
   override def getSourceIp(): String = sourceIp
   override def getTargetIp(): String = targetIp
+  override def getForwardedFor(): String = forwardedFor
+  override def getDomainApiUrl(): String = domainApiUrl
   override def getApiInstanceId(): String = apiInstanceId
   override def getConsentReferenceId(): String = consentReferenceId
   override def getCertificateTrust(): String = certificateTrust
@@ -638,8 +632,8 @@ object MappedMetric extends MetricStore[MappedMetric] {
     MappedMetric(id, row.userId, row.url, row.date, row.duration, row.userName, row.appName,
       row.developerEmail, row.consumerId, row.implementedByPartialFunction,
       row.implementedInVersion, row.verb, row.httpCode, row.correlationId, row.responseBody,
-      row.sourceIp, row.targetIp, row.apiInstanceId, row.consentReferenceId, row.certificateTrust,
-      row.certificateTrustDetail, row.authType)
+      row.sourceIp, row.targetIp, row.forwardedFor, row.apiInstanceId, row.consentReferenceId,
+      row.certificateTrust, row.certificateTrustDetail, row.authType, row.domainApiUrl)
 }
 
 /**
@@ -667,11 +661,13 @@ case class MetricArchive(
   responseBody: String,
   sourceIp: String,
   targetIp: String,
+  forwardedFor: String,
   apiInstanceId: String,
   consentReferenceId: String,
   certificateTrust: String,
   certificateTrustDetail: String,
-  authType: String
+  authType: String,
+  domainApiUrl: String
 ) extends APIMetric {
   override def getMetricId(): Long = metricId
   override def getUrl(): String = url
@@ -690,6 +686,8 @@ case class MetricArchive(
   override def getResponseBody(): String = responseBody
   override def getSourceIp(): String = sourceIp
   override def getTargetIp(): String = targetIp
+  override def getForwardedFor(): String = forwardedFor
+  override def getDomainApiUrl(): String = domainApiUrl
   override def getApiInstanceId(): String = apiInstanceId
   override def getConsentReferenceId(): String = consentReferenceId
   override def getCertificateTrust(): String = certificateTrust
@@ -708,8 +706,9 @@ object MetricArchive extends MetricStore[MetricArchive] {
     MetricArchive(id, row.metricId.getOrElse(0L), row.userId, row.url, row.date, row.duration,
       row.userName, row.appName, row.developerEmail, row.consumerId,
       row.implementedByPartialFunction, row.implementedInVersion, row.verb, row.httpCode,
-      row.correlationId, row.responseBody, row.sourceIp, row.targetIp, row.apiInstanceId,
-      row.consentReferenceId, row.certificateTrust, row.certificateTrustDetail, row.authType)
+      row.correlationId, row.responseBody, row.sourceIp, row.targetIp, row.forwardedFor,
+      row.apiInstanceId, row.consentReferenceId, row.certificateTrust, row.certificateTrustDetail,
+      row.authType, row.domainApiUrl)
 
   def findByMetricId(metricId: Long): Box[MetricArchive] =
     query(fr"WHERE metricid = $metricId ORDER BY id ASC LIMIT 1").headOption match {
@@ -729,9 +728,10 @@ object MetricArchive extends MetricStore[MetricArchive] {
                        consumerId: String, implementedByPartialFunction: String,
                        implementedInVersion: String, verb: String, httpCode: Option[Int],
                        correlationId: String, responseBody: String, sourceIp: String,
-                       targetIp: String, apiInstanceId: String, consentReferenceId: String,
-                       certificateTrust: String, certificateTrustDetail: String,
-                       authType: String): Boolean =
+                       targetIp: String, forwardedFor: String, apiInstanceId: String,
+                       consentReferenceId: String, certificateTrust: String,
+                       certificateTrustDetail: String, authType: String,
+                       domainApiUrl: String): Boolean =
     tryo {
       DoobieUtil.runUpdate(
         sql"DELETE FROM metricarchive WHERE metricid = $metricId".update.run)
@@ -739,15 +739,16 @@ object MetricArchive extends MetricStore[MetricArchive] {
         sql"""INSERT INTO metricarchive
               (metricid, userid, url, date_c, duration, username, appname, developeremail,
                consumerid, implementedbypartialfunction, implementedinversion, verb, httpcode,
-               correlationid, responsebody, sourceip, targetip, apiinstanceid,
-               consent_reference_id, certificate_trust, certificate_trust_detail, auth_type)
+               correlationid, responsebody, sourceip, targetip, forwarded_for, apiinstanceid,
+               consent_reference_id, certificate_trust, certificate_trust_detail, auth_type,
+               domain_api_url)
               VALUES ($metricId, ${opt(userId)}, ${opt(url)}, ${timestamp(date)}, $duration,
                ${opt(userName)}, ${opt(appName)}, ${opt(developerEmail)}, ${opt(consumerId)},
                ${opt(implementedByPartialFunction)}, ${opt(implementedInVersion)}, ${opt(verb)},
                ${httpCode.getOrElse(0)}, ${opt(correlationId)}, ${opt(responseBody)},
-               ${opt(sourceIp)}, ${opt(targetIp)}, ${opt(apiInstanceId)},
+               ${opt(sourceIp)}, ${opt(targetIp)}, ${opt(forwardedFor)}, ${opt(apiInstanceId)},
                ${opt(consentReferenceId)}, ${opt(certificateTrust)},
-               ${opt(certificateTrustDetail)}, ${opt(authType)})"""
+               ${opt(certificateTrustDetail)}, ${opt(authType)}, ${opt(domainApiUrl)})"""
           .update.run)
       true
     }.getOrElse(false)
@@ -772,11 +773,13 @@ case class MetricColumns(
   responseBody: String,
   sourceIp: String,
   targetIp: String,
+  forwardedFor: String,
   apiInstanceId: String,
   consentReferenceId: String,
   certificateTrust: String,
   certificateTrustDetail: String,
-  authType: String
+  authType: String,
+  domainApiUrl: String
 )
 
 /**
@@ -801,17 +804,18 @@ abstract class MetricStore[A] {
       List("id", if (hasMetricId) "metricid" else "CAST(NULL AS BIGINT)", "userid", "url",
         "date_c", "duration", "username", "appname", "developeremail", "consumerid",
         "implementedbypartialfunction", "implementedinversion", "verb", "httpcode",
-        "correlationid", "responsebody", "sourceip", "targetip", "apiinstanceid",
-        "consent_reference_id", "certificate_trust", "certificate_trust_detail", "auth_type")
+        "correlationid", "responsebody", "sourceip", "targetip", "forwarded_for", "apiinstanceid",
+        "consent_reference_id", "certificate_trust", "certificate_trust_detail", "auth_type",
+        "domain_api_url")
         .mkString("SELECT ", ", ", " FROM " + tableName))
 
-  // 21 or 22 columns, so the row is read as two nested tuples.
+  // 25 columns, so the row is read as two nested tuples.
   private type RowHead = (Long, Option[Long], Option[String], Option[String],
     Option[java.sql.Timestamp], Option[Long], Option[String], Option[String], Option[String],
     Option[String], Option[String])
   private type RowTail = (Option[String], Option[String], Option[Int], Option[String],
     Option[String], Option[String], Option[String], Option[String], Option[String], Option[String],
-    Option[String], Option[String])
+    Option[String], Option[String], Option[String], Option[String])
   private type Row = (RowHead, RowTail)
 
   /** A timestamp read back as a plain java.util.Date, which is what MappedDateTime handed out. */
@@ -822,15 +826,16 @@ abstract class MetricStore[A] {
     case ((id, metricId, userId, url, date, duration, userName, appName, developerEmail,
            consumerId, implementedByPartialFunction),
           (implementedInVersion, verb, httpCode, correlationId, responseBody, sourceIp, targetIp,
-           apiInstanceId, consentReferenceId, certificateTrust, certificateTrustDetail,
-           authType)) =>
+           forwardedFor, apiInstanceId, consentReferenceId, certificateTrust, certificateTrustDetail,
+           authType, domainApiUrl)) =>
       build(id, MetricColumns(metricId, userId.orNull, url.orNull, readDate(date),
         // A NULL number reads back as 0, which is what MappedLong and MappedInt did.
         duration.getOrElse(0L), userName.orNull, appName.orNull, developerEmail.orNull,
         consumerId.orNull, implementedByPartialFunction.orNull, implementedInVersion.orNull,
         verb.orNull, httpCode.getOrElse(0), correlationId.orNull, responseBody.orNull,
-        sourceIp.orNull, targetIp.orNull, apiInstanceId.orNull, consentReferenceId.orNull,
-        certificateTrust.orNull, certificateTrustDetail.orNull, authType.orNull))
+        sourceIp.orNull, targetIp.orNull, forwardedFor.orNull, apiInstanceId.orNull,
+        consentReferenceId.orNull, certificateTrust.orNull, certificateTrustDetail.orNull,
+        authType.orNull, domainApiUrl.orNull))
   }
 
   protected def query(condition: Fragment): List[A] =
@@ -867,6 +872,8 @@ abstract class MetricStore[A] {
       params.httpStatusCode.map(v => fr"httpcode = $v"),
       params.consentReferenceId.map(v => fr"consent_reference_id = ${opt(v)}"),
       params.certificateTrust.map(v => fr"certificate_trust = ${opt(v)}"),
+      // Starts with: a caller filters by the Domain API path prefix it used.
+      params.domainApiUrl.map(v => fr"domain_api_url LIKE ${opt(s"$v%")}"),
       // "Anonymous" is the literal four-letter string "null" in the user id column, not SQL NULL.
       // Preserved: rows written for unauthenticated calls carry that string.
       params.anon.map {

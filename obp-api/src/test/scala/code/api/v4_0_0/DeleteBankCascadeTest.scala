@@ -28,6 +28,10 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import org.json4s._
+import code.DynamicData.{DynamicData, DynamicDataAccess, DynamicDataProvider}
+import code.accountholders.MapperAccountHolders
+import code.dynamicEntity.{DynamicEntity, DynamicEntityCommons, DynamicEntityProvider}
+import net.liftweb.util.StringHelpers
 import code.api.Constant
 import java.util.concurrent.TimeUnit
 
@@ -39,9 +43,9 @@ import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequ
 import code.api.util.{APIUtil, ApiRole}
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
-import code.entitlement.Entitlement
+import code.entitlement.{Entitlement, MappedEntitlement}
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage}
+import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, BankId, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
@@ -59,6 +63,14 @@ class DeleteBankCascadeTest extends V400ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.deleteBankCascade))
   
   lazy val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
+
+  /** The record ids of the access rows granted at a space on an entity's records; the store has no such listing. */
+  private def accessRowIdsAt(space: String, entityName: String): List[String] = {
+    import doobie.implicits._
+    code.api.util.DoobieUtil.runQuery(
+      sql"SELECT dynamicdataid FROM dynamicdataaccess WHERE bankid = $space AND entityname = $entityName"
+        .query[Option[String]].to[List]).map(_.orNull)
+  }
 
 
   Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
@@ -158,7 +170,134 @@ class DeleteBankCascadeTest extends V400ServerSetup {
       val responseBody = response.body.extract[CustomersMinimalJsonV400]
       responseBody.customers.length equals 0
     }
+    scenario("We delete a bank whose accounts have paid by transaction requests", ApiEndpoint1, VersionOfApi) {
+      val bankId = createBank(APIUtil.generateUUID()).bankId.value
+      val (fromAccountId, toAccountId, transactionRequestIds) = createPaymentsForDeleteCascade(bankId)
+      doubleEntryBookTransactionsOfAccount(bankId, fromAccountId) should not be empty
+      transactionRequestsAndChallenges(transactionRequestIds)._2 should not be empty
+
+      When("We grant the role")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteBankCascade.toString)
+      And("We make a delete cascade request v4.0.0")
+      val deleteRequest400 = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId ).DELETE <@(user1)
+      makeDeleteRequest(deleteRequest400).code should equal(200)
+
+      Then("The double-entry book rows, transaction requests and challenges of its accounts are deleted")
+      doubleEntryBookTransactionsOfAccount(bankId, fromAccountId) shouldBe empty
+      doubleEntryBookTransactionsOfAccount(bankId, toAccountId) shouldBe empty
+      val (transactionRequestsAfter, challengesAfter) = transactionRequestsAndChallenges(transactionRequestIds)
+      transactionRequestsAfter shouldBe empty
+      challengesAfter shouldBe empty
+    }
+    scenario("We delete a bank that has dynamic entities, their records and a ZZ_BAK_ copy", ApiEndpoint1, VersionOfApi) {
+      val bankId = createBank(APIUtil.generateUUID()).bankId.value
+      val otherBankId = createBank(APIUtil.generateUUID()).bankId.value
+      val owner = "bank-cascade-owner"
+      val suffix = APIUtil.generateUUID().take(8).replace("-", "")
+      def defineWithRecord(space: String, name: String): Unit = {
+        DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(DynamicEntityCommons(
+          name, s"""{"$name":{"properties":{"${StringHelpers.snakify(name)}_id":{"type":"string"},"note":{"type":"string"}}}}""",
+          None, owner, Some(space), hasPersonalEntity = false)).openOrThrowException("definition")
+        DynamicDataProvider.connectorMethodProvider.vend.save(Some(space), name,
+          JObject(JField(StringHelpers.snakify(name) + "_id", JString(APIUtil.generateUUID())), JField("note", JString("kept?"))),
+          Some(owner), false).openOrThrowException("record")
+      }
+      defineWithRecord(bankId, s"Echo$suffix")
+      defineWithRecord(bankId, s"ZZ_BAK_Echo$suffix")
+      defineWithRecord(otherBankId, s"Echo$suffix")
+      def definitionsAt(space: String) = DynamicEntity.findAllScoped(Some(space))
+      def recordsAt(space: String) = DynamicData.findAll().filter(_.bankId.contains(space))
+      val readRole = s"CanGetDynamicEntityRecord_Echo$suffix"
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, readRole)
+      def readRoleGrantsAt(space: String) = MappedEntitlement.findAllByBankId(space).filter(_.roleName == readRole)
+      definitionsAt(bankId) should have size 2
+      recordsAt(bankId) should have size 2
+      readRoleGrantsAt(bankId) should have size 1
+
+      When("We grant the role and delete the bank with the cascading endpoint")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteBankCascade.toString)
+      makeDeleteRequest((v4_0_0_Request / "management" / "cascading" / "banks" / bankId).DELETE <@(user1)).code should equal(200)
+
+      Then("The bank's definitions and records are gone, and the other bank keeps its own")
+      definitionsAt(bankId) shouldBe empty
+      recordsAt(bankId) shouldBe empty
+      readRoleGrantsAt(bankId) shouldBe empty
+      definitionsAt(otherBankId) should have size 1
+      recordsAt(otherBankId) should have size 1
+    }
+
+    scenario("We delete a bank whose id is the one that marks the system space", ApiEndpoint1, VersionOfApi) {
+      val bankId = createBank(Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID).bankId.value
+      val name = s"System${APIUtil.generateUUID().take(8).replace("-", "")}"
+      // A system level definition and record, which are stored under that same marker.
+      DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(DynamicEntityCommons(
+        name, s"""{"$name":{"properties":{"${StringHelpers.snakify(name)}_id":{"type":"string"},"note":{"type":"string"}}}}""",
+        None, "bank-cascade-owner", None, hasPersonalEntity = false)).openOrThrowException("definition")
+      DynamicDataProvider.connectorMethodProvider.vend.save(None, name,
+        JObject(JField(StringHelpers.snakify(name) + "_id", JString(APIUtil.generateUUID())), JField("note", JString("kept"))),
+        Some("bank-cascade-owner"), false).openOrThrowException("record")
+      def systemDefinitions = DynamicEntity.findAll().filter(_.entityName == name)
+      def systemRecords = DynamicData.findAll().filter(_.dynamicEntityName == name)
+      systemDefinitions should have size 1
+      systemRecords should have size 1
+
+      When("We delete that bank with the cascading endpoint")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteBankCascade.toString)
+      makeDeleteRequest((v4_0_0_Request / "management" / "cascading" / "banks" / bankId).DELETE <@(user1)).code should equal(200)
+
+      Then("The bank is gone, and the system level definition and its record are kept")
+      code.model.dataAccess.MappedBank.findByBankId(BankId(bankId)).isDefined should equal(false)
+      systemDefinitions should have size 1
+      systemRecords should have size 1
+    }
+
+    scenario("We delete a bank that has records whose definition is already gone", ApiEndpoint1, VersionOfApi) {
+      val bankId = createBank(APIUtil.generateUUID()).bankId.value
+      val otherBankId = createBank(APIUtil.generateUUID()).bankId.value
+      // A definition can be deleted while personal records of it remain (its delete checks for community
+      // records only), which leaves records, and the access rows granted on them, with no definition.
+      val entityName = s"Gone${APIUtil.generateUUID().take(8).replace("-", "")}"
+      def orphanAt(space: String): Unit = {
+        val record = DynamicData.insert(dynamicDataId = APIUtil.generateUUID(), entityName = entityName,
+          dataJson = "{}", bankId = Some(space), userId = Some("bank-cascade-owner"), isPersonalEntity = true,
+          writerUserId = null, writerOnBehalfOfUserId = null)
+        DynamicDataAccess.grant(bankId = Some(space), entityName = entityName,
+          dynamicDataId = record.dynamicDataId.orNull, userId = resourceUser2.userId, canRead = true,
+          canUpdate = false, canDelete = false, canGrant = false, grantedBy = "bank-cascade-owner")
+      }
+      orphanAt(bankId)
+      orphanAt(otherBankId)
+      def recordsAt(space: String) = DynamicData.findAll(Some(space), entityName, None)
+      def accessRowsAt(space: String) = accessRowIdsAt(space, entityName)
+
+      When("We delete the bank with the cascading endpoint")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteBankCascade.toString)
+      makeDeleteRequest((v4_0_0_Request / "management" / "cascading" / "banks" / bankId).DELETE <@(user1)).code should equal(200)
+
+      Then("Those records and access rows go with the bank, and the other bank keeps its own")
+      recordsAt(bankId) shouldBe empty
+      accessRowsAt(bankId) shouldBe empty
+      recordsAt(otherBankId) should have size 1
+      accessRowsAt(otherBankId) should have size 1
+    }
+
+    scenario("We delete a bank whose accounts have holders", ApiEndpoint1, VersionOfApi) {
+      val bankId = createBank(APIUtil.generateUUID()).bankId.value
+      val accountId = createAccountViaEndpoint(bankId, addAccountJson, user1).account_id
+      def accountHolders = MapperAccountHolders.findAll()
+        .filter(holder => holder.accountBankPermalink == bankId && holder.accountPermalink == accountId)
+      accountHolders should not be empty
+
+      When("We grant the role")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteBankCascade.toString)
+      And("We delete the bank with the cascading endpoint")
+      val deleteRequest400 = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId ).DELETE <@(user1)
+      makeDeleteRequest(deleteRequest400).code should equal(200)
+
+      Then("The holders of its accounts are deleted")
+      accountHolders shouldBe empty
+    }
   }
-  
+
 
 }

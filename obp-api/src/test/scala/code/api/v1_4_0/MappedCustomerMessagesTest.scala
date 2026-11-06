@@ -30,6 +30,8 @@ package code.api.v1_4_0
 import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{APIUtil, ApiRole}
+import code.api.util.ErrorMessages.{CustomerNotFoundByCustomerId, UserHasMissingRoles}
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerFaceImageJson, CustomerMessagesJson}
 import code.api.v2_0_0.CreateCustomerJson
 import code.customer.{CustomerX, MappedCustomerMessage}
@@ -96,6 +98,8 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       }
 
       When("We add a message")
+      // sending a customer message needs CanCreateCustomerMessage at the bank
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanCreateCustomerMessage.toString)
       request = (v1_4Request / "banks" / testBankId1.value / "customer" / customerId / "messages").POST <@ user1
       val messageJson = AddCustomerMessageJson("some message", "some department", "some person")
       response = makePostRequest(request, write(messageJson))
@@ -114,6 +118,56 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       msg.from_person should equal(messageJson.from_person)
       msg.id.nonEmpty should equal(true)
     }
+
+    // without the role, a logged-in user cannot put messages in a customer's inbox
+    scenario("Adding a message without CanCreateCustomerMessage") {
+      When("A user without the role adds a message")
+      val request = (v1_4Request / "banks" / testBankId1.value / "customer" / "some-customer-id" / "messages").POST <@ user2
+      val response = makePostRequest(request, write(AddCustomerMessageJson("some message", "some department", "some person")))
+      Then("We should get a 403")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + ApiRole.canCreateCustomerMessage)
+    }
+
+    // a customer of another bank is treated as not found, so nothing is told about other banks' customers
+    scenario("Adding a message to a customer of another bank") {
+      val customerId = createCustomerAtBank1()
+      Entitlement.entitlement.vend.addEntitlement(testBankId2.value, resourceUser1.userId, ApiRole.CanCreateCustomerMessage.toString)
+
+      When("We add a message at bank 2 for a customer of bank 1")
+      val request = (v1_4Request / "banks" / testBankId2.value / "customer" / customerId / "messages").POST <@ user1
+      val response = makePostRequest(request, write(AddCustomerMessageJson("some message", "some department", "some person")))
+      Then("We should get a 404")
+      response.code should equal(404)
+      response.body.extract[ErrorMessage].message should startWith(CustomerNotFoundByCustomerId)
+      MappedCustomerMessage.count() should equal(0)
+    }
+  }
+
+  // creates a customer at bank 1 linked to resourceUser1 and returns its customer id
+  private def createCustomerAtBank1(): String = {
+    Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanCreateCustomer.toString)
+    Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
+    val customerJson = CreateCustomerJson(
+      title = "Title",
+      branchId = "The branchId",
+      nameSuffix = "The nameSuffix",
+      user_id = resourceUser1.userId,
+      customer_number = mockCustomerNumber,
+      legal_name = "Someone",
+      mobile_phone_number = "125245",
+      email = "hello@hullo.com",
+      face_image = CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
+      date_of_birth = exampleDate,
+      relationship_status = "Single",
+      dependants = 1,
+      dob_of_dependants = List(exampleDate),
+      highest_education_attained = "Bachelor’s Degree",
+      employment_status = "Employed",
+      kyc_status = true,
+      last_ok_date = exampleDate)
+    makePostRequest((v1_4Request / "banks" / testBankId1.value / "customer").POST <@ user1, write(customerJson))
+    CustomerX.customerProvider.vend.getCustomerByCustomerNumber(mockCustomerNumber, testBankId1).map(_.customerId).openOrThrowException("customer not created")
   }
 
 

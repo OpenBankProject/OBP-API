@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.users
 
-import code.api.util.DoobieUtil
+import code.api.util.{DBUtil, DoobieUtil}
 import code.loginattempts.LoginAttempt
 import doobie._
 import doobie.implicits._
@@ -150,7 +150,11 @@ object DoobieUserQueries {
     val emailFilter:    Fragment = email.map(v => fr"AND ru.email       = $v").getOrElse(Fragment.empty)
     val userIdFilter:   Fragment = userId.map(v => fr"AND ru.userid_    = $v").getOrElse(Fragment.empty)
     val deletedFlag: Boolean     = isDeleted.getOrElse(false)
-    val deletedFilter: Fragment  = fr"AND (ru.isdeleted = $deletedFlag OR ru.isdeleted IS NULL AND $deletedFlag = false)"
+    val deletedFilter: Fragment  = if (deletedFlag) {
+      fr"AND ru.isdeleted = ${true}"
+    } else {
+      fr"AND (ru.isdeleted = ${false} OR ru.isdeleted IS NULL)"
+    }
 
     val lockedFilter: Fragment = lockedStatus.map(_.toLowerCase) match {
       case Some("locked") =>
@@ -184,8 +188,16 @@ object DoobieUserQueries {
     val sortDir:    String = if (sortAsc) "ASC" else "DESC"
     val orderBy:   Fragment = Fragment.const(s"ORDER BY $sortColumn $sortDir")
 
+    val isLockedCase = if (DBUtil.isSqlServer) {
+      fr"$maxBadLogin THEN 1 ELSE 0 END AS is_locked"
+    } else {
+      fr"$maxBadLogin THEN true ELSE false END AS is_locked"
+    }
+
+    val pagination = DoobieUtil.pagination(limit, offset)
+
     val query: ConnectionIO[List[UserSearchRow]] =
-      (selectColumns ++ fr"$maxBadLogin THEN true ELSE false END AS is_locked" ++
+      (selectColumns ++ isLockedCase ++
         joinTables ++
         fr"WHERE 1=1" ++
         providerFilter ++
@@ -197,7 +209,7 @@ object DoobieUserQueries {
         roleFilter ++
         notMintedByAConsentFilter ++
         orderBy ++
-        fr"LIMIT $limit OFFSET $offset")
+        pagination)
         .query[UserSearchRow]
         .to[List]
 

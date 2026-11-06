@@ -15,7 +15,7 @@ This document is the menu of responses to that staleness, cheapest to heaviest: 
 
 ## Dependency-surface coupling: `lift-webkit` is hostage to Mapper (verified 2026-06-05)
 
-This is the clearest concrete symptom of the staleness problem. The Lift Web teardown (PR #2828) removed every `net.liftweb.http` import from OBP source (128 files → 0) and deleted `Http4sLiftWebBridge`. That shrank the *reachable* attack surface, but it did **not** shrink the dependency/CVE-scan surface: `lift-webkit_2.12-3.5.0.jar` (the jar that *contains* `net.liftweb.http`) is still on the classpath, pulled in transitively:
+This is the clearest concrete symptom of the staleness problem. The Lift Web teardown (PR #2828) removed every `net.liftweb.http` import from OBP source (128 files → 0) and deleted the Lift request fallback. That shrank the *reachable* attack surface, but it did **not** shrink the dependency/CVE-scan surface: `lift-webkit_2.12-3.5.0.jar` (the jar that *contains* `net.liftweb.http`) is still on the classpath, pulled in transitively:
 
 ```
 obp-api → lift-mapper → lift-db   → lift-webkit   (3.5.0)

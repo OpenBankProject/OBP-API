@@ -40,14 +40,7 @@ import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.Future
 
-/**
- * A postal address held for a customer.
- *
- * `status` returns the STATE column, not the status column. That is a pre-existing defect in the
- * entity's accessor, not a transcription slip here: the endpoints above it have always reported
- * state in the status field, and the mstatus column has always been written but never read.
- * Correcting it would change what every existing caller sees, so it is preserved and stated.
- */
+/** A postal address held for a customer. */
 case class MappedCustomerAddress(
   customerId: String,
   customerAddressId: String,
@@ -60,28 +53,27 @@ case class MappedCustomerAddress(
   postcode: String,
   countryCode: String,
   tags: String,
+  status: String,
   insertDate: Date
-) extends CustomerAddress {
-  override def status: String = state
-}
+) extends CustomerAddress
 
 object MappedCustomerAddress {
 
   // mcustomerid holds MAPPEDCUSTOMER's numeric key, so the public customer id comes from the join.
   private val selectColumns =
     fr"""SELECT COALESCE(c.mcustomerid, ''), a.mcustomeraddressid, a.mline1, a.mline2, a.mline3,
-                a.mcity, a.mcounty, a.mstate, a.mpostcode, a.mcountrycode, a.mtags, a.createdat
+                a.mcity, a.mcounty, a.mstate, a.mpostcode, a.mcountrycode, a.mtags, a.mstatus, a.createdat
          FROM mappedcustomeraddress a
          LEFT JOIN mappedcustomer c ON c.id = a.mcustomerid"""
 
   private type Row = (String, String, String, String, String, String, String, String, String,
-    String, String, java.sql.Timestamp)
+    String, String, Option[String], java.sql.Timestamp)
 
   private def fromRow(row: Row): MappedCustomerAddress = row match {
     case (customerId, customerAddressId, line1, line2, line3, city, county, state, postcode,
-          countryCode, tags, createdAt) =>
+          countryCode, tags, status, createdAt) =>
       MappedCustomerAddress(customerId, customerAddressId, line1, line2, line3, city, county,
-        state, postcode, countryCode, tags, createdAt)
+        state, postcode, countryCode, tags, status.orNull, createdAt)
   }
 
   private def query(condition: Fragment): List[MappedCustomerAddress] =

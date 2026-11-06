@@ -29,7 +29,7 @@ package code.api.UKOpenBanking.v4_0_1
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError}
@@ -59,7 +59,7 @@ object Http4sUKOBv401EventNotifications extends MdcLoggable {
   val ukV401Prefix = Root / ApiVersion.ukOpenBankingV401.urlPrefix / ApiVersion.ukOpenBankingV401.apiShortVersion
 
   private val EX_createEventNotification: String = """{}"""
-  lazy val createEventNotification: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createEventNotification: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "event-notifications" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createEventNotification)))
   }
@@ -77,7 +77,9 @@ object Http4sUKOBv401EventNotifications extends MdcLoggable {
     http4sPartialFunction = Some(createEventNotification)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    createEventNotification(req)
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    createEventNotification
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

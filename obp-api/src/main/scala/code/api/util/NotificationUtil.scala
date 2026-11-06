@@ -29,54 +29,56 @@ package code.api.util
 
 import code.api.Constant
 import code.entitlement.Entitlement
+import code.messageoutbox.MessageOutbox
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
 import net.liftweb.common.Box
-
-
-import scala.collection.immutable.List
-import scala.concurrent.Future
-import com.openbankproject.commons.ExecutionContext.Implicits.global
+import net.liftweb.util.Helpers.tryo
 
 object NotificationUtil extends MdcLoggable {
-  def sendEmailRegardingAssignedRole(userId : String, entitlement: Entitlement): Unit = {
-    // Fire-and-forget: the user lookup and the SMTP send both block, and the
-    // grant-entitlement response must not wait on them.
-    Future {
-      val user = Users.users.vend.getUserByUserId(userId)
-      sendEmailRegardingAssignedRole(user, entitlement)
-    }.failed.foreach(e =>
-      logger.error(s"sendEmailRegardingAssignedRole says: failed for userId=$userId role=${entitlement.roleName}", e)
-    )
-  }
+  /**
+   * Queue the "you have been granted a Role" email in the message outbox; the relay sends it.
+   *
+   * The row is written in the caller's transaction, so a grant that is rolled back (a request that
+   * fails or times out) emails nobody, and the SMTP send never runs on a request thread. Sending on
+   * the shared pool instead let a burst of grants (a Group sync granting dozens of Roles to each
+   * member) occupy every thread with blocking sends and stall the whole API.
+   */
+  def sendEmailRegardingAssignedRole(userId : String, entitlement: Entitlement): Unit =
+    sendEmailRegardingAssignedRole(Users.users.vend.getUserByUserId(userId), entitlement)
+
   def sendEmailRegardingAssignedRole(user: Box[User], entitlement: Entitlement): Unit = {
-    val mailSent = for {
+    val queued = for {
       user <- user
       from <- APIUtil.getPropsValue("mail.api.consumer.registered.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
-    } yield {
-      val bodyOfMessage : String = s"""Dear ${user.name},
-                                      |
-                                      |You have been granted the entitlement to use ${entitlement.roleName} on ${Constant.HostName}
-                                      |
-                                      |Cheers
-                                      |""".stripMargin
-      val emailContent = CommonsEmailWrapper.EmailContent(
-        from = from,
-        to = List(user.emailAddress),
-        subject = s"You have been granted the role: ${entitlement.roleName}",
-        textContent = Some(bodyOfMessage)
-      )
-      // Blocking SMTP send (Transport.send) — only call this off the request
-      // thread; the userId overload above wraps it in a Future.
-      CommonsEmailWrapper.sendTextEmail(emailContent)
-    }
-    if(mailSent.isEmpty) {
+      row <- {
+        val bodyOfMessage : String = s"""Dear ${user.name},
+                                        |
+                                        |You have been granted the entitlement to use ${entitlement.roleName} on ${Constant.HostName}
+                                        |
+                                        |Cheers
+                                        |""".stripMargin
+        tryo(MessageOutbox.enqueueEmail(
+          subjectId = entitlement.entitlementId,
+          subjectIdType = MessageOutbox.SUBJECT_TYPE_ENTITLEMENT_ID,
+          operationName = MessageOutbox.OPERATION_ROLE_GRANTED_EMAIL,
+          CommonsEmailWrapper.EmailContent(
+            from = from,
+            to = List(user.emailAddress),
+            subject = s"You have been granted the role: ${entitlement.roleName}",
+            textContent = Some(bodyOfMessage)
+          )
+        ))
+      }
+    } yield row
+    if(queued.isEmpty) {
       val info =
         s"""
            |Sending email is omitted.
            |User: $user
            |Props mail.api.consumer.registered.sender.address: ${APIUtil.getPropsValue("mail.api.consumer.registered.sender.address")}
+           |Reason: $queued
            |""".stripMargin
       this.logger.warn(info)
     }

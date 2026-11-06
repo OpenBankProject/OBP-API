@@ -76,6 +76,7 @@ package object bankconnectors extends MdcLoggable {
     // Record the outcome of a connector call: counters, plus optional detailed metric/trace persistence.
     def recordConnectorInboundMetrics(connectorName: String, methodName: String, correlationId: String,
                                        duration: Long, isSuccess: Boolean, args: Array[AnyRef]): Unit = {
+      code.telemetry.Telemetry.recordConnectorCall(connectorName, methodName, duration, isSuccess)
       ConnectorCountsRedis.incrementInbound(connectorName, methodName, isSuccess)
       if (getPropsAsBoolValue("write_connector_metrics", false)) {
         val params = extractKeyParams(args)

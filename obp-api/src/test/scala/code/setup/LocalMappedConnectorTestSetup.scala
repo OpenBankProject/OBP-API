@@ -355,6 +355,27 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM mappedbankaccount".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM viewdefinition".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM account_creation".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM asset".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM assetstatushistory".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM consumer_account_access".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM domain_api".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM dynamic_entity_webhook".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM file_t".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM fileaccess".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM fileattachment".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM filecontent".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM groupmembership".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM platform_app".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM platform_app_required_scope".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionarchive".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionarchivecontent".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionhold".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionpolicy".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionrun".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionrunitem".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM selfservicebank".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM tenant".update.run)
 
     
     // Delete only THIS shard's namespaced Redis keys. Each parallel shard uses a distinct
@@ -363,6 +384,14 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     // would clear the whole shared DB and cause cross-shard rate-limit/cache flakiness.
     try {
       Redis.deleteKeysByPattern(code.api.Constant.getGlobalCacheNamespacePrefix + "*")
+      // Deleting the keys also deletes the cache namespace version counters, so each one starts
+      // again at 1 and a version number seen in the last scenario comes round again. Anything held
+      // in this JVM under such a version would then look current when it is not: the ResourceDoc
+      // vocabulary rebuilt for the last scenario's Dynamic Entities, for example, would be reused
+      // and a new entity's function names dropped from a `functions` filter. So forget those copies
+      // along with the keys.
+      code.api.Constant.forgetRecentCacheNamespaceVersions()
+      code.api.util.ResourceDocVocabulary.refreshDynamic()
     } catch {
       case e: Throwable =>
         logger.warn("------------| Redis issue during flushing data |------------")

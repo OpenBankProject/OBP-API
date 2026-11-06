@@ -35,6 +35,7 @@ import doobie.implicits.javasql._
 import net.liftweb.common.{Box, Empty, EmptyBox, Full}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 
 object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJsonFormats with MdcLoggable {
 
@@ -70,6 +71,8 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
     // §8.4: switching useRowLevelAccess on for an entity that already has rows makes those
     // rows admin-only (no backfill). Warn so the operator grants access deliberately.
     val wasRowLevel = existsDynamicEntity.map(_.useRowLevelAccess).getOrElse(false)
+    // Read before the save changes the row: the webhooks compare their field conditions against it.
+    val fieldTypesBefore = existsDynamicEntity.map(code.dynamicentitywebhook.DynamicEntityWebhookConditions.fieldTypes)
     if (!wasRowLevel && dynamicEntity.useRowLevelAccess) {
       // Every record of the entity in scope, whatever its owner — switching row-level access on
       // affects them all.
@@ -87,10 +90,10 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           dynamicEntityId = existsDynamicEntity.toOption.flatMap(_.dynamicEntityId),
           entityName = dynamicEntity.entityName,
           metadataJson = dynamicEntity.metadataJson,
-          // Definition creator resolves to the on-behalf-of user (UserReference.DynamicEntityUser):
+          // Definition creator resolves to the on-behalf-of user (UserReference.DynamicEntity_UserId):
           // a consent user owns nothing durable. ON_BEHALF_OF_USER_ID_PLAN.md, Phase 2.
           userId = code.users.Users.users.vend
-            .attributedUserId(dynamicEntity.userId, code.users.UserReference.DynamicEntityUser)
+            .attributedUserId(dynamicEntity.userId, code.users.UserReference.DynamicEntity_UserId)
             .openOr(dynamicEntity.userId),
           bankId = dynamicEntity.bankId,
           hasPersonalEntity = dynamicEntity.hasPersonalEntity,
@@ -99,6 +102,8 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           personalRequiresRole = dynamicEntity.personalRequiresRole,
           useRowLevelAccess = dynamicEntity.useRowLevelAccess,
           authMode = dynamicEntity.authMode)
+        code.api.dynamic.entity.helper.DynamicEntityHelper.forgetDefinitions()
+        fieldTypesBefore.foreach(code.dynamicentitywebhook.DynamicEntityWebhookDefinitionChanges.afterUpdate(saved, _))
         // DE_indexing: provision/refresh the projection for this definition's indexed scalar fields.
         // Guarded by projectionEnabled (default off); best-effort (a failure leaves the definition saved
         // and queries reporting pending, not a broken create). Fields passed explicitly because the new
@@ -128,12 +133,22 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
 
 
   override def delete(dynamicEntity: DynamicEntityT): Box[Boolean] = Box.tryo{
-    // A row we loaded is deleted by its own id; anything else only names an entity, so every row
-    // with that name goes — the same two-branch behaviour Mapper had.
-    dynamicEntity match {
-      case v: DynamicEntity => DynamicEntity.deleteById(v.dynamicEntityId.getOrElse(""))
-      case v => DynamicEntity.deleteByEntityName(v.entityName)
+    // The entity's webhooks go with it, whichever branch below deletes it.
+    val dynamicEntityIds = dynamicEntity match {
+      case v: DynamicEntity => v.dynamicEntityId.toList
+      case v => DynamicEntity.findAllScopedByName(v.bankId, v.entityName)
+        .flatMap(_.dynamicEntityId)
     }
+    dynamicEntityIds.filter(_.nonEmpty).foreach(code.dynamicentitywebhook.DynamicEntityWebhookDefinitionChanges.beforeDelete)
+    try dynamicEntity match {
+      case v: DynamicEntity => DynamicEntity.deleteById(v.dynamicEntityId.getOrElse(""))
+      // Anything that is not one of our own rows is matched by name, and a name identifies an entity
+      // only within one space: two spaces may each hold one called country. Without the bank id this
+      // deletes every space's copy. No caller reaches this branch today -- both pass a row this
+      // provider just returned -- but the signature takes any DynamicEntityT, and DynamicEntityCommons
+      // is what a caller naturally holds, so the branch is one call away from being reached.
+      case v => DynamicEntity.deleteScopedByName(v.bankId, v.entityName)
+    } finally code.api.dynamic.entity.helper.DynamicEntityHelper.forgetDefinitions()
   }
 
   private[this] def getByDynamicEntityId(dynamicEntityId: String): Box[DynamicEntity] =
@@ -144,10 +159,10 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
 /**
  * One runtime-defined entity type.
  *
- * `bankId` genuinely holds NULL for system-level entities. Unlike the message-doc and
- * resource-doc providers, whose reads leave bankid unconstrained when no bank is supplied, every
- * read here uses `IS NULL` for the system-level case — so a system-level lookup does not see
- * bank-level entities. The three providers differ and each keeps its own behaviour.
+ * A system level definition stores the SYS sentinel (Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+ * in bankid rather than a SQL NULL, as the data tables do: one convention for the whole feature,
+ * and a value a unique index can compare. Every read names the space exactly, so a system-level
+ * lookup does not see bank-level entities.
  */
 case class DynamicEntity(
   private val dynamicEntityIdRaw: String,
@@ -165,7 +180,10 @@ case class DynamicEntity(
   authMode: String = DynamicEntityAuthMode.default
 ) extends DynamicEntityT {
   override def dynamicEntityId: Option[String] = Option(dynamicEntityIdRaw)
-  override def bankId: Option[String] = bankIdRaw.filter(b => b != null && b.nonEmpty)
+  // The sentinel is filtered back out here so every reader still sees None for the system space.
+  // Empty and null are read as the system space too: rows written before the sentinel existed.
+  override def bankId: Option[String] =
+    bankIdRaw.filter(b => b != null && b.nonEmpty && b != code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
 }
 
 object DynamicEntity {
@@ -202,9 +220,13 @@ object DynamicEntity {
       case None => Empty
     }
 
-  /** `None` means the column must be NULL, matching Lift's NullRef — not "do not filter". */
+  /** The value bankid holds for a space: the bank's id, or SYS for the system space (None). */
+  private def storedBankId(bankId: Option[String]): String =
+    code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrSystem(bankId)
+
+  /** Exactly one space - `None` is the system space, not "do not filter". */
   private def scopedBank(bankId: Option[String]): Fragment =
-    bankId.map(b => fr"bankid = $b").getOrElse(fr"bankid IS NULL")
+    fr"bankid = ${storedBankId(bankId)}"
 
   def findScopedById(bankId: Option[String], dynamicEntityId: String): Box[DynamicEntity] =
     one(fr"WHERE dynamicentityid = $dynamicEntityId AND " ++ scopedBank(bankId))
@@ -219,6 +241,9 @@ object DynamicEntity {
   def findAllScoped(bankId: Option[String]): List[DynamicEntity] =
     query(fr"WHERE " ++ scopedBank(bankId) ++ fr"ORDER BY id ASC")
 
+  def findAllScopedByName(bankId: Option[String], entityName: String): List[DynamicEntity] =
+    query(fr"WHERE entityname = $entityName AND " ++ scopedBank(bankId) ++ fr"ORDER BY id ASC")
+
   def findAll(): List[DynamicEntity] = query(fr"ORDER BY id ASC")
 
   def findAllByUserId(userId: String): List[DynamicEntity] =
@@ -232,7 +257,8 @@ object DynamicEntity {
     val id = dynamicEntityId.getOrElse(APIUtil.generateUUID())
     val updated = DoobieUtil.runUpdate(
       sql"""UPDATE dynamicentity SET entityname = ${Option(entityName)},
-              metadatajson = ${Option(metadataJson)}, userid = ${Option(userId)}, bankid = $bankId,
+              metadatajson = ${Option(metadataJson)}, userid = ${Option(userId)},
+              bankid = ${storedBankId(bankId)},
               haspersonalentity = $hasPersonalEntity, haspublicaccess = $hasPublicAccess,
               hascommunityaccess = $hasCommunityAccess,
               personalrequiresrole = $personalRequiresRole,
@@ -246,7 +272,7 @@ object DynamicEntity {
                haspublicaccess, hascommunityaccess, personalrequiresrole, userowlevelaccess,
                authmode, createdat, updatedat)
               VALUES ($id, ${Option(entityName)}, ${Option(metadataJson)}, ${Option(userId)},
-               $bankId, $hasPersonalEntity, $hasPublicAccess, $hasCommunityAccess,
+               ${storedBankId(bankId)}, $hasPersonalEntity, $hasPublicAccess, $hasCommunityAccess,
                $personalRequiresRole, $useRowLevelAccess,
                ${Option(DynamicEntityAuthMode.normalise(authMode))}, $now, $now)"""
           .update.run)
@@ -258,9 +284,13 @@ object DynamicEntity {
     DoobieUtil.runUpdate(
       sql"DELETE FROM dynamicentity WHERE dynamicentityid = $dynamicEntityId".update.run) > 0
 
-  def deleteByEntityName(entityName: String): Boolean = {
+  /**
+   * A name identifies an entity only within one space: two spaces may each hold one called country,
+   * so a delete by name names the space as well.
+   */
+  def deleteScopedByName(bankId: Option[String], entityName: String): Boolean = {
     DoobieUtil.runUpdate(
-      sql"DELETE FROM dynamicentity WHERE entityname = $entityName".update.run)
+      (fr"DELETE FROM dynamicentity WHERE entityname = $entityName AND " ++ scopedBank(bankId)).update.run)
     true
   }
 

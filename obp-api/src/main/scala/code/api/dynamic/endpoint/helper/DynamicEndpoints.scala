@@ -31,9 +31,10 @@ import org.json4s._
 import cats.effect.IO
 import code.api.dynamic.endpoint.helper.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
 import code.api.dynamic.endpoint.helper.practise.PractiseEndpointGroup
-import code.api.util.DynamicUtil.{Sandbox, Validation}
+import code.api.util.DynamicUtil.{DynamicCodeBody, Validation}
 import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, Http4sEndpointIO, PrimaryDataBody, ResourceDoc, StringBody, getDisabledEndpointOperationIds}
-import code.api.util.{CallContext, DynamicUtil}
+import code.api.util.{APIUtil, CallContext, DynamicUtil, ErrorMessages}
+import code.api.JsonResponseException
 import net.liftweb.common.{Box, Failure, Full}
 import org.json4s.{JNothing, JValue}
 import org.json4s.JsonAST.{JBool, JDouble, JInt, JString}
@@ -42,6 +43,18 @@ import org.http4s.{Request, Response}
 
 import java.net.URLDecoder
 import scala.collection.immutable.List
+
+/**
+ * What a request under /obp/dynamic-endpoint/ names: one runtime-compiled endpoint (with the request it
+ * should be run as, which may be the canonical form of the URL the caller used), several that the URL
+ * cannot tell apart, or none.
+ */
+sealed trait DynamicEndpointMatch
+object DynamicEndpointMatch {
+  case class Found(doc: ResourceDoc, request: Request[IO]) extends DynamicEndpointMatch
+  case class Ambiguous(spaces: List[String]) extends DynamicEndpointMatch
+  case object NotFound extends DynamicEndpointMatch
+}
 
 object DynamicEndpoints {
   //TODO, better put all other dynamic endpoints into this list. eg: dynamicEntityEndpoints, dynamicSwaggerDocsEndpoints ....
@@ -65,12 +78,35 @@ object DynamicEndpoints {
    * (ResourceDoc.authCheckIO) and the handler. Replaces the former Lift `dynamicEndpoint`
    * (PartialFunction[Req, CallContext => Box[JsonResponse]]) that ran through the Lift dispatch.
    */
-  def findEndpoint(req: Request[IO]): Option[ResourceDoc] = {
+  def findEndpoint(req: Request[IO]): DynamicEndpointMatch = {
     val partPath = req.uri.path.segments.drop(2).map(_.encoded).toList // segments after /obp/dynamic-endpoint
     val verb = req.method.name
-    endpointGroups.iterator
-      .flatMap(_.docs.iterator)
-      .find(doc => doc.requestVerb == verb && doc.dynamicHttp4sFunction.isDefined && doc.matchesPartPath(partPath))
+    def servable(doc: ResourceDoc): Boolean = doc.requestVerb == verb && doc.dynamicHttp4sFunction.isDefined
+    val otherGroups = endpointGroups.filterNot(_ == DynamicResourceDocsEndpointGroup)
+    val resourceDocs = if (endpointGroups.contains(DynamicResourceDocsEndpointGroup)) DynamicResourceDocsEndpointGroup.docs.filter(servable) else Nil
+
+    otherGroups.iterator.flatMap(_.docs.iterator).find(doc => servable(doc) && doc.matchesPartPath(partPath)) match {
+      case Some(doc) => DynamicEndpointMatch.Found(doc, req)
+      case None => partPath match {
+        // The URL names its space: /banks/BANK_ID/dynamic-resource-doc/..., BANK_ID being a bank's id or SYS.
+        // The space segment is compared exactly first: matchesPartPath alone would read an upper-case
+        // space such as SYS as a path variable, and so match it against any bank id.
+        case "banks" :: space :: _ =>
+          resourceDocs.find(doc => DynamicResourceDocsEndpointGroup.spaceOf(doc) == space && doc.matchesPartPath(partPath))
+            .map(doc => DynamicEndpointMatch.Found(doc, req)).getOrElse(DynamicEndpointMatch.NotFound)
+        // The URL that names no space, kept so existing callers keep working: it is served only when exactly
+        // one doc, in any space, answers it, and then as if the caller had used that doc's own URL.
+        case first :: _ if first == DynamicResourceDocsEndpointGroup.urlPrefix =>
+          resourceDocs.filter(doc => doc.matchesPartPath("banks" :: DynamicResourceDocsEndpointGroup.spaceOf(doc) :: partPath)) match {
+            case doc :: Nil =>
+              val canonical = req.uri.path.segments.take(2).map(_.encoded).toList ++ ("banks" :: DynamicResourceDocsEndpointGroup.spaceOf(doc) :: partPath)
+              DynamicEndpointMatch.Found(doc, req.withUri(req.uri.withPath(org.http4s.Uri.Path.unsafeFromString(canonical.mkString("/", "/", "")))))
+            case Nil => DynamicEndpointMatch.NotFound
+            case several => DynamicEndpointMatch.Ambiguous(several.map(DynamicResourceDocsEndpointGroup.spaceOf).distinct.sorted)
+          }
+        case _ => DynamicEndpointMatch.NotFound
+      }
+    }
   }
 
   def dynamicResourceDocs: List[ResourceDoc] = endpointGroups.flatMap(_.docs)
@@ -105,6 +141,30 @@ trait EndpointGroup {
  * @param methodBody it is url-encoded string for the api level code.
  */
 object CompiledObjects {
+  /**
+   * This is the set of `programming_lang` values a Dynamic Resource Doc may have, compared after
+   * APIUtil.normaliseDynamicCodeLanguage (trimmed, lower case, blank meaning Scala). Create, update,
+   * validate and the dry-run compile all check against it, and CompiledObjects chooses its compiler
+   * from the same normalised value, so nothing that passes the check can reach the wrong compiler.
+   */
+  val supportedLanguages: List[String] = List("scala", "java", "query")
+  def isSupportedLanguage(programmingLang: String): Boolean =
+    supportedLanguages.contains(APIUtil.normaliseDynamicCodeLanguage(programmingLang))
+  val supportedLanguagesText: String = "Scala, Java, Query"
+
+  /**
+   * True when the body is a Dynamic Query (`programming_lang` `Query`): a declaration, not code. It
+   * runs no user code, so the switch for user-supplied code (`allow_user_generated_scala_code`) does
+   * not apply to it, and it is read-only, so its doc's request_verb must be GET.
+   */
+  def isQuery(programmingLang: String): Boolean = APIUtil.normaliseDynamicCodeLanguage(programmingLang) == "query"
+
+  /** A Dynamic Query only reads; every other language may use any verb. */
+  def verbAllowed(programmingLang: String, requestVerb: String): Boolean =
+    !isQuery(programmingLang) || requestVerb == "GET"
+
+  val queryVerbMessage: String = "A Dynamic Query only reads, so its request_verb must be GET."
+
   /**
    * The native http4s template a method body is inlined into. Returns the full source and the
    * 1-based line on which the method body starts, so compiler positions can be mapped back to it.
@@ -153,10 +213,30 @@ object CompiledObjects {
 
   /**
    * Dry run without constructing a CompiledObjects (whose constructor compiles for real): compiler
-   * diagnostics with line numbers relative to the method body the author wrote. Empty = compiles.
+   * diagnostics with line numbers relative to the method body the author wrote, in the body's
+   * programming language (Scala or Java). Empty = compiles.
    */
-  def compileProblems(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String): List[DynamicUtil.CompileProblem] = {
+  def compileProblems(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String,
+                      programmingLang: String = "Scala", bankId: Option[String] = None): List[DynamicUtil.CompileProblem] = {
     val decodedMethodBody = URLDecoder.decode(methodBody, "UTF-8")
+    // Java bodies are compiled as written (no template, no generated case classes), so the example
+    // bodies play no part, as they play none in CompiledObjects' own Java branch. A Dynamic Query is
+    // not compiled at all: its problems are the declaration's, which have no line numbers.
+    APIUtil.normaliseDynamicCodeLanguage(programmingLang) match {
+      case "java" => DynamicUtil.checkJavaCode(decodedMethodBody)
+      case "query" => queryProblem(decodedMethodBody, bankId).map(message => DynamicUtil.CompileProblem(0, 0, "ERROR", message)).toList
+      case _ => scalaCompileProblems(exampleRequestBody, successResponseBody, decodedMethodBody)
+    }
+  }
+
+  /** What is wrong with a Dynamic Query body, in full (error code included), or None when it is valid in `bankId`'s space. */
+  def queryProblem(decodedMethodBody: String, bankId: Option[String]): Option[String] =
+    code.api.dynamic.entity.query.DynamicQueryDeclaration.parse(decodedMethodBody) match {
+      case Left(error) => Some(s"${ErrorMessages.DynamicQueryInvalid}${error.message}")
+      case Right(declaration) => code.api.dynamic.entity.query.DynamicQuery.validate(bankId, declaration).left.toOption.map(_.message)
+    }
+
+  private def scalaCompileProblems(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], decodedMethodBody: String): List[DynamicUtil.CompileProblem] = {
     val requestBody: Product = exampleRequestBody match {
       case Some(JString(s)) if StringUtils.isBlank(s) => toCaseObject(None)
       case _ => toCaseObject(exampleRequestBody)
@@ -186,17 +266,57 @@ object CompiledObjects {
   }
 }
 
-case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String) {
+/**
+ * `bankId` is the Dynamic Entity space of the doc (None for the system space). Only a Dynamic Query
+ * uses it: its declaration names entities, which are looked up in that space.
+ */
+case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBody: Option[JValue], methodBody: String,
+                           programmingLang: String = "Scala", bankId: Option[String] = None) {
   val decodedMethodBody = URLDecoder.decode(methodBody, "UTF-8")
+  private val isQuery = CompiledObjects.isQuery(programmingLang)
+  // The stored doc of a system-level Dynamic Resource Doc carries Some(null) here, not None.
+  private val space: Option[String] = bankId.flatMap(Option(_)).map(_.trim).filter(_.nonEmpty)
+
+  // A Dynamic Query compiles nothing, not even case classes for its examples: toCaseObject generates
+  // and compiles Scala, which is refused where user-supplied code is switched off. Its examples are
+  // carried as JSON, which the resource-docs serialisation renders as they are.
+  private def exampleOf(json: Option[JValue]): Product =
+    if (!isQuery) toCaseObject(json)
+    else json.filter(j => j != JNothing && j != JNull).map(code.api.berlin.group.v1_3.JvalueCaseClass(_)).getOrElse(EmptyBody)
+
   val requestBody: Product = exampleRequestBody match {
       //this case means, we accept the empty string "" from json post body, we need to map it to None.
-    case Some(JString(s)) if StringUtils.isBlank(s) => toCaseObject(None)
+    case Some(JString(s)) if StringUtils.isBlank(s) => exampleOf(None)
      // Here we will generate the object by the JValue (exampleRequestBody)
-    case _ => toCaseObject(exampleRequestBody)
+    case _ => exampleOf(exampleRequestBody)
   }
-  val successResponse: Product = toCaseObject(successResponseBody)
+  val successResponse: Product = exampleOf(successResponseBody)
 
-  private val partialFunction: Http4sEndpointIO = {
+  private val partialFunction: Http4sEndpointIO = APIUtil.normaliseDynamicCodeLanguage(programmingLang) match {
+    case "query" =>
+      // A declaration, not code: parsed here (a malformed body cannot be served), checked against the
+      // entity definitions by validateDependency, and run per request by DynamicQueryEndpoint.
+      code.api.dynamic.entity.query.DynamicQueryDeclaration.parse(decodedMethodBody) match {
+        case Right(declaration) => DynamicQueryEndpoint(declaration, space)
+        case Left(error) => throw JsonResponseException(s"${ErrorMessages.DynamicQueryInvalid}${error.message}", 400, "none")
+      }
+    case "java" =>
+      DynamicUtil.createJavaHttp4sEndpoint(decodedMethodBody) match {
+        case Full(func) => func
+        case Failure(msg: String, exception: Box[Throwable], _) =>
+          throw exception.getOrElse(new RuntimeException(msg))
+        case _ => throw new RuntimeException("compiled code return nothing")
+      }
+    case _ /* "scala", the default; create and update reject anything else (isSupportedLanguage) */ =>
+      scalaPartialFunction
+  }
+
+  // Unchanged Scala-template compile path, factored out so the `partialFunction` match above stays
+  // readable. Only evaluated for Scala-language docs (the default) — Java-language docs never
+  // touch this, so example/response-body JValues that don't fit the Scala case-class generator
+  // (irrelevant for Java, since it doesn't use RequestRootJsonClass/ResponseRootJsonClass) are a
+  // non-issue there.
+  private def scalaPartialFunction: Http4sEndpointIO = {
 
     //If the requestBody is PrimaryDataBody, return None. otherwise, return the exampleRequestBody:Option[JValue]
     // In side OBP resourceDoc, requestBody and successResponse must be Product type，
@@ -237,39 +357,47 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
    * this will check all the dynamic scala code dependencies at compile time.
    *
    *Search for the usage, you can see how to use it in OBP code.
+   *
+   * Scala-only: for the Scala language, `this.partialFunction` IS the compiled user code, so
+   * validating its bytecode directly is correct. For Java, `this.partialFunction` is instead
+   * OBP's own Http4sEndpointIO wrapper (built by DynamicUtil.createJavaHttp4sEndpoint) around the
+   * real compiled Java class -- its bytecode legitimately calls internal OBP helpers
+   * (DynamicUtil.javaValueToJValue/logger, CustomJsonFormats.formats, JsonAliases.compactRender)
+   * that were never meant to be dependency-whitelisted, since they are framework glue, not
+   * user-supplied code. createJavaHttp4sEndpoint already validates the real compiled Java class
+   * internally (see its own doc comment) before ever returning that wrapper, so re-validating the
+   * wrapper here is both redundant and wrong -- it would reject every Java doc unconditionally.
    */
-  def validateDependency() = Validation.validateDependency(this.partialFunction)
+  def validateDependency() = APIUtil.normaliseDynamicCodeLanguage(programmingLang) match {
+    case "java" => ()
+    // A Dynamic Query calls no methods; what it is checked against is the entity definitions of its space.
+    case "query" => CompiledObjects.queryProblem(decodedMethodBody, space).foreach(message => throw JsonResponseException(message, 400, "none"))
+    case _ => Validation.validateDependency(this.partialFunction)
+  }
 
   /**
    * Dry run: compiler diagnostics for this body, with line numbers relative to the method body the
    * author wrote (the wrapper's own lines are subtracted). Empty = compiles. Nothing is evaluated or cached.
    */
   def compileProblems(): List[DynamicUtil.CompileProblem] =
-    CompiledObjects.compileProblems(exampleRequestBody, successResponseBody, methodBody)
+    CompiledObjects.compileProblems(exampleRequestBody, successResponseBody, methodBody, programmingLang, space)
 
   /**
-   * This is used to check the security permission at the run time.
-   * all the obp partialFunctions will be wrapped into the sandbox which under the permission control.
-   *
+   * Wraps the compiled partial function as an endpoint. This used to bind a per-bank
+   * security sandbox; that sandbox could not be enforced on JDK 24+ and has been
+   * removed (see DynamicUtil.DynamicCodeBody), so what remains is forcing the body and
+   * recovering an early `return` from user code.
    */
-  def sandboxEndpoint(bankId: Option[String]) : Http4sEndpointIO = {
-    val sandbox = bankId match {
-      case Some(v) if StringUtils.isNotBlank(v) =>
-         Sandbox.sandbox(v)
-      case _ => Sandbox.sandbox("*")
-    }
-
+  def compiledEndpoint() : Http4sEndpointIO =
     new Http4sEndpointIO {
       override def isDefinedAt(req: Request[IO]): Boolean = partialFunction.isDefinedAt(req)
 
-      // run dynamic code in sandbox
       override def apply(req: Request[IO]): CallContext => IO[Response[IO]] = { cc =>
         val fn = partialFunction.apply(req)
 
-        sandbox.runInSandboxIO(fn(cc))
+        DynamicCodeBody.force(fn(cc))
       }
     }
-  }
 
   private def toCaseObject(jValue: Option[JValue]): Product = CompiledObjects.toCaseObject(jValue)
 }

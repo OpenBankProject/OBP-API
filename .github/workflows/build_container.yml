@@ -2,7 +2,20 @@ name: Build and publish container develop
 
 # read-write repo token
 # access to secrets
-on: [push]
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      database:
+        description: 'Database engine for tests (default: h2)'
+        required: false
+        default: 'h2'
+        type: choice
+        options:
+          - h2
+          - sqlserver
+          - sqlserver2017
+          - postgres
 
 env:
   DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
@@ -59,6 +72,31 @@ jobs:
 
       - name: Lint — every baseline changeset carries its existence precondition
         run: python3 .github/scripts/check_changelog_preconditions.py
+      - name: Lint — resource-doc parity (Lift baseline vs live http4s ResourceDocs)
+        run: |
+          # Compares every ResourceDoc field (url, verb, summary, description, example
+          # bodies, errors, tags) against the frozen Lift-era JSON baseline in
+          # scripts/resource_doc_baseline/. Reviewed differences are recorded in
+          # parity_allowlist.json, digest-bound to the text they were reviewed against, so a
+          # later edit to an allowlisted field resurfaces instead of staying exempt.
+          #
+          # The script exits non-zero for an unreviewed difference. A STALE entry -- one that
+          # matched nothing this run -- it only prints, so that is failed here as well: an
+          # exemption that exempts nothing hides the very difference it was written for, and
+          # it is the failure mode a hand-maintained allowlist develops first.
+          set +e
+          report=$(python3 scripts/check_lift_http4s_resource_doc_parity.py --report-stale-allowlist-entries)
+          rc=$?
+          set -e
+          echo "$report"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::Resource-doc parity audit found unreviewed differences between the Lift baseline and the live http4s ResourceDocs. Either fix the doc to match the baseline, or record the difference with scripts/resource_doc_baseline/allowlist_helper.py (do not hand-compute digests, and do not edit the JSON baseline). See scripts/resource_doc_baseline/README.md."
+            exit 1
+          fi
+          if ! printf '%s\n' "$report" | awk '/^=== STALE ALLOWLIST ENTRIES/{found=1} found' | grep -qx '  (none)'; then
+            echo "::error::parity_allowlist.json contains entries that matched nothing this run. Remove them -- an exemption that exempts nothing gives no cover while looking as though it does."
+            exit 1
+          fi
 
       - name: Compile and install (skip test execution)
         run: |
@@ -105,7 +143,7 @@ jobs:
   #   Shard 3  ~155s  v6_0_0 only (isolated after v2_x moved to shard 7)
   #   Shard 4  ~183s  v5_1_0 v5_0_0 v3_0_0
   #   Shard 5  ~193s  ResourceDocs v3_1_0 v1_4_0 v1_3_0
-  #   Shard 6  ~168s  v7_0_0 http4sbridge UKOpenBanking
+  #   Shard 6  ~168s  v7_0_0 http4sserver UKOpenBanking
   #   Shard 7  ~280s  model + views + customer + util + berlin + v2_x
   #   Shard 8  ~240s  connector + auth + login + mgmt + metrics + catch-all
   #   Shard 9  ~110s  v4_0_0 Dynamic* (6 heavy test classes)
@@ -113,7 +151,7 @@ jobs:
   test:
     needs: compile
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: ${{ (inputs.database == 'sqlserver' || inputs.database == 'sqlserver2017' || inputs.database == 'postgres' || contains(github.event.pull_request.labels.*.name, 'test-sqlserver') || contains(github.event.pull_request.labels.*.name, 'test-postgres') || contains(github.event.head_commit.message, '[test-sqlserver]') || contains(github.event.head_commit.message, '[test-postgres]')) && 90 || 35 }}
     strategy:
       fail-fast: false
       matrix:
@@ -156,10 +194,10 @@ jobs:
               code.api.v1_4_0
               code.api.v1_3_0
           - shard: 6
-            name: "v7 + http4sbridge + UKOpenBanking"
+            name: "v7 + http4sserver + UKOpenBanking"
             test_filter: >-
               code.api.v7_0_0
-              code.api.http4sbridge
+              code.api.http4sserver
               code.api.UKOpenBanking
           - shard: 7
             name: "model + views + customer + util + small data + berlin + v2_x"
@@ -214,7 +252,7 @@ jobs:
             test_filter: >-
               code.api.v4_0_0.Dynamic
           - shard: 10
-            name: "PropGatedPublicEndpoint (read_*_requires_role=true)"
+            name: "PropGatedPublicEndpoint (read_*_requires_role=true, allow_cascade_delete=false)"
             # JsonSchemaValidationPublicPropTrueTest / AuthenticationTypeValidationPublicPropTrueTest
             # need read_json_schema_validation_requires_role /
             # read_authentication_type_validation_requires_role forced true, which is baked into
@@ -222,9 +260,12 @@ jobs:
             # observe. Every other shard boots with these props unset (false, the default) and
             # the pom.xml default tagsToExclude skips this tag there. This shard is the only place
             # the true branch is exercised; see the "Run tests" step's shard-10 special case below.
+            # CascadeDeleteDisabledTest is here for the opposite reason: every other shard has
+            # allow_cascade_delete=true, and only this JVM starts with it false.
             test_filter: >-
               code.api.v4_0_0.JsonSchemaValidationPublicPropTrueTest
               code.api.v4_0_0.AuthenticationTypeValidationPublicPropTrueTest
+              code.api.v4_0_0.CascadeDeleteDisabledTest
 
     services:
       redis:
@@ -257,6 +298,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up the test database
+        uses: ./.github/actions/setup-test-database
+        with:
+          database: ${{ inputs.database }}
+          pr-labels: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          commit-message: ${{ github.event.head_commit.message }}
 
       - name: Set up JDK 25
         uses: actions/setup-java@v4
@@ -306,6 +354,15 @@ jobs:
           cp obp-api/src/main/resources/props/sample.props.template \
              obp-api/src/main/resources/props/production.default.props
           echo connector=star > obp-api/src/main/resources/props/test.default.props
+
+          if [ -n "$TEST_DB_URL" ]; then
+            echo "Configuring $TEST_DB connection properties..."
+            echo "db.driver=$TEST_DB_DRIVER" >> obp-api/src/main/resources/props/test.default.props
+            echo "db.url=$TEST_DB_URL" >> obp-api/src/main/resources/props/test.default.props
+          else
+            echo "Using default H2 database."
+          fi
+
           echo starConnector_supported_types=mapped,internal >> obp-api/src/main/resources/props/test.default.props
           echo hostname=http://localhost:8016 >> obp-api/src/main/resources/props/test.default.props
           echo tests.port=8016 >> obp-api/src/main/resources/props/test.default.props
@@ -317,6 +374,7 @@ jobs:
           echo allow_sandbox_data_import=true >> obp-api/src/main/resources/props/test.default.props
           echo sandbox_data_import_secret=change_me >> obp-api/src/main/resources/props/test.default.props
           echo allow_account_deletion=true >> obp-api/src/main/resources/props/test.default.props
+          echo allow_cascade_delete=true >> obp-api/src/main/resources/props/test.default.props
           echo allowed_internal_redirect_urls = /,/oauth/authorize >> obp-api/src/main/resources/props/test.default.props
           echo transactionRequests_enabled=true >> obp-api/src/main/resources/props/test.default.props
           echo transactionRequests_supported_types=SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,SIMPLE >> obp-api/src/main/resources/props/test.default.props
@@ -397,7 +455,7 @@ jobs:
             SHARD3="code.api.v6_0_0"
             SHARD4="code.api.v5_1_0 code.api.v5_0_0 code.api.v3_0_0"
             SHARD5="code.api.ResourceDocs1_4_0 code.api.v3_1_0 code.api.v1_4_0 code.api.v1_3_0"
-            SHARD6="code.api.v7_0_0 code.api.http4sbridge code.api.UKOpenBanking"
+            SHARD6="code.api.v7_0_0 code.api.http4sserver code.api.UKOpenBanking"
             SHARD7="code.model code.views code.customer code.usercustomerlinks \
                     code.api.util code.errormessages code.atms code.branches \
                     code.products code.crm code.accountHolder code.api.berlin \
@@ -435,6 +493,8 @@ jobs:
           if [ "${{ matrix.shard }}" = "10" ]; then
             export OBP_READ_JSON_SCHEMA_VALIDATION_REQUIRES_ROLE="true"
             export OBP_READ_AUTHENTICATION_TYPE_VALIDATION_REQUIRES_ROLE="true"
+            # The cascade-delete routes are fixed when the API objects initialise; off here only.
+            export OBP_ALLOW_CASCADE_DELETE="false"
             EXTRA_MVN_ARGS="-DtagsToInclude=PropGatedPublicEndpoint -Dtest.tagsToExclude="
           fi
 
@@ -448,14 +508,14 @@ jobs:
           # -pl obp-commons,obp-api: obp-commons' own 5 util suites run on whichever
           # shard's filter matches com.openbankproject.* (the catch-all shard); on every
           # other shard the filter matches nothing in obp-commons → 0 tests there.
-          # timeout 1500: hard-kill after 25 min to prevent Pekko non-daemon threads
+          # timeout $TEST_TIMEOUT_SECONDS (25 min on H2, 75 on SQL Server and PostgreSQL): hard-kill to prevent Pekko non-daemon threads
           # (ConsentScheduler etc.) from keeping the JVM alive after tests complete.
           # Exit code 124 (timeout) is treated as success — tests are done, JVM just hung.
           # set +e: GitHub Actions uses -eo pipefail by default; without it, a 124 exit from
           # timeout would abort the step before the rc check below can run.
           set +e
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
-            timeout 1500 mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
+            timeout "$TEST_TIMEOUT_SECONDS" mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
               -DwildcardSuites="$FILTER" $EXTRA_MVN_ARGS \
             > maven-build-shard${{ matrix.shard }}.log 2>&1
           rc=$?

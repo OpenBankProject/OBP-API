@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.bankconnectors.ethereum
 
 import java.math.BigInteger
+import scala.util.control.NonFatal
 import org.web3j.crypto.{Hash, RawTransaction, TransactionDecoder, Sign, SignedRawTransaction}
 import org.web3j.utils.{Numeric => W3Numeric}
 import org.json4s._
@@ -69,12 +70,10 @@ object DecodeRawTx {
     estimatedFee: Option[String]
   )
 
-  private def fatal(msg: String): Nothing = {
-    Console.err.println(msg)
-    sys.exit(1)
-  }
-
-  // File/stdin helpers removed; input is provided as a function parameter now.
+  // This decoder runs on request threads, so invalid input must fail the call, never the process:
+  // the caller turns the exception into a 400.
+  private def fatal(msg: String): Nothing =
+    throw new IllegalArgumentException(msg)
 
   private def normalizeHex(hex: String): String = {
     val h = Option(hex).getOrElse("").trim
@@ -111,6 +110,7 @@ object DecodeRawTx {
   /**
    * Decode raw Ethereum transaction hex and return a JSON string summarizing the fields.
    * The input must be a 0x-prefixed hex string; no file or stdin reading is performed.
+   * Throws IllegalArgumentException when the input is not valid hex or does not decode as a transaction.
    *
    * Response is serialized from DecodedTxResponse case class with types:
    *  - type, chainId, nonce, value are numeric (where available)
@@ -125,7 +125,7 @@ object DecodeRawTx {
     val decoded: RawTransaction =
       try TransactionDecoder.decode(rawHex)
       catch {
-        case e: Throwable => fatal(s"decode failed: ${e.getMessage}")
+        case NonFatal(e) => fatal(s"decode failed: ${e.getMessage}")
       }
 
     val (fromOpt, chainIdOpt, vHexOpt, rHexOpt, sHexOpt):

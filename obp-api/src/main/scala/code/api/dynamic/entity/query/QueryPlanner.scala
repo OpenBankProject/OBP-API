@@ -180,7 +180,7 @@ object QueryPlanner {
 
   // ----- per-term validation -----
 
-  private def validateFilter(f: Filter, indexedFields: Map[String, FieldSpec]): Option[QueryError] =
+  private[query] def validateFilter(f: Filter, indexedFields: Map[String, FieldSpec]): Option[QueryError] =
     indexedFields.get(f.field) match {
       case None => Some(QueryError(s"Field '${f.field}' is not queryable (it is not declared indexed)."))
       case Some(spec) =>

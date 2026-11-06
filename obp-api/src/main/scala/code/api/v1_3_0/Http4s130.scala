@@ -31,11 +31,11 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, _}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, _}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
-import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.NewStyle
 import code.api.v1_2_1.JSONFactory
@@ -62,7 +62,7 @@ object Http4s130 {
 
     // ─── root ────────────────────────────────────────────────────────────────
 
-    val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val root: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v1_3_0, versionStatus))
@@ -94,7 +94,7 @@ object Http4s130 {
 
     // ─── getCards ────────────────────────────────────────────────────────────
 
-    val getCards: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCards: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "cards" =>
         EndpointHelpers.withUser(req) { (u, cc) =>
           NewStyle.function.getPhysicalCardsForUser(u, Some(cc)).map {
@@ -120,7 +120,7 @@ object Http4s130 {
 
     // ─── getCardsForBank ─────────────────────────────────────────────────────
 
-    val getCardsForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCardsForBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / _ / "cards" =>
         EndpointHelpers.withUserAndBank(req) { (u, bank, cc) =>
           for {
@@ -148,13 +148,19 @@ object Http4s130 {
 
     // ─── allRoutes ───────────────────────────────────────────────────────────
 
-    private val allOwnRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-      root.run(req)
-        .orElse(getCards.run(req))
-        .orElse(getCardsForBank.run(req))
-    }
+    // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
+    // route that serves a request, so it is given the docs in this same order.
+    lazy val routesInOrder: List[Http4sHandler] = List(
+      root,
+      getCards,
+      getCardsForBank
+    )
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allOwnRoutes))
+    lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
+
+    private lazy val allOwnRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
+
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 
     // ─── path-rewriting bridge: /obp/v1.3.0/… → /obp/v1.2.1/… ─────────────
     // Delegates to Http4s121 so all inherited v1.2.1 endpoints are served

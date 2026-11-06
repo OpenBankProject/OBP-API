@@ -30,7 +30,7 @@ package code.api.v7_0_0
 import org.json4s.jvalue2monadic
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
-import code.api.util.{APIUtil, ApiRole}
+import code.api.util.{APIUtil, ApiRole, DoobieUtil}
 import code.api.util.ErrorMessages._
 import code.api.v7_0_0.Http4s700.Implementations7_0_0
 import code.dynamicResourceDoc.DynamicResourceDoc
@@ -39,14 +39,16 @@ import code.entitlement.Entitlement
 import code.setup.ServerSetupWithTestData
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.{ApiShortVersions, ApiVersion}
+import doobie.Fragment
+import doobie.implicits._
 import org.json4s.JsonAST.{JArray, JObject}
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
-import java.net.URLDecoder
+import java.net.{URLDecoder, URLEncoder}
 
 /**
- * Maker/checker for dynamic code (MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md), phase 1, exercised
+ * Maker/checker for dynamic code (docs/MAKER_CHECKER_DYNAMIC_CODE_DESIGN.md), phase 1, exercised
  * end-to-end over HTTP: a v4.0.0 write is intercepted into a DynamicChangeRequest (202), a second
  * user approves it by hash, the artefact then exists and executes; plus rejection, withdrawal,
  * deactivation, the execution guard against direct DB tampering, and the role/auth surface.
@@ -102,6 +104,16 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
 
   private def storedDoc(url: String): Option[DynamicResourceDoc] =
     DynamicResourceDoc.findByVerbAndUrl(None, "POST", url).toOption
+
+  /**
+   * Writes one column of a stored doc directly, as an edit made in the database behind the API's
+   * back. The store has no setter for these on purpose: no production path writes them apart.
+   */
+  private def setStoredColumn(dynamicResourceDocId: String, column: String, value: String): Unit = {
+    DoobieUtil.runUpdate((Fragment.const(s"UPDATE dynamicresourcedoc SET $column =") ++ fr"$value" ++
+      fr"WHERE dynamicresourcedocid = $dynamicResourceDocId").update.run)
+    ()
+  }
 
   private def callDynamicEndpoint(suffix: String) = {
     val req = (dynamicEndpoint / "dynamic-resource-doc" / s"mc_native_user_$suffix" / "user-xyz").POST <@ (user1)
@@ -186,7 +198,7 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
       (ok.body \ "target_id").values.toString.nonEmpty should be(true)
       val row = storedDoc(doc.requestUrl).getOrElse(fail("doc not applied"))
       row.createdByUserId.getOrElse("") should be(resourceUser1.userId)
-      row.methodBodyHash.getOrElse("") should be(APIUtil.sha256Hex(URLDecoder.decode(doc.methodBody, "UTF-8")))
+      row.methodBodyHash.getOrElse("") should be(APIUtil.dynamicCodeHash(doc.programmingLang, URLDecoder.decode(doc.methodBody, "UTF-8")))
       row.approvedHash.getOrElse("") should be(row.methodBodyHash.getOrElse(""))
       row.isActive should be(true)
       MakerChecker.isExecutableDynamicResourceDoc(row.dynamicResourceDocId) should be(true)
@@ -220,12 +232,27 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
       callDynamicEndpoint("guard").codeIs(200)
       val row = storedDoc(doc.requestUrl).getOrElse(fail("doc not applied"))
 
-      When("the body hash is changed behind the API's back")
+      When("the stored hash column is changed behind the API's back")
       DynamicResourceDoc.setMethodBodyHash(row.dynamicResourceDocId, "tampered")
+      Then("nothing changes: the guard recomputes the hash from the row, it does not trust the column")
+      MakerChecker.isExecutableDynamicResourceDoc(row.dynamicResourceDocId) should be(true)
+      val approvedBody = row.methodBody
+      val approvedLang = row.programmingLang
+
+      When("the body is changed behind the API's back")
+      setStoredColumn(row.dynamicResourceDocId, "methodbody", approvedBody + URLEncoder.encode("\n// edited in the database\n", "UTF-8"))
       Then("the endpoint is no longer served")
       MakerChecker.isExecutableDynamicResourceDoc(row.dynamicResourceDocId) should be(false)
       callDynamicEndpoint("guard").codeIs(404)
-      DynamicResourceDoc.setMethodBodyHash(row.dynamicResourceDocId, row.approvedHash.getOrElse(""))
+      setStoredColumn(row.dynamicResourceDocId, "methodbody", approvedBody)
+      callDynamicEndpoint("guard").codeIs(200)
+
+      When("only the language is changed behind the API's back")
+      setStoredColumn(row.dynamicResourceDocId, "lang", "Java")
+      Then("the approval does not carry over: it was for this body as Scala")
+      MakerChecker.isExecutableDynamicResourceDoc(row.dynamicResourceDocId) should be(false)
+      callDynamicEndpoint("guard").codeIs(404)
+      setStoredColumn(row.dynamicResourceDocId, "lang", approvedLang)
       callDynamicEndpoint("guard").codeIs(200)
 
       When("a maker without the approver role tries to deactivate")
@@ -270,7 +297,7 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
       When("the instance boots with approval required for the first time")
       MakerChecker.seedApprovedHashesIfEnabled()
       Then("the row's current body is treated as approved and the seed is logged")
-      approvedHashOf(legacy.requestUrl) should equal(APIUtil.sha256Hex(URLDecoder.decode(legacy.methodBody, "UTF-8")))
+      approvedHashOf(legacy.requestUrl) should equal(APIUtil.dynamicCodeHash(legacy.programmingLang, URLDecoder.decode(legacy.methodBody, "UTF-8")))
       callDynamicEndpoint("legacy").codeIs(200)
       logProvider.isExecuted(MakerChecker.seedMigrationName) should be(true)
 
@@ -284,6 +311,98 @@ class DynamicChangeRequestTest extends ServerSetupWithTestData {
       approvedHashOf(late.requestUrl) should equal("")
       MakerChecker.isExecutableDynamicResourceDoc(storedDoc(late.requestUrl).get.dynamicResourceDocId) should be(false)
       callDynamicEndpoint("late").codeIs(404)
+    }
+
+    Scenario("a Java Dynamic Resource Doc is compiled as Java when its change request is approved", ApiEndpoint4, VersionOfApi) {
+      enableMakerChecker(); makerRoles(); checkerRoles()
+      val javaBody =
+        """package code.api.util.dynamic;
+          |
+          |import java.util.LinkedHashMap;
+          |import java.util.Map;
+          |import java.util.function.Function;
+          |import java.util.function.Supplier;
+          |
+          |public class MakerCheckerJavaDoc implements Supplier<Function<Object[], Object>> {
+          |    private Object apply(Object[] args) {
+          |        @SuppressWarnings("unchecked")
+          |        Map<String, String> pathParams = (Map<String, String>) args[1];
+          |        Map<String, Object> response = new LinkedHashMap<>();
+          |        response.put("user_id_from_path", pathParams.get("MY_USER_ID") + "_from_java");
+          |        return response;
+          |    }
+          |
+          |    @Override
+          |    public Function<Object[], Object> get() {
+          |        return this::apply;
+          |    }
+          |}
+          |""".stripMargin
+      val doc = newDoc("java").copy(methodBody = URLEncoder.encode(javaBody, "UTF-8"), programmingLang = "Java")
+
+      When("the maker submits a Java doc and a checker approves it")
+      val created = makePostRequest((v4 / "management" / "dynamic-resource-docs").POST <@ (user1), write(doc))
+      created.codeIs(202)
+      makePostRequest((v7 / "management" / "dynamic-change-requests" / str(created.body, "dynamic_change_request_id") / "approval").POST <@ (user2),
+        s"""{"payload_hash":"${str(created.body, "payload_hash")}"}""").codeIs(200)
+
+      Then("the stored row is Java, its approval covers the language, and the endpoint runs the Java code")
+      val row = storedDoc(doc.requestUrl).getOrElse(fail("doc not applied"))
+      row.programmingLang should equal("Java")
+      row.approvedHash.getOrElse("") should equal(APIUtil.dynamicCodeHash("Java", javaBody))
+      val call = callDynamicEndpoint("java")
+      call.codeIs(200)
+      str(call.body, "user_id_from_path") should equal("user-xyz_from_java")
+    }
+
+    Scenario("the one-off rehash carries over only approvals still valid for the row's body, and keeps pending requests fresh", VersionOfApi) {
+      enableMakerChecker(); makerRoles(); checkerRoles()
+      def approve(created: code.setup.APIResponse) =
+        makePostRequest((v7 / "management" / "dynamic-change-requests" / str(created.body, "dynamic_change_request_id") / "approval").POST <@ (user2),
+          s"""{"payload_hash":"${str(created.body, "payload_hash")}"}""").codeIs(200)
+      val valid = newDoc("rehashok")
+      approve(makePostRequest((v4 / "management" / "dynamic-resource-docs").POST <@ (user1), write(valid)))
+      val edited = newDoc("rehashedited")
+      approve(makePostRequest((v4 / "management" / "dynamic-resource-docs").POST <@ (user1), write(edited)))
+
+      Given("rows hashed in the old form (body only), as an instance had them before the upgrade")
+      def oldFormHash(row: DynamicResourceDoc) = APIUtil.sha256Hex(URLDecoder.decode(row.methodBody, "UTF-8"))
+      def storeOldFormHashes(row: DynamicResourceDoc): Unit = {
+        setStoredColumn(row.dynamicResourceDocId, "methodbodyhash", oldFormHash(row))
+        setStoredColumn(row.dynamicResourceDocId, "approvedhash", oldFormHash(row))
+      }
+      val validRow = storedDoc(valid.requestUrl).get
+      storeOldFormHashes(validRow)
+      val editedRow = storedDoc(edited.requestUrl).get
+      storeOldFormHashes(editedRow)
+      And("one of them was edited in the database after its approval")
+      setStoredColumn(editedRow.dynamicResourceDocId, "methodbody", editedRow.methodBody + URLEncoder.encode("\n// edited in the database\n", "UTF-8"))
+      And("an update to the valid row is pending, queued against its old-form hash")
+      val put = makePutRequest((v4 / "management" / "dynamic-resource-docs" / validRow.dynamicResourceDocId).PUT <@ (user1),
+        write(valid.copy(dynamicResourceDocId = Some(validRow.dynamicResourceDocId), summary = "pending change")))
+      put.codeIs(202)
+      val pendingId = str(put.body, "dynamic_change_request_id")
+      code.dynamicchangerequest.DynamicChangeRequest.findById(pendingId)
+        .foreach(_ => code.dynamicchangerequest.DynamicChangeRequest.setCurrentPayloadHash(pendingId, oldFormHash(storedDoc(valid.requestUrl).get)))
+      callDynamicEndpoint("rehashok").codeIs(404)
+
+      When("the instance boots with the language-aware hash for the first time")
+      code.migration.DoobieMigrationScriptLogProvider.deleteByName(MakerChecker.rehashMigrationName)
+      MakerChecker.rehashDynamicCodeWithLanguage()
+
+      Then("the still-valid approval is moved to the new form and the endpoint is served again")
+      val validAfter = storedDoc(valid.requestUrl).get
+      val newForm = APIUtil.dynamicCodeHash(validAfter.programmingLang, URLDecoder.decode(validAfter.methodBody, "UTF-8"))
+      validAfter.methodBodyHash.getOrElse("") should equal(newForm)
+      validAfter.approvedHash.getOrElse("") should equal(newForm)
+      callDynamicEndpoint("rehashok").codeIs(200)
+      And("the row edited after approval stays unexecutable")
+      MakerChecker.isExecutableDynamicResourceDoc(storedDoc(edited.requestUrl).get.dynamicResourceDocId) should be(false)
+      And("the pending request is not stale, so it can still be approved")
+      approve(put)
+      storedDoc(valid.requestUrl).get.summary should equal("pending change")
+      And("the rehash is logged so it never runs again")
+      code.migration.MigrationScriptLogProvider.migrationScriptLogProvider.vend.isExecuted(MakerChecker.rehashMigrationName) should be(true)
     }
 
     Scenario("an update is queued with the live hash; rejection needs a comment and leaves the target untouched", ApiEndpoint5, VersionOfApi) {

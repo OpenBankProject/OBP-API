@@ -43,7 +43,7 @@ from collections import defaultdict
 HTTP4S_INTEGRATION_SUITES = {
     "code.api.v7_0_0.Http4s700RoutesTest",
     "code.api.v7_0_0.Http4s700TransactionTest",
-    "code.api.http4sbridge.Http4sServerIntegrationTest",
+    "code.api.http4sserver.Http4sServerIntegrationTest",
     "code.api.v5_0_0.Http4s500SystemViewsTest",
 }
 

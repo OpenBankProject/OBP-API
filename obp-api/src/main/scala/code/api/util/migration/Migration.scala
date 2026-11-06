@@ -29,6 +29,7 @@ package code.api.util.migration
 
 import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
 import code.api.util.{APIUtil, ApiPropsWithAlias}
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.v4_0_0.DatabaseInfoJson
 import code.consumer.Consumers
 import code.customer.CustomerX
@@ -66,7 +67,7 @@ import scala.collection.mutable.HashMap
  * To REPAIR an already-drifted DB forward-only, do NOT edit/duplicate the original migration — `runOnce`
  * skips it once logged (`isExecuted`). Add a NEW migration (new name) doing DROP+ALTER+CREATE; it runs
  * once to fix existing DBs and is a no-op (CREATE OR REPLACE / IF EXISTS) on fresh ones. The full
- * drop-everything reset in running_tests_on_postgres.md is the local recovery path.
+ * drop-everything reset in docs/testing/running_tests_on_postgres.md is the local recovery path.
  */
 object Migration extends MdcLoggable {
   private val migrationScriptsEnabled = ApiPropsWithAlias.migrationScriptsEnabled
@@ -190,6 +191,12 @@ object Migration extends MdcLoggable {
       // (MappedMetric._dbTableNameLC and friends) that no longer exists on this branch,
       // and Schemifier - their other half - creates nothing here (ToSchemify.models = Nil).
       dropFastFirehoseAccountsViews(startedBeforeSchemifier)
+      renameDynamicEntityRoles()
+      renameDynamicEntityDefinitionRoles()
+      upperCaseStoredCurrencyCodes()
+      renameOrganisationsToTenants(startedBeforeSchemifier)
+      markSelfServiceBanks(startedBeforeSchemifier)
+      ensureConsentViewExists()
     }
 
     private def dummyScript(): Boolean = {
@@ -655,6 +662,100 @@ object Migration extends MdcLoggable {
       }
     }
 
+    /**
+     * Move every stored Dynamic Entity Role onto its new name, and onto the system space where it used
+     * to sit at the empty bank id.
+     *
+     * This is the Record pass: the Roles gating records gained the word Record and lost their System
+     * twin. The Roles gating a definition follow in [[renameDynamicEntityDefinitionRoles]]. A renamed
+     * Role is different from a narrowed one — the old name no longer exists, so an existing grant
+     * authorises nothing rather than authorising less — and the mapping is exactly one-to-one, which
+     * is what makes it safe to do here instead of asking every operator to re-grant. The work, and
+     * what it deliberately leaves alone, is in [[MigrationOfDynamicEntityRoleNames]].
+     */
+    private def renameDynamicEntityRoles(): Boolean = {
+      val name = nameOf(renameDynamicEntityRoles())
+      runOnce(name) {
+        MigrationOfDynamicEntityRoleNames.renameEverywhere(name)
+      }
+    }
+
+    /**
+     * Move every stored Dynamic Entity Definition Role onto its merged name, and onto the system space
+     * where it sat at the empty bank id: `CanCreateSystemLevelDynamicEntity` at the empty bank id becomes
+     * `CanCreateDynamicEntityDefinition` at SYS, `CanCreateBankLevelDynamicEntity` at a bank keeps its bank.
+     *
+     * This is a separate runOnce from [[renameDynamicEntityRoles]] because it ships later: the merged
+     * Roles are bank scoped, and a system level grant of one can only be checked where a URL names the
+     * space, which the v7.0.0 management endpoints are the first to do. The work is in
+     * [[MigrationOfDynamicEntityRoleNames.renameDefinitionRolesEverywhere]].
+     */
+    private def renameDynamicEntityDefinitionRoles(): Boolean = {
+      val name = nameOf(renameDynamicEntityDefinitionRoles())
+      runOnce(name) {
+        MigrationOfDynamicEntityRoleNames.renameDefinitionRolesEverywhere(name)
+      }
+    }
+
+    /**
+     * Rewrite every stored currency code in upper case, because currency codes are case-insensitive
+     * and are now upper-cased in every request. Rows written before that, such as `ada` or a client's
+     * `eur`, would otherwise be missed by database queries that select by currency. The columns, and
+     * what is deliberately left alone, are in [[MigrationOfCurrencyCodesUpperCase]].
+     */
+    /**
+     * Copy stored Organisations and their members into the Tenant tables, and make their Roles the Tenant system
+     * Roles. It must run after Schemifier, which creates the Tenant tables. The details are in
+     * [[MigrationOfOrganisationToTenant]].
+     */
+    private def renameOrganisationsToTenants(startedBeforeSchemifier: Boolean): Boolean = {
+      if (startedBeforeSchemifier) {
+        logger.warn(s"Migration.database.renameOrganisationsToTenants(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(renameOrganisationsToTenants(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfOrganisationToTenant.migrate(name)
+        }
+      }
+    }
+
+    /**
+     * Mark the banks made with Create My Bank, and hold the unscanned files stored in them as pending. It must run
+     * after Schemifier, which creates SelfServiceBank and adds the ScanStatus column. The details are in
+     * [[MigrationOfSelfServiceBanks]].
+     */
+    private def markSelfServiceBanks(startedBeforeSchemifier: Boolean): Boolean = {
+      if (startedBeforeSchemifier) {
+        logger.warn(s"Migration.database.markSelfServiceBanks(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(markSelfServiceBanks(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfSelfServiceBanks.markAndHoldFiles(name)
+        }
+      }
+    }
+
+    private def upperCaseStoredCurrencyCodes(): Boolean = {
+      val name = nameOf(upperCaseStoredCurrencyCodes())
+      runOnce(name) {
+        MigrationOfCurrencyCodesUpperCase.upperCaseEverywhere(name)
+      }
+    }
+
+    /**
+     * Last step of the chain: earlier steps can drop v_consent (migrateConsentReferenceIdToUuid does), so
+     * make sure it exists once more. Registered like the other migrations so it runs once per database
+     * instead of on every boot.
+     */
+    private def ensureConsentViewExists(): Boolean = {
+      val name = nameOf(ensureConsentViewExists())
+      runOnce(name) {
+        MigrationOfConsentView.addConsentView(name)
+      }
+    }
+
     private def alterMetricColumnConsumerIdLength(): Boolean = {
       val name = nameOf(alterMetricColumnConsumerIdLength())
       runOnce(name) {
@@ -825,6 +926,31 @@ object Migration extends MdcLoggable {
             if (!rs.next) false
             else if (rs.getString(3).toLowerCase == tableName.toLowerCase) true
             else check()
+          check()
+        }
+      }
+    }
+
+    /**
+      * Is an index of this name present on this table, according to JDBC metadata?
+      *
+      * This exists so that a step which removes a superseded index can report whether it actually
+      * removed one or found it already gone. `DROP INDEX IF EXISTS` cannot tell the two apart, and a
+      * migration log that says an index was dropped when it was never there is worse than no log.
+      * Index names are compared without regard to case, because each database stores them in its own.
+      */
+    def indexExistsByName(tableName: String, indexName: String): Boolean = {
+      DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
+        val md = conn.getMetaData
+        val schema = getDefaultSchemaName(conn)
+        using(md.getIndexInfo(null, schema, tableName, false, true)) { rs =>
+          def check(): Boolean =
+            if (!rs.next) false
+            else Option(rs.getString(6)) match {
+              // A null index name is a table statistics row, not an index; skip it.
+              case Some(found) if found.equalsIgnoreCase(indexName) => true
+              case _ => check()
+            }
           check()
         }
       }

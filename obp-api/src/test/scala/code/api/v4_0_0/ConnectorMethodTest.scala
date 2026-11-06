@@ -103,8 +103,8 @@ class ConnectorMethodTest extends V400ServerSetup {
       val storedConnectorMethod = code.connectormethod.DoobieConnectorMethodProvider
         .getByIdWithProvenance(connectorMethod.connectorMethodId.getOrElse(""))
         .openOrThrowException("stored connector method not found")
-      storedConnectorMethod.createdByUserId should be (Some(resourceUser1.userId))
-      storedConnectorMethod.methodBodyHash should be (Some(code.api.util.APIUtil.sha256Hex(postConnectorMethod.decodedMethodBody)))
+      storedConnectorMethod.createdByUserId.get should be (resourceUser1.userId)
+      storedConnectorMethod.methodBodyHash.get should be (code.api.util.APIUtil.dynamicCodeHash(postConnectorMethod.programmingLang, postConnectorMethod.decodedMethodBody))
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateMethodRouting.toString)
       

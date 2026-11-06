@@ -30,7 +30,7 @@ package code.api.UKOpenBanking.v3_1_0
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, mockedDataText}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, mockedDataText}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -63,7 +63,7 @@ object Http4sUKOBv310FundsConfirmations extends MdcLoggable {
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
   private val tag = ApiTag("Funds Confirmations") :: apiTagMockedData :: Nil
 
-  lazy val createFundsConfirmationConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createFundsConfirmationConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV31Prefix` / "funds-confirmation-consents" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -106,7 +106,7 @@ object Http4sUKOBv310FundsConfirmations extends MdcLoggable {
     http4sPartialFunction = Some(createFundsConfirmationConsents)
   )
 
-  lazy val createFundsConfirmations: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createFundsConfirmations: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV31Prefix` / "funds-confirmations" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -148,7 +148,7 @@ object Http4sUKOBv310FundsConfirmations extends MdcLoggable {
   )
 
   // DELETE returns 204 — matching Lift's HttpCode.`204` response
-  lazy val deleteFundsConfirmationConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deleteFundsConfirmationConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `ukV31Prefix` / "funds-confirmation-consents" / _ =>
       EndpointHelpers.withUserDelete(req) { (_, _) => Future.successful(()) }
   }
@@ -166,7 +166,7 @@ object Http4sUKOBv310FundsConfirmations extends MdcLoggable {
     http4sPartialFunction = Some(deleteFundsConfirmationConsentsConsentId)
   )
 
-  lazy val getFundsConfirmationConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getFundsConfirmationConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "funds-confirmation-consents" / _ =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -209,10 +209,12 @@ object Http4sUKOBv310FundsConfirmations extends MdcLoggable {
     http4sPartialFunction = Some(getFundsConfirmationConsentsConsentId)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    createFundsConfirmationConsents(req)
-      .orElse(createFundsConfirmations(req))
-      .orElse(deleteFundsConfirmationConsentsConsentId(req))
-      .orElse(getFundsConfirmationConsentsConsentId(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    createFundsConfirmationConsents,
+    createFundsConfirmations,
+    deleteFundsConfirmationConsentsConsentId,
+    getFundsConfirmationConsentsConsentId
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

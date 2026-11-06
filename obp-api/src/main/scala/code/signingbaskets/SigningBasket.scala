@@ -45,9 +45,18 @@ trait SigningBasketProvider extends MdcLoggable {
   def getSigningBasketByBasketId(entityId: String): Box[SigningBasketContent]
   def saveSigningBasketStatus(entityId: String, status: String): Box[SigningBasketContent]
 
+  /** Creates the basket, owned by the consumer (TPP) that creates it. */
   def createSigningBasket(paymentIds: Option[List[String]],
                           consentIds: Option[List[String]],
+                          consumerId: String
                          ): Box[SigningBasketTrait]
+
+  /**
+   * Moves a basket from one status to another only if it still has the status the caller read.
+   * One conditional update, so two callers racing for the same transition have exactly one winner.
+   * Returns whether this call made the move.
+   */
+  def transitionSigningBasketStatus(basketId: String, from: String, to: String): Box[Boolean]
 
   def deleteSigningBasket(id: String): Box[Boolean]
 

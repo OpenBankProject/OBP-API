@@ -52,8 +52,35 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
 
   def name: String = "postgres-projection"
 
-  def query(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean, plan: QueryPlan): IO[List[JObject]] = {
-    val indexed   = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.indexedFields).getOrElse(Map.empty)
+  def query(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean, plan: QueryPlan): IO[List[JObject]] =
+    statement(entityName, bankId, userId, isPersonalEntity, plan, counting = false) match {
+      case Some(q) => ProjectionDb.run(q.query[String].to[List]).map(_.map(s => com.openbankproject.commons.util.JsonAliases.parse(s).asInstanceOf[JObject]))
+      case None    => IO.raiseError(new RuntimeException(s"PostgresProjectionBackend: unresolved field in query plan for $entityName"))
+    }
+
+  /**
+   * How many records the plan's filters and joins match, ignoring its sort and page: the total a
+   * paged response can report alongside one page. Same statement as [[query]], counted.
+   */
+  def count(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean, plan: QueryPlan): IO[Long] =
+    statement(entityName, bankId, userId, isPersonalEntity, plan, counting = true) match {
+      case Some(q) => ProjectionDb.run(q.query[Long].unique)
+      case None    => IO.raiseError(new RuntimeException(s"PostgresProjectionBackend: unresolved field in query plan for $entityName"))
+    }
+
+  /**
+   * The SQL text [[query]] (or, with `counting`, [[count]]) would send for this plan, with `?` for every
+   * bound value, without running it. None if a field cannot resolve. This is what an explain facility
+   * shows: the same builder as the statement that runs, so the two cannot differ.
+   */
+  def sqlFor(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean,
+             plan: QueryPlan, counting: Boolean = false): Option[String] =
+    statement(entityName, bankId, userId, isPersonalEntity, plan, counting).map(_.query[String].sql)
+
+  /** The SELECT for a plan: the matching blobs in order and paged, or (`counting`) their number. None if a field cannot resolve. */
+  private def statement(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean,
+                        plan: QueryPlan, counting: Boolean): Option[Fragment] = {
+    val indexed   = DynamicEntityHelper.definitionOf(bankId, entityName).map(_.indexedFields).getOrElse(Map.empty)
     val safeTable = ProjectionNaming.tableName(bankId, entityName)
     val P = "p"; val D = "d"
     def columnOf(f: String): Option[String]  = indexed.get(f).map(_ => s"$P." + ProjectionNaming.columnName(f))
@@ -72,15 +99,14 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
         val whereAll  =
           if (condParts.isEmpty) fr"WHERE" ++ scope
           else fr"WHERE" ++ scope ++ fr"AND" ++ ProjectionSql.intercalate(condParts, fr"AND")
-        val q =
-          fr"SELECT" ++ Fragment.const(s"$D.${ProjectionStore.jsonColumn}") ++
+        val selected = if (counting) fr"count(*)" else Fragment.const(s"$D.${ProjectionStore.jsonColumn}")
+        Some(
+          fr"SELECT" ++ selected ++
           fr"FROM" ++ Fragment.const(s"$safeTable $P") ++
           fr"JOIN" ++ Fragment.const(s"${ProjectionStore.blobTable} $D") ++
           fr"ON" ++ Fragment.const(s"$D.${ProjectionStore.idColumn} = $P.data_id") ++
-          whereAll ++ ords ++ ProjectionSql.limitOffset(plan)
-        ProjectionDb.run(q.query[String].to[List]).map(_.map(s => com.openbankproject.commons.util.JsonAliases.parse(s).asInstanceOf[JObject]))
-      case _ =>
-        IO.raiseError(new RuntimeException(s"PostgresProjectionBackend: unresolved field in query plan for $entityName"))
+          whereAll ++ (if (counting) Fragment.empty else ords ++ ProjectionSql.limitOffset(plan)))
+      case _ => None
     }
   }
 
@@ -95,7 +121,7 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
    */
   private def existsFragment(join: JoinClause, parentBankId: Option[String], parentProjAlias: String, parentBlobAlias: String, callerUserId: Option[String]): Option[Fragment] = {
     val childEntity  = join.childEntity
-    val childIndexed = DynamicEntityHelper.definitionsMap.get((parentBankId, childEntity)).map(_.indexedFields).getOrElse(Map.empty)
+    val childIndexed = DynamicEntityHelper.definitionOf(parentBankId, childEntity).map(_.indexedFields).getOrElse(Map.empty)
     val childTable   = ProjectionNaming.tableName(parentBankId, childEntity)
     val cp = "cp"; val cd = "cd"
     def childColumnOf(f: String): Option[String]  = childIndexed.get(f).map(_ => s"$cp." + ProjectionNaming.columnName(f))
@@ -123,14 +149,19 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
     }
   }
 
-  /** ACL restriction for a row-level child: only rows the caller can read count toward EXISTS / NOT EXISTS. */
+  /**
+   * ACL restriction for a row-level child: only rows the caller can read count toward EXISTS / NOT EXISTS.
+   * With no caller, no row of a row-level child is readable, so none counts: this fails closed rather than
+   * counting every row, which would reveal that rows the caller cannot read exist.
+   */
   private def childAclFragment(childEntity: String, bankId: Option[String], childBlobAlias: String, callerUserId: Option[String]): Fragment = {
-    val isRowLevel = DynamicEntityHelper.definitionsMap.get((bankId, childEntity)).exists(_.useRowLevelAccess)
+    val isRowLevel = DynamicEntityHelper.definitionOf(bankId, childEntity).exists(_.useRowLevelAccess)
     (isRowLevel, callerUserId) match {
+      case (true, None) => fr"AND FALSE"
       case (true, Some(uid)) =>
         fr"AND EXISTS (SELECT 1 FROM" ++ Fragment.const(s"${ProjectionStore.aclTable} acl") ++
           fr"WHERE" ++ Fragment.const(s"acl.${ProjectionStore.aclDataIdColumn} = $childBlobAlias.${ProjectionStore.idColumn}") ++
-          fr"AND" ++ Fragment.const(s"acl.${ProjectionStore.aclUserIdColumn}") ++ fr"=" ++ fr0"$uid" ++
+          fr"AND" ++ Fragment.const(s"acl.${ProjectionStore.aclUserIdColumn}") ++ fr"=" ++ fr"$uid" ++
           fr"AND" ++ Fragment.const(s"acl.${ProjectionStore.aclCanReadColumn} = true") ++ fr")"
       case _ => Fragment.empty
     }

@@ -31,7 +31,7 @@ import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.berlin.group.ConstantsBG
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CustomJsonFormats
@@ -73,14 +73,16 @@ object Http4sBGv2PIIS extends MdcLoggable {
     http4sPartialFunction = Some(postConfirmationOfFunds)
   )
 
-  val postConfirmationOfFunds: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val postConfirmationOfFunds: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV2Prefix` / "funds-confirmations" =>
       Ok(convertAnyToJsonString(JSONFactory_BERLIN_GROUP_v2.mockFundsConfirmation))
   }
 
   // ── Combined routes ───────────────────────────────────────────────
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    postConfirmationOfFunds(req)
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    postConfirmationOfFunds
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

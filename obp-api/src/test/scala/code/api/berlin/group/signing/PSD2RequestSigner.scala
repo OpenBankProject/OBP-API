@@ -69,7 +69,7 @@ class PSD2RequestSigner(
    * @param psuDeviceId Optional PSU device ID (default: "device-1234567890")
    * @param psuDeviceName Optional PSU device name (default: "Kalina-PC")
    * @param psuIpAddress Optional PSU IP address (default: "psu-service.local")
-   * @param tppRedirectUri Optional TPP redirect URI (default: "tppapp://example.com/redirect")
+   * @param tppRedirectUri Optional TPP redirect URI (default: "com.example.tppapp://redirect", an app scheme in reverse-domain form)
    * @param tppNokRedirectUri Optional TPP error redirect URI (default: "https://example.com/redirect")
    * @return Map of HTTP headers for the signed request
    */
@@ -78,7 +78,7 @@ class PSD2RequestSigner(
     psuDeviceId: String = "device-1234567890",
     psuDeviceName: String = "Kalina-PC", 
     psuIpAddress: String = "psu-service.local", // Use DNS/hostname instead of raw IP
-    tppRedirectUri: String = "tppapp://example.com/redirect",
+    tppRedirectUri: String = "com.example.tppapp://redirect",
     tppNokRedirectUri: String = "https://example.com/redirect"
   ): Map[String, String] = {
 
@@ -180,7 +180,7 @@ trait PSD2SigningSupport {
                        psuDeviceId: String,
                        psuDeviceName: String,
                        psuIpAddress: String,
-                       tppRedirectUri: String = "tppapp://example.com/redirect",
+                       tppRedirectUri: String = "com.example.tppapp://redirect",
                        tppNokRedirectUri: String = "https://example.com/redirect"
                      ): Map[String, String] = {
     psd2Signer.signRequest(requestBody, psuDeviceId, psuDeviceName, psuIpAddress, tppRedirectUri, tppNokRedirectUri)

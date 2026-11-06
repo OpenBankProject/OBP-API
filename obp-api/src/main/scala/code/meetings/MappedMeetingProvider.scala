@@ -165,13 +165,19 @@ object MappedMeetingInvitee {
 
 object MappedMeetingProvider extends MeetingProvider {
 
+  // The user takes part in the meeting as its customer or staff user, else it is none of their business.
+  // present carries the public user ids the numeric RESOURCEUSER keys resolve to, and an unresolved
+  // key is "", which no user id equals.
+  private def isParticipant(meeting: MappedMeeting, user: User): Boolean =
+    meeting.present.customerUserId == user.userId || meeting.present.staffUserId == user.userId
+
   override def getMeeting(bankId: BankId, user: User, meetingId: String): Box[Meeting] =
-    // TODO Need to check permissions (user)
-    MappedMeeting.find(bankId.toString, meetingId)
+    // Only a meeting the user takes part in is found, so nobody reads other people's contact details or meeting keys
+    MappedMeeting.find(bankId.toString, meetingId).filter(isParticipant(_, user))
 
   override def getMeetings(bankId: BankId, user: User): Box[List[Meeting]] =
-    // TODO Need to check permissions (user)
-    tryo(MappedMeeting.findAllByBankId(bankId.toString))
+    // Only the meetings the user takes part in, so nobody lists other people's contact details or meeting keys
+    tryo(MappedMeeting.findAllByBankId(bankId.toString).filter(isParticipant(_, user)))
 
   override def createMeeting(
     bankId: BankId,

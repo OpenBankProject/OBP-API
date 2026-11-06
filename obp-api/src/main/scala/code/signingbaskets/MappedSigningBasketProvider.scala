@@ -51,18 +51,22 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
       .map(content)
 
   override def createSigningBasket(paymentIds: Option[List[String]],
-                                   consentIds: Option[List[String]]
+                                   consentIds: Option[List[String]],
+                                   consumerId: String
                                   ): Box[SigningBasketTrait] = {
     tryo {
       // Mapper ran entity.validate here and threw on a violation. The only validated field was
       // Status against MappedString(50), and the only status ever written on create is the
       // constant RCVD, so the branch could not fire; the column length still holds it.
-      val basket = MappedSigningBasket.insert(ConstantsBG.SigningBasketsStatus.RCVD.toString)
+      val basket = MappedSigningBasket.insert(ConstantsBG.SigningBasketsStatus.RCVD.toString, consumerId)
       paymentIds.getOrElse(Nil).foreach(MappedSigningBasketPayment.insert(basket.basketId, _))
       consentIds.getOrElse(Nil).foreach(MappedSigningBasketConsent.insert(basket.basketId, _))
       basket
     }
   }
+
+  override def transitionSigningBasketStatus(basketId: String, from: String, to: String): Box[Boolean] =
+    tryo(MappedSigningBasket.transitionStatus(basketId, from, to))
 
   /**
    * Cancelling a basket is a status change, not a delete — the basket and its membership rows stay
@@ -88,18 +92,23 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
 /**
  * A Berlin Group signing basket: several payments and/or consents the PSU authorises in one go.
  *
- * Holds only the id and the status; what is in the basket lives in the two join tables below.
+ * Holds the id, the status and the consumer (TPP) that created it; what is in the basket lives in
+ * the two join tables below.
  */
-case class MappedSigningBasket(basketId: String, status: String) extends SigningBasketTrait
+case class MappedSigningBasket(basketId: String, status: String, private val consumerIdRaw: Option[String] = None)
+  extends SigningBasketTrait {
+  // Empty, or null, on a basket created before the creating consumer was recorded.
+  override def consumerId: Option[String] = consumerIdRaw.map(_.trim).filter(_.nonEmpty)
+}
 
 object MappedSigningBasket {
 
-  private val selectColumns = fr"SELECT basketid, status FROM signingbasket"
+  private val selectColumns = fr"SELECT basketid, status, consumerid FROM signingbasket"
 
-  private type Row = (Option[String], Option[String])
+  private type Row = (Option[String], Option[String], Option[String])
 
   private def fromRow(row: Row): MappedSigningBasket =
-    MappedSigningBasket(row._1.orNull, row._2.orNull)
+    MappedSigningBasket(row._1.orNull, row._2.orNull, row._3)
 
   private def query(condition: Fragment): List[MappedSigningBasket] =
     DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
@@ -116,13 +125,22 @@ object MappedSigningBasket {
       case None => Empty
     }
 
-  def insert(status: String): MappedSigningBasket = {
+  def insert(status: String, consumerId: String): MappedSigningBasket = {
     val basketId = APIUtil.generateUUID()
     DoobieUtil.runUpdate(
-      sql"INSERT INTO signingbasket (basketid, status) VALUES ($basketId, ${Option(status)})"
-        .update.run)
-    MappedSigningBasket(basketId, status)
+      sql"""INSERT INTO signingbasket (basketid, status, consumerid)
+            VALUES ($basketId, ${Option(status)}, ${Option(consumerId)})""".update.run)
+    MappedSigningBasket(basketId, status, Option(consumerId))
   }
+
+  /**
+   * Moves a basket from one status to another only if it still has the status the caller read: one
+   * conditional update, so two callers racing for the same transition have exactly one winner.
+   */
+  def transitionStatus(basketId: String, from: String, to: String): Boolean =
+    DoobieUtil.runUpdate(
+      sql"""UPDATE signingbasket SET status = ${Option(to)}
+            WHERE basketid = ${Option(basketId)} AND status = ${Option(from)}""".update.run) == 1
 
   def updateStatus(basketId: String, status: String): Unit = {
     DoobieUtil.runUpdate(

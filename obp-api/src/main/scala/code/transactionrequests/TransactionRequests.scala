@@ -103,6 +103,13 @@ trait TransactionRequestProvider extends MdcLoggable {
   def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean]
   def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean]
   def saveTransactionRequestDescriptionImpl(transactionRequestId: TransactionRequestId, description: String): Box[Boolean]
+  /**
+   * This records which counterparty a transaction request pays, for request types whose body names
+   * the payee by routing (SIMPLE, OPEN_CORRIDOR_PROMISE). The counterparty is resolved when the
+   * request is created; recording its id lets the challenge step pay exactly that counterparty
+   * instead of resolving the routing a second time.
+   */
+  def saveTransactionRequestCounterpartyIdImpl(transactionRequestId: TransactionRequestId, counterpartyId: CounterpartyId): Box[Boolean]
   def bulkDeleteTransactionRequestsByTransactionId(transactionId: TransactionId): Boolean
   def bulkDeleteTransactionRequests(): Boolean
 }

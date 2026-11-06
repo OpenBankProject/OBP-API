@@ -70,6 +70,13 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
                                         transactionStatus: String,
                                         basketId: String,
                                         _links: SigningBasketLinksV13)
+  // The links of a signing basket authorisation: scaStatus is a hyperlink object (hrefType), not a bare string.
+  case class SigningBasketScaLinksV13(scaStatus: LinkHrefJson)
+  case class StartSigningBasketAuthorisationJson(
+                                                  scaStatus: String,
+                                                  authorisationId: String,
+                                                  psuMessage: String,
+                                                  _links: SigningBasketScaLinksV13)
   case class SigningBasketGetResponseJson(
                                         transactionStatus: String,
                                         payments: Option[List[String]],
@@ -311,7 +318,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   )
 
   case class InitiatePaymentResponseLinks(
-    scaRedirect: LinkHrefJson,
+    scaRedirect: Option[LinkHrefJson],
     self: LinkHrefJson,
     status: LinkHrefJson,
     scaStatus: LinkHrefJson
@@ -794,18 +801,18 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
 //      Remark: This code may be
     //map OBP transactionRequestId to BerlinGroup PaymentId
     val paymentId = transactionRequest.id.value
-    val scaRedirectUrlPattern = getPropsValue("psu_make_payment_sca_redirect_url")
-      .openOr(MissingPropsValueAtThisInstance + "psu_make_payment_sca_redirect_url")
-    val scaRedirectUrl =
-      if (scaRedirectUrlPattern.contains("PLACEHOLDER"))
-        scaRedirectUrlPattern.replace("PLACEHOLDER", paymentId)
+    // Without psu_make_payment_sca_redirect_url there is no page to send the PSU to, so the link is left out.
+    val scaRedirectUrl = getPropsValue("psu_make_payment_sca_redirect_url").toOption.filter(_.trim.nonEmpty).map { pattern =>
+      if (pattern.contains("PLACEHOLDER"))
+        pattern.replace("PLACEHOLDER", paymentId)
       else
-        s"$scaRedirectUrlPattern/${paymentId}"
+        s"$pattern/$paymentId"
+    }
     InitiatePaymentResponseJson(
       transactionStatus = mapTransactionStatus(transactionRequest.status),
       paymentId = paymentId,
       _links = InitiatePaymentResponseLinks(
-        scaRedirect = LinkHrefJson(s"$scaRedirectUrl/$paymentId"),
+        scaRedirect = scaRedirectUrl.map(LinkHrefJson(_)),
         self = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/sepa-credit-transfers/$paymentId"),
         status = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/$paymentId/status"),
         scaStatus = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/payments/$paymentId/authorisations/${paymentId}")
@@ -875,19 +882,35 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   }
 
 
-  def createStartSigningBasketAuthorisationJson(basketId: String, challenge: ChallengeTrait): StartPaymentAuthorisationJson = {
-    StartPaymentAuthorisationJson(
+  def createStartSigningBasketAuthorisationJson(basketId: String, challenge: ChallengeTrait): StartSigningBasketAuthorisationJson = {
+    StartSigningBasketAuthorisationJson(
       scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
       authorisationId = challenge.challengeId,
       psuMessage = "Please check your SMS at a mobile device.",
-      _links = ScaStatusJsonV13(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basketId}/authorisations/${challenge.challengeId}")
+      _links = SigningBasketScaLinksV13(
+        scaStatus = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basketId}/authorisations/${challenge.challengeId}")
+      )
+    )
+  }
+
+  /** The 200 answer to a transaction authorisation on a signing basket: a scaStatusResponse whose link names the basket's authorisation. */
+  def createUpdateSigningBasketPsuDataJson(basketId: String, challenge: ChallengeTrait, executionIncomplete: Boolean = false) = {
+    ScaStatusResponse(
+      scaStatus = challenge.scaStatus.map(_.toString).getOrElse(""),
+      // The authorisation itself succeeded either way. When not every payment could be booked, the basket
+      // stays RCVD and each payment's own status says which was.
+      psuMessage = Some(
+        if (executionIncomplete) "The authorisation was accepted, but not every payment in the basket could be booked."
+        else "Please check your SMS at a mobile device."),
+      _links = Some(LinksAll(scaStatus = Some(HrefType(Some(
+        s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basketId}/authorisations/${challenge.challengeId}")))))
     )
   }
 
   def createSigningBasketResponseJson(basket: SigningBasketTrait): SigningBasketResponseJson = {
     SigningBasketResponseJson(
       basketId = basket.basketId,
-      transactionStatus = basket.status.toLowerCase(),
+      transactionStatus = ConstantsBG.SigningBasketsStatus.external(basket.status),
       _links = SigningBasketLinksV13(
         self = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basket.basketId}"),
         status = LinkHrefJson(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/signing-baskets/${basket.basketId}/status"),
@@ -898,7 +921,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
 
   def getSigningBasketResponseJson(basket: SigningBasketContent): SigningBasketGetResponseJson = {
     SigningBasketGetResponseJson(
-      transactionStatus = basket.basket.status.toLowerCase(),
+      transactionStatus = ConstantsBG.SigningBasketsStatus.external(basket.basket.status),
       payments = basket.payments,
       consents = basket.consents,
     )
@@ -906,7 +929,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
 
   def getSigningBasketStatusResponseJson(basket: SigningBasketContent): SigningBasketGetResponseJson = {
     SigningBasketGetResponseJson(
-      transactionStatus = basket.basket.status.toLowerCase(),
+      transactionStatus = ConstantsBG.SigningBasketsStatus.external(basket.basket.status),
       payments = None,
       consents = None,
     )

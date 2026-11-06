@@ -85,7 +85,7 @@ object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider
     fr"""SELECT id, muserauthcontextupdateid, muserid, mconsumerid, mkey, mvalue, mchallenge, mstatus, createdat
          FROM mappeduserauthcontextupdate"""
 
-  override def createUserAuthContextUpdates(userId: String, consumerId: String, key: String, value: String): Future[Box[UserAuthContextUpdate]] =
+  override def createUserAuthContextUpdates(userId: String, consumerId: String, bankId: String, key: String, value: String): Future[Box[UserAuthContextUpdate]] =
     Future {
       val id = APIUtil.generateUUID()
       val challenge = SecureRandomUtil.csprng.nextInt(99999999).toString()
@@ -94,8 +94,8 @@ object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider
       tryo {
         DoobieUtil.runUpdate(
           sql"""INSERT INTO mappeduserauthcontextupdate
-                  (muserauthcontextupdateid, muserid, mconsumerid, mkey, mvalue, mchallenge, mstatus, createdat, updatedat)
-                VALUES ($id, $userId, $consumerId, $key, $value, $challenge, $status, $now, $now)"""
+                  (muserauthcontextupdateid, muserid, mconsumerid, bankid, mkey, mvalue, mchallenge, mstatus, createdat, updatedat)
+                VALUES ($id, $userId, $consumerId, ${Option(bankId)}, $key, $value, $challenge, $status, $now, $now)"""
             .update.run)
         findByUpdateId(id).getOrElse(
           throw new RuntimeException("createUserAuthContextUpdates: row not found immediately after insert"))
@@ -107,6 +107,16 @@ object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider
       (selectCols ++ fr"WHERE muserauthcontextupdateid = $userAuthContextUpdateId LIMIT 1")
         .query[(Long, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Timestamp)].option
     ).map(rowOf)
+
+  /** The update only if it was requested by the User userId at the bank bankId. */
+  override def getUserAuthContextUpdateOfUserAtBank(authContextUpdateId: String, userId: String, bankId: String): Box[UserAuthContextUpdate] =
+    DoobieUtil.runQuery(
+      (selectCols ++ fr"WHERE muserauthcontextupdateid = $authContextUpdateId AND muserid = $userId AND bankid = $bankId LIMIT 1")
+        .query[(Long, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Timestamp)].option
+    ).map(rowOf) match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
 
   override def getUserAuthContextUpdates(userId: String): Future[Box[List[UserAuthContextUpdate]]] =
     Future(getUserAuthContextUpdatesBox(userId))

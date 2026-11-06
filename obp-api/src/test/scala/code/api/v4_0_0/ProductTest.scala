@@ -132,6 +132,38 @@ class ProductTest extends V400ServerSetup {
       products.products.size shouldBe 3
 
     }
+    // with apiOptions.getProductsIsPublic=false the product refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
+    Scenario("We will call the Get Product endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
+      val product: ProductJsonV400 = createProduct(code = "ANONYMOUS_GET_CODE", json = parentPutProductJsonV400)
+      When("We get the product with no authentication")
+      val requestGet400 = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code).GET
+      val responseGet400 = makeGetRequest(requestGet400)
+      if (code.api.util.APIUtil.getProductsIsPublic) {
+        Then("We should get a 200")
+        responseGet400.code should equal(200)
+      } else {
+        Then("We should get a 401")
+        responseGet400.code should equal(401)
+        And("error should be " + AuthenticatedUserIsRequired)
+        responseGet400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+      }
+    }
+    // with apiOptions.getProductsIsPublic=false the product list refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
+    Scenario("We will call the Get Products endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+      When("We get the products with no authentication")
+      val requestGetAll400 = (v4_0_0_Request / "banks" / testBankId / "products").GET
+      val responseGetAll400 = makeGetRequest(requestGetAll400)
+      if (code.api.util.APIUtil.getProductsIsPublic) {
+        Then("We should get a 200")
+        responseGetAll400.code should equal(200)
+      } else {
+        Then("We should get a 401")
+        responseGetAll400.code should equal(401)
+        And("error should be " + AuthenticatedUserIsRequired)
+        responseGetAll400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+      }
+    }
     Scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
 
       When("We need to first create the products ")
@@ -149,6 +181,42 @@ class ProductTest extends V400ServerSetup {
       val products: ProductsJsonV400 = responseGetAll400.body.extract[ProductsJsonV400]
       products.products.head.product_code should be ("PRODUCT_CODE")
 
+    }
+
+    Scenario("Filtering getProducts by attribute returns only this bank's products, even when another bank uses the same product code", ApiEndpoint3, VersionOfApi) {
+      val sharedCode = "SHARED_" + java.util.UUID.randomUUID().toString.take(8)
+      val otherBankId = "other-bank-" + java.util.UUID.randomUUID().toString.take(8)
+      val attributeName = "filter_test_" + java.util.UUID.randomUUID().toString.take(8)
+
+      Given("A product with the same code at this bank and at another bank")
+      List(testBankId, otherBankId).foreach { bankId =>
+        code.products.MappedProduct.createOrUpdate(bankId = bankId, code = sharedCode, parentProductCode = None,
+          name = s"Product $sharedCode at $bankId", category = "", family = "", superFamily = "",
+          moreInfoUrl = "", termsAndConditionsUrl = "", details = "", description = "",
+          licenseId = "", licenseName = "")
+      }
+
+      And("Only this bank's product has the attribute being filtered on")
+      scala.concurrent.Await.result(
+        code.productattribute.DoobieProductAttributeProvider.createOrUpdateProductAttribute(
+          com.openbankproject.commons.model.BankId(testBankId),
+          com.openbankproject.commons.model.ProductCode(sharedCode),
+          productAttributeId = None,
+          name = attributeName,
+          attributeType = com.openbankproject.commons.model.enums.ProductAttributeType.STRING,
+          value = "yes",
+          isActive = None),
+        scala.concurrent.duration.Duration.Inf
+      ).openOrThrowException("the product attribute must be created")
+
+      When("We get this bank's products filtered by that attribute")
+      val request400 = (v4_0_0_Request / "banks" / testBankId / "products").GET <@(user1) <<? List(attributeName -> "yes")
+      val response400 = makeGetRequest(request400)
+
+      Then("We should get a 200 with this bank's product only")
+      response400.code should equal(200)
+      val products = response400.body.extract[ProductsJsonV400].products
+      products.map(product => (product.bank_id, product.product_code)) should equal(List((testBankId, sharedCode)))
     }
   }
 

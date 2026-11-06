@@ -40,7 +40,7 @@ import scala.collection.mutable.ArrayBuffer
  * This stub is retained for ScannedApis registration (class-path scanning) and
  * so that external callers (APIUtil, SwaggerJSONFactory) that access
  * OBP_UKOpenBanking_200.apiVersion / .allResourceDocs continue to compile.
- * Routes are served by Http4sUKOBv200.wrappedRoutes in Http4sApp (ahead of the Lift bridge).
+ * Routes are served by Http4sUKOBv200.wrappedRoutes in Http4sApp.
  */
 object OBP_UKOpenBanking_200 extends OBPRestHelper with MdcLoggable with ScannedApis {
 

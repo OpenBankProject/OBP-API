@@ -238,9 +238,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def hasDirectLoginHeader(authorization: Box[String]): Boolean = hasHeader("DirectLogin", authorization)
 
-  def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name.toLowerCase == "DirectLogin".toLowerCase()).isDefined
+  def has2021DirectLoginHeader(requestHeaders: List[HTTPParam]): Boolean = RequestHeadersUtil.exists(requestHeaders, "DirectLogin")
 
-  def hasAuthorizationHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "Authorization").isDefined
+  def hasAuthorizationHeader(requestHeaders: List[HTTPParam]): Boolean = RequestHeadersUtil.exists(requestHeaders, "Authorization")
 
   /*
      The OAuth 2.0 Authorization Framework: Bearer Token
@@ -261,7 +261,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * Other types: the `GatewayLogin` is in the VALUE
    * Authorization:GatewayLogin token=xxxx
    */
-  def hasDAuthHeader(requestHeaders: List[HTTPParam]) = requestHeaders.map(_.name).exists(_ ==DAuthHeaderKey)
+  def hasDAuthHeader(requestHeaders: List[HTTPParam]) = RequestHeadersUtil.exists(requestHeaders, DAuthHeaderKey)
 
   /**
    * Helper function which tells us does an "Authorization" request header field has the Type of an authentication scheme
@@ -281,13 +281,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return the Consent-JWT value from a Request Header as a String
    */
   def getConsentJWT(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-JWT`).toList match {
-      case x :: Nil => Some(x.values.mkString(", "))
-      case _ => requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
-        case x :: Nil => Some(x.values.mkString(", "))
-        case _ => None
-      }
-    }
+    RequestHeadersUtil.findSingle(requestHeaders, RequestHeader.`Consent-JWT`)
+      .orElse(RequestHeadersUtil.findSingle(requestHeaders, RequestHeader.`Consent-Id`))
+      .map(_.values.mkString(", "))
   }
 
   /**
@@ -295,27 +291,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return the Consent-JWT value from a Request Header as a String
    */
   def getConsentIdRequestHeaderValue(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-Id`).toList match {
-      case x :: Nil => Some(x.values.mkString(", "))
-      case _ => None
-    }
+    RequestHeadersUtil.findSingle(requestHeaders, RequestHeader.`Consent-Id`).map(_.values.mkString(", "))
   }
   /**
    * Purpose of this helper function is to get the PSD2-CERT value from a Request Headers.
    * @return the PSD2-CERT value from a Request Header as a String
    */
   def `getPSD2-CERT`(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name == RequestHeader.`PSD2-CERT`).toList match {
-      case x :: Nil => Some(x.values.mkString(", "))
-      case _ => None
-    }
+    RequestHeadersUtil.findSingle(requestHeaders, RequestHeader.`PSD2-CERT`).map(_.values.mkString(", "))
   }
 
   def getRequestHeader(name: String, requestHeaders: List[HTTPParam]): String = {
-    requestHeaders.toSet.filter(_.name.toLowerCase == name.toLowerCase).toList match {
-      case x :: Nil => x.values.mkString(";")
-      case _ => ""
-    }
+    RequestHeadersUtil.findSingle(requestHeaders, name).map(_.values.mkString(";")).getOrElse("")
   }
 
   def hasConsentJWT(requestHeaders: List[HTTPParam]): Boolean = {
@@ -328,10 +315,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return the Consent-ID value from a Request Header as a String
    */
   def `getConsent-ID`(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name == RequestHeader.`Consent-ID`).toList match {
-      case x :: Nil => Some(x.values.mkString(", "))
-      case _ => None
-    }
+    RequestHeadersUtil.findSingle(requestHeaders, RequestHeader.`Consent-ID`).map(_.values.mkString(", "))
   }
   def `hasConsent-ID`(requestHeaders: List[HTTPParam]): Boolean = {
     `getConsent-ID`(requestHeaders).isDefined
@@ -452,7 +436,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     val url = cc.map(_.url).getOrElse("")
     val requestHeaders: List[HTTPParam] =
-      cc.map(_.requestHeaders.filter(i => i.name == "limit" || i.name == "offset").sortBy(_.name)).getOrElse(Nil)
+      cc.map(_.requestHeaders.filter(i => RequestHeadersUtil.isNamed(i, "limit") || RequestHeadersUtil.isNamed(i, "offset")).sortBy(_.name)).getOrElse(Nil)
     val hashedRequestPayload = HashUtil.Sha256Hash(url + requestHeaders)
     val consumerId = cc.map(i => i.consumer.map(_.consumerId).getOrElse("None")).getOrElse("None")
     val userId = tryo(cc.map(i => i.userId).toBox).flatten.getOrElse("None")
@@ -493,13 +477,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   private def checkConditionalRequest(cc: Option[CallContext], httpVerb: String, httpCode: Int, httpBody: Box[String]) = {
     val requestHeaders: List[HTTPParam] = cc.map(_.requestHeaders).getOrElse(Nil)
-    requestHeaders.filter(_.name == RequestHeader.`If-None-Match` ).headOption match {
+    RequestHeadersUtil.find(requestHeaders, RequestHeader.`If-None-Match`) match {
       case Some(value) => // Handle the If-None-Match HTTP request header
         checkIfNotMatchHeader(cc, httpCode, httpBody, value.values.mkString(""))
       case None =>
         // When used in combination with If-None-Match, it is ignored, unless the server doesn't support If-None-Match.
         // The most common use case is to update a cached entity that has no associated ETag
-        requestHeaders.filter(_.name == RequestHeader.`If-Modified-Since` ).headOption match {
+        RequestHeadersUtil.find(requestHeaders, RequestHeader.`If-Modified-Since`) match {
           case Some(value) => // Handle the If-Modified-Since HTTP request header
             checkIfModifiedSinceHeader(cc, httpVerb, httpCode, httpBody, value.values.mkString(""))
           case None =>
@@ -837,12 +821,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     xml
   }
 
-  /** check the currency ISO code from the ISOCurrencyCodes.xml file */
-  def isValidCurrencyISOCode(currencyCode: String): Boolean = {
-    // Note: We add BTC bitcoin as XBT (the ISO compliant varient)
-    val currencyIsoCodeArray = (CurrencyIsoCodeFromXmlFile \"CcyTbl" \ "CcyNtry" \ "Ccy").map(_.text).mkString(" ").split("\\s+") :+ "XBT"
-    currencyIsoCodeArray.contains(currencyCode)
-  }
+  /** Checks that OBP knows the currency code. The answer comes from the asset registry; see code.asset.AssetLookup. */
+  def isValidCurrencyISOCode(currencyCode: String): Boolean = code.asset.AssetLookup.isKnownCode(currencyCode)
+
+  /**
+   * These are the currency codes OBP accepted before the asset registry existed: every code in the
+   * ISOCurrencyCodes.xml file, plus XBT (bitcoin under its ISO-style code). AssetLookup falls back to
+   * them when the registry cannot be read. Use isValidCurrencyISOCode everywhere else.
+   */
+  lazy val builtInCurrencyCodes: Set[String] =
+    ((CurrencyIsoCodeFromXmlFile \"CcyTbl" \ "CcyNtry" \ "Ccy").map(_.text).mkString(" ").split("\\s+") :+ "XBT").toSet
 
   /** Check the id values from GUI, such as ACCOUNT_ID, BANK_ID ...  */
   def isValidID(id :String):Boolean= {
@@ -1227,6 +1215,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case "consent_id" => Full(OBPConsentId(values.head))
         case "consent_reference_id" => Full(OBPConsentReferenceId(values.head))
         case "certificate_trust" => Full(OBPCertificateTrust(values.head))
+        case "domain_api_url" => Full(OBPDomainApiUrl(values.head))
         case "user_id" => Full(OBPUserId(values.head))
         case "provider_provider_id" => Full(ProviderProviderId(values.head))
         case "bank_id" => Full(OBPBankId(values.head))
@@ -1309,6 +1298,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       username <- getHttpParamValuesByName(httpParams, "username")
       email <- getHttpParamValuesByName(httpParams, "email")
       httpStatusCode <- getHttpParamValuesByName(httpParams, "http_status_code")
+      // Read here so that the metrics endpoints actually apply these filters: getHttpParamValuesByName maps
+      // each name to its query param, but a name not read in this list never reaches a query.
+      consentReferenceId <- getHttpParamValuesByName(httpParams, "consent_reference_id")
+      certificateTrust <- getHttpParamValuesByName(httpParams, "certificate_trust")
+      domainApiUrl <- getHttpParamValuesByName(httpParams, "domain_api_url")
     }yield{
       // Extract the sort field name from the sort_by query param (e.g. "url", "date").
       // OBPOrdering expects Option[String], but sortBy is an OBPQueryParam.
@@ -1322,7 +1316,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         anon, status, consumerId, azp, iss, consentId, userId, providerProviderId, url, appName, implementedByPartialFunction, implementedInVersion,
         verb, correlationId, duration, httpStatusCode, excludeAppNames, excludeUrlPattern, excludeImplementedByPartialfunctions,
         includeAppNames, includeUrlPattern, includeImplementedByPartialfunctions,
-        connectorName,functionName, bankId, accountId, customerId, lockedStatus, roleName, provider, username, email, deletedStatus
+        connectorName,functionName, bankId, accountId, customerId, lockedStatus, roleName, provider, username, email, deletedStatus,
+        consentReferenceId, certificateTrust, domainApiUrl
       ).filter(_ != OBPEmpty())
     }
   }
@@ -1363,6 +1358,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val consentId =  getHttpRequestUrlParam(httpRequestUrl,"consent_id")
     val consentReferenceId =  getHttpRequestUrlParam(httpRequestUrl,"consent_reference_id")
     val certificateTrust =  getHttpRequestUrlParam(httpRequestUrl,"certificate_trust")
+    val domainApiUrl =  getHttpRequestUrlParam(httpRequestUrl,"domain_api_url")
     val userId =  getHttpRequestUrlParam(httpRequestUrl, "user_id")
     val providerProviderId =  getHttpRequestUrlParam(httpRequestUrl, "provider_provider_id")
     val bankId =  getHttpRequestUrlParam(httpRequestUrl, "bank_id")
@@ -1398,7 +1394,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     Full(List(
       HTTPParam("sort_by",sortBy), HTTPParam("sort_direction",sortDirection), HTTPParam("from_date",fromDate), HTTPParam("to_date", toDate), HTTPParam("limit",limit), HTTPParam("offset",offset),
-      HTTPParam("anon", anon), HTTPParam("status", status), HTTPParam("consumer_id", consumerId), HTTPParam("azp", azp), HTTPParam("iss", iss), HTTPParam("consent_id", consentId), HTTPParam("consent_reference_id", consentReferenceId), HTTPParam("certificate_trust", certificateTrust), HTTPParam("user_id", userId), HTTPParam("provider_provider_id", providerProviderId), HTTPParam("url", url), HTTPParam("app_name", appName),
+      HTTPParam("anon", anon), HTTPParam("status", status), HTTPParam("consumer_id", consumerId), HTTPParam("azp", azp), HTTPParam("iss", iss), HTTPParam("consent_id", consentId), HTTPParam("consent_reference_id", consentReferenceId), HTTPParam("certificate_trust", certificateTrust), HTTPParam("domain_api_url", domainApiUrl), HTTPParam("user_id", userId), HTTPParam("provider_provider_id", providerProviderId), HTTPParam("url", url), HTTPParam("app_name", appName),
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb),
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
       HTTPParam("exclude_url_patterns", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions), 
@@ -1585,7 +1581,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   sealed trait EndpointAuthMode
   case object UserOnly extends EndpointAuthMode
   case object ApplicationOnly extends EndpointAuthMode
-  case object UserOrApplication extends EndpointAuthMode
+  /** Either a person or the application acting as itself, never a mix: when the application acts as itself
+   *  (see isApplicationActingAsItself) only its Consumer's Scopes count; otherwise only the User's Entitlements. */
+  case object UserXORApplication extends EndpointAuthMode
   case object UserAndApplication extends EndpointAuthMode
 
   // Used to document the API calls
@@ -1620,7 +1618,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           specialInstructions: Option[String] = None,
                           var specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
                           createdByBankId: Option[String] = None, //we need to filter the resource Doc by BankId
-                          authMode: EndpointAuthMode = UserOnly, // Per-endpoint auth mode: UserOnly, ApplicationOnly, UserOrApplication, UserAndApplication
+                          authMode: EndpointAuthMode = UserOnly, // Per-endpoint auth mode: UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication
                           http4sPartialFunction: Http4sEndpoint = None, // http4s endpoint handler
                           // Native http4s handler for runtime-compiled dynamic endpoints (Piece C). Defaulted to None so
                           // no existing construction site changes. Set by DynamicResourceDocsEndpointGroup / practise group
@@ -1661,16 +1659,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
       // Auth-mode-aware error message adjustments
       authMode match {
-        case ApplicationOnly | UserOrApplication =>
+        case ApplicationOnly | UserXORApplication =>
           errorResponseBodies ?+= ApplicationNotIdentified
           if (authMode == ApplicationOnly) {
             errorResponseBodies ?-= AuthenticatedUserIsRequired
           }
-          if (authMode == UserOrApplication) {
+          if (authMode == UserXORApplication) {
             description +=
               s"""
                  |
-                 |This endpoint supports **User OR Application** authentication. You can authenticate either as a logged-in User (with Entitlements) or as an Application using a Consumer Key (with Scopes).
+                 |This endpoint supports **User XOR Application** authorisation: either a person acting on their own Entitlements, or an Application acting as itself (e.g. with an OAuth2 client-credentials token) on its Consumer's Scopes. A person calling through a Consumer does not get that Consumer's Scopes.
                  |See ${Glossary.getGlossaryItemLink("API.Endpoint Auth Modes")} for more information.
                  |"""
           }
@@ -1758,6 +1756,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      * requests.
      */
     def isAutoValidateRoles: Boolean = _autoValidateRoles
+
+    private var _allowsSystemSpace = false
+
+    /**
+     * Let the system space's bank id, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID (SYS), stand in for BANK_ID.
+     *
+     * The middleware looks every BANK_ID up as a real bank and answers 404 when there is none, and no
+     * bank is called SYS. A Dynamic Entity lives in a space, which is either a bank or the system space,
+     * so its endpoints need SYS to get through; every other endpoint needs a real bank and must keep
+     * the 404. This is the opt-in that tells them apart. With it, a request naming SYS reaches the
+     * handler with no bank resolved, and the declared Roles are checked at SYS.
+     */
+    def allowSystemSpace(): ResourceDoc = {
+      _allowsSystemSpace = true
+      this
+    }
+
+    def allowsSystemSpace: Boolean = _allowsSystemSpace
     private var _autoValidateAuthenticate = true
     def disableAutoValidateAuthenticate(): ResourceDoc = {
       _autoValidateAuthenticate = false
@@ -1803,7 +1819,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
      * runtime-compiled dynamic-endpoint dispatch. Runs the SAME ordered checks — authentication,
      * obp-id format, bank, roles, account, view, counterparty — with the same predicates and *Fun
      * helpers, returning the enriched CallContext (user set) for a native handler instead of
-     * wrapping a Lift OBPEndpoint. No S.init / SS / Box[JsonResponse]; the compiled native body
+     * wrapping a Lift OBPEndpoint. No S.init / Box[JsonResponse]; the compiled native body
      * looks up bank/account/view itself, so the entities validated here serve only 404/403 gating,
      * exactly as the Lift checks did. Auth/role/lookup failures fail the Future (the dispatcher
      * converts them to a response via ErrorResponseConverter).
@@ -1820,7 +1836,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
       def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] = authMode match {
         case UserOnly | UserAndApplication => if (AuthCheckIsRequired) authenticatedAccessFun(cc) else anonymousAccessFun(cc)
-        case ApplicationOnly | UserOrApplication => applicationAccessFun(cc)
+        case ApplicationOnly | UserXORApplication => applicationAccessFun(cc)
       }
       def checkObpIds(pairs: List[(String, String)], callContext: Option[CallContext]): Future[Option[CallContext]] = Future {
         val invalid = pairs.filter(p => !checkObpId(p._2).equals(SILENCE_IS_GOLDEN))
@@ -1869,102 +1885,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     if(operationElements.length>1){
       s"${operationElements(0).replaceAll("_",".")}-${operationElements(1)}"
     }else operationId
-  }
-
-  /**
-   * Simulate S pass request and session, this object pass bank, account and view.
-   * This method invoke must fulfill three point:
-   *  1. be invoked at endpoint's body
-   *  2. be invoked out of for comprehension
-   *  3. endpoint's corresponding ResourceDoc.errorResponseBodies must contains $BankNotFound, $BankAccountNotFound or $UserNoPermissionAccessView
-   */
-  object SS {
-    private val _user = new ThreadGlobal[User]
-    private val _bank = new ThreadGlobal[Bank]
-    private val _bankAccount = new ThreadGlobal[BankAccount]
-    private val _view = new ThreadGlobal[View]
-    private val _callContext = new ThreadGlobal[Option[CallContext]]
-
-    def init[B](boxUser: Box[User], bank: Bank, bankAccount: BankAccount, view: View, callContext: Option[CallContext])(f: => B):B = {
-      _user.doWith(boxUser.orNull){
-        _bank.doWith(bank) {
-          _bankAccount.doWith(bankAccount) {
-            _view.doWith(view) {
-              _callContext.doWith(callContext){
-                f
-              }
-            }
-          }
-        }
-      }
-    }
-
-    private def bank: Bank = _bank.box.openOrThrowException(buildErrorMsg(nameOf($BankNotFound)))
-    private def bankAccount: BankAccount = _bankAccount.box.openOrThrowException(buildErrorMsg(nameOf($BankAccountNotFound)))
-    private def getView: View = _view.box.openOrThrowException(buildErrorMsg(nameOf($UserNoPermissionAccessView)))
-    private def callContext: Option[CallContext] = _callContext.box.orNull
-
-    /**
-     * Get current login user, recommend call cc.loggedInUser instead.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     * @return current login user
-     */
-    def user: Future[(Box[User], Option[CallContext])] = Future.successful(_user.box -> callContext)
-
-    /**
-     * Get current login user, and bank find by url /BANK_ID/.
-     * Validation of id exists passed.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     */
-    def userBank: Future[(Box[User], Bank, Option[CallContext])] = Future.successful((_user.box, bank, callContext))
-
-    def userBankView: Future[(Box[User], Bank, View, Option[CallContext])] = Future.successful((_user.box, bank, getView, callContext))
-
-    /**
-     * Get current login user and bank find by url /BANK_ID/ and account find by /ACCOUNT_ID/.
-     * Validation of id exists passed.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     */
-    def userBankAccount: Future[(Box[User], Bank, BankAccount, Option[CallContext])] = Future.successful {
-      (_user.box, bank, bankAccount, callContext)
-    }
-
-    /**
-     * Get current login user, and bank find by url /BANK_ID/, and account find by /ACCOUNT_ID/, and view find by  /VIEW_ID/.
-     * Validation of id exists passed.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     */
-    def userBankAccountView: Future[(Box[User], Bank, BankAccount, View, Option[CallContext])] = Future.successful {
-      (_user.box, bank, bankAccount, getView, callContext)
-    }
-
-    /**
-     * Get view find by  /VIEW_ID/.
-     * Validation of id exists passed.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     */
-    def view: Future[(View, Option[CallContext])] = Future.successful(getView -> callContext)
-    /**
-     * Get current login user, and view find by  /VIEW_ID/.
-     * Validation of id exists passed.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     */
-    def userView: Future[(Box[User], View, Option[CallContext])] = Future.successful((_user.box, getView, callContext))
-
-    /**
-     * Get current login user and account find by /ACCOUNT_ID/.
-     * Validation of id exists passed.
-     * Note, the same as S.session of lift framework, the method only can be called at first line of endpoint for comprehension or out of for comprehension.
-     */
-    def userAccount: Future[(Box[User], BankAccount, Option[CallContext])] = Future.successful((_user.box, bankAccount, callContext))
-
-    private def buildErrorMsg(msg: String) =
-      s"""
-         |This method invoke must fulfill three point:
-         | 1. be invoked at endpoint's body
-         | 2. be invoked out of for comprehension
-         | 3. endpoint's corresponding ResourceDoc.errorResponseBodies must contains $msg
-         |""".stripMargin
   }
 
   /**
@@ -2229,14 +2149,32 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     user_ids.filter(_ == user_id).length > 0
   }
 
-  // Virtual roles granted by super_admin_user_ids prop
-  val superAdminVirtualRoles: List[String] = List("CanCreateEntitlementAtOneBank", "CanCreateEntitlementAtAnyBank", "CanGetAnyUser")
+  // Virtual roles granted by super_admin_user_ids prop. The entitlement request Roles let a super admin see
+  // and accept requests (accepting deletes the request) on a fresh instance, where nobody holds them yet;
+  // they add no power, since a super admin can grant themselves any Role.
+  val superAdminVirtualRoles: List[String] = List("CanCreateEntitlementAtOneBank", "CanCreateEntitlementAtAnyBank", "CanGetAnyUser",
+    "CanGetEntitlementRequestsAtAnyBank", "CanDeleteEntitlementRequestsAtAnyBank")
   // Virtual roles granted by oidc_operator_user_ids prop
-  val oidcOperatorVirtualRoles: List[String] = List("CanGetAnyUser", "CanVerifyUserCredentials", "CanVerifyOidcClient", "CanGetOidcClient")
+  val oidcOperatorVirtualRoles: List[String] = List("CanGetAnyUser", "CanVerifyUserCredentials", "CanVerifyOidcClient", "CanGetOidcClient", "CanGetOidcConsent", "CanGetConsumers", "CanCreateConsumer")
 
   def hasScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
     !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
   }
+  /** True when no person is behind the call: there is no User, or the User is the application's own, the one an
+   *  OBP-OIDC client-credentials token resolves to (provider obp-oidc#client, named after the Consumer's client id).
+   *  consumerId is the Consumer's primary key, as from getConsumerPrimaryKey. */
+  def isApplicationActingAsItself(userId: String, consumerId: String): Boolean =
+    if (userId.isEmpty) consumerId.nonEmpty
+    else (for {
+      user <- Users.users.vend.getUserByUserId(userId)
+      primaryKey <- tryo(consumerId.toLong)
+      consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(primaryKey)
+    } yield isApplicationsOwnUser(user, consumer)).openOr(false)
+
+  def isApplicationsOwnUser(user: User, consumer: code.model.Consumer): Boolean =
+    user.provider == code.api.OAuth2Login.OBPOIDC.clientCredentialsProvider &&
+      Set(Option(consumer.key), Option(consumer.azp)).flatten.filter(_.nonEmpty).contains(user.idGivenByProvider)
+
   def getConsumerPrimaryKey(callContext: Option[CallContext]): String = {
     callContext match {
       case Some(cc) =>
@@ -2263,6 +2201,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def isConsentUser(userId: String): Boolean =
     Users.users.vend.getUserByUserId(userId).exists(_.isConsentUser)
+
+  /**
+   * This says whether an Entitlement or a Scope may be written at `bankId`.
+   *
+   * Three values are allowed: the empty bank id, where a system Role is held; SYS, the system space
+   * of Dynamic Entities, whose Roles are granted there although no Bank has that id; and the id of a
+   * Bank that exists, matched exactly, case included. A row at any other bank id would be one that no
+   * check ever reads. Every endpoint that grants a Role or a Scope, or records a request for one, asks
+   * this, so that SYS is accepted in all of them and not only in the versions written after it.
+   */
+  def isBankIdWhereRolesCanBeHeld(bankId: String, callContext: Option[CallContext]): Boolean =
+    bankId.isEmpty || bankId == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID || BankX(BankId(bankId), callContext).map(_._1).exists(_.bankId.value == bankId)
 
   def hasEntitlement(bankId: String, userId: String, apiRole: ApiRole): Boolean = apiRole match {
     case RoleCombination(roles) => roles.forall(hasEntitlement(bankId, userId, _))
@@ -2310,8 +2260,112 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // when roles is empty, that means no access control, treat as pass auth check
   @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
-    roles.isEmpty || roles.exists(hasEntitlement(bankId, userId, _))
+    roles.isEmpty || roles.exists(role => holdsVirtualRole(userId, role) || hasEntitlement(bankId, userId, role))
+
+  /** True when the User holds `role` virtually, through super_admin_user_ids or oidc_operator_user_ids. The
+   *  inline checks (hasAtLeastOneEntitlement, hasAllEntitlements) honour these as the middleware's check does,
+   *  so an endpoint that checks its Roles again in its handler doesn't refuse what its ResourceDoc allowed. */
+  def holdsVirtualRole(userId: String, role: ApiRole): Boolean = {
+    val virtualRoles = if (isSuperAdmin(userId)) superAdminVirtualRoles
+                       else if (isOidcOperator(userId)) oidcOperatorVirtualRoles
+                       else List.empty
+    virtualRoles.contains(role.toString)
+  }
   
+  /**
+   * Grant a caller the Roles they are missing, at the moment they first need them.
+   *
+   * This is the "just in time" entitlement described in the Glossary and switched on with the
+   * create_just_in_time_entitlements prop. The idea is that a caller who could have granted
+   * themselves a Role by hand, because they hold one of the granting Roles, should not have to make
+   * that second call: OBP writes the Entitlement for them and lets the request through. The row is
+   * an ordinary Entitlement, marked with created_by_process = "create_just_in_time_entitlements" so
+   * that an operator reading the table later can tell it apart from a hand granted one.
+   *
+   * Two callers are never granted anything this way. A consent user is refused because a Role held
+   * by a per-consent identity would be stranded there rather than belonging to the human. And the
+   * system space is refused because reaching it is meant to be a deliberate act: a Dynamic Entity
+   * at the bank id DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID is the instance wide space, and granting
+   * anything in it requires the system space granting Role rather than the ordinary per bank one.
+   * Without this second exclusion, holding the per bank granting Role at that one bank id would be
+   * enough to collect system space Roles silently, one endpoint call at a time.
+   *
+   * Returns true only when every missing Role was granted, which is what lets the caller through.
+   */
+  /**
+   * The two Roles that hand out Roles are never granted automatically. Granting one of them to a
+   * caller who is already using this automation would let a caller widen their own granting reach
+   * without anybody deciding to let them, which is the one thing the manual process is there for.
+   * The Glossary Item Entitlement and sample.props.template both state this exclusion.
+   */
+  private val rolesNeverGrantedJustInTime: Set[String] =
+    Set(ApiRole.canCreateEntitlementAtOneBank.toString, ApiRole.canCreateEntitlementAtAnyBank.toString)
+
+  /**
+   * Grant a caller the Roles they are missing, at the moment they first need them.
+   *
+   * This is the "just in time" entitlement described in the Glossary and switched on with the
+   * create_just_in_time_entitlements prop. The idea is that a caller who could have granted
+   * themselves a Role by hand, because they hold one of the granting Roles, should not have to make
+   * that second call: OBP writes the Entitlement for them and lets the request through. The row is
+   * an ordinary Entitlement, marked with created_by_process = "create_just_in_time_entitlements" so
+   * that an operator reading the table later can tell it apart from a hand granted one.
+   *
+   * "Could have granted it by hand" is meant literally, and is what the checks below reproduce.
+   * Add Entitlement writes a Role at the scope the Role itself declares: a Role with
+   * requiresBankId = false lives at the system scope and is refused if a bank id is supplied, and a
+   * Role with requiresBankId = true is refused without one. The granting Role needed differs the
+   * same way, because only a holder of CanCreateEntitlementAtAnyBank can write at the system scope.
+   * So a caller who may grant Entitlements at one bank gets bank Roles at that bank and nothing
+   * else, and in particular gets no system scoped Role, however the endpoint they called was
+   * addressed. Whether the caller may then proceed is decided by reading the Entitlements back at
+   * the scope the check uses, never by the write having succeeded: a row written at the wrong scope
+   * is a row no check will ever read, so treating the write as the answer would let a caller past a
+   * Role they do not hold and cannot obtain.
+   *
+   * Two callers are never granted anything this way. A consent user is refused because a Role held
+   * by a per-consent identity would be stranded there rather than belonging to the human. And the
+   * system space is refused because reaching it is meant to be a deliberate act: a Dynamic Entity
+   * at the bank id DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID is the instance wide space, and granting
+   * anything in it requires the system space granting Role rather than the ordinary per bank one.
+   * Without this second exclusion, holding the per bank granting Role at that one bank id would be
+   * enough to collect system space Roles silently, one endpoint call at a time.
+   */
+  private def grantJustInTimeEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
+    if (!getPropsAsBoolValue("create_just_in_time_entitlements", false) ||
+      isConsentUser(userId) ||
+      bankId == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) {
+      false
+    } else {
+      val mayGrantAtThisBank = hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank)
+      val mayGrantAtEveryBankAndAtTheSystemScope = hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)
+
+      roles.foreach { role =>
+        val scopeAddEntitlementWouldUse = if (role.requiresBankId) bankId else ""
+        val couldHaveBeenGrantedByHand = role match {
+          // A combination is a way of writing "all of these at once" for a check; it is not a Role
+          // anybody can hold, so there is no row to write for it.
+          case _: RoleCombination => false
+          case _ if rolesNeverGrantedJustInTime.contains(role.toString) => false
+          case _ if role.requiresBankId => bankId.nonEmpty && (mayGrantAtThisBank || mayGrantAtEveryBankAndAtTheSystemScope)
+          case _ => mayGrantAtEveryBankAndAtTheSystemScope
+        }
+        if (couldHaveBeenGrantedByHand && !hasEntitlement(bankId, userId, role)) {
+          val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
+            scopeAddEntitlementWouldUse,
+            userId,
+            role.toString,
+            "create_just_in_time_entitlements",
+            grantedByUserId = Some(userId)
+          )
+          logger.info(s"Just in Time Entitlements: $addedEntitlement")
+        }
+      }
+
+      roles.exists(hasEntitlement(bankId, userId, _))
+    }
+  }
+
   // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
   // i.e. does user has assigned at least one role from the list
   // when roles is empty, that means no access control, treat as pass auth check
@@ -2332,25 +2386,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
       def userHasTheRoles: Boolean = {
         val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
-        userHasTheRole || {
-          getPropsAsBoolValue("create_just_in_time_entitlements", false) && !isConsentUser(userId) && {
-            // If a user is trying to use a Role and the user could grant them selves the required Role(s),
-            // then just automatically grant the Role(s)!
-            (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
-              hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) &&
-              roles.forall { role =>
-                val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
-                  bankId,
-                  userId,
-                  role.toString,
-                  "create_just_in_time_entitlements",
-                  grantedByUserId = Some(userId)
-                )
-                logger.info(s"Just in Time Entitlements: $addedEntitlement")
-                addedEntitlement.isDefined
-              }
-          }
-        }
+        userHasTheRole || grantJustInTimeEntitlements(bankId, userId, roles)
       }
 
       // Consumer AND User has the Role
@@ -2371,9 +2407,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * Per-endpoint auth mode access control. Checks virtual roles first, then matches on authMode:
    * - UserOnly: user entitlements only (includes just-in-time entitlements)
    * - ApplicationOnly: consumer scopes only
-   * - UserOrApplication: scopes OR entitlements
+   * - UserXORApplication: consumer scopes when the application acts as itself, otherwise user entitlements
    * - UserAndApplication: scopes AND entitlements
-   * Global overrides (require_scopes_for_all_roles, require_scopes_for_listed_roles) force UserAndApplication behavior.
+   * Global overrides (require_scopes_for_all_roles, require_scopes_for_listed_roles) force UserAndApplication behavior,
+   * except for an application acting as itself on an ApplicationOnly or UserXORApplication endpoint: it has no
+   * Entitlements to add, so it keeps needing only its Scopes.
    */
   def handleAccessControlWithAuthMode(bankId: String, userId: String, consumerId: String, roles: List[ApiRole], authMode: EndpointAuthMode): Boolean = {
     if (roles.isEmpty) {
@@ -2393,33 +2431,25 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
         def userHasTheRoles: Boolean = {
           val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
-          userHasTheRole || {
-            getPropsAsBoolValue("create_just_in_time_entitlements", false) && !isConsentUser(userId) && {
-              (hasEntitlement(bankId, userId, ApiRole.canCreateEntitlementAtOneBank) ||
-                hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) &&
-                roles.forall { role =>
-                  val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
-                    bankId, userId, role.toString, "create_just_in_time_entitlements",
-                    grantedByUserId = Some(userId)
-                  )
-                  logger.info(s"Just in Time Entitlements: $addedEntitlement")
-                  addedEntitlement.isDefined
-                }
-            }
-          }
+          userHasTheRole || grantJustInTimeEntitlements(bankId, userId, roles)
         }
 
         def consumerHasTheScopes: Boolean =
           roles.exists(role => hasScope(if (role.requiresBankId) bankId else "", consumerId, role))
 
+        lazy val applicationActsAsItself = isApplicationActingAsItself(userId, consumerId)
+
         if (globalOverrideToUserAndApp) {
-          // Global config forces both scopes AND entitlements
-          userHasTheRoles && roles.exists(hasScope(bankId, consumerId, _))
+          authMode match {
+            case ApplicationOnly | UserXORApplication if applicationActsAsItself => consumerHasTheScopes
+            // Global config forces both scopes AND entitlements
+            case _ => userHasTheRoles && roles.exists(hasScope(bankId, consumerId, _))
+          }
         } else {
           authMode match {
             case UserOnly => userHasTheRoles
             case ApplicationOnly => consumerHasTheScopes
-            case UserOrApplication => consumerHasTheScopes || userHasTheRoles
+            case UserXORApplication => if (applicationActsAsItself) consumerHasTheScopes else userHasTheRoles
             case UserAndApplication => userHasTheRoles && consumerHasTheScopes
           }
         }
@@ -2433,7 +2463,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // TODO Should we accept Option[BankId] for bankId  instead of String ?
   @deprecated("Use handleAccessControlRegardingEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
   def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean =
-    roles.forall(hasEntitlement(bankId, userId, _))
+    roles.forall(role => holdsVirtualRole(userId, role) || hasEntitlement(bankId, userId, role))
 
   def getCustomers(ids: List[String]): List[Customer] = {
     val customers = {
@@ -2489,6 +2519,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case _ =>
       // There are no enough information for logging
     }
+    callContext.foreach(cc => WriteMetricUtil.recordConsumerLastCall(cc.consumerId, cc.startTime))
     WriteMetricUtil.writeEndpointMetric(responseBody, callContext.map(_.copy(endTime = Some(endTime))))
     result
   }
@@ -2618,6 +2649,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def getDisabledEndpointOperationIds() : List[String] = APIUtil.getPropsValue("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
+  /**
+   * allow_cascade_delete (default false). The v4.0.0 /management/cascading/... endpoints are
+   * routed and documented only when this is true. It is read when the API version objects are
+   * initialised, so a change takes effect on restart. The Dynamic Entity cascade deletes, which
+   * back up to a ZZ_BAK_ entity first, are not affected.
+   */
+  def cascadeDeleteEnabled: Boolean = getPropsAsBoolValue("allow_cascade_delete", false)
 
 
   def getEnabledVersions() : List[String] = APIUtil.getPropsValue("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty).map(_.trim)
@@ -2697,7 +2735,49 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
   type OBPReturnType[T] = Future[(T, Option[CallContext])]
-  type Http4sEndpoint = Option[HttpRoutes[IO]]
+  /** The pattern match of one http4s endpoint, before `HttpRoutes.of` hides it. */
+  type Http4sRoutePF = PartialFunction[org.http4s.Request[IO], IO[org.http4s.Response[IO]]]
+
+  /**
+   * What a ResourceDoc runs. A [[Http4sRoute]] exposes its pattern match, so ResourceDocMiddleware
+   * can ask it whether it serves a request and take the doc of the route that does. Plain
+   * `HttpRoutes[IO]` (a [[LegacyRoutes]]) cannot be asked without running it, so the middleware
+   * still finds the doc of such an endpoint by matching the URL against the doc's template.
+   * Endpoints are converted to [[Http4sRoute]] one version at a time; the implicit conversion in
+   * the companion keeps the unconverted `http4sPartialFunction = Some(routes)` sites compiling.
+   */
+  sealed trait Http4sHandler {
+    def routes: HttpRoutes[IO]
+    def route: Option[Http4sRoutePF]
+  }
+
+  object Http4sHandler {
+    import scala.language.implicitConversions
+    implicit def fromHttpRoutes(routes: HttpRoutes[IO]): Http4sHandler = LegacyRoutes(routes)
+  }
+
+  final case class LegacyRoutes(routes: HttpRoutes[IO]) extends Http4sHandler {
+    def route: Option[Http4sRoutePF] = None
+  }
+
+  /** An endpoint whose pattern match is available: `Http4sRoute { case req @ GET -> ... => ... }`. */
+  final class Http4sRoute(val pf: Http4sRoutePF) extends Http4sHandler {
+    lazy val routes: HttpRoutes[IO] = HttpRoutes.of[IO](pf)
+    def route: Option[Http4sRoutePF] = Some(pf)
+    def run(req: org.http4s.Request[IO]): cats.data.OptionT[IO, org.http4s.Response[IO]] = routes.run(req)
+  }
+
+  object Http4sRoute {
+    def apply(pf: Http4sRoutePF): Http4sRoute = new Http4sRoute(pf)
+
+    /** Try the handlers in the order given; the first that serves a request answers it. */
+    def chain(handlers: Seq[Http4sHandler]): HttpRoutes[IO] =
+      handlers.map(_.routes).foldLeft(HttpRoutes.empty[IO]) { (acc, next) =>
+        HttpRoutes[IO](req => acc.run(req).orElse(next.run(req)))
+      }
+  }
+
+  type Http4sEndpoint = Option[Http4sHandler]
   // Native http4s endpoint type for runtime-compiled dynamic endpoints (Piece C).
   // The dynamic-code template compiles to this, and Http4sDynamicEndpoint runs it directly.
   type Http4sEndpointIO = PartialFunction[org.http4s.Request[IO], CallContext => IO[org.http4s.Response[IO]]]
@@ -2779,7 +2859,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       getRemoteIpAddress()
     
     val xRequestId: Option[String] =
-      reqHeaders.find(_.name.toLowerCase() == RequestHeader.`X-Request-ID`.toLowerCase())
+      RequestHeadersUtil.find(reqHeaders, RequestHeader.`X-Request-ID`)
         .map(_.values.mkString(","))
     logger.debug(s"Request Headers for verb: $verb, URL: $url")
     logger.debug(reqHeaders.map(h => h.name + ": " + h.values.mkString(",")).mkString)
@@ -2836,7 +2916,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       } else if (BerlinGroupCheck.hasUnwantedConsentIdHeaderForBGEndpoint(url, reqHeaders)) {
         val message = ErrorMessages.InvalidConsentIdUsage
         Future { (fullBoxOrException(Empty ~> APIFailureNewStyle(message, 400, Some(cc.toLight))), Some(cc)) }
-      } else if (APIUtil.`hasConsent-ID`(reqHeaders)) { // Berlin Group's Consent
+      } else if (url.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) && APIUtil.`hasConsent-ID`(reqHeaders)) { // Berlin Group's Consent
         // Choose consumer based on validation method configuration
         val consumerForConsent = if (method == "CONSUMER_KEY_VALUE" && consumerByConsumerKey.isDefined) {
           consumerByConsumerKey
@@ -3131,14 +3211,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * Resolve the caller (user and Consumer) from the request credentials WITHOUT applying rate
    * limiting: the call is neither refused for exceeding a limit nor counted against one.
    *
-   * For the http4s version fallthrough chain only (ResourceDocMiddleware.resolveCallerOnce). A hop
-   * that has no ResourceDoc for the request is almost always about to pass it on to the next
-   * version, and the hop that finally serves it applies rate limiting itself through
-   * [[anonymousAccess]] / [[applicationAccess]]. Counting the call on every hop charged one unit per
-   * hop: `GET /obp/v5.1.0/users/current` is served by v3.0.0 after six hops, so it cost seven
-   * units and a Consumer with a per-second limit below seven could never call it (429 OBP-10018).
+   * For a service that opens its own write transaction and so cannot leave the authentication to
+   * ResourceDocMiddleware (which validates before it opens one): authenticating a consent request
+   * writes (the consent's user and Roles), and those writes must be committed before the transaction
+   * opens. Not counting the call against a rate limit is deliberate: the handler authenticates again
+   * and applies the limit through [[anonymousAccess]] / [[applicationAccess]], so counting here too
+   * would charge the call twice.
    *
-   * A Failure is returned in the Box, never thrown; the middleware decides what to do with it.
+   * A Failure is returned in the Box, never thrown; the caller decides what to do with it.
    */
   def resolveCallerWithoutRateLimiting(cc: CallContext): OBPReturnType[Box[User]] =
     accessPipeline(cc, applyRateLimiting = false)
@@ -3319,6 +3399,29 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
+   * This is the hash stored as `MethodBodyHash` on runtime-compiled code (Dynamic Resource Docs,
+   * Dynamic Message Docs, Connector Methods), and therefore the value a maker/checker approval binds
+   * to (`ApprovedHash`).
+   *
+   * It covers the programming language as well as the body. The same text can be stored as Scala,
+   * Java or Javascript, and the runtime picks a compiler from the language, so an approval of a body
+   * as one language must not carry over when only the language is changed. The language is
+   * normalised (trimmed, lower case, blank meaning `scala`, the default every one of these types
+   * applies), because the runtime treats `Java` and `java` as the same language.
+   *
+   * The language version is deliberately not included: it is a property of the deployed runtime, not
+   * of the row, and including it would withdraw every approval at each compiler upgrade.
+   *
+   * Until 2026-10 the hash covered the body only; `MakerChecker.rehashDynamicCodeWithLanguage` moves
+   * existing rows to this form once.
+   */
+  def dynamicCodeHash(programmingLang: String, decodedMethodBody: String): String =
+    sha256Hex(normaliseDynamicCodeLanguage(programmingLang) + "\n" + Option(decodedMethodBody).getOrElse(""))
+
+  def normaliseDynamicCodeLanguage(programmingLang: String): String =
+    Option(programmingLang).map(_.trim.toLowerCase).filter(_.nonEmpty).getOrElse("scala")
+
+  /**
    *  Create the explicit CounterpartyId, (Used in `Create counterparty for an account` endpoint ).
    *  This is just a UUID, use both in Counterparty.counterpartyId and CounterpartyMetadata.counterpartyId
    */
@@ -3430,6 +3533,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     registerDefault(nameOfProperty, defaultValue.toString)
     getPropsValue(nameOfProperty) map(toBoolean) openOr(defaultValue)
   }
+  /**
+   * The Transaction Request types this instance advertises: `transactionRequests_supported_types`, with
+   * OPEN_CORRIDOR_PROMISE present exactly when `open_corridor_enabled` is true. Open Corridor has its own
+   * switch rather than a place in the list, and this keeps what is advertised in line with what is served.
+   */
+  def advertisedTransactionRequestTypes: List[String] = {
+    val openCorridor = com.openbankproject.commons.model.enums.TransactionRequestTypes.OPEN_CORRIDOR_PROMISE.toString
+    val listed = getPropsValue("transactionRequests_supported_types", "")
+      .split(",").map(_.trim).filter(_.nonEmpty).toList.filterNot(_ == openCorridor)
+    if (getPropsAsBoolValue("open_corridor_enabled", false)) listed :+ openCorridor else listed
+  }
+
   def getPropsAsIntValue(nameOfProperty: String): Box[Int] = {
     getPropsValue(nameOfProperty) map(toInt)
   }
@@ -3537,6 +3652,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case Some(u) if hasAccountFirehoseAccessAtBank(view,u, bankIdAccountId.bankId)  => Full(true) //Login User and Firehose access
         case Some(u) if hasAccountFirehoseAccess(view,u)  => Full(true)//Login User and Firehose access
         case Some(u) if u.hasAccountAccess(view, bankIdAccountId, callContext)=> Full(true)     // Login User and check view access
+        case Some(u) if hasConsumerAccountAccess(view, bankIdAccountId, u, callContext) => Full(true) // An application acting as itself, on its own grant
         case Some(u) =>
           // Normal checks failed — try ABAC as fallback
           checkAbacAccountAccess(u, view, bankIdAccountId, callContext)
@@ -3544,6 +3660,28 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           Full(false)
       }
   }
+
+  /**
+   * Account access granted to a Consumer (code.consumeraccountaccess): true when the caller is an application
+   * acting as itself, its Consumer holds a grant for this view of this account, and the endpoint opts in.
+   *
+   * - Acting as itself means the caller is the Consumer's own client-credentials User (provider obp-oidc#client,
+   *   named after the Consumer's key). A person calling through the same Consumer never picks up its grants,
+   *   and neither does a caller identified by a Consumer Key alone: the token proves the client secret.
+   * - The endpoint opts in through its auth mode: only ApplicationOnly and UserXORApplication endpoints admit
+   *   an application acting as itself, so every other endpoint of the view keeps needing a User's access.
+   */
+  def hasConsumerAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, callContext: Option[CallContext]): Boolean =
+    (for {
+      cc <- callContext
+      doc <- cc.resourceDocument
+      if doc.authMode == ApplicationOnly || doc.authMode == UserXORApplication
+      consumer <- cc.consumer.toOption
+      if isApplicationsOwnUser(user, consumer)
+    } yield code.consumeraccountaccess.ConsumerAccountAccesses.consumerAccountAccessProvider.vend
+      .find(consumer.consumerId, bankIdAccountId.bankId, bankIdAccountId.accountId, view.viewId)
+      .isDefined
+    ).getOrElse(false)
 
   private def checkAbacAccountAccess(
     user: User,
@@ -3691,7 +3829,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    *  This value is used to construct some urls in Resource Docs
    *  Its the root of the server as opposed to the root of the api
    */
-  def getServerUrl: String = getPropsValue("documented_server_url").openOr(MissingPropsValueAtThisInstance + "documented_server_url")
+  def getServerUrl: String =
+    getPropsValue("documented_server_url").filter(_.trim.nonEmpty)
+      .openOr(getPropsValue("public_obp_api_url").filter(_.trim.nonEmpty)
+        .openOr(getPropsValue("hostname").filter(_.trim.nonEmpty)
+          .openOr(MissingPropsValueAtThisInstance + "documented_server_url")))
 
   // All OBP REST end points start with /obp
   def getObpApiRoot: String = s"$getServerUrl/obp"
@@ -3772,9 +3914,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     else value
   }
 
+  // A consumer key is a credential. Response formats that carry a consumer_key field from before
+  // this rule keep the field and return this value; newer versions leave the field out.
+  // Create responses still return the real key: that is how the creator learns it.
+  val RedactedConsumerKey = "**redacted**"
+
+  def redactConsumerKey(consumerKey: String): String = RedactedConsumerKey
+
   // Convention-based public app URL props.
-  // Any prop starting with "public_" and ending with "_url" is included in the App Directory.
-  // Register known defaults so they appear in getConfigPropsPairs when set.
+  // Every key registered here appears in getConfigPropsPairs and so in the App Directory.
+  // The set is fixed in code: an operator-added public_*_url prop is NOT picked up
+  // automatically, because getConfigPropsPairs reads getRegisteredDefaults rather than
+  // scanning the props file.
   // Note: public_obp_api_url falls back to hostname prop if not explicitly set.
   // Note: public_obp_portal_url falls back to portal_external_url if not explicitly set.
   val publicAppUrlDefaults: Map[String, String] = Map(
@@ -3782,11 +3933,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     "public_obp_portal_url" -> getPropsValue("public_obp_portal_url").openOr(getPropsValue("portal_external_url").openOr("http://localhost:5174")),
     "public_obp_api_explorer_url" -> getPropsValue("public_obp_api_explorer_url").openOr("http://localhost:5173"),
     "public_obp_api_manager_url" -> getPropsValue("public_obp_api_manager_url").openOr("http://localhost:3003"),
+    "public_obp_cohort_url" -> getPropsValue("public_obp_cohort_url").openOr("http://localhost:5183"),
     "public_obp_sandbox_populator_url" -> getPropsValue("public_obp_sandbox_populator_url").openOr("http://localhost:5178"),
     "public_obp_oidc_url" -> getPropsValue("public_obp_oidc_url").openOr("http://localhost:9000"),
     "public_keycloak_url" -> getPropsValue("public_keycloak_url").openOr("http://localhost:7787"),
     "public_obp_hola_url" -> getPropsValue("public_obp_hola_url").openOr("http://localhost:48123"),
-    "public_obp_mcp_url" -> getPropsValue("public_obp_mcp_url").openOr("http://localhost:9100"),
+    "public_obp_mcp_url" -> getPropsValue("public_obp_mcp_url").openOr("http://localhost:9101"),
+    "public_obp_mcp_internal_url" -> getPropsValue("public_obp_mcp_internal_url").openOr("http://localhost:9100"),
     "public_obp_opey_url" -> getPropsValue("public_obp_opey_url").openOr("http://localhost:5000"),
     "public_obp_stripe_url" -> getPropsValue("public_obp_stripe_url").openOr("http://localhost:4242"),
     "public_rabbit_cats_adapter_url" -> getPropsValue("public_rabbit_cats_adapter_url").openOr("http://localhost:8089")
@@ -3800,6 +3953,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def getPortalUrl: Box[String] =
     getPropsValue("public_obp_portal_url").filter(_.trim.nonEmpty)
       .or(getPropsValue("portal_external_url").filter(_.trim.nonEmpty))
+      .or(getPropsValue("portal_hostname").filter(_.trim.nonEmpty))
 
   // Returns config props matching the public_*_url convention.
   // Empty values are excluded (prop not configured).
@@ -4449,14 +4603,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * that had not turned the diagnostic on - i.e. the default, since the prop defaults to false and
    * SHOW_USED_CONNECTOR_METHODS is a `final val` frozen at class initialisation. The operator
    * switched validation on, it ran, and it passed everything. DynamicCodeDependencyScanTest covers
-   * it.
+   * it. `force` is accepted from callers written for the gated version; it changes nothing.
+   *
+   * `pool` is where the class is looked up. A class compiled at run time lives only in the pool its
+   * caller added the bytes to, not in the shared one, so the caller passes that pool.
    */
-  def getDependentMethods(className: String, methodName:String, signature: String): List[(String, String, String)] = {
+  def getDependentMethods(className: String, methodName:String, signature: String, force: Boolean = false,
+                          pool: ClassPool = classPool): List[(String, String, String)] = {
     val methods = ListBuffer[(String, String, String)]()
     //NOTE: MEMORY_USER this ctClass will be cached in ClassPool, it may load too many classes into heap. 
     //eg:  className == code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$anonfun$createAccountAccessConsents$lzycompute$1
     //     ctClass == javassist.CtClassType@77e1b84c[public final class code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi$$..........
-    val ctClass = classPool.get(className)
+    val ctClass = pool.get(className)
     //eg:methodName = isDefinedAt, sinature =(Lnet/liftweb/http/Req;)Z
     // method => javassist.CtMethod@c40c7953[public final isDefinedAt (Lnet/liftweb/http/Req;)Z]
     val method = ctClass.getMethod(methodName, signature)
@@ -4674,7 +4832,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return Full(errorResponse) if validate fail
    */
   def validateRequestHeadersKeys(operationId: String, callContext: CallContext): Box[JsonResponse] = {
-    val headerKeysGrouped: Map[String, List[HTTPParam]] = callContext.requestHeaders.groupBy(x => x.name)
+    val headerKeysGrouped: Map[String, List[HTTPParam]] = RequestHeadersUtil.groupByName(callContext.requestHeaders)
     headerKeysGrouped.toList.forall(_._2.size == 1) match {
       case true => Empty
       case false => 
@@ -4763,12 +4921,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case (Some(callContext), operationId) if enableForceError =>
         val requestHeaders = callContext.requestHeaders
 
-        val forceError = requestHeaders.collectFirst({
-          case HTTPParam("Force-Error", value::_) => value
-        })
-        val responseCode = requestHeaders.collectFirst({
-          case HTTPParam("Response-Code", value::_) => value
-        })
+        val forceError = requestHeaders.collectFirst {
+          case header @ HTTPParam(_, value::_) if RequestHeadersUtil.isNamed(header, "Force-Error") => value
+        }
+        val responseCode = requestHeaders.collectFirst {
+          case header @ HTTPParam(_, value::_) if RequestHeadersUtil.isNamed(header, "Response-Code") => value
+        }
 
         if(forceError.isEmpty) {
           Empty
@@ -4936,6 +5094,30 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   lazy val allStaticResourceDocs: List[ResourceDoc] = ResourceDocRegistry.allStaticResourceDocs
 
   def allDynamicResourceDocs= (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
+
+  /**
+   * This function says whether a dynamic ResourceDoc belongs to one space, which is what the bank
+   * level resource-docs endpoints (/banks/BANK_ID/resource-docs/...) list.
+   *
+   * A space is a bank id, or Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID ("SYS") for the system
+   * space. Dynamic docs record the system space as belonging to no bank at all (createdByBankId is
+   * None), so SYS matches those docs as well as any doc that names SYS explicitly.
+   */
+  def dynamicResourceDocBelongsToSpace(doc: ResourceDoc, space: String): Boolean =
+    doc.createdByBankId.filter(_.nonEmpty) match {
+      case None         => space == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
+      case Some(bankId) => bankId == space
+    }
+
+  /**
+   * The dynamic docs a versioned resource-docs listing shows. v7.0.0 documents Dynamic Entity records at
+   * their v7.0.0 URLs (/obp/v7.0.0/banks/BANK_ID/dynamic-entities/...); every other version at the
+   * unversioned /obp/dynamic-entity/... URLs, as [[allDynamicResourceDocs]] does.
+   */
+  def allDynamicResourceDocsIn(requestedApiVersion: ScannedApiVersion): List[ResourceDoc] =
+    if (requestedApiVersion == ApiVersion.v7_0_0)
+      (DynamicEntityHelper.v700Doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
+    else allDynamicResourceDocs
   
   def getAllResourceDocs = allStaticResourceDocs ++ allDynamicResourceDocs
 
@@ -5077,20 +5259,25 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       )
   }
 
+  /**
+   * The cache key of a rendered documentation response. The filters are a [[ResourceDocFilters]],
+   * never raw request values: that type can only be built sorted, de-duplicated and (for ResourceDoc
+   * listings) limited to values some ResourceDoc carries, so a caller cannot multiply cache entries
+   * by varying the filters. The key text keeps its earlier shape.
+   */
   def createResourceDocCacheKey(
     bankId : Option[String],
     requestedApiVersionString: String,
-    tags: Option[List[ResourceDocTag]],
-    partialFunctions: Option[List[String]],
+    filters: ResourceDocFilters,
     locale: Option[String],
     contentParam: Option[ContentParam],
     apiCollectionIdParam: Option[String],
     isVersion4OrHigher: Option[Boolean]
-  ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:$tags-partialFunctions:$partialFunctions-locale:${locale.toString}" +
+  ) = s"requestedApiVersionString:$requestedApiVersionString-bankId:$bankId-tags:${filters.tags}-partialFunctions:${filters.functions}-locale:${locale.toString}" +
     // The Glossary version belongs in the key: endpoint descriptions embed Glossary text, so a
     // Dynamic Glossary Item that overrides a static one must not stay masked by a cached document
     // for the rest of the resource-doc / swagger TTL. Reading it is an in-memory lookup that
-    // re-checks the database at most once a second.
+    // re-checks the Dynamic Glossary Items every ten minutes and the glossary cache namespace every ten seconds.
     s"-contentParam:$contentParam-apiCollectionIdParam:$apiCollectionIdParam-isVersion4OrHigher:$isVersion4OrHigher-glossary:${Glossary.glossaryVersionForCacheKey}".intern()
 
   def getUserLacksRevokePermissionErrorMessage(sourceViewId: ViewId, targetViewId: ViewId) = 

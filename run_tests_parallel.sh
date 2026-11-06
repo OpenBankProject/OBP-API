@@ -177,7 +177,7 @@ fi
 # Hardcoded ports collide when several project checkouts run this script at the
 # same time. The un-injected 8087 even collides WITHIN one run, because the
 # suites that start Http4sTestServer are split across shards (v5_0_0 in shard 2;
-# http4sbridge/v7 in shard 4) — both JVMs would bind the default 8087.
+# http4sserver/v7 in shard 4) — both JVMs would bind the default 8087.
 # So we pick random high free ports per shard. A fixed base + upward scan can't
 # solve simultaneous launches: at fork time no shard has bound yet, so every
 # concurrent run picks the same base. Random high range + lsof skip (catches
@@ -223,7 +223,7 @@ code.management,code.metrics,code.model,code.views,code.usercustomerlinks,\
 code.customer,code.errormessages"
 
 # Shard 4 base — auth/login/connector/util plus any packages not in shards 1-3
-S4_BASE="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sbridge,code.api.v7_0_0,\
+S4_BASE="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sserver,code.api.v7_0_0,\
 code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
 code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.api.AliveCheckRoutesTest,\
 code.api.OAuth2,code.api.SIWETest,code.util,code.connector"
@@ -273,7 +273,7 @@ S4_6="code.api.ResourceDocs1_4_0,code.api.util,code.api.berlin,\
 code.management,code.metrics,code.model,code.views,code.usercustomerlinks,\
 code.customer,code.errormessages"
 
-S5_6="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sbridge,code.api.v7_0_0"
+S5_6="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sserver,code.api.v7_0_0"
 
 S6_6_BASE="code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
 code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.api.AliveCheckRoutesTest,\
@@ -353,6 +353,8 @@ run_shard() {
     # code path now requires: SecurityManager is gone on this JDK (JEP 486), so the sandbox
     # enforces nothing and compileScalaCode refuses with OBP-50021 unless the operator says
     # so a second time. The suite is exactly that case - knowingly unsandboxed, throwaway data.
+    # OBP_ALLOW_CASCADE_DELETE mirrors CI's allow_cascade_delete=true: the cascade-delete
+    # endpoints are off by default, and the Delete*CascadeTest suites get 404s without it.
     # OBP_BERLIN_GROUP_V1_3_ALIAS_PATH mirrors CI's berlin_group_v1_3_alias_path=0.6/v1
     # (injected by both workflows' "Setup props" step): without it, OBP_BERLIN_GROUP_1_3_Alias
     # reports an empty ScannedApiVersion("","","") and ScannedApis.isAddressable filters it
@@ -386,6 +388,7 @@ run_shard() {
     OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
     OBP_ALLOW_USER_GENERATED_SCALA_CODE="true" \
     OBP_ALLOW_USER_GENERATED_SCALA_CODE_WITHOUT_SANDBOX="true" \
+    OBP_ALLOW_CASCADE_DELETE="true" \
     OBP_BERLIN_GROUP_V1_3_ALIAS_PATH="0.6/v1" \
     OBP_API_INSTANCE_ID="shard_${n}_${port}" \
     env "${db_env[@]}" \
@@ -633,7 +636,8 @@ fi
 # read_json_schema_validation_requires_role / read_authentication_type_validation_requires_role
 # forced true. That value is baked into Http4s400's ResourceDoc error list at object-init time, so
 # it needs its own JVM (pom.xml's default tagsToExclude skips this tag in every shard above, which
-# all boot with the props unset i.e. false). Run sequentially, after the main shards, so it shares
+# all boot with the props unset i.e. false). CascadeDeleteDisabledTest is the reverse: the shards above
+# run with allow_cascade_delete=true, and this JVM runs with it false. Run sequentially, after the main shards, so it shares
 # no DB connection pool contention with them; its surefire XML lands in the same
 # obp-api/target/surefire-reports directory the audit below already scans, so no separate
 # reporting path is needed.
@@ -668,8 +672,9 @@ else
         OBP_API_INSTANCE_ID="prop_gated_${PROP_PORT}" \
         OBP_READ_JSON_SCHEMA_VALIDATION_REQUIRES_ROLE="true" \
         OBP_READ_AUTHENTICATION_TYPE_VALIDATION_REQUIRES_ROLE="true" \
+        OBP_ALLOW_CASCADE_DELETE="false" \
         "$TIMEOUT_BIN" 300 mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
-            "-DwildcardSuites=code.api.v4_0_0.JsonSchemaValidationPublicPropTrueTest,code.api.v4_0_0.AuthenticationTypeValidationPublicPropTrueTest" \
+            "-DwildcardSuites=code.api.v4_0_0.JsonSchemaValidationPublicPropTrueTest,code.api.v4_0_0.AuthenticationTypeValidationPublicPropTrueTest,code.api.v4_0_0.CascadeDeleteDisabledTest" \
             -DtagsToInclude=PropGatedPublicEndpoint -Dtest.tagsToExclude= \
             > test-results/parallel/prop_gated_public_endpoint.log 2>&1
         PROP_RC=$?

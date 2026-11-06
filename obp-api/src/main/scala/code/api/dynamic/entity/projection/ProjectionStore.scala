@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.dynamic.entity.projection
 
 import code.DynamicData.DynamicData
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import doobie._
 import doobie.implicits._
 
@@ -84,18 +85,46 @@ object ProjectionStore {
       .query[(String, String)].to[List]
 
   /**
-   * Scope predicate mirroring `MappedDynamicDataProvider`'s get-all: entity name always; bankId via
-   * IS NOT DISTINCT FROM (handles system-level NULL); personal flag; userId only when personal.
+   * Read (data_id, dataJson) for the shared records of an entity whose reference column `linkColumn`
+   * holds one of `referencedIds`, through the entity's projection table, so the lookup uses the
+   * column's index. Used to find the records that refer to a page of parent records (a reverse join).
+   * `referencedIds` must not be empty; callers batch long lists.
+   */
+  def readByReference(safeTable: String, linkColumn: String, bankId: Option[String], entityName: String,
+                      referencedIds: List[String]): ConnectionIO[List[(String, String)]] =
+    readByReferenceStatement(safeTable, linkColumn, bankId, entityName, referencedIds).query[(String, String)].to[List]
+
+  /** The SQL text of [[readByReferenceStatement]], with `?` for every bound value. */
+  def readByReferenceSql(safeTable: String, linkColumn: String, bankId: Option[String], entityName: String, referencedIds: List[String]): String =
+    readByReferenceStatement(safeTable, linkColumn, bankId, entityName, referencedIds).query[(String, String)].sql
+
+  /** The statement [[readByReference]] runs, as a value, so it can be shown as well as run. */
+  def readByReferenceStatement(safeTable: String, linkColumn: String, bankId: Option[String], entityName: String,
+                               referencedIds: List[String]): Fragment = {
+    val idList = ProjectionSql.intercalate(referencedIds.map(id => fr0"$id"), fr",")
+    fr"SELECT" ++ Fragment.const(s"d.$idColumn") ++ fr"," ++ Fragment.const(s"d.$jsonColumn") ++
+      fr"FROM" ++ Fragment.const(s"$safeTable p") ++
+      fr"JOIN" ++ Fragment.const(s"$blobTable d") ++ fr"ON" ++ Fragment.const(s"d.$idColumn = p.data_id") ++
+      fr"WHERE" ++ scope(bankId, entityName, isPersonalEntity = false, None, "d") ++
+      fr"AND" ++ Fragment.const(s"p.$linkColumn") ++ fr"IN (" ++ idList ++ fr")"
+  }
+
+  /**
+   * Scope predicate mirroring `MappedDynamicDataProvider`'s get-all: entity name always; bankId
+   * always (a system-level record stores a sentinel, never NULL); personal flag; userId only when
+   * personal, and that column IS still nullable so it keeps its null-safe comparison.
    * Returned without the `WHERE` keyword so callers can AND it with index predicates.
    */
   def scope(bankId: Option[String], entityName: String, isPersonalEntity: Boolean, userId: Option[String], alias: String = ""): Fragment = {
     val p = if (alias.isEmpty) "" else alias + "."
-    // Bind as Option[String]: a system-level entity has bankId=None, which must bind SQL NULL — `orNull`
-    // as a plain String trips doobie's non-nullable Put[String] ("oops, null"). Put[Option[String]]
-    // emits NULL for None, and `IS NOT DISTINCT FROM NULL` is the intended null-safe match.
-    val byEntity   = Fragment.const(p + entityNameColumn) ++ fr"=" ++ fr0"$entityName"
-    val byBank     = Fragment.const(p + bankIdColumn) ++ fr"IS NOT DISTINCT FROM" ++ fr0"${bankId: Option[String]}"
-    val byPersonal = Fragment.const(p + personalColumn) ++ fr"=" ++ fr0"$isPersonalEntity"
+    // The bank id column holds Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID for a record that belongs
+    // to no bank, never a SQL NULL, so this is a plain equality. It used to bind an Option and
+    // compare with IS NOT DISTINCT FROM; that stopped matching the moment the sentinel replaced the
+    // NULL, and this is the one place outside the Mapper queries that reads the column directly.
+    // fr, not fr0: each value is followed by AND, and `$1AND` is refused by PostgreSQL 16+.
+    val byEntity   = Fragment.const(p + entityNameColumn) ++ fr"=" ++ fr"$entityName"
+    val byBank     = Fragment.const(p + bankIdColumn) ++ fr"=" ++ fr"${bankId.getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)}"
+    val byPersonal = Fragment.const(p + personalColumn) ++ fr"=" ++ fr"$isPersonalEntity"
     val base = byEntity ++ fr"AND" ++ byBank ++ fr"AND" ++ byPersonal
     if (isPersonalEntity) base ++ fr"AND" ++ Fragment.const(p + userIdColumn) ++ fr"IS NOT DISTINCT FROM" ++ fr0"${userId: Option[String]}"
     else base

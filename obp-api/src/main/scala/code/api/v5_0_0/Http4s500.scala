@@ -40,7 +40,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
-import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.IdempotencyMiddleware
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, CallContext, ConsentJWT, ConsentView, Consent, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, SecureRandomUtil}
@@ -103,7 +103,7 @@ object Http4s500 {
   val versionStatus: String = ApiVersionStatus.STABLE.toString
   val resourceDocs: ArrayBuffer[ResourceDoc] = ArrayBuffer[ResourceDoc]()
 
-  object Implementations5_0_0 {
+  object Implementations5_0_0 extends code.util.Helper.MdcLoggable {
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
@@ -130,7 +130,7 @@ object Http4s500 {
       http4sPartialFunction = Some(root)
     )
 
-    val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val root: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "root" =>
         val responseJson = convertAnyToJsonString(
           JSONFactory400.getApiInfoJSON(ApiVersion.v5_0_0, versionStatus)
@@ -160,7 +160,7 @@ object Http4s500 {
       http4sPartialFunction = Some(getBanks)
     )
 
-    val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBanks: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" =>
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
@@ -191,7 +191,7 @@ object Http4s500 {
       http4sPartialFunction = Some(getBank)
     )
 
-    val getBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankId =>
         EndpointHelpers.withBank(req) { (bank, cc) =>
           for {
@@ -223,7 +223,7 @@ object Http4s500 {
       http4sPartialFunction = Some(getProducts)
     )
 
-    val getProducts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getProducts: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankId / "products" =>
         EndpointHelpers.executeFuture(req) {
           val cc = req.callContext
@@ -252,7 +252,7 @@ object Http4s500 {
       http4sPartialFunction = Some(getProduct)
     )
 
-    val getProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getProduct: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankId / "products" / productCode =>
         EndpointHelpers.executeFuture(req) {
           val cc = req.callContext
@@ -305,7 +305,7 @@ object Http4s500 {
       http4sPartialFunction = Some(createSystemView)
     )
 
-    val createSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val createSystemView: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "system-views" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
@@ -355,7 +355,7 @@ object Http4s500 {
       http4sPartialFunction = Some(getSystemView)
     )
 
-    val getSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val getSystemView: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system-views" / viewId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: CallContext = req.callContext
@@ -391,7 +391,7 @@ object Http4s500 {
       http4sPartialFunction = Some(updateSystemView)
     )
 
-    val updateSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val updateSystemView: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "system-views" / viewId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: CallContext = req.callContext
@@ -434,7 +434,7 @@ object Http4s500 {
       http4sPartialFunction = Some(deleteSystemView)
     )
 
-    val deleteSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    lazy val deleteSystemView: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "system-views" / viewId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: CallContext = req.callContext
@@ -449,7 +449,7 @@ object Http4s500 {
     // v5 uses PostBankJson500 (id is Option[String], includes bank_routings).
     // Must live in own routes so the bridge cascade can't hijack down to v4/v2.2.
 
-    val createBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createBank: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -540,7 +540,7 @@ object Http4s500 {
 
     // ─── updateBank (PUT /banks → 200) ──────────────────────────────────────
 
-    val updateBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateBank: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -599,7 +599,7 @@ object Http4s500 {
     // Account doesn't exist yet — use NEW_ACCOUNT_ID so middleware's
     // validateAccount doesn't 404 the create. (See CLAUDE.md gotcha.)
 
-    val createAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createAccount: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -698,7 +698,7 @@ object Http4s500 {
 
     // ─── createUserAuthContext (POST /users/USER_ID/auth-context → 201) ─────
 
-    val createUserAuthContext: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createUserAuthContext: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / userId / "auth-context" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -734,7 +734,7 @@ object Http4s500 {
 
     // ─── getUserAuthContexts (GET /users/USER_ID/auth-context → 200) ────────
 
-    val getUserAuthContexts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getUserAuthContexts: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / userId / "auth-context" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -770,16 +770,14 @@ object Http4s500 {
     // SCA_METHOD is a literal in {"SMS", "EMAIL"} per ResourceDocMatcher; the
     // handler also validates inline.
 
-    val createUserAuthContextUpdateRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createUserAuthContextUpdateRequest: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "users" / "current" / "auth-context-updates" / scaMethod =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
           val bankId = BankId(bankIdStr)
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
-            _ <- Helper.booleanToFuture(ConsumerHasMissingRoles + CanCreateUserAuthContextUpdate, cc = Some(cc)) {
-              checkScope(bankId.value, getConsumerPrimaryKey(Some(cc)), ApiRole.canCreateUserAuthContextUpdate)
-            }
+            _ <- NewStyle.function.checkCanRequestUserAuthContextUpdate(bankId, user, Some(cc))
             _ <- Helper.booleanToFuture(UserAuthContextUpdateRequestAllowedScaMethods, cc = Some(cc)) {
               List(StrongCustomerAuthentication.SMS.toString(), StrongCustomerAuthentication.EMAIL.toString()).contains(scaMethod)
             }
@@ -802,13 +800,19 @@ object Http4s500 {
       s"""Create User Auth Context Update Request.
       |${userAuthenticationMessage(true)}
       |
-      |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
+      |A User uses this to prove that they are a Customer of the bank BANK_ID, for example by naming their CUSTOMER_NUMBER.
+      |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the Customer's own contact details,
+      |via the transport defined in SCA_METHOD, and the User then answers it with Answer User Auth Context Update Challenge.
       |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
+      |
+      |Because this sends a message to a Customer of the bank, the request must come either from an App (Consumer) that has
+      |the Scope ${canCreateUserAuthContextUpdate} at BANK_ID, or from a User that has the Role ${canCreateUserAuthContextUpdate} at BANK_ID.
+      |Either one is enough. A Scope is granted with Create Scope for a Consumer (POST /consumers/CONSUMER_ID/scopes).
       |
       |""",
       postUserAuthContextJson,
       userAuthContextUpdateJsonV500,
-      List(AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, CreateUserAuthContextError, UnknownError),
+      List(AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, ConsumerHasMissingRoles, CreateUserAuthContextError, UnknownError),
       List(apiTagUser),
       None,
       http4sPartialFunction = Some(createUserAuthContextUpdateRequest)
@@ -817,7 +821,7 @@ object Http4s500 {
     // ─── answerUserAuthContextUpdateChallenge ─────────────────────────────
     // POST /banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge → 200
 
-    val answerUserAuthContextUpdateChallenge: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val answerUserAuthContextUpdateChallenge: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "users" / "current" / "auth-context-updates" / authContextUpdateId / "challenge" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -827,22 +831,9 @@ object Http4s500 {
             postUserAuthContextUpdateJson <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostUserAuthContextUpdateJsonV310]
             }
-            (userAuthContextUpdate, _) <- NewStyle.function.checkAnswer(authContextUpdateId, postUserAuthContextUpdateJson.answer, Some(cc))
-            (user, _) <- NewStyle.function.getUserByUserId(userAuthContextUpdate.userId, Some(cc))
-            _ <- userAuthContextUpdate.status match {
-              case status if status == UserAuthContextUpdateStatus.ACCEPTED.toString =>
-                NewStyle.function.createUserAuthContext(
-                  user, userAuthContextUpdate.key.trim, userAuthContextUpdate.value.trim, Some(cc))
-                  .map(x => (Some(x._1), x._2))
-              case _ =>
-                Future.successful((None, Some(cc)))
-            }
-            _ <- userAuthContextUpdate.key match {
-              case "CUSTOMER_NUMBER" =>
-                NewStyle.function.getOCreateUserCustomerLink(bankId, userAuthContextUpdate.value, user.userId, Some(cc))
-              case _ =>
-                Future.successful((None, Some(cc)))
-            }
+            (userAuthContextUpdate, _) <- NewStyle.function.answerUserAuthContextUpdateChallenge(
+              bankId, authContextUpdateId, postUserAuthContextUpdateJson.answer,
+              cc.user.openOrThrowException(AuthenticatedUserIsRequired), Some(cc))
           } yield JSONFactory500.createUserAuthContextUpdateJson(userAuthContextUpdate)
         }
     }
@@ -855,10 +846,17 @@ object Http4s500 {
       "Answer User Auth Context Update Challenge",
       s"""
       |Answer User Auth Context Update Challenge.
+      |
+      |Only the User who requested the update can answer it, and only at the bank (BANK_ID) it was requested at.
+      |An update of another User or another bank is reported as not found, and its challenge is not used up.
+      |
+      |A right answer sets the status to ACCEPTED and adds the User Auth Context. For the key CUSTOMER_NUMBER it also
+      |links the User to the Customer with that number at the bank. A wrong answer sets the status to REJECTED and
+      |changes nothing else.
       |""",
       postUserAuthContextUpdateJsonV310,
       userAuthContextUpdateJsonV500,
-      List(AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, InvalidConnectorResponse, UnknownError),
+      List(AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UserAuthContextUpdateNotFound, InvalidConnectorResponse, UnknownError),
       apiTagUser :: Nil,
       None,
       http4sPartialFunction = Some(answerUserAuthContextUpdateChallenge)
@@ -869,12 +867,13 @@ object Http4s500 {
     // AuthenticatedUserIsRequired, so middleware skips auth and we call
     // applicationAccess inline.
 
-    val createConsentRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createConsentRequest: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "consumer" / "consent-requests" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
           val rawBody = cc.httpBody.getOrElse("")
           for {
+            _ <- code.api.util.Consent.checkConsentsAllowed(Some(cc))
             (_, callContextOpt) <- APIUtil.applicationAccess(cc)
             _ <- APIUtil.passesPsd2Aisp(callContextOpt)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
@@ -911,7 +910,7 @@ object Http4s500 {
       |
       |Optional body fields of note:
       |
-      |- `consumer_id`: if set, the resulting Consent (created when the User answers this request) will be pinned to this consumer instead of the creator. Use only when the consent is intended for a different application than the one creating the request. Most TPPs should omit this field — when omitted, the resulting Consent is pinned to the creator. Note: this override is being deprecated; v6.0.0 will pin the resulting Consent to the creator unconditionally.
+      |- `consumer_id`: names the consumer the resulting Consent (created when the User answers this request) is for. Set it when the Consent is intended for a different application than the one creating the request — for example a portal creating a Consent for an agent to use later. Most TPPs should omit it; when omitted, the resulting Consent is pinned to the consumer that created this request. Either way the resulting Consent names exactly one consumer and only that consumer can present it, so an omitted `consumer_id` is not a wildcard.
       |- `email` / `phone_number`: surface in the SCA challenge if the User chooses EMAIL or SMS at answer time.
       |- `valid_from` / `time_to_live`: control the lifetime of the resulting Consent.
       |
@@ -942,7 +941,7 @@ object Http4s500 {
 
     // ─── getConsentRequest (GET /consumer/consent-requests/CONSENT_REQUEST_ID → 200) ───
 
-    val getConsentRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getConsentRequest: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "consumer" / "consent-requests" / consentRequestId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -982,7 +981,7 @@ object Http4s500 {
     // ─── getConsentByConsentRequestId ────────────────────────────────────────
     // GET /consumer/consent-requests/CONSENT_REQUEST_ID/consents → 200
 
-    val getConsentByConsentRequestId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getConsentByConsentRequestId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "consumer" / "consent-requests" / consentRequestId / "consents" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1058,42 +1057,42 @@ object Http4s500 {
     // POST /consumer/consent-requests/CONSENT_REQUEST_ID/{EMAIL|SMS|IMPLICIT}/consents → 201
     // Three ResourceDoc registrations (one per SCA literal) but one HttpRoutes pattern.
 
-    private def sendEmailConsentNotification(
-      callContextOpt: Option[code.api.util.CallContext],
+    // Where the challenge for a consent goes: the SCA method and its recipient, or None when this method sends
+    // nothing. Fails with a 400 when the challenge has nowhere to go.
+    private def resolveChallengeRecipient(
+      scaMethod: String,
       consentRequestJson: PostConsentRequestJsonV500,
-      challengeText: String
-    ): Future[String] =
-      for {
-        consentScaEmail <- NewStyle.function.tryons(
-          s"$InvalidJsonFormat The Json body must contain the field email", 400, callContextOpt) {
-          consentRequestJson.email.head
-        }
-        (status, _) <- NewStyle.function.sendCustomerNotification(
-          StrongCustomerAuthentication.EMAIL, consentScaEmail,
-          Some("OBP Consent Challenge"), challengeText, callContextOpt)
-      } yield status
+      user: User,
+      callContextOpt: Option[code.api.util.CallContext]
+    ): Future[Option[(StrongCustomerAuthentication, String)]] = {
+      def required(method: StrongCustomerAuthentication, recipient: Option[String], failMsg: String) =
+        Helper.booleanToFuture(failMsg, 400, callContextOpt)(recipient.exists(r => r != null && r.trim.nonEmpty))
+          .map(_ => Some((method, recipient.get)))
+      scaMethod match {
+        case v if v == StrongCustomerAuthentication.EMAIL.toString =>
+          required(StrongCustomerAuthentication.EMAIL, consentRequestJson.email, s"$InvalidJsonFormat The Json body must contain the field email")
+        case v if v == StrongCustomerAuthentication.SMS.toString =>
+          required(StrongCustomerAuthentication.SMS, consentRequestJson.phone_number, s"$InvalidJsonFormat The Json body must contain the field phone_number")
+        case v if v == StrongCustomerAuthentication.IMPLICIT.toString =>
+          NewStyle.function.getConsentImplicitSCA(user, callContextOpt).flatMap { case (implicitSca, _) =>
+            implicitSca.scaMethod match {
+              case m @ (StrongCustomerAuthentication.EMAIL | StrongCustomerAuthentication.SMS) =>
+                required(m, Option(implicitSca.recipient), s"$GetConsentImplicitSCAError The user has no $m address")
+              case _ => Future.successful(None)
+            }
+          }
+        case _ => Future.successful(None)
+      }
+    }
 
-    private def sendSmsConsentNotification(
-      callContextOpt: Option[code.api.util.CallContext],
-      consentRequestJson: PostConsentRequestJsonV500,
-      challengeText: String
-    ): Future[String] =
-      for {
-        consentScaPhoneNumber <- NewStyle.function.tryons(
-          s"$InvalidJsonFormat The Json body must contain the field phone_number", 400, callContextOpt) {
-          consentRequestJson.phone_number.head
-        }
-        (status, _) <- NewStyle.function.sendCustomerNotification(
-          StrongCustomerAuthentication.SMS, consentScaPhoneNumber, None, challengeText, callContextOpt)
-      } yield status
-
-    val createConsentByConsentRequestId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createConsentByConsentRequestId: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "consumer" / "consent-requests" / consentRequestId / scaMethod / "consents"
         if scaMethod == "EMAIL" || scaMethod == "SMS" || scaMethod == "IMPLICIT" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
           val callContextOpt = Some(cc)
           for {
+            _ <- code.api.util.Consent.checkConsentsAllowed(callContextOpt)
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.getConsentRequestById(consentRequestId))
               .map(i => unboxFullOrFail(i, callContextOpt, ConsentRequestNotFound))
@@ -1120,6 +1119,28 @@ object Http4s500 {
                   json.parse(createdConsentRequest.payload).extract[PostConsentRequestJsonV500]
                 }.map(p => (p, false))
               }
+            // Every Consent names the Consumer it is for: the body's consumer_id, else the Consumer that
+            // lodged the consent request, else the caller. NewStyle.function.resolveConsentConsumer says
+            // why a Consent may not be created without one. One resolution feeds both the JWT's aud and
+            // the stored row, so the two can no longer disagree about who the Consent is for.
+            consentConsumer <- NewStyle.function.resolveConsentConsumer(
+              consentRequestJson.consumer_id.orElse(Option(createdConsentRequest.consumerId)), callContextOpt)
+            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId)).getOrElse("Unknown")
+            granteeConsumerId = consentConsumer.consumerId
+            shouldSkipConsentScaForConsumerIdPair = APIUtil.skipConsentScaForConsumerIdPairs.contains(
+              APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
+            // Where the challenge goes, settled before anything is written (the VRP view, counterparty and limit
+            // below, then the consent): a request that fails later still keeps what it wrote, and a consent whose
+            // challenge has nowhere to go could never be answered.
+            challengeRecipient <- if (shouldSkipConsentScaForConsumerIdPair) Future.successful(None)
+                                  else resolveChallengeRecipient(scaMethod, consentRequestJson, user, callContextOpt)
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = DEFAULT_CONSENT_TTL)
+            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
+              consentRequestJson.time_to_live match {
+                case Some(ttl) => ttl <= maxTimeToLive
+                case _         => true
+              }
+            }
             (bankId, accountId, viewId, counterpartyId) <- if (isVRPConsentRequest) {
               val postConsentRequestJsonV510 = json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostVRPConsentRequestJsonV510]
               val vrpViewId = s"${VRP_VIEW_ID_PREFIX}${UUID.randomUUID.toString}".dropRight(5)
@@ -1233,13 +1254,6 @@ object Http4s500 {
             } else {
               Future.successful((BankId(""), AccountId(""), ViewId(""), CounterpartyId(""))): Future[(BankId, AccountId, ViewId, CounterpartyId)]
             }
-            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = DEFAULT_CONSENT_TTL)
-            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
-              consentRequestJson.time_to_live match {
-                case Some(ttl) => ttl <= maxTimeToLive
-                case _         => true
-              }
-            }
             requestedEntitlements = consentRequestJson.entitlements.getOrElse(Nil)
             myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
             // CanCreateEntitlementAtAnyBank stays out of consents. CanCreateEntitlementAtOneBank is
@@ -1275,19 +1289,13 @@ object Http4s500 {
                          e.viewId == rv.view_id && e.bankId == rv.bank_id && e.accountId == rv.account_id))
                    }
                  } yield ()
-            calculatedConsumerId = consentRequestJson.consumer_id.orElse(Some(createdConsentRequest.consumerId))
-            (consumerIdOpt, applicationText) <- calculatedConsumerId match {
-              case Some(id) =>
-                NewStyle.function.checkConsumerByConsumerId(id, callContextOpt).map { c =>
-                  (Some(c.consumerId), c.description)
-                }
-              case None => Future.successful((None, "Any application"))
-            }
+            consumerIdOpt = Some(consentConsumer.consumerId)
+            applicationText = consentConsumer.description
             challengeAnswer = Props.mode match {
               case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
               case _                   => SecureRandomUtil.numeric()
             }
-            consumer = Consumers.consumers.vend.getConsumerByConsumerId(calculatedConsumerId.getOrElse("None"))
+            consumer = Some(consentConsumer)
             createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(
               user, challengeAnswer, Some(consentRequestId), consumer))
               .map(i => connectorEmptyResponse(i, callContextOpt))
@@ -1323,10 +1331,6 @@ object Http4s500 {
             validUntil = Helper.calculateValidTo(postConsentBodyCommonJson.valid_from, postConsentBodyCommonJson.time_to_live.getOrElse(3600))
             _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil))
               .map(i => connectorEmptyResponse(i, callContextOpt))
-            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId)).getOrElse("Unknown")
-            granteeConsumerId = postConsentBodyCommonJson.consumer_id.getOrElse("Unknown")
-            shouldSkipConsentScaForConsumerIdPair = APIUtil.skipConsentScaForConsumerIdPairs.contains(
-              APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
             mappedConsent <- if (shouldSkipConsentScaForConsumerIdPair) {
               Future {
                 // Atomic guarded auto-accept: only move INITIATED -> ACCEPTED. If the consent was
@@ -1339,25 +1343,33 @@ object Http4s500 {
               }
             } else {
               val challengeText = s"Your consent challenge : ${challengeAnswer}, Application: $applicationText"
-              scaMethod match {
-                case v if v == StrongCustomerAuthentication.EMAIL.toString =>
-                  sendEmailConsentNotification(callContextOpt, consentRequestJson, challengeText)
-                case v if v == StrongCustomerAuthentication.SMS.toString =>
-                  sendSmsConsentNotification(callContextOpt, consentRequestJson, challengeText)
-                case v if v == StrongCustomerAuthentication.IMPLICIT.toString =>
-                  for {
-                    (consentImplicitSCA, _) <- NewStyle.function.getConsentImplicitSCA(user, callContextOpt)
-                    _ <- consentImplicitSCA.scaMethod match {
-                      case v if v == StrongCustomerAuthentication.EMAIL =>
-                        sendEmailConsentNotification(callContextOpt, consentRequestJson.copy(email = Some(consentImplicitSCA.recipient)), challengeText)
-                      case v if v == StrongCustomerAuthentication.SMS =>
-                        sendSmsConsentNotification(callContextOpt, consentRequestJson.copy(phone_number = Some(consentImplicitSCA.recipient)), challengeText)
-                      case _ => Future.successful("Success")
-                    }
-                  } yield "Success"
-                case _ => Future.successful("Success")
+              // The challenge is sent within the request, as by the other Create Consent endpoints: the connector
+              // looks up its method routing on the request's database connection, which closes with the request.
+              // A challenge that cannot be sent fails the request, so no consent is kept that no one can answer.
+              val challengeSent: Future[Unit] = challengeRecipient match {
+                case Some((method, recipient)) =>
+                  val subject = if (method == StrongCustomerAuthentication.EMAIL) Some("OBP Consent Challenge") else None
+                  // Started inside the Future, so a connector that throws before building its own Future fails
+                  // this one rather than the request.
+                  Future.unit.flatMap(_ =>
+                    NewStyle.function.sendCustomerNotification(method, recipient, subject, challengeText, callContextOpt)).map(_ => ())
+                case None => Future.successful(())
               }
-              Future(createdConsent)
+              // The consent is already written when a send fails (an SMS provider that is missing or refuses), and the
+              // failed request keeps it: reject it, and release a VRP mandate the way a revoke does, so no one is left
+              // with a consent they can never answer or with a payment authority it no longer stands for. The send's
+              // error is what the caller gets, even if cleaning up fails too.
+              challengeSent.map(_ => createdConsent).recoverWith { case e =>
+                Future {
+                  Consents.consentProvider.vend.updateConsentStatus(createdConsent.consentId, ConsentStatus.REJECTED)
+                  // Read again: the JWT that names the VRP view was saved on another instance.
+                  Consents.consentProvider.vend.getConsentByConsentId(createdConsent.consentId).foreach(Consent.revokeConsentAccountAccess)
+                }.transformWith { cleanup =>
+                  cleanup.failed.foreach(f => logger.warn(s"createConsentByConsentRequestId says: could not reject consent " +
+                    s"${createdConsent.consentId} after its challenge failed: ${f.getClass.getSimpleName}"))
+                  Future.failed(e)
+                }
+              }
             }
           } yield ConsentJsonV500(
             mappedConsent.consentId,
@@ -1375,7 +1387,7 @@ object Http4s500 {
     private val createConsentByConsentRequestIdCommonErrors = List(
       AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
       ConsentAllowedScaMethods, RolesAllowedInConsent, ViewsAllowedInConsent,
-      ConsumerNotFoundByConsumerId, ConsumerIsDisabled,
+      ConsumerNotFoundByConsumerId, ConsumerIsDisabled, ConsentConsumerIsRequired,
       InvalidConnectorResponse, UnknownError
     )
 
@@ -1390,7 +1402,7 @@ object Http4s500 {
       |
       |An SCA challenge code is sent to the email address that was supplied in the Create Consent Request body. The User then completes SCA via Answer Consent Challenge, which moves the Consent from INITIATED to ACCEPTED.
       |
-      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
+      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request, otherwise from the consumer making this call. If none of those names a consumer the Consent is not created and this endpoint returns ConsentConsumerIsRequired — a Consent that names no consumer could be presented by nobody. After creation, only the pinned consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
       |
       |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.
       |
@@ -1417,7 +1429,9 @@ object Http4s500 {
       |
       |An SCA challenge code is sent to the phone number that was supplied in the Create Consent Request body. The User then completes SCA via Answer Consent Challenge, which moves the Consent from INITIATED to ACCEPTED.
       |
-      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
+      |The challenge is sent before this call answers. If it cannot be sent (no SMS provider configured, or the provider refuses), the call fails and the Consent it created is REJECTED; the Consent Request is then used up, and the TPP has to lodge a new one.
+      |
+      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request, otherwise from the consumer making this call. If none of those names a consumer the Consent is not created and this endpoint returns ConsentConsumerIsRequired — a Consent that names no consumer could be presented by nobody. After creation, only the pinned consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
       |
       |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.
       |
@@ -1438,13 +1452,13 @@ object Http4s500 {
       "/consumer/consent-requests/CONSENT_REQUEST_ID/IMPLICIT/consents",
       "Create Consent By CONSENT_REQUEST_ID (IMPLICIT)",
       s"""
-      |Answer a Consent Request and create the resulting Consent, without a Strong Customer Authentication challenge — the Consent is moved directly from INITIATED to ACCEPTED.
+      |Answer a Consent Request and create the resulting Consent, with the Strong Customer Authentication challenge the User's implicit SCA method names.
       |
       |After the TPP has called Create Consent Request (Client Credentials), the User authenticates and answers the request via this endpoint. This creates the Consent (the credential the consumer will use to access OBP on the User's behalf).
       |
-      |IMPLICIT means no SCA challenge is sent. The Consent is immediately ACCEPTED. Use only in flows where the User has already been strongly authenticated by upstream means; for production use behind a public TPP, prefer EMAIL or SMS.
+      |IMPLICIT lets the instance choose how the challenge reaches the User: the connector's getConsentImplicitSCA names the method and the recipient (on the mapped connector, an EMAIL to the User's email address). The challenge is sent before this call answers, and the User completes SCA via Answer Consent Challenge, which moves the Consent from INITIATED to ACCEPTED. If the User has no address for that method the call fails with GetConsentImplicitSCAError before any Consent is created.
       |
-      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
+      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request, otherwise from the consumer making this call. If none of those names a consumer the Consent is not created and this endpoint returns ConsentConsumerIsRequired — a Consent that names no consumer could be presented by nobody. After creation, only the pinned consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
       |
       |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.
       |
@@ -1454,7 +1468,7 @@ object Http4s500 {
       |
       |""",
       EmptyBody, consentJsonV500,
-      ConsentRequestIsInvalid :: MissingPropsValueAtThisInstance :: SmsServerNotResponding :: createConsentByConsentRequestIdCommonErrors,
+      ConsentRequestIsInvalid :: MissingPropsValueAtThisInstance :: SmsServerNotResponding :: GetConsentImplicitSCAError :: createConsentByConsentRequestIdCommonErrors,
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
       http4sPartialFunction = Some(createConsentByConsentRequestId)
@@ -1462,7 +1476,7 @@ object Http4s500 {
 
     // ─── headAtms (HEAD /banks/BANK_ID/atms → 200) ──────────────────────────
 
-    val headAtms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val headAtms: Http4sRoute = Http4sRoute {
       case req @ Method.HEAD -> `prefixPath` / "banks" / _ / "atms" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1490,7 +1504,7 @@ object Http4s500 {
     // ─── createCustomer (POST /banks/BANK_ID/customers → 201) — v5 override ──
     // v5 uses PostCustomerJsonV500 with extra fields (kyc_status default, etc.)
 
-    val createCustomer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createCustomer: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "customers" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1565,7 +1579,7 @@ object Http4s500 {
 
     // ─── getCustomerOverview (POST /banks/.../customers/customer-number-query/overview) ─
 
-    val getCustomerOverview: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomerOverview: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "customers" / "customer-number-query" / "overview" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1608,7 +1622,7 @@ object Http4s500 {
 
     // ─── getCustomerOverviewFlat ────────────────────────────────────────────
 
-    val getCustomerOverviewFlat: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomerOverviewFlat: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "customers" / "customer-number-query" / "overview-flat" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1651,7 +1665,7 @@ object Http4s500 {
 
     // ─── getMyCustomersAtAnyBank (GET /my/customers) ────────────────────────
 
-    val getMyCustomersAtAnyBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getMyCustomersAtAnyBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "my" / "customers" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
@@ -1680,7 +1694,7 @@ object Http4s500 {
 
     // ─── getMyCustomersAtBank (GET /banks/BANK_ID/my/customers) ─────────────
 
-    val getMyCustomersAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getMyCustomersAtBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "my" / "customers" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1714,7 +1728,7 @@ object Http4s500 {
 
     // ─── getCustomersAtOneBank (GET /banks/BANK_ID/customers) — override ────
 
-    val getCustomersAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomersAtOneBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "customers" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1749,7 +1763,7 @@ object Http4s500 {
 
     // ─── getCustomersMinimalAtOneBank (GET /banks/BANK_ID/customers-minimal) ─
 
-    val getCustomersMinimalAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomersMinimalAtOneBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "customers-minimal" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1784,7 +1798,7 @@ object Http4s500 {
     // ─── createProduct (PUT /banks/BANK_ID/products/PRODUCT_CODE → 201) ────
     // v5 override of v3.1.0/v4.0.0 — uses PutProductJsonV500 (parent_product_code).
 
-    val createProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createProduct: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1855,7 +1869,7 @@ object Http4s500 {
 
     // ─── addCardForBank (POST /management/banks/BANK_ID/cards → 201) ───────
 
-    val addCardForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val addCardForBank: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "cards" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -1939,7 +1953,7 @@ object Http4s500 {
 
     // ─── getViewsForBankAccount (GET /banks/BANK_ID/accounts/ACCOUNT_ID/views) ─
 
-    val getViewsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getViewsForBankAccount: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" =>
         EndpointHelpers.withBankAccount(req) { (user, _, cc) =>
           val bankId = BankId(bankIdStr)
@@ -1999,7 +2013,7 @@ object Http4s500 {
 
     // ─── getMetricsAtBank (GET /management/metrics/banks/BANK_ID) ──────────
 
-    val getMetricsAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getMetricsAtBank: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "metrics" / "banks" / bankIdStr =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2084,7 +2098,7 @@ object Http4s500 {
 
     // ─── getSystemViewsIds (GET /system-views-ids) ──────────────────────────
 
-    val getSystemViewsIds: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getSystemViewsIds: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "system-views-ids" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2115,7 +2129,7 @@ object Http4s500 {
 
     // ─── customer-account-link endpoints (6) ────────────────────────────────
 
-    val createCustomerAccountLink: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val createCustomerAccountLink: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "customer-account-links" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2163,7 +2177,7 @@ object Http4s500 {
       http4sPartialFunction = Some(createCustomerAccountLink)
     )
 
-    val getCustomerAccountLinksByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomerAccountLinksByCustomerId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "customers" / customerId / "customer-account-links" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2198,7 +2212,7 @@ object Http4s500 {
       http4sPartialFunction = Some(getCustomerAccountLinksByCustomerId)
     )
 
-    val getCustomerAccountLinksByBankIdAccountId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomerAccountLinksByBankIdAccountId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "customer-account-links" =>
         EndpointHelpers.withBankAccount(req) { (_, _, cc) =>
           for {
@@ -2227,7 +2241,7 @@ object Http4s500 {
       http4sPartialFunction = Some(getCustomerAccountLinksByBankIdAccountId)
     )
 
-    val getCustomerAccountLinkById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getCustomerAccountLinkById: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "customer-account-links" / customerAccountLinkId =>
         EndpointHelpers.withBank(req) { (_, cc) =>
           for {
@@ -2255,7 +2269,7 @@ object Http4s500 {
       http4sPartialFunction = Some(getCustomerAccountLinkById)
     )
 
-    val updateCustomerAccountLinkById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val updateCustomerAccountLinkById: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "customer-account-links" / customerAccountLinkId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2291,7 +2305,7 @@ object Http4s500 {
       http4sPartialFunction = Some(updateCustomerAccountLinkById)
     )
 
-    val deleteCustomerAccountLinkById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val deleteCustomerAccountLinkById: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "customer-account-links" / customerAccountLinkId =>
         EndpointHelpers.withUserAndBankDelete(req) { (_, _, cc) =>
           for {
@@ -2322,7 +2336,7 @@ object Http4s500 {
 
     // ─── getAdapterInfo (GET /adapter) — v3.1.0 override ───────────────────
 
-    val getAdapterInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    val getAdapterInfo: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "adapter" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
@@ -2346,56 +2360,61 @@ object Http4s500 {
       http4sPartialFunction = Some(getAdapterInfo)
     )
 
-    val allRoutes: HttpRoutes[IO] =
-      Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
-        root(req)
-          .orElse(getBanks(req))
-          .orElse(getBank(req))
-          .orElse(createBank(req))
-          .orElse(updateBank(req))
-          .orElse(createAccount(req))
-          .orElse(getProducts(req))
-          .orElse(getProduct(req))
-          .orElse(createProduct(req))
-          .orElse(addCardForBank(req))
-          .orElse(getViewsForBankAccount(req))
-          .orElse(createSystemView(req))
-          .orElse(getSystemView(req))
-          .orElse(updateSystemView(req))
-          .orElse(deleteSystemView(req))
-          .orElse(getSystemViewsIds(req))
-          .orElse(createUserAuthContext(req))
-          .orElse(getUserAuthContexts(req))
-          .orElse(createUserAuthContextUpdateRequest(req))
-          .orElse(answerUserAuthContextUpdateChallenge(req))
-          .orElse(createConsentRequest(req))
-          .orElse(getConsentRequest(req))
-          .orElse(getConsentByConsentRequestId(req))
-          .orElse(createConsentByConsentRequestId(req))
-          .orElse(headAtms(req))
-          .orElse(createCustomer(req))
-          .orElse(getCustomerOverview(req))
-          .orElse(getCustomerOverviewFlat(req))
-          .orElse(getMyCustomersAtAnyBank(req))
-          .orElse(getMyCustomersAtBank(req))
-          .orElse(getCustomersAtOneBank(req))
-          .orElse(getCustomersMinimalAtOneBank(req))
-          .orElse(createCustomerAccountLink(req))
-          .orElse(getCustomerAccountLinksByCustomerId(req))
-          .orElse(getCustomerAccountLinksByBankIdAccountId(req))
-          .orElse(getCustomerAccountLinkById(req))
-          .orElse(updateCustomerAccountLinkById(req))
-          .orElse(deleteCustomerAccountLinkById(req))
-          .orElse(getMetricsAtBank(req))
-          .orElse(getAdapterInfo(req))
-      }
+    // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
+    // route that serves a request, so it is given the docs in this same order.
+    lazy val routesInOrder: List[Http4sHandler] = List(
+      root,
+      getBanks,
+      getBank,
+      createBank,
+      updateBank,
+      createAccount,
+      getProducts,
+      getProduct,
+      createProduct,
+      addCardForBank,
+      getViewsForBankAccount,
+      createSystemView,
+      getSystemView,
+      updateSystemView,
+      deleteSystemView,
+      getSystemViewsIds,
+      createUserAuthContext,
+      getUserAuthContexts,
+      createUserAuthContextUpdateRequest,
+      answerUserAuthContextUpdateChallenge,
+      createConsentRequest,
+      getConsentRequest,
+      getConsentByConsentRequestId,
+      createConsentByConsentRequestId,
+      headAtms,
+      createCustomer,
+      getCustomerOverview,
+      getCustomerOverviewFlat,
+      getMyCustomersAtAnyBank,
+      getMyCustomersAtBank,
+      getCustomersAtOneBank,
+      getCustomersMinimalAtOneBank,
+      createCustomerAccountLink,
+      getCustomerAccountLinksByCustomerId,
+      getCustomerAccountLinksByBankIdAccountId,
+      getCustomerAccountLinkById,
+      updateCustomerAccountLinkById,
+      deleteCustomerAccountLinkById,
+      getMetricsAtBank,
+      getAdapterInfo
+    )
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
+    lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
+
+    lazy val allRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
+
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] =
+      ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
 
     // ─── path-rewriting bridge: /obp/v5.0.0/… → /obp/v4.0.0/… ─────────────
-    // Cascades inherited (v1.2.1–v4.0.0) endpoints through the http4s versions
-    // instead of falling all the way through to Http4sLiftWebBridge.
+    // Cascades inherited (v1.2.1–v4.0.0) endpoints through the http4s versions.
+    // Chained after this version's own routes, so it only sees requests none of them served.
     val v500ToV400Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       val rawPath = req.uri.path.renderString
       if (rawPath.startsWith("/obp/v5.0.0/")) {

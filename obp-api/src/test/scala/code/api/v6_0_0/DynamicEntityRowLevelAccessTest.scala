@@ -34,6 +34,7 @@ import org.json4s.native.Serialization.write
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
 import org.scalatest.Tag
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 
 /**
  * Row-level access (use_row_level_access) — see ideas/DYNAMIC_ENTITY_ROW_LEVEL_ACCESS.md.
@@ -48,14 +49,14 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
   // ==================== Helpers ====================
 
   def createSystemEntity(entityJson: JValue): (Int, JValue) = {
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
     val request = (v6_0_0_Request / "management" / "system-dynamic-entities").POST <@ (user1)
     val response = makePostRequest(request, write(entityJson))
     (response.code, response.body)
   }
 
   def deleteSystemEntity(dynamicEntityId: String): Unit = {
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanDeleteSystemLevelDynamicEntity.toString)
+    Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanDeleteDynamicEntityDefinition.toString)
     makeDeleteRequest((v4_0_0_Request / "management" / "system-dynamic-entities" / dynamicEntityId).DELETE <@ (user1))
   }
 
@@ -76,7 +77,7 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
     ("schema" -> simpleSchema)
 
   // user1 owns the entity definition (and is auto-granted the entity roles incl. the admin grant role).
-  // user1 creates records (it holds CanCreateDynamicEntity_Systemtest_rl from the definition create).
+  // user1 creates records (it holds CanCreateDynamicEntityRecord_test_rl from the definition create).
   def createRecord(name: String): String = {
     val resp = makePostRequest((dynamicEntity_Request / "test_rl").POST <@ (user1), write(("name" -> name): JValue))
     resp.code should equal(201)
@@ -191,7 +192,7 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
         makeGetRequest((dynamicEntity_Request / "test_rl" / id / "access").GET <@ (user3)).code should equal(403)
 
         When("user3 is granted the admin row-access role")
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser3.userId, "CanGrantDynamicEntityRowAccess_Systemtest_rl")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser3.userId, "CanGrantDynamicEntityRowAccess_test_rl")
 
         Then("user3 can list access even though it cannot read the row")
         makeGetRequest((dynamicEntity_Request / "test_rl" / id / "access").GET <@ (user3)).code should equal(200)
@@ -215,7 +216,7 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
       try {
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, "CanCreateDynamicEntity_Systemtest_normal_rl")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, "CanCreateDynamicEntityRecord_test_normal_rl")
         val createResp = makePostRequest((dynamicEntity_Request / "test_normal_rl").POST <@ (user1), write(("name" -> "x"): JValue))
         createResp.code should equal(201)
         val id = (createResp.body \ "test_normal_rl" \ "test_normal_rl_id").extract[String]
@@ -236,6 +237,79 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
       val (code, _) = createSystemEntity(contradictory)
       Then("it is rejected (not 201)")
       code should equal(400)
+    }
+  }
+
+  // ==================== Feature 6: a row-level record keeps its id through updates ====================
+
+  feature("Feature 6: updating a row-level record keeps its id, and the entity can be cascade-deleted") {
+
+    // Cascade delete is refused for an entity that has personal endpoints, so this one has none.
+    val entityName = "test_rlc"
+    val rowLevelWithoutPersonal: JValue =
+      ("entity_name" -> entityName) ~ ("use_row_level_access" -> true) ~ ("has_personal_entity" -> false) ~ ("schema" -> simpleSchema)
+
+    def createRecordOf(name: String): String = {
+      val resp = makePostRequest((dynamicEntity_Request / entityName).POST <@ (user1), write(("name" -> name): JValue))
+      resp.code should equal(201)
+      (resp.body \ entityName \ s"${entityName}_id").extract[String]
+    }
+
+    def idOf(body: JValue): JValue = body \ entityName \ s"${entityName}_id"
+
+    def cascadeDelete(dynamicEntityId: String): Int = {
+      Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanDeleteCascadeDynamicEntityDefinition.toString)
+      makeDeleteRequest((v6_0_0_Request / "management" / "system-dynamic-entities" / "cascade" / dynamicEntityId).DELETE <@ (user1)).code
+    }
+
+    scenario("6.1: PUT and PATCH keep the record id in the stored record, and cascade delete succeeds", VersionOfApi) {
+      val (createStatus, body) = createSystemEntity(rowLevelWithoutPersonal)
+      createStatus should equal(201)
+      val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
+      val id = createRecordOf("before")
+
+      When("the record is replaced with PUT, whose body carries no id")
+      makePutRequest((dynamicEntity_Request / entityName / id).PUT <@ (user1), write(("name" -> "after put"): JValue)).code should equal(200)
+
+      Then("a GET still returns the record with its id")
+      val afterPut = makeGetRequest((dynamicEntity_Request / entityName / id).GET <@ (user1))
+      afterPut.code should equal(200)
+      idOf(afterPut.body) should equal(JString(id))
+      (afterPut.body \ entityName \ "name").extract[String] should equal("after put")
+
+      When("the record is changed with PATCH")
+      makePatchRequest((dynamicEntity_Request / entityName / id).PATCH <@ (user1), write(("name" -> "after patch"): JValue)).code should equal(200)
+
+      Then("a GET still returns the record with its id")
+      val afterPatch = makeGetRequest((dynamicEntity_Request / entityName / id).GET <@ (user1))
+      idOf(afterPatch.body) should equal(JString(id))
+      (afterPatch.body \ entityName \ "name").extract[String] should equal("after patch")
+
+      And("the entity can be deleted with its records")
+      cascadeDelete(dynamicEntityId) should equal(200)
+    }
+
+    scenario("6.2: a record whose stored JSON already lost its id is still cascade-deleted", VersionOfApi) {
+      val (createStatus, body) = createSystemEntity(rowLevelWithoutPersonal)
+      createStatus should equal(201)
+      val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
+      val id = createRecordOf("damaged")
+
+      Given("a record written by an earlier version, whose stored JSON has no id")
+      // Rewrites the stored JSON directly, as the record's row in the database; the store has no
+      // setter for it, since every write path through it keeps the id.
+      locally {
+        import doobie.implicits._
+        val damaged = """{"name":"damaged"}"""
+        val updated = code.api.util.DoobieUtil.runUpdate(
+          sql"UPDATE dynamicdata SET datajson = $damaged WHERE dynamicentityname = $entityName AND dynamicdataid = $id"
+            .update.run)
+        require(updated == 1, "the record should exist")
+      }
+
+      When("the entity is deleted with its records")
+      Then("it succeeds instead of failing on the missing id")
+      cascadeDelete(dynamicEntityId) should equal(200)
     }
   }
 

@@ -107,6 +107,13 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
     }
   }
 
+  /** The transaction requests of a bank holding an attribute with exactly this name and value. */
+  def transactionRequestIdsWithAttribute(bankId: BankId, name: String, value: String): List[String] =
+    DoobieUtil.runQuery(
+      sql"""SELECT transactionrequestid FROM transactionrequestattribute
+            WHERE bankid = ${bankId.value} AND name = $name AND value = $value ORDER BY id ASC"""
+        .query[Option[String]].to[List]).flatten
+
   override def getTransactionRequestIdsByAttributeNameValues(bankId: BankId, params: Map[String, List[String]], isPersonal: Boolean): Future[Box[List[String]]] =
     getByAttributeNameValues(bankId, params, isPersonal)
       .map(attributesBox => attributesBox.map(attributes => attributes.map(_.transactionRequestId.value)))

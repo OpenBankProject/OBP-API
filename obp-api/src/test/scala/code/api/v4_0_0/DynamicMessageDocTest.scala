@@ -101,8 +101,8 @@ class DynamicMessageDocTest extends V400ServerSetup {
       val storedMessageDoc = code.dynamicMessageDoc.DynamicMessageDoc
         .findById(None, dynamicMessageDoc.dynamicMessageDocId.getOrElse(""))
         .openOrThrowException("stored dynamic message doc not found")
-      storedMessageDoc.createdByUserId should be (Some(resourceUser1.userId))
-      storedMessageDoc.methodBodyHash should be (Some(code.api.util.APIUtil.sha256Hex(postDynamicMessageDoc.decodedMethodBody)))
+      storedMessageDoc.createdByUserId.get should be (resourceUser1.userId)
+      storedMessageDoc.methodBodyHash.get should be (code.api.util.APIUtil.dynamicCodeHash(postDynamicMessageDoc.programmingLang, postDynamicMessageDoc.decodedMethodBody))
 
 
       Then(s"we test the $ApiEndpoint2")

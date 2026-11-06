@@ -110,6 +110,14 @@ object MappedProduct {
       query(fr"WHERE mbankid = $bankId AND " ++ in ++ fr"ORDER BY id ASC")
     }
 
+  /** Product codes are unique only within a bank, so a lookup by code names the bank as well. */
+  def findAllByBankAndCodes(bankId: String, codes: List[String]): List[MappedProduct] =
+    if (codes.isEmpty) Nil
+    else {
+      val in = Fragments.in(fr"mcode", cats.data.NonEmptyList.fromListUnsafe(codes.distinct))
+      query(fr"WHERE mbankid = $bankId AND " ++ in ++ fr"ORDER BY id ASC")
+    }
+
   def findAllByCodes(codes: List[String]): List[MappedProduct] =
     if (codes.isEmpty) Nil
     else {

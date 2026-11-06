@@ -137,7 +137,7 @@ User ──(has roles/entitlements)──► Bank/System actions
 
 **Logging**
 
-- Copy `logback.xml.example` to `logback.xml`; adjust levels (TRACE/DEBUG/INFO) per environment.
+- `logback.xml` ships ready to use, defaulting to INFO; set `LOG_LEVEL` (TRACE/DEBUG/INFO/...) to override per environment.
 - In Docker/K8s, logs go to stdout/stderr → aggregate with your stack (e.g., Loki/Promtail, EFK).
 
 **Health & metrics**

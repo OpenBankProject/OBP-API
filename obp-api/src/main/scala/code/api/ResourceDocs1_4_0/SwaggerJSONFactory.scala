@@ -707,15 +707,12 @@ object SwaggerJSONFactory extends MdcLoggable {
         case _ => paramValue
       }
 
-      // buildSwaggerSchema's failures name neither the class nor the field, and this runs over
-      // every published definition - so an unusable example surfaced as a bare "Example should
-      // neither be JNothing nor JNull" with no way to tell which field to fix. Name it here.
+      // Name the entity and field, so an unusable example can be found from the message alone.
       val definition =
         try buildSwaggerSchema(paramType, exampleValue)
         catch {
           case e: RuntimeException =>
-            throw new RuntimeException(
-              s"${entityType.typeSymbol.fullName}.${it._1}: ${e.getMessage}", e)
+            throw new RuntimeException(s"${entityType.typeSymbol.name}.$paramName: ${e.getMessage}", e)
         }
 
       s""" "$paramName": $definition """

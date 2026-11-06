@@ -122,14 +122,33 @@ case class Role(role_name: String,
                )
 /** JWT claim: one personal dynamic entity the consent user may act on for the granting User. */
 case class ConsentPersonalDynamicEntity(bank_id: String, entity_name: String, actions: List[String]) {
-  def bankIdOpt: Option[String] = Option(bank_id).filter(_.nonEmpty)
+  def bankIdOpt: Option[String] = code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrNoneForSystem(bank_id)
   def covers(bankId: Option[String], entityName: String, action: String): Boolean =
     entity_name == entityName && bankIdOpt == bankId && actions.contains(action)
 }
-/** JWT claim `my_resources`: the User's own resources the Consent may act on. ideas/CONSENT_MY_RESOURCES.md */
-case class ConsentMyResources(personal_dynamic_entities: List[ConsentPersonalDynamicEntity]) {
+/** JWT claim: the granting User's linked Customers at one Bank the consent user may act on. */
+case class ConsentLinkedCustomers(bank_id: String, actions: List[String]) {
+  def covers(bankId: String, action: String): Boolean = bank_id == bankId && actions.contains(action)
+}
+/** JWT claim `my_resources`: the User's own resources the Consent may act on. ideas/CONSENT_MY_RESOURCES.md
+ *
+ *  Visibility is granted by resource *type* and is all-or-nothing within the scope named here -- never by
+ *  provenance ("the rows this agent created"). A consent user that may read the granting User's linked
+ *  Customers at a Bank reads all of them, exactly as the User does; one that may not reads none and is told
+ *  which entry is missing. Provenance filtering would hand the agent a partial view it cannot explain to
+ *  itself, and would need a per-table consent column the delegation model rejects.
+ *  ON_BEHALF_OF_USER_ID_PLAN.md, Decision 11. */
+case class ConsentMyResources(
+  personal_dynamic_entities: List[ConsentPersonalDynamicEntity],
+  linked_customers: List[ConsentLinkedCustomers] = Nil
+) {
   def coversPersonalDynamicEntity(bankId: Option[String], entityName: String, action: String): Boolean =
     personal_dynamic_entities.exists(_.covers(bankId, entityName, action))
+  def coversLinkedCustomers(bankId: String, action: String): Boolean =
+    linked_customers.exists(_.covers(bankId, action))
+  /** The Banks whose linked Customers this consent may act on, for the unscoped "my customers" read. */
+  def linkedCustomerBankIds(action: String): List[String] =
+    linked_customers.filter(_.actions.contains(action)).map(_.bank_id).distinct
 }
 object ConsentMyResources {
   val actionRead = "read"
@@ -138,11 +157,15 @@ object ConsentMyResources {
   def fromJson(json: code.api.v6_0_0.PostConsentMyResourcesJson): ConsentMyResources =
     ConsentMyResources(
       json.personal_dynamic_entities.getOrElse(Nil).map(e =>
-        ConsentPersonalDynamicEntity(Option(e.bank_id).getOrElse(""), e.entity_name, e.actions)))
+        ConsentPersonalDynamicEntity(Option(e.bank_id).getOrElse(""), e.entity_name, e.actions)),
+      json.linked_customers.getOrElse(Nil).map(e =>
+        ConsentLinkedCustomers(Option(e.bank_id).getOrElse(""), e.actions)))
   def toJson(claim: ConsentMyResources): code.api.v6_0_0.PostConsentMyResourcesJson =
     code.api.v6_0_0.PostConsentMyResourcesJson(
       Some(claim.personal_dynamic_entities.map(e =>
-        code.api.v6_0_0.PostConsentPersonalDynamicEntityJson(e.bank_id, e.entity_name, e.actions))))
+        code.api.v6_0_0.PostConsentPersonalDynamicEntityJson(e.bank_id, e.entity_name, e.actions))),
+      Some(claim.linked_customers.map(e =>
+        code.api.v6_0_0.PostConsentLinkedCustomersJson(e.bank_id, e.actions))))
 }
 case class ConsentView(bank_id: String, 
                        account_id: String,
@@ -212,10 +235,7 @@ object Consent extends MdcLoggable {
     * @return the Consumer-Key value from a Request Header as a String
     */
   def getConsumerKey(requestHeaders: List[HTTPParam]): Option[String] = {
-    requestHeaders.toSet.filter(_.name == RequestHeader.`Consumer-Key`).toList match {
-      case x :: Nil => Some(x.values.mkString(", "))
-      case _ => None
-    }
+    RequestHeadersUtil.findSingle(requestHeaders, RequestHeader.`Consumer-Key`).map(_.values.mkString(", "))
   }
 
   /**
@@ -350,10 +370,8 @@ object Consent extends MdcLoggable {
           if(requestConsumerId == "NONE" || consumerValidationMethodForConsent.isEmpty) {
             logger.warn(s"consumer_validation_method_for_consent is empty while request consumer_id=NONE - consent_id=${consent.jti}, aud=${consent.aud}")
           }
-          // Get consumer keys for debugging
-          val consentConsumerKey = Consumers.consumers.vend.getConsumerByConsumerId(consentConsumerId).map(_.key).getOrElse("Unknown")
-          val requestConsumerKey = callContext.consumer.map(_.key).getOrElse("None")
-          val detailedErrorMsg = s"${ErrorMessages.ConsentNotFound} Consumer mismatch: consent has consumer_id='$consentConsumerId' (consumer_key='$consentConsumerKey'), but current request has consumer_id='$requestConsumerId' (consumer_key='$requestConsumerKey')"
+          // Consumers are identified by consumer_id: the key is a credential and never goes into a log
+          val detailedErrorMsg = s"${ErrorMessages.ConsentNotFound} Consumer mismatch: consent has consumer_id='$consentConsumerId', but current request has consumer_id='$requestConsumerId'"
           logger.debug(s"ConsentNotFound: TPP/Consumer mismatch. Consent holder consumer_id=$consentConsumerId, Request consumer_id=$requestConsumerId, consent_id=${consent.jti}")
           logger.debug(s"ConsentNotFound: $detailedErrorMsg")
           ErrorUtil.apiFailureToBox(ErrorMessages.ConsentNotFound, 401)(Some(callContext))
@@ -515,10 +533,6 @@ object Consent extends MdcLoggable {
     // no way back short of deleting rows by hand. The narrower reading is that the consent still
     // holds everything it declares, plus one view it should have lost; refusing everything is a
     // worse answer to that than serving it and saying so loudly.
-    //
-    // canRevokeOwnerAccess is the realistic trigger (MapperViews): it refuses to drop an `owner`
-    // row when no other principal holds one on that account, which an OBP-native consent can reach
-    // because createConsentJWT takes its views from whatever the PSU already holds, `owner` included.
     for {
       staleAccess <- held.filterNot(wantedSet.contains)
     } yield {
@@ -631,39 +645,40 @@ object Consent extends MdcLoggable {
         case Full(mc) => ccWithOnBehalf.copy(consentReferenceId = Some(mc.consentReferenceId))
         case _        => ccWithOnBehalf
       }
-      if (cc.consentCreator.nonEmpty &&
-        APIUtil.getPropsAsBoolValue(nameOfProperty = "experimental_become_user_that_created_consent", defaultValue = false)) {
-        logger.warn("WARNING: experimental_become_user_that_created_consent is DEPRECATED and will be removed soon. Please unset this property.")
-        logger.info("experimental_become_user_that_created_consent = true")
-        logger.info(s"${cc.consentCreator.map(_.userId).getOrElse("")} is logged on instead of Consent user")
-        Future(cc.consentCreator, Some(cc)) // Just propagate the consent creator back
-      } else {
-        logger.info("experimental_become_user_that_created_consent = false")
-        logger.info(s"Getting Consent user (consent.sub: ${consent.sub}, consent.iss: ${consent.iss})")
-        // 1. Get or Create a User
-        getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
-          case (Full(user), newUser) =>
-            // 2. Assign entitlements to the User
-            addEntitlements(user, consent) match {
-              case Full(user) =>
-                // 3. Copy Auth Context to the User
-                copyAuthContextOfConsentToUser(consent.jti, user.userId, newUser) match {
-                  case Full(_) =>
-                    // 4. Assign views to the User
-                    (grantAccessToViews(user, consent), Some(cc))
-                  case failure@Failure(_, _, _) => // Handled errors
-                    (failure, Some(cc))
-                  case _ =>
-                    (Failure(ErrorMessages.UnknownError), Some(cc))
-                }
-              case failure@Failure(msg, exp, chain) => // Handled errors
-                (Failure(msg), Some(cc))
-              case _ =>
-                (Failure(CannotAddEntitlement + consentAsJwt), Some(cc))
-            }
-          case _ =>
-            (Failure(CannotGetOrCreateUser + consentAsJwt), Some(cc))
-        }
+      // A Consent-JWT always authenticates as the consent user: the agent identity the Consent
+      // minted, never the human who created the Consent. There used to be a props toggle here,
+      // experimental_become_user_that_created_consent, which logged the creator on instead. It has
+      // been removed and should not come back. Becoming the human dissolves the isolation the
+      // Consent model rests on: the caller would get the human's entitlements and views instead of
+      // the narrower set the Consent grants, every metric row would name the human, and the
+      // on-behalf-of work (ON_BEHALF_OF_USER_ID_PLAN.md) would have nothing to attribute, because
+      // the caller and the on-behalf-of user would be one identity. The human stays reachable
+      // where it is genuinely needed: cc.consentCreator holds them, CallContext.onBehalfOfUserId
+      // resolves them, and the providers write durable rows for them.
+      logger.info(s"Getting Consent user (consent.sub: ${consent.sub}, consent.iss: ${consent.iss})")
+      // 1. Get or Create a User
+      getOrCreateUser(consent.sub, consent.iss, Some(consent.jti), None, None) map {
+        case (Full(user), newUser) =>
+          // 2. Assign entitlements to the User
+          addEntitlements(user, consent) match {
+            case Full(user) =>
+              // 3. Copy Auth Context to the User
+              copyAuthContextOfConsentToUser(consent.jti, user.userId, newUser) match {
+                case Full(_) =>
+                  // 4. Assign views to the User
+                  (grantAccessToViews(user, consent), Some(cc))
+                case failure@Failure(_, _, _) => // Handled errors
+                  (failure, Some(cc))
+                case _ =>
+                  (Failure(ErrorMessages.UnknownError), Some(cc))
+              }
+            case failure@Failure(msg, exp, chain) => // Handled errors
+              (Failure(msg), Some(cc))
+            case _ =>
+              (Failure(CannotAddEntitlement + consentAsJwt), Some(cc))
+          }
+        case _ =>
+          (Failure(CannotGetOrCreateUser + consentAsJwt), Some(cc))
       }
     }
 
@@ -701,6 +716,15 @@ object Consent extends MdcLoggable {
         Future(Failure("Cannot extract data from: " + consentAsJwt), Some(callContext))
     }
   }
+
+  /** Whether this instance uses consents at all (consents.allowed, default false): as a login and, so that no consent
+   * is made that could never be used, when one is created. */
+  def consentsAllowed: Boolean = APIUtil.getPropsAsBoolValue(nameOfProperty = "consents.allowed", defaultValue = false)
+
+  /** The first step of every endpoint that creates a consent or a consent request: refused with OBP-35007 while
+   * consents.allowed is off, before any challenge is sent or anything is stored. */
+  def checkConsentsAllowed(callContext: Option[CallContext]): Future[Box[Unit]] =
+    Helper.booleanToFuture(ErrorMessages.ConsentDisabled, 401, callContext)(consentsAllowed)
 
   def applyRules(consentJwt: Option[String], callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
@@ -1010,9 +1034,9 @@ object Consent extends MdcLoggable {
         if (count > 0) {
           logger.info(s"revokeConsentAccountAccess: dropped $count account access rows for consent ${consent.consentId}")
         }
-        // revokeAccessToViewForUserAndConsumer can refuse -- canRevokeOwnerAccess will not drop the
-        // last `owner` row on an account -- so counting the attempts rather than the successes
-        // reported rows as gone while they were still there. On a revoked consent that is the worst
+        // revokeAccessToViewForUserAndConsumer can fail (for example when the row is not found), so
+        // counting the attempts rather than the successes would report rows as gone while they were
+        // still there. On a revoked consent that is the worst
         // version of this to get wrong: the access outlives the consent entirely, and nothing else
         // ever comes back for it.
         for ((access, outcome) <- stuck) {
@@ -1030,6 +1054,35 @@ object Consent extends MdcLoggable {
     // only be removed once every access row pointing at it is gone, the shadow user's included.
     consentJwtBox.foreach(releaseVrpMandateArtefacts(consent, _))
   }
+
+  /**
+   * The consent statuses after which an SCA challenge raised for the consent can no longer be used:
+   * a REVOKED consent is re-authenticated with a fresh challenge, and REJECTED and EXPIRED are terminal.
+   */
+  val consentChallengeEndingStatuses: Set[ConsentStatus] =
+    Set(ConsentStatus.REVOKED, ConsentStatus.REJECTED, ConsentStatus.EXPIRED)
+
+  /**
+   * Delete the OBP_CONSENT_CHALLENGE rows of a consent once none of them can be used any more: when
+   * one has been answered correctly, or when the consent reaches one of consentChallengeEndingStatuses.
+   *
+   * Nothing reads these rows after the answer -- the attempt counter only matters while a challenge
+   * is still open -- so the row is not an audit trail, it is a hashed one-time password waiting to
+   * be swept. Berlin Group consent challenges are left alone (their authorisation endpoints keep
+   * listing them), and so are transaction request challenges.
+   *
+   * Never fails the caller: by the time this runs the answer or the status change has happened, and
+   * a row left behind is logged rather than turned into an error for something that succeeded.
+   */
+  def removeConsentChallenges(consentId: String): Unit =
+    code.transactionChallenge.Challenges.ChallengeProvider.vend
+      .deleteChallengesByConsentId(consentId, com.openbankproject.commons.model.enums.ChallengeType.OBP_CONSENT_CHALLENGE.toString) match {
+      case Failure(msg, ex, _) =>
+        logger.error(
+          s"removeConsentChallenges: the challenges of consent $consentId could not be deleted: $msg" +
+          ex.map(e => s" (${e.getClass.getSimpleName}: ${e.getMessage})").getOrElse(""))
+      case _ =>
+    }
 
   /**
    * Release the artefacts a VRP mandate created, when the consent that owns them is revoked.
@@ -1411,7 +1464,13 @@ object Consent extends MdcLoggable {
       createdByUserId=user.userId,
       sub=APIUtil.generateUUID(),
       iss=Constant.HostName,
-      aud=consumerId.getOrElse(currentConsumerId),
+      // No fallback: aud is the Consumer this Consent is for, and there is no second source for that.
+      // It used to fall back to the granting User's first-registered Consumer, which put an arbitrary
+      // Consumer in the claim checkConsumerIsActiveAndMatched validates against -- while the stored row
+      // recorded no Consumer at all, so the two checks in checkConsent disagreed about the same Consent.
+      // Callers now resolve the Consumer once (NewStyle.function.resolveConsentConsumer) and cannot
+      // create a Consent without one, so Some is the only case reached in practice.
+      aud=consumerId.getOrElse(""),
       jti=consentId,
       iat=currentTimeInSeconds,
       nbf=timeInSeconds,
@@ -1438,20 +1497,29 @@ object Consent extends MdcLoggable {
    * instance exists with personal endpoints. ideas/CONSENT_MY_RESOURCES.md
    */
   def validateMyResources(myResources: Option[code.api.v6_0_0.PostConsentMyResourcesJson], callContext: Option[CallContext]): Future[Box[Unit]] = {
-    val problems: List[String] = myResources.toList.flatMap(_.personal_dynamic_entities.getOrElse(Nil)).flatMap { entry =>
-      val bankId = Option(entry.bank_id).filter(_.nonEmpty)
+    def badActions(where: String, actions: List[String]): List[Option[String]] = List(
+      if (actions == null || actions.isEmpty) Some(s"$where: actions must name at least one of ${ConsentMyResources.actions.mkString(", ")}") else None,
+      Option(actions).getOrElse(Nil).filterNot(ConsentMyResources.actions.contains) match {
+        case Nil => None
+        case unknown => Some(s"$where: unknown actions ${unknown.mkString(", ")}")
+      }
+    )
+    // linked_customers: shape only. The Bank is not looked up here -- an entry naming a Bank that does
+    // not exist simply covers nothing, and the consent user is told which entry is missing when it reads.
+    val customerProblems: List[String] = myResources.toList.flatMap(_.linked_customers.getOrElse(Nil)).flatMap { entry =>
+      val where = s"linked_customers entry (bank_id '${Option(entry.bank_id).getOrElse("")}')"
+      (if (entry.bank_id == null || entry.bank_id.isEmpty) Some(s"$where: bank_id is required") else None) ::
+        badActions(where, entry.actions)
+    }.flatten
+    val problems: List[String] = customerProblems ++ myResources.toList.flatMap(_.personal_dynamic_entities.getOrElse(Nil)).flatMap { entry =>
+      val bankId = code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrNoneForSystem(entry.bank_id)
       val where = s"personal_dynamic_entities entry (bank_id '${Option(entry.bank_id).getOrElse("")}', entity_name '${entry.entity_name}')"
-      val definition = code.api.dynamic.entity.helper.DynamicEntityHelper.definitionsMap.get((bankId, entry.entity_name))
+      val definition = code.api.dynamic.entity.helper.DynamicEntityHelper.definitionOf(bankId, entry.entity_name)
       List(
         if (entry.entity_name == null || entry.entity_name.isEmpty) Some(s"$where: entity_name is required") else None,
-        if (entry.actions == null || entry.actions.isEmpty) Some(s"$where: actions must name at least one of ${ConsentMyResources.actions.mkString(", ")}") else None,
-        Option(entry.actions).getOrElse(Nil).filterNot(ConsentMyResources.actions.contains) match {
-          case Nil => None
-          case unknown => Some(s"$where: unknown actions ${unknown.mkString(", ")}")
-        },
         if (definition.isEmpty) Some(s"$where: no such dynamic entity") else None,
         if (definition.exists(!_.hasPersonalEntity)) Some(s"$where: the entity has no personal (my) endpoints") else None
-      ).flatten
+      ).++(badActions(where, entry.actions)).flatten
     }
     Helper.booleanToFuture(s"$ConsentMyResourcesInvalid ${problems.mkString("; ")}", cc = callContext) { problems.isEmpty }
   }
@@ -1512,12 +1580,12 @@ object Consent extends MdcLoggable {
 
     // Collect optional headers
     val headers = callContext.map(_.requestHeaders).getOrElse(Nil)
-    val tppRedirectUri = headers.find(_.name == RequestHeader.`TPP-Redirect-URI`)
-    val tppNokRedirectUri = headers.find(_.name == RequestHeader.`TPP-Nok-Redirect-URI`)
-    val xRequestId = headers.find(_.name == RequestHeader.`X-Request-ID`)
-    val psuDeviceId = headers.find(_.name == RequestHeader.`PSU-Device-ID`)
-    val psuIpAddress = headers.find(_.name == RequestHeader.`PSU-IP-Address`)
-    val psuGeoLocation = headers.find(_.name == RequestHeader.`PSU-Geo-Location`)
+    val tppRedirectUri = RequestHeadersUtil.find(headers, RequestHeader.`TPP-Redirect-URI`)
+    val tppNokRedirectUri = RequestHeadersUtil.find(headers, RequestHeader.`TPP-Nok-Redirect-URI`)
+    val xRequestId = RequestHeadersUtil.find(headers, RequestHeader.`X-Request-ID`)
+    val psuDeviceId = RequestHeadersUtil.find(headers, RequestHeader.`PSU-Device-ID`)
+    val psuIpAddress = RequestHeadersUtil.find(headers, RequestHeader.`PSU-IP-Address`)
+    val psuGeoLocation = RequestHeadersUtil.find(headers, RequestHeader.`PSU-Geo-Location`)
 
     def sequenceBoxes[A](boxes: List[Box[A]]): Box[List[A]] = {
       boxes.foldRight(Full(Nil): Box[List[A]]) { (box, acc) =>
@@ -2375,7 +2443,7 @@ object Consent extends MdcLoggable {
       createdByUserId = createdByUserId,
       sub = APIUtil.generateUUID(),
       iss = Constant.HostName,
-      aud = consumerId.getOrElse(currentConsumerId),
+      aud = consumerId.getOrElse(""),
       jti = consentId,
       iat = currentTimeInSeconds,
       nbf = currentTimeInSeconds,

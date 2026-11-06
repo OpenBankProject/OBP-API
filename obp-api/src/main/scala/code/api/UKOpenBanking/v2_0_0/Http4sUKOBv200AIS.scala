@@ -32,7 +32,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.util.APIUtil.{HTTPParam, EmptyBody, ResourceDoc, createQueriesByHttpParams, fullBoxOrException, unboxFull}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, HTTPParam, EmptyBody, ResourceDoc, createQueriesByHttpParams, fullBoxOrException, unboxFull}
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankAccountNotFoundByAccountId, UnknownError}
@@ -75,7 +75,7 @@ object Http4sUKOBv200AIS extends MdcLoggable {
   val ukV20Prefix = Root / ApiVersion.ukOpenBankingV20.urlPrefix / ApiVersion.ukOpenBankingV20.apiShortVersion
 
   // GET /accounts — list all private accounts of the logged-in user
-  lazy val getAccountList: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountList: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV20Prefix` / "accounts" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val callContext = Some(cc)
@@ -100,7 +100,7 @@ object Http4sUKOBv200AIS extends MdcLoggable {
   )
 
   // GET /accounts/{accountId} — single account
-  lazy val getAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccount: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV20Prefix` / "accounts" / accountId =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val callContext = Some(cc)
@@ -134,7 +134,7 @@ object Http4sUKOBv200AIS extends MdcLoggable {
   )
 
   // GET /balances — bulk balances for all private accounts
-  lazy val getBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getBalances: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV20Prefix` / "balances" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val callContext = Some(cc)
@@ -159,7 +159,7 @@ object Http4sUKOBv200AIS extends MdcLoggable {
   )
 
   // GET /accounts/{accountId}/balances — account-level balances
-  lazy val getAccountBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountBalances: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV20Prefix` / "accounts" / accountIdStr / "balances" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         for {
@@ -186,7 +186,7 @@ object Http4sUKOBv200AIS extends MdcLoggable {
   )
 
   // GET /accounts/{accountId}/transactions — account-level transactions
-  lazy val getAccountTransactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountTransactions: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV20Prefix` / "accounts" / accountIdStr / "transactions" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         for {
@@ -199,7 +199,8 @@ object Http4sUKOBv200AIS extends MdcLoggable {
           (transactions, _) <- Future {
             BankAccountExtended(account).getModeratedTransactions(bank, Full(u), view, BankIdAccountId(account.bankId, account.accountId), Some(cc), params)
           } map { x => unboxFull(fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))) }
-        } yield JSONFactory_UKOpenBanking_200.createTransactionsJson(transactions, Nil)
+          // The account id comes from the account looked up above, not from the first transaction, which an empty result does not have.
+        } yield JSONFactory_UKOpenBanking_200.createTransactionsJson(account.accountId.value, transactions, Nil)
       }
   }
   resourceDocs += ResourceDoc(
@@ -216,11 +217,13 @@ object Http4sUKOBv200AIS extends MdcLoggable {
     http4sPartialFunction = Some(getAccountTransactions)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    getAccountList(req)
-      .orElse(getAccount(req))
-      .orElse(getAccountBalances(req))
-      .orElse(getAccountTransactions(req))
-      .orElse(getBalances(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    getAccountList,
+    getAccount,
+    getAccountBalances,
+    getAccountTransactions,
+    getBalances
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

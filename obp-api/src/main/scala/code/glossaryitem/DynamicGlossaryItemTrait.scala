@@ -40,7 +40,7 @@ object DynamicGlossaryItems extends SimpleInjector {
 
 /**
  * Dynamic Glossary Items are Glossary Items held in the database and maintained over the
- * /glossary-items endpoints, as opposed to the static ones compiled into Glossary.scala.
+ * /api/glossary endpoints, as opposed to the static ones compiled into Glossary.scala.
  *
  * Title is the resource key and is unique case insensitively, matching the way the static
  * Glossary is looked up.

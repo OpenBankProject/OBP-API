@@ -176,6 +176,7 @@ object OpenCorridorProcessor {
         None,
         callContext
       )
+      _ <- code.bankconnectors.LocalMappedConnectorInternal.recordTransactionRequestCounterparty(createdTransactionRequest.id, toCounterparty)
     } yield (createdTransactionRequest, callContext)
   }
 

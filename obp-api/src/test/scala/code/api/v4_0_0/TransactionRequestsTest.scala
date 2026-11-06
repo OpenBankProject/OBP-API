@@ -47,6 +47,8 @@ import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.api.v5_0_0.PhysicalCardJsonV500
 import code.api.v5_1_0.{AgentJsonV510, PutAgentJsonV510}
 import code.bankconnectors.Connector
+import code.customer.CustomerX
+import code.usercustomerlinks.UserCustomerLink
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.model.BankAccountX
@@ -697,6 +699,104 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         helper.checkBankAccountBalance(true)
       }
     }
+  }
+
+  Feature("a transaction request whose challenge cannot be sent") {
+
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("is not left waiting for an answer", ApiEndpoint1) {}
+    } else {
+      Scenario("is not left waiting for an answer", ApiEndpoint1) {
+        When("the challenge goes by SMS and no SMS provider is configured")
+        setPropsValues("ACCOUNT_OTP_INSTRUCTION_TRANSPORT" -> "SMS")
+        val helper = defaultSetup(ACCOUNT.toString)
+        val amt = "30000.00"
+        helper.setCurrencyAndAmt("AED", "AED", amt)
+        helper.bodyValue = AmountOfMoneyJsonV121("AED", amt)
+        helper.transactionRequestBody = helper.transactionRequestBody.copy(value = helper.bodyValue)
+
+        Then("creating the transaction request answers 400")
+        val createTransactionRequestResponse = helper.makeCreateTransReqRequest
+        createTransactionRequestResponse.code should equal(400)
+
+        And("the transaction request it saved is marked FAILED, not INITIATED")
+        val getTransReqResponse = helper.makeGetTransReqRequest
+        getTransReqResponse.code should equal(200)
+        (getTransReqResponse.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(
+          List(TransactionRequestStatus.FAILED.toString))
+
+        And("the account balance is unchanged")
+        helper.checkBankAccountBalance(false)
+      }
+
+      Scenario("still goes to the signers who can be reached, when there are enough of them", ApiEndpoint1) {
+        When("two of three signers have an address and two answers are required")
+        val helper = setUpSignersByEmail(signers = List(resourceUser2, resourceUser3), reachable = List(resourceUser1, resourceUser2))
+
+        Then("the transaction request waits for the answers of the two who were sent a challenge")
+        val response = helper.makeCreateTransReqRequestCounterparty
+        response.code should equal(201)
+        val created = response.body.extract[TransactionRequestWithChargeJSON400]
+        created.status should equal(TransactionRequestStatus.INITIATED.toString)
+        created.challenges.map(_.user_id).toSet should equal(Set(resourceUser1.userId, resourceUser2.userId))
+      }
+
+      Scenario("is marked FAILED when fewer signers than the answers required can be reached", ApiEndpoint1) {
+        When("one of three signers has an address and two answers are required")
+        val helper = setUpSignersByEmail(signers = List(resourceUser2, resourceUser3), reachable = List(resourceUser1))
+
+        Then("creating the transaction request answers 400 and the request is FAILED")
+        val response = helper.makeCreateTransReqRequestCounterparty
+        response.code should equal(400)
+        response.body.extract[ErrorMessage].message should include(extractErrorMessageCode(ChallengeRecipientNotFound))
+        (helper.makeGetTransReqRequest.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(
+          List(TransactionRequestStatus.FAILED.toString))
+      }
+    }
+  }
+
+  Feature("a transaction request on an account that needs more answers than it has signers") {
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("is marked FAILED with the reason", ApiEndpoint1) {}
+    } else {
+      Scenario("is marked FAILED with the reason", ApiEndpoint1) {
+        When("only the owner may answer, can be reached, and two answers are required")
+        val helper = setUpSignersByEmail(signers = Nil, reachable = List(resourceUser1))
+
+        Then("the answer says there are too few users who may answer, not that an address is missing")
+        val response = helper.makeCreateTransReqRequestCounterparty
+        response.code should equal(400)
+        response.body.extract[ErrorMessage].message should include("OBP-35060")
+        (helper.makeGetTransReqRequest.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(
+          List(TransactionRequestStatus.FAILED.toString))
+      }
+    }
+  }
+
+  /** A COUNTERPARTY payment above the challenge threshold on an account whose owner and `signers` may answer, two
+   * answers required and challenges sent by e-mail; only the `reachable` users are linked to a customer with an
+   * e-mail address. */
+  private def setUpSignersByEmail(signers: List[User], reachable: List[User]) = {
+    setPropsValues("COUNTERPARTY_OTP_INSTRUCTION_TRANSPORT" -> "EMAIL", "mail.test.mode" -> "true")
+    val helper = defaultSetup(COUNTERPARTY.toString)
+    val amt = "30000.00"
+    helper.setCurrencyAndAmt("AED", "INR", amt)
+    helper.bodyValue = AmountOfMoneyJsonV121("AED", amt)
+    helper.transactionRequestBodyCounterparty = helper.transactionRequestBodyCounterparty.copy(value = helper.bodyValue)
+    createAccountAttributeViaEndpoint(helper.bankId.value, helper.accountId1.value, "REQUIRED_CHALLENGE_ANSWERS", "2", "INTEGER", Some(UUID.randomUUID().toString))
+    signers.foreach { signer =>
+      grantUserAccessToViewViaEndpoint(helper.bankId.value, helper.accountId1.value, signer.userId, user1,
+        PostViewJsonV400(view_id = Constant.SYSTEM_OWNER_VIEW_ID, is_system = true))
+    }
+    reachable.foreach { user =>
+      val customer = CustomerX.customerProvider.vend.addCustomer(
+        helper.bankId, APIUtil.generateUUID(), "Signer", "", s"${user.userId}@example.com",
+        CustomerFaceImage(new Date(), "http://example.com/face.png"),
+        new Date(), "single", 0, Nil, "Bachelor", "employed", true, new Date(), None, None, "", "", ""
+      ).openOrThrowException("expected the customer to be created")
+      UserCustomerLink.userCustomerLink.vend.getOCreateUserCustomerLink(user.userId, customer.customerId, new Date(), true)
+    }
+    helper
   }
 
   Feature("we can create transaction requests -- FREE_FORM") {
@@ -1557,6 +1657,88 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
   }
 
   Feature("we can create transaction requests -- CARD") {
+
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("A CARD payee must be a counterparty of the card's account", ApiEndpoint10) {}
+    } else {
+      Scenario("A CARD payee must be a counterparty of the card's account", ApiEndpoint10) {
+        setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
+        setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
+        val helper = defaultSetup(CARD.toString)
+
+        Given("a beneficiary counterparty that belongs to another account, not the card's")
+        val counterpartyOfAnotherAccount = createCounterparty(
+          helper.bankId.value, helper.accountId2.value, helper.accountId1.value, true, UUID.randomUUID.toString)
+        helper.transactionRequestBodyCard = helper.transactionRequestBodyCard.copy(
+          to = CounterpartyIdJson(counterpartyOfAnotherAccount.counterpartyId))
+
+        When("the card is charged with that payee")
+        val response = helper.makeCreateTransReqRequestCard
+
+        Then("it is refused as not found and no money moves")
+        response.code should equal(400)
+        (response.body \ "message").extract[String] should include(CounterpartyNotFoundByCounterpartyId)
+        helper.checkBankAccountBalance(false)
+      }
+    }
+
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("Charging a card needs access to the card's account", ApiEndpoint10) {}
+    } else {
+      Scenario("Charging a card needs access to the card's account", ApiEndpoint10) {
+        setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
+        setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
+        val helper = defaultSetup(CARD.toString)
+
+        When("a User with no view on the card's account presents the right card details")
+        val requestByUser2 = (v4_0_0_Request / "transaction-request-types" / "CARD" / "transaction-requests").POST <@ (user2)
+        val response = makePostRequest(requestByUser2, write(helper.transactionRequestBodyCard))
+
+        Then("it is refused and no money moves")
+        response.code should equal(403)
+        (response.body \ "message").extract[String] should include(InsufficientAuthorisationToCreateTransactionRequest)
+        helper.checkBankAccountBalance(false)
+      }
+    }
+
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("A User with no access to the card's account learns nothing from a wrong card field", ApiEndpoint10) {}
+    } else {
+      Scenario("A User with no access to the card's account learns nothing from a wrong card field", ApiEndpoint10) {
+        setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
+        setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
+        val helper = defaultSetup(CARD.toString)
+
+        When("a User with no view on the card's account presents the right card number with a wrong cvv")
+        val requestByUser2 = (v4_0_0_Request / "transaction-request-types" / "CARD" / "transaction-requests").POST <@ (user2)
+        val wrongCvv = helper.transactionRequestBodyCard.copy(card = helper.transactionRequestBodyCard.card.copy(cvv = "000x"))
+        val response = makePostRequest(requestByUser2, write(wrongCvv))
+
+        Then("it is refused for the missing access, not for the cvv, and no money moves")
+        response.code should equal(403)
+        (response.body \ "message").extract[String] should include(InsufficientAuthorisationToCreateTransactionRequest)
+        helper.checkBankAccountBalance(false)
+      }
+    }
+
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("An unknown card number is refused like a card of another User", ApiEndpoint10) {}
+    } else {
+      Scenario("An unknown card number is refused like a card of another User", ApiEndpoint10) {
+        setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
+        setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
+        val helper = defaultSetup(CARD.toString)
+
+        When("a card number that no card has is presented")
+        val unknownCard = helper.transactionRequestBodyCard.copy(card = helper.transactionRequestBodyCard.card.copy(card_number = UUID.randomUUID.toString))
+        val response = makePostRequest(helper.createTransReqRequestCard, write(unknownCard))
+
+        Then("it is refused with the same error as a card of another User, and no money moves")
+        response.code should equal(403)
+        (response.body \ "message").extract[String] should include(InsufficientAuthorisationToCreateTransactionRequest)
+        helper.checkBankAccountBalance(false)
+      }
+    }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, No FX ", ApiEndpoint10) {}

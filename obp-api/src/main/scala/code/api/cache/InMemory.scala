@@ -46,8 +46,8 @@ object InMemory extends MdcLoggable {
   // Same single shared instance as the scalacache era: the store is untyped (Entry holds Any)
   // and narrowed per call site - the cast is erased, and a given key always holds the type its
   // own call site wrote. JSONFactory6.0.0 reads .size() off this directly.
-  val underlyingGuavaCache: GuavaUnderlying[String, Entry] =
-    CacheBuilder.newBuilder().maximumSize(100000L).build[String, Entry]()
+  val underlyingGuavaCache: GuavaUnderlying[String, Entry] = code.telemetry.Telemetry.monitorCache(
+    CacheBuilder.newBuilder().maximumSize(100000L).recordStats().build[String, Entry](), "in_memory")
 
   // scalacache's memoization macro derived the stored key from the enclosing wrapper method:
   // full name, the one non-excluded parameter list rendered with its argument, then one "()"

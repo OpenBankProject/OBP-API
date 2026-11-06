@@ -44,7 +44,7 @@ object DoobieUserAuthContextUpdateQueries {
     DoobieUtil.runUpdate(
       sql"""UPDATE mappeduserauthcontextupdate
             SET mstatus = $newStatus,
-                updatedat = NOW()
+                updatedat = CURRENT_TIMESTAMP
             WHERE id = $userAuthContextUpdateId
               AND mstatus = $guardStatus""".update.run
     )

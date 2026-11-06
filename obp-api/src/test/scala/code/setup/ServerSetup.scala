@@ -297,6 +297,29 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM mappedbankaccount".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM viewdefinition".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM account_creation".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM asset".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM assetstatushistory".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM consumer_account_access".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM domain_api".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM dynamic_entity_webhook".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM file_t".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM fileaccess".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM fileattachment".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM filecontent".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM groupmembership".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM platform_app".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM platform_app_required_scope".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionarchive".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionarchivecontent".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionhold".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionpolicy".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionrun".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionrunitem".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM selfservicebank".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM tenant".update.run)
+    // The reset empties the asset registry behind AssetLookup's in-memory copy, so forget the copy too.
+    code.asset.AssetLookup.invalidate()
   }
 
   val server = TestServer
@@ -374,6 +397,9 @@ trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup
   override def afterEach() = {
     super.afterEach()
     wipeTestData()
+    // The wipe empties the asset registry behind AssetLookup's in-memory copy. Forget the copy, or a
+    // registry a scenario left holding only a test asset would decide currency codes for later suites.
+    code.asset.AssetLookup.invalidate()
   }
 
 }

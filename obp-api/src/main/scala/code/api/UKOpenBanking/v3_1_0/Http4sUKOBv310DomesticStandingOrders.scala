@@ -30,7 +30,7 @@ package code.api.UKOpenBanking.v3_1_0
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, mockedDataText}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, mockedDataText}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -59,7 +59,7 @@ object Http4sUKOBv310DomesticStandingOrders extends MdcLoggable {
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
   private val tag = ApiTag("Domestic Standing Orders") :: apiTagMockedData :: Nil
 
-  lazy val createDomesticStandingOrderConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createDomesticStandingOrderConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV31Prefix` / "domestic-standing-order-consents" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -161,7 +161,7 @@ object Http4sUKOBv310DomesticStandingOrders extends MdcLoggable {
     http4sPartialFunction = Some(createDomesticStandingOrderConsents)
   )
 
-  lazy val createDomesticStandingOrders: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createDomesticStandingOrders: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV31Prefix` / "domestic-standing-orders" =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -251,7 +251,7 @@ object Http4sUKOBv310DomesticStandingOrders extends MdcLoggable {
     http4sPartialFunction = Some(createDomesticStandingOrders)
   )
 
-  lazy val getDomesticStandingOrderConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticStandingOrderConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "domestic-standing-order-consents" / _ =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -353,7 +353,7 @@ object Http4sUKOBv310DomesticStandingOrders extends MdcLoggable {
     http4sPartialFunction = Some(getDomesticStandingOrderConsentsConsentId)
   )
 
-  lazy val getDomesticStandingOrdersDomesticStandingOrderId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticStandingOrdersDomesticStandingOrderId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV31Prefix` / "domestic-standing-orders" / _ =>
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
@@ -443,10 +443,12 @@ object Http4sUKOBv310DomesticStandingOrders extends MdcLoggable {
     http4sPartialFunction = Some(getDomesticStandingOrdersDomesticStandingOrderId)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    createDomesticStandingOrderConsents(req)
-      .orElse(createDomesticStandingOrders(req))
-      .orElse(getDomesticStandingOrderConsentsConsentId(req))
-      .orElse(getDomesticStandingOrdersDomesticStandingOrderId(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    createDomesticStandingOrderConsents,
+    createDomesticStandingOrders,
+    getDomesticStandingOrderConsentsConsentId,
+    getDomesticStandingOrdersDomesticStandingOrderId
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

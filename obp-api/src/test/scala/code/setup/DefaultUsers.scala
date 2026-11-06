@@ -71,7 +71,9 @@ trait DefaultUsers {
     description = Some("test1 description"),
     developerEmail = Some("eveline@example.com"),
     redirectURL = None,
-    createdByUserId = userId1,
+    // The ResourceUser can survive from an earlier run with a different user id (the reset keeps that
+    // table, while userId1 is new on every JVM start), so take the owner from the user actually used.
+    createdByUserId = Some(resourceUser1.userId),
     None,
     None,
     None
@@ -87,7 +89,7 @@ trait DefaultUsers {
     description = Some("test2 description"),
     developerEmail = Some("eveline@example.com"),
     redirectURL = None,
-    createdByUserId = userId2,
+    createdByUserId = Some(resourceUser2.userId),
     None,
     None,
     None,
@@ -103,7 +105,7 @@ trait DefaultUsers {
     description = Some("test3 description"),
     developerEmail = Some("eveline@example.com"),
     redirectURL = None,
-    createdByUserId = userId3,
+    createdByUserId = Some(resourceUser3.userId),
     None,
     None,
     None
@@ -119,7 +121,7 @@ trait DefaultUsers {
     description = Some("test4 description"),
     developerEmail = Some("eveline@example.com"),
     redirectURL = None,
-    createdByUserId = userId4,
+    createdByUserId = Some(resourceUser4.userId),
     None,
     None,
     None
@@ -263,6 +265,36 @@ trait DefaultUsers {
   // prepare the OAuth users to login 
   lazy val user1 = Some(consumer, token1)
   lazy val user2 = Some(consumer2, token2)
+
+  // A Consumer acting as itself: the User an OBP-OIDC client-credentials token resolves to (provider
+  // obp-oidc#client, named after the client id), and a token for that User and the Consumer.
+  private def applicationToken(application: code.model.Consumer): Token = {
+    val ownUser = getOrCreateResourceUser(
+      provider = code.api.OAuth2Login.OBPOIDC.clientCredentialsProvider,
+      providerId = application.key,
+      createdByConsentId = None,
+      name = application.key,
+      email = "",
+      userId = None,
+      company = ""
+    )
+    val token = Tokens.tokens.vend.createToken(
+      Access,
+      Some(application.id),
+      Some(ownUser.id),
+      Some(randomString(40).toLowerCase),
+      Some(randomString(40).toLowerCase),
+      Some(tokenDuration),
+      Some(TimeSpan(tokenDuration + System.currentTimeMillis())),
+      Some(new Date(System.currentTimeMillis())),
+      None
+    ).openOrThrowException(attemptedToOpenAnEmptyBox)
+    Token(token.key, token.secret)
+  }
+  lazy val tokenApplication1 = applicationToken(testConsumer)
+  lazy val tokenApplication2 = applicationToken(testConsumer2)
+  lazy val application1 = Some(consumer, tokenApplication1)
+  lazy val application2 = Some(consumer2, tokenApplication2)
   lazy val user3 = Some(consumer3, token3)
   lazy val userGatewayLogin = Some(consumer4, token4)
 

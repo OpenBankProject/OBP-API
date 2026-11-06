@@ -54,7 +54,7 @@ object DoobieBusinessStatusQueries {
           SET status = $newStatus,
               checkeruserid = $checkerUserId,
               checkercomment = $checkerComment,
-              updatedat = NOW()
+              updatedat = CURRENT_TIMESTAMP
           WHERE id = $accountAccessRequestId
             AND status = $guardStatus""".update.run
   )
@@ -71,8 +71,8 @@ object DoobieBusinessStatusQueries {
           SET status = $newStatus,
               checkeruserid = $checkerUserId,
               checkercomment = $checkerComment,
-              actionedat = NOW(),
-              updatedat = NOW()
+              actionedat = CURRENT_TIMESTAMP,
+              updatedat = CURRENT_TIMESTAMP
           WHERE id = $dynamicChangeRequestId
             AND status = $guardStatus""".update.run
   )
@@ -82,7 +82,7 @@ object DoobieBusinessStatusQueries {
     DoobieUtil.runUpdate(
       sql"""UPDATE mappedaccountapplication
             SET mstatus = $newStatus,
-                updatedat = NOW()
+                updatedat = CURRENT_TIMESTAMP
             WHERE id = $accountApplicationId
               AND mstatus = $guardStatus""".update.run
     )
@@ -96,7 +96,7 @@ object DoobieBusinessStatusQueries {
       sql"""UPDATE ExpectedChallengeAnswer
             SET successful_c = ${true},
                 scastatus = $finalisedScaStatus,
-                updatedat = NOW()
+                updatedat = CURRENT_TIMESTAMP
             WHERE challengeid = $challengeId
               AND successful_c = ${false}""".update.run
     )

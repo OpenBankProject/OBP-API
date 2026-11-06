@@ -147,22 +147,21 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
     }
 
     // Record both: userId = the authenticated user, onBehalfOfUserId = who the payment is for.
-    // One attribution call (UserReference.TransactionRequest) gives both, and it is the only thing
-    // that consults the consent chain: CallContext.onBehalfOfUser is a plain field fallback
-    // (consentCreator or consenter or user), so for a consent user whose context carries only
-    // `user` it answers the agent itself. Users.attributionOf resolves that agent to the human via
-    // ResourceUser.createdByConsentId -> the consent's user, and logs the redirect. The request
-    // layer's consentCreator / consenter still take precedence when a middleware populated them,
-    // as in CallContext.onBehalfOfUserId.
-    val transactionRequestAttribution: Option[code.users.Attribution] = for {
-      cc   <- callContext
-      user <- cc.user.toOption
-      a    <- code.users.Users.users.vend
-                .attributionOf(user.userId, code.users.UserReference.TransactionRequest).toOption
-    } yield cc.consentCreator.or(cc.consenter).map(_.userId).filter(_.nonEmpty) match {
-      case Full(delegated) => a.copy(onBehalfOfUserId = delegated)
-      case _               => a
-    }
+    // The attribution call (UserReference.TransactionRequest_UserId) answers the second; the request
+    // layer's consentCreator / consenter take precedence over its DB chain, as in
+    // CallContext.onBehalfOfUserId. The call is made even when they already name the
+    // on-behalf-of user, because it is the one place a delegated write is logged.
+    //
+    // userId is read straight from the call context and never from the attribution: when the
+    // resolver refuses (a consent naming a consent user -- a broken chain it will not resolve),
+    // this audit row must still say who made the payment.
+    val authenticatedUserId: Option[String] =
+      callContext.flatMap(_.user.toOption).map(_.userId).filter(_.nonEmpty)
+    val transactionRequestAttribution: Option[code.users.Attribution] = authenticatedUserId.flatMap(userId =>
+      code.users.Users.users.vend.attributionOf(userId, code.users.UserReference.TransactionRequest_UserId).toOption)
+    val onBehalfOfUserIdOption: Option[String] =
+      callContext.flatMap(cc => cc.consentCreator.or(cc.consenter).toOption).map(_.userId).filter(_.nonEmpty)
+        .orElse(transactionRequestAttribution.map(_.onBehalfOfUserId))
 
     // Note: We don't save transaction_ids, status and challenge here.
     val mappedTransactionRequest = MappedTransactionRequest.insert(MappedTransactionRequest.empty.copy(
@@ -214,8 +213,8 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
       consentReferenceId = consentReferenceIdOption.getOrElse(null),
       apiVersion = apiVersion.getOrElse(null),
       apiStandard = apiStandard.getOrElse(null),
-      userId = transactionRequestAttribution.map(_.userId).getOrElse(null),
-      onBehalfOfUserId = transactionRequestAttribution.map(_.onBehalfOfUserId).getOrElse(null),
+      userId = authenticatedUserId.getOrElse(null),
+      onBehalfOfUserId = onBehalfOfUserIdOption.getOrElse(null),
       consumerId = callContext.flatMap(_.consumer.map(_.consumerId)).getOrElse(null),
 
       // Explicit originator fields (FATF Rec 16, OPEN_CORRIDOR_PROMISE type only — null otherwise).
@@ -249,6 +248,13 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
     MappedTransactionRequest.findByTransactionRequestId(transactionRequestId.value) match {
       case Full(_) => Full(MappedTransactionRequest.setStatus(transactionRequestId.value, status))
       case _ => Failure(s"$SaveTransactionRequestStatusException Couldn't find transaction request ${transactionRequestId} to set status")
+    }
+  }
+
+  override def saveTransactionRequestCounterpartyIdImpl(transactionRequestId: TransactionRequestId, counterpartyId: CounterpartyId): Box[Boolean] = {
+    MappedTransactionRequest.findByTransactionRequestId(transactionRequestId.value) match {
+      case Full(_) => Full(MappedTransactionRequest.setCounterpartyId(transactionRequestId.value, counterpartyId.value))
+      case _ => Failure(s"Couldn't find transaction request ${transactionRequestId} to set its counterparty id")
     }
   }
 
@@ -731,16 +737,23 @@ object MappedTransactionRequest {
   def setStatus(transactionRequestId: String, status: String): Boolean =
     update(transactionRequestId, fr"mstatus = ${opt(status)}")
 
+  def setCounterpartyId(transactionRequestId: String, counterpartyId: String): Boolean =
+    update(transactionRequestId, fr"mcounterpartyid = ${opt(counterpartyId)}")
+
   def setDescription(transactionRequestId: String, description: String): Boolean =
     update(transactionRequestId, fr"mbody_description = ${opt(description)}")
 
   def setConsumerId(transactionRequestId: String, consumerId: String): Boolean =
     update(transactionRequestId, fr"mconsumerid = ${opt(consumerId)}")
 
-  def deleteByTransactionIds(transactionIds: String): Boolean =
+  // Nothing left to delete is still success: the account cascade removes an account's requests before
+  // it removes its transactions, so by then there is none to find.
+  def deleteByTransactionIds(transactionIds: String): Boolean = {
     DoobieUtil.runUpdate(
       sql"DELETE FROM mappedtransactionrequest WHERE mtransactionids = ${opt(transactionIds)}"
-        .update.run) > 0
+        .update.run)
+    true
+  }
 
   def deleteAll(): Boolean = {
     DoobieUtil.runUpdate(sql"DELETE FROM mappedtransactionrequest".update.run)

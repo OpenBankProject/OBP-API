@@ -38,7 +38,7 @@ import code.api.berlin.group.v1_3.model._
 import code.api.berlin.group.v1_3.{BgSpecValidation, JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass}
 import code.api.RequestHeader
 import code.api.util.APIUtil
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, connectorEmptyResponse, createQueriesByHttpParams, fullBoxOrException, getHttpRequestUrlParam, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Aisp, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, UserXORApplication, connectorEmptyResponse, createQueriesByHttpParams, fullBoxOrException, getHttpRequestUrlParam, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Aisp, unboxFull, unboxFullOrFail}
 import code.api.util.CallContext
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -97,7 +97,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── POST /consents ──────────────────────────────────────────────────────
-  lazy val createConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createConsent: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / "consents" =>
       EndpointHelpers.executeFutureCreated(req) {
         val cc = req.callContext
@@ -110,6 +110,7 @@ object Http4sBGv13AIS extends MdcLoggable {
         val createdByUser: Option[User] = cc.user.toOption
           .filterNot(u => cc.consumer.map(_.key).contains(u.idGivenByProvider))
         for {
+          _ <- code.api.util.Consent.checkConsentsAllowed(callContext)
           _ <- passesPsd2Aisp(callContext)
           failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJson "
           consentJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
@@ -181,7 +182,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── DELETE /consents/CONSENTID ──────────────────────────────────────────
-  lazy val deleteConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val deleteConsent: Http4sRoute = Http4sRoute {
     case req @ DELETE -> `bgV13Prefix` / "consents" / consentId =>
       EndpointHelpers.executeDelete(req) { cc =>
         val callContext = Some(cc)
@@ -199,7 +200,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /accounts ───────────────────────────────────────────────────────
-  lazy val getAccountList: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountList: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "accounts" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -238,7 +239,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /accounts/ACCOUNT_ID/balances ───────────────────────────────────
-  lazy val getBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getBalances: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "accounts" / accountId / "balances" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -258,14 +259,16 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /card-accounts ──────────────────────────────────────────────────
-  lazy val getCardAccounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getCardAccounts: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "card-accounts" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
         val u = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
         for {
           _ <- passesPsd2Aisp(callContext)
-          availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+          // only accounts the user reaches through the ReadAccountsBerlinGroup view (403 if none), as getAccountList
+          // and readCardAccount do, else any private view (owner, accountant, ...) would list a card account
+          (availablePrivateAccounts, callContext) <- NewStyle.function.getAccountListOfBerlinGroup(u, callContext)
           (_, callContext) <- NewStyle.function.getPhysicalCardsForUser(u, callContext)
           (accounts, callContext) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, callContext)
           (canReadBalancesAccounts, callContext) <- NewStyle.function.getAccountCanReadBalancesOfBerlinGroup(u, callContext)
@@ -288,7 +291,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /card-accounts/ACCOUNT_ID/balances ──────────────────────────────
-  lazy val getCardAccountBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getCardAccountBalances: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "card-accounts" / accountId / "balances" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -308,7 +311,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /card-accounts/ACCOUNT_ID/transactions ──────────────────────────
-  lazy val getCardAccountTransactionList: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getCardAccountTransactionList: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "card-accounts" / accountId / "transactions" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -333,7 +336,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /consents/CONSENTID/authorisations ──────────────────────────────
-  lazy val getConsentAuthorisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getConsentAuthorisation: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "consents" / consentId / "authorisations" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -356,7 +359,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /consents/CONSENTID ─────────────────────────────────────────────
-  lazy val getConsentInformation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getConsentInformation: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "consents" / consentId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -373,7 +376,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /consents/CONSENTID/authorisations/AUTHORISATIONID ─────────────
-  lazy val getConsentScaStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getConsentScaStatus: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "consents" / consentId / "authorisations" / authorisationId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -396,7 +399,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /consents/CONSENTID/status ──────────────────────────────────────
-  lazy val getConsentStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getConsentStatus: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "consents" / consentId / "status" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -416,12 +419,15 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /accounts/ACCOUNT_ID/transactions/TRANSACTIONID ─────────────────
-  lazy val getTransactionDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getTransactionDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "accounts" / accountId / "transactions" / transactionId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
         val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
         for {
+          // The calling TPP must hold a PSD2 certificate with the PSP_AI role, as for the transaction
+          // list of the same account; else a consumer without it could still read single transactions.
+          _ <- passesPsd2Aisp(callContext)
           (account: BankAccount, callContext) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountId), callContext)
           viewId = ViewId(SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID)
           bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
@@ -436,7 +442,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /accounts/ACCOUNT_ID/transactions ───────────────────────────────
-  lazy val getTransactionList: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getTransactionList: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "accounts" / accountId / "transactions" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -468,7 +474,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /accounts/ACCOUNT_ID ────────────────────────────────────────────
-  lazy val getAccountDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getAccountDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "accounts" / accountId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -501,7 +507,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── GET /card-accounts/ACCOUNT_ID ───────────────────────────────────────
-  lazy val readCardAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val readCardAccount: Http4sRoute = Http4sRoute {
     case req @ GET -> `bgV13Prefix` / "card-accounts" / accountId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -552,7 +558,7 @@ object Http4sBGv13AIS extends MdcLoggable {
     }
 
   // ── POST /consents/CONSENTID/authorisations (3 body-guard variants) ─────
-  lazy val startConsentAuthorisationAll: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val startConsentAuthorisationAll: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / "consents" / consentId / "authorisations" =>
       EndpointHelpers.executeFutureCreated(req) {
         val cc = req.callContext
@@ -638,7 +644,7 @@ object Http4sBGv13AIS extends MdcLoggable {
   }
 
   // ── PUT /consents/CONSENTID/authorisations/AUTHORISATIONID (4 variants) ─
-  lazy val updateConsentsPsuDataAll: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val updateConsentsPsuDataAll: Http4sRoute = Http4sRoute {
     case req @ PUT -> `bgV13Prefix` / "consents" / consentId / "authorisations" / authorisationId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
@@ -842,7 +848,7 @@ recurringIndicator:
       ),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(createConsent)
     )
 
@@ -858,7 +864,7 @@ recurringIndicator:
       EmptyBody,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(deleteConsent)
     )
 
@@ -896,7 +902,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
                   }""")),
       List(AuthenticatedUserIsRequired, ConsentNotFound, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsentInformation)
     )
 
@@ -914,7 +920,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
                    }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsentStatus)
     )
 
@@ -975,7 +981,7 @@ using the extended forms as indicated above.
       // so the doc can now say what the call actually is, as its GET siblings already do. Left on
       // the UserOnly default it would 401 a client-credentials caller the day OAuth2 token parsing
       // stops auto-vivifying a user.
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -990,7 +996,7 @@ using the extended forms as indicated above.
       startConsentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -1005,7 +1011,7 @@ using the extended forms as indicated above.
       startConsentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -1052,7 +1058,7 @@ Maybe in a later version the access path will change.
       ),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -1072,7 +1078,7 @@ Maybe in a later version the access path will change.
          |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -1100,7 +1106,7 @@ Maybe in a later version the access path will change.
                    |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -1120,7 +1126,7 @@ Maybe in a later version the access path will change.
                    |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
   }
@@ -1245,7 +1251,8 @@ respectively the OAuth2 access token.
     }
   ]
 }""")),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      // 403 NoViewReadAccountsBerlinGroup when the user has no account through the ReadAccountsBerlinGroup view
+      List(AuthenticatedUserIsRequired, NoViewReadAccountsBerlinGroup, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagMockedData :: Nil,
       http4sPartialFunction = Some(getCardAccounts)
     )
@@ -1341,8 +1348,8 @@ This function returns an array of hyperlinks to all generated authorisation sub-
       // Embedded. The handler already reflects that, taking no user; only the doc disagreed, and a
       // doc left on the UserOnly default sends the middleware down anonymousAccess, which 401s a
       // request carrying no user. Brings these into line with the consent endpoints in this same
-      // file, which have been UserOrApplication all along.
-      authMode = UserOrApplication,
+      // file, which have been UserXORApplication all along.
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsentAuthorisation)
     )
 
@@ -1362,7 +1369,7 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       // As above -- reading the SCA status is the TPP polling its own authorisation sub-resource.
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsentScaStatus)
     )
 
@@ -1396,7 +1403,8 @@ of the "Read Transaction List" call within the _links subfield.
     }
   }
 }""")),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      // The X509 / regulated-entity errors come from passesPsd2Aisp, when PSD2 certificates are required
+      List(AuthenticatedUserIsRequired, X509CannotGetCertificate, RegulatedEntityNotFoundByCertificate, X509ActionIsNotAllowed, X509GeneralError, UnknownError),
       ApiTag("Account Information Service (AIS)") :: Nil,
       http4sPartialFunction = Some(getTransactionDetails)
     )
@@ -1499,23 +1507,25 @@ respectively the OAuth2 access token.
   initConsentResourceDocs()
   initAccountResourceDocs()
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    createConsent(req)
-      .orElse(deleteConsent(req))
-      .orElse(getAccountList(req))
-      .orElse(getBalances(req))
-      .orElse(getCardAccounts(req))
-      .orElse(getCardAccountBalances(req))
-      .orElse(getCardAccountTransactionList(req))
-      .orElse(getConsentAuthorisation(req))
-      .orElse(getConsentInformation(req))
-      .orElse(getConsentScaStatus(req))
-      .orElse(getConsentStatus(req))
-      .orElse(getTransactionDetails(req))
-      .orElse(getTransactionList(req))
-      .orElse(getAccountDetails(req))
-      .orElse(readCardAccount(req))
-      .orElse(startConsentAuthorisationAll(req))
-      .orElse(updateConsentsPsuDataAll(req))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    createConsent,
+    deleteConsent,
+    getAccountList,
+    getBalances,
+    getCardAccounts,
+    getCardAccountBalances,
+    getCardAccountTransactionList,
+    getConsentAuthorisation,
+    getConsentInformation,
+    getConsentScaStatus,
+    getConsentStatus,
+    getTransactionDetails,
+    getTransactionList,
+    getAccountDetails,
+    readCardAccount,
+    startConsentAuthorisationAll,
+    updateConsentsPsuDataAll
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

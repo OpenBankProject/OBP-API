@@ -76,7 +76,7 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
         programmingLang = entity.programmingLang,
         // Provenance from the authenticated user and a hash computed here, never from the body.
         createdByUserId = createdByUserId,
-        methodBodyHash = Some(APIUtil.sha256Hex(entity.decodedMethodBody)))
+        methodBodyHash = Some(APIUtil.dynamicCodeHash(entity.programmingLang, entity.decodedMethodBody)))
     }.map(DynamicMessageDoc.getJsonDynamicMessageDoc)
 
   override def update(bankId: Option[String], entity: JsonDynamicMessageDoc,
@@ -103,7 +103,7 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
             methodBody = entity.methodBody,
             programmingLang = entity.programmingLang,
             updatedByUserId = updatedByUserId,
-            methodBodyHash = Some(APIUtil.sha256Hex(entity.decodedMethodBody)))
+            methodBodyHash = Some(APIUtil.dynamicCodeHash(entity.programmingLang, entity.decodedMethodBody)))
         }.flatMap(box => box).map(DynamicMessageDoc.getJsonDynamicMessageDoc)
       case _ => Empty
     }

@@ -47,8 +47,7 @@ import scala.math.BigDecimal
  * parties are legitimate, differing by amount, schedule or start date.
  *
  * `amountValue` is stored as a BIGINT in the currency's smallest unit and converted on the way in
- * and out. `dateCancelled` is written by no code path and so is always null, as is `whenDetail`
- * beyond the empty default createStandingOrder leaves behind.
+ * and out. `dateCancelled` is written by no code path and so is always null.
  */
 case class StandingOrder(
   standingOrderId: String,
@@ -97,7 +96,7 @@ object StandingOrder {
 
   def insert(bankId: String, accountId: String, customerId: String, userId: String,
              counterpartyId: String, amountValue: BigDecimal, amountCurrency: String,
-             whenFrequency: String, dateSigned: Date, dateStarts: Date,
+             whenFrequency: String, whenDetail: String, dateSigned: Date, dateStarts: Date,
              dateExpires: Option[Date]): StandingOrder = {
     val standingOrderId = APIUtil.generateUUID()
     val now = new java.sql.Timestamp(System.currentTimeMillis())
@@ -105,20 +104,18 @@ object StandingOrder {
     val starts = new java.sql.Timestamp(dateStarts.getTime)
     val expires = dateExpires.map(d => new java.sql.Timestamp(d.getTime))
     val smallestUnits = convertToSmallestCurrencyUnits(amountValue, amountCurrency)
-    // whenDetail is never supplied on create; Mapper stored MappedString's "" default, so the
-    // column starts empty rather than NULL.
     DoobieUtil.runUpdate(
       sql"""INSERT INTO standingorder
             (standingorderid, bankid, accountid, customerid, userid, couterpartyid, amountvalue,
              amountcurrency, whenfrequency, whendetail, datesigned, datestarts, dateexpires, active,
              createdat, updatedat)
             VALUES ($standingOrderId, $bankId, $accountId, $customerId, $userId, $counterpartyId,
-             $smallestUnits, $amountCurrency, $whenFrequency, '', $signed, $starts, $expires, true,
+             $smallestUnits, $amountCurrency, $whenFrequency, ${Option(whenDetail)}, $signed, $starts, $expires, true,
              $now, $now)"""
         .update.run)
     StandingOrder(standingOrderId, bankId, accountId, customerId, userId, counterpartyId,
       Helper.smallestCurrencyUnitToBigDecimal(smallestUnits, amountCurrency), amountCurrency,
-      whenFrequency, "", dateSigned, null, dateStarts, dateExpires.orNull, active = true)
+      whenFrequency, whenDetail, dateSigned, null, dateStarts, dateExpires.orNull, active = true)
   }
 
   // Newest first — updatedat orders every listing below, so any future write must stamp it.
@@ -143,10 +140,9 @@ object MappedStandingOrderProvider extends StandingOrderProvider {
                           couterpartyId: String, amountValue: BigDecimal, amountCurrency: String,
                           whenFrequency: String, whenDetail: String, dateSigned: Date,
                           dateStarts: Date, dateExpires: Option[Date]): Box[StandingOrder] = Box.tryo {
-    // whenDetail is accepted and then dropped — Mapper never wrote it either. Preserved verbatim
-    // so a caller relying on the current (absent) behaviour is not silently changed.
+    // store the schedule detail the caller posted (e.g. day of the month), so the response and later reads return it
     StandingOrder.insert(bankId, accountId, customerId, userId, couterpartyId, amountValue,
-      amountCurrency, whenFrequency, dateSigned, dateStarts, dateExpires)
+      amountCurrency, whenFrequency, whenDetail, dateSigned, dateStarts, dateExpires)
   }
 
   def getStandingOrdersByBankAccount(bankId: String, accountId: String): List[StandingOrder] =

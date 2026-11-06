@@ -31,7 +31,7 @@ import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
-import code.api.util.ApiRole.{canUpdateAtm, canUpdateAtmAtAnyBank}
+import code.api.util.ApiRole.{canCreateAtm, canUpdateAtm, canUpdateAtmAtAnyBank}
 import code.api.util.ErrorMessages.{$AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
@@ -78,9 +78,8 @@ class AtmsTest extends V400ServerSetup {
       val requestCreateAtmNoRole = (v4_0_0_Request / "banks" /bankId.value / "atms").POST <@ (user1)
       val responseCreateAtmNoRole = makePostRequest(requestCreateAtmNoRole, write(postAtmJson))
       responseCreateAtmNoRole.code should be (403)
-      responseCreateAtmNoRole.body.extract[ErrorMessage].message.contains(UserHasMissingRoles)
-      responseCreateAtmNoRole.body.extract[ErrorMessage].message.contains(canUpdateAtm)
-      responseCreateAtmNoRole.body.extract[ErrorMessage].message.contains(canUpdateAtmAtAnyBank)
+      responseCreateAtmNoRole.body.extract[ErrorMessage].message should include (UserHasMissingRoles)
+      responseCreateAtmNoRole.body.extract[ErrorMessage].message should include (canCreateAtm.toString)
     }
 
     Scenario("Put - error cases", ApiEndpoint1,ApiEndpoint8, VersionOfApi) {
@@ -94,9 +93,39 @@ class AtmsTest extends V400ServerSetup {
       val requestUpdateAtmNoRole = (v4_0_0_Request / "banks" /bankId.value / "atms"/ "xxx").PUT <@ (user1)
       val responseUpdateAtmNoRole = makePutRequest(requestUpdateAtmNoRole, write(postAtmJson))
       responseUpdateAtmNoRole.code should be (403)
-      responseUpdateAtmNoRole.body.extract[ErrorMessage].message.contains(UserHasMissingRoles)
-      responseUpdateAtmNoRole.body.extract[ErrorMessage].message.contains(canUpdateAtm)
-      responseUpdateAtmNoRole.body.extract[ErrorMessage].message.contains(canUpdateAtmAtAnyBank)
+      responseUpdateAtmNoRole.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + canUpdateAtm)
+    }
+
+    // the six ATM field updates require canUpdateAtm or canUpdateAtmAtAnyBank, else any logged-in user changes any bank's ATM
+    scenario("Put ATM fields - missing roles", ApiEndpoint1, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
+      val bodies = List(
+        "supported-currencies" -> write(SwaggerDefinitionsJSON.supportedCurrenciesJson),
+        "supported-languages" -> write(SwaggerDefinitionsJSON.supportedLanguagesJson),
+        "accessibility-features" -> write(SwaggerDefinitionsJSON.accessibilityFeaturesJson),
+        "services" -> write(SwaggerDefinitionsJSON.atmServicesJson),
+        "notes" -> write(SwaggerDefinitionsJSON.atmNotesJson),
+        "location-categories" -> write(SwaggerDefinitionsJSON.atmLocationCategoriesJsonV400)
+      )
+      bodies.foreach { case (field, body) =>
+        When(s" Put $field - user1 has no ATM role")
+        val request = (v4_0_0_Request / "banks" / bankId.value / "atms" / "xxx" / field).PUT <@ (user1)
+        val response = makePutRequest(request, body)
+        response.code should be (403)
+        response.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + List(canUpdateAtm, canUpdateAtmAtAnyBank).mkString(" or "))
+      }
+    }
+
+    // with apiOptions.getAtmsIsPublic=false the ATM list refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
+    scenario("Get Atms - no authentication", ApiEndpoint10, VersionOfApi) {
+      When(" Get Atms - no authentication")
+      val requestGetAtmsNoAuth = (v4_0_0_Request / "banks" / bankId.value / "atms").GET
+      val responseGetAtmsNoAuth = makeGetRequest(requestGetAtmsNoAuth)
+      if (code.api.util.APIUtil.getAtmsIsPublic) {
+        responseGetAtmsNoAuth.code should be (200)
+      } else {
+        responseGetAtmsNoAuth.code should be (401)
+        responseGetAtmsNoAuth.body.extract[ErrorMessage].message should equal ($AuthenticatedUserIsRequired)
+      }
     }
   }
   
@@ -115,7 +144,7 @@ class AtmsTest extends V400ServerSetup {
       val atmId = responseBodyCreateAtm.id.getOrElse("")
 
       Then("We test the Update Atm")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateAtmAtAnyBank.toString)
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
       val update = (v4_0_0_Request / "banks" /bankId.value / "atms" / atmId ).PUT <@ (user1)
       val postAtmJsonUpdate = SwaggerDefinitionsJSON.atmJsonV400.copy(bank_id= testBankId1.value, name="TestATM")
       
@@ -160,6 +189,8 @@ class AtmsTest extends V400ServerSetup {
       responseCreateAtm.code should be (201)
       val atmId = responseCreateAtm.body.extract[AtmJsonV400].id.getOrElse("")
       
+      // updating an ATM field now requires the update role
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
       val update = (v4_0_0_Request / "banks" /bankId.value / "atms" / atmId / "supported-currencies").PUT <@ (user1)
       
       val responseUpdate  = makePutRequest(update, write(postSupportedCurrenciesJson))
@@ -181,6 +212,8 @@ class AtmsTest extends V400ServerSetup {
       responseCreateAtm.code should be (201)
       val atmId = responseCreateAtm.body.extract[AtmJsonV400].id.getOrElse("")
 
+      // updating an ATM field now requires the update role
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
       val update = (v4_0_0_Request / "banks" /bankId.value / "atms" / atmId / "accessibility-features").PUT <@ (user1)
 
       val responseUpdate  = makePutRequest(update, write(postAccessibilityFeaturesJson))
@@ -202,6 +235,8 @@ class AtmsTest extends V400ServerSetup {
       responseCreateAtm.code should be (201)
       val atmId = responseCreateAtm.body.extract[AtmJsonV400].id.getOrElse("")
 
+      // updating an ATM field now requires the update role
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
       val update = (v4_0_0_Request / "banks" /bankId.value / "atms" / atmId / "supported-languages").PUT <@ (user1)
 
       val responseUpdate  = makePutRequest(update, write(postSupportedLanguagesJson))
@@ -223,6 +258,8 @@ class AtmsTest extends V400ServerSetup {
       responseCreateAtm.code should be (201)
       val atmId = responseCreateAtm.body.extract[AtmJsonV400].id.getOrElse("")
 
+      // updating an ATM field now requires the update role
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
       val update = (v4_0_0_Request / "banks" /bankId.value / "atms" / atmId / "services").PUT <@ (user1)
 
       val responseUpdate  = makePutRequest(update, write(postAtmServicesJson))
@@ -244,6 +281,8 @@ class AtmsTest extends V400ServerSetup {
       responseCreateAtm.code should be (201)
       val atmId = responseCreateAtm.body.extract[AtmJsonV400].id.getOrElse("")
 
+      // updating an ATM field now requires the update role
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
       val update = (v4_0_0_Request / "banks" /bankId.value / "atms" / atmId / "notes").PUT <@ (user1)
 
       val responseUpdate  = makePutRequest(update, write(postAtmNotesJson))
@@ -265,6 +304,8 @@ class AtmsTest extends V400ServerSetup {
       responseCreateAtm.code should be (201)
       val atmId = responseCreateAtm.body.extract[AtmJsonV400].id.getOrElse("")
 
+      // updating an ATM field now requires the update role
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
       val update = (v4_0_0_Request / "banks" /bankId.value / "atms" / atmId / "location-categories").PUT <@ (user1)
 
       val responseUpdate  = makePutRequest(update, write(postAtmLocationCategoriesJson))

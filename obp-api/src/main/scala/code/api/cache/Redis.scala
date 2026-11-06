@@ -97,6 +97,46 @@ object Redis extends MdcLoggable {
     jedis
   }
 
+  private val SubscriberMinBackoffMs = 1000L  // first wait after a lost subscriber connection
+  private val SubscriberMaxBackoffMs = 30000L // longest wait between reconnect attempts while Redis is down
+
+  /**
+   * Run an event bus's blocking subscribe on a dedicated connection for as long as `running` is true.
+   *
+   * When the connection fails (e.g. Redis restarts or drops the socket) the subscribe call throws;
+   * this closes that connection, waits (1s, doubling up to 30s) and subscribes again on a new one,
+   * so the bus's gRPC streams get messages again once Redis is back, without restarting OBP-API.
+   * `onConnection` hands each new connection to the bus, so its stop() can close the current one.
+   */
+  def runSubscriber(busName: String, running: => Boolean, onConnection: Jedis => Unit)(subscribe: Jedis => Unit): Unit = {
+    var backoffMs = SubscriberMinBackoffMs // wait before the next attempt; doubles per failure, capped
+    var failed = false // set after a failure, so the next connection is logged as a reconnect
+    while (running) { // keep subscribing until stop() clears running
+      var jedis: Jedis = null
+      val startedAt = System.currentTimeMillis() // how long this subscription lasted decides the next backoff
+      try {
+        jedis = newSubscriberConnection()
+        onConnection(jedis)
+        if (failed) logger.info(s"$busName says: Redis subscriber reconnected") // shows streaming resumed after an outage
+        subscribe(jedis) // blocks until unsubscribed by stop() or the connection fails
+      } catch {
+        case e: Throwable if running =>
+          // a subscription that lasted a while means Redis was up: start again from the shortest wait
+          if (System.currentTimeMillis() - startedAt >= SubscriberMaxBackoffMs) backoffMs = SubscriberMinBackoffMs
+          // the connection is gone but the bus is still meant to run: log and retry below
+          logger.error(s"$busName says: Redis subscriber connection lost, reconnecting in ${backoffMs}ms: ${e.getMessage}")
+          failed = true
+        case _: Throwable => // shutting down, ignore
+      } finally {
+        try { if (jedis != null) jedis.close() } catch { case _: Throwable => } // release the dead socket before opening a new one
+      }
+      if (running) { // wait before retrying, so a Redis outage is not hammered with reconnects
+        try Thread.sleep(backoffMs) catch { case _: InterruptedException => return } // interrupted: the JVM is shutting down
+        backoffMs = math.min(backoffMs * 2, SubscriberMaxBackoffMs) // wait longer each time Redis is still down
+      }
+    }
+  }
+
   // Redis startup health check
   private def performStartupHealthCheck(): Unit = {
     try {
@@ -203,6 +243,8 @@ object Redis extends MdcLoggable {
     if(ttlSeconds.equals(Some(0))){ // set ttl = 0, we will totally turn off the cache
       None
     }else{
+      val startNanos = System.nanoTime()
+      var succeeded = false
       try {
         jedisConnection = Some(jedisPool.getResource())
 
@@ -231,13 +273,18 @@ object Redis extends MdcLoggable {
           throw new RuntimeException("Please check the Redis.use parameters, if the method == set, the value can not be None !!!")
         }
         //change the null to Option
-        APIUtil.stringOrNone(redisResult)
+        val result = APIUtil.stringOrNone(redisResult)
+        succeeded = true
+        result
       } catch {
         case e: Throwable =>
           throw new RuntimeException(e)
       } finally {
         if (jedisConnection.isDefined && jedisConnection.get != null)
           jedisConnection.map(_.close())
+        code.telemetry.Telemetry.timer("obp.api.redis.commands",
+          "command" -> method.toString, "result" -> (if (succeeded) "success" else "error"))
+          .record(System.nanoTime() - startNanos, java.util.concurrent.TimeUnit.NANOSECONDS)
       }
     }
   }
@@ -248,6 +295,104 @@ object Redis extends MdcLoggable {
     try f(jedis)
     catch { case e: Throwable => throw new RuntimeException(e) }
     finally jedis.close()
+  }
+
+  /** Outcome of [[quotaCheckAndCount]]. */
+  sealed trait QuotaDecision
+  /** A period refused the call: `periodIndex` into the lists passed in (0-based), the counter's
+   *  current count and its remaining TTL in seconds (negative when the key has no expiry or does
+   *  not exist, as Redis TTL reports it). Nothing was counted. */
+  final case class QuotaRefused(periodIndex: Int, count: Long, ttlSeconds: Long) extends QuotaDecision
+  /** Every period passed and the call was counted in all of them: (count after this call,
+   *  remaining TTL in seconds) per key, in the order passed in. */
+  final case class QuotaCounted(countsAndTtls: List[(Long, Long)]) extends QuotaDecision
+
+  /**
+   * The consumer quota in one script: check every period's limit against its counter and, only
+   * when all pass, count the call in every period.
+   *
+   *   KEYS[i]        counter key of period i, shortest period first (precedence of the 429)
+   *   ARGV[i]        limit of period i: -1 unlimited (not checked, still counted), 0 blocked
+   *                  (refused without reading the counter's value), > 0 max calls in the period
+   *   ARGV[n + i]    length of period i in seconds, the TTL a new counter gets
+   *
+   * Returns {0, i, count, pttl} when period i refuses: count is what its counter holds now (0 when
+   * the key is absent or has no expiry) and pttl is the key's PTTL in milliseconds as Redis reports
+   * it (-1 no expiry, -2 no key). Returns {1, c1, pttl1, ..., cn, pttln} after counting: the
+   * post-increment count and PTTL of each key. A key found without an expiry is treated as expired
+   * on the check and recreated on the count, as incrementWithTtlScript does. Everything runs
+   * atomically server-side, so the check and the count of one call cannot interleave with another
+   * call's: at most `limit` calls pass.
+   *
+   * Liveness is decided on PTTL, not TTL. TTL rounds to the nearest second, so a 1-second counter
+   * reads TTL 0 for the last ~500 ms of its window while it still holds its count; a check on TTL
+   * treated it as expired there and let every call through, and the per-second limit held for only
+   * half of each second.
+   */
+  private val quotaCheckAndCountScript =
+    """local n = #KEYS
+      |for i = 1, n do
+      |  local limit = tonumber(ARGV[i])
+      |  if limit >= 0 then
+      |    local pttl = redis.call('PTTL', KEYS[i])
+      |    local count = 0
+      |    if pttl > 0 then count = tonumber(redis.call('GET', KEYS[i]) or '0') end
+      |    if limit == 0 or count + 1 > limit then
+      |      return {0, i, count, pttl}
+      |    end
+      |  end
+      |end
+      |local out = {1}
+      |for i = 1, n do
+      |  local c = redis.call('INCR', KEYS[i])
+      |  if c == 1 then
+      |    redis.call('EXPIRE', KEYS[i], ARGV[n + i])
+      |  elseif redis.call('PTTL', KEYS[i]) < 0 then
+      |    redis.call('SET', KEYS[i], 1, 'EX', ARGV[n + i])
+      |    c = 1
+      |  end
+      |  out[#out + 1] = c
+      |  out[#out + 1] = redis.call('PTTL', KEYS[i])
+      |end
+      |return out""".stripMargin
+
+  /**
+   * Check and count one call against several period counters in a single atomic round trip
+   * (see quotaCheckAndCountScript). `keys`, `limits` and `periodSeconds` are parallel lists,
+   * shortest period first. Throws when Redis is unreachable; the caller decides whether to fail
+   * open.
+   */
+  /** A PTTL in milliseconds as whole seconds, rounded up, so a live key never reads 0 (the
+   *  X-Rate-Limit-Reset header and the TTL the callers compare with 0). -1 and -2 stay as they are. */
+  private[cache] def pttlToSeconds(pttl: Long): Long = if (pttl > 0) (pttl + 999) / 1000 else pttl
+
+  def quotaCheckAndCount(keys: List[String], limits: List[Long], periodSeconds: List[Int]): QuotaDecision = {
+    require(keys.nonEmpty && keys.size == limits.size && keys.size == periodSeconds.size,
+      s"quotaCheckAndCount needs one limit and one period per key: ${keys.size} keys, ${limits.size} limits, ${periodSeconds.size} periods")
+    import scala.jdk.CollectionConverters._
+    val startNanos = System.nanoTime()
+    var succeeded = false
+    try {
+      val reply: List[Long] = withJedis { jedis =>
+        jedis.eval(
+          quotaCheckAndCountScript,
+          keys.asJava,
+          (limits.map(_.toString) ++ periodSeconds.map(_.toString)).asJava
+        ).asInstanceOf[java.util.List[java.lang.Long]].asScala.map(_.longValue()).toList
+      }
+      val decision = reply match {
+        case 0L :: index :: count :: pttl :: Nil => QuotaRefused(index.toInt - 1, count, pttlToSeconds(pttl))
+        case 1L :: countsAndPttls if countsAndPttls.size == keys.size * 2 =>
+          QuotaCounted(countsAndPttls.grouped(2).collect { case List(count, pttl) => (count, pttlToSeconds(pttl)) }.toList)
+        case other => throw new RuntimeException(s"quotaCheckAndCount: unexpected reply $other for ${keys.size} keys")
+      }
+      succeeded = true
+      decision
+    } finally {
+      code.telemetry.Telemetry.timer("obp.api.redis.commands",
+        "command" -> "EVAL_QUOTA_CHECK_AND_COUNT", "result" -> (if (succeeded) "success" else "error"))
+        .record(System.nanoTime() - startNanos, java.util.concurrent.TimeUnit.NANOSECONDS)
+    }
   }
 
   /**
@@ -295,6 +440,36 @@ object Redis extends MdcLoggable {
       java.util.Collections.singletonList(ttlSeconds.toString)
     ).asInstanceOf[java.util.List[java.lang.Long]]
     (result.get(0).longValue(), result.get(1).longValue())
+  }
+
+  /**
+   * HSET field to value in KEYS[1] only when the field is absent or holds a smaller number, so
+   * writers that arrive out of order (several nodes, async writes) never move a value backwards.
+   * Also SET KEYS[2] to the same value if it does not exist yet: it records when the hash started
+   * filling, which is when its values became meaningful (the hash is empty after a Redis restart).
+   */
+  private val hashSetIfGreaterScript =
+    """local current = redis.call('HGET', KEYS[1], ARGV[1])
+      |if (not current) or tonumber(current) < tonumber(ARGV[2]) then
+      |  redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
+      |end
+      |redis.call('SET', KEYS[2], ARGV[2], 'NX')
+      |return 1""".stripMargin
+
+  /** See hashSetIfGreaterScript. One round trip, atomic server-side. */
+  def hashSetIfGreater(hashKey: String, sinceKey: String, field: String, value: Long): Unit = withJedis { jedis =>
+    jedis.eval(
+      hashSetIfGreaterScript,
+      java.util.Arrays.asList(hashKey, sinceKey),
+      java.util.Arrays.asList(field, value.toString)
+    )
+    ()
+  }
+
+  /** HGETALL; an absent key is an empty map. */
+  def hashGetAll(hashKey: String): Map[String, String] = withJedis { jedis =>
+    import scala.jdk.CollectionConverters._
+    jedis.hgetAll(hashKey).asScala.toMap
   }
 
   /**

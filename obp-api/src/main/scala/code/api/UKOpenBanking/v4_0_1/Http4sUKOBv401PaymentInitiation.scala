@@ -29,7 +29,7 @@ package code.api.UKOpenBanking.v4_0_1
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError}
@@ -553,7 +553,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createDomesticPaymentConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createDomesticPaymentConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "domestic-payment-consents" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createDomesticPaymentConsents)))
   }
@@ -840,7 +840,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getDomesticPaymentConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticPaymentConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "domestic-payment-consents" / consentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getDomesticPaymentConsentsConsentId)) }
   }
@@ -879,7 +879,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getDomesticPaymentConsentsConsentIdFundsConfirmation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticPaymentConsentsConsentIdFundsConfirmation: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "domestic-payment-consents" / consentId / "funds-confirmation" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getDomesticPaymentConsentsConsentIdFundsConfirmation)) }
   }
@@ -1356,7 +1356,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createDomesticPayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createDomesticPayments: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "domestic-payments" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createDomesticPayments)))
   }
@@ -1616,7 +1616,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getDomesticPaymentsDomesticPaymentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticPaymentsDomesticPaymentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "domestic-payments" / domesticPaymentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getDomesticPaymentsDomesticPaymentId)) }
   }
@@ -1663,7 +1663,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getDomesticPaymentsDomesticPaymentIdPaymentDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticPaymentsDomesticPaymentIdPaymentDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "domestic-payments" / domesticPaymentId / "payment-details" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getDomesticPaymentsDomesticPaymentIdPaymentDetails)) }
   }
@@ -2124,7 +2124,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createDomesticScheduledPaymentConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createDomesticScheduledPaymentConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "domestic-scheduled-payment-consents" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createDomesticScheduledPaymentConsents)))
   }
@@ -2385,7 +2385,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getDomesticScheduledPaymentConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticScheduledPaymentConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "domestic-scheduled-payment-consents" / consentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getDomesticScheduledPaymentConsentsConsentId)) }
   }
@@ -2808,7 +2808,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createDomesticScheduledPayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createDomesticScheduledPayments: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "domestic-scheduled-payments" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createDomesticScheduledPayments)))
   }
@@ -3041,7 +3041,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getDomesticScheduledPaymentsDomesticScheduledPaymentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticScheduledPaymentsDomesticScheduledPaymentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "domestic-scheduled-payments" / domesticScheduledPaymentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getDomesticScheduledPaymentsDomesticScheduledPaymentId)) }
   }
@@ -3088,7 +3088,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getDomesticScheduledPaymentsDomesticScheduledPaymentIdPaymentDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticScheduledPaymentsDomesticScheduledPaymentIdPaymentDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "domestic-scheduled-payments" / domesticScheduledPaymentId / "payment-details" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getDomesticScheduledPaymentsDomesticScheduledPaymentIdPaymentDetails)) }
   }
@@ -3541,7 +3541,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createDomesticStandingOrderConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createDomesticStandingOrderConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "domestic-standing-order-consents" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createDomesticStandingOrderConsents)))
   }
@@ -3797,7 +3797,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getDomesticStandingOrderConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticStandingOrderConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "domestic-standing-order-consents" / consentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getDomesticStandingOrderConsentsConsentId)) }
   }
@@ -4212,7 +4212,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createDomesticStandingOrders: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createDomesticStandingOrders: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "domestic-standing-orders" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createDomesticStandingOrders)))
   }
@@ -4440,7 +4440,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getDomesticStandingOrdersDomesticStandingOrderId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticStandingOrdersDomesticStandingOrderId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "domestic-standing-orders" / domesticStandingOrderId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getDomesticStandingOrdersDomesticStandingOrderId)) }
   }
@@ -4487,7 +4487,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getDomesticStandingOrdersDomesticStandingOrderIdPaymentDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getDomesticStandingOrdersDomesticStandingOrderIdPaymentDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "domestic-standing-orders" / domesticStandingOrderId / "payment-details" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getDomesticStandingOrdersDomesticStandingOrderIdPaymentDetails)) }
   }
@@ -4774,7 +4774,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createFilePaymentConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createFilePaymentConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "file-payment-consents" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createFilePaymentConsents)))
   }
@@ -4947,7 +4947,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getFilePaymentConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getFilePaymentConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "file-payment-consents" / consentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getFilePaymentConsentsConsentId)) }
   }
@@ -4966,7 +4966,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
   )
 
   private val EX_getFilePaymentConsentsConsentIdFile: String = """{}"""
-  lazy val getFilePaymentConsentsConsentIdFile: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getFilePaymentConsentsConsentIdFile: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "file-payment-consents" / consentId / "file" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getFilePaymentConsentsConsentIdFile)) }
   }
@@ -4985,7 +4985,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
   )
 
   private val EX_createFilePaymentConsentsConsentIdFile: String = """{}"""
-  lazy val createFilePaymentConsentsConsentIdFile: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createFilePaymentConsentsConsentIdFile: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "file-payment-consents" / consentId / "file" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createFilePaymentConsentsConsentIdFile)))
   }
@@ -5262,7 +5262,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createFilePayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createFilePayments: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "file-payments" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createFilePayments)))
   }
@@ -5433,7 +5433,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getFilePaymentsFilePaymentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getFilePaymentsFilePaymentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "file-payments" / filePaymentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getFilePaymentsFilePaymentId)) }
   }
@@ -5480,7 +5480,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getFilePaymentsFilePaymentIdPaymentDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getFilePaymentsFilePaymentIdPaymentDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "file-payments" / filePaymentId / "payment-details" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getFilePaymentsFilePaymentIdPaymentDetails)) }
   }
@@ -5499,7 +5499,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
   )
 
   private val EX_getFilePaymentsFilePaymentIdReportFile: String = """{}"""
-  lazy val getFilePaymentsFilePaymentIdReportFile: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getFilePaymentsFilePaymentIdReportFile: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "file-payments" / filePaymentId / "report-file" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getFilePaymentsFilePaymentIdReportFile)) }
   }
@@ -6049,7 +6049,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createInternationalPaymentConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createInternationalPaymentConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "international-payment-consents" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createInternationalPaymentConsents)))
   }
@@ -6358,7 +6358,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getInternationalPaymentConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalPaymentConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "international-payment-consents" / consentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getInternationalPaymentConsentsConsentId)) }
   }
@@ -6397,7 +6397,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getInternationalPaymentConsentsConsentIdFundsConfirmation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalPaymentConsentsConsentIdFundsConfirmation: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "international-payment-consents" / consentId / "funds-confirmation" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getInternationalPaymentConsentsConsentIdFundsConfirmation)) }
   }
@@ -6911,7 +6911,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createInternationalPayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createInternationalPayments: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "international-payments" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createInternationalPayments)))
   }
@@ -7193,7 +7193,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getInternationalPaymentsInternationalPaymentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalPaymentsInternationalPaymentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "international-payments" / internationalPaymentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getInternationalPaymentsInternationalPaymentId)) }
   }
@@ -7240,7 +7240,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getInternationalPaymentsInternationalPaymentIdPaymentDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalPaymentsInternationalPaymentIdPaymentDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "international-payments" / internationalPaymentId / "payment-details" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getInternationalPaymentsInternationalPaymentIdPaymentDetails)) }
   }
@@ -7794,7 +7794,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createInternationalScheduledPaymentConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createInternationalScheduledPaymentConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "international-scheduled-payment-consents" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createInternationalScheduledPaymentConsents)))
   }
@@ -8105,7 +8105,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getInternationalScheduledPaymentConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalScheduledPaymentConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "international-scheduled-payment-consents" / consentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getInternationalScheduledPaymentConsentsConsentId)) }
   }
@@ -8144,7 +8144,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getInternationalScheduledPaymentConsentsConsentIdFundsConfirmation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalScheduledPaymentConsentsConsentIdFundsConfirmation: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "international-scheduled-payment-consents" / consentId / "funds-confirmation" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getInternationalScheduledPaymentConsentsConsentIdFundsConfirmation)) }
   }
@@ -8660,7 +8660,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createInternationalScheduledPayments: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createInternationalScheduledPayments: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "international-scheduled-payments" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createInternationalScheduledPayments)))
   }
@@ -8943,7 +8943,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getInternationalScheduledPaymentsInternationalScheduledPaymentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalScheduledPaymentsInternationalScheduledPaymentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "international-scheduled-payments" / internationalScheduledPaymentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getInternationalScheduledPaymentsInternationalScheduledPaymentId)) }
   }
@@ -8990,7 +8990,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getInternationalScheduledPaymentsInternationalScheduledPaymentIdPaymentDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalScheduledPaymentsInternationalScheduledPaymentIdPaymentDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "international-scheduled-payments" / internationalScheduledPaymentId / "payment-details" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getInternationalScheduledPaymentsInternationalScheduledPaymentIdPaymentDetails)) }
   }
@@ -9543,7 +9543,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createInternationalStandingOrderConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createInternationalStandingOrderConsents: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "international-standing-order-consents" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createInternationalStandingOrderConsents)))
   }
@@ -9849,7 +9849,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getInternationalStandingOrderConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalStandingOrderConsentsConsentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "international-standing-order-consents" / consentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getInternationalStandingOrderConsentsConsentId)) }
   }
@@ -10364,7 +10364,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val createInternationalStandingOrders: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val createInternationalStandingOrders: Http4sRoute = Http4sRoute {
     case req @ POST -> `ukV401Prefix` / "pisp" / "international-standing-orders" =>
       EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createInternationalStandingOrders)))
   }
@@ -10642,7 +10642,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getInternationalStandingOrdersInternationalStandingOrderPaymentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalStandingOrdersInternationalStandingOrderPaymentId: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "international-standing-orders" / internationalStandingOrderPaymentId =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getInternationalStandingOrdersInternationalStandingOrderPaymentId)) }
   }
@@ -10689,7 +10689,7 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     "LastAvailableDateTime": "2020-01-01T00:00:00+00:00"
   }
 }"""
-  lazy val getInternationalStandingOrdersInternationalStandingOrderPaymentIdPaymentDetails: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  lazy val getInternationalStandingOrdersInternationalStandingOrderPaymentIdPaymentDetails: Http4sRoute = Http4sRoute {
     case req @ GET -> `ukV401Prefix` / "pisp" / "international-standing-orders" / internationalStandingOrderPaymentId / "payment-details" =>
       EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getInternationalStandingOrdersInternationalStandingOrderPaymentIdPaymentDetails)) }
   }
@@ -10707,47 +10707,49 @@ object Http4sUKOBv401PaymentInitiation extends MdcLoggable {
     http4sPartialFunction = Some(getInternationalStandingOrdersInternationalStandingOrderPaymentIdPaymentDetails)
   )
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    createDomesticPaymentConsents(req)
-      .orElse(getDomesticPaymentConsentsConsentId(req)
-      .orElse(getDomesticPaymentConsentsConsentIdFundsConfirmation(req)
-      .orElse(createDomesticPayments(req)
-      .orElse(getDomesticPaymentsDomesticPaymentId(req)
-      .orElse(getDomesticPaymentsDomesticPaymentIdPaymentDetails(req)
-      .orElse(createDomesticScheduledPaymentConsents(req)
-      .orElse(getDomesticScheduledPaymentConsentsConsentId(req)
-      .orElse(createDomesticScheduledPayments(req)
-      .orElse(getDomesticScheduledPaymentsDomesticScheduledPaymentId(req)
-      .orElse(getDomesticScheduledPaymentsDomesticScheduledPaymentIdPaymentDetails(req)
-      .orElse(createDomesticStandingOrderConsents(req)
-      .orElse(getDomesticStandingOrderConsentsConsentId(req)
-      .orElse(createDomesticStandingOrders(req)
-      .orElse(getDomesticStandingOrdersDomesticStandingOrderId(req)
-      .orElse(getDomesticStandingOrdersDomesticStandingOrderIdPaymentDetails(req)
-      .orElse(createFilePaymentConsents(req)
-      .orElse(getFilePaymentConsentsConsentId(req)
-      .orElse(getFilePaymentConsentsConsentIdFile(req)
-      .orElse(createFilePaymentConsentsConsentIdFile(req)
-      .orElse(createFilePayments(req)
-      .orElse(getFilePaymentsFilePaymentId(req)
-      .orElse(getFilePaymentsFilePaymentIdPaymentDetails(req)
-      .orElse(getFilePaymentsFilePaymentIdReportFile(req)
-      .orElse(createInternationalPaymentConsents(req)
-      .orElse(getInternationalPaymentConsentsConsentId(req)
-      .orElse(getInternationalPaymentConsentsConsentIdFundsConfirmation(req)
-      .orElse(createInternationalPayments(req)
-      .orElse(getInternationalPaymentsInternationalPaymentId(req)
-      .orElse(getInternationalPaymentsInternationalPaymentIdPaymentDetails(req)
-      .orElse(createInternationalScheduledPaymentConsents(req)
-      .orElse(getInternationalScheduledPaymentConsentsConsentId(req)
-      .orElse(getInternationalScheduledPaymentConsentsConsentIdFundsConfirmation(req)
-      .orElse(createInternationalScheduledPayments(req)
-      .orElse(getInternationalScheduledPaymentsInternationalScheduledPaymentId(req)
-      .orElse(getInternationalScheduledPaymentsInternationalScheduledPaymentIdPaymentDetails(req)
-      .orElse(createInternationalStandingOrderConsents(req)
-      .orElse(getInternationalStandingOrderConsentsConsentId(req)
-      .orElse(createInternationalStandingOrders(req)
-      .orElse(getInternationalStandingOrdersInternationalStandingOrderPaymentId(req)
-      .orElse(getInternationalStandingOrdersInternationalStandingOrderPaymentIdPaymentDetails(req)))))))))))))))))))))))))))))))))))))))))
-  }
+  lazy val routesInOrder: List[Http4sHandler] = List(
+    createDomesticPaymentConsents,
+    getDomesticPaymentConsentsConsentId,
+    getDomesticPaymentConsentsConsentIdFundsConfirmation,
+    createDomesticPayments,
+    getDomesticPaymentsDomesticPaymentId,
+    getDomesticPaymentsDomesticPaymentIdPaymentDetails,
+    createDomesticScheduledPaymentConsents,
+    getDomesticScheduledPaymentConsentsConsentId,
+    createDomesticScheduledPayments,
+    getDomesticScheduledPaymentsDomesticScheduledPaymentId,
+    getDomesticScheduledPaymentsDomesticScheduledPaymentIdPaymentDetails,
+    createDomesticStandingOrderConsents,
+    getDomesticStandingOrderConsentsConsentId,
+    createDomesticStandingOrders,
+    getDomesticStandingOrdersDomesticStandingOrderId,
+    getDomesticStandingOrdersDomesticStandingOrderIdPaymentDetails,
+    createFilePaymentConsents,
+    getFilePaymentConsentsConsentId,
+    getFilePaymentConsentsConsentIdFile,
+    createFilePaymentConsentsConsentIdFile,
+    createFilePayments,
+    getFilePaymentsFilePaymentId,
+    getFilePaymentsFilePaymentIdPaymentDetails,
+    getFilePaymentsFilePaymentIdReportFile,
+    createInternationalPaymentConsents,
+    getInternationalPaymentConsentsConsentId,
+    getInternationalPaymentConsentsConsentIdFundsConfirmation,
+    createInternationalPayments,
+    getInternationalPaymentsInternationalPaymentId,
+    getInternationalPaymentsInternationalPaymentIdPaymentDetails,
+    createInternationalScheduledPaymentConsents,
+    getInternationalScheduledPaymentConsentsConsentId,
+    getInternationalScheduledPaymentConsentsConsentIdFundsConfirmation,
+    createInternationalScheduledPayments,
+    getInternationalScheduledPaymentsInternationalScheduledPaymentId,
+    getInternationalScheduledPaymentsInternationalScheduledPaymentIdPaymentDetails,
+    createInternationalStandingOrderConsents,
+    getInternationalStandingOrderConsentsConsentId,
+    createInternationalStandingOrders,
+    getInternationalStandingOrdersInternationalStandingOrderPaymentId,
+    getInternationalStandingOrdersInternationalStandingOrderPaymentIdPaymentDetails
+  )
+
+  lazy val routes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 }

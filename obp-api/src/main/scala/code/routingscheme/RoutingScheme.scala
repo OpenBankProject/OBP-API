@@ -132,6 +132,9 @@ object RoutingScheme {
       (fr"SELECT COUNT(*) FROM routingscheme" ++ filters(country, category, status))
         .query[Int].unique)
 
+  def findAllFiltered(country: Option[String], category: Option[String], status: Option[String]): List[RoutingScheme] =
+    query(filters(country, category, status) ++ fr"ORDER BY scheme ASC")
+
   def findPage(country: Option[String], category: Option[String], status: Option[String],
                limit: Int, offset: Int): List[RoutingScheme] =
     query(filters(country, category, status) ++ fr"ORDER BY scheme ASC LIMIT $limit OFFSET $offset")
@@ -247,15 +250,19 @@ object MappedRoutingSchemeProvider extends RoutingSchemeProvider {
     offset: Int
   ): Future[Box[(List[RoutingSchemeTrait], Int)]] = Future {
     tryo {
-      // Count BEFORE applying limit/offset for total
-      val total = RoutingScheme.countFiltered(country, category, status)
-      val rows = RoutingScheme.findPage(country, category, status, limit, offset)
-      // Rail is a free-text tag list (CSV); filter in-memory after the SQL pass.
-      val filtered = rail match {
-        case Some(r) => rows.filter(_.downstreamRails.contains(r))
-        case None    => rows
+      rail match {
+        // Rail is a free-text tag list (CSV) so it is filtered in memory; filter all SQL matches
+        // first, then count and page, so pages are not cut short and total counts only this rail.
+        case Some(r) =>
+          val matching = RoutingScheme.findAllFiltered(country, category, status)
+            .filter(_.downstreamRails.contains(r))
+          (matching.drop(offset).take(limit): List[RoutingSchemeTrait], matching.size)
+        case None =>
+          // Count BEFORE applying limit/offset for total
+          val total = RoutingScheme.countFiltered(country, category, status)
+          val rows = RoutingScheme.findPage(country, category, status, limit, offset)
+          (rows: List[RoutingSchemeTrait], total)
       }
-      (filtered, total)
     }
   }
 

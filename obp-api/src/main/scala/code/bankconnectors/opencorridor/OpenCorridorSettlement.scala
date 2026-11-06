@@ -406,7 +406,10 @@ object OpenCorridorSettlement extends MdcLoggable {
         delivery_status = row.status,
         attempts = row.attempts,
         last_error = row.lastError
-      ))
+      )),
+      settlement_tx_id = instructionRow.flatMap(nodeReportedField(_, "tx_id")).filter(_.nonEmpty),
+      settlement_asset = instructionRow.flatMap(nodeReportedField(_, "asset")).filter(_.nonEmpty),
+      settlement_asset_amount = instructionRow.flatMap(nodeReportedField(_, "asset_amount")).filter(_.nonEmpty)
     ), callContext)
   }
 

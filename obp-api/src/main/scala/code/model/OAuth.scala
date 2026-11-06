@@ -197,6 +197,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
     val consumer = Consumer.findByPrimaryKey(id)
     consumer match {
       case Full(c) => tryo {
+        redirectURL.foreach { v =>
+          // updateConsumer does not run Consumer.validate, so the redirect URL rules are applied here.
+          RedirectUrlValidation.consumerRedirectUrlError(v, applyHostList = false).foreach(error => throw new Error(error))
+        }
         Consumer.update(c.copy(
           key = key.getOrElse(c.key),
           secret = secret.getOrElse(c.secret),
@@ -495,7 +499,9 @@ object Consumer extends MdcLoggable {
    * exactly, quirks included: "Description:" runs straight into "can not be empty" with no space,
    * and an unset or malformed developer email fails with the raw i18n key MappedEmail used.
    *
-   * The URI checks are CommonFunctions.validUri's: an empty value passes, anything else has to
+   * The redirect URL is held to the rules of RedirectUrlValidation, without the instance's host
+   * list: that is an endpoint-level policy, and dynamic registration is exempt from it. The other
+   * two URI checks are CommonFunctions.validUri's: an empty value passes, anything else has to
    * parse as a java.net.URI. That is far laxer than it looks - "not a url" parses fine as a
    * relative URI - but it is what the entity enforced.
    */
@@ -514,7 +520,8 @@ object Consumer extends MdcLoggable {
       else if (tryo(new java.net.URI(value)).isEmpty) List(s"$displayName must be a valid URI")
       else Nil
     nameErrors ::: descriptionErrors ::: developerEmailErrors :::
-      uriError("Redirect URL:", row.redirectURL) :::
+      code.api.util.RedirectUrlValidation
+        .consumerRedirectUrlError(Option(row.redirectURL).getOrElse(""), applyHostList = false).toList :::
       uriError("Logo URL:", row.logoUrl) :::
       uriError("User authentication URL:", row.userAuthenticationURL)
   }
