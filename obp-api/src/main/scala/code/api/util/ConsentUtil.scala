@@ -719,6 +719,15 @@ object Consent extends MdcLoggable {
     }
   }
 
+  /** Whether this instance uses consents at all (consents.allowed, default false): as a login and, so that no consent
+   * is made that could never be used, when one is created. */
+  def consentsAllowed: Boolean = APIUtil.getPropsAsBoolValue(nameOfProperty = "consents.allowed", defaultValue = false)
+
+  /** The first step of every endpoint that creates a consent or a consent request: refused with OBP-35007 while
+   * consents.allowed is off, before any challenge is sent or anything is stored. */
+  def checkConsentsAllowed(callContext: Option[CallContext]): Future[Box[Unit]] =
+    Helper.booleanToFuture(ErrorMessages.ConsentDisabled, 401, callContext)(consentsAllowed)
+
   def applyRules(consentJwt: Option[String], callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
     (consentJwt, allowed) match {

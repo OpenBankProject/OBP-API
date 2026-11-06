@@ -27,17 +27,20 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v7_0_0
 
 import cats.effect.IO
-import code.api.Constant.ApiPathZero
+import code.api.Constant.{ApiPathZero, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID}
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, unboxFullOrFail, Http4sRoute}
+import code.api.util.ApiRole.canCreateAsset
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.CustomJsonFormats
+import code.api.util.{CallContext, CustomJsonFormats, NewStyle}
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
-import code.asset.{AssetStatuses, AssetTypes, Assets}
+import code.asset.{AssetStatuses, AssetTrait, AssetTypes, Assets, ChainSchemes}
 import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.{BankId, ProductCode}
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import org.http4s._
 import org.http4s.dsl.io._
 import org.json4s.Formats
@@ -51,8 +54,9 @@ import scala.util.Try
  * metals, accounting units, crypto assets and bank-issued assets that amounts can be held in (see
  * [[code.asset.Assets]] and ideas/ASSET_REGISTRY.md).
  *
- * They need no authentication: the registry is reference data, and an app may need to check a code
- * before anyone has logged in. Nothing here writes.
+ * The read endpoints need no authentication: the registry is reference data, and an app may need to
+ * check a code before anyone has logged in. Create Asset adds an asset to the registry; it needs the
+ * CanCreateAsset Role at the asset's administering bank, which is the bank in the path.
  *
  * It is declared in its own object to keep Http4s700's initialiser under the JVM's 64KB method limit.
  */
@@ -113,8 +117,7 @@ object Http4s700Assets {
        |accounting units and crypto assets, which are administered at the `SYS` bank), and its status:
        |`ACTIVE`, `SUSPENDED` or `RETIRED`.
        |
-       |The registry does not yet decide which currency codes OBP accepts or how many decimal places it
-       |gives them; it shows what it will decide once it does.
+       |The registry decides which currency codes OBP accepts and how many decimal places each one has.
        |
        |Query parameters, all optional; a filter matches exactly, apart from letter case for the first three:
        |
@@ -200,4 +203,114 @@ object Http4s700Assets {
     None,
     http4sPartialFunction = Some(getAssetByChainIdentity)
   )
+
+  /** Treats a missing, empty or blank optional value as not set. */
+  private def given(value: Option[String]): Option[String] = value.map(_.trim).filter(_.nonEmpty)
+
+  /** Turns the registry's refusal into a 400 that says what was wrong with the asset. */
+  private def createdOrFail(created: Box[AssetTrait], cc: CallContext): AssetTrait = created match {
+    case Full(asset) => asset
+    case Failure(message, _, _) => unboxFullOrFail(Empty, Some(cc), s"$InvalidAsset $message", 400)
+    case _ => unboxFullOrFail(Empty, Some(cc), s"$InvalidAsset", 400)
+  }
+
+  // Route: POST /obp/v7.0.0/banks/BANK_ID/assets (201)
+  lazy val createAsset: Http4sRoute = Http4sRoute {
+    case req @ POST -> `prefixPath` / "banks" / bankIdInUrl / "assets" =>
+      EndpointHelpers.withUserAndBodyCreated[PostAssetJsonV700, AssetJsonV700](req) { (user, body, cc) =>
+        val atSystemBank = bankIdInUrl == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
+        val assetCode = Assets.normaliseCode(Option(body.asset_code).getOrElse(""))
+        val assetType = Option(body.asset_type).map(_.trim.toUpperCase).getOrElse("")
+        val issuerProductCode = given(body.issuer_product_code)
+        val chainScheme = given(body.chain_scheme).map(_.toUpperCase)
+        val chainAssetId = given(body.chain_asset_id)
+        val dti = given(body.dti).map(_.toUpperCase)
+        lazy val whyInvalid = Assets.whyInvalid(assetCode, assetType, Option(body.name).getOrElse(""), body.decimal_places,
+          if (atSystemBank) None else Some(bankIdInUrl), AssetStatuses.ACTIVE, issuerProductCode, chainScheme, chainAssetId, dti)
+        for {
+          _ <- Helper.booleanToFuture(s"$InvalidAsset At the SYS bank only an asset of type ${AssetTypes.CRYPTO} can be created. Current asset_type is $assetType.", 400, Some(cc)) {
+            !atSystemBank || assetType == AssetTypes.CRYPTO
+          }
+          _ <- Helper.booleanToFuture(s"$InvalidAsset At a bank, asset_type must be one of ${AssetTypes.issued.toList.sorted.mkString(", ")}. Current asset_type is $assetType.", 400, Some(cc)) {
+            atSystemBank || AssetTypes.issued.contains(assetType)
+          }
+          _ <- Helper.booleanToFuture(s"$InvalidAsset An asset at the SYS bank has no issuer, so it has no issuer_product_code.", 400, Some(cc)) {
+            !atSystemBank || issuerProductCode.isEmpty
+          }
+          // The registry's own rules before anything is looked up: an asset that could never be created
+          // is a 400 even if its code happens to be taken (a three-letter code is often an ISO currency)
+          _ <- Helper.booleanToFuture(s"$InvalidAsset ${whyInvalid.getOrElse("")}", 400, Some(cc)) { whyInvalid.isEmpty }
+          // The issuer's product describes the instrument, so it must exist at the issuing bank
+          _ <- issuerProductCode match {
+            case Some(productCode) => NewStyle.function.getProduct(BankId(bankIdInUrl), ProductCode(productCode), Some(cc))
+            case None => Future.successful(())
+          }
+          _ <- Helper.booleanToFuture(s"$AssetAlreadyExists Current asset_code is $assetCode.", 409, Some(cc)) {
+            Assets.getAsset(assetCode).isEmpty
+          }
+          _ <- Helper.booleanToFuture(s"$AssetChainIdentityAlreadyExists Current value is ${chainScheme.getOrElse("")}/${chainAssetId.getOrElse("")}.", 409, Some(cc)) {
+            (for { scheme <- chainScheme; id <- chainAssetId } yield Assets.getAssetByChainIdentity(scheme, id).isEmpty).getOrElse(true)
+          }
+          _ <- Helper.booleanToFuture(s"$AssetDtiAlreadyExists Current dti is ${dti.getOrElse("")}.", 409, Some(cc)) {
+            dti.forall(value => Assets.getAssetByDti(value).isEmpty)
+          }
+          created <- Future(Assets.createAsset(
+            assetCode = assetCode,
+            assetType = assetType,
+            name = Option(body.name).getOrElse(""),
+            decimalPlaces = body.decimal_places,
+            issuerBankId = if (atSystemBank) None else Some(bankIdInUrl),
+            status = AssetStatuses.ACTIVE,
+            createdByUserId = user.userId,
+            issuerProductCode = issuerProductCode,
+            chainScheme = chainScheme,
+            chainAssetId = chainAssetId,
+            dti = dti
+          )).map(createdOrFail(_, cc))
+        } yield JSONFactory700Assets.createAssetJson(created)
+      }
+  }
+
+  resourceDocs += ResourceDoc(
+    implementedInApiVersion,
+    nameOf(createAsset),
+    "POST",
+    "/banks/BANK_ID/assets",
+    "Create Asset",
+    s"""Adds an asset to the asset registry, so that accounts, transactions and product fees can hold
+       |amounts in it. Its code becomes a value OBP accepts in `currency` fields.
+       |
+       |BANK_ID is the bank that administers the asset, and the Role is checked there:
+       |
+       |- At a bank, the asset is one that bank issues, and the bank is recorded as its issuer. `asset_type`
+       |  must be one of ${AssetTypes.issued.toList.sorted.mkString(", ")}.
+       |- At `SYS`, the asset has no issuer. Only a crypto asset (`asset_type` ${AssetTypes.CRYPTO}) can be
+       |  created there. Currencies, precious metals and accounting units come from ISO 4217 and cannot be created.
+       |
+       |The fields:
+       |
+       |- `asset_code`: 3 to 10 letters or digits, stored upper case. A bank-issued asset's code is 4 to 10, so
+       |  it can never be mistaken for an ISO 4217 currency code, which is always 3. It must not be taken.
+       |- `name`: the display name, at most ${Assets.MaxNameLength} characters.
+       |- `decimal_places`: how many digits an amount in this asset may have after the decimal point, from 0 to
+       |  ${Assets.MaxDecimalPlaces}. It cannot be changed later.
+       |- `issuer_product_code`: optional, the product at BANK_ID that describes the instrument, such as a bond's
+       |  coupon and maturity date. The product must exist.
+       |- `chain_scheme` and `chain_asset_id`: optional, both or neither. The chain and network the token is
+       |  recorded on, one of ${ChainSchemes.all.toList.sorted.mkString(", ")}, and its identity there: on
+       |  Cardano, the policy id and the hex asset name joined by a dot; on Ethereum, the token's contract
+       |  address. No other asset may have the same chain identity.
+       |- `dti`: optional, the ISO 24165 Digital Token Identifier, 9 letters or digits. No other asset may have it.
+       |
+       |A new asset is `ACTIVE`.
+       |
+       |Authentication is Required.""".stripMargin,
+    JSONFactory700Assets.postAssetJsonExample,
+    JSONFactory700Assets.issuedAssetJsonExample,
+    List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidAsset,
+      ProductNotFoundByProductCode, AssetAlreadyExists, AssetChainIdentityAlreadyExists, AssetDtiAlreadyExists, UnknownError),
+    List(apiTagAsset),
+    Some(List(canCreateAsset)),
+    http4sPartialFunction = Some(createAsset)
+  ).allowSystemSpace()
 }

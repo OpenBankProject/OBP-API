@@ -203,11 +203,12 @@ object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbo
       .saveMe()
 
   /** Queue an email; the relay sends it (attachments are not supported). */
-  def enqueueEmail(subjectId: String, subjectIdType: String, operationName: String, email: EmailContent): MessageOutbox = {
+  def enqueueEmail(subjectId: String, subjectIdType: String, operationName: String, email: EmailContent,
+                   metadataJson: String = ""): MessageOutbox = {
     val payload = OutboxEmailPayload(email.from, email.to, email.cc, email.bcc, email.subject,
       email.textContent, email.htmlContent)
     enqueue(TYPE_EMAIL, subjectId, subjectIdType, operationName,
-      email.to.mkString(",").take(255), Serialization.write(payload)(emailFormats))
+      email.to.mkString(",").take(255), Serialization.write(payload)(emailFormats), metadataJson)
   }
 
   def emailPayload(row: MessageOutbox): OutboxEmailPayload =

@@ -85,7 +85,7 @@ class Asset extends AssetTrait with LongKeyedMapper[Asset] with IdPK {
 /**
  * The unique indexes on (chain_scheme, chain_asset_id) and on dti that the design describes are not
  * declared here: they must ignore rows where the value is not set, and Mapper cannot declare such a
- * partial index. Nothing writes those columns yet; the write endpoints will enforce the uniqueness.
+ * partial index. The Create Asset endpoint checks both before it writes, and answers 409 when one is taken.
  */
 object Asset extends Asset with LongKeyedMetaMapper[Asset] {
   override def dbTableName = "Asset"

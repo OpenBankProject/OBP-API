@@ -108,6 +108,17 @@ object BankNameGenerator {
 
   private def pickRandomWord(words: List[String]): String = words(Random.nextInt(words.size))
 
+  /**
+   * Whether a bank id has the shape generate() gives it: an adjective, a celestial and an animal from these lists,
+   * then the hex suffix. Used to recognise banks made with Create My Bank before banks recorded it.
+   */
+  def isGenerated(bankId: String): Boolean = bankId.split("-").toList match {
+    case List(a, c, n, suffix) =>
+      adjectives.contains(a) && celestials.contains(c) && animals.contains(n) &&
+        suffix.length == suffixLength && suffix.forall(suffixAlphabet.contains(_))
+    case _ => false
+  }
+
   def generate(): GeneratedBankName = {
     val words = List(pickRandomWord(adjectives), pickRandomWord(celestials), pickRandomWord(animals))
     val suffix = List.fill(suffixLength)(suffixAlphabet(Random.nextInt(suffixAlphabet.length))).mkString

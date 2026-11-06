@@ -35,10 +35,11 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{Http4sRoute, EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateGlossaryItem, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteGlossaryItem, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateGlossaryItem, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateGlossaryItem, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteGlossaryItem, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canGetAccountAccessTrace, canGetAccountDirectoryAtOneBank, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConfig, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadMetrics, canUpdateBankSupportedRoutingScheme, canUpdateGlossaryItem, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
-import code.model.dataAccess.{AuthUser, BankAccountCreation, MappedBank, ResourceUser}
+import code.model.dataAccess.{AuthUser, BankAccountCreation, MappedBank, ResourceUser, SelfServiceBank}
 import code.consent.Consents
+import code.accountcreation.AccountCreations
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware, ResourceDocMatcher}
@@ -57,7 +58,6 @@ import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.migration.MigrationScriptLogProvider
 import code.bankconnectors.{Connector => BankConnector}
 import code.entitlement.Entitlement
-import code.organisation.Organisations
 import code.glossaryitem.DynamicGlossaryItems
 import code.routingscheme.{RoutingSchemes, RoutingSchemeValidation}
 import code.payeelookup.PayeeLookups
@@ -372,8 +372,9 @@ object Http4s700 {
               // Quota binds to the human: banks created by the human directly or by any
               // of their consent-agents count toward the same limit — otherwise every
               // new consent would arrive with a fresh quota.
+              // Counted in OBP's record of self-service banks; banks made with CanCreateBank do not count.
               val creatorUserIds = humanAndAgentUserIds(cc.onBehalfOfUserId)
-              MappedBank.count(ByList(MappedBank.CreatedByUserId, creatorUserIds))
+              SelfServiceBank.count(ByList(SelfServiceBank.CreatedByUserId, creatorUserIds))
             }
             _ <- Helper.booleanToFuture(SelfServiceBankLimitReached, failCode = 403, cc = Some(cc)) {
               banksCreatedByUser < selfServiceBankLimit
@@ -385,6 +386,12 @@ object Http4s700 {
                 Some(cc), UnknownError, 500
               )
             }
+            // A self-service bank gives a developer a space of their own without CanCreateBank. A User must
+            // never create a bank on a backend system, so it is refused unless banks are stored by OBP itself
+            // (the mapped connector, or a star connector routing this bank's creation to mapped).
+            _ <- Helper.booleanToFuture(SelfServiceBankNeedsMappedConnector, cc = Some(cc)) {
+              APIUtil.isDataFromOBPSide("createOrUpdateBank", Array(("bankId", generatedName.bankId)))
+            }
             (bank, _) <- NewStyle.function.createOrUpdateBank(
               generatedName.bankId,
               generatedName.fullName,
@@ -392,6 +399,9 @@ object Http4s700 {
               "", "", "", "", "", "",
               Some(cc)
             )
+            // Recorded so that what Roles normally vouch for (e.g. files stored with CanCreateFileAtOneBank
+            // starting clean) does not apply in a bank anyone could make and grant themselves Roles in.
+            _ <- Future(SelfServiceBank.record(bank.bankId.value, cc.onBehalfOfUserId))
             // Creator grant targets the HUMAN (see v6.0.0 createBank): under a Consent the
             // authenticated user is a per-consent shadow, and roles granted to it are stranded.
             _ <- Future(Entitlement.entitlement.vend.addEntitlement(
@@ -410,9 +420,14 @@ object Http4s700 {
       s"""Create a bank for the current User without requiring the role CanCreateBank.
       |
       |This is the self-service flavour of Create Bank, intended for
-      |sandbox instances.
+      |sandbox instances: it gives a developer a space of their own without the role CanCreateBank.
       |
       |$selfServiceBankCreationStatusText
+      |
+      |It is refused unless OBP stores banks itself (the mapped connector, or a star connector routing
+      |createOrUpdateBank to mapped): a User may never create a bank on a backend system. Anyone can grant
+      |themselves Roles in such a bank, so they vouch for nothing there; for example, files stored in it
+      |start pending until they are scanned.
       |
       |When the limit is reached, further banks require the role CanCreateBank
       |(see POST /banks). The limit binds to the human User: banks created by the User
@@ -440,6 +455,7 @@ object Http4s700 {
         $AuthenticatedUserIsRequired,
         SelfServiceBankCreationDisabled,
         SelfServiceBankLimitReached,
+        SelfServiceBankNeedsMappedConnector,
         InvalidJsonFormat,
         UnknownError
       ),
@@ -816,7 +832,7 @@ object Http4s700 {
       List(ApplicationNotIdentified, UnknownError),
       apiTagConsumer :: apiTagApi :: Nil,
       None,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getCurrentConsumerIdentity)
     )
 
@@ -854,7 +870,7 @@ object Http4s700 {
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       apiTagConsumer :: Nil,
       Some(List(ApiRole.canGetConsumers)),
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsumers)
     )
 
@@ -1085,7 +1101,7 @@ object Http4s700 {
       List(ApplicationNotIdentified, UnknownError),
       apiTagConsumer :: apiTagScope :: apiTagApi :: Nil,
       None,
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getCurrentConsumerScopes)
     )
 
@@ -3248,259 +3264,6 @@ object Http4s700 {
       http4sPartialFunction = Some(createValidationEmail)
     )
 
-    // ── Organisations ─────────────────────────────────────────────────────────
-    // CRUD for the Organisation resource. Migrated from v6.0.0 (Lift) to v7.0.0
-    // (http4s). Path uses ORGANISATION_ID; not resolved by middleware (only BANK_ID
-    // / ACCOUNT_ID / VIEW_ID / COUNTERPARTY_ID are), so endpoints fetch directly
-    // via Organisations.organisation.vend.
-
-    private val ValidOrganisationStatuses    = Set("active", "suspended", "archived")
-    private val ValidOrganisationVisibilities = Set("public", "unlisted", "private")
-    private val OrganisationIdRegex          = "^[a-zA-Z0-9._-]{2,64}$".r
-
-    val createOrganisation: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "organisations" =>
-        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.PostOrganisationJsonV700, JSONFactory700.OrganisationJsonV700](req) { (user, body, cc) =>
-          for {
-            _ <- Helper.booleanToFuture(InvalidOrganisationIdFormat, 400, Some(cc)) {
-              OrganisationIdRegex.findFirstIn(body.organisation_id).isDefined
-            }
-            status     = body.status.getOrElse("active")
-            visibility = body.visibility.getOrElse("public")
-            _ <- Helper.booleanToFuture(InvalidOrganisationStatus, 400, Some(cc)) {
-              ValidOrganisationStatuses.contains(status)
-            }
-            _ <- Helper.booleanToFuture(InvalidOrganisationVisibility, 400, Some(cc)) {
-              ValidOrganisationVisibilities.contains(visibility)
-            }
-            existing <- Future(Organisations.organisation.vend.getOrganisation(body.organisation_id))
-            _ <- Helper.booleanToFuture(OrganisationAlreadyExists, 409, Some(cc))(existing.isEmpty)
-            created <- Future {
-              Organisations.organisation.vend.createOrganisation(
-                body.organisation_id, body.name, body.website, body.logo_url,
-                status, visibility, user.userId
-              )
-            }.map(unboxFullOrFail(_, Some(cc), CreateOrganisationError, 400))
-          } yield JSONFactory700.createOrganisationJsonV700(created)
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(createOrganisation),
-      "POST",
-      "/organisations",
-      "Create Organisation",
-      """Create an Organisation.
-        |
-        |The organisation_id must be a URL-safe string (a-z, A-Z, 0-9, '-', '.', '_'), between 2 and 64 characters in length, and is immutable.
-        |
-        |Optional fields:
-        |- status: one of active, suspended, archived (defaults to active)
-        |- visibility: one of public, unlisted, private (defaults to public)
-        |- website, logo_url
-        |
-        |Authentication is Required.""".stripMargin,
-      JSONFactory700.PostOrganisationJsonV700(
-        organisation_id = "tesobe",
-        name = "TESOBE GmbH",
-        website = Some("https://www.tesobe.com"),
-        logo_url = None,
-        status = Some("active"),
-        visibility = Some("public")
-      ),
-      JSONFactory700.OrganisationJsonV700(
-        organisation_id = "tesobe",
-        name = "TESOBE GmbH",
-        website = Some("https://www.tesobe.com"),
-        logo_url = None,
-        status = "active",
-        visibility = "public",
-        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-        created_at = new java.util.Date(),
-        updated_at = new java.util.Date()
-      ),
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
-           InvalidOrganisationIdFormat, InvalidOrganisationStatus,
-           InvalidOrganisationVisibility, OrganisationAlreadyExists,
-           CreateOrganisationError, UnknownError),
-      apiTagOrganisation :: Nil,
-      Some(List(canCreateOrganisation)),
-      http4sPartialFunction = Some(createOrganisation)
-    )
-
-    val getOrganisations: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "organisations" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            allOrgs <- Organisations.organisation.vend.getAllOrganisations()
-              .map(unboxFullOrFail(_, Some(cc), UnknownError, 500))
-            hasGetAny = APIUtil.hasEntitlement("", user.userId, canGetAnyOrganisation)
-            visible   = if (hasGetAny) allOrgs else allOrgs.filter(_.visibility == "public")
-          } yield JSONFactory700.createOrganisationsJsonV700(visible)
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getOrganisations),
-      "GET",
-      "/organisations",
-      "Get Organisations",
-      """Returns Organisations.
-        |
-        |By default returns only Organisations whose visibility is `public`. Users granted CanGetAnyOrganisation see all Organisations including unlisted and private.
-        |
-        |Authentication is Required.""".stripMargin,
-      EmptyBody,
-      JSONFactory700.OrganisationsJsonV700(organisations = List(
-        JSONFactory700.OrganisationJsonV700(
-          organisation_id = "tesobe",
-          name = "TESOBE GmbH",
-          website = Some("https://www.tesobe.com"),
-          logo_url = None,
-          status = "active",
-          visibility = "public",
-          created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-          created_at = new java.util.Date(),
-          updated_at = new java.util.Date()
-        )
-      )),
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagOrganisation :: Nil,
-      None,
-      http4sPartialFunction = Some(getOrganisations)
-    )
-
-    val getOrganisation: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "organisations" / organisationId =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            org <- Future(Organisations.organisation.vend.getOrganisation(organisationId))
-              .map(unboxFullOrFail(_, Some(cc), OrganisationNotFound, 404))
-            _ <- if (org.visibility == "private")
-                   NewStyle.function.hasEntitlement("", user.userId, canGetAnyOrganisation, Some(cc))
-                 else Future.successful(())
-          } yield JSONFactory700.createOrganisationJsonV700(org)
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getOrganisation),
-      "GET",
-      "/organisations/ORGANISATION_ID",
-      "Get Organisation",
-      """Returns the Organisation specified by ORGANISATION_ID.
-        |
-        |Organisations with visibility `public` or `unlisted` are visible to any authenticated user. Organisations with visibility `private` require CanGetAnyOrganisation.
-        |
-        |Authentication is Required.""".stripMargin,
-      EmptyBody,
-      JSONFactory700.OrganisationJsonV700(
-        organisation_id = "tesobe",
-        name = "TESOBE GmbH",
-        website = Some("https://www.tesobe.com"),
-        logo_url = None,
-        status = "active",
-        visibility = "public",
-        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-        created_at = new java.util.Date(),
-        updated_at = new java.util.Date()
-      ),
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, OrganisationNotFound, UnknownError),
-      apiTagOrganisation :: Nil,
-      None,
-      http4sPartialFunction = Some(getOrganisation)
-    )
-
-    val updateOrganisation: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "organisations" / organisationId =>
-        EndpointHelpers.withUserAndBody[JSONFactory700.PutOrganisationJsonV700, JSONFactory700.OrganisationJsonV700](req) { (_, body, cc) =>
-          for {
-            _ <- Future(Organisations.organisation.vend.getOrganisation(organisationId))
-              .map(unboxFullOrFail(_, Some(cc), OrganisationNotFound, 404))
-            _ <- Helper.booleanToFuture(InvalidOrganisationStatus, 400, Some(cc)) {
-              body.status.forall(ValidOrganisationStatuses.contains)
-            }
-            _ <- Helper.booleanToFuture(InvalidOrganisationVisibility, 400, Some(cc)) {
-              body.visibility.forall(ValidOrganisationVisibilities.contains)
-            }
-            updated <- Future {
-              Organisations.organisation.vend.updateOrganisation(
-                organisationId, body.name, body.website, body.logo_url, body.status, body.visibility
-              )
-            }.map(unboxFullOrFail(_, Some(cc), UpdateOrganisationError, 400))
-          } yield JSONFactory700.createOrganisationJsonV700(updated)
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(updateOrganisation),
-      "PUT",
-      "/organisations/ORGANISATION_ID",
-      "Update Organisation",
-      """Update an Organisation. All body fields are optional. The organisation_id is immutable and cannot be changed.
-        |
-        |Authentication is Required.""".stripMargin,
-      JSONFactory700.PutOrganisationJsonV700(
-        name = Some("TESOBE GmbH"),
-        website = Some("https://www.tesobe.com"),
-        logo_url = None,
-        status = Some("active"),
-        visibility = Some("public")
-      ),
-      JSONFactory700.OrganisationJsonV700(
-        organisation_id = "tesobe",
-        name = "TESOBE GmbH",
-        website = Some("https://www.tesobe.com"),
-        logo_url = None,
-        status = "active",
-        visibility = "public",
-        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
-        created_at = new java.util.Date(),
-        updated_at = new java.util.Date()
-      ),
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
-           OrganisationNotFound, InvalidOrganisationStatus,
-           InvalidOrganisationVisibility, UpdateOrganisationError, UnknownError),
-      apiTagOrganisation :: Nil,
-      Some(List(canUpdateOrganisation)),
-      http4sPartialFunction = Some(updateOrganisation)
-    )
-
-    val deleteOrganisation: Http4sRoute = Http4sRoute {
-      case req @ DELETE -> `prefixPath` / "organisations" / organisationId =>
-        EndpointHelpers.withUserDelete(req) { (_, cc) =>
-          for {
-            _ <- Future(Organisations.organisation.vend.getOrganisation(organisationId))
-              .map(unboxFullOrFail(_, Some(cc), OrganisationNotFound, 404))
-            _ <- Future(Organisations.organisation.vend.deleteOrganisation(organisationId))
-              .map(unboxFullOrFail(_, Some(cc), DeleteOrganisationError, 400))
-          } yield ()
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(deleteOrganisation),
-      "DELETE",
-      "/organisations/ORGANISATION_ID",
-      "Delete Organisation",
-      """Delete the Organisation specified by ORGANISATION_ID.
-        |
-        |Authentication is Required.""".stripMargin,
-      EmptyBody,
-      EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, OrganisationNotFound,
-           DeleteOrganisationError, UnknownError),
-      apiTagOrganisation :: Nil,
-      Some(List(canDeleteOrganisation)),
-      http4sPartialFunction = Some(deleteOrganisation)
-    )
-
-    // ── End Organisations ─────────────────────────────────────────────────────
 
     // ── Routing Schemes ───────────────────────────────────────────────────────
     // A registry of country-qualified routing scheme names (e.g. TZ.MSISDN,
@@ -4945,6 +4708,10 @@ object Http4s700 {
         EndpointHelpers.withViewAndBodyCreated[JSONFactory700.TransactionRequestBodyOpenCorridorJsonV700, JSONFactory700.TransactionRequestWithChargeOpenCorridorJsonV700](req) { (user, fromAccount, view, body, cc) =>
           val callCtx = Some(cc)
           for {
+            // The same switch as settling: a promise that could never be settled here is refused up front.
+            _ <- code.util.Helper.booleanToFuture(OpenCorridorDisabled, cc = callCtx) {
+              APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)
+            }
             _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(
               view.viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), user, callCtx
             )
@@ -4995,6 +4762,8 @@ object Http4s700 {
         |
         |An OPEN_CORRIDOR_PROMISE does not post a Transaction at create time: the request is held at status `PENDING` as a promise, accumulating for bilateral netting. The Open Corridor settle step later nets all pending promises between a bank pair and posts one net Transaction, at which point covered promises become `COMPLETED`.
         |
+        |Requires `open_corridor_enabled=true` on this instance. Whether it is on shows in GET /banks/BANK_ID/transaction-request-types, which lists OPEN_CORRIDOR_PROMISE exactly when it is.
+        |
         |Authentication is Required.""".stripMargin,
       openCorridorBodyExample,
       JSONFactory700.TransactionRequestWithChargeOpenCorridorJsonV700(
@@ -5026,7 +4795,7 @@ object Http4s700 {
           source = "explicit"
         ))
       ),
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidJsonValue,
+      List($AuthenticatedUserIsRequired, OpenCorridorDisabled, InvalidJsonFormat, InvalidJsonValue,
            CounterpartyBeneficiaryPermit, InvalidChargePolicy,
            InsufficientAuthorisationToCreateTransactionRequest, UnknownError),
       apiTagTransactionRequest :: Nil,
@@ -5075,6 +4844,12 @@ object Http4s700 {
         |
         |This call is idempotent: re-posting identical evidence returns the stored record. Posting different evidence for a Transaction Request that already has evidence attached is refused — evidence is append-once and cannot be overwritten.
         |
+        |**Who may call it.** A person with the Role CanAttachOpenCorridorPromise at BANK_ID, or an application whose Consumer holds it
+        |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
+        |Such a token gives the application a User of its own (provider obp-oidc#client), so `reported_by_user_id` is
+        |the application's own User when it acted, or the person's when a person did.
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |
         |Authentication is Required.""".stripMargin,
       openCorridorPromiseBodyExample,
       JSONFactory700.OpenCorridorPromiseJsonV700(
@@ -5094,6 +4869,7 @@ object Http4s700 {
            OpenCorridorPromiseEvidenceConflict, TransactionRequestLockFailed, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canAttachOpenCorridorPromise)),
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(attachOpenCorridorPromise)
     )
 
@@ -5268,7 +5044,12 @@ object Http4s700 {
         (accountAttributes, _) <- NewStyle.function.createAccountAttributes(
           bankId, accountId, ProductCode(body.product_code), productAttributes, None, Some(cc))
         _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, owner, Some(cc))
-      } yield JSONFactory700.createAccountJsonV700(ownerId, bankAccount, accountAttributes)
+        // Who made the call (user.userId, the agent under a Consent) and for whom: kept in OBP, because
+        // the account itself may live behind the Connector. AccountCreation_CreatedByUserId.
+        creation <- Future(AccountCreations.accountCreationProvider.vend.record(bankId.value, accountId.value, user.userId)) map {
+          x => unboxFullOrFail(x, Some(cc), s"$UnknownError The account ${accountId.value} was created, but who created it could not be recorded.", 500)
+        }
+      } yield JSONFactory700.createAccountJsonV700(ownerId, bankAccount, accountAttributes, creation)
     }
 
     val createAccountV700: Http4sRoute = Http4sRoute {
@@ -5305,7 +5086,12 @@ object Http4s700 {
         AccountRoutingJsonV121("OBP", "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"),
         AccountRoutingJsonV121("IBAN", "DE91100000000123456789")
       ),
-      account_attributes = Nil
+      account_attributes = Nil,
+      metadata = JSONFactory700.AccountMetadataJsonV700(JSONFactory700.AccountCreatedJsonV700(
+        at = "2026-09-30T10:12:00Z",
+        user_id = "a9f2c7e1-3d4b-4a5c-8e6f-7a8b9c0d1e2f",
+        on_behalf_of_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        consent_reference_id = Some("4c7e8f2a-1b3d-4e5f-9a6b-7c8d9e0f1a2b")))
     )
 
     val createAccountDescriptionV700 =
@@ -5320,6 +5106,8 @@ object Http4s700 {
         |`account_routings` carries external routings only (e.g. IBAN). The OBP-family schemes (`OBP`, `OBP_ACCOUNT_ID`) are refused: the canonical `{"scheme": "OBP", "address": "<account_id>"}` routing is implicit and included in every response, never stored. One routing per scheme; a routing address already registered at the bank is refused.
         |
         |The balance amount MUST be zero.
+        |
+        |The response `metadata.created` says who created the Account and for whom: `user_id` is the User who made the call and `on_behalf_of_user_id` the User it was made for. They differ when an application acting for a User, such as an AI agent, calls with a Consent; see [On Behalf Of](/glossary#On-Behalf-Of). `consent_reference_id` is then the Consent's reference id, the one Metrics record for the same call; it is omitted when the caller acted for themselves. OBP keeps this record itself, whichever Connector holds the Account.
         |
         |Authentication is Required.""".stripMargin
 
@@ -5360,6 +5148,63 @@ object Http4s700 {
       apiTagAccount :: apiTagOnboarding :: Nil,
       Some(List(canCreateAccount)),
       http4sPartialFunction = Some(createAccountWithIdV700)
+    )
+
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/account-directory
+    // The v6.0.0 Account Directory plus, for each account created through v7.0.0 Create Account,
+    // who created it and for whom (metadata.created, read from AccountCreations).
+    val getAccountDirectory: Http4sRoute = Http4sRoute {
+      case req @ GET -> `prefixPath` / "banks" / _ / "account-directory" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          val allowedParams = List("limit", "offset", "sort_direction")
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, _) <- NewStyle.function.createObpParams(httpParams, allowedParams, Some(cc))
+            (accounts, _) <- NewStyle.function.getAccountDirectory(bank.bankId, obpQueryParams, Some(cc))
+            creations <- Future(AccountCreations.accountCreationProvider.vend.getForAccounts(bank.bankId.value, accounts.map(_.id)))
+          } yield {
+            val viewsPerAccount: Map[BankIdAccountId, List[String]] = accounts.map { account =>
+              val bankIdAccountId = BankIdAccountId(BankId(account.bankId), AccountId(account.id))
+              bankIdAccountId -> Views.views.vend.availableViewsForAccount(bankIdAccountId).map(_.viewId.value)
+            }.toMap
+            JSONFactory700.createAccountDirectoryJsonV700(accounts, viewsPerAccount, creations.map(c => c.accountId -> c).toMap)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getAccountDirectory),
+      "GET",
+      "/banks/BANK_ID/account-directory",
+      "Get Account Directory at Bank",
+      s"""Returns the accounts at the bank with their identifiers, for management UIs that need to list accounts without exposing sensitive data: balances and owners are not included.
+        |
+        |Each account has account_id, bank_id, label, account_number, account_type, branch_id, account_routings, account_attributes and view_ids, as in v6.0.0.
+        |
+        |An account created through v7.0.0 Create Account also has `metadata.created`, the same object Create Account returned: `at` is when it was created, `user_id` the User who made the call and `on_behalf_of_user_id` the User it was made for. They differ when an application acting for a User, such as an AI agent, called with a Consent; see [On Behalf Of](/glossary#On-Behalf-Of). `consent_reference_id` is then the Consent's reference id, and is omitted when the caller acted for themselves. `metadata` is omitted for an account OBP holds no creation record for, such as one created by an earlier API version, by the Connector, or the settlement accounts created with the bank.
+        |
+        |${urlParametersDocument(true, false)}
+        |
+        |Authentication is Required
+        |""".stripMargin,
+      EmptyBody,
+      JSONFactory700.AccountDirectoryJsonV700(List(JSONFactory700.AccountDirectoryItemJsonV700(
+        account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+        bank_id = "gh.29.uk",
+        label = "My Account",
+        account_number = "123456789",
+        account_type = "CURRENT",
+        branch_id = "BRANCH_1",
+        account_routings = List(AccountRoutingJsonV121("OBP", "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0")),
+        account_attributes = List(com.openbankproject.commons.model.FastFirehoseAttributes(`type` = "STRING", code = "OVERDRAFT_LIMIT", value = "1000")),
+        view_ids = List("owner"),
+        metadata = Some(createAccountResponseExampleV700.metadata)
+      ))),
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagAccount :: Nil,
+      Some(List(canGetAccountDirectoryAtOneBank)),
+      http4sPartialFunction = Some(getAccountDirectory)
     )
 
     // ── OPEN_CORRIDOR per-bank broker registry (admin) ────────────────────────
@@ -5538,6 +5383,10 @@ object Http4s700 {
         |
         |Requires `open_corridor_enabled=true` on this instance and the `CanSettleOpenCorridor` role at BANK_ID.
         |
+        |**Who may call it.** A person with the Role CanSettleOpenCorridor at BANK_ID, or an application whose Consumer holds it
+        |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |
         |Authentication is Required.""".stripMargin,
       JSONFactory700.PostOpenCorridorSettlementJsonV700(other_bank_id = "ke.01.kcs", currency = "KES"),
       JSONFactory700.OpenCorridorSettleResultJsonV700(
@@ -5557,6 +5406,7 @@ object Http4s700 {
            $BankNotFound, AmqpBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(createOpenCorridorSettlement)
     )
 
@@ -5595,6 +5445,10 @@ object Http4s700 {
         |
         |Requires `open_corridor_enabled=true` and the `CanSettleOpenCorridor` role at BANK_ID (interim — a platform-operator role may replace this).
         |
+        |**Who may call it.** A person with the Role CanSettleOpenCorridor at BANK_ID, or an application whose Consumer holds it
+        |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |
         |Authentication is Required.""".stripMargin,
       JSONFactory700.PostOpenCorridorFeeSettlementJsonV700(currency = "KES"),
       code.opencorridorfees.OpenCorridorFeeSweepResultJsonV700(
@@ -5610,6 +5464,7 @@ object Http4s700 {
            $BankNotFound, AmqpBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(createOpenCorridorFeeSettlement)
     )
 
@@ -5646,6 +5501,10 @@ object Http4s700 {
         |
         |Requires `open_corridor_enabled=true` on this instance and the `CanSettleOpenCorridor` role at BANK_ID.
         |
+        |**Who may call it.** A person with the Role CanSettleOpenCorridor at BANK_ID, or an application whose Consumer holds it
+        |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |
         |Authentication is Required.""".stripMargin,
       EmptyBody,
       JSONFactory700.OpenCorridorSettlementStatusJsonV700(
@@ -5665,12 +5524,16 @@ object Http4s700 {
           delivery_status = "PENDING",
           attempts = 3,
           last_error = ""
-        ))
+        )),
+        settlement_tx_id = Some("91e92fceea0d3b373989ae869fa2e12d77488ace8edcf70325a0ed4ecd500c40"),
+        settlement_asset = Some("ADA"),
+        settlement_asset_amount = Some("61943319")
       ),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, OpenCorridorDisabled, $BankNotFound,
            OpenCorridorSettlementNotFound, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getOpenCorridorSettlement)
     )
 
@@ -7844,8 +7707,20 @@ object Http4s700 {
     // The asset registry: the currencies, metals, accounting units, crypto assets and bank-issued assets amounts are held in.
     resourceDocs ++= Http4s700Assets.resourceDocs
 
+    // Files: documents and photographs stored in a space and attached to records, and the public ones served without login.
+    resourceDocs ++= Http4s700Files.resourceDocs
+
+    // Send Email to Customer: a bank, or an application for it, tells one of its Customers about something.
+    resourceDocs ++= Http4s700CustomerEmails.resourceDocs
+
+    // Tenants: the customers of the operator of this instance.
+    resourceDocs ++= Http4s700Tenants.resourceDocs
+
     // What an OIDC provider reads from OBP-API to finish signing a User in for a Consumer.
     resourceDocs ++= Http4s700OpenIdConnect.resourceDocs
+
+    // Data retention: retention policies, runs and their approval, the disposal register, legal holds and the archive.
+    resourceDocs ++= Http4s700Retention.resourceDocs
 
     // The order in which the routes are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given this same list: the doc that validates a request

@@ -96,9 +96,9 @@ class LegacyCallLimitsPutTest extends V600ServerSetup {
       val v400 = makePutRequest(callLimitsPath(v4_0_0_Request).PUT <@ (user1), write(v400Body("100")))
 
       v310.code should equal(400)
-      v310.body.extract[ErrorMessage].message should startWith("OBP-30583")
+      v310.body.extract[ErrorMessage].message should startWith("OBP-30625")
       v400.code should equal(400)
-      v400.body.extract[ErrorMessage].message should startWith("OBP-30583")
+      v400.body.extract[ErrorMessage].message should startWith("OBP-30625")
       storedPerHourLimits should equal(List(1000L, 5000L))
     }
 

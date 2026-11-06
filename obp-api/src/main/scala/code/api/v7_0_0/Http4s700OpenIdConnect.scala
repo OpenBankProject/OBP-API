@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{Http4sRoute, EmptyBody, ResourceDoc, UserOrApplication, unboxFullOrFail, userAuthenticationMessage}
+import code.api.util.APIUtil.{Http4sRoute, EmptyBody, ResourceDoc, UserXORApplication, unboxFullOrFail, userAuthenticationMessage}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -118,7 +118,7 @@ object Http4s700OpenIdConnect {
     List($AuthenticatedUserIsRequired, UserHasMissingRoles, ConsentNotFound, UserNotFoundByUserId, UnknownError),
     apiTagOIDC :: apiTagConsent :: apiTagOAuth :: Nil,
     Some(canGetOidcConsent :: Nil),
-    authMode = UserOrApplication,
+    authMode = UserXORApplication,
     http4sPartialFunction = Some(getOidcConsent)
   )
 }

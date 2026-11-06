@@ -31,7 +31,7 @@ import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateUserCustomerLink, CanDeleteUserCustomerLink, CanGetUserCustomerLink}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
+import code.api.util.ErrorMessages.{ApplicationNotIdentified, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v2_0_0.UserCustomerLinksJson
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
@@ -143,7 +143,8 @@ class UserCustomerLinkTest extends V400ServerSetup {
       val createResponse = makePostRequest(createRequest, write(postJson))
       Then("We should get a 401")
       createResponse.code should equal(401)
-      createResponse.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
+      // The endpoint is UserXORApplication: with neither a User nor an application, the application is unknown.
+      createResponse.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
     }
   }
   feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {

@@ -792,7 +792,7 @@ object Http4s510 {
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
       List(apiTagConsumer),
       Some(List(canCreateConsumer)),
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(createConsumer)
     )
 
@@ -856,7 +856,7 @@ object Http4s510 {
       ),
       List(apiTagConsumer),
       Some(List(canGetConsumers)),
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsumers)
     )
 
@@ -1234,7 +1234,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheTrace, canGetSystemLogCacheAll)),
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheTraceEndpoint)
     )
 
@@ -1261,7 +1261,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheDebug, canGetSystemLogCacheAll)),
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheDebugEndpoint)
     )
 
@@ -1288,7 +1288,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheInfo, canGetSystemLogCacheAll)),
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheInfoEndpoint)
     )
 
@@ -1315,7 +1315,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheWarning, canGetSystemLogCacheAll)),
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheWarningEndpoint)
     )
 
@@ -1342,7 +1342,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheError, canGetSystemLogCacheAll)),
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheErrorEndpoint)
     )
 
@@ -1369,7 +1369,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheAll)),
-      authMode = UserOrApplication,
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheAllEndpoint)
     )
 
@@ -5108,6 +5108,7 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           val callContextOpt = Some(cc)
           for {
+            _ <- code.api.util.Consent.checkConsentsAllowed(callContextOpt)
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc = callContextOpt) {
               List(StrongCustomerAuthentication.SMS.toString(),
@@ -5300,6 +5301,7 @@ object Http4s510 {
           val rawBody = cc.httpBody.getOrElse("")
           val parsedBody = com.openbankproject.commons.util.JsonAliases.parse(rawBody)
           for {
+            _ <- code.api.util.Consent.checkConsentsAllowed(Some(cc))
             (_, callContextOpt) <- APIUtil.applicationAccess(cc)
             _ <- APIUtil.passesPsd2Aisp(callContextOpt)
             postConsentRequestJsonV510 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostVRPConsentRequestJsonV510 ", 400, callContextOpt) {

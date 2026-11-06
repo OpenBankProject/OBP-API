@@ -218,11 +218,17 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
    * (SignatoryPanel.UserIds). DBUtil.runQuery stringifies every column, so one comparison covers
    * all three: equal to the primary key, or containing the user_id.
    */
+  // A record-both reference (Counterparty, DynamicData, AccountCreation, ...) keeps the agent in its
+  // first column on purpose -- that is the audit half -- and the person in its OnBehalfOf column. Only
+  // the OnBehalfOf column is about ownership, so only it may not hold the consent user.
+  private def ownershipFields(ref: UserReference): List[String] =
+    if (ref.fields.exists(_.contains("OnBehalfOf"))) ref.fields.filter(_.contains("OnBehalfOf")) else ref.fields
+
   private def referencesOwnedBy(userId: String, primaryKey: String): List[String] =
     for {
       ref   <- UserReference.byPolicy(AttributionPolicy.UseOnBehalfOfUserId)
       meta  <- metaByClassName.get(ref.mapperClass).toList
-      field <- ref.fields.flatMap(name => meta.mappedFields.find(_.name == name))
+      field <- ownershipFields(ref).flatMap(name => meta.mappedFields.find(_.name == name))
       where  = sharedColumnDiscriminator.get(ref.name).flatMap { case (discriminator, otherValue) =>
                  meta.mappedFields.find(_.name == discriminator).map(d =>
                    s" WHERE ${d.dbColumnName} IS NULL OR ${d.dbColumnName} <> '$otherValue'")
@@ -371,6 +377,20 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
         holders should contain(resourceUser1.userId)
         holders should not contain agentId
       }
+
+      // AccountCreation_CreatedByUserId records both: the agent made the call, for resourceUser1.
+      withClue(s"metadata.created of the account the agent created: ${compact(render(body \ "metadata"))} ") {
+        (body \ "metadata" \ "created" \ "user_id").extract[String] should equal(agentId)
+        (body \ "metadata" \ "created" \ "on_behalf_of_user_id").extract[String] should equal(resourceUser1.userId)
+      }
+
+      // ... and names the Consent it acted under, by the reference id the metrics record for the call.
+      val agentConsentReferenceId = code.model.dataAccess.ResourceUser
+        .find(net.liftweb.mapper.By(code.model.dataAccess.ResourceUser.userId_, agentId))
+        .flatMap(ru => code.consent.Consents.consentProvider.vend.getConsentByConsentId(ru.CreatedByConsentId.get))
+        .map(_.consentReferenceId)
+      agentConsentReferenceId.isDefined should be(true)
+      (body \ "metadata" \ "created" \ "consent_reference_id").extractOpt[String] should equal(agentConsentReferenceId.toOption)
 
       val leaked = referencesOwnedBy(agentId, agentKey).filterNot(notYetWired.contains)
       withClue(

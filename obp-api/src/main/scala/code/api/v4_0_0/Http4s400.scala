@@ -1549,6 +1549,9 @@ object Http4s400 {
       "Create User Customer Link",
       s"""Link a User to a Customer
          |
+         |**Who may call it.** A User with the Role CanCreateUserCustomerLink at BANK_ID, or an application acting as
+         |itself whose Consumer holds it as a Scope.
+         |
          |${userAuthenticationMessage(true)}""",
       createUserCustomerLinkJson, userCustomerLinkJson,
       List(
@@ -1565,6 +1568,7 @@ object Http4s400 {
       ),
       List(apiTagCustomer, apiTagUser),
       Some(List(canCreateUserCustomerLinkAtAnyBank, canCreateUserCustomerLink)),
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(createUserCustomerLinks))
 
     // ─── getSystemDynamicEntities ─────────────────────────────────────────────

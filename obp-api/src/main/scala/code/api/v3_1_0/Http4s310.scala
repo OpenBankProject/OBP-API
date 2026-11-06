@@ -4521,6 +4521,7 @@ object Http4s310 {
         EndpointHelpers.withUserAndBodyCreated[PostConsentBodyCommonJson, Any](req) { (user, consentJson, cc) =>
           val raw = cc.httpBody.getOrElse("")
           for {
+            _ <- code.api.util.Consent.checkConsentsAllowed(Some(cc))
             _ <- code.util.Helper.booleanToFuture(ConsentAllowedScaMethods, cc = Some(cc)) {
               List(StrongCustomerAuthentication.SMS.toString,
                 StrongCustomerAuthentication.EMAIL.toString,

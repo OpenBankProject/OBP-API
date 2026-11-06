@@ -194,6 +194,8 @@ object Migration extends MdcLoggable {
       renameDynamicEntityRoles()
       renameDynamicEntityDefinitionRoles()
       upperCaseStoredCurrencyCodes()
+      renameOrganisationsToTenants(startedBeforeSchemifier)
+      markSelfServiceBanks(startedBeforeSchemifier)
       ensureConsentViewExists()
     }
 
@@ -958,6 +960,40 @@ object Migration extends MdcLoggable {
      * `eur`, would otherwise be missed by database queries that select by currency. The columns, and
      * what is deliberately left alone, are in [[MigrationOfCurrencyCodesUpperCase]].
      */
+    /**
+     * Copy stored Organisations and their members into the Tenant tables, and make their Roles the Tenant system
+     * Roles. It must run after Schemifier, which creates the Tenant tables. The details are in
+     * [[MigrationOfOrganisationToTenant]].
+     */
+    private def renameOrganisationsToTenants(startedBeforeSchemifier: Boolean): Boolean = {
+      if (startedBeforeSchemifier) {
+        logger.warn(s"Migration.database.renameOrganisationsToTenants(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(renameOrganisationsToTenants(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfOrganisationToTenant.migrate(name)
+        }
+      }
+    }
+
+    /**
+     * Mark the banks made with Create My Bank, and hold the unscanned files stored in them as pending. It must run
+     * after Schemifier, which creates SelfServiceBank and adds the ScanStatus column. The details are in
+     * [[MigrationOfSelfServiceBanks]].
+     */
+    private def markSelfServiceBanks(startedBeforeSchemifier: Boolean): Boolean = {
+      if (startedBeforeSchemifier) {
+        logger.warn(s"Migration.database.markSelfServiceBanks(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(markSelfServiceBanks(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfSelfServiceBanks.markAndHoldFiles(name)
+        }
+      }
+    }
+
     private def upperCaseStoredCurrencyCodes(): Boolean = {
       val name = nameOf(upperCaseStoredCurrencyCodes)
       runOnce(name) {

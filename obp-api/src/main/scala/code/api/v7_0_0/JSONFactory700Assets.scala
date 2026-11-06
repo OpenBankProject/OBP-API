@@ -55,6 +55,21 @@ case class AssetJsonV700(
 
 case class AssetsPaginationJsonV700(total: Int, limit: Int, offset: Int)
 
+/**
+ * The body of Create Asset. The issuer is the bank in the path, so it is not in the body; the status of
+ * a new asset is always ACTIVE.
+ */
+case class PostAssetJsonV700(
+  asset_code: String,
+  asset_type: String,
+  name: String,
+  decimal_places: Int,
+  issuer_product_code: Option[String],
+  chain_scheme: Option[String],
+  chain_asset_id: Option[String],
+  dti: Option[String]
+)
+
 case class AssetsJsonV700(assets: List[AssetJsonV700], pagination: AssetsPaginationJsonV700)
 
 object JSONFactory700Assets {
@@ -114,6 +129,18 @@ object JSONFactory700Assets {
     created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
     created_at = new Date(),
     updated_at = new Date()
+  )
+
+  /** A bank's bond token, the body Create Asset takes at that bank. */
+  val postAssetJsonExample: PostAssetJsonV700 = PostAssetJsonV700(
+    asset_code = "TZBOND29",
+    asset_type = "DEBT_SECURITY",
+    name = "Example Bank 2029 Fixed Rate Note",
+    decimal_places = 0,
+    issuer_product_code = Some("TZBOND29"),
+    chain_scheme = Some("CARDANO_MAINNET"),
+    chain_asset_id = Some("f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a.545a424f4e443239"),
+    dti = None
   )
 
   val assetsJsonExample: AssetsJsonV700 =

@@ -5403,7 +5403,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     TransactionRequests.transactionRequestProvider.vend.getTransactionRequest(transactionRequestId).map(transactionRequest => (transactionRequest, callContext))
 
   override def getTransactionRequestTypes(initiator: User, fromAccount: BankAccount, callContext: Option[CallContext]):Box[(List[TransactionRequestType], Option[CallContext])] = {
-    Full((APIUtil.getPropsValue("transactionRequests_supported_types", "").split(",").map(x => TransactionRequestType(x)).toList, callContext))
+    Full((APIUtil.advertisedTransactionRequestTypes.map(x => TransactionRequestType(x)), callContext))
   }
   
   /**

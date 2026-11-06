@@ -25,48 +25,53 @@ TESOBE (http://www.tesobe.com/)
 
   */
 
-package code.organisation
+package code.tenant
 
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future
 
-object Organisations extends SimpleInjector {
-  val organisation = new Inject(() => buildOne) {}
+object Tenants extends SimpleInjector {
+  val tenant = new Inject(() => buildOne) {}
 
-  def buildOne: OrganisationProvider = MappedOrganisationProvider
+  def buildOne: TenantProvider = MappedTenantProvider
 }
 
-trait OrganisationProvider {
-  def createOrganisation(
-    organisationId: String,
+/**
+ * A Tenant is a customer of the operator of this OBP instance: an organisation that uses it. Tenants belong to
+ * no bank; later, banks will name the Tenant they belong to. The tenant_id is
+ * unique and immutable.
+ */
+trait TenantProvider {
+  def createTenant(
+    tenantId: String,
     name: String,
     website: Option[String],
     logoUrl: Option[String],
     status: String,
     visibility: String,
     createdByUserId: String
-  ): Box[OrganisationTrait]
+  ): Box[TenantTrait]
 
-  def getOrganisation(organisationId: String): Box[OrganisationTrait]
+  def getTenant(tenantId: String): Box[TenantTrait]
 
-  def getAllOrganisations(): Future[Box[List[OrganisationTrait]]]
+  def getTenants(): Future[Box[List[TenantTrait]]]
 
-  def updateOrganisation(
-    organisationId: String,
+  def updateTenant(
+    tenantId: String,
     name: Option[String],
     website: Option[String],
     logoUrl: Option[String],
     status: Option[String],
     visibility: Option[String]
-  ): Box[OrganisationTrait]
+  ): Box[TenantTrait]
 
-  def deleteOrganisation(organisationId: String): Box[Boolean]
+  def deleteTenant(tenantId: String): Box[Boolean]
 }
 
-trait OrganisationTrait {
-  def organisationId: String
+trait TenantTrait {
+  def tenantId: String
   def name: String
   def website: Option[String]
   def logoUrl: Option[String]
