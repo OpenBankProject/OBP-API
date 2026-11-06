@@ -214,6 +214,8 @@ run_shard() {
     # fallback, so DynamicUtilTest / ConnectorMethodTest / AbacRuleTests /
     # DynamicResourceDocTest / DynamicMessageDocTest / DynamicCodeKillSwitchTest's ON
     # scenarios need this set explicitly or they fail locally with OBP-50020.
+    # OBP_ALLOW_CASCADE_DELETE mirrors CI's allow_cascade_delete=true: the cascade-delete
+    # endpoints are off by default, and the Delete*CascadeTest suites get 404s without it.
     # OBP_BERLIN_GROUP_V1_3_ALIAS_PATH mirrors CI's berlin_group_v1_3_alias_path=0.6/v1
     # (injected by both workflows' "Setup props" step): without it, OBP_BERLIN_GROUP_1_3_Alias
     # reports an empty ScannedApiVersion("","","") and ScannedApis.isAddressable filters it
@@ -245,6 +247,7 @@ run_shard() {
     OBP_MAIL_TEST_MODE="true" \
     OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
     OBP_ALLOW_USER_GENERATED_SCALA_CODE="true" \
+    OBP_ALLOW_CASCADE_DELETE="true" \
     OBP_BERLIN_GROUP_V1_3_ALIAS_PATH="0.6/v1" \
     OBP_API_INSTANCE_ID="shard_${n}_${port}" \
     "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
@@ -449,7 +452,8 @@ fi
 # read_json_schema_validation_requires_role / read_authentication_type_validation_requires_role
 # forced true. That value is baked into Http4s400's ResourceDoc error list at object-init time, so
 # it needs its own JVM (pom.xml's default tagsToExclude skips this tag in every shard above, which
-# all boot with the props unset i.e. false). Run sequentially, after the main shards, so it shares
+# all boot with the props unset i.e. false). CascadeDeleteDisabledTest is the reverse: the shards above
+# run with allow_cascade_delete=true, and this JVM runs with it false. Run sequentially, after the main shards, so it shares
 # no DB connection pool contention with them; its surefire XML lands in the same
 # obp-api/target/surefire-reports directory the audit below already scans, so no separate
 # reporting path is needed.
@@ -484,8 +488,9 @@ else
         OBP_API_INSTANCE_ID="prop_gated_${PROP_PORT}" \
         OBP_READ_JSON_SCHEMA_VALIDATION_REQUIRES_ROLE="true" \
         OBP_READ_AUTHENTICATION_TYPE_VALIDATION_REQUIRES_ROLE="true" \
+        OBP_ALLOW_CASCADE_DELETE="false" \
         "$TIMEOUT_BIN" 300 mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
-            "-DwildcardSuites=code.api.v4_0_0.JsonSchemaValidationPublicPropTrueTest,code.api.v4_0_0.AuthenticationTypeValidationPublicPropTrueTest" \
+            "-DwildcardSuites=code.api.v4_0_0.JsonSchemaValidationPublicPropTrueTest,code.api.v4_0_0.AuthenticationTypeValidationPublicPropTrueTest,code.api.v4_0_0.CascadeDeleteDisabledTest" \
             -DtagsToInclude=PropGatedPublicEndpoint -Dtest.tagsToExclude= \
             > test-results/parallel/prop_gated_public_endpoint.log 2>&1
         PROP_RC=$?

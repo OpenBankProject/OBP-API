@@ -110,7 +110,7 @@ import code.util.Helper.SILENCE_IS_GOLDEN
 import com.openbankproject.commons.dto.GetProductsParam
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model.{CreditLimit, CreditRating, CustomerFaceImage}
-import net.liftweb.common.{Empty, Failure}
+import net.liftweb.common.{Box, Empty, Failure}
 
 import scala.util.Random
 import code.metrics.APIMetrics
@@ -5057,35 +5057,44 @@ object Http4s600 {
             box <- code.abacrule.AbacRuleEngine.validateRuleCodeAsync(validateJson.rule_code)
           } yield box match {
             case Full(msg) => ValidateAbacRuleSuccessJsonV600(valid = true, message = msg): Any
-            case Failure(errorMsg, _, _) =>
-              val cleanError = errorMsg.replace("Invalid ABAC rule code: ", "")
-                .replace("Failed to compile ABAC rule: ", "")
-              val (obpMsg, errorType) =
-                if (cleanError.toLowerCase.contains("too permissive") || cleanError.toLowerCase.contains("tautological")) {
-                  val ec = if (cleanError.toLowerCase.contains("statistical"))
-                    AbacRuleStatisticallyTooPermissive else AbacRuleTooPermissive
-                  (ec, "PermissivenessError")
-                } else if (cleanError.toLowerCase.contains("type mismatch") ||
-                  (cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")))
-                  (AbacRuleTypeMismatch, "TypeError")
-                else if (cleanError.toLowerCase.contains("syntax") || cleanError.toLowerCase.contains("parse"))
-                  (AbacRuleSyntaxError, "SyntaxError")
-                else if (cleanError.toLowerCase.contains("not found") || cleanError.toLowerCase.contains("not a member"))
-                  (AbacRuleFieldReferenceError, "FieldReferenceError")
-                else if (cleanError.toLowerCase.contains("compilation failed") ||
-                  cleanError.toLowerCase.contains("reflective compilation has failed"))
-                  (AbacRuleCompilationFailed, "CompilationError")
-                else (AbacRuleValidationFailed, "ValidationError")
+            case failed =>
+              val (obpMsg, errorType, error) = classifyAbacRuleCodeFailure(failed)
               ValidateAbacRuleFailureJsonV600(
-                valid = false, error = cleanError, message = obpMsg,
+                valid = false, error = error, message = obpMsg,
                 details = ValidateAbacRuleErrorDetailsJsonV600(error_type = errorType))
-            case _ =>
-              ValidateAbacRuleFailureJsonV600(
-                valid = false, error = "Unknown validation error",
-                message = AbacRuleValidationFailed,
-                details = ValidateAbacRuleErrorDetailsJsonV600(error_type = "UnknownError"))
           }
         }
+    }
+
+    /** The OBP error message, error type and engine message of a failed ABAC rule code validation. */
+    private def classifyAbacRuleCodeFailure(validation: Box[String]): (String, String, String) = validation match {
+      case Failure(errorMsg, _, _) =>
+        val cleanError = errorMsg.replace("Invalid ABAC rule code: ", "")
+          .replace("Failed to compile ABAC rule: ", "")
+        val (obpMsg, errorType) =
+          if (cleanError.toLowerCase.contains("too permissive") || cleanError.toLowerCase.contains("tautological")) {
+            val ec = if (cleanError.toLowerCase.contains("statistical"))
+              AbacRuleStatisticallyTooPermissive else AbacRuleTooPermissive
+            (ec, "PermissivenessError")
+          } else if (cleanError.toLowerCase.contains("type mismatch") ||
+            (cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")))
+            (AbacRuleTypeMismatch, "TypeError")
+          else if (cleanError.toLowerCase.contains("syntax") || cleanError.toLowerCase.contains("parse"))
+            (AbacRuleSyntaxError, "SyntaxError")
+          else if (cleanError.toLowerCase.contains("not found") || cleanError.toLowerCase.contains("not a member"))
+            (AbacRuleFieldReferenceError, "FieldReferenceError")
+          else if (cleanError.toLowerCase.contains("compilation failed") ||
+            cleanError.toLowerCase.contains("reflective compilation has failed"))
+            (AbacRuleCompilationFailed, "CompilationError")
+          else (AbacRuleValidationFailed, "ValidationError")
+        (obpMsg, errorType, cleanError)
+      case _ => (AbacRuleValidationFailed, "UnknownError", "Unknown validation error")
+    }
+
+    /** Fails with the same OBP error the validate endpoint reports, followed by the engine's message. */
+    private def failOnInvalidAbacRuleCode(validation: Box[String], cc: CallContext): Future[Box[Unit]] = {
+      val (obpMsg, _, error) = classifyAbacRuleCodeFailure(validation)
+      Helper.booleanToFuture(s"$obpMsg $error", 400, Some(cc)) { validation.isDefined }
     }
 
     lazy val executeAbacRule: Http4sRoute = Http4sRoute {
@@ -5988,8 +5997,8 @@ object Http4s600 {
             }
             _ <- Helper.booleanToFuture("Rule name must not be empty", cc = Some(cc)) { createJson.rule_name.nonEmpty }
             _ <- Helper.booleanToFuture("Rule code must not be empty", cc = Some(cc)) { createJson.rule_code.nonEmpty }
-            _ <- AbacRuleEngine.validateRuleCodeAsync(createJson.rule_code)
-              .map(unboxFullOrFail(_, Some(cc), "Invalid ABAC rule code", 400))
+            validation <- AbacRuleEngine.validateRuleCodeAsync(createJson.rule_code)
+            _ <- failOnInvalidAbacRuleCode(validation, cc)
             // Maker/checker: a managed instance queues the rule for a second user's approval (202)
             intercepted <- Future(MakerChecker.intercept(
               com.openbankproject.commons.model.enums.DynamicChangeRequestTargetType.ABAC_RULE,
@@ -6050,8 +6059,8 @@ object Http4s600 {
             updateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UpdateAbacRuleJsonV600]
             }
-            _ <- AbacRuleEngine.validateRuleCodeAsync(updateJson.rule_code)
-              .map(unboxFullOrFail(_, Some(cc), "Invalid ABAC rule code", 400))
+            validation <- AbacRuleEngine.validateRuleCodeAsync(updateJson.rule_code)
+            _ <- failOnInvalidAbacRuleCode(validation, cc)
             _ <- Future(MappedAbacRuleProvider.getAbacRuleById(ruleId))
               .map(unboxFullOrFail(_, Some(cc), s"ABAC Rule not found with ID: $ruleId", 404))
             intercepted <- Future(MakerChecker.intercept(
@@ -6215,9 +6224,13 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CallLimitPostJsonV600]
             }
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            scopeFields = RateLimitingUtil.rateLimitScopeFields(postJson.api_name, postJson.api_version, postJson.bank_id)
+            _ <- Helper.booleanToFuture(s"$RateLimitScopeNotSupported Remove: ${scopeFields.mkString(", ")}", 400, Some(cc)) {
+              scopeFields.isEmpty
+            }
             rateLimitingBox <- RateLimitingDI.rateLimiting.vend.createConsumerCallLimits(
               consumerId, postJson.from_date, postJson.to_date,
-              postJson.api_version, postJson.api_name, postJson.bank_id,
+              None, None, None, // rateLimitScopeFields has refused any value that is not blank
               Some(postJson.per_second_call_limit), Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit), Some(postJson.per_day_call_limit),
               Some(postJson.per_week_call_limit), Some(postJson.per_month_call_limit))
@@ -6237,9 +6250,16 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CallLimitPostJsonV400]
             }
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            scopeFields = RateLimitingUtil.rateLimitScopeFields(postJson.api_name, postJson.api_version, postJson.bank_id)
+            _ <- Helper.booleanToFuture(s"$RateLimitScopeNotSupported Remove: ${scopeFields.mkString(", ")}", 400, Some(cc)) {
+              scopeFields.isEmpty
+            }
+            existing <- RateLimitingDI.rateLimiting.vend.getByRateLimitingId(rateLimitingId)
             _ <- RateLimitingDI.rateLimiting.vend.updateConsumerCallLimits(
               rateLimitingId, postJson.from_date, postJson.to_date,
-              postJson.api_version, postJson.api_name, postJson.bank_id,
+              // rateLimitScopeFields has refused any value that is not blank; the bank_id of a record an
+              // API Product Subscription wrote is kept.
+              None, None, existing.toOption.flatMap(_.bankId),
               Some(postJson.per_second_call_limit), Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit), Some(postJson.per_day_call_limit),
               Some(postJson.per_week_call_limit), Some(postJson.per_month_call_limit))
@@ -6288,7 +6308,7 @@ object Http4s600 {
               val ldt = java.time.LocalDateTime.parse(dateWithHourString, fmt)
               java.util.Date.from(ldt.atZone(java.time.ZoneOffset.UTC).toInstant())
             }
-            (rateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, date)
+            (rateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, date, exact = false)
           } yield JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(rateLimit, ids, date)
         }
     }
@@ -14795,8 +14815,11 @@ object Http4s600 {
         |
         |A consumer with no records at all gets the system defaults (`rate_limiting_per_*` props).
         |
+        |A record applies to every call of the consumer from `from_date` to `to_date`. `api_name`, `api_version` and `bank_id` cannot be set yet: a request that names one is refused with 400, and an empty value is stored as not set.
+        |
         |A record created by an API Product Subscription is managed by that subscription: it is rewritten on the
-        |subscription's next status change and removed when the subscription is cancelled.
+        |subscription's next status change and removed when the subscription is cancelled. Such a record shows the
+        |subscription's `bank_id` for reference; it too applies to every call of the consumer.
         |
         |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for details.
         |
@@ -14810,6 +14833,7 @@ object Http4s600 {
           InvalidJsonFormat,
           InvalidConsumerId,
           ConsumerNotFoundByConsumerId,
+          RateLimitScopeNotSupported,
           UserHasMissingRoles,
           UnknownError
         ),
@@ -14843,8 +14867,11 @@ object Http4s600 {
         |
         |A consumer with no records at all gets the system defaults (`rate_limiting_per_*` props).
         |
+        |A record applies to every call of the consumer from `from_date` to `to_date`. `api_name`, `api_version` and `bank_id` cannot be set yet: a request that names one is refused with 400, and an empty value is stored as not set.
+        |
         |A record created by an API Product Subscription is managed by that subscription: it is rewritten on the
-        |subscription's next status change and removed when the subscription is cancelled.
+        |subscription's next status change and removed when the subscription is cancelled. Such a record shows the
+        |subscription's `bank_id` for reference; it too applies to every call of the consumer.
         |
         |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for details.
         |
@@ -14858,6 +14885,7 @@ object Http4s600 {
           InvalidJsonFormat,
           InvalidConsumerId,
           ConsumerNotFoundByConsumerId,
+          RateLimitScopeNotSupported,
           UserHasMissingRoles,
           UpdateConsumerError,
           UnknownError

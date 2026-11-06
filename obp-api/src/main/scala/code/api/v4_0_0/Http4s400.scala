@@ -65,7 +65,7 @@ import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.{ResourceDocMatcher, ResourceDocMiddleware}
 import code.api.util.http4s.IdempotencyMiddleware
-import code.api.util.{APIUtil, AttributeTypeDocs, CallContext, CustomJsonFormats, NewStyle}
+import code.api.util.{APIUtil, AttributeTypeDocs, CallContext, CustomJsonFormats, NewStyle, RateLimitingUtil}
 import code.api.v4_0_0.JSONFactory400._
 import code.DynamicData.DynamicData
 import code.api.util.migration.Migration
@@ -406,10 +406,17 @@ object Http4s400 {
           for {
             _ <- NewStyle.function.handleEntitlementsAndScopes("", user.userId, List(canUpdateRateLimits), Some(cc))
             _ <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
+            scopeFields = RateLimitingUtil.rateLimitScopeFields(postJson.api_name, postJson.api_version, postJson.bank_id)
+            _ <- code.util.Helper.booleanToFuture(s"$RateLimitScopeNotSupported Remove: ${scopeFields.mkString(", ")}", 400, Some(cc)) {
+              scopeFields.isEmpty
+            }
+            // The consumer's one rate limit is changed; with several, which one is meant is not known.
+            sameScope <- RateLimitingDI.rateLimiting.vend.countConsumerCallLimits(consumerIdStr, None, None, None)
+            _ <- code.util.Helper.booleanToFuture(RateLimitNotUnique, 400, Some(cc)) { sameScope <= 1 }
             rateLimiting <- RateLimitingDI.rateLimiting.vend.createOrUpdateConsumerCallLimits(
               consumerIdStr,
               postJson.from_date, postJson.to_date,
-              postJson.api_version, postJson.api_name, postJson.bank_id,
+              None, None, None, // rateLimitScopeFields has refused any value that is not blank
               Some(postJson.per_second_call_limit),
               Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit),
@@ -439,6 +446,12 @@ object Http4s400 {
       |Per Week
       |Per Month
       |
+      |This changes the Consumer's rate limit, or creates it when there is none. A Consumer given several rate limits
+      |with Create Rate Limits (v6.0.0) is refused with 400: change one of them by its RATE_LIMITING_ID instead.
+      |
+      |A rate limit applies to every call of the Consumer: `api_name`, `api_version` and `bank_id` cannot be set yet, and
+      |a request that names one is refused with 400. An empty value is taken as not set.
+      |
       |
       |${userAuthenticationMessage(true)}
       |
@@ -446,7 +459,7 @@ object Http4s400 {
       callLimitPostJsonV400,
       callLimitPostJsonV400,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidConsumerId,
-      ConsumerNotFoundByConsumerId, UserHasMissingRoles, UpdateConsumerError, UnknownError),
+      ConsumerNotFoundByConsumerId, RateLimitScopeNotSupported, RateLimitNotUnique, UserHasMissingRoles, UpdateConsumerError, UnknownError),
       List(apiTagConsumer, apiTagRateLimits),
       Some(List(canUpdateRateLimits)),
       http4sPartialFunction = Some(callsLimit)
@@ -5386,17 +5399,28 @@ object Http4s400 {
               consent.userId == user.userId
             }
             status = code.consent.ConsentStatus.withName(consentJson.status)
-            updated <- APIUtil.getPropsAsBoolValue("consents.sca.enabled", true) match {
-              case true =>
+            updated <- (refusalOf(consent, status), APIUtil.getPropsAsBoolValue("consents.sca.enabled", true)) match {
+              case (None, true) =>
                 Future.successful(consent)
-              case false =>
+              case (refusal, _) =>
                 Future(
-                  code.consent.Consents.consentProvider.vend.updateConsentStatus(consentId, status)
+                  code.consent.Consents.consentProvider.vend.updateConsentStatus(consentId, refusal.getOrElse(status))
                 ) map { box => connectorEmptyResponse(box, Some(cc)) }
             }
           } yield code.api.v3_1_0.ConsentJsonV310(updated.consentId, updated.jsonWebToken, updated.status)
         }
     }
+
+    // Refusing a consent its PSU has not authorised yet grants nothing, so it needs no SCA. The refusal is stored
+    // under the consent's own standard's name for it: Berlin Group reads `rejected`, the others REJECTED.
+    private val awaitingAuthorisation = Set(ConsentStatus.INITIATED, ConsentStatus.received,
+      ConsentStatus.AWAITINGAUTHORISATION).map(_.toString)
+    private def refusalOf(consent: code.consent.ConsentTrait, requested: ConsentStatus.Value): Option[ConsentStatus.Value] =
+      if ((requested == ConsentStatus.REJECTED || requested == ConsentStatus.rejected) &&
+          awaitingAuthorisation.contains(consent.status))
+        Some(if (consent.apiStandard == code.api.berlin.group.ConstantsBG.berlinGroupVersion1.apiStandard)
+          ConsentStatus.rejected else ConsentStatus.REJECTED)
+      else None
 
     lazy val addConsentUser: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "banks" / _ / "consents" / consentId / "user-update-request" =>
@@ -5577,6 +5601,10 @@ object Http4s400 {
         |This endpoint is used to update the Status of Consent.
         |
         |The consent must belong to the logged-in user; another user's consent returns 404 $ConsentNotFound
+        |
+        |A consent its user has not authorised yet (INITIATED, received or AWAITINGAUTHORISATION) can be refused with
+        |the status REJECTED without SCA; a Berlin Group consent is stored as rejected. While consents.sca.enabled is
+        |true, any other change leaves the status as it is.
         |
         |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted
          .mkString(", ")}.
@@ -7975,6 +8003,8 @@ object Http4s400 {
         "Delete Bank Cascade",
         s"""Delete a Bank Cascade specified by BANK_ID.
         |
+        |The bank's dynamic entity definitions and all their records go with it, whoever owns the records. Unlike
+        |the cascade delete of a single dynamic entity, no `ZZ_BAK_` copy is made first.
         |
         |${userAuthenticationMessage(true)}
         |
@@ -8026,6 +8056,11 @@ object Http4s400 {
         Some(List(canDeleteCustomerCascade)),
         http4sPartialFunction = Some(deleteCustomerCascade)
       )
+
+      // Cascade deletes are documented, and routed, only when allow_cascade_delete=true. Their docs come
+      // out here and their routes out of routesInOrder, both by cascadeDeleteRoutes.
+      if (!cascadeDeleteEnabled)
+        staticResourceDocs --= staticResourceDocs.filter(_.http4sPartialFunction.exists(cascadeDeleteRoutes.contains))
 
       staticResourceDocs += ResourceDoc(
         implementedInApiVersion, nameOf(deleteSystemLevelEndpointTag), "DELETE",
@@ -11253,6 +11288,19 @@ object Http4s400 {
 
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
+    // Read once: whether the cascade-delete endpoints exist is fixed when this object initialises.
+    private lazy val cascadeDeleteEnabled: Boolean = APIUtil.cascadeDeleteEnabled
+
+    // Left out of routesInOrder, and their ResourceDocs out of staticResourceDocs, unless
+    // allow_cascade_delete=true.
+    private lazy val cascadeDeleteRoutes: Set[Http4sHandler] = Set(
+      deleteTransactionCascade,
+      deleteAccountCascade,
+      deleteBankCascade,
+      deleteProductCascade,
+      deleteCustomerCascade
+    )
+
     // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given the docs in this same order.
     lazy val routesInOrder: List[Http4sHandler] = List(
@@ -11529,7 +11577,7 @@ object Http4s400 {
       createUserWithRoles,
       createUserWithAccountAccess,
       createUserInvitation
-    )
+    ).filter(route => cascadeDeleteEnabled || !cascadeDeleteRoutes.contains(route))
 
     lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
 

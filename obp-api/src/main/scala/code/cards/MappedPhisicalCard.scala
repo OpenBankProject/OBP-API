@@ -30,6 +30,7 @@ package code.cards
 import java.util.{Date, UUID}
 
 import code.api.util.ErrorMessages.BankAccountNotFound
+import code.cardattribute.MappedCardAttribute
 import code.api.util._
 import code.model.dataAccess.MappedBankAccount
 import code.model._
@@ -315,7 +316,9 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
     MappedPhysicalCard.find(
       By(MappedPhysicalCard.mBankId, bankId.value),
       By(MappedPhysicalCard.mCardId, cardId),
-    ).map(_.delete_!)
+    ).map { card =>
+      MappedCardAttribute.deleteForCards(bankId.value, List(cardId)) && card.delete_!
+    }
   }
   
 }

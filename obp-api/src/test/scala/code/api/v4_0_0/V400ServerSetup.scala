@@ -468,6 +468,9 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
    * Returns (fromAccountId, toAccountId, transactionRequestIds).
    */
   def createPaymentsForDeleteCascade(bankId: String): (String, String, List[String]) = {
+    // The challenge of the second payment is sent by a method the user can be reached by; with the default SMS
+    // and no linked customer there is no one to send it to.
+    setPropsValues("SANDBOX_TAN_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
     def addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310
       .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"),
         account_routings = List(AccountRoutingJsonV121(Random.nextString(10), Random.nextString(10))))

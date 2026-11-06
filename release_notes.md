@@ -3,6 +3,14 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+03/11/2026    TBD           CHANGED: the cascade-delete endpoints under /management/cascading are off by
+                            default, behind the new prop allow_cascade_delete (default false). While it is
+                            false they are not routed and not listed in the Resource Docs of any version,
+                            so a request gets 404: DELETE /obp/v4.0.0/management/cascading/banks/BANK_ID,
+                            .../accounts/ACCOUNT_ID, .../accounts/ACCOUNT_ID/transactions/TRANSACTION_ID,
+                            .../products/PRODUCT_CODE and .../customers/CUSTOMER_ID. Set
+                            allow_cascade_delete=true to keep using them. The prop is read at startup. The
+                            Dynamic Entity cascade deletes are not affected.
 01/11/2026    TBD           CHANGED: with consents.allowed false (the default) consents are now refused when they are
                             created, not only when they are used: every endpoint that creates a consent or a consent
                             request (OBP v3.1.0, v5.0.0, v5.1.0 and v6.0.0, Berlin Group v1.3, UK Open Banking v3.1 and

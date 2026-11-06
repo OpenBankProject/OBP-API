@@ -4590,6 +4590,12 @@ object Http4s510 {
             _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer", 403, Some(cc)) {
               challenge.scaStatus.contains(StrongCustomerAuthenticationStatus.finalised)
             }
+            // The answered challenge is spent (validateChallenge lets one correct answer through,
+            // once), and any other challenge the PSU started on this consent is superseded by it, so
+            // they are deleted now rather than left in the table for good. Done here and not after
+            // the consent is AUTHORISED: if the steps below refuse the request, the PSU has to start
+            // a new challenge either way.
+            _ <- Future(Consent.removeConsentChallenges(consentId))
             // Bind the consented permissions to the PSU-selected accounts, replacing the
             // (bank_id=null, account_id=null) dead views createUKConsentJWT wrote at consent
             // creation time.

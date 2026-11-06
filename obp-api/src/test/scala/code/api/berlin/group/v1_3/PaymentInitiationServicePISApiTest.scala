@@ -29,14 +29,15 @@ package code.api.berlin.group.v1_3
 
 import org.json4s._
 import code.api.BerlinGroup.ScaStatus
-import code.api.Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
+import code.api.Constant.{SYSTEM_AUDITOR_VIEW_ID, SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancellationJsonV13, ErrorMessagesBG, InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
 import code.api.berlin.group.v1_3.model.{ScaStatusResponse, TransactionStatus, UpdatePsuAuthenticationResponse}
 import code.api.berlin.group.v1_3.Http4sBGv13PIS
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
+import code.api.util.CommonsEmailWrapper
 import code.api.util.ErrorMessages._
-import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
+import code.model.dataAccess.{AuthUser, BankAccountRouting, MappedBankAccount}
 import code.model.TokenType
 import code.setup.{APIResponse, DefaultUsers}
 import code.token.Tokens
@@ -44,9 +45,12 @@ import code.transactionrequests.MappedTransactionRequest
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.util.TimeHelpers.TimeSpan
 import code.views.Views
+import code.views.system.AccountAccess
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.{AccountRoutingScheme, PaymentServiceTypes, TransactionRequestTypes}
-import com.openbankproject.commons.model.{SepaCreditTransfers, SepaCreditTransfersBerlinGroupV13, ViewId}
+import code.accountholders.AccountHolders
+import code.api.util.APIUtil
+import com.openbankproject.commons.model.{AccountId, BankIdAccountId, BankIdAccountIdViewId, SepaCreditTransfers, SepaCreditTransfersBerlinGroupV13, User, ViewId}
 import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
@@ -812,6 +816,137 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     By(MappedBankAccount.bank, routing.bankId.value),
     By(MappedBankAccount.theAccountId, routing.accountId.value))
     .map(_.balance).openOrThrowException("Can not be empty here")
+
+  feature("test the BG v1.3 - the passcode of a payment authorisation sent by EMAIL") {
+    def startAuthorisationAsUser1(): APIResponse = {
+      val (paymentId, _, _) = lodgePaymentAsUser1()
+      makePostRequest(
+        (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "authorisations").POST <@ (user1),
+        """{"scaAuthenticationData":""}""")
+    }
+
+    scenario("goes to the user's own address when no customer is linked", BerlinGroupV1_3, PIS, initiatePayment) {
+      setPropsValues("SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT" -> "EMAIL", "mail.test.mode" -> "true")
+      CommonsEmailWrapper.clearTestModeSentMail()
+      // The user's own address is used once the user has signed up here and confirmed it.
+      val authUser = AuthUser.create.user(resourceUser1.id.get).username(resourceUser1.name)
+        .email(resourceUser1.emailAddress).validated(true).saveMe()
+      try {
+        startAuthorisationAsUser1().code should equal(201)
+
+        CommonsEmailWrapper.testModeSentMail.filter(_.subject == "Challenge").map(_.to) should equal(List(List(resourceUser1.emailAddress)))
+      } finally AuthUser.bulkDelete_!!(By(AuthUser.id, authUser.id.get))
+    }
+
+    scenario("is refused when the user has no confirmed address either", BerlinGroupV1_3, PIS, initiatePayment) {
+      // resourceUser1 has no linked customer and did not sign up here, so there is no address to send it to.
+      setPropsValues("SEPA_CREDIT_TRANSFERS_OTP_INSTRUCTION_TRANSPORT" -> "EMAIL", "mail.test.mode" -> "true")
+      CommonsEmailWrapper.clearTestModeSentMail()
+      AuthUser.findAll(By(AuthUser.user, resourceUser1.id.get)) shouldBe empty
+
+      val response = startAuthorisationAsUser1()
+
+      response.code should equal(400)
+      response.body.toString should include(extractErrorMessageCode(ChallengeRecipientNotFound))
+      CommonsEmailWrapper.testModeSentMail.filter(_.subject == "Challenge") shouldBe empty
+    }
+  }
+
+  private def initiatePaymentsAccessOf(account: BankAccountRouting, user: User = resourceUser1) =
+    AccountAccess.findAll(
+      By(AccountAccess.user_fk, user.userPrimaryKey.value),
+      By(AccountAccess.bank_id, account.bankId.value),
+      By(AccountAccess.account_id, account.accountId.value),
+      By(AccountAccess.view_id, SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID))
+
+  feature("test the BG v1.3 - the mapped connector grants the payment initiation view to the account holder") {
+    scenario("refreshing the user gives the holder InitiatePaymentsBerlinGroup on the accounts it holds",
+      BerlinGroupV1_3, PIS, initiatePayment) {
+      val account = ibanAccounts.head
+      initiatePaymentsAccessOf(account) shouldBe empty
+
+      When("the user's accounts are refreshed")
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+
+      Then("the holder has access through the payment initiation view")
+      initiatePaymentsAccessOf(account) should not be empty
+    }
+
+    scenario("a second refresh keeps the view, and a user who holds no account gets none",
+      BerlinGroupV1_3, PIS, initiatePayment) {
+      val account = ibanAccounts.head
+
+      When("the holder is refreshed twice and a user without accounts is refreshed")
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+      AuthUser.refreshUserLegacy(resourceUser2, None)
+
+      Then("the holder still has the view and the other user has none")
+      initiatePaymentsAccessOf(account) should not be empty
+      initiatePaymentsAccessOf(account, resourceUser2) shouldBe empty
+    }
+
+    scenario("a holder who opens another account gets the view on the accounts it already held",
+      BerlinGroupV1_3, PIS, initiatePayment) {
+      val account = ibanAccounts.head
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+      // As on an instance upgraded from a version that did not grant the view: the holder has the account's
+      // other views, but not this one.
+      Views.views.vend.revokeAccess(
+        BankIdAccountIdViewId(account.bankId, account.accountId, ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)), resourceUser1)
+      initiatePaymentsAccessOf(account) shouldBe empty
+
+      When("the holder opens another account and is refreshed")
+      val newAccount = createAccount(account.bankId, AccountId(APIUtil.generateUUID()), "EUR")
+      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(resourceUser1, BankIdAccountId(newAccount.bankId, newAccount.accountId))
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+
+      Then("the account it already held has the view too")
+      initiatePaymentsAccessOf(account) should not be empty
+    }
+
+    scenario("a holder who opens another account keeps the views it was given on the accounts it already held",
+      BerlinGroupV1_3, PIS, initiatePayment) {
+      val account = ibanAccounts.head
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+      // A view the connector does not list, given to the holder some other way (as a VRP mandate's view is).
+      val auditor = Views.views.vend.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID).openOrThrowException("expected the auditor view")
+      Views.views.vend.grantAccessToSystemView(account.bankId, account.accountId, auditor, resourceUser1)
+      def auditorAccess = AccountAccess.findAll(
+        By(AccountAccess.user_fk, resourceUser1.userPrimaryKey.value),
+        By(AccountAccess.bank_id, account.bankId.value),
+        By(AccountAccess.account_id, account.accountId.value),
+        By(AccountAccess.view_id, SYSTEM_AUDITOR_VIEW_ID))
+      auditorAccess should not be empty
+
+      When("the holder opens another account and is refreshed")
+      val newAccount = createAccount(account.bankId, AccountId(APIUtil.generateUUID()), "EUR")
+      AccountHolders.accountHolders.vend.getOrCreateAccountHolder(resourceUser1, BankIdAccountId(newAccount.bankId, newAccount.accountId))
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+
+      Then("the view on the account it already held is kept")
+      auditorAccess should not be empty
+    }
+
+    scenario("a payment can be initiated after the refresh without granting the view by hand",
+      BerlinGroupV1_3, PIS, initiatePayment) {
+      val ibanFrom = ibanAccounts.head
+      val ibanTo = ibanAccounts.last
+      AuthUser.refreshUserLegacy(resourceUser1, None)
+
+      val initiatePaymentJson =
+        s"""{
+           | "debtorAccount": { "iban": "${ibanFrom.accountRouting.address}" },
+           | "instructedAmount": { "currency": "EUR", "amount": "2001" },
+           | "creditorAccount": { "iban": "${ibanTo.accountRouting.address}" },
+           | "creditorName": "70charname"
+            }""".stripMargin
+      val response: APIResponse = makePostRequest(
+        (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1),
+        initiatePaymentJson)
+      response.code should equal(201)
+    }
+  }
 
   private def paymentUrl(paymentId: String) =
     V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId

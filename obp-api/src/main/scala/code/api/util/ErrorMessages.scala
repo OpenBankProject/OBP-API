@@ -598,6 +598,10 @@ object ErrorMessages {
   val AssetChainIdentityAlreadyExists = "OBP-30584: Another asset already has this chain identity. Please specify a different chain_scheme and chain_asset_id."
   val AssetDtiAlreadyExists = "OBP-30585: Another asset already has this DTI. Please specify a different value for dti."
 
+  // Rate limits (OBP-30624 .. OBP-30625)
+  val RateLimitScopeNotSupported = "OBP-30624: A rate limit applies to every call of the consumer, so it cannot name an api_name, api_version or bank_id yet. Leave them out."
+  val RateLimitNotUnique = "OBP-30625: The consumer has more than one rate limit, so it is not clear which one to change. Change one by its RATE_LIMITING_ID with PUT /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID."
+
   // Files (OBP-30586 .. OBP-30596)
   val FileNotFound = "OBP-30586: File not found. Please specify a valid value for FILE_ID."
   val InvalidFile = "OBP-30587: Invalid file."
@@ -960,6 +964,8 @@ object ErrorMessages {
   val SigningBasketMemberNotFound = "OBP-35056: A payment named for the signing basket was not found. "
   val SigningBasketMemberStatusInvalid = "OBP-35057: A payment named for the signing basket is not waiting for SCA. "
   val SigningBasketConsentsNotSupported = "OBP-35058: Consents in a signing basket are not supported yet. Name payments only. "
+  val ChallengeAnswerersTooFew = "OBP-35060: Fewer users may answer the challenge than the account's REQUIRED_CHALLENGE_ANSWERS asks for. Grant a view with can_answer_transaction_request_challenge to more users, or lower REQUIRED_CHALLENGE_ANSWERS."
+  val ChallengeRecipientNotFound = "OBP-35059: There is no e-mail address or phone number to send the challenge to. Link a Customer with an e-mail address or phone number to the user, or have the user confirm their own e-mail address."
   val ConsentMyResourcesInvalid = "OBP-35042: The Consent's my_resources block is invalid. "
   val ConsentMyResourcesMissing = "OBP-35043: The Consent does not cover this personal resource. A consent user may use a personal (my) endpoint only if the Consent lists the resource in my_resources with the needed action. "
   val ConsentAccountAccessCannotBeGranted = "OBP-35041: The Consent's account access cannot be granted. The Consent has not been authorised; please retry the authorisation. "

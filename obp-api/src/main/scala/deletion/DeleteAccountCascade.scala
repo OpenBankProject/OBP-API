@@ -28,11 +28,15 @@ TESOBE (http://www.tesobe.com/)
 package deletion
 
 import code.accountattribute.MappedAccountAttribute
+import code.accountholders.MapperAccountHolders
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
+import code.api.util.{ConsentJWT, CustomJsonFormats, JwtUtil}
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.bankconnectors.Connector
+import code.cardattribute.MappedCardAttribute
 import code.cards.MappedPhysicalCard
+import code.consent.Consents
 import code.counterpartyattribute.CounterpartyAttribute
 import code.counterpartylimit.CounterpartyLimit
 import code.entitlement.MappedEntitlement
@@ -43,11 +47,12 @@ import code.transactionrequests.MappedTransactionRequest
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.MappedAccountWebhook
 import com.openbankproject.commons.model.{AccountId, BankId}
+import com.openbankproject.commons.util.JsonAliases
 import deletion.DeletionUtil.databaseAtomicTask
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.db.DB
-import net.liftweb.mapper.{By, ByList}
-import net.liftweb.util.DefaultConnectionIdentifier
+import net.liftweb.mapper.{By, ByList, NotBy}
+import net.liftweb.util.Helpers.tryo
+import org.json4s.Formats
 
 import scala.collection.immutable.List
 
@@ -57,12 +62,14 @@ object DeleteAccountCascade {
     // The tasks run in list order: the challenges are found through the account's transaction
     // requests, so they must go before deleteTransactionRequests and deleteTransactions remove them.
     val doneTasks =
-      deleteTransactionRequestChallenges(bankId, accountId) ::
+      deleteConsentChallenges(bankId, accountId) ::
+        deleteTransactionRequestChallenges(bankId, accountId) ::
         deleteTransactionRequests(bankId, accountId) ::
         deleteDoubleEntryBookTransactions(bankId, accountId) ::
         deleteTransactions(bankId, accountId) ::
         deleteEntitlements(bankId, accountId) ::
         deleteAccountAccess(bankId, accountId) ::
+        deleteAccountHolders(bankId, accountId) ::
         deleteCustomViews(bankId, accountId) ::
         deleteAccountAttributes(bankId, accountId) ::
         deleteAccountWebhooks(bankId, accountId) ::
@@ -81,7 +88,7 @@ object DeleteAccountCascade {
       case true =>
         Full(true)
       case false =>
-        DB.rollback(DefaultConnectionIdentifier)
+        // Throws, so databaseAtomicTask restores what delete has removed.
         fullBoxOrException(Empty ~> APIFailureNewStyle(CouldNotDeleteCascade, 400))
     }
   }
@@ -108,10 +115,13 @@ object DeleteAccountCascade {
       By(MappedBankAccount.bank, bankId.value),
       By(MappedBankAccount.theAccountId, accountId.value)
     ) map (
-      account =>
-        MappedPhysicalCard.bulkDelete_!!(
-          By(MappedPhysicalCard.mAccount, account.id.get)
-        )
+      account => {
+        val cardIds = MappedPhysicalCard.findAll(By(MappedPhysicalCard.mAccount, account.id.get)).map(_.mCardId.get)
+        MappedCardAttribute.deleteForCards(bankId.value, cardIds) &&
+          MappedPhysicalCard.bulkDelete_!!(
+            By(MappedPhysicalCard.mAccount, account.id.get)
+          )
+      }
     )
   }.forall(_ == true)
   
@@ -143,6 +153,14 @@ object DeleteAccountCascade {
     AccountAccess.bulkDelete_!!(
       By(AccountAccess.bank_id, bankId.value),
       By(AccountAccess.account_id, accountId.value)
+    )
+  }
+  // A holder row that outlives its account makes the next refresh of the holder's accounts
+  // (AuthUser.refreshUser, run e.g. when the holder creates another account) grant the system views on it again.
+  private def deleteAccountHolders(bankId: BankId, accountId: AccountId): Boolean = {
+    MapperAccountHolders.bulkDelete_!!(
+      By(MapperAccountHolders.accountBankPermalink, bankId.value),
+      By(MapperAccountHolders.accountPermalink, accountId.value)
     )
   }
   private def deleteAccountRoutings(bankId: BankId, accountId: AccountId): Boolean = {
@@ -210,6 +228,26 @@ object DeleteAccountCascade {
     }
   }
 
+  // A consent names its accounts only in the views of its JWT, so the consents that still have
+  // challenges are read and those whose JWT names this account lose them. The consents are found
+  // through their challenges rather than through users: a Berlin Group consent awaiting its first
+  // challenge answer has no PSU bound to it yet. A consent bound to other accounts as well loses its
+  // challenges too: they record the authorisation of the consent as a whole.
+  private def deleteConsentChallenges(bankId: BankId, accountId: AccountId): Boolean = {
+    implicit val formats: Formats = CustomJsonFormats.formats
+    val consentIds = MappedExpectedChallengeAnswer.findAll(NotBy(MappedExpectedChallengeAnswer.ConsentId, ""))
+      .map(_.ConsentId.get).distinct
+      .flatMap(Consents.consentProvider.vend.getConsentByConsentId(_).toList)
+      .filter { consent =>
+        JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken)
+          .flatMap(payload => tryo(JsonAliases.parse(payload).extract[ConsentJWT]))
+          .exists(_.views.exists(view => view.bank_id == bankId.value && view.account_id == accountId.value))
+      }
+      .map(_.consentId)
+    consentIds.isEmpty || MappedExpectedChallengeAnswer.bulkDelete_!!(
+      ByList(MappedExpectedChallengeAnswer.ConsentId, consentIds)
+    )
+  }
   private def deleteTransactionRequestChallenges(bankId: BankId, accountId: AccountId): Boolean = {
     val transactionRequestIds = MappedTransactionRequest.findAll(
       By(MappedTransactionRequest.mFrom_BankId, bankId.value),

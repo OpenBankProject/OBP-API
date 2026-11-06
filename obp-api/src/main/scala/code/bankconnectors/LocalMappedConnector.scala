@@ -333,9 +333,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
         callContext
       )
-      challenge.map(_.challengeId).toList
+      challenge.map(_.challengeId)
     }
-    (Full(challenges.flatten), callContext)
+    challengesOrFailure(challenges, callContext)
   }
 
   override def createChallengesC2(
@@ -362,9 +362,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         challengeType = challengeType.toString,
         callContext
       )
-      challengeId.toList
+      challengeId
     }
-    (Full(challenges.flatten), callContext)
+    challengesOrFailure(challenges, callContext)
   }
 
   override def createChallengesC3(
@@ -392,10 +392,37 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         challengeType = challengeType.toString,
         callContext
       )
-      challengeId.toList
+      challengeId
     }
-    (Full(challenges.flatten), callContext)
+    challengesOrFailure(challenges, callContext)
   }
+
+  /**
+   * The challenges of the users who could be sent one, or the first failure when no one could. A caller that needs
+   * a number of answers checks how many challenges it got.
+   */
+  private def challengesOrFailure[T](results: List[Box[T]], callContext: Option[CallContext]): (Box[List[T]], Option[CallContext]) = {
+    val created = results.flatMap(_.toList)
+    results.collectFirst { case failure: Failure => failure } match {
+      case Some(failure) if created.isEmpty => (failure, callContext)
+      case Some(failure) =>
+        logger.warn(s"challengesOrFailure says: ${results.size - created.size} of ${results.size} users could not be sent a challenge: ${failure.msg}")
+        (Full(created), callContext)
+      case None => (Full(created), callContext)
+    }
+  }
+
+  /** The values that hold an address: a customer's e-mail or mobile number may be blank or NULL. */
+  private def nonBlank(values: List[String]): List[String] =
+    values.flatMap(value => Option(value).map(_.trim).filter(_.nonEmpty))
+
+  /** The user's own address, when the user signed up on this instance and has confirmed it. */
+  private def validatedOwnEmail(userId: String): Box[String] =
+    for {
+      user <- Users.users.vend.getUserByUserId(userId)
+      authUser <- AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value))
+      if authUser.validated.get
+    } yield authUser.email.get
 
   private def createChallengeInternal(
     userId: String,
@@ -432,52 +459,66 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case Some(StrongCustomerAuthentication.DUMMY) =>
         createHashedPassword("123")
       case Some(StrongCustomerAuthentication.EMAIL) =>
-        val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
-        val hashedPassword = createHashedPassword(challengeAnswer)
-        APIUtil.getEmailsByUserId(userId) map {
-          pair =>
-            val emailContent = CommonsEmailWrapper.EmailContent(
+        // The customers linked to the user; else the user's own address, once the user has confirmed it.
+        val linkedCustomerEmails = nonBlank(APIUtil.getEmailsByUserId(userId).map(_._2)).distinct
+        val recipients =
+          if (linkedCustomerEmails.nonEmpty) linkedCustomerEmails
+          else nonBlank(validatedOwnEmail(userId).toList)
+        if (recipients.isEmpty) {
+          (Failure(ChallengeRecipientNotFound), callContext)
+        } else {
+          val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
+          // sendTextEmail answers Full only once the mail has been handed to the SMTP server.
+          val sent = recipients forall { to =>
+            CommonsEmailWrapper.sendTextEmail(CommonsEmailWrapper.EmailContent(
               from = mailUsersUserinfoSenderAddress,
-              to = List(pair._2),
+              to = List(to),
               subject = "Challenge",
               textContent = Some(s"Your OTP challenge : ${challengeAnswer}")
-            )
-            CommonsEmailWrapper.sendTextEmail(emailContent)
+            )).isDefined
+          }
+          // The challenge is saved once its passcode has been sent, so a failed send leaves no challenge no one can answer.
+          if (sent) createHashedPassword(challengeAnswer) else (Failure(EmailSendingFailed), callContext)
         }
-        hashedPassword
       case Some(StrongCustomerAuthentication.SMS) | Some(StrongCustomerAuthentication.SMS_OTP) =>
-        val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
-        logger.debug(s"${scaMethod.toString} challengeAnswer is $challengeAnswer")
-        val hashedPassword = createHashedPassword(challengeAnswer)
-        val sendingResult: Seq[Box[Boolean]] = APIUtil.getPhoneNumbersByUserId(userId) map {
-          tuple =>
-            for {
-              smsProviderApiKey <- APIUtil.getPropsValue("sca_phone_api_key") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_key"
-              smsProviderApiSecret <- APIUtil.getPropsValue("sca_phone_api_secret") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
-              scaPhoneApiId <- APIUtil.getPropsValue("sca_phone_api_id") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_id"
-              client = Twilio.init(smsProviderApiKey, smsProviderApiSecret) //TODO, move this to other place, we only need to init it once.
-              phoneNumber = tuple._2
-              messageText = s"Your consent challenge : ${challengeAnswer}";
-              message: Message <- tryo {Message.creator(
-                new PhoneNumber(phoneNumber), 
-                scaPhoneApiId, 
-                messageText).create()}
-              
-              isSuccess <- tryo {message.getErrorMessage == null}
-              
-              _ = logger.debug(s"createChallengeInternal.send message to $phoneNumber, detail is $message")
-              
-              failMsg = if (message.getErrorMessage ==null) 
-                  s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first. ${message.getErrorMessage}"
-                else
-                  s"$SmsServerNotResponding: $phoneNumber. Or Please to use EMAIL first."
-                  
-              _ <- Helper.booleanToBox(isSuccess, failMsg)
-            } yield true
+        val phoneNumbers = nonBlank(APIUtil.getPhoneNumbersByUserId(userId).map(_._2)).distinct
+        if (phoneNumbers.isEmpty) {
+          // No linked customer with a phone number: there is no one to send the passcode to.
+          (Failure(ChallengeRecipientNotFound), callContext)
+        } else {
+          val challengeAnswer = SecureRandomUtil.csprng.nextInt(99999999).toString()
+          logger.debug(s"${scaMethod.toString} challengeAnswer is $challengeAnswer")
+          // The caller may not be the owner of the phone number, so the number stays in the log.
+          val sendFailed = s"${SmsServerNotResponding.stripSuffix(":")}. Please use EMAIL instead."
+          val sendingResult: Seq[Box[Boolean]] = phoneNumbers map {
+            phoneNumber =>
+              for {
+                smsProviderApiKey <- APIUtil.getPropsValue("sca_phone_api_key") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_key"
+                smsProviderApiSecret <- APIUtil.getPropsValue("sca_phone_api_secret") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_secret"
+                scaPhoneApiId <- APIUtil.getPropsValue("sca_phone_api_id") ?~! s"$MissingPropsValueAtThisInstance sca_phone_api_id"
+                client = Twilio.init(smsProviderApiKey, smsProviderApiSecret) //TODO, move this to other place, we only need to init it once.
+                messageText = s"Your consent challenge : ${challengeAnswer}";
+                message: Message <- tryo {Message.creator(
+                  new PhoneNumber(phoneNumber), 
+                  scaPhoneApiId, 
+                  messageText).create()} match {
+                  case Full(message) => Full(message)
+                  case failure =>
+                    logger.warn(s"createChallengeInternal could not send the passcode to $phoneNumber: $failure")
+                    Failure(sendFailed)
+                }
+                
+                _ = logger.debug(s"createChallengeInternal.send message to $phoneNumber, detail is $message")
+                
+                _ = if (message.getErrorMessage != null)
+                  logger.warn(s"createChallengeInternal could not send the passcode to $phoneNumber: ${message.getErrorMessage}")
+                _ <- Helper.booleanToBox(message.getErrorMessage == null, sendFailed)
+              } yield true
+          }
+          val errorMessages = sendingResult.collect { case failure: Failure => failure.msg }
+          // As with EMAIL, the challenge is saved once its passcode has been sent.
+          if (errorMessages.isEmpty) createHashedPassword(challengeAnswer) else (Failure(errorMessages.toSet.mkString(" <- ")), callContext)
         }
-        val errorMessage = sendingResult.filter(_.isInstanceOf[Failure]).map(_.asInstanceOf[Failure].msg)
-
-        if (sendingResult.forall(_ == Full(true))) hashedPassword else (Failure(errorMessage.toSet.mkString(" <- ")), callContext)
       case _ => // All versions which precede v4.0.0 i.e. to keep backward compatibility 
         createHashedPassword("123")
     }
@@ -672,7 +713,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    */
   override def getBankAccountsForUserLegacy(provider: String, username:String, callContext: Option[CallContext]): Box[(List[InboundAccount], Option[CallContext])] = {
     //1st: get the accounts from userAuthContext
-    val viewsToGenerate = List(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID,SYSTEM_OWNER_VIEW_ID, SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID) //TODO, so far only set the `owner` view, later need to simulate other views.
+    val viewsToGenerate = List(SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID,SYSTEM_OWNER_VIEW_ID, SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID, SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID) //TODO, so far only set the `owner` view, later need to simulate other views.
     val user = Users.users.vend.getUserByProviderId(provider, username).getOrElse(throw new RuntimeException(s"$RefreshUserError at getBankAccountsForUserLegacy($username, ${callContext})"))
     val userId = user.userId
     tryo{net.liftweb.common.Logger(this.getClass).debug(s"getBankAccountsForUser.user says: provider($provider), username($username)")}
@@ -2019,6 +2060,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
   }
+
+  override def deleteCardAttribute(cardAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[Boolean]] =
+    CardAttributeX.cardAttributeProvider.vend.deleteCardAttribute(cardAttributeId) map {
+      (_, callContext)
+    }
 
   override def createOrUpdateCardAttribute(
                                             bankId: Option[BankId],
@@ -5215,6 +5261,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               }
             }
   
+            // How many of those users have to answer, as getUsersForChallenges reads it.
+            def requiredChallengeAnswers(bankId: BankId, accountId: AccountId): Future[Int] =
+              Connector.connector.vend.getAccountAttributesByAccount(bankId, accountId, None) map {
+                _._1.toList.flatten.find(_.name == "REQUIRED_CHALLENGE_ANSWERS").map(_.value).getOrElse("1").toInt
+              }
+
             for {
               // The challenge belongs to the person the payment is for, who is not the caller when
               // an agent started it. See paymentChallengeRecipient.
@@ -5223,6 +5275,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               }
               //if challenge necessary, create a new one
               users <- getUsersForChallenges(fromAccount.bankId, fromAccount.accountId, challengeRecipient)
+              requiredAnswers <- requiredChallengeAnswers(fromAccount.bankId, fromAccount.accountId)
               //now we support multiple challenges. We can support multiple people to answer the challenges.
               //So here we return the challengeIds. 
               (challenges, callContext) <- Connector.connector.vend.createChallengesC2(
@@ -5234,8 +5287,21 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 consentId = None, // Note: consentId and transactionRequestId are exclusive here.
                 authenticationMethodId = None,
                 callContext = callContext
-                ) map { i =>
-                (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), i._2)
+                ) flatMap {
+                case (Full(challenges), callContext) if challenges.length >= requiredAnswers => Future.successful((challenges, callContext))
+                case (result, callContext) =>
+                  // With fewer challenges than the answers it needs, the request can never be answered.
+                  val mayAnswer = users.toList.flatten.size
+                  val failure: Box[List[ChallengeTrait]] = result match {
+                    case _ if mayAnswer < requiredAnswers =>
+                      Failure(s"$ChallengeAnswerersTooFew $mayAnswer may answer, $requiredAnswers answers are required.")
+                    case Full(challenges) =>
+                      Failure(s"$ChallengeRecipientNotFound ${challenges.length} of the $requiredAnswers users who have to answer could be sent a challenge.")
+                    case other => other
+                  }
+                  saveTransactionRequestStatusImpl(transactionRequest.id, TransactionRequestStatus.FAILED.toString, callContext) map { _ =>
+                    (unboxFullOrFail(failure, callContext, s"$InvalidConnectorResponseForCreateChallenge ", 400), callContext)
+                  }
               }
              
               //NOTE:this is only for Backward compatibility, now we use the MappedExpectedChallengeAnswer tables instead of the single field in TransactionRequest.

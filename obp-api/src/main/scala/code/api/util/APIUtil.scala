@@ -2655,6 +2655,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def getDisabledEndpointOperationIds() : List[String] = APIUtil.getPropsValue("api_disabled_endpoints").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty)
 
+  /**
+   * allow_cascade_delete (default false). The v4.0.0 /management/cascading/... endpoints are
+   * routed and documented only when this is true. It is read when the API version objects are
+   * initialised, so a change takes effect on restart. The Dynamic Entity cascade deletes, which
+   * back up to a ZZ_BAK_ entity first, are not affected.
+   */
+  def cascadeDeleteEnabled: Boolean = getPropsAsBoolValue("allow_cascade_delete", false)
 
 
   def getEnabledVersions() : List[String] = APIUtil.getPropsValue("api_enabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",").toList.filter(_.nonEmpty).map(_.trim)

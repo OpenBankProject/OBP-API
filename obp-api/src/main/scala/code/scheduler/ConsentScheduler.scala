@@ -258,7 +258,8 @@ object ConsentScheduler extends MdcLoggable {
     }
   }
 
-  private def expiredUKConsents(): Unit = {
+  // private[code] so a test can run one sweep without waiting for the schedule.
+  private[code] def expiredUKConsents(): Unit = {
     Try {
       logger.debug("|---> Checking for expired UK Open Banking consents...")
 
@@ -285,6 +286,9 @@ object ConsentScheduler extends MdcLoggable {
           if (rows > 0) {
             // An expired consent must give its granted access back, exactly as a revoked one does.
             Consent.revokeConsentAccountAccess(consent)
+            // Only UK consents are authorised through OBP_CONSENT_CHALLENGEs, so this is the one
+            // expiry sweep that can leave such a challenge behind.
+            Consent.removeConsentChallenges(consent.consentId)
             logger.warn(message)
           }
           else logger.debug(s"|---> Skipped stale update for UK consent ${consent.id}: status already changed")

@@ -29,17 +29,19 @@ package deletion
 
 import code.accountattribute.MappedAccountAttribute
 import code.api.APIFailureNewStyle
+import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
+import code.DynamicData.{DynamicData, DynamicDataAccess, DynamicDataProvider}
+import code.api.util.NewStyle
 import code.customer.CustomerX
+import code.dynamicEntity.DynamicEntityProvider
 import code.customeraccountlinks.CustomerAccountLink
 import code.model.dataAccess.{MappedBank, MappedBankAccount}
 import com.openbankproject.commons.model.{BankId, CustomerId}
 import deletion.DeletionUtil.databaseAtomicTask
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.db.DB
 import net.liftweb.mapper.By
-import net.liftweb.util.DefaultConnectionIdentifier
 
 object DeleteBankCascade {
 
@@ -60,17 +62,48 @@ object DeleteBankCascade {
       )
       // Delete account
       DeleteAccountCascade.delete(i.bankId, i.accountId)
-    } && deleteBank(bankId)
+    } && (isSystemSpaceMarker(bankId) || deleteDynamicEntities(bankId)) && deleteBank(bankId)
   }
+
+  /**
+   * Dynamic entities of the system space are stored under this marker, so a bank that has it as its id cannot have
+   * dynamic entities of its own, and deleting the bank must not touch the system space.
+   */
+  private def isSystemSpaceMarker(bankId: BankId): Boolean = bankId.value == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
   
   def atomicDelete(bankId: BankId): Box[Boolean] = databaseAtomicTask {
     delete(bankId) match {
       case true =>
         Full(true)
       case false =>
-        DB.rollback(DefaultConnectionIdentifier)
+        // Throws, so databaseAtomicTask restores what delete has removed.
         fullBoxOrException(Empty ~> APIFailureNewStyle(CouldNotDeleteCascade, 400))
     }
+  }
+
+  /**
+   * The bank's dynamic entities with their records (whoever owns them), access rows, entitlements and roles, the
+   * ZZ_BAK_ copies among them. With the bank gone their endpoints answer BankNotFound, so nothing else could
+   * remove them.
+   */
+  private def deleteDynamicEntities(bankId: BankId): Boolean = {
+    val space = Some(bankId.value)
+    DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(space, returnBothBankAndSystemLevel = false).forall { entity =>
+      val recordsDeleted = DynamicDataProvider.connectorMethodProvider.vend.getAllCommunity(space, entity.entityName).forall { record =>
+        record.dynamicDataId.exists(id => DynamicDataProvider.connectorMethodProvider.vend.deleteCommunity(space, entity.entityName, id).openOr(false))
+      }
+      recordsDeleted && entity.dynamicEntityId.exists(id => NewStyle.function.deleteDynamicEntityNow(space, id).openOr(false))
+    } && deleteRecordsWithoutDefinition(bankId)
+  }
+
+  /**
+   * What is left of the bank's records once its definitions are gone: a definition can be deleted while personal
+   * records of it remain, so some records, and the access rows on them, may have no definition.
+   */
+  private def deleteRecordsWithoutDefinition(bankId: BankId): Boolean = {
+    DynamicData.bulkDelete_!!(By(DynamicData.BankId, bankId.value))
+    DynamicDataAccess.bulkDelete_!!(By(DynamicDataAccess.BankId, bankId.value))
+    true
   }
 
   private def deleteBank(bankId: BankId): Boolean = {

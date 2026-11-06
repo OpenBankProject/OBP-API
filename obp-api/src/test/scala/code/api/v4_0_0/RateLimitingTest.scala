@@ -31,7 +31,6 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanUpdateRateLimits, canCreateDynamicEndpoint}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.{ApiRole, ExampleValue, RateLimitingUtil}
-import code.api.v3_0_0.Http4s300.Implementations3_0_0.getCurrentUser
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
 import code.setup.PropsReset
@@ -84,11 +83,11 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
     per_week_call_limit = "-1",
     per_month_call_limit = "-1"
   )
-  val callLimitJsonSecond = callLimitJsonInitial.copy(api_name = Some(nameOf(getCurrentUser)), per_second_call_limit = "1")
-  val callLimitJsonMinute = callLimitJsonInitial.copy(api_name = Some(nameOf(getCurrentUser)), per_minute_call_limit = "1")
-  val callLimitJsonHour = callLimitJsonInitial.copy(api_name = Some(nameOf(getCurrentUser)), per_hour_call_limit = "1")
-  val callLimitJsonWeek = callLimitJsonInitial.copy(api_name = Some(nameOf(getCurrentUser)), per_week_call_limit = "1")
-  val callLimitJsonMonth = callLimitJsonInitial.copy(api_name = Some(nameOf(getCurrentUser)), per_month_call_limit = "1")
+  val callLimitJsonSecond = callLimitJsonInitial.copy(per_second_call_limit = "1")
+  val callLimitJsonMinute = callLimitJsonInitial.copy(per_minute_call_limit = "1")
+  val callLimitJsonHour = callLimitJsonInitial.copy(per_hour_call_limit = "1")
+  val callLimitJsonWeek = callLimitJsonInitial.copy(per_week_call_limit = "1")
+  val callLimitJsonMonth = callLimitJsonInitial.copy(per_month_call_limit = "1")
     
 
   feature("Rate Limit - " + ApiCallsLimit + " - " + ApiVersion400) {
@@ -119,33 +118,39 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
       response400.code should equal(200)
       response400.body.extract[CallLimitJsonV400]
     }
-    scenario("We will set Rate Limiting per second for an Endpoint", ApiCallsLimit, ApiVersion400) {
+    scenario("We will set Rate Limiting per second for a Consumer", ApiCallsLimit, ApiVersion400) {
      
       When("We make a request v4.0.0 with a Role " + ApiRole.canUpdateRateLimits)
-        val response01 = setRateLimiting(user1, callLimitJsonSecond)
+        // Set by another consumer, so this consumer starts the period with no calls made.
+        val response01 = setRateLimiting2(user1, callLimitJsonSecond)
         Then("We should get a 200")
         response01.code should equal(200)
         org.scalameta.logger.elem(response01)
 
         When("We make the first call after update")
+        val secondStarted = System.nanoTime()
         val response02 = getCurrentUserEndpoint(user1)
         Then("We should get a 200")
         response02.code should equal(200)
 
         When("We make the second call after update")
+        // Redis rounds the counter's TTL to whole seconds, so the one-second window reads as expired about half a second
+        // after the first call: a slower run cannot tell whether the limit was applied.
+        assume((System.nanoTime() - secondStarted) / 1000000 < 400, "the first call took too long to test a per-second limit")
         val response03 = getCurrentUserEndpoint(user1)
-        Then("We should get a 200 since 1 hour caching")
-        response03.code should equal(200)
+        Then("We should get a 429, as the new limit applies at once")
+        response03.code should equal(429)
 
         // Revert to initial state
         val response04 = setRateLimiting2(user1, callLimitJsonInitial)
         Then("We should get a 200")
         response04.code should equal(200)
     }
-    scenario("We will set Rate Limiting per minute for an Endpoint", ApiCallsLimit, ApiVersion400) {
+    scenario("We will set Rate Limiting per minute for a Consumer", ApiCallsLimit, ApiVersion400) {
      
       When("We make a request v4.0.0 with a Role " + ApiRole.canUpdateRateLimits)
-        val response01 = setRateLimiting(user1, callLimitJsonMinute)
+        // Set by another consumer, so this consumer starts the period with no calls made.
+        val response01 = setRateLimiting2(user1, callLimitJsonMinute)
         Then("We should get a 200")
         response01.code should equal(200)
 
@@ -156,18 +161,19 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
 
         When("We make the second call after update")
         val response03 = getCurrentUserEndpoint(user1)
-        Then("We should get a 200 since 1 hour caching")
-        response03.code should equal(200)
+        Then("We should get a 429, as the new limit applies at once")
+        response03.code should equal(429)
 
         // Revert to initial state
         val response04 = setRateLimiting2(user1, callLimitJsonInitial)
         Then("We should get a 200")
         response04.code should equal(200)
     }
-    scenario("We will set Rate Limiting per hour for an Endpoint", ApiCallsLimit, ApiVersion400) {
+    scenario("We will set Rate Limiting per hour for a Consumer", ApiCallsLimit, ApiVersion400) {
      
       When("We make a request v4.0.0 with a Role " + ApiRole.canUpdateRateLimits)
-        val response01 = setRateLimiting(user1, callLimitJsonHour)
+        // Set by another consumer, so this consumer starts the period with no calls made.
+        val response01 = setRateLimiting2(user1, callLimitJsonHour)
         Then("We should get a 200")
         response01.code should equal(200)
 
@@ -178,18 +184,19 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
 
         When("We make the second call after update")
         val response03 = getCurrentUserEndpoint(user1)
-        Then("We should get a 200 since 1 hour caching")
-        response03.code should equal(200)
+        Then("We should get a 429, as the new limit applies at once")
+        response03.code should equal(429)
 
         // Revert to initial state
         val response04 = setRateLimiting2(user1, callLimitJsonInitial)
         Then("We should get a 200")
         response04.code should equal(200)
     }
-    scenario("We will set Rate Limiting per week for an Endpoint", ApiCallsLimit, ApiVersion400) {
+    scenario("We will set Rate Limiting per week for a Consumer", ApiCallsLimit, ApiVersion400) {
      
       When("We make a request v4.0.0 with a Role " + ApiRole.canUpdateRateLimits)
-        val response01 = setRateLimiting(user1, callLimitJsonWeek)
+        // Set by another consumer, so this consumer starts the period with no calls made.
+        val response01 = setRateLimiting2(user1, callLimitJsonWeek)
         Then("We should get a 200")
         response01.code should equal(200)
 
@@ -200,18 +207,19 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
 
         When("We make the second call after update")
         val response03 = getCurrentUserEndpoint(user1)
-        Then("We should get a 200 since 1 hour caching")
-        response03.code should equal(200)
+        Then("We should get a 429, as the new limit applies at once")
+        response03.code should equal(429)
 
         // Revert to initial state
         val response04 = setRateLimiting2(user1, callLimitJsonInitial)
         Then("We should get a 200")
         response04.code should equal(200)
     }
-    scenario("We will set Rate Limiting per month for an Endpoint", ApiCallsLimit, ApiVersion400) {
+    scenario("We will set Rate Limiting per month for a Consumer", ApiCallsLimit, ApiVersion400) {
      
       When("We make a request v4.0.0 with a Role " + ApiRole.canUpdateRateLimits)
-        val response01 = setRateLimiting(user1, callLimitJsonMonth)
+        // Set by another consumer, so this consumer starts the period with no calls made.
+        val response01 = setRateLimiting2(user1, callLimitJsonMonth)
         Then("We should get a 200")
         response01.code should equal(200)
 
@@ -222,8 +230,8 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
 
         When("We make the second call after update")
         val response03 = getCurrentUserEndpoint(user1)
-        Then("We should get a 200 since 1 hour caching")
-        response03.code should equal(200)
+        Then("We should get a 429, as the new limit applies at once")
+        response03.code should equal(429)
 
         // Revert to initial state
         val response04 = setRateLimiting2(user1, callLimitJsonInitial)
@@ -245,11 +253,9 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
         Then("We should get a 201")
         responseWithRole.code should equal(201)
 
-        // Set Rate Limiting in case of a Dynamic Endpoint
-        val operationId = "dynamicEndpoint_GET_accounts_ACCOUNT_ID"
-        val apiName = "dynamicEndpoint_GET_accounts_ACCOUNT_ID"
-        val apiVersion = ApiVersion.`dynamic-endpoint`.toString()
-        val response01 = setRateLimiting2(user1, callLimitJsonHour.copy(api_name = Some(apiName), api_version = Some(apiVersion)))
+        // Set Rate Limiting for the consumer, which a Dynamic Endpoint is held to like any other. Creating the endpoint
+        // was this consumer's first call this hour, so two calls an hour leave room for one more.
+        val response01 = setRateLimiting2(user1, callLimitJsonHour.copy(per_hour_call_limit = "2"))
         Then("We should get a 200")
         response01.code should equal(200)
 
@@ -260,11 +266,11 @@ class RateLimitingTest extends V400ServerSetup with PropsReset {
         makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(200)
         // 2nd call exceeds rate limit
         When("We make the second call after update")
-        Then("We should get a 200 since 1 hour caching")
-        makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(200)
+        Then("We should get a 429, as the new limit applies at once")
+        makeGetRequest(requestDynamicEndpoint.GET <@(user1)).code  should equal(429)
 
-        // Revert Rate Limiting to initial state in case of a Dynamic Endpoint
-        val response02 = setRateLimiting2(user1, callLimitJsonInitial.copy(api_name = Some(apiName), api_version = Some(apiVersion)))
+        // Revert Rate Limiting to initial state
+        val response02 = setRateLimiting2(user1, callLimitJsonInitial)
         Then("We should get a 200")
         response02.code should equal(200)
 

@@ -117,4 +117,35 @@ class JSONFactory_BERLIN_GROUP_1_3Test extends FeatureSpec with Matchers with Gi
       println(jsonString)
     }
   }
+
+  feature("createTransactionRequestJson builds the scaRedirect link of a payment initiation") {
+    def scaRedirectOf(paymentId: String): JValue = {
+      val response = JSONFactory_BERLIN_GROUP_1_3.createTransactionRequestJson(
+        TransactionRequestBGV1(TransactionRequestId(paymentId), "INITIATED")
+      )
+      Extraction.decompose(response._links) \ "scaRedirect" \ "href"
+    }
+
+    scenario("a URL without PLACEHOLDER gets the payment id appended once") {
+      setPropsValues("psu_make_payment_sca_redirect_url" -> "https://psu.example/pay")
+      scaRedirectOf("p1") shouldBe JString("https://psu.example/pay/p1")
+    }
+
+    scenario("a URL with PLACEHOLDER gets the payment id in its place and nowhere else") {
+      setPropsValues("psu_make_payment_sca_redirect_url" -> "https://psu.example/confirm?PAYMENT_ID=PLACEHOLDER")
+      scaRedirectOf("p1") shouldBe JString("https://psu.example/confirm?PAYMENT_ID=p1")
+    }
+
+    scenario("a blank psu_make_payment_sca_redirect_url gives no scaRedirect link") {
+      setPropsValues("psu_make_payment_sca_redirect_url" -> "  ")
+      scaRedirectOf("p1") shouldBe JNothing
+    }
+
+    scenario("without psu_make_payment_sca_redirect_url there is no scaRedirect link and no error text") {
+      scaRedirectOf("p1") shouldBe JNothing
+      compactRender(Extraction.decompose(
+        JSONFactory_BERLIN_GROUP_1_3.createTransactionRequestJson(TransactionRequestBGV1(TransactionRequestId("p1"), "INITIATED"))
+      )) should not include "OBP-00010"
+    }
+  }
 }

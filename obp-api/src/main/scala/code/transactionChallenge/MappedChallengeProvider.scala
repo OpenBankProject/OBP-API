@@ -102,6 +102,12 @@ object MappedChallengeProvider extends ChallengeProvider {
     Full(MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.ConsentId,consentId)))
   override def getChallengesByBasketId(basketId: String): Box[List[ChallengeTrait]] =
     Full(MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.BasketId,basketId)))
+
+  override def deleteChallengesByConsentId(consentId: String, challengeType: String): Box[Boolean] =
+    tryo(MappedExpectedChallengeAnswer.bulkDelete_!!(
+      By(MappedExpectedChallengeAnswer.ConsentId, consentId),
+      By(MappedExpectedChallengeAnswer.ChallengeType, challengeType)
+    ))
   
   override def validateChallenge(
     challengeId: String,

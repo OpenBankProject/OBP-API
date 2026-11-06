@@ -33,7 +33,7 @@ import code.model.ViewExtended
 import code.setup.{DefaultUsers, ServerSetup}
 import code.views.system.{ViewDefinition, ViewPermission}
 import com.openbankproject.commons.model.{AccountId, BankAccountCommons, BankId, BankIdAccountId, ViewId}
-import net.liftweb.common.{Empty, Failure}
+import net.liftweb.common.{Empty, Failure, Full}
 
 class MappedViewsTest extends ServerSetup with DefaultUsers{
   
@@ -313,4 +313,44 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
   }
   
   
+
+  feature("the opt-in Berlin Group system views at boot") {
+    def permissionsOf(viewId: String): Option[Set[String]] =
+      ViewDefinition.findSystemView(viewId).toOption.map(_.allowed_actions.toSet)
+
+    scenario("one that already exists is kept current although additional_system_views does not list it") {
+      Given("InitiatePaymentsBerlinGroup, created by a refresh of the mapped connector, carrying an older permission set")
+      val view = MapperViews.getOrCreateSystemView(Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)
+        .openOrThrowException("the view should be created")
+      ViewPermission.resetViewPermissions(view, Constant.SYSTEM_VIEW_PERMISSION_COMMON)
+
+      When("boot keeps the opt-in views current, with additional_system_views not set")
+      MapperViews.ensureOptInSystemViewsUpToDate(Empty)
+
+      Then("the view carries the permissions the code defines")
+      permissionsOf(Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID) should equal(
+        Some(Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_PERMISSION.toSet))
+    }
+
+    scenario("one that already exists keeps its permissions when reconciling at boot is turned off") {
+      setPropsValues("system_views.reconcile_permissions_at_boot" -> "false")
+      val view = MapperViews.getOrCreateSystemView(Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)
+        .openOrThrowException("the view should be created")
+      ViewPermission.resetViewPermissions(view, Constant.SYSTEM_VIEW_PERMISSION_COMMON)
+
+      MapperViews.ensureOptInSystemViewsUpToDate(Empty)
+
+      permissionsOf(Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID) should equal(
+        Some(Constant.SYSTEM_VIEW_PERMISSION_COMMON.toSet))
+    }
+
+    scenario("one that does not exist is created only when additional_system_views lists it") {
+      MapperViews.ensureOptInSystemViewsUpToDate(Empty)
+      permissionsOf(Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID) should equal(None)
+
+      MapperViews.ensureOptInSystemViewsUpToDate(Full(s" ${Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID} "))
+      permissionsOf(Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID) should equal(
+        Some(Constant.SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_PERMISSION.toSet))
+    }
+  }
 }

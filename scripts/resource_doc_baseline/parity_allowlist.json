@@ -263,9 +263,9 @@
       "version": "v4_0_0",
       "endpoint": "updateConsentStatus",
       "field": "description",
-      "reason": "Added that the consent must belong to the logged-in user, otherwise 404 ConsentNotFound",
+      "reason": "Added that the consent must belong to the logged-in user, otherwise 404 ConsentNotFound, and that a consent not yet authorised can be refused with REJECTED without SCA",
       "lift_digest": "72dc13245db8680613c4bfc56859b1b7ca4c10d35fb53f65b241c184ebf13827",
-      "http4s_digest": "2ab09de7128ff70488baf26b2fda2ab9f52df3565bf17644fedbc31b36e823ab"
+      "http4s_digest": "cfd8ec7dfc3ba41ba4ad5d3d710f8f04dff9a3690fc5216c504dee3741196ee1"
     },
     {
       "version": "v4_0_0",
@@ -1433,7 +1433,15 @@
       "field": "description",
       "reason": "Documents the six-limit semantics (0=blocked, summed across records); same rate-limiting feature expansion as the other rate-limit endpoints below.",
       "lift_digest": "668028ad86321b68b01406fb570d1dafca545c3c45bc2a3e3c0d04dd1a5b69af",
-      "http4s_digest": "a70426ea3f7d3e3305f066057d548d5f810f4920a78ea5c1cc02fce5afd74208"
+      "http4s_digest": "20ef72c36c810c8f2e95d6d4fdae9c05438fb1a11c09b3c0d70e9d245883197f"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createCallLimits",
+      "field": "errorResponseBodies",
+      "reason": "Lists RateLimitScopeNotSupported, the 400 for a rate limit that names an api_name, api_version or bank_id.",
+      "lift_digest": "13a79b912b962f3b1adb4ccab12d47087a6ec04f0f76cf8989b4a0d84606dcff",
+      "http4s_digest": "05d96c06040c6e3c3f076a0b9916d59a4c6108a47f2e2907128a3e4235cd5577"
     },
     {
       "version": "v6_0_0",
@@ -1473,7 +1481,15 @@
       "field": "description",
       "reason": "Same rate-limiting doc expansion as the other call-limit endpoints.",
       "lift_digest": "b4a18cf966d2dbdd3760c86771869b584cd10286dac49620d075a7cbfdca4996",
-      "http4s_digest": "229b587b60d0eec166b7f962703514c81e5d176ee65dd70de0c131efc221bd8c"
+      "http4s_digest": "e200763f8a95f7259cae9d370259d22140003a5ee3cf6eee4aba4d99429f3951"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateRateLimits",
+      "field": "errorResponseBodies",
+      "reason": "Lists RateLimitScopeNotSupported, the 400 for a rate limit that names an api_name, api_version or bank_id.",
+      "lift_digest": "73a6aab6d272e734f76807465010e55db340ee57091b9590ee564de48566a42a",
+      "http4s_digest": "2d7e7df55e5ff6575b522f6dcf0716be5ea3f4f4ca6c1324596ae0be8b8398a0"
     },
     {
       "version": "v1_4_0",
@@ -2666,6 +2682,46 @@
       "reason": "Added ApiCollectionNotFound: 404 when the collection does not exist or belongs to another user, so only its owner can update it",
       "lift_digest": "ea8061d2189d61d4f84552f70fa4482c88aa1fb6d5f7692b7c3c6eae0b24f4e6",
       "http4s_digest": "181a990959c91843d2617852d9247a24ae916364b5b3afa58fab87ddd6692130"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "callsLimit",
+      "field": "description",
+      "reason": "Says the PUT changes or creates the consumer's one rate limit and refuses a consumer with several.",
+      "lift_digest": "c6539601da7002deff895c829197c1bf0b63f01af2fdae358505b2f545fbf249",
+      "http4s_digest": "19d2267453f1279b12e47e32cfe970976329d5b1182f641f3e25ece5cf00bd79"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "callsLimit",
+      "field": "errorResponseBodies",
+      "reason": "Lists RateLimitNotUnique, the 400 for a consumer with several rate limits.",
+      "lift_digest": "73a6aab6d272e734f76807465010e55db340ee57091b9590ee564de48566a42a",
+      "http4s_digest": "f7222b11944092a114e928a045581b96e554836df8fa3f398b63dc089f4ef76a"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "callsLimit",
+      "field": "description",
+      "reason": "Says the PUT changes or creates the consumer's one rate limit, refuses a consumer with several, and refuses the scope fields nothing enforces.",
+      "lift_digest": "b4a18cf966d2dbdd3760c86771869b584cd10286dac49620d075a7cbfdca4996",
+      "http4s_digest": "0df098589b7e775d57cf0384f69258b009b10d34db1cfe6dd3650a2ce3c8eacc"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "callsLimit",
+      "field": "errorResponseBodies",
+      "reason": "Lists RateLimitScopeNotSupported and RateLimitNotUnique.",
+      "lift_digest": "73a6aab6d272e734f76807465010e55db340ee57091b9590ee564de48566a42a",
+      "http4s_digest": "50352369bb9cd70682e783614e177b83ddf75a136131a0c29837b045baa4a247"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteBankCascade",
+      "field": "description",
+      "reason": "Says that the bank's dynamic entities and all their records go with the bank and that no ZZ_BAK_ copy is made.",
+      "lift_digest": "2bb8a473e170e77029d901d2e12ee5ec802dc61a95eba7b0c745665613174948",
+      "http4s_digest": "c8e065559d6cad3b6f2fd37804cc949389ffbe460607a074038fd6139b53c45e"
     },
     {
       "version": "v4_0_0",
