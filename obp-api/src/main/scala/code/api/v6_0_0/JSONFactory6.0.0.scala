@@ -8,7 +8,7 @@
   * General Public License for more details. * You should have received a copy
   * of the GNU Affero General Public License along with this program. If not,
   * see <http://www.gnu.org/licenses/>. * Email: contact@tesobe.com TESOBE GmbH
-  * Osloerstrasse 16/17 Berlin 13359, Germany * This product includes software
+  * Osloer Strasse 16/17 Berlin 13359, Germany * This product includes software
   * developed at TESOBE (http://www.tesobe.com/)
   */
 package code.api.v6_0_0

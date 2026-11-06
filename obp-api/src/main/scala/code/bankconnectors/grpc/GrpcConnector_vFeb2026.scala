@@ -19,7 +19,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 
 Email: contact@tesobe.com
 TESOBE GmbH
-Osloerstrasse 16/17
+Osloer Strasse 16/17
 Berlin 13359, Germany
 */
 

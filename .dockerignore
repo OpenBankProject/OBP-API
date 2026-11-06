@@ -58,7 +58,7 @@ logs/
 README.md
 *.md
 !NOTICE
-!GNU_AFFERO_GPL_V3_19_Nov_1997.txt
+!LICENSE
 !Harmony_Individual_Contributor_Assignment_Agreement.txt
 
 # Docker files themselves (avoid recursive copies)

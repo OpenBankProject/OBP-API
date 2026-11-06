@@ -17,7 +17,7 @@
   * *
   * Email: contact@tesobe.com
   * TESOBE GmbH
-  * Osloerstrasse 16/17
+  * Osloer Strasse 16/17
   * Berlin 13359, Germany
   * *
   * This product includes software developed at
