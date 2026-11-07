@@ -1107,6 +1107,7 @@ object ErrorMessages {
   val OpenCorridorDisabled = "OBP-40057: Open Corridor is not enabled on this API instance. Set open_corridor_enabled=true in the props."
   val OpenCorridorSettlementNotFound = "OBP-40058: No Open Corridor settlement with this SETTLEMENT_ID exists for this bank."
   val OpenCorridorSameBankNotAllowed = "OBP-40061: OPEN_CORRIDOR is inter-bank: the beneficiary bank must differ from the sending bank. Use an ordinary payment for intra-bank transfers."
+  val OpenCorridorNetBelowMinimum = "OBP-40068: The net of this Open Corridor pair is below the minimum settlement amount for its currency (open_corridor.min_settlement_amount.<CURRENCY>). Nothing was netted: the promises stay PENDING and are settled together once their net reaches the minimum."
   val MessageOutboxRowNotFound = "OBP-40059: No message outbox row with this OUTBOX_ID exists."
   val MessageOutboxRowNotSticky = "OBP-40060: The message outbox row is not STICKY. Only STICKY rows can be re-queued; PENDING rows retry automatically."
   // Renumbered from OBP-40058 on merge: develop had meanwhile taken 40058 through 40061 for Open
