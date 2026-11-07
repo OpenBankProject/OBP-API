@@ -62,7 +62,7 @@ import scala.concurrent.duration._
  *    both are transient on the node side and redelivery is safe (idempotent
  *    verification; the CBS dedupes on transaction_request_id).
  *  - COMMITMENT-MISMATCH / BAD-MESSAGE / NOT-IMPLEMENTED /
- *    SETTLEMENT-NOT-CONFIGURED / CBS-REJECTED → STICKY: retry cannot fix it;
+ *    SETTLEMENT-NOT-CONFIGURED / SETTLEMENT-BELOW-MINIMUM / CBS-REJECTED → STICKY: retry cannot fix it;
  *    it needs an operator (GET /management/message-outbox + /retry). The
  *    error and full reply are recorded — never swallowed. CBS-REJECTED is
  *    the bank's CBS refusing the credit itself (unknown account, name
@@ -115,8 +115,15 @@ object MessageOutboxRelay extends MdcLoggable {
     "OBP-BANK-NODE-BAD-MESSAGE",
     "OBP-BANK-NODE-NOT-IMPLEMENTED",
     "OBP-BANK-NODE-SETTLEMENT-NOT-CONFIGURED",
-    "OBP-BANK-NODE-CBS-REJECTED"
+    "OBP-BANK-NODE-CBS-REJECTED",
+    // The net sizes to less than one rail output may carry; the amount is
+    // fixed by the instruction, so every resend is refused the same way.
+    "OBP-BANK-NODE-SETTLEMENT-BELOW-MINIMUM"
   )
+
+  /** Whether a Bank Node error reply means resending cannot help. */
+  private[messageoutbox] def isStickyOpenCorridorError(errorCode: String): Boolean =
+    openCorridorStickyErrorCodes.exists(errorCode.startsWith)
 
   def start(intervalSeconds: Long): Unit = {
     implicit val executor = ObpActorSystem.localActorSystem.dispatcher
@@ -216,7 +223,7 @@ object MessageOutboxRelay extends MdcLoggable {
             row.Status(MessageOutbox.STATUS_DELIVERED).LastError("").LastReplyJson(replyJson).saveMe()
             logger.info(s"message outbox row ${row.id.get}: ${row.operationName} to ${row.targetId} DELIVERED")
           }
-        } else if (openCorridorStickyErrorCodes.exists(errorCode.startsWith)) {
+        } else if (isStickyOpenCorridorError(errorCode)) {
           row.Status(MessageOutbox.STATUS_STICKY).Attempts(row.attempts + 1)
             .LastError(errorCode).LastReplyJson(replyJson).saveMe()
           logger.error(s"message outbox row ${row.id.get}: ${row.operationName} to ${row.targetId} " +
