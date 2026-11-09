@@ -2391,6 +2391,7 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
+      authMode = UserXORApplication,
       http4sPartialFunction = Some(getUserByProviderAndUsername)
     )
 

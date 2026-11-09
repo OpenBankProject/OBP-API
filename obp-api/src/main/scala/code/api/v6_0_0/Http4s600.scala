@@ -872,7 +872,7 @@ object Http4s600 {
     // Route: GET /obp/v6.0.0/users
     lazy val getUsers: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" =>
-        EndpointHelpers.withUser(req) { (_, cc) =>
+        EndpointHelpers.executeAndRespond(req) { cc =>
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
             (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
@@ -5002,7 +5002,7 @@ object Http4s600 {
 
     lazy val getUserByUserId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "user-id" / userId =>
-        EndpointHelpers.withUser(req) { (_, cc) =>
+        EndpointHelpers.executeAndRespond(req) { cc =>
           for {
             userBox <- code.users.Users.users.vend.getUserByUserIdFuture(userId)
             user <- Future(unboxFullOrFail(userBox, Some(cc),
@@ -8280,6 +8280,7 @@ object Http4s600 {
         ),
         apiTagUser :: Nil,
         Some(canGetAnyUser :: Nil),
+        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(getUsers)
       )
       resourceDocs += ResourceDoc(
@@ -13220,6 +13221,7 @@ object Http4s600 {
           List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
           apiTagUser :: Nil,
           Some(canGetAnyUser :: Nil),
+          authMode = code.api.util.APIUtil.UserXORApplication,
           http4sPartialFunction = Some(getUserByUserId)
         )
         resourceDocs += ResourceDoc(
