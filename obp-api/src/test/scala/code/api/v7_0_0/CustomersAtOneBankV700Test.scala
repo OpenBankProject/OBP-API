@@ -57,16 +57,18 @@ class CustomersAtOneBankV700Test extends V600ServerSetup {
   }
 
   /** A fresh Customer of the test bank with the given attributes; returns its id. */
-  private def customer(attributes: (String, String)*): String = {
+  private def customer(attributes: (String, String)*): String = customerAt(bankId, attributes: _*)
+
+  private def customerAt(bank: String, attributes: (String, String)*): String = {
     val created = CustomerX.customerProvider.vend.addCustomer(
-      BankId(bankId), generateUUID().take(12), s"Organisation ${generateUUID().take(6)}", "+968 1234 5678", "org@example.com",
+      BankId(bank), generateUUID().take(12), s"Organisation ${generateUUID().take(6)}", "+968 1234 5678", "org@example.com",
       CustomerFaceImage(new Date(), "http://example.com/face.png"),
       new Date(), "single", 0, Nil, "Bachelor", "employed", false, new Date(),
       None, None, "", "", "", "CORPORATE", ""
     ).openOrThrowException("expected the customer to be created")
     attributes.foreach { case (name, value) =>
       Await.result(CustomerAttributeX.customerAttributeProvider.vend.createOrUpdateCustomerAttribute(
-        BankId(bankId), CustomerId(created.customerId), None, name, CustomerAttributeType.STRING, value), 10.seconds)
+        BankId(bank), CustomerId(created.customerId), None, name, CustomerAttributeType.STRING, value), 10.seconds)
         .openOrThrowException("expected the attribute to be created")
     }
     created.customerId
@@ -85,6 +87,46 @@ class CustomersAtOneBankV700Test extends V600ServerSetup {
   }
 
   feature(s"Get Customers at Bank, filtered by Customer Attributes - GET /banks/BANK_ID/customers - $VersionOfApi") {
+
+    scenario("Customers of another bank are never listed, and the Role is needed at this bank", CustomersAtOneBank, VersionOfApi) {
+      val tag = generateUUID().take(6)
+      val here = customer("organisation_kind" -> s"university-$tag")
+      customerAt(testBankId2.value, "organisation_kind" -> s"university-$tag")
+      ids("organisation_kind" -> s"university-$tag") should equal(List(here))
+
+      val grantAtOtherBank = Entitlement.entitlement.vend.addEntitlement(testBankId2.value, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
+      val response = try get("organisation_kind" -> s"university-$tag") finally Entitlement.entitlement.vend.deleteEntitlement(grantAtOtherBank)
+      response.code should equal(403)
+    }
+
+    scenario("An attribute parameter without a value is refused", CustomersAtOneBank, VersionOfApi) {
+      Seq("", ",", " , ").foreach { value =>
+        val response = withRole { get("organisation_kind" -> value) }
+        withClue(s"value '$value': ${response.body}") { response.code should equal(400) }
+        response.body.extract[ErrorMessage].message should include(InvalidUrlParameters)
+      }
+    }
+
+    scenario("Other OBP query parameters are not taken for attribute names", CustomersAtOneBank, VersionOfApi) {
+      val tag = generateUUID().take(6)
+      val matching = customer("organisation_kind" -> s"bank-$tag")
+      ids("organisation_kind" -> s"bank-$tag", "from_date" -> "2020-01-01T00:00:00.000Z", "to_date" -> "2099-01-01T00:00:00.000Z",
+        "sort_by" -> "name", "obp_limit" -> "10", "_" -> "123") should equal(List(matching))
+    }
+
+    scenario("sort_direction orders the matching Customers by customer_id", CustomersAtOneBank, VersionOfApi) {
+      val tag = generateUUID().take(6)
+      val created = (1 to 3).map(_ => customer("cohort" -> s"s-$tag")).toList
+      ids("cohort" -> s"s-$tag", "sort_direction" -> "ASC") should equal(created.sorted)
+      ids("cohort" -> s"s-$tag", "sort_direction" -> "DESC") should equal(created.sorted.reverse)
+    }
+
+    scenario("Without attribute parameters limit and offset still page the list", CustomersAtOneBank, VersionOfApi) {
+      customer("cohort" -> s"p-${generateUUID().take(6)}")
+      customer("cohort" -> s"p-${generateUUID().take(6)}")
+      ids("limit" -> "1") should have size 1
+      ids("limit" -> "1", "offset" -> "1") should have size 1
+    }
 
     scenario("It needs the Role", CustomersAtOneBank, VersionOfApi) {
       val response = get()
