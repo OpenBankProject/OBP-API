@@ -7728,6 +7728,9 @@ object Http4s700 {
     // Consumer account access: a view of an account granted to a Consumer, for an application acting as itself.
     resourceDocs ++= Http4s700ConsumerAccountAccess.resourceDocs
 
+    // Customers at a bank, each with its Customer Attributes, filtered by Customer Attributes.
+    resourceDocs ++= Http4s700Customers.resourceDocs
+
     // The order in which the routes are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given this same list: the doc that validates a request
     // is the doc of the route that runs it.
