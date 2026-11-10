@@ -5382,6 +5382,8 @@ object Http4s700 {
         |
         |A trigger for a pair with no PENDING evidenced promises is a no-op. When the flows offset exactly (net zero) the promises are discharged with no Transaction posted and no settlement instruction sent — the settlement advices still go out.
         |
+        |When `open_corridor.min_settlement_amount.<CURRENCY>` is set and the net is above zero but below it, the call is refused with OBP-40068 and nothing is netted: the promises stay PENDING and are covered by a later trigger once the pair's net reaches the minimum. Set it at or above what the settlement rail can pay in one transfer (a Cardano output must carry at least 1 ADA).
+        |
         |`net_amount` is always the absolute value; direction is carried by `debtor_bank_id` → `creditor_bank_id` (assigned from the sign of the net). Either bank in the pair may trigger settlement — the role is checked at the URL's BANK_ID, and who ends up debtor is decided by the net, not by who called.
         |
         |Requires `open_corridor_enabled=true` on this instance and the `CanSettleOpenCorridor` role at BANK_ID.
@@ -5405,7 +5407,7 @@ object Http4s700 {
         settlement_instructions_enqueued = 1
       ),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, OpenCorridorDisabled, InvalidJsonFormat, InvalidJsonValue,
-           OpenCorridorSameBankNotAllowed,
+           OpenCorridorSameBankNotAllowed, OpenCorridorNetBelowMinimum,
            $BankNotFound, AmqpBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),

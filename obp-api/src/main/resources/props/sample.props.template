@@ -1432,6 +1432,13 @@ featured_apis=elasticSearchWarehouseV300
 # between attempts doubles up to 10 minutes, so the default gives up after roughly a day.
 # open_corridor.outbox_max_attempts=144
 
+# The smallest net that is settled in a currency, in its major units. A settle whose net is below it
+# nets nothing: the promises stay PENDING and are settled together once the pair's net reaches it
+# (OBP-40068). Set it at or above what the rail can pay in one transfer; a Cardano output must carry
+# at least 1 ADA, so a KES corridor needs a minimum above 1 ADA in KES, with room for the rate to
+# move. Unset means no minimum.
+# open_corridor.min_settlement_amount.KES=50
+
 
 # -- Scopes -----------------------------------------------------
 # Scopes can be used to limit the APIs a Consumer can call.
