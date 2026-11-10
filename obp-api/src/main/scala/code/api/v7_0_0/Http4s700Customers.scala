@@ -153,8 +153,9 @@ object Http4s700Customers {
        |sort_by, and names starting with obp_ or _. Apart from limit, offset and sort_direction (lower case)
        |they are accepted and ignored, as in v6.0.0.
        |
-       |Values of parameters whose name ends in currency or currency_code are upper-cased by OBP-API before
-       |they are matched, as on every endpoint.
+       |A single value of a parameter whose name ends in currency or currency_code that looks like a currency
+       |code is upper-cased by OBP-API before it is matched, as on every endpoint; comma-separated values are
+       |matched as given.
        |
        |Examples:
        |
