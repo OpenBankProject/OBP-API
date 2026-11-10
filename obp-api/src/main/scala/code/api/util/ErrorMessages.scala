@@ -315,6 +315,7 @@ object ErrorMessages {
   val DAuthIsDisabled = "OBP-20407: DAuth is disabled. Set allow_dauth=true to enable."
   val OpenIDConnectIsDisabled = "OBP-20408: OpenID Connect is disabled. Set allow_openid_connect=true to enable."
   val DirectLoginIsDisabled = "OBP-20409: DirectLogin is disabled. Set allow_direct_login=true to enable."
+  val ConsumerGrantTypeNotAllowed = "OBP-20410: This Consumer cannot be used this way. Its grant types do not include the one this call needs. An administrator can change them with PUT /management/consumers/CONSUMER_ID/grant-types. "
 
   val InvalidProviderUrl = "OBP-20079: Cannot match the local identity provider."
 
@@ -976,6 +977,7 @@ object ErrorMessages {
   val PlatformAppAlreadyExists = "OBP-35045: This Consumer is already a Platform App."
   val PlatformAppNotFound = "OBP-35046: This Consumer is not a Platform App. An administrator marks a Consumer as a Platform App first (POST /management/platform-apps)."
   val InvalidPlatformApp = "OBP-35047: Invalid Platform App. label must be between 1 and 100 characters."
+  val InvalidConsumerGrantTypes = "OBP-35061: Invalid grant types. Each value must be authorization_code, refresh_token, client_credentials or direct_login, and refresh_token requires authorization_code. Send an empty list to remove the grant types. "
   val InvalidPlatformAppDeclaration = "OBP-35048: Invalid Platform App declaration. Send at most 100 required_scopes, each with a known role_name, a bank_id that suits the Role (empty for a system Role), and needed_for between 1 and 1000 characters; version is at most 100 characters."
 
   //Authorisations

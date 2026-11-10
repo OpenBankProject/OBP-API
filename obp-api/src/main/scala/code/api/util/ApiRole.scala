@@ -340,6 +340,8 @@ object ApiRole extends MdcLoggable{
   lazy val canUpdateConsumerCertificate = CanUpdateConsumerCertificate()
   case class CanUpdateConsumerName(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateConsumerName = CanUpdateConsumerName()
+  case class CanUpdateConsumerGrantTypes(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateConsumerGrantTypes = CanUpdateConsumerGrantTypes()
 
   case class CanCreateConsumer (requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateConsumer = CanCreateConsumer()

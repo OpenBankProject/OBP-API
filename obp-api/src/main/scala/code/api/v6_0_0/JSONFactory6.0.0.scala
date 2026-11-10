@@ -179,7 +179,9 @@ case class VerifyOidcClientResponseJsonV600(
     valid: Boolean,
     client_id: Option[String] = None,
     consumer_id: Option[String] = None,
-    redirect_uris: Option[List[String]] = None
+    redirect_uris: Option[List[String]] = None,
+    // The OAuth2 grant types the client may be issued tokens for (see ConsumerGrantTypes)
+    grant_types: Option[List[String]] = None
 )
 
 // OIDC Client Get (metadata lookup without secret verification)
@@ -188,7 +190,9 @@ case class GetOidcClientResponseJsonV600(
     client_name: String,
     consumer_id: String,
     redirect_uris: List[String],
-    enabled: Boolean
+    enabled: Boolean,
+    // The OAuth2 grant types the client may be issued tokens for: the Consumer's own, or the defaults when it sets none
+    grant_types: List[String] = code.consumer.ConsumerGrantTypes.DefaultOAuth2
 )
 
 case class CallLimitPostJsonV600(

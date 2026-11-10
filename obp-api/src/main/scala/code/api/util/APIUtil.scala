@@ -2169,13 +2169,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   /** True when no person is behind the call: there is no User, or the User is the application's own, the one an
    *  OBP-OIDC client-credentials token resolves to (provider obp-oidc#client, named after the Consumer's client id).
    *  consumerId is the Consumer's primary key, as from getConsumerPrimaryKey. */
-  def isApplicationActingAsItself(userId: String, consumerId: String): Boolean =
-    if (userId.isEmpty) consumerId.nonEmpty
+  def isApplicationActingAsItself(userId: String, consumerId: String): Boolean = {
+    lazy val consumer = tryo(consumerId.toLong).flatMap(Consumers.consumers.vend.getConsumerByPrimaryId)
+    // If the Consumer has grant types set, its grant types decide:
+    // - client_credentials only: every call through the Consumer is the application acting as itself.
+    //   (A person's call through such a Consumer has already been refused in AfterApiAuth.)
+    // - client_credentials not included: no call through the Consumer is the application acting as itself.
+    // If the Consumer has no grant types set, the rules below apply as before.
+    if (consumer.exists(code.consumer.ConsumerGrantTypes.isClientCredentialsOnly)) true
+    else if (consumer.exists(code.consumer.ConsumerGrantTypes.excludesClientCredentials)) false
+    else if (userId.isEmpty) consumerId.nonEmpty
     else (for {
       user <- Users.users.vend.getUserByUserId(userId)
-      primaryKey <- tryo(consumerId.toLong)
-      consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(primaryKey)
-    } yield isApplicationsOwnUser(user, consumer)).openOr(false)
+      c <- consumer
+    } yield isApplicationsOwnUser(user, c)).openOr(false)
+  }
 
   def isApplicationsOwnUser(user: User, consumer: code.model.Consumer): Boolean =
     user.provider == code.api.OAuth2Login.OBPOIDC.clientCredentialsProvider &&
@@ -3069,8 +3077,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     // Check is it Consumer disabled
     val consumerIsDisabled: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkConsumerIsDisabled(res)
+    // Check the Consumer allows this way of calling (its grant types, when it sets them)
+    val consumerGrantTypes: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkConsumerGrantTypes(consumerIsDisabled)
     // Check is it a user deleted or locked
-    val userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkUserIsDeletedOrLocked(consumerIsDisabled)
+    val userIsLockedOrDeleted: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkUserIsDeletedOrLocked(consumerGrantTypes)
     // Check Rate Limiting
     val resultWithRateLimiting: Future[(Box[User], Option[CallContext])] = AfterApiAuth.checkRateLimiting(userIsLockedOrDeleted)
     // User init actions

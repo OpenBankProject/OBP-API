@@ -22,6 +22,28 @@ The API documentation is best viewed using the [OBP API Explorer](https://apiexp
 
 If you want to run your own copy of API Explorer II, see [here](https://github.com/OpenBankProject/API-Explorer-II)
 
+### Writing documentation
+
+Write glossary items, endpoint descriptions, error messages and code comments in plain English. Plain English is
+not simplified English: it keeps the meaning and the detail, and says it clearly. Two UK guides explain how:
+
+- [Clear language](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/writing-guidelines/clear-language/) from GOV.UK
+- [How to write in plain English](https://www.plainenglish.co.uk/how-to-write-in-plain-english) from the Plain English Campaign
+
+In short:
+
+- Keep sentences to 15 to 20 words on average, and split any sentence over 25 words.
+- Use the active voice: "OBP-API refuses the call", not "the call is refused".
+- Use short, familiar words: "start", not "commence"; "before", not "prior to".
+- Explain a technical term the first time you use it. Specialists prefer plain English too.
+- Write full sentences. Avoid long chains joined by semicolons, and make sure every "it" and "they" clearly
+  refers to one thing.
+- Give an example when a rule is hard to follow on its own.
+
+`scripts/plain_english_check.py` lists the sentences over 25 words in ResourceDocs, glossary items and error
+messages. Run it with `--changed` to check only the files you have changed. It measures length only, so a
+text it passes can still need rewriting.
+
 ## Status of API Versions
 
 OBP instances support multiple versions of the API simultaneously (unless they are deactivated in config)

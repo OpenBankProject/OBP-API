@@ -7433,6 +7433,38 @@ object Glossary extends MdcLoggable  {
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
+		title = "Consumer Grant Types",
+		description =
+			s"""
+				 |# Consumer Grant Types
+				 |
+				 |A Consumer's grant types say how people and the application itself may call through it. They are optional: a Consumer that sets none allows every way, as before, so people can log in through it and the application can call through it as itself.
+				 |
+				 |Setting them lets an installation keep the two uses apart, with one Consumer for people logging in and another for the application acting as itself. One leaked secret then exposes one use, not both; Scopes stay as narrow as each use needs; and metrics tell people's traffic from the application's.
+				 |
+				 |## Values
+				 |
+				 |- `authorization_code`: a person logs in through an OAuth2 / OpenID Connect provider.
+				 |- `refresh_token`: renewing such a login (needs `authorization_code`).
+				 |- `client_credentials`: the application obtains a token as itself.
+				 |- `direct_login`: a person logs in with DirectLogin.
+				 |
+				 |## What they do
+				 |
+				 |- **client_credentials and no login grant**: every call through the Consumer is the application acting as itself, on its Scopes, whatever User its token carries (for example a Keycloak service account). A person cannot get a token through it or call through it.
+				 |- **no client_credentials**: people log in through it and act on their Entitlements; the application never acts as itself through it, and a client-credentials token for it is refused.
+				 |
+				 |The grant types are checked twice. First, when a token is requested: DirectLogin will be blocked for a Consumer whose grant types do not include `direct_login` (logging in with its consumer key fails), and OBP-OIDC and the Keycloak client storage read the grant types from OBP and do not issue a token for a grant that is not included. Second, when a token is used: OBP-API refuses any call through the Consumer that its grant types do not allow, wherever the token was issued.
+				 |
+				 |Grant types are set by an administrator; they are never inferred from the Scopes a Consumer holds or from it being a Platform App (see ${getGlossaryItemLink("Platform Apps")}), so granting a Scope later does not change how a Consumer behaves.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Get Consumer Grant Types](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getConsumerGrantTypes): `GET /obp/v7.0.0/management/consumers/CONSUMER_ID/grant-types`
+				 |- [Update Consumer Grant Types](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateConsumerGrantTypes): `PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/grant-types`, with the Role CanUpdateConsumerGrantTypes. An empty list clears them.
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
 		title = "Consumer Account Access",
 		description =
 			s"""

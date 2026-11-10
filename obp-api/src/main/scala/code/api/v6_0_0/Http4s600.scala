@@ -2123,7 +2123,8 @@ object Http4s600 {
             GetOidcClientResponseJsonV600(
               client_id = clientId, client_name = consumer.name.get,
               consumer_id = consumer.consumerId.get,
-              redirect_uris = redirectUris, enabled = consumer.isActive.get)
+              redirect_uris = redirectUris, enabled = consumer.isActive.get,
+              grant_types = code.consumer.ConsumerGrantTypes.oauth2GrantTypes(consumer))
           }
         }
     }
@@ -2146,7 +2147,8 @@ object Http4s600 {
                   valid = true,
                   client_id = Some(postedData.client_id),
                   consumer_id = Some(consumer.consumerId.get),
-                  redirect_uris = redirectUris)
+                  redirect_uris = redirectUris,
+                  grant_types = Some(code.consumer.ConsumerGrantTypes.oauth2GrantTypes(consumer)))
               case _ => VerifyOidcClientResponseJsonV600(valid = false)
             }
           }
@@ -9595,12 +9597,17 @@ object Http4s600 {
         "Get OIDC Client",
         s"""Gets an OIDC/OAuth2 client's metadata by client_id.
         |
-        |Returns client information including name, consumer_id, redirect_uris, and enabled status.
+        |Returns client information including name, consumer_id, redirect_uris, enabled status and grant_types.
+        |
+        |grant_types lists the OAuth2 grant types the client can be issued tokens for. These are the grant types an
+        |administrator set on the Consumer (PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/grant-types). If none are
+        |set, they are authorization_code, refresh_token and client_credentials.
         |This endpoint does not verify the client secret - use POST /oidc/clients/verify for authentication.
         |
-        |redirect_uris lists only the Consumer's redirect URLs that meet the redirect URL rules (https; http only for localhost,
-        |127.0.0.1 or [::1]; or an app scheme in reverse-domain form; no wildcard, user information or fragment). A stored entry
-        |that fails them is left out, so an OIDC provider never redirects to it. See ${Glossary.getGlossaryItemLink("Redirect URL")}
+        |redirect_uris lists only the Consumer's redirect URLs that meet the redirect URL rules. A URL must use https,
+        |or http for localhost, 127.0.0.1 or [::1] only, or an app scheme in reverse-domain form. It must not contain a
+        |wildcard, user information or a fragment. A stored URL that breaks these rules is left out, so an OIDC provider
+        |never redirects to it. See ${Glossary.getGlossaryItemLink("Redirect URL")}
 
         |${userAuthenticationMessage(true)}
         |""",
@@ -9627,11 +9634,12 @@ object Http4s600 {
         s"""Verifies an OIDC/OAuth2 client's credentials.
         |
         |Returns `valid: true` if the client_id and client_secret match an active consumer.
-        |Also returns the consumer_id and redirect_uris for use by the OIDC provider.
+        |Also returns the consumer_id, redirect_uris and grant_types for use by the OIDC provider.
         |
-        |redirect_uris lists only the Consumer's redirect URLs that meet the redirect URL rules (https; http only for localhost,
-        |127.0.0.1 or [::1]; or an app scheme in reverse-domain form; no wildcard, user information or fragment). A stored entry
-        |that fails them is left out, so an OIDC provider never redirects to it. See ${Glossary.getGlossaryItemLink("Redirect URL")}
+        |redirect_uris lists only the Consumer's redirect URLs that meet the redirect URL rules. A URL must use https,
+        |or http for localhost, 127.0.0.1 or [::1] only, or an app scheme in reverse-domain form. It must not contain a
+        |wildcard, user information or a fragment. A stored URL that breaks these rules is left out, so an OIDC provider
+        |never redirects to it. See ${Glossary.getGlossaryItemLink("Redirect URL")}
 
         |${userAuthenticationMessage(true)}
         |""",
