@@ -153,6 +153,11 @@ object Http4s700Customers {
        |sort_by, and names starting with obp_ or _. Apart from limit, offset and sort_direction (lower case)
        |they are accepted and ignored, as in v6.0.0.
        |
+       |Every other query parameter is an attribute filter, so a misspelt name is not refused: it filters by an
+       |attribute of that name. For example, `?limt=10` asks for the Customers with an attribute `limt` whose
+       |value is `10`. That usually matches no Customer, and the answer is an empty list, not an error. Check
+       |the spelling of limit, offset and sort_direction when a call returns no Customers.
+       |
        |A single value of a parameter whose name ends in currency or currency_code that looks like a currency
        |code is upper-cased by OBP-API before it is matched, as on every endpoint; comma-separated values are
        |matched as given.
