@@ -1343,41 +1343,41 @@
       "version": "v6_0_0",
       "endpoint": "createBankLevelDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints.",
       "lift_digest": "2e7c649041362776f7eec66ccbb9f025f3edfead992108d0fd5864af76e93961",
-      "http4s_digest": "d2a81d825f3e109ec7cb4e6aece220fe2334a924be6a4c57a8294a3bc8bab0f1"
+      "http4s_digest": "b77a6503d0ca6497361d121f49b8eae398409cfe1ad49b59ce6cdc092fe1dcfd"
     },
     {
       "version": "v6_0_0",
       "endpoint": "createSystemDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints.",
       "lift_digest": "81310cdd2be1c2b33d465cabd1604cedee38bfa1ecccae4b016d0f99aa443ab6",
-      "http4s_digest": "a54cf6b69e5dd2ea2ac99f012f4e2986adeb2f5c49b344c8984b21f4757b0110"
+      "http4s_digest": "138cb03ffecb8f5ba4e90ed66a2873e23863d31a86bdcddc353621380746561d"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateBankLevelDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints.",
       "lift_digest": "2d18665f9db52506a1b043ad7575b16ac52cedf0d11f036afd4a96b353eb8ddd",
-      "http4s_digest": "9cbf8c520307ca38d82c69d079504d19c344696220ec459b9ef38475adb55332"
+      "http4s_digest": "f0fc539d1a6058fe378ce8fd001f7f5f60ffb6c28dbf0ef44f02d22f7db55cea"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateMyDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints.",
       "lift_digest": "97f0c97cc592f89f4dba8a6641ad4b41f6ffa6f4f6e78bf3d3cc34a6a11f76e7",
-      "http4s_digest": "71c7c1036177280c60d568471033fc9dac7dbdc5ae171241920bd6bc49edf9ea"
+      "http4s_digest": "8f05614b7cb370ede150f2ef09c424303f23a1ba556c3531e60c74a161fcdfb2"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateSystemDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints.",
       "lift_digest": "e28c2996f3fd54842534fd54d45d7ba49df8b346e65f541353be4fb5311b550c",
-      "http4s_digest": "03efe3fdb3fb7c924c0c880942931e6fe51dc889d288a52946ee7b84a25f95db"
+      "http4s_digest": "ce26f4656c8c69376358260477e9ab0bb4051a1c043f83288a10519058b51f1c"
     },
     {
       "version": "v3_0_0",
@@ -2215,17 +2215,17 @@
       "version": "v6_0_0",
       "endpoint": "getOidcClient",
       "field": "description",
-      "reason": "States that redirect_uris leaves out stored entries that break the redirect URL rules, which the endpoint now filters, and links the Redirect URL glossary entry.",
+      "reason": "States that redirect_uris leaves out stored entries that break the redirect URL rules, which the endpoint now filters, and links the Redirect URL glossary entry. Digest refresh 2026-11-10: documents the Consumer's grant_types in the response.",
       "lift_digest": "49ddd5f6ec985292ee48802cd18e479c5a1b46fee368ce0d06a653e07eb65e90",
-      "http4s_digest": "afb1da33f039efe8cff6de2d718c11e552434fb08f7e41a66d82a26d07be0de6"
+      "http4s_digest": "2cbc0e150e744d45e4ef13b2629a834bdaab700a0da64b32d157c21f923d366e"
     },
     {
       "version": "v6_0_0",
       "endpoint": "verifyOidcClient",
       "field": "description",
-      "reason": "States that redirect_uris leaves out stored entries that break the redirect URL rules, which the endpoint now filters, and links the Redirect URL glossary entry.",
+      "reason": "States that redirect_uris leaves out stored entries that break the redirect URL rules, which the endpoint now filters, and links the Redirect URL glossary entry. Digest refresh 2026-11-10: documents the Consumer's grant_types in the response.",
       "lift_digest": "120f4c6ed1083567d078a7afbb5c2e97d8de69e68e7314166c05e3afcdf50ecd",
-      "http4s_digest": "670c0479be7d2aa3c8beb18d2e1708c3ec7e67b2a1b625018b07a89c770fe962"
+      "http4s_digest": "b668308e83b4f0420c549eb9bd69a762b93991dfe1d5da3874019cf9b4050a08"
     },
     {
       "version": "v5_1_0",

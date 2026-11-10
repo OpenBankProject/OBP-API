@@ -28,7 +28,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{Http4sRoute, EmptyBody, ResourceDoc, UserXORApplication}
+import code.api.util.APIUtil.{Http4sRoute, EmptyBody, ResourceDoc}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -78,7 +78,7 @@ object Http4s700Grants {
     s"""Get every Scope on this instance, for all Consumers: its `bank_id`, `role_name` and `consumer_id`.
        |
        |A Scope is a Role granted to a Consumer (an application) rather than to a User; see
-       |${Glossary.getGlossaryItemLink("API.Endpoint Auth Modes")}. For the Scopes of one Consumer, see Get Scopes for Consumer.
+       |${Glossary.getGlossaryItemLink("API.Entitlements and Scopes")}. For the Scopes of one Consumer, see Get Scopes for Consumer.
        |
        |**Who may call it.** A User with the Role CanGetAllScopes, or an application whose Consumer holds it as a Scope.
        |""".stripMargin,
@@ -87,7 +87,6 @@ object Http4s700Grants {
     List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
     List(apiTagScope, apiTagRole),
     Some(List(canGetAllScopes)),
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(getAllScopes)
   )
 
@@ -125,7 +124,6 @@ object Http4s700Grants {
     List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
     List(apiTagRole, apiTagEntitlement),
     Some(List(canGetReachableRoles)),
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(getReachableRoles)
   )
 }

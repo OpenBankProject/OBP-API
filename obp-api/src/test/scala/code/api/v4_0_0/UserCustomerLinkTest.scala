@@ -143,8 +143,7 @@ class UserCustomerLinkTest extends V400ServerSetup {
       val createResponse = makePostRequest(createRequest, write(postJson))
       Then("We should get a 401")
       createResponse.code should equal(401)
-      // The endpoint is UserXORApplication: with neither a User nor an application, the application is unknown.
-      createResponse.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
+      createResponse.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
   feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {

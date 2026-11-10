@@ -30,7 +30,7 @@ import cats.effect.IO
 import code.DynamicData.DynamicData
 import code.api.dynamic.entity.helper.DynamicEntitySpace
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserXORApplication, Http4sRoute}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, Http4sRoute}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -161,7 +161,6 @@ object Http4s700DynamicEntityDefinitions {
     List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
     apiTagManageDynamicEntity :: apiTagApi :: Nil,
     Some(canGetDynamicEntityDefinitions :: Nil),
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(getDynamicEntityDefinitions)
   ).allowSystemSpace()
 
@@ -197,7 +196,10 @@ object Http4s700DynamicEntityDefinitions {
        |
        |The request body is the same as v6.0.0's: `entity_name` in lowercase snake_case, the access flags
        |(`has_personal_entity`, `has_public_access`, `has_community_access`, `personal_requires_role`,
-       |`use_row_level_access`, `auth_mode`) and a `schema` whose every property carries an `example`.
+       |`use_row_level_access`) and a `schema` whose every property carries an `example`.
+       |
+       |A person needs the entity's Record Roles as Entitlements. An application acting as itself needs them as
+       |Scopes, and its Consumer must be a Platform App.
        |
        |The caller is granted the new entity's Record Roles (`CanCreateDynamicEntityRecord_<entity_name>` and
        |its Get, Update and Delete siblings) at the same BANK_ID.
@@ -212,7 +214,6 @@ object Http4s700DynamicEntityDefinitions {
     List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
     apiTagManageDynamicEntity :: apiTagApi :: Nil,
     Some(canCreateDynamicEntityDefinition :: Nil),
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(createDynamicEntityDefinition)
   ).allowSystemSpace()
 
@@ -255,7 +256,6 @@ object Http4s700DynamicEntityDefinitions {
       DynamicEntityNotFoundByDynamicEntityId, UnknownError),
     apiTagManageDynamicEntity :: apiTagApi :: Nil,
     Some(canUpdateDynamicEntityDefinition :: Nil),
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(updateDynamicEntityDefinition)
   ).allowSystemSpace()
 

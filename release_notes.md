@@ -3,6 +3,33 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+10/11/2026    TBD           REMOVED: endpoint auth modes (authMode: UserOnly, ApplicationOnly, UserXORApplication,
+                            UserAndApplication). Who is acting on each request now decides where a Role comes from,
+                            the same way on every endpoint. A person needs the Role as an Entitlement. An
+                            application acting as itself needs it as a Scope on its Consumer.
+                            An application acts as itself only if its Consumer is a Platform App and it calls with
+                            no User or as its own client-credentials User (obp-oidc#client, or keycloak#client for a
+                            Keycloak service account). OPERATORS: mark the applications that act as themselves as
+                            Platform Apps, for example Bank-Node, Sentinel, and the Portal, API Manager and Cohort
+                            for their own tokens. Without the mark their Scopes only work as a limit on people.
+                            An application acting as itself is now let in on its Scope on every endpoint that needs
+                            a Role, not only on the 73 that were UserXORApplication. Inline Role checks in handlers
+                            follow the same rule. Consumer Account Access works on every endpoint of the granted
+                            view.
+                            Who may call an endpoint is now read from its error list only. OBP-20001 or a Role: a
+                            User is required. OBP-20200 without OBP-20001: an identified application is required and
+                            a User is optional. The 22 Berlin Group v1.3 and UK Open Banking v3.1 and v4.0.1 consent
+                            and payment endpoints now list OBP-20200 in place of OBP-20001. Endpoints with a Role
+                            called with no credentials answer 401 OBP-20001 again, not OBP-20200.
+                            require_scopes_for_all_roles and require_scopes_for_listed_roles still make a person
+                            also need the Scope on the Consumer they call through.
+                            Dynamic Entities: auth_mode is removed from the v6.0.0 and v7.0.0 definition endpoints
+                            and is no longer stored. A client that still sends it (or authMode, in the v4.0.0
+                            format) is not refused: the field is ignored. The data endpoints work like static
+                            endpoints with a Role, so a User is required. The old auth_mode column stays in existing
+                            databases, unused.
+                            v7.0.0 Get My Role: allowed_for_auth_modes is replaced by allowed (boolean). Glossary:
+                            API.Endpoint Auth Modes is replaced by API.Entitlements and Scopes.
 06/11/2026    TBD           FIXED: the consumer quota. A per-second limit held for only about half of each second:
                             Redis rounds TTL to the nearest second, so a 1-second counter read TTL 0 for its last
                             ~500 ms while still holding its count, and was treated as expired, letting every call

@@ -348,17 +348,10 @@ object ResourceDocMiddleware extends MdcLoggable {
     val needsAuth = ResourceDocMiddleware.needsAuthentication(resourceDoc)
     logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
 
-    // Dispatch on authMode the same way Lift's wrappedWithAuthCheck (APIUtil.scala:1783-1788) does:
-    //   ApplicationOnly | UserXORApplication → applicationAccess (returns ApplicationNotIdentified
-    //     when neither user nor consumer credentials are valid; also accepts consumer-only).
-    //   UserOnly | UserAndApplication       → anonymousAccess  (returns AuthenticatedUserIsRequired
-    //     when needsAuth is true and user is missing).
-    // Without this dispatch, every endpoint behaved as UserOnly — breaking
-    // ApplicationNotIdentified semantics for v5.1.0 createConsumer / getConsumers.
-    val isAppMode = resourceDoc.authMode match {
-      case APIUtil.ApplicationOnly | APIUtil.UserXORApplication => true
-      case _ => false
-    }
+    // The error list says who may call (ResourceDoc.requiresApplicationButNotUser). When an identified
+    // application is enough, applicationAccess accepts a call with no user and refuses one with no application
+    // (ApplicationNotIdentified). Otherwise anonymousAccess runs, and a required user is checked below.
+    val isAppMode = resourceDoc.requiresApplicationButNotUser
     val io = IO.fromFuture(IO(
       if (isAppMode) APIUtil.applicationAccess(ctx.callContext)
       else APIUtil.anonymousAccess(ctx.callContext)
@@ -372,8 +365,7 @@ object ResourceDocMiddleware extends MdcLoggable {
         case Right((Full(user), None)) =>
           IO.pure(Right(ctx.copy(user = Full(user))))
         // Empty box — no valid credentials provided, and auth is required.
-        // For UserXORApplication / ApplicationOnly: applicationAccess already returned
-        // successfully because the consumer is valid (just no user). Pass through.
+        // When only an application is required, applicationAccess has already succeeded. Pass through.
         case Right((_, optCC)) if needsAuth && !isAppMode =>
           val cc2 = optCC.getOrElse(ctx.callContext)
           ErrorResponseConverter.createErrorResponse(401, $AuthenticatedUserIsRequired, cc2).map(Left(_))
@@ -417,11 +409,8 @@ object ResourceDocMiddleware extends MdcLoggable {
           case Full(user) =>
             val bankId = pathParams.getOrElse("BANK_ID", "")
             val consumerId = APIUtil.getConsumerPrimaryKey(Some(ctx.callContext))
-            // Use handleAccessControlWithAuthMode so authMode = UserXORApplication
-            // accepts an application acting as itself on its Scopes (the auth-only handleAccess...
-            // function checks user-entitlements + scopes ANDed and rejects pure
-            // consumer-scope requests with 403 even under UserXORApplication).
-            val ok = APIUtil.handleAccessControlWithAuthMode(bankId, user.userId, consumerId, roles, resourceDoc.authMode)
+            // A person needs an Entitlement, and an application acting as itself needs a Scope.
+            val ok = APIUtil.handleAccessControlRegardingEntitlementsAndScopes(bankId, user.userId, consumerId, roles)
             if (ok) success(ctx)
             else EitherT[IO, Response[IO], ValidationContext](
               ErrorResponseConverter.createErrorResponse(403, UserHasMissingRoles + roles.mkString(" or "), ctx.callContext)

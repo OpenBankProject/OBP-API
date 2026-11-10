@@ -29,7 +29,6 @@ package code.obp.grpc.metricsstream
 
 import org.json4s._
 import code.api.util.APIUtil
-import code.api.util.APIUtil.UserOnly
 import code.api.util.ApiRole.canReadMetrics
 import code.metricsstream.MetricsEventBus
 import code.obp.grpc.chat.AuthInterceptor
@@ -67,7 +66,7 @@ object MetricsStreamServiceImpl extends MetricsStreamServiceGrpc.MetricsStreamSe
 
     val callContext = Option(AuthInterceptor.CALL_CONTEXT_KEY.get())
     val consumerId = APIUtil.getConsumerPrimaryKey(callContext)
-    if (!APIUtil.handleAccessControlWithAuthMode("", user.userId, consumerId, List(canReadMetrics), UserOnly)) {
+    if (!APIUtil.handleAccessControlRegardingEntitlementsAndScopes("", user.userId, consumerId, List(canReadMetrics))) {
       responseObserver.onError(Status.PERMISSION_DENIED
         .withDescription("Missing entitlement canReadMetrics").asRuntimeException())
       return

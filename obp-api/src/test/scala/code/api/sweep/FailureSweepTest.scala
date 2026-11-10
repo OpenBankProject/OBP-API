@@ -152,7 +152,10 @@ class FailureSweepTest extends ServerSetupWithTestData with DefaultUsers with Sw
     "OBPv7.0.0-createTestEmail" -> ("500 OBP-10056: refuses to send because portal_external_url " +
       "is unset, which is true of any test rig. Environmental -- but a missing configuration is " +
       "a 503, not a 500, so the status itself is logged in REGRESSION-GAPS rather than accepted " +
-      "as correct")
+      "as correct"),
+    "OBPv7.0.0-sendEmailToCustomer" -> ("503 OBP-30606: no From address is set for emails to Customers, " +
+      "which is true of any test rig. A missing configuration is a 503, so this is the right answer. The " +
+      "sweep reached it once endpoint auth modes were removed: it used to skip UserXORApplication endpoints")
   )
 
   private lazy val inScope: List[ResourceDoc] = FailureSweepTest.scope

@@ -1434,14 +1434,15 @@ featured_apis=elasticSearchWarehouseV300
 
 
 # -- Scopes -----------------------------------------------------
-# Scopes can be used to limit the APIs a Consumer can call.
+# A Scope is a Role held by a Consumer (an application).
+# An application acting as itself needs the Role as a Scope. It acts as itself only if its Consumer is a
+# Platform App and it calls with no User or as its own client-credentials User.
+# A person needs the Role as an Entitlement. With the props below, the Consumer they call through must
+# also hold it as a Scope, so Scopes limit which Roles people can use through each application.
 
-# In case isn't defined default value is "false"
+# Default false.
 # require_scopes_for_all_roles=false
 # require_scopes_for_listed_roles=CanCreateUserAuthContext,CanGetCustomer
-# Scopes can also be used as an alternative to User Entitlements on a per-endpoint basis.
-# Set authMode = UserOrApplication on individual ResourceDoc instances to allow
-# consumer scopes OR user entitlements for that endpoint.
 # ---------------------------------------------------------------
 
 # -- Just in Time Entitlements -------------------------------

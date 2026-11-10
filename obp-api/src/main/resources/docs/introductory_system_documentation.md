@@ -40,7 +40,7 @@ For more detailed information or the sources of truths, please refer to the indi
    - 8.4 [Rate Limiting](#84-rate-limiting)
    - 8.5 [Attribute-Based Access Control (ABAC)](#85-attribute-based-access-control-abac)
    - 8.6 [User Attributes and Personal Data Fields](#86-user-attributes-and-personal-data-fields)
-   - 8.7 [Endpoint Auth Modes](#87-endpoint-auth-modes)
+   - 8.7 [Entitlements and Scopes](#87-entitlements-and-scopes)
    - 8.8 [Maker/Checker for Transaction Requests](#88-makercchecker-for-transaction-requests)
    - 8.9 [Mandates](#89-mandates)
    - 8.10 [Security Best Practices](#810-security-best-practices)
@@ -139,7 +139,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **Views System**: Account data visibility control (owner, public, accountant, auditor, custom)
 - **Scope Management**: OAuth 2.0 scope definitions
 - **Authentication Type Validation**: Enforce authentication requirements per endpoint
-- **Endpoint Auth Modes**: Per-endpoint control over user vs application authentication (UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication)
+- **Entitlements and Scopes**: a person needs a Role as an Entitlement; a Platform App acting as itself needs it as a Scope
 - **Mandates**: Corporate account governance with provisions, signatory panels, and multi-signature approval
 
 #### 1.2.9 Extensibility & Customization
@@ -2699,7 +2699,7 @@ OBP can bootstrap a Consumer (Application) for OBP-OIDC at startup. This allows 
 
 The bootstrap consumer is granted the following Scopes: `CanGetConsumers`, `CanCreateConsumer`, `CanVerifyOidcClient`, `CanGetOidcClient`, `CanGetOidcConsent`.
 
-These endpoints use `authMode = UserXORApplication`, meaning they can be accessed either by a logged-in User with Entitlements, or by the Application acting as itself (e.g. with a client-credentials token) with its Consumer's Scopes. A User calling through the Consumer does not get its Scopes.
+These endpoints can be called by a logged-in User with Entitlements, or by the Application acting as itself with its Consumer's Scopes (see 8.7). A User calling through the Consumer does not get its Scopes.
 
 ```properties
 # Bootstrap OIDC Operator Consumer
@@ -3006,34 +3006,33 @@ DELETE /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID     # Delete
 | Available in ABAC | Yes | No (privacy) |
 | Use case | Access control | User preferences |
 
-### 8.7 Endpoint Auth Modes
+### 8.7 Entitlements and Scopes
 
-**Status:** New in v6.0.0
+**Purpose:** Decide where a Role comes from on each request: a person's Entitlement, or an application's Scope.
 
-**Purpose:** Per-endpoint control over whether authentication requires a user, an application (consumer), or both.
+**How it works:**
 
-**Overview:**
+Who is acting on the request decides, the same way on every endpoint:
 
-Previously, a global `allow_entitlements_or_scopes` config flag allowed consumer scopes as an alternative to user entitlements for all endpoints. This has been replaced by a per-endpoint `authMode` field on `ResourceDoc`, providing fine-grained control.
+| Who is acting | Where the Role must come from |
+|---------------|-------------------------------|
+| A person | An Entitlement held by the User |
+| The application acting as itself | A Scope held by its Consumer |
 
-**Auth Modes:**
+The application acts as itself only if both of these hold:
 
-| Mode | Description |
-|------|-------------|
-| `UserOnly` | (Default) Requires user authentication and user entitlements |
-| `ApplicationOnly` | Requires consumer scope only, no user authentication needed |
-| `UserXORApplication` | Consumer scope when the application acts as itself (no user, or its own client-credentials user, provider `obp-oidc#client`); user entitlement when a person acts. A person never uses the consumer's scopes. Formerly `UserOrApplication` (either was sufficient) |
-| `UserAndApplication` | Both consumer scope AND user entitlement are required |
+1. Its Consumer is a Platform App.
+2. It calls with no User, or as its own client-credentials User (provider `obp-oidc#client`, or `keycloak#client` for a Keycloak service account).
 
-**Migration from `allow_entitlements_or_scopes`:**
+A Consumer that is not a Platform App can still hold Scopes. They then work only as a limit on people, through `require_scopes_for_all_roles` and `require_scopes_for_listed_roles`. With those props, a person needs the Entitlement and the Consumer they call through needs the Scope.
 
-The global `allow_entitlements_or_scopes` config flag has been removed. Deployments that previously used `allow_entitlements_or_scopes=true` must now set `authMode = UserXORApplication` on individual endpoint `ResourceDoc` instances.
+**Who may call an endpoint at all** is read from its list of possible errors:
 
-The global overrides `require_scopes_for_all_roles` and `require_scopes_for_listed_roles` continue to work and force `UserAndApplication` behavior, except for an application acting as itself on an `ApplicationOnly` or `UserXORApplication` endpoint, which still needs only its scopes.
+- `OBP-20001` (User not logged in), or a Role: a User is required.
+- `OBP-20200` (The application cannot be identified) without `OBP-20001`: an identified application is required, and a User is optional. The Berlin Group and UK Open Banking consent and payment endpoints work like this.
+- Neither: anyone may call.
 
-**Example:**
-
-The `verifyUserCredentials` endpoint uses `UserXORApplication` mode, so it can be called either by a logged-in user with the appropriate entitlement, or by an application acting as itself with the appropriate consumer scope.
+**History:** v6.0.0 added a per-endpoint `authMode` (UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication). It was removed in November 2026, because who is acting is a fact about each request, not about the endpoint.
 
 ### 8.8 Maker/Checker for Transaction Requests
 

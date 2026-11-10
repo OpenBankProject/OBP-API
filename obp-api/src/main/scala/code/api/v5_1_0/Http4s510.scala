@@ -792,7 +792,6 @@ object Http4s510 {
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
       List(apiTagConsumer),
       Some(List(canCreateConsumer)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(createConsumer)
     )
 
@@ -856,7 +855,6 @@ object Http4s510 {
       ),
       List(apiTagConsumer),
       Some(List(canGetConsumers)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsumers)
     )
 
@@ -1234,7 +1232,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheTrace, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheTraceEndpoint)
     )
 
@@ -1261,7 +1258,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheDebug, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheDebugEndpoint)
     )
 
@@ -1288,7 +1284,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheInfo, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheInfoEndpoint)
     )
 
@@ -1315,7 +1310,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheWarning, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheWarningEndpoint)
     )
 
@@ -1342,7 +1336,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheError, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheErrorEndpoint)
     )
 
@@ -1369,7 +1362,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheAllEndpoint)
     )
 
@@ -2391,7 +2383,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getUserByProviderAndUsername)
     )
 

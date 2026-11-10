@@ -1584,14 +1584,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       .filter(isPathVariable(_))
   }
   
-  sealed trait EndpointAuthMode
-  case object UserOnly extends EndpointAuthMode
-  case object ApplicationOnly extends EndpointAuthMode
-  /** Either a person or the application acting as itself, never a mix: when the application acts as itself
-   *  (see isApplicationActingAsItself) only its Consumer's Scopes count; otherwise only the User's Entitlements. */
-  case object UserXORApplication extends EndpointAuthMode
-  case object UserAndApplication extends EndpointAuthMode
-
   // Used to document the API calls
   case class ResourceDoc(
                           implementedInApiVersion: ScannedApiVersion, // TODO: Use ApiVersion enumeration instead of string
@@ -1624,7 +1616,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           specialInstructions: Option[String] = None,
                           var specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
                           createdByBankId: Option[String] = None, //we need to filter the resource Doc by BankId
-                          authMode: EndpointAuthMode = UserOnly, // Per-endpoint auth mode: UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication
                           http4sPartialFunction: Http4sEndpoint = None, // http4s endpoint handler
                           // Native http4s handler for runtime-compiled dynamic endpoints (Piece C). Defaulted to None so
                           // no existing construction site changes. Set by DynamicResourceDocsEndpointGroup / practise group
@@ -1662,26 +1653,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
              |$authenticationIsOptional
              |"""
       }
-
-      // Auth-mode-aware error message adjustments
-      authMode match {
-        case ApplicationOnly | UserXORApplication =>
-          errorResponseBodies ?+= ApplicationNotIdentified
-          if (authMode == ApplicationOnly) {
-            errorResponseBodies ?-= AuthenticatedUserIsRequired
-          }
-          if (authMode == UserXORApplication) {
-            description +=
-              s"""
-                 |
-                 |This endpoint supports **User XOR Application** authorisation: either a person acting on their own Entitlements, or an Application acting as itself (e.g. with an OAuth2 client-credentials token) on its Consumer's Scopes. A person calling through a Consumer does not get that Consumer's Scopes.
-                 |See ${Glossary.getGlossaryItemLink("API.Endpoint Auth Modes")} for more information.
-                 |"""
-          }
-        case UserAndApplication =>
-          errorResponseBodies ?+= AuthenticatedUserIsRequired
-          errorResponseBodies ?+= ApplicationNotIdentified
-        case UserOnly => // existing logic already handles this
+      // A user is optional but the application must be identified: say so (see requiresApplicationButNotUser)
+      val applicationIsRequired = applicationAccessMessage(true)
+      if (errorResponseBodies.contains(ApplicationNotIdentified) && !errorResponseBodies.contains(AuthenticatedUserIsRequired)
+          && !description.contains(applicationIsRequired)) {
+        description +=
+          s"""
+             |
+             |$applicationIsRequired
+             |"""
       }
     }
 
@@ -1789,6 +1769,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     private val requestUrlPartPath: Array[String] = StringUtils.split(requestUrl, '/')
 
     private val AuthCheckIsRequired = errorResponseBodies.contains($AuthenticatedUserIsRequired)
+
+    /** The error list says who may call. "User not logged in" or Roles: a user is required.
+     *  "The application cannot be identified" without those: an identified application is required, and a user is
+     *  optional, as for a payment provider creating a consent. Neither: anyone may call. */
+    def requiresApplicationButNotUser: Boolean =
+      errorResponseBodies.contains(ApplicationNotIdentified) &&
+        !errorResponseBodies.contains($AuthenticatedUserIsRequired) && roles.forall(_.isEmpty)
     private val isNeedCheckRoles = _autoValidateRoles && rolesForCheck.nonEmpty
     private val isNeedCheckBank = errorResponseBodies.contains($BankNotFound) && requestUrlPartPath.contains("BANK_ID")
     private val isNeedCheckAccount = errorResponseBodies.contains($BankAccountNotFound) &&
@@ -1840,10 +1827,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       val viewId = pathParams.get("VIEW_ID").map(ViewId(_))
       val counterpartyId = pathParams.get("COUNTERPARTY_ID").map(CounterpartyId(_))
 
-      def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] = authMode match {
-        case UserOnly | UserAndApplication => if (AuthCheckIsRequired) authenticatedAccessFun(cc) else anonymousAccessFun(cc)
-        case ApplicationOnly | UserXORApplication => applicationAccessFun(cc)
-      }
+      def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] =
+        if (requiresApplicationButNotUser) applicationAccessFun(cc)
+        else if (AuthCheckIsRequired) authenticatedAccessFun(cc)
+        else anonymousAccessFun(cc)
       def checkObpIds(pairs: List[(String, String)], callContext: Option[CallContext]): Future[Option[CallContext]] = Future {
         val invalid = pairs.filter(p => !checkObpId(p._2).equals(SILENCE_IS_GOLDEN))
         if (invalid.nonEmpty) throw new RuntimeException(s"$InvalidJsonFormat Here are all invalid values: $invalid") else callContext
@@ -1857,7 +1844,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           val consumerId = APIUtil.getConsumerPrimaryKey(callContext)
           val errorMessage = if (rolesForCheck.filter(_.requiresBankId).isEmpty) UserHasMissingRoles + rolesForCheck.mkString(" or ")
                              else UserHasMissingRoles + rolesForCheck.mkString(" or ") + s" for BankId($bankIdStr)."
-          Helper.booleanToFuture(errorMessage, cc = callContext) { APIUtil.handleAccessControlWithAuthMode(bankIdStr, userIdStr, consumerId, rolesForCheck, authMode) }
+          Helper.booleanToFuture(errorMessage, cc = callContext) { APIUtil.handleAccessControlRegardingEntitlementsAndScopes(bankIdStr, userIdStr, consumerId, rolesForCheck) }
         } else Future.successful(Full(()))
       def checkAccount(bankId: Option[BankId], accountId: Option[AccountId], callContext: Option[CallContext]): Future[(BankAccount, Option[CallContext])] =
         if (isNeedCheckAccount && bankId.isDefined && accountId.isDefined) checkAccountFun(bankId.get)(accountId.get, callContext) else Future.successful(null.asInstanceOf[BankAccount] -> callContext)
@@ -2166,27 +2153,25 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def hasScope(bankId: String, consumerId: String, role: ApiRole): Boolean = {
     !Scope.scope.vend.getScope(bankId, consumerId, role.toString).isEmpty
   }
-  /** True when no person is behind the call: there is no User, or the User is the application's own, the one an
-   *  OBP-OIDC client-credentials token resolves to (provider obp-oidc#client, named after the Consumer's client id).
-   *  consumerId is the Consumer's primary key, as from getConsumerPrimaryKey. */
-  def isApplicationActingAsItself(userId: String, consumerId: String): Boolean = {
-    lazy val consumer = tryo(consumerId.toLong).flatMap(Consumers.consumers.vend.getConsumerByPrimaryId)
-    // If the Consumer has grant types set, its grant types decide:
-    // - client_credentials only: every call through the Consumer is the application acting as itself.
-    //   (A person's call through such a Consumer has already been refused in AfterApiAuth.)
-    // - client_credentials not included: no call through the Consumer is the application acting as itself.
-    // If the Consumer has no grant types set, the rules below apply as before.
-    if (consumer.exists(code.consumer.ConsumerGrantTypes.isClientCredentialsOnly)) true
-    else if (consumer.exists(code.consumer.ConsumerGrantTypes.excludesClientCredentials)) false
-    else if (userId.isEmpty) consumerId.nonEmpty
-    else (for {
-      user <- Users.users.vend.getUserByUserId(userId)
-      c <- consumer
-    } yield isApplicationsOwnUser(user, c)).openOr(false)
-  }
+  /** True when the application is acting as itself, so its Consumer's Scopes count instead of a person's
+   *  Entitlements. Its Consumer must be a Platform App, and the call must come with no user or as the application's
+   *  own user. consumerId is the Consumer's primary key, as from getConsumerPrimaryKey. */
+  def isApplicationActingAsItself(userId: String, consumerId: String): Boolean =
+    (for {
+      primaryKey <- tryo(consumerId.toLong)
+      consumer <- Consumers.consumers.vend.getConsumerByPrimaryId(primaryKey)
+      if isPlatformApp(consumer)
+    } yield userId.isEmpty || Users.users.vend.getUserByUserId(userId).exists(isApplicationsOwnUser(_, consumer))).openOr(false)
 
+  /** Only a Platform App may use its Consumer's Scopes by itself. Marking grants no Scopes: an administrator
+   *  grants them, after the application has declared what it needs. See the Glossary item "Platform Apps". */
+  def isPlatformApp(consumer: code.model.Consumer): Boolean =
+    code.platformapp.PlatformApps.platformAppProvider.vend.getPlatformApp(consumer.consumerId.get).isDefined
+
+  /** The application's own user: the one its client-credentials token resolves to, at OBP-OIDC
+   *  (provider obp-oidc#client) or at Keycloak (provider keycloak#client), named after its client id. */
   def isApplicationsOwnUser(user: User, consumer: code.model.Consumer): Boolean =
-    user.provider == code.api.OAuth2Login.OBPOIDC.clientCredentialsProvider &&
+    Set(code.api.OAuth2Login.OBPOIDC.clientCredentialsProvider, code.api.OAuth2Login.Keycloak.clientCredentialsProvider).contains(user.provider) &&
       Set(Option(consumer.key.get), Option(consumer.azp.get)).flatten.filter(_.nonEmpty).contains(user.idGivenByProvider)
 
   def getConsumerPrimaryKey(callContext: Option[CallContext]): String = {
@@ -2380,94 +2365,35 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
-  // i.e. does user has assigned at least one role from the list
-  // when roles is empty, that means no access control, treat as pass auth check
-  @deprecated("Use handleAccessControlWithAuthMode instead. It uses per-endpoint EndpointAuthMode rather than global config flags.", "OBP v6.0.0")
-  def handleAccessControlRegardingEntitlementsAndScopes(bankId: String, userId: String, consumerId: String, roles: List[ApiRole]): Boolean = {
-    if (roles.isEmpty) { // No access control, treat as pass auth check
-      true
-    } else {
-      // Check virtual roles granted by config (super_admin_user_ids, oidc_operator_user_ids)
-      val virtualRoles = if (isSuperAdmin(userId)) superAdminVirtualRoles
-                         else if (isOidcOperator(userId)) oidcOperatorVirtualRoles
-                         else List.empty
-      if (roles.exists(role => virtualRoles.contains(role.toString))) {
-        true
-      } else {
-      val requireScopesForListedRoles = getPropsValue("require_scopes_for_listed_roles", "").split(",").toSet
-      val requireScopesForRoles = roles.map(_.toString).toSet.intersect(requireScopesForListedRoles)
-
-      def userHasTheRoles: Boolean = {
-        val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
-        userHasTheRole || grantJustInTimeEntitlements(bankId, userId, roles)
-      }
-
-      // Consumer AND User has the Role
-      if (ApiPropsWithAlias.requireScopesForAllRoles || requireScopesForRoles.nonEmpty) {
-        userHasTheRoles && roles.exists(hasScope(bankId, consumerId, _))
-      }
-      // User has the Role
-      else {
-        userHasTheRoles
-      }
-      } // end of virtual roles else
-    }
-  }
-
-
-
   /**
-   * Per-endpoint auth mode access control. Checks virtual roles first, then matches on authMode:
-   * - UserOnly: user entitlements only (includes just-in-time entitlements)
-   * - ApplicationOnly: consumer scopes only
-   * - UserXORApplication: consumer scopes when the application acts as itself, otherwise user entitlements
-   * - UserAndApplication: scopes AND entitlements
-   * Global overrides (require_scopes_for_all_roles, require_scopes_for_listed_roles) force UserAndApplication behavior,
-   * except for an application acting as itself on an ApplicationOnly or UserXORApplication endpoint: it has no
-   * Entitlements to add, so it keeps needing only its Scopes.
+   * Whether the caller holds at least one of the Roles. An empty list means no Role is needed.
+   *
+   * Who is acting decides where the Role comes from:
+   * - Virtual Roles from config (super_admin_user_ids, oidc_operator_user_ids) always count.
+   * - An application acting as itself (see isApplicationActingAsItself) needs the Role as a Scope on its Consumer.
+   * - Anyone else is a person, who needs the Role as an Entitlement (just-in-time Entitlements count). If
+   *   require_scopes_for_all_roles is set, or require_scopes_for_listed_roles lists the Role, the Consumer they
+   *   call through must also hold it as a Scope.
    */
-  def handleAccessControlWithAuthMode(bankId: String, userId: String, consumerId: String, roles: List[ApiRole], authMode: EndpointAuthMode): Boolean = {
+  def handleAccessControlRegardingEntitlementsAndScopes(bankId: String, userId: String, consumerId: String, roles: List[ApiRole]): Boolean = {
     if (roles.isEmpty) {
       true
     } else {
-      // Check virtual roles granted by config (super_admin_user_ids, oidc_operator_user_ids)
       val virtualRoles = if (isSuperAdmin(userId)) superAdminVirtualRoles
                          else if (isOidcOperator(userId)) oidcOperatorVirtualRoles
                          else List.empty
-      if (roles.exists(role => virtualRoles.contains(role.toString))) {
-        true
-      } else {
-        // Global overrides that force UserAndApplication (scopes AND entitlements)
-        val requireScopesForListedRoles = getPropsValue("require_scopes_for_listed_roles", "").split(",").toSet
-        val requireScopesForRoles = roles.map(_.toString).toSet.intersect(requireScopesForListedRoles)
-        val globalOverrideToUserAndApp = ApiPropsWithAlias.requireScopesForAllRoles || requireScopesForRoles.nonEmpty
-
-        def userHasTheRoles: Boolean = {
-          val userHasTheRole: Boolean = roles.exists(hasEntitlement(bankId, userId, _))
-          userHasTheRole || grantJustInTimeEntitlements(bankId, userId, roles)
-        }
-
-        def consumerHasTheScopes: Boolean =
-          roles.exists(role => hasScope(if (role.requiresBankId) bankId else "", consumerId, role))
-
-        lazy val applicationActsAsItself = isApplicationActingAsItself(userId, consumerId)
-
-        if (globalOverrideToUserAndApp) {
-          authMode match {
-            case ApplicationOnly | UserXORApplication if applicationActsAsItself => consumerHasTheScopes
-            // Global config forces both scopes AND entitlements
-            case _ => userHasTheRoles && roles.exists(hasScope(bankId, consumerId, _))
-          }
-        } else {
-          authMode match {
-            case UserOnly => userHasTheRoles
-            case ApplicationOnly => consumerHasTheScopes
-            case UserXORApplication => if (applicationActsAsItself) consumerHasTheScopes else userHasTheRoles
-            case UserAndApplication => userHasTheRoles && consumerHasTheScopes
-          }
-        }
+      def consumerHasTheScopes: Boolean =
+        roles.exists(role => hasScope(if (role.requiresBankId) bankId else "", consumerId, role))
+      def userHasTheRoles: Boolean =
+        roles.exists(hasEntitlement(bankId, userId, _)) || grantJustInTimeEntitlements(bankId, userId, roles)
+      def scopesAreRequiredForPeople: Boolean = {
+        val listed = getPropsValue("require_scopes_for_listed_roles", "").split(",").map(_.trim).filter(_.nonEmpty).toSet
+        ApiPropsWithAlias.requireScopesForAllRoles || roles.exists(role => listed.contains(role.toString))
       }
+      if (roles.exists(role => virtualRoles.contains(role.toString))) true
+      else if (isApplicationActingAsItself(userId, consumerId)) consumerHasTheScopes
+      else if (scopesAreRequiredForPeople) userHasTheRoles && consumerHasTheScopes
+      else userHasTheRoles
     }
   }
 
@@ -3672,21 +3598,19 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   /**
    * Account access granted to a Consumer (code.consumeraccountaccess): true when the caller is an application
-   * acting as itself, its Consumer holds a grant for this view of this account, and the endpoint opts in.
+   * acting as itself and its Consumer holds a grant for this view of this account.
    *
    * - Acting as itself means the caller is the Consumer's own client-credentials User (provider obp-oidc#client,
    *   named after the Consumer's key). A person calling through the same Consumer never picks up its grants,
    *   and neither does a caller identified by a Consumer Key alone: the token proves the client secret.
-   * - The endpoint opts in through its auth mode: only ApplicationOnly and UserXORApplication endpoints admit
-   *   an application acting as itself, so every other endpoint of the view keeps needing a User's access.
+   * - The Consumer must be a Platform App. The grant then works like a person's access to the view, on every
+   *   endpoint that uses the view.
    */
   def hasConsumerAccountAccess(view: View, bankIdAccountId: BankIdAccountId, user: User, callContext: Option[CallContext]): Boolean =
     (for {
       cc <- callContext
-      doc <- cc.resourceDocument
-      if doc.authMode == ApplicationOnly || doc.authMode == UserXORApplication
       consumer <- cc.consumer.toOption
-      if isApplicationsOwnUser(user, consumer)
+      if isPlatformApp(consumer) && isApplicationsOwnUser(user, consumer)
     } yield code.consumeraccountaccess.ConsumerAccountAccesses.consumerAccountAccessProvider.vend
       .find(consumer.consumerId.get, bankIdAccountId.bankId, bankIdAccountId.accountId, view.viewId)
       .isDefined

@@ -29,7 +29,7 @@ package code.api.v7_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.canGetConsumers
-import code.api.util.ErrorMessages.{ApplicationNotIdentified, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.api.v6_0_0.V600ServerSetup
 import code.api.v7_0_0.JSONFactory700.ConsumersJsonV700
 import code.entitlement.Entitlement
@@ -49,7 +49,7 @@ class GetConsumersTest extends V600ServerSetup {
       val response = makeGetRequest((v7_0_0_Request / "management" / "consumers").GET)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should include(ApplicationNotIdentified)
+      response.body.extract[ErrorMessage].message should include(AuthenticatedUserIsRequired)
     }
 
     scenario("A user without the Role is refused", ApiEndpoint1, VersionOfApi) {

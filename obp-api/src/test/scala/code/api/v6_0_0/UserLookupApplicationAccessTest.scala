@@ -37,7 +37,7 @@ import org.scalatest.Tag
 /**
  * The user lookups an identity provider needs (by provider and username, by user id, and the list) admit an
  * application acting as itself on its Consumer's Scope CanGetAnyUser, as well as a person with the Entitlement.
- * A person calling through that Consumer does not get its Scope.
+ * The application's Consumer must be a Platform App. A person calling through that Consumer does not get its Scope.
  */
 class UserLookupApplicationAccessTest extends V600ServerSetup {
 
@@ -74,6 +74,25 @@ class UserLookupApplicationAccessTest extends V600ServerSetup {
           response.code should equal(403)
           response.body.extract[ErrorMessage].message should include(UserHasMissingRoles)
         }
+      }
+    }
+
+    scenario("an application whose Consumer is not a Platform App does not get its Scope", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+      withScope {
+        makeGetRequest(byUserId <@ (application2)).code should equal(200) // fixtures mark it as a Platform App
+        val consumerId = testConsumer2.consumerId.get
+        code.platformapp.PlatformApps.platformAppProvider.vend.deletePlatformApp(consumerId)
+        try {
+          // The token itself, without application2, which would mark the Consumer again
+          val notMarked = Some((consumer2, tokenApplication2))
+          lookups.foreach { case (name, request) =>
+            withClue(name) {
+              val response = makeGetRequest(request() <@ (notMarked))
+              response.code should equal(403)
+              response.body.extract[ErrorMessage].message should include(UserHasMissingRoles)
+            }
+          }
+        } finally ensurePlatformApp(testConsumer2)
       }
     }
 

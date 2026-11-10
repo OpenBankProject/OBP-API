@@ -69,7 +69,7 @@ object Http4sBGv13PIIS extends MdcLoggable {
 
   // ── POST /funds-confirmations ─────────────────────────────────────
   // Lift source: code.api.builder.ConfirmationOfFundsServicePIISApi.checkAvailabilityOfFunds
-  // Auth: authenticatedAccess → authMode UserOnly (default); user resolved by ResourceDocMiddleware.
+  // Auth: authenticatedAccess → AuthenticatedUserIsRequired in the error list; user resolved by ResourceDocMiddleware.
   val checkAvailabilityOfFunds: Http4sRoute = Http4sRoute {
     case req @ POST -> `bgV13Prefix` / "funds-confirmations" =>
       EndpointHelpers.executeAndRespond(req) { cc =>

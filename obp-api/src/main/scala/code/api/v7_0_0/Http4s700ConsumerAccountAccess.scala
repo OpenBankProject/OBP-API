@@ -79,9 +79,9 @@ object Http4s700ConsumerAccountAccess {
        |calling through the same Consumer does not get the Consumer's access, and an application identified
        |by its Consumer Key alone does not either.
        |
-       |The access counts only on the endpoints that admit an application acting as itself (auth mode
-       |ApplicationOnly or UserXORApplication), such as creating an OPEN_CORRIDOR_PROMISE Transaction Request.
-       |On every other endpoint the view still needs a User's account access.
+       |The access then works like a person's access to the view, on every endpoint that uses the view. For
+       |example, the application can create an OPEN_CORRIDOR_PROMISE Transaction Request. The Consumer must be a
+       |Platform App.
        |
        |Give the Consumer a view with only the permissions it needs, for example a custom view with
        |can_add_transaction_request_to_any_account, granted through the ManageCustomViews system view. The

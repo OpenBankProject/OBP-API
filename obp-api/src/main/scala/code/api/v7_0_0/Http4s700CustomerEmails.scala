@@ -29,7 +29,7 @@ package code.api.v7_0_0
 import cats.effect.IO
 import code.api.Constant
 import code.api.Constant.ApiPathZero
-import code.api.util.APIUtil.{Http4sRoute, ResourceDoc, UserXORApplication, unboxFullOrFail}
+import code.api.util.APIUtil.{Http4sRoute, ResourceDoc, unboxFullOrFail}
 import code.api.util.ApiRole.canSendEmailToCustomerAtOneBank
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -182,7 +182,6 @@ object Http4s700CustomerEmails {
       UnknownError),
     List(apiTagCustomer),
     Some(List(canSendEmailToCustomerAtOneBank)),
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(sendEmailToCustomer)
   ).allowSystemSpace()
 }

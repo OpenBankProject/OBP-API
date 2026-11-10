@@ -33,20 +33,23 @@ import com.openbankproject.commons.model.User
 import net.liftweb.common.Box
 
 /**
- * A Consumer's grant types: how the Consumer can be used.
+ * A Consumer's grant types: how tokens can be obtained through the Consumer.
  *
- * They say whether people can log in through the Consumer, whether the application can call the API as itself,
+ * They say whether people can log in through the Consumer, whether the application can get a token for itself,
  * or both. They are optional, and only an administrator can set them.
+ *
+ * A person "logs in through a Consumer" when they get a token with that Consumer's client id or key. They can do this by an OAuth2
+ * login, by DirectLogin, or by renewing such a login. The token then names both the person and the application.
  *
  * A Consumer with no grant types set (every existing Consumer) can be used in every way, exactly as before.
  *
- * A Consumer with grant types set is used as they say. For example:
+ * Grant types only control how tokens are obtained. They do not decide what the application may do with a token,
+ * or whether a call counts as the application acting as itself. For example:
  *
- *  - Only client_credentials: only the application uses the Consumer. Every call through it counts as the
- *    application acting as itself, even if the token carries a user account (such as a Keycloak service
- *    account). People cannot log in through it.
- *  - No client_credentials: only people use the Consumer. The application cannot get a token for itself through
- *    it, and the Consumer's Scopes never count for a call the application makes on its own.
+ *  - Only client_credentials: the application can get a token for itself through the Consumer. People cannot
+ *    log in through it.
+ *  - No client_credentials: people can log in through the Consumer. The application cannot get a token for itself
+ *    through it, so it cannot act on its own through this Consumer.
  *
  * OBP never works out the grant types from other settings, such as the Scopes the Consumer holds or whether it
  * is a Platform App. So granting a Consumer a new Scope never changes how it can be used.
@@ -86,13 +89,6 @@ object ConsumerGrantTypes {
 
   /** True when the Consumer sets no grant types, or lists this one. */
   def allows(consumer: Consumer, grantType: String): Boolean = !isSet(consumer) || of(consumer).contains(grantType)
-
-  /** Only the application acting as itself: client_credentials and no login grant. */
-  def isClientCredentialsOnly(consumer: Consumer): Boolean =
-    isSet(consumer) && of(consumer).contains(ClientCredentials) && !of(consumer).exists(PersonLogins.contains)
-
-  /** Grant types set, client_credentials not among them: the application never acts as itself through it. */
-  def excludesClientCredentials(consumer: Consumer): Boolean = isSet(consumer) && !of(consumer).contains(ClientCredentials)
 
   /** The OAuth2 grant types an identity provider may issue tokens for (DirectLogin is OBP's own, not OAuth2). */
   def oauth2GrantTypes(consumer: Consumer): List[String] =

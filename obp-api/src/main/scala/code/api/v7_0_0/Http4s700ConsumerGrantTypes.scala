@@ -80,8 +80,11 @@ object Http4s700ConsumerGrantTypes {
     oauth2_grant_types = List(ConsumerGrantTypes.ClientCredentials))
 
   private val description =
-    s"""A Consumer's grant types control how the Consumer can be used. They say whether people can log in through
-       |it, whether the application can call the API as itself, or both.
+    s"""A Consumer's grant types control how tokens can be obtained through the Consumer. They say whether people can
+       |log in through it, whether the application can get a token for itself, or both.
+       |
+       |A person "logs in through a Consumer" when they get a token with that Consumer's client id or key. They can do this by an OAuth2
+       |login, by DirectLogin, or by renewing such a login. The token then names both the person and the application.
        |
        |Grant types are optional. A Consumer that has no grant types set can be used in every way, as before.
        |
@@ -92,9 +95,12 @@ object Http4s700ConsumerGrantTypes {
        |- `client_credentials`: the application gets a token for itself.
        |- `direct_login`: people log in with DirectLogin.
        |
-       |For example, a Consumer with only `client_credentials` is used only by the application. Every call through it
-       |counts as the application acting as itself, and people cannot log in through it. A Consumer without
-       |`client_credentials` is used only by people. The application cannot get a token for itself through it.
+       |For example, through a Consumer with only `client_credentials`, the application can get a token for itself,
+       |but people cannot log in. Through a Consumer without `client_credentials`, people can log in, but the
+       |application cannot get a token for itself.
+       |
+       |Grant types only control how tokens are obtained. What the application may do with a token depends on the
+       |Scopes its Consumer holds.
        |
        |The response has two lists:
        |

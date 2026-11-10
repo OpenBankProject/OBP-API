@@ -86,16 +86,16 @@ class ConsumerGrantTypesTest extends V600ServerSetup {
       ConsumerGrantTypes.oauth2GrantTypes(notSet) should equal(ConsumerGrantTypes.DefaultOAuth2)
 
       val applicationOnly = consumer("client_credentials")
-      ConsumerGrantTypes.isClientCredentialsOnly(applicationOnly) should be(true)
+      ConsumerGrantTypes.allows(applicationOnly, ConsumerGrantTypes.ClientCredentials) should be(true)
       ConsumerGrantTypes.allows(applicationOnly, ConsumerGrantTypes.DirectLogin) should be(false)
 
       val peopleOnly = consumer("authorization_code,refresh_token,direct_login")
-      ConsumerGrantTypes.excludesClientCredentials(peopleOnly) should be(true)
+      ConsumerGrantTypes.allows(peopleOnly, ConsumerGrantTypes.ClientCredentials) should be(false)
       ConsumerGrantTypes.oauth2GrantTypes(peopleOnly) should equal(List("authorization_code", "refresh_token"))
 
       val both = consumer("authorization_code,client_credentials")
-      ConsumerGrantTypes.isClientCredentialsOnly(both) should be(false)
-      ConsumerGrantTypes.excludesClientCredentials(both) should be(false)
+      ConsumerGrantTypes.allows(both, ConsumerGrantTypes.ClientCredentials) should be(true)
+      ConsumerGrantTypes.allows(both, ConsumerGrantTypes.DirectLogin) should be(false)
     }
 
     scenario("client-credentials tokens are recognised", VersionOfApi) {
@@ -107,14 +107,13 @@ class ConsumerGrantTypesTest extends V600ServerSetup {
       ConsumerGrantTypes.isClientCredentialsToken(jwt("sub" -> "9b1c", "azp" -> "app", "preferred_username" -> "alice")) should be(false)
     }
 
-    scenario("a Consumer's grant types decide whether the application acts as itself", VersionOfApi) {
+    scenario("grant types do not decide whether the application acts as itself", VersionOfApi) {
+      ensurePlatformApp(testConsumer2)
       val consumerPk = testConsumer2.id.get.toString
-      isApplicationActingAsItself(resourceUser2.userId, consumerPk) should be(false)
       withGrantTypes("client_credentials") {
-        isApplicationActingAsItself(resourceUser2.userId, consumerPk) should be(true)
-      }
-      withGrantTypes("authorization_code") {
-        isApplicationActingAsItself("", consumerPk) should be(false)
+        // A person's user is still a person: grant types only control how tokens are obtained.
+        isApplicationActingAsItself(resourceUser2.userId, consumerPk) should be(false)
+        isApplicationActingAsItself("", consumerPk) should be(true)
       }
     }
   }

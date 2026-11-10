@@ -1568,7 +1568,6 @@ object Http4s400 {
       ),
       List(apiTagCustomer, apiTagUser),
       Some(List(canCreateUserCustomerLinkAtAnyBank, canCreateUserCustomerLink)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(createUserCustomerLinks))
 
     // ─── getSystemDynamicEntities ─────────────────────────────────────────────

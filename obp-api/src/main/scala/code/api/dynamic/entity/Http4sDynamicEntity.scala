@@ -332,20 +332,10 @@ object Http4sDynamicEntity extends MdcLoggable {
   // write role is sufficient to PATCH that field alone. Returns the distinct role names the caller is missing.
   // For a personal entity that doesn't require a role, the entity update role on unrestricted fields is skipped,
   // but write-restricted fields are still gated by their field write role.
-  // ---- Auth mode (who may hold the entity's roles) ------------------------------------------
-  // The entity definition's authMode decides whether the data endpoints accept a User's Entitlements,
-  // a Consumer's Scopes, either, or both. Personal ("my") endpoints and row-level (ACL) entities
-  // always need a User: their rows belong to one.
-  private def authModeOf(bankId: Option[String], entityName: String): EndpointAuthMode =
-    DynamicEntityHelper.definitionOf(bankId, entityName).map(_.endpointAuthMode).getOrElse(UserOnly)
-
-  /** authenticatedAccess for user modes, applicationAccess (User optional, Consumer required) for application modes. */
-  private def entityAccess(cc: CallContext, bankId: Option[String], entityName: String, isPersonalEntity: Boolean): Future[(Box[User], Option[CallContext])] =
-    if (isPersonalEntity || isRowLevel(bankId, entityName)) authenticatedAccess(cc)
-    else authModeOf(bankId, entityName) match {
-      case ApplicationOnly | UserXORApplication => applicationAccess(cc)
-      case _ => authenticatedAccess(cc)
-    }
+  // ---- Who may call ---------------------------------------------------------------------------
+  // An entity's data endpoints work like static endpoints with Roles: a user is required. A person needs the
+  // entity's Role as an Entitlement. A Platform App acting as itself calls as its own client-credentials user
+  // and needs the Role as a Scope (APIUtil.handleAccessControlRegardingEntitlementsAndScopes).
 
   /**
    * Personal ("my") endpoints and consent users. A consent user's rows resolve to the User its
@@ -369,14 +359,14 @@ object Http4sDynamicEntity extends MdcLoggable {
     if (isPersonalEntity) userIdOpt.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicData_UserId).openOr(id))
     else userIdOpt
 
-  /** The entity's role, checked per the entity's auth mode (entitlements, scopes, either or both). */
+  /** The entity's role: an Entitlement for a person, a Scope for a Platform App acting as itself. */
   private def checkEntityRole(bankId: Option[String], entityName: String, boxUser: Box[User], role: ApiRole, callContext: Option[CallContext]): Future[Box[Unit]] = {
     val bankIdStr = DynamicEntitySpace.bankIdOrSystem(bankId)
     val userId = boxUser.map(_.userId).openOr("")
     val consumerId = code.api.util.APIUtil.getConsumerPrimaryKey(callContext)
     val errorMessage = UserHasMissingRoles + role.toString + s" at Bank($bankIdStr)"
     Helper.booleanToFuture(errorMessage, cc = callContext) {
-      code.api.util.APIUtil.handleAccessControlWithAuthMode(bankIdStr, userId, consumerId, List(role), authModeOf(bankId, entityName))
+      code.api.util.APIUtil.handleAccessControlRegardingEntitlementsAndScopes(bankIdStr, userId, consumerId, List(role))
     }
   }
 
@@ -388,9 +378,8 @@ object Http4sDynamicEntity extends MdcLoggable {
     val schemaFields = info.map(_.propertyNames).getOrElse(bodyFieldNames)
     val touched = bodyFieldNames.intersect(schemaFields)
     val writeRestricted = info.map(_.writeRestrictedFields).getOrElse(Nil).toSet
-    val authMode = authModeOf(bankId, entityName)
     def has(role: code.api.util.ApiRole): Boolean =
-      code.api.util.APIUtil.handleAccessControlWithAuthMode(DynamicEntitySpace.bankIdOrSystem(bankId), userId, consumerId, List(role), authMode)
+      code.api.util.APIUtil.handleAccessControlRegardingEntitlementsAndScopes(DynamicEntitySpace.bankIdOrSystem(bankId), userId, consumerId, List(role))
     touched.flatMap { f =>
       if (writeRestricted.contains(f)) {
         val role = DynamicEntityInfo.fieldWriteRole(entityName, f, bankId, info.flatMap(_.explicitWriteRole(f)))
@@ -680,7 +669,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       val operationId = callContext0.operationId.orNull
       for {
         _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
-        (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
+        (boxUser, callContext) <- authenticatedAccess(callContext0)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
@@ -725,7 +714,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       val operationId = callContext0.operationId.orNull
       for {
         _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
-        (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
+        (boxUser, callContext) <- authenticatedAccess(callContext0)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
@@ -759,7 +748,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       val operationId = callContext0.operationId.orNull
       for {
         _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
-        (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
+        (boxUser, callContext) <- authenticatedAccess(callContext0)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
@@ -788,7 +777,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       val operationId = callContext0.operationId.orNull
       for {
         _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
-        (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
+        (boxUser, callContext) <- authenticatedAccess(callContext0)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
@@ -822,7 +811,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       val operationId = callContext0.operationId.orNull
       for {
         _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
-        (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
+        (boxUser, callContext) <- authenticatedAccess(callContext0)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
