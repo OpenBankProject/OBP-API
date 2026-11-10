@@ -114,11 +114,34 @@ class CustomersAtOneBankV700Test extends V600ServerSetup {
         "sort_by" -> "name", "obp_limit" -> "10", "_" -> "123") should equal(List(matching))
     }
 
-    scenario("sort_direction orders the matching Customers by customer_id", CustomersAtOneBank, VersionOfApi) {
+    scenario("sort_direction orders the matching Customers by customer_id, DESC by default, and pages follow that order", CustomersAtOneBank, VersionOfApi) {
       val tag = generateUUID().take(6)
-      val created = (1 to 3).map(_ => customer("cohort" -> s"s-$tag")).toList
-      ids("cohort" -> s"s-$tag", "sort_direction" -> "ASC") should equal(created.sorted)
-      ids("cohort" -> s"s-$tag", "sort_direction" -> "DESC") should equal(created.sorted.reverse)
+      val created = (1 to 3).map(_ => customer("cohort" -> s"s-$tag")).toList.sorted
+      ids("cohort" -> s"s-$tag", "sort_direction" -> "ASC") should equal(created)
+      ids("cohort" -> s"s-$tag", "sort_direction" -> "DESC") should equal(created.reverse)
+      ids("cohort" -> s"s-$tag") should equal(created.reverse)
+      ids("cohort" -> s"s-$tag", "sort_direction" -> "ASC", "limit" -> "2", "offset" -> "0") should equal(created.take(2))
+      ids("cohort" -> s"s-$tag", "sort_direction" -> "ASC", "limit" -> "2", "offset" -> "2") should equal(created.drop(2))
+    }
+
+    scenario("Reserved names in another case are not taken for attribute names, and invalid paging is refused", CustomersAtOneBank, VersionOfApi) {
+      val tag = generateUUID().take(6)
+      val created = (1 to 2).map(_ => customer("cohort" -> s"c-$tag")).toList
+      // As in v6.0.0 only lower-case paging names page the list; LIMIT is ignored, not an attribute filter.
+      ids("cohort" -> s"c-$tag", "LIMIT" -> "1", "Sort_Direction" -> "ASC").toSet should equal(created.toSet)
+      Seq("limit" -> "abc", "offset" -> "-1", "sort_direction" -> "sideways").foreach { bad =>
+        val response = withRole { get("cohort" -> s"c-$tag", bad) }
+        withClue(s"$bad: ${response.body}") { response.code should equal(400) }
+      }
+    }
+
+    scenario("An attribute whose Customer no longer exists is skipped", CustomersAtOneBank, VersionOfApi) {
+      val tag = generateUUID().take(6)
+      val existing = customer("cohort" -> s"d-$tag")
+      Await.result(CustomerAttributeX.customerAttributeProvider.vend.createOrUpdateCustomerAttribute(
+        BankId(bankId), CustomerId(generateUUID()), None, "cohort", CustomerAttributeType.STRING, s"d-$tag"), 10.seconds)
+        .openOrThrowException("expected the attribute to be created")
+      ids("cohort" -> s"d-$tag") should equal(List(existing))
     }
 
     scenario("Without attribute parameters limit and offset still page the list", CustomersAtOneBank, VersionOfApi) {
