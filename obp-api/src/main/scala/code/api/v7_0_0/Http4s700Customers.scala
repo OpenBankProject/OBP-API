@@ -65,7 +65,13 @@ object Http4s700Customers {
    * parameters OBP-API reads on list endpoints, and names starting with obp_ or _ (cache busters).
    */
   private val ReservedParameters: Set[String] = PagingParameters.toSet ++ Set("from_date", "to_date", "sort_by")
-  private def reserved(name: String): Boolean = ReservedParameters.contains(name) || name.startsWith("obp_") || name.startsWith("_")
+  private def reserved(name: String): Boolean = {
+    val lower = name.toLowerCase
+    ReservedParameters.contains(lower) || lower.startsWith("obp_") || lower.startsWith("_")
+  }
+
+  /** Customers of a page are loaded this many at a time, however large the page. */
+  private val LoadBatchSize = 10
 
   /**
    * name -> accepted values, from the query parameters that are not reserved. A value lists several
@@ -98,13 +104,15 @@ object Http4s700Customers {
     val offset = math.max(queryParams.collectFirst { case OBPOffset(value) => value }.getOrElse(0), 0)
     val limit = queryParams.collectFirst { case OBPLimit(value) => math.max(value, 0) }
     val pageIds = limit.fold(ordered.drop(offset))(l => ordered.slice(offset, offset + l))
-    Future.sequence(pageIds.map { id =>
+    def load(id: String): Future[Option[Customer]] =
       Connector.connector.vend.getCustomerByCustomerId(id, Some(cc)).map {
         case Full((customer, _)) => Some(customer)
         case Empty => None
         case failure: Failure => Some(APIUtil.connectorEmptyResponse[Customer](failure, Some(cc)))
       }
-    }).map(_.flatten.filter(_.bankId == bankId.value))
+    pageIds.grouped(LoadBatchSize).foldLeft(Future.successful(List.empty[Customer])) { (loaded, batch) =>
+      loaded.flatMap(done => Future.sequence(batch.map(load)).map(found => done ++ found.flatten))
+    }.map(_.filter(_.bankId == bankId.value))
   }
 
   // Route: GET /obp/v7.0.0/banks/BANK_ID/customers
@@ -141,8 +149,12 @@ object Http4s700Customers {
        |cannot itself contain a comma; different names must all match. A name can be given only once (as on every
        |endpoint, a repeated query parameter name is refused), and a filter without a value is refused.
        |
-       |Not taken for attribute names: limit, offset, sort_direction, from_date, to_date, sort_by, and names
-       |starting with obp_ or _.
+       |Not taken for attribute names, in any letter case: limit, offset, sort_direction, from_date, to_date,
+       |sort_by, and names starting with obp_ or _. Apart from limit, offset and sort_direction (lower case)
+       |they are accepted and ignored, as in v6.0.0.
+       |
+       |Values of parameters whose name ends in currency or currency_code are upper-cased by OBP-API before
+       |they are matched, as on every endpoint.
        |
        |Examples:
        |
@@ -158,7 +170,9 @@ object Http4s700Customers {
        |
        |Without attribute filters the Customers at the bank are ordered by last_ok_date, as in v6.0.0. With
        |attribute filters the matching Customers are ordered by customer_id, and limit and offset count the
-       |matching Customers only.
+       |matching Customers only. A Customer that no longer exists but still has an attribute is left out, so
+       |such a page can hold fewer Customers than limit. The ids of all matching Customers are read before
+       |the page is chosen.
        |
        |Dates are returned as **YYYY-MM-DD**.
        |
@@ -166,7 +180,7 @@ object Http4s700Customers {
        |""".stripMargin,
     EmptyBody,
     CustomersWithAttributesJsonV700(List(customerWithAttributesJsonV600)),
-    List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidUrlParameters, UnknownError),
+    List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidUrlParameters, InvalidFilterParameterFormat, InvalidConnectorResponse, UnknownError),
     List(apiTagCustomer, apiTagUser),
     Some(canGetCustomersAtOneBank :: Nil),
     http4sPartialFunction = Some(getCustomersAtOneBank)
