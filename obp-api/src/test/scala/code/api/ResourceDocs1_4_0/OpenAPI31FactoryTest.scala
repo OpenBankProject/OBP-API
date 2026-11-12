@@ -27,6 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.ResourceDocs1_4_0
 
+import code.api.berlin.group.v1_3.JvalueCaseClass
+import code.api.util.APIUtil.EmptyBody
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.setup.ServerSetup
 import org.json4s.JsonAST.{JNothing, JValue}
@@ -40,7 +42,7 @@ import org.json4s.native.JsonMethods.parse
  */
 class OpenAPI31FactoryTest extends ServerSetup {
 
-  private def doc(operationId: String, typedBody: JValue): JSONFactory1_4_0.ResourceDocJson =
+  private def doc(operationId: String, typedBody: JValue, successBody: Any = null): JSONFactory1_4_0.ResourceDocJson =
     JSONFactory1_4_0.ResourceDocJson(
       operation_id = operationId,
       implemented_by = JSONFactory1_4_0.ImplementedByJson("4.0.0", operationId),
@@ -50,7 +52,7 @@ class OpenAPI31FactoryTest extends ServerSetup {
       description = "Test desc",
       description_markdown = "Test desc",
       example_request_body = null,
-      success_response_body = null,
+      success_response_body = successBody,
       error_response_bodies = List("OBP-10000"),
       tags = List("Test"),
       typed_request_body = JNothing,
@@ -108,6 +110,34 @@ class OpenAPI31FactoryTest extends ServerSetup {
     scenario("survives a typed body that is absent") {
       noException should be thrownBy
         OpenAPI31JSONFactory.createOpenAPI31Json(List(doc("testOp", JNothing)), "v4.0.0", "http://localhost:8080")
+    }
+  }
+
+  private def responseExample(successBody: Any): JValue = {
+    val openApi = OpenAPI31JSONFactory.createOpenAPI31Json(
+      List(doc("testOp", JSONFactory1_4_0.createTypedBody(successBody), successBody)), "v4.0.0", "http://localhost:8080")
+    val rendered = parse(org.json4s.native.Serialization.write(openApi))
+    (rendered \ "paths" \ "/test" \ "get" \ "responses" \ "200" \ "content" \ "application/json" \ "example")
+  }
+
+  feature("OpenAPI 3.1 examples") {
+    scenario("the example is the example body, not its schema") {
+      val example = responseExample(OpenApiExampleBody("gh.29.uk", Some("A bank")))
+
+      (example \ "bank_id") should equal(org.json4s.JString("gh.29.uk"))
+      (example \ "full_name") should equal(org.json4s.JString("A bank"))
+      (example \ "type") should equal(JNothing)
+    }
+
+    scenario("an example written as JSON text is shown without its jvalueToCaseclass wrapper") {
+      val example = responseExample(JvalueCaseClass(parse("""{"Data": {"AccountId": "22289"}}""")))
+
+      (example \ "jvalueToCaseclass") should equal(JNothing)
+      (example \ "Data" \ "AccountId") should equal(org.json4s.JString("22289"))
+    }
+
+    scenario("an endpoint with no example body has no example") {
+      responseExample(EmptyBody) should equal(JNothing)
     }
   }
 
@@ -189,3 +219,5 @@ class OpenAPI31FactoryTest extends ServerSetup {
     }
   }
 }
+
+case class OpenApiExampleBody(bank_id: String, full_name: Option[String])

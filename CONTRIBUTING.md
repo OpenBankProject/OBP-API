@@ -23,6 +23,9 @@ If submitting a pull request please read and sign our [CLA](http://github.com/Op
 In the first instance it is sufficient if you create a text file of the CLA with your name and include that in a git commit description.  
 If you end up making large changes to the source code, we might ask for a paper signed copy of your CLA sent by email to contact@tesobe.com
 
+If you contribute for a company or other organisation, the organisation should sign the [Entity CLA](http://github.com/OpenBankProject/OBP-API/blob/develop/Harmony_Entity_Contributor_Assignment_Agreement.txt) instead.
+It covers everyone who contributes on the organisation's behalf. Send a signed copy by email to contact@tesobe.com.
+
 ## Git commit messages
 
 Please structure git commit messages in a way as shown below:
