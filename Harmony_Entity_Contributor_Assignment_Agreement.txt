@@ -53,6 +53,8 @@ Based on the grant of rights in Sections 2.1 and 2.2, if We include Your Contrib
 
 2.7 Further Documents. You shall sign any further documents We reasonably request to confirm the rights granted to Us under this Agreement.
 
+2.8 Separate Software. Software that You develop separately, and that only communicates with the Material through its interfaces (for example over HTTPS, gRPC, or a message queue such as RabbitMQ), is not a Contribution and remains Yours, unless You Submit it to Us. This applies only if that software does not include any part of the Material, or any modification of it, other than interface definitions (such as API schemas, message formats or protobuf files) used unchanged to communicate with the Material.
+
 3. Agreement
 
 You confirm that:
