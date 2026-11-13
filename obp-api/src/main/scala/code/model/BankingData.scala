@@ -401,15 +401,17 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
   final def moderatedOtherBankAccounts(view : View, bankIdAccountId: BankIdAccountId, user : Box[User], callContext: Option[CallContext]) : OBPReturnType[Box[List[ModeratedOtherBankAccount]]] =
     APIUtil.hasAccountAccess(view, bankIdAccountId, user, callContext) match {
       case Full(true) =>
+        // One ViewExtended for the whole list, so the view's permissions are looked up only once
+        val moderatingView = ViewExtended(view)
         val moderatedOtherBankAccountListFuture: Future[Full[List[ModeratedOtherBankAccount]]] = for{
           (implicitCounterpartyList, callContext) <- NewStyle.function.getCounterpartiesFromTransaction(bankId, accountId, callContext)
           implicitModeratedOtherBankAccounts <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
-            implicitCounterpartyList.map(view.moderateOtherAccount).flatten
+            implicitCounterpartyList.map(moderatingView.moderateOtherAccount).flatten
           }
           explicitCounterpartiesBox = Connector.connector.vend.getCounterpartiesLegacy(view.bankId, view.accountId, view.viewId)
           explicitModeratedOtherBankAccounts <- NewStyle.function.tryons(failMsg = InvalidJsonFormat, 400, callContext) {
             if(explicitCounterpartiesBox.isDefined)
-              explicitCounterpartiesBox.head._1.map(BankAccountX.toInternalCounterparty).flatMap(counterparty=>view.moderateOtherAccount(counterparty.head))
+              explicitCounterpartiesBox.head._1.map(BankAccountX.toInternalCounterparty).flatMap(counterparty => moderatingView.moderateOtherAccount(counterparty.head))
             else
               Nil
           }

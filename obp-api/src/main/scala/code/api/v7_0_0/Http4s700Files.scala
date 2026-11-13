@@ -32,7 +32,7 @@ import java.util.Base64
 import cats.effect.IO
 import code.api.Constant.{ApiPathZero, localIdentityProvider}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntitySpace}
-import code.api.util.APIUtil.{EmptyBody, Http4sRoute, ResourceDoc, UserXORApplication, unboxFullOrFail}
+import code.api.util.APIUtil.{EmptyBody, Http4sRoute, ResourceDoc, unboxFullOrFail}
 import code.api.util.ApiRole
 import code.api.util.ApiRole.{canCreateFileAtOneBank, canCreatePublicFileAtOneBank, canGetFileAtOneBank, canUpdateFileScanStatusAtOneBank}
 import code.api.util.ApiTag._
@@ -118,7 +118,7 @@ object Http4s700Files {
     Set(user.userId, cc.onBehalfOfUserId).filter(_.nonEmpty)
 
   private def holdsRole(bankId: String, user: User, cc: CallContext, role: ApiRole): Boolean =
-    APIUtil.handleAccessControlWithAuthMode(bankId, user.userId, APIUtil.getConsumerPrimaryKey(Some(cc)), List(role), UserXORApplication)
+    APIUtil.handleAccessControlRegardingEntitlementsAndScopes(bankId, user.userId, APIUtil.getConsumerPrimaryKey(Some(cc)), List(role))
 
   private def isOwner(file: FileT, user: User, cc: CallContext): Boolean = actingUserIds(user, cc).contains(file.ownerUserId)
 
@@ -266,7 +266,6 @@ object Http4s700Files {
       FileMediaTypeNotAllowed, FileTooLarge, FileSha256Mismatch, UnknownError),
     List(apiTagFile),
     Some(List(canCreateFileAtOneBank)),
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(createFile)
   ).allowSystemSpace()
 
@@ -449,7 +448,6 @@ object Http4s700Files {
       InvalidFile, FileNotFound, UnknownError),
     List(apiTagFile),
     Some(List(canUpdateFileScanStatusAtOneBank)),
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(updateFileScanStatus)
   ).allowSystemSpace()
 
@@ -484,7 +482,6 @@ object Http4s700Files {
     List($BankNotFound, $AuthenticatedUserIsRequired, InvalidFileQueryParameter, UnknownError),
     List(apiTagFile),
     None,
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(getFilesAttachedToRecord)
   ).allowSystemSpace()
 
@@ -545,7 +542,6 @@ object Http4s700Files {
     List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidFileQueryParameter, UnknownError),
     List(apiTagFile),
     Some(List(canGetFileAtOneBank, canUpdateFileScanStatusAtOneBank)),
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(getFilesOfSpace)
   ).allowSystemSpace()
 
@@ -573,7 +569,6 @@ object Http4s700Files {
     List($BankNotFound, $AuthenticatedUserIsRequired, UnknownError),
     List(apiTagFile),
     None,
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(getMyFiles)
   ).allowSystemSpace()
 
@@ -602,7 +597,6 @@ object Http4s700Files {
     List($BankNotFound, $AuthenticatedUserIsRequired, FileNotFound, UserHasMissingRoles, UnknownError),
     List(apiTagFile),
     None,
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(getFile)
   ).allowSystemSpace()
 
@@ -633,7 +627,6 @@ object Http4s700Files {
     List($BankNotFound, $AuthenticatedUserIsRequired, FileNotFound, UserHasMissingRoles, UnknownError),
     List(apiTagFile),
     None,
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(getFileContent)
   ).allowSystemSpace()
 
@@ -669,7 +662,6 @@ object Http4s700Files {
     List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, FileNotFound, UnknownError),
     List(apiTagFile),
     Some(List(canCreatePublicFileAtOneBank)),
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(updateFileIsPublic)
   ).allowSystemSpace()
 
@@ -725,7 +717,6 @@ object Http4s700Files {
       InvalidFile, FileAttachmentAlreadyExists, UnknownError),
     List(apiTagFile),
     None,
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(createFileAttachment)
   ).allowSystemSpace()
 
@@ -754,7 +745,6 @@ object Http4s700Files {
     List($BankNotFound, $AuthenticatedUserIsRequired, FileNotFound, UserHasMissingRoles, UnknownError),
     List(apiTagFile),
     None,
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(getFileAttachments)
   ).allowSystemSpace()
 
@@ -794,7 +784,6 @@ object Http4s700Files {
     List($BankNotFound, $AuthenticatedUserIsRequired, FileNotFound, UserHasMissingRoles, FileAttachmentNotFound, UnknownError),
     List(apiTagFile),
     None,
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(deleteFileAttachment)
   ).allowSystemSpace()
 
@@ -848,7 +837,6 @@ object Http4s700Files {
       UserNotFoundByUserId, InvalidUserId, FileAccessAlreadyExists, UnknownError),
     List(apiTagFile),
     None,
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(createFileAccess)
   ).allowSystemSpace()
 
@@ -883,7 +871,6 @@ object Http4s700Files {
     List($BankNotFound, $AuthenticatedUserIsRequired, FileNotFound, UserHasMissingRoles, UnknownError),
     List(apiTagFile),
     None,
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(getFileAccess)
   ).allowSystemSpace()
 
@@ -918,7 +905,6 @@ object Http4s700Files {
     List($BankNotFound, $AuthenticatedUserIsRequired, FileNotFound, FileOwnerRequired, FileAccessNotFound, UnknownError),
     List(apiTagFile),
     None,
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(deleteFileAccess)
   ).allowSystemSpace()
 

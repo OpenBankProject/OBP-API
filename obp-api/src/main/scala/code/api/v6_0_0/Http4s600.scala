@@ -580,7 +580,7 @@ object Http4s600 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateDynamicEntityRequestJsonV600]
             }
             _ <- validateEntityNameV600(request.entity_name, cc)
-            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canCreateDynamicEntityDefinition, cc, code.api.util.APIUtil.UserXORApplication)
+            _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canCreateDynamicEntityDefinition, cc)
             dynamicEntity <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               DynamicEntityCommons(JSONFactory600.convertV600RequestToInternal(request), None, cc.userId, None)
             }
@@ -872,7 +872,7 @@ object Http4s600 {
     // Route: GET /obp/v6.0.0/users
     lazy val getUsers: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" =>
-        EndpointHelpers.withUser(req) { (_, cc) =>
+        EndpointHelpers.executeAndRespond(req) { cc =>
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
             (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
@@ -2123,7 +2123,8 @@ object Http4s600 {
             GetOidcClientResponseJsonV600(
               client_id = clientId, client_name = consumer.name.get,
               consumer_id = consumer.consumerId.get,
-              redirect_uris = redirectUris, enabled = consumer.isActive.get)
+              redirect_uris = redirectUris, enabled = consumer.isActive.get,
+              grant_types = code.consumer.ConsumerGrantTypes.oauth2GrantTypes(consumer))
           }
         }
     }
@@ -2146,7 +2147,8 @@ object Http4s600 {
                   valid = true,
                   client_id = Some(postedData.client_id),
                   consumer_id = Some(consumer.consumerId.get),
-                  redirect_uris = redirectUris)
+                  redirect_uris = redirectUris,
+                  grant_types = Some(code.consumer.ConsumerGrantTypes.oauth2GrantTypes(consumer)))
               case _ => VerifyOidcClientResponseJsonV600(valid = false)
             }
           }
@@ -2538,7 +2540,7 @@ object Http4s600 {
         }
     }
 
-    // ─── Phase 2: 3 anonymous/UserXORApplication endpoints ─────────────────
+    // ─── Phase 2: 3 anonymous or application endpoints ─────────────────
 
     // GET /obp/v6.0.0/webui-props/WEBUI_PROP_NAME
     lazy val getWebUiProp: Http4sRoute = Http4sRoute {
@@ -5002,7 +5004,7 @@ object Http4s600 {
 
     lazy val getUserByUserId: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "users" / "user-id" / userId =>
-        EndpointHelpers.withUser(req) { (_, cc) =>
+        EndpointHelpers.executeAndRespond(req) { cc =>
           for {
             userBox <- code.users.Users.users.vend.getUserByUserIdFuture(userId)
             user <- Future(unboxFullOrFail(userBox, Some(cc),
@@ -7379,7 +7381,7 @@ object Http4s600 {
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
-        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserXORApplication` (the Consumer's Scopes when the application acts as itself, the User's Entitlements when a person acts; `UserOrApplication` is accepted as its former name) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
+        |* Who may use the entity's data endpoints is set by its Roles: a person needs a Role as an Entitlement. An application acting as itself needs it as a Scope, and its Consumer must be a Platform App.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
         |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
@@ -7408,7 +7410,6 @@ object Http4s600 {
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, DynamicPathAmbiguous, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
         Some(canCreateDynamicEntityDefinition :: Nil),
-        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(createSystemDynamicEntity)
       ).disableAutoValidateRoles() // checked in the handler at SYS: this URL names no bank
       resourceDocs += ResourceDoc(
@@ -7452,7 +7453,7 @@ object Http4s600 {
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
-        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserXORApplication` (the Consumer's Scopes when the application acts as itself, the User's Entitlements when a person acts; `UserOrApplication` is accepted as its former name) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
+        |* Who may use the entity's data endpoints is set by its Roles: a person needs a Role as an Entitlement. An application acting as itself needs it as a Scope, and its Consumer must be a Platform App.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
         |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
@@ -7488,7 +7489,6 @@ object Http4s600 {
         ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
         Some(canCreateDynamicEntityDefinition :: Nil),
-        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(createBankLevelDynamicEntity)
       )
       resourceDocs += ResourceDoc(
@@ -7528,7 +7528,7 @@ object Http4s600 {
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
-        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserXORApplication` (the Consumer's Scopes when the application acts as itself, the User's Entitlements when a person acts; `UserOrApplication` is accepted as its former name) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
+        |* Who may use the entity's data endpoints is set by its Roles: a person needs a Role as an Entitlement. An application acting as itself needs it as a Scope, and its Consumer must be a Platform App.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
         |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
@@ -7592,7 +7592,7 @@ object Http4s600 {
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
-        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserXORApplication` (the Consumer's Scopes when the application acts as itself, the User's Entitlements when a person acts; `UserOrApplication` is accepted as its former name) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
+        |* Who may use the entity's data endpoints is set by its Roles: a person needs a Role as an Entitlement. An application acting as itself needs it as a Scope, and its Consumer must be a Platform App.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
         |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
@@ -7663,7 +7663,7 @@ object Http4s600 {
         |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role. `hide_field_from_public_access` (boolean) hides a field of a public entity from callers whose access comes only from its public access, while callers holding the entity's read role still see it.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
-        |* Set `auth_mode` to say who may hold the roles that guard the entity's data endpoints: `UserOnly` (default, the User's Entitlements), `ApplicationOnly` (the Consumer's Scopes), `UserXORApplication` (the Consumer's Scopes when the application acts as itself, the User's Entitlements when a person acts; `UserOrApplication` is accepted as its former name) or `UserAndApplication` (both). Personal (`/my/`) endpoints always require a User. An entity with `has_personal_entity` cannot be `ApplicationOnly`.
+        |* Who may use the entity's data endpoints is set by its Roles: a person needs a Role as an Entitlement. An application acting as itself needs it as a Scope, and its Consumer must be a Platform App.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
         |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
         |* Set `use_row_level_access` to `true` to decide read, update, delete and grant **per record** with an access list, in place of the entity's Get, Update and Delete roles. The User who creates a record holds all four permissions on it and shares it with `GET/PUT /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access` (a body of `user_id`, `can_read`, `can_update`, `can_delete`, `can_grant`) and `DELETE /obp/dynamic-entity/ENTITY_NAME/RECORD_ID/access/USER_ID`; revoking cascades to the grants that user passed on. Records the caller may not read are omitted from list responses and return 404 individually. Creating a record still needs the entity's Create role, `CanGrantDynamicEntityRowAccess_<Entity>` administers the access list of any record, and field-level read and write roles still apply on top. It cannot be combined with `has_public_access` or `has_community_access`, and is only supported for locally-backed entities.
@@ -7986,7 +7986,6 @@ object Http4s600 {
         ),
         List(apiTagMetric, apiTagAggregateMetrics),
         Some(canReadAggregateMetrics :: Nil),
-        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(getAggregateMetrics)
       )
       resourceDocs += ResourceDoc(
@@ -8383,7 +8382,6 @@ object Http4s600 {
         ),
         List(apiTagCustomer, apiTagPerson),
         Some(canCreateCustomer :: Nil),
-        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(createCustomer)
       )
       resourceDocs += ResourceDoc(
@@ -9594,12 +9592,17 @@ object Http4s600 {
         "Get OIDC Client",
         s"""Gets an OIDC/OAuth2 client's metadata by client_id.
         |
-        |Returns client information including name, consumer_id, redirect_uris, and enabled status.
+        |Returns client information including name, consumer_id, redirect_uris, enabled status and grant_types.
+        |
+        |grant_types lists the OAuth2 grant types the client can be issued tokens for. These are the grant types an
+        |administrator set on the Consumer (PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/grant-types). If none are
+        |set, they are authorization_code, refresh_token and client_credentials.
         |This endpoint does not verify the client secret - use POST /oidc/clients/verify for authentication.
         |
-        |redirect_uris lists only the Consumer's redirect URLs that meet the redirect URL rules (https; http only for localhost,
-        |127.0.0.1 or [::1]; or an app scheme in reverse-domain form; no wildcard, user information or fragment). A stored entry
-        |that fails them is left out, so an OIDC provider never redirects to it. See ${Glossary.getGlossaryItemLink("Redirect URL")}
+        |redirect_uris lists only the Consumer's redirect URLs that meet the redirect URL rules. A URL must use https,
+        |or http for localhost, 127.0.0.1 or [::1] only, or an app scheme in reverse-domain form. It must not contain a
+        |wildcard, user information or a fragment. A stored URL that breaks these rules is left out, so an OIDC provider
+        |never redirects to it. See ${Glossary.getGlossaryItemLink("Redirect URL")}
 
         |${userAuthenticationMessage(true)}
         |""",
@@ -9614,7 +9617,6 @@ object Http4s600 {
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         apiTagOIDC :: apiTagConsumer :: apiTagOAuth :: Nil,
         Some(canGetOidcClient :: Nil),
-        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(getOidcClient)
       )
       resourceDocs += ResourceDoc(
@@ -9626,11 +9628,12 @@ object Http4s600 {
         s"""Verifies an OIDC/OAuth2 client's credentials.
         |
         |Returns `valid: true` if the client_id and client_secret match an active consumer.
-        |Also returns the consumer_id and redirect_uris for use by the OIDC provider.
+        |Also returns the consumer_id, redirect_uris and grant_types for use by the OIDC provider.
         |
-        |redirect_uris lists only the Consumer's redirect URLs that meet the redirect URL rules (https; http only for localhost,
-        |127.0.0.1 or [::1]; or an app scheme in reverse-domain form; no wildcard, user information or fragment). A stored entry
-        |that fails them is left out, so an OIDC provider never redirects to it. See ${Glossary.getGlossaryItemLink("Redirect URL")}
+        |redirect_uris lists only the Consumer's redirect URLs that meet the redirect URL rules. A URL must use https,
+        |or http for localhost, 127.0.0.1 or [::1] only, or an app scheme in reverse-domain form. It must not contain a
+        |wildcard, user information or a fragment. A stored URL that breaks these rules is left out, so an OIDC provider
+        |never redirects to it. See ${Glossary.getGlossaryItemLink("Redirect URL")}
 
         |${userAuthenticationMessage(true)}
         |""",
@@ -9647,7 +9650,6 @@ object Http4s600 {
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         apiTagOIDC :: apiTagConsumer :: apiTagOAuth :: Nil,
         Some(canVerifyOidcClient :: Nil),
-        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(verifyOidcClient)
       )
       resourceDocs += ResourceDoc(
@@ -10308,7 +10310,6 @@ object Http4s600 {
         List(UserHasMissingRoles, InvalidJsonFormat, InvalidLoginCredentials, UsernameHasBeenLocked, UnknownError),
         apiTagUser :: Nil,
         Some(canVerifyUserCredentials :: Nil),
-        authMode = code.api.util.APIUtil.UserXORApplication,
         http4sPartialFunction = Some(verifyUserCredentials)
       )
       resourceDocs += ResourceDoc(

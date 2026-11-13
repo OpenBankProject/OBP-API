@@ -242,7 +242,7 @@ object DynamicEntityHelper {
   /** The number of definitions in this instance's kept map, for the cache info page. */
   def keptDefinitionCount: Int = definitionsMapCache.kept.map(_.size).getOrElse(0)
 
-  private def buildDefinitionsMap: Map[(String, String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((DynamicEntitySpace.bankIdOrSystem(it.bankId), it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess, it.authMode))).toMap
+  private def buildDefinitionsMap: Map[(String, String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((DynamicEntitySpace.bankIdOrSystem(it.bankId), it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess))).toMap
 
   /**
    * The definition of one entity in one space, or None when that space holds no such entity.
@@ -490,8 +490,7 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole)),
-      createdByBankId= dynamicEntityInfo.bankId,
-      authMode = dynamicEntityInfo.endpointAuthMode
+      createdByBankId= dynamicEntityInfo.bankId
     )
 
     resourceDocs += (DynamicEntityOperation.GET_ONE, splitNameWithBankId) -> ResourceDoc(
@@ -518,8 +517,7 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canGetRole)),
-      createdByBankId= dynamicEntityInfo.bankId,
-      authMode = dynamicEntityInfo.endpointAuthMode
+      createdByBankId= dynamicEntityInfo.bankId
     )
 
     resourceDocs += (DynamicEntityOperation.CREATE, splitNameWithBankId) -> ResourceDoc(
@@ -548,8 +546,7 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canCreateRole)),
-      createdByBankId= dynamicEntityInfo.bankId,
-      authMode = dynamicEntityInfo.endpointAuthMode
+      createdByBankId= dynamicEntityInfo.bankId
       )
 
     resourceDocs += (DynamicEntityOperation.UPDATE, splitNameWithBankId) -> ResourceDoc(
@@ -578,8 +575,7 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canUpdateRole)),
-      createdByBankId= dynamicEntityInfo.bankId,
-      authMode = dynamicEntityInfo.endpointAuthMode
+      createdByBankId= dynamicEntityInfo.bankId
     )
 
     resourceDocs += (DynamicEntityOperation.PATCH, splitNameWithBankId) -> ResourceDoc(
@@ -615,8 +611,7 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canUpdateRole)),
-      createdByBankId= dynamicEntityInfo.bankId,
-      authMode = dynamicEntityInfo.endpointAuthMode
+      createdByBankId= dynamicEntityInfo.bankId
     )
 
     resourceDocs += (DynamicEntityOperation.DELETE, splitNameWithBankId) -> ResourceDoc(
@@ -642,8 +637,7 @@ object DynamicEntityHelper {
       ),
       List(apiTag, apiTagDynamicEntity, apiTagDynamic),
       Some(List(dynamicEntityInfo.canDeleteRole)),
-      createdByBankId= dynamicEntityInfo.bankId,
-      authMode = dynamicEntityInfo.endpointAuthMode
+      createdByBankId= dynamicEntityInfo.bankId
     )
 
     if(hasPersonalEntity){ //only hasPersonalEntity == true, then create the myEndpoints
@@ -1086,16 +1080,8 @@ object DynamicEntityHelper {
       |""".stripMargin
 
 }
-case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String], hasPersonalEntity: Boolean, hasPublicAccess: Boolean = false, hasCommunityAccess: Boolean = false, personalRequiresRole: Boolean = false, useRowLevelAccess: Boolean = false, authMode: String = code.dynamicEntity.DynamicEntityAuthMode.default) {
+case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String], hasPersonalEntity: Boolean, hasPublicAccess: Boolean = false, hasCommunityAccess: Boolean = false, personalRequiresRole: Boolean = false, useRowLevelAccess: Boolean = false) {
 
-  /** The entity's auth mode as the framework type; unknown or empty values read as UserOnly. */
-  val endpointAuthMode: code.api.util.APIUtil.EndpointAuthMode = authMode match {
-    case code.dynamicEntity.DynamicEntityAuthMode.ApplicationOnly => code.api.util.APIUtil.ApplicationOnly
-    case code.dynamicEntity.DynamicEntityAuthMode.UserXORApplication | code.dynamicEntity.DynamicEntityAuthMode.LegacyUserOrApplication =>
-      code.api.util.APIUtil.UserXORApplication
-    case code.dynamicEntity.DynamicEntityAuthMode.UserAndApplication => code.api.util.APIUtil.UserAndApplication
-    case _ => code.api.util.APIUtil.UserOnly
-  }
 
   import com.openbankproject.commons.util.json
   import code.api.dynamic.entity.query.FieldSpec
@@ -1438,15 +1424,15 @@ object DynamicEntityInfo {
    */
   /**
    * True when a caller's access to an entity comes only from its public access: the entity has public
-   * access, the caller does not hold its read Role (judged by its authentication mode), and the caller is
+   * access, the caller does not hold its read Role, and the caller is
    * not reaching it through a row-level access list (an anonymous caller never is). A field declared
    * `hide_field_from_public_access` is hidden from such a caller.
    */
   def readsViaPublicAccess(bankId: Option[String], entityName: String, userIdOpt: Option[String], consumerId: String): Boolean =
     DynamicEntityHelper.definitionOf(bankId, entityName).exists { info =>
       info.hasPublicAccess && !(info.useRowLevelAccess && userIdOpt.isDefined) &&
-        !APIUtil.handleAccessControlWithAuthMode(DynamicEntitySpace.bankIdOrSystem(bankId), userIdOpt.getOrElse(""), consumerId,
-          List(canGetRole(entityName, bankId)), info.endpointAuthMode)
+        !APIUtil.handleAccessControlRegardingEntitlementsAndScopes(DynamicEntitySpace.bankIdOrSystem(bankId), userIdOpt.getOrElse(""), consumerId,
+          List(canGetRole(entityName, bankId)))
     }
 
   /**
@@ -1470,8 +1456,8 @@ object DynamicEntityInfo {
   def mayReadRecords(bankId: Option[String], entityName: String, userIdOpt: Option[String], consumerId: String): Boolean =
     DynamicEntityHelper.definitionOf(bankId, entityName).exists { info =>
       info.hasPublicAccess || info.useRowLevelAccess ||
-        APIUtil.handleAccessControlWithAuthMode(DynamicEntitySpace.bankIdOrSystem(bankId), userIdOpt.getOrElse(""), consumerId,
-          List(canGetRole(entityName, bankId)), info.endpointAuthMode)
+        APIUtil.handleAccessControlRegardingEntitlementsAndScopes(DynamicEntitySpace.bankIdOrSystem(bankId), userIdOpt.getOrElse(""), consumerId,
+          List(canGetRole(entityName, bankId)))
     }
 
   def mayReadField(bankId: Option[String], entityName: String, fieldName: String, userIdOpt: Option[String],

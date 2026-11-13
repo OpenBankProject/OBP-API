@@ -66,7 +66,8 @@ class UserTest extends V510ServerSetup {
       val response400 = makeGetRequest(request400)
       Then("We should get a 401")
       response400.code should equal(401)
-      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
+      // The endpoint has a Role, so a caller with no credentials is refused as not logged in
+      response400.body.extract[ErrorMessage].message should include("OBP-20001")
     }
   }
   

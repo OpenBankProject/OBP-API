@@ -291,10 +291,15 @@ trait DefaultUsers {
     ).openOrThrowException(attemptedToOpenAnEmptyBox)
     Token(token.key.get, token.secret.get)
   }
+  // The applications that act as themselves in tests are Platform Apps, so their Scopes count for them. The
+  // database is wiped after every scenario (the Platform App table too), so they are marked again on every use.
+  def ensurePlatformApp(c: code.model.Consumer): Unit =
+    if (code.platformapp.PlatformApps.platformAppProvider.vend.getPlatformApp(c.consumerId.get).isEmpty)
+      code.platformapp.PlatformApps.platformAppProvider.vend.createPlatformApp(c.consumerId.get, s"Test application ${c.name.get}", resourceUser1.userId)
   lazy val tokenApplication1 = applicationToken(testConsumer)
   lazy val tokenApplication2 = applicationToken(testConsumer2)
-  lazy val application1 = Some(consumer, tokenApplication1)
-  lazy val application2 = Some(consumer2, tokenApplication2)
+  def application1 = { ensurePlatformApp(testConsumer); Some(consumer, tokenApplication1) }
+  def application2 = { ensurePlatformApp(testConsumer2); Some(consumer2, tokenApplication2) }
   lazy val user3 = Some(consumer3, token3)
   lazy val userGatewayLogin = Some(consumer4, token4)
 

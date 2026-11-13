@@ -840,6 +840,9 @@ object JSONFactory1_4_0 extends MdcLoggable{
     val extractedEntity = entity match {
       case Full(v) => v
       case Some(v) => v
+      // An example body written as JSON text is held in a JvalueCaseClass. Its one field,
+      // jvalueToCaseclass, is not part of the API, so the schema describes the JSON inside it.
+      case JvalueCaseClass(v) => v
       case v => v
     }
 
@@ -904,6 +907,12 @@ object JSONFactory1_4_0 extends MdcLoggable{
       if(value != None)
     } yield {
       value match {
+        // An empty example value - null, or an empty JSON object such as "FirstAvailableDateTime": {}
+        // in the UK Open Banking examples - says nothing about the field's type. So the field's
+        // schema says nothing either, and accepts any value. Saying "null" or "an object with no
+        // properties" would reject every real value.
+        case null | JNull | JNothing | JObject(Nil) => "\""  + key + """": {}"""
+
         //Date -- should be the first
         case i: Date                       => "\""  + key + """": {"type": "string","format": "date-time"}"""
         case Some(i: Date)                 => "\""  + key + """": {"type": "string","format": "date-time"}"""
@@ -993,7 +1002,6 @@ object JSONFactory1_4_0 extends MdcLoggable{
         case Some(List(f,_*))              => "\""  + key + """":""" +translateEntity(f,true)
         //Single object
         case Some(f)                       => "\""  + key + """":""" +translateEntity(f,false)
-        case null                          => "\""  + key + """":{"type":"null"}"""
         case f                             => "\""  + key + """":""" +translateEntity(f,f.getClass().isArray())
         // TODO resolve the warning patterns after a variable pattern cannot match (SLS 8.1.1)
         // case _ => "unknown"
@@ -1003,14 +1011,35 @@ object JSONFactory1_4_0 extends MdcLoggable{
     // add comment and filter unknow
     // fields --> "id" : {"type":"integer", "format":"int32"} ,"name" : {"type":"string"} ,"bank": {"$ref":"#/definitions/Bank"} ,"banks": {"type": "array", "items":{"$ref": "#/definitions/Bank"}}  
     val fields: String = properties filter (_.contains("unknown") == false) mkString (",")
-    //val definition = "\"" + entity.getClass.getSimpleName + "\":{" + requiredFieldsPart + """"properties": {""" + fields + """}}"""
+
+    // Which fields a body must have. A field of a Scala class is required unless its type is an
+    // Option (or a Box), because those are the fields left out of the JSON when they have no value.
+    // A field whose example value is null is not required: the example gives no type to check.
+    // An example written as JSON text gives no types at all, so none of its fields is required.
+    // Its example may show optional fields, as the UK Open Banking examples do.
+    val requiredKeys: List[String] = extractedEntity match {
+      case _: JValue => Nil
+      case _ => mapOfFields.toList.collect {
+        case (name, value) if isRequiredExampleValue(value) => convertParamName(name)
+      }.sorted
+    }
+    val requiredPart =
+      if (requiredKeys.isEmpty) ""
+      else requiredKeys.map(k => "\"" + k + "\"").mkString(""""required": [""", ",", "],")
+
     val definition = if (isArray)
-        """{ "type": "array",  "items" : {"type": "object","properties": {""" + fields + """}}}""" 
+        """{ "type": "array",  "items" : {"type": "object",""" + requiredPart + """"properties": {""" + fields + """}}}""" 
       else 
-        """{ "type": "object", "properties" : {""" + fields + """}}"""
+        """{ "type": "object", """ + requiredPart + """"properties" : {""" + fields + """}}"""
     definition
   }
   
+  private def isRequiredExampleValue(value: Any): Boolean = value match {
+    case null | JNull | JNothing => false
+    case _: Option[_] | _: net.liftweb.common.Box[_] => false
+    case _ => true
+  }
+
   def createTypedBody(exampleRequestBody: Any): JValue = {
     def res = translateEntity(exampleRequestBody,false)
     exampleRequestBody match {

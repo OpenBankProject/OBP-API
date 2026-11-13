@@ -30,7 +30,6 @@ package code.obp.grpc.logcache
 import org.json4s._
 import code.api.cache.RedisLogger
 import code.api.util.APIUtil
-import code.api.util.APIUtil.UserOnly
 import code.logcache.LogCacheEventBus
 import code.obp.grpc.chat.AuthInterceptor
 import code.obp.grpc.logcache.api._
@@ -73,7 +72,7 @@ object LogCacheStreamServiceImpl extends LogCacheStreamServiceGrpc.LogCacheStrea
     val requiredRoles = RedisLogger.LogLevel.requiredRoles(internalLevel)
     val callContext = Option(AuthInterceptor.CALL_CONTEXT_KEY.get())
     val consumerId = APIUtil.getConsumerPrimaryKey(callContext)
-    if (!APIUtil.handleAccessControlWithAuthMode("", user.userId, consumerId, requiredRoles, UserOnly)) {
+    if (!APIUtil.handleAccessControlRegardingEntitlementsAndScopes("", user.userId, consumerId, requiredRoles)) {
       responseObserver.onError(Status.PERMISSION_DENIED
         .withDescription(s"Missing entitlement for log level $internalLevel").asRuntimeException())
       return

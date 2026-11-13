@@ -1251,43 +1251,31 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
-		title = "API.Endpoint Auth Modes",
+		title = "API.Entitlements and Scopes",
 		description =
 			s"""
 |
-|Each API endpoint has an **authMode** that determines how Roles are checked when both a User and a Consumer (Application) are present in the request.
+|A Role can be held in two ways. A User holds it as an **Entitlement**. A Consumer (an application) holds it as a **Scope**. When an endpoint needs a Role, who is acting on the request decides which one counts.
 |
-|The four auth modes are:
+|* **A person is acting.** The Role must be one of the User's Entitlements. The Consumer's Scopes do not count for a person.
 |
-|* **UserOnly** (default): Only the User's Entitlements are checked. Consumer Scopes are ignored.
+|* **The Application is acting as itself.** The Role must be one of its Consumer's Scopes. The Application counts as acting as itself only if both of these hold:
+|  1. Its Consumer is a Platform App (see ${getGlossaryItemLink("Platform Apps")}).
+|  2. It calls with no User, or as its own User. A client-credentials token brings that User: provider *obp-oidc#client* (or *keycloak#client* for a Keycloak service account), named after the client id.
 |
-|* **ApplicationOnly**: Only the Consumer's Scopes are checked. No User is required.
+|For example, a person logs in by DirectLogin through a Consumer that holds the Scope *CanGetConsumers*. They still need their own *CanGetConsumers* Entitlement. The same Consumer, if it is a Platform App, can call with a client-credentials token and is let in on its Scope. So whoever is let in is also who is recorded as acting.
 |
-|* **UserXORApplication**: Either a person or the Application acting as itself, never a mix. When the Application acts as itself (there is no User, or the User is the Application's own, the one an OBP-OIDC client-credentials token resolves to: provider *obp-oidc#client*, named after the client id), only the Consumer's Scopes are checked. Otherwise a person is acting, and only the User's Entitlements are checked: the Consumer's Scopes are ignored. It was called *UserOrApplication* until October 2026, when it granted access if either held the Role.
+|A Consumer that is not a Platform App can still hold Scopes. They then work only as a limit on people, as described next.
 |
-|* **UserAndApplication**: Access is granted only if the Consumer has the required Scope **AND** the User has the required Entitlement. Both are required.
+|**Scopes as a limit on people.** An installation can set *require_scopes_for_all_roles* to true, or list the Role in *require_scopes_for_listed_roles*. A person then needs the Entitlement, and the Consumer they call through needs the Scope. An Application acting as itself still needs only its Scope.
 |
-|For example, if a User logs in via DirectLogin with a Consumer that has the Scope *CanGetConsumers*, and the endpoint's authMode is *UserXORApplication*, the User still needs a personal *CanGetConsumers* Entitlement: a person never acts on the Consumer's Scopes. The same Consumer calling with a client-credentials token, as itself, is let in on its Scope. So whoever is let in is also who is recorded as acting.
+|**Who may call an endpoint at all** is set by its list of possible errors:
 |
-|The authMode is set in the ResourceDoc definition for each endpoint, for example:
+|* *OBP-20001* (User not logged in), or a Role: a User is required.
+|* *OBP-20200* (The application cannot be identified) without the first: an identified Application is required, and a User is optional. Payment providers creating Berlin Group and UK Open Banking consents call like this.
+|* Neither: anyone may call.
 |
-|```
-|resourceDocs += ResourceDoc(
-|  getConsumers,
-|  implementedInApiVersion,
-|  nameOf(getConsumers),
-|  "GET",
-|  "/management/consumers",
-|  "Get Consumers",
-|  ...,
-|  Some(List(canGetConsumers)),
-|  authMode = UserXORApplication
-|)
-|```
-|
-|If authMode is not specified, it defaults to UserOnly.
-|
-|Note: If the property *require_scopes_for_all_roles* is set to true (or *require_scopes_for_listed_roles* lists the Role), endpoints behave as *UserAndApplication* regardless of their configured authMode, except that an Application acting as itself on an *ApplicationOnly* or *UserXORApplication* endpoint still needs only its Scopes: it has no Entitlements to add.
+|Endpoints used to carry an *authMode* (UserOnly, ApplicationOnly, UserXORApplication or UserAndApplication). It was removed in November 2026, because who is acting is a fact about each request, not about the endpoint.
 |
 |See also: [Access Control](/index#API.Access-Control), [Scopes](/index#group-Scope), [Roles](/index#group-Role)
 |
@@ -1561,21 +1549,52 @@ object Glossary extends MdcLoggable  {
 		title = "Consumer",
 		description =
 		s"""
-		  |The "consumer" of the API, i.e. the web, mobile or serverside "App" that calls on the OBP API on behalf of the end user (or system).
-		  |
-		  |Each Consumer has a consumer key and secret which allows it to enter into secure communication with the API server.
+			|# Consumer
 			|
-			|A Consumer is given a Consumer ID (a UUID) which appears in logs and messages to the backend.
+			|A Consumer is an application that calls OBP: a web, mobile or server application. Every call to OBP is made through a Consumer, whether a person is logged in or not. The Consumer records which application made the call.
 			|
-			|A Consumer may be pinned to an mTLS certificate i.e. the consumer record in the database is given a field which matches the PEM representation of the certificate.
+			|This item gives an overview. Each part has its own Glossary item with the details.
 			|
-			|After pinning, the consumer must present the certificate in all communication with the server.
+			|## Identifying the application
 			|
-			|There is a one to one relationship between a Consumer and its certificate. i.e. OBP does not (currently) store the history of certificates bound to a Consumer. If a certificate expires, the third party provider (TPP) must generate a new consumer using a new certificate. In this case, related resources such as rate limits and scopes must be copied from the old consumer to the new consumer. In the future, OBP may store multiple certificates for a consumer, but a certificate will always identify only one consumer record.
+			|- **Consumer ID.** A UUID that OBP gives the Consumer. It appears in logs, metrics and messages to the backend. Use it whenever you refer to a Consumer.
+			|- **Key and secret.** The application uses these to get tokens. The key is also called the client id. See ${getGlossaryItemLink("Consumer.consumer_key (Consumer Key)")}.
+			|- **Certificate.** A Consumer can be tied to an mTLS certificate. It must then present that certificate on every call. A Consumer has one certificate at a time. When a certificate expires, an administrator replaces it with Update Consumer Certificate, and the Consumer keeps its Scopes, rate limits and other settings.
+			|- **Redirect URL.** Where people are sent back to after they log in through the Consumer. See ${getGlossaryItemLink("Redirect URL")}.
 			|
-			|A Consumer for an app the installation runs itself (the Portal, the API Manager, Opey, OBP-Sentinel or a bank's own service) that calls OBP with its own application token needs Roles granted to it as Scopes. An administrator marks it as a Platform App, the app declares the Scopes it needs, and the administrator grants them. See ${getGlossaryItemLink("Platform Apps")}
+			|## How tokens can be obtained
 			|
-		""")
+			|A Consumer's **grant types** say how tokens can be obtained through it. People may log in through it by OAuth2 or by DirectLogin, the application may get a token for itself, or both. A Consumer with no grant types set can be used in every way. See ${getGlossaryItemLink("Consumer Grant Types")}.
+			|
+			|## What the application may do
+			|
+			|A Role can be granted to a Consumer as a **Scope**. Who is acting on a call decides whether the Scope counts:
+			|
+			|- When a person calls through the Consumer, their own Entitlements count. The Consumer's Scopes do not give them anything. An installation can also require the Consumer to hold the Scope, as a limit on people.
+			|- When the application acts as itself, with no person logged in, its Consumer's Scopes count. It can do this only if its Consumer is marked as a **Platform App**.
+			|
+			|See ${getGlossaryItemLink("API.Entitlements and Scopes")} and ${getGlossaryItemLink("Platform Apps")}.
+			|
+			|## Which accounts the application may use
+			|
+			|A Scope lets an application call an endpoint. A Platform App that acts on an account as itself also needs access to a view of that account. An example is initiating payments from the account. See ${getGlossaryItemLink("Consumer Account Access")}.
+			|
+			|## Switching a Consumer off
+			|
+			|An administrator can disable a Consumer. Every call through it is then refused, by people and by the application itself. It can be enabled again later.
+			|
+			|## Endpoints
+			|
+			|- [Get Consumers](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getConsumers): `GET /obp/v7.0.0/management/consumers`
+			|- [Get Consumer](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getConsumer): `GET /obp/v7.0.0/management/consumers/CONSUMER_ID`
+			|- [Create a Consumer](${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.1.0-createConsumer): `POST /obp/v5.1.0/management/consumers`
+			|- [Enable or Disable Consumers](${apiExplorerUrl}/resource-docs/OBPv3.1.0?operationid=OBPv3.1.0-enableDisableConsumers): `PUT /obp/v3.1.0/management/consumers/CONSUMER_ID`
+			|- [Update Consumer Certificate](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateConsumerCertificate): `PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/certificate`
+			|- [Update Consumer RedirectURL](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateConsumerRedirectURL): `PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/redirect_url`
+			|- [Get Current Consumer](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getCurrentConsumer): `GET /obp/v6.0.0/consumers/current`, for an application to read its own Consumer.
+			|
+			|The endpoints for grant types, Scopes, Platform Apps and account access are listed in their own items.
+			|""".stripMargin)
 
 	  glossaryItems += GlossaryItem(
 		title = "Consumer.consumer_key (Consumer Key)",
@@ -3791,7 +3810,7 @@ object Glossary extends MdcLoggable  {
 |
 |**IMPORTANT - JSON Structure:**
 |
-|The entity name (e.g., "CustomerPreferences") MUST be a direct top-level key in the JSON. Besides the entity name, the root object may only contain the access flags: "hasPersonalEntity", "personalRequiresRole", "hasPublicAccess", "hasCommunityAccess", "useRowLevelAccess" and "authMode" (see ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}).
+|The entity name (e.g., "CustomerPreferences") MUST be a direct top-level key in the JSON. Besides the entity name, the root object may only contain the access flags: "hasPersonalEntity", "personalRequiresRole", "hasPublicAccess", "hasCommunityAccess" and "useRowLevelAccess" (see ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}). An "authMode" flag from older clients is accepted and ignored.
 |
 |**Common mistake - DO NOT do this:**
 |```json
@@ -4087,7 +4106,7 @@ object Glossary extends MdcLoggable  {
 |
 |Two settings apply on top of the routes:
 |
-|* `authMode` says which credential satisfies the role checks on the System route: `UserOnly` (Entitlements), `ApplicationOnly` (Consumer Scopes), `UserXORApplication` (Scopes for the Application acting as itself, Entitlements for a person; `UserOrApplication` is accepted as its former name), `UserAndApplication`. The Personal and Row level routes always need a User; `ApplicationOnly` is refused on an entity with `hasPersonalEntity`.
+|* Roles: a person needs the entity's Role as an Entitlement. An Application acting as itself needs it as a Scope, and its Consumer must be a Platform App (see ${getGlossaryItemLink("Platform Apps")}).
 |* Field roles: a field with a `read_role` is omitted from every response unless the caller holds that role; a field with a `write_role` is only changed by PATCH from a holder (POST ignores it, PUT preserves its value).
 |
 |**Managing a record's access list (row level)**
@@ -7403,18 +7422,51 @@ object Glossary extends MdcLoggable  {
 
 
 	glossaryItems += GlossaryItem(
+		title = "OAuth Standards and OBP",
+		description =
+			s"""
+				 |# OAuth Standards and OBP
+				 |
+				 |OAuth decides how an application gets a token. It leaves the access rules inside an API to the API itself. So OBP's Roles, Entitlements and Scopes are OBP's own, and they work alongside these standards:
+				 |
+				 || Standard | What it covers | How OBP uses it |
+				 ||---|---|---|
+				 || [OAuth 2.0, client credentials grant](https://www.rfc-editor.org/rfc/rfc6749#section-4.4) (RFC 6749, section 4.4) | An application gets a token for itself, with no user. | An application acting as itself uses this grant. OBP-API then checks its Consumer's Scopes. |
+				 || [Dynamic Client Registration](https://www.rfc-editor.org/rfc/rfc7591) (RFC 7591) | Standard fields for a client, including `grant_types`, `scope` and `token_endpoint_auth_method`. | A Consumer's grant types use the standard's field and values. See ${getGlossaryItemLink("Consumer Grant Types")}. |
+				 || [JWT access tokens](https://www.rfc-editor.org/rfc/rfc9068) (RFC 9068) | In a token an application got for itself, `sub` is the application's own client id. | OBP-API recognises such a token when `sub` equals the client id (`azp`). |
+				 || [Client authentication with a private key](https://www.rfc-editor.org/rfc/rfc7523) (RFC 7523) and [with a certificate](https://www.rfc-editor.org/rfc/rfc8705) (RFC 8705) | An application proves who it is with a signed key or a client certificate, instead of a shared secret. | A Consumer can hold a JWKS URI and a client certificate for this. |
+				 || [OAuth security best practice](https://www.rfc-editor.org/rfc/rfc9700) (RFC 9700) and OAuth 2.1 | PKCE for every login, and no password grant. | DirectLogin sends a username and password, much like the password grant. Prefer an OAuth2 login for people, and client credentials for applications. |
+				 || [Token exchange](https://www.rfc-editor.org/rfc/rfc8693) (RFC 8693) | Says explicitly that one party acts on behalf of another (the `act` claim). | OBP does not use it today. |
+				 |
+				 |## Permissions for people and permissions for applications
+				 |
+				 |Identity providers usually keep two kinds of permission apart. Microsoft Entra ID, for example, calls them delegated permissions and application permissions:
+				 |
+				 |- A delegated permission says what an application may do for a person who is logged in.
+				 |- An application permission says what an application may do as itself. An administrator grants it.
+				 |
+				 |In OBP, a person's Role comes from their Entitlement. An application acting as itself uses its Consumer's Scopes. With `require_scopes_for_all_roles` or `require_scopes_for_listed_roles`, a Consumer's Scope also limits which Roles people can use through that application.
+				 |
+				 |## OBP Scopes and OAuth scopes
+				 |
+				 |In standard OAuth, the identity provider writes the granted scopes into the token, and the API reads them there. OBP-API instead looks up a Consumer's Scopes in its own records. OAuth allows this, and it lets OBP work with any identity provider. So an OBP Scope is not the same thing as the `scope` in a token, although they share a name.
+				 |
+				 |One setting connects the two. With `oauth2.keycloak.source_of_truth=true`, OBP-API copies the roles in a Keycloak token into the Consumer's Scopes.
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
 		title = "Platform Apps",
 		description =
 			s"""
 				 |# Platform Apps
 				 |
-				 |A **Platform App** is an application an installation runs as part of its own OBP deployment, such as the Portal, the API Manager, Opey or one of the bank's own services. Like any application it calls OBP as a Consumer, and some of its calls are made with its own application token (OAuth2 client credentials) rather than for a logged-in User: reading published pages for anonymous visitors, or creating the Dynamic Entities it depends on at startup. Those calls need Roles granted to its Consumer as Scopes.
+				 |A **Platform App** is an application that an installation runs as part of its own OBP deployment. Examples are the Portal, the API Manager, Opey and the bank's own services. Like any application, it calls OBP as a Consumer. Some of its calls are made with its own application token (OAuth2 client credentials), not for a logged-in User. For example, it reads published pages for anonymous visitors, or creates the Dynamic Entities it depends on at startup. Those calls need Roles granted to its Consumer as Scopes.
 				 |
 				 |## How it works
 				 |
 				 |1. An administrator marks the app's Consumer as a Platform App (Role CanCreatePlatformApp), giving it the name administrators know it by.
 				 |2. The app declares, as itself, the Scopes it needs and what each is needed for. It does this whenever it starts or checks itself, so the list follows the version that is running. An app whose Consumer has not been marked cannot declare anything, so an arbitrary Consumer cannot ask to be granted Scopes this way.
-				 |3. OBP compares each declaration with the Scopes the Consumer holds. An administrator with CanGetPlatformApps sees, for every Platform App, which Scopes are held and which are missing, and grants the missing ones (CanCreateScopeAtAnyBank, or CanCreateScopeAtOneBank at the Scope's bank id).
+				 |3. OBP compares each declaration with the Scopes the Consumer holds. An administrator with CanGetPlatformApps sees which Scopes each Platform App holds and which are missing. They grant the missing ones with CanCreateScopeAtAnyBank, or CanCreateScopeAtOneBank at the Scope's bank id.
 				 |
 				 |A Scope declared as optional is one the app can manage without, for example because another Platform App does the same work. It is shown, but does not count as missing.
 				 |
@@ -7429,7 +7481,63 @@ object Glossary extends MdcLoggable  {
 				 |- [Get Current Consumer Scopes](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getCurrentConsumerScopes): `GET /obp/v7.0.0/consumers/current/scopes`, for an app to read the Scopes its Consumer holds.
 				 |- [Create Scope for a Consumer](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-addScope): `POST /obp/v7.0.0/consumers/CONSUMER_ID/scopes`, to grant a missing Scope.
 				 |
-				 |A Scope says which endpoints an app may call. An app that also acts on an account through a view, such as initiating payments from it, needs access to that view of the account as well: see ${getGlossaryItemLink("Consumer Account Access")}.
+				 |To act as itself, the app needs a token of its own. If its Consumer has grant types set, they must include `client_credentials`. See ${getGlossaryItemLink("Consumer Grant Types")}.
+				 |
+				 |A Scope says which endpoints an app may call. Some apps also act on an account through a view, for example to initiate payments from it. They also need access to that view of the account. See ${getGlossaryItemLink("Consumer Account Access")}.
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Consumer Grant Types",
+		description =
+			s"""
+				 |# Consumer Grant Types
+				 |
+				 |A Consumer's grant types control how tokens can be obtained through the Consumer. They say whether people can log in through it, whether the application can get a token for itself, or both.
+				 |
+				 |A person "logs in through a Consumer" when they get a token with that Consumer's client id or key. They can do this by an OAuth2 login, by DirectLogin, or by renewing such a login. The token then names both the person and the application.
+				 |
+				 |Grant types are optional. A Consumer that has no grant types set can be used in every way, as before.
+				 |
+				 |Grant types only control how tokens are obtained. What the application may do with a token depends on the Scopes its Consumer holds.
+				 |
+				 |## Why set them
+				 |
+				 |Some applications both log people in and get tokens for themselves. Such an application can use two Consumers: one for people logging in, and one for the application itself. If one Consumer's secret leaks, only one of the two uses is exposed. Each Consumer holds only the Scopes it needs, and metrics show people's calls and the application's calls separately.
+				 |
+				 |## Values
+				 |
+				 |- `authorization_code`: people log in through an OAuth2 / OpenID Connect provider, such as OBP-OIDC or Keycloak.
+				 |- `refresh_token`: such a login can be renewed. Requires `authorization_code`.
+				 |- `client_credentials`: the application gets a token for itself.
+				 |- `direct_login`: people log in with DirectLogin.
+				 |
+				 |## Examples
+				 |
+				 |Only `client_credentials`:
+				 |
+				 |- The application can get a token for itself through the Consumer.
+				 |- People cannot log in through it, by OAuth2 or by DirectLogin.
+				 |
+				 |`authorization_code`, `refresh_token` and `direct_login`, without `client_credentials`:
+				 |
+				 |- People can log in through the Consumer.
+				 |- The application cannot get a token for itself through it. So it cannot act on its own through this Consumer.
+				 |
+				 |## Where they are checked
+				 |
+				 |Grant types are checked twice:
+				 |
+				 |1. When a token is requested. DirectLogin is blocked for a Consumer whose grant types do not include `direct_login`: logging in with its consumer key fails. OBP-OIDC, and Keycloak through OBP's client storage, refuse to issue a token for a grant type that is not included.
+				 |2. When a token is used. OBP-API refuses a call through the Consumer that its grant types do not allow, wherever the token came from. This also catches tokens issued before the grant types were set.
+				 |
+				 |## Who sets them
+				 |
+				 |An administrator sets a Consumer's grant types. OBP never works them out from other settings, such as the Scopes the Consumer holds or whether it is a Platform App (see ${getGlossaryItemLink("Platform Apps")}). So granting a Consumer a new Scope never changes how it can be used.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Get Consumer Grant Types](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getConsumerGrantTypes): `GET /obp/v7.0.0/management/consumers/CONSUMER_ID/grant-types`
+				 |- [Update Consumer Grant Types](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateConsumerGrantTypes): `PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/grant-types`, with the Role CanUpdateConsumerGrantTypes. Sending an empty list removes them, so the Consumer can again be used in every way.
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
@@ -7438,21 +7546,21 @@ object Glossary extends MdcLoggable  {
 			s"""
 				 |# Consumer Account Access
 				 |
-				 |OBP has two layers of permission. **Roles** say which endpoints may be called; they are granted to a User as Entitlements and to a Consumer as Scopes. **Account access** says which accounts may be used, and through which view; it is granted to a User, and with Consumer Account Access also to a Consumer.
+				 |OBP has two layers of permission. **Roles** say which endpoints may be called. They are granted to a User as Entitlements and to a Consumer as Scopes. **Account access** says which accounts may be used, and through which view. It is granted to a User, and with Consumer Account Access also to a Consumer.
 				 |
-				 |It is for an application that acts on an account as itself, with its own application token (OAuth2 client credentials), when no person is involved: for example a bank's service that initiates payments from the bank's own account for customers whose payments it relays. Without it, such a service has to log in as a stand-in User who holds the account access.
+				 |It is for an application that acts on an account as itself, with its own application token (OAuth2 client credentials), when no person is involved. An example is a bank's service that relays customers' payments and initiates them from the bank's own account. Without it, such a service has to log in as a stand-in User who holds the account access.
 				 |
 				 |## How it works
 				 |
-				 |1. Someone who may grant views of the account (their view lists the target view in `can_grant_access_to_views`, or has `can_grant_access_to_custom_views` for a custom view) gives the Consumer access to a view. The grant records who gave it.
-				 |2. The application calls an endpoint of that view with its client-credentials token. Its User is then the Consumer's own (provider `obp-oidc#client`, named after the Consumer's key), and OBP finds the Consumer's grant.
-				 |3. The grant counts only on endpoints that admit an application acting as itself (auth mode ApplicationOnly or UserXORApplication). On every other endpoint the view still needs a User's account access.
+				 |1. Someone who may grant views of the account gives the Consumer access to a view. Their own view must list the target view in `can_grant_access_to_views`, or have `can_grant_access_to_custom_views` for a custom view. The grant records who gave it.
+				 |2. The application calls an endpoint of that view with its client-credentials token. Its User is then the Consumer's own: provider `obp-oidc#client` (or `keycloak#client` for a Keycloak service account), named after the client id. OBP then finds the Consumer's grant.
+				 |3. The Consumer must be a Platform App. The grant then works like a person's access to the view, on every endpoint that uses the view.
 				 |
-				 |A person who logs in through the same Consumer does not get the Consumer's account access, and a caller identified by the Consumer Key alone does not either: only the client-credentials token proves the application is calling as itself.
+				 |A person who logs in through the same Consumer does not get the Consumer's account access. Nor does a caller identified only by the Consumer Key. Only the client-credentials token proves that the application is calling as itself.
 				 |
 				 |## Which view
 				 |
-				 |The owner view and public views can't be granted to a Consumer. Holding an account is for people. Give the Consumer a view with only the permissions it needs, for example a custom view with `can_add_transaction_request_to_any_account` for initiating payments: create it with Create Custom View (Management), `POST /obp/v6.0.0/management/banks/BANK_ID/accounts/ACCOUNT_ID/views` (Role CanCreateCustomView), and grant it through the ManageCustomViews system view, which has `can_grant_access_to_custom_views` and which the account holder can give through owner. The Transaction Requests the Consumer creates record it.
+				 |The owner view and public views can't be granted to a Consumer. Holding an account is for people. Give the Consumer a view with only the permissions it needs. For initiating payments, that is a custom view with `can_add_transaction_request_to_any_account`. Create it with Create Custom View (Management), `POST /obp/v6.0.0/management/banks/BANK_ID/accounts/ACCOUNT_ID/views` (Role CanCreateCustomView). Grant it through the ManageCustomViews system view, which has `can_grant_access_to_custom_views`. The account holder can give ManageCustomViews through owner. The Transaction Requests the Consumer creates record it.
 				 |
 				 |## Endpoints
 				 |
@@ -7674,7 +7782,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |The owner, or a holder of CanCreateFileAtOneBank, attaches a file to a record and detaches it. A record is named by `record_type` (e.g. `customer`, or a Dynamic Entity's name) and `record_id`, and a file is attached to a record at most once. OBP does not look the record up, so access to a file never follows from access to a record: it comes only from owning the file, being given access to it, or the Role CanGetFileAtOneBank.
 				 |
-				 |These endpoints are UserXORApplication: an application acting as itself, with a client-credentials token, may hold the Roles as Scopes on its Consumer. A person calling through a Consumer still needs their own Entitlements.
+				 |An application acting as itself, with a client-credentials token, may hold the Roles as Scopes on its Consumer, if the Consumer is a Platform App. A person calling through a Consumer still needs their own Entitlements.
 				 |
 				 |## Public files
 				 |

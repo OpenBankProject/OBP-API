@@ -84,6 +84,8 @@ trait ConsumersProvider {
                      certificate: Option[String] = None,
   ): Box[Consumer]
   @deprecated("Use RateLimitingDI.rateLimiting.vend methods instead", "v5.0.0")
+  /** Sets the grant types the Consumer allows; an empty list clears them (see ConsumerGrantTypes). */
+  def updateConsumerGrantTypes(id: Long, grantTypes: List[String]): Future[Box[Consumer]]
   def updateConsumerCallLimits(id: Long, perSecond: Option[String], perMinute: Option[String], perHour: Option[String], perDay: Option[String], perWeek: Option[String], perMonth: Option[String]): Future[Box[Consumer]]
   def getOrCreateConsumer(consumerId: Option[String], 
                           key: Option[String], 

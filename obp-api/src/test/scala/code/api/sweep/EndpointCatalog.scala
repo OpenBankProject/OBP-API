@@ -27,8 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.sweep
 
-// EndpointAuthMode and its four cases are members of the APIUtil object, not of the package.
-import code.api.util.APIUtil.{ResourceDoc, UserOnly}
+import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages.$AuthenticatedUserIsRequired
 import code.api.util.ApiTag
 
@@ -77,9 +76,9 @@ object EndpointCatalog {
   sealed abstract class SkipReason(val why: String)
   case object DynamicDoc extends SkipReason(
     "tagged apiTagDynamic: created per-database, so its presence is machine state, not contract")
-  case object NonUserAuthMode extends SkipReason(
-    "authMode is not UserOnly: an anonymous call may legitimately not be 401 " +
-    "(ApplicationOnly drops AuthenticatedUserIsRequired entirely). EndpointAuthModeTest covers these.")
+  case object ApplicationRequired extends SkipReason(
+    "an identified application is required and a user is optional (ResourceDoc.requiresApplicationButNotUser): " +
+    "an anonymous call is refused as an unknown application, not as a missing user. EndpointAccessRuleTest covers these.")
   case object AutoValidateRolesOff extends SkipReason(
     "disableAutoValidateRoles(): roles stay in the doc for the catalog but the framework does " +
     "not enforce them, so asserting 403 would assert something no code promises")
@@ -87,7 +86,7 @@ object EndpointCatalog {
   /** Skip reason, or None when the endpoint is in scope for the auth sweep. */
   def skipReason(doc: ResourceDoc): Option[SkipReason] =
     if (doc.tags.contains(ApiTag.apiTagDynamic)) Some(DynamicDoc)
-    else if (doc.authMode != UserOnly) Some(NonUserAuthMode)
+    else if (doc.requiresApplicationButNotUser) Some(ApplicationRequired)
     else None
 
   /** Skip reason for the role dimension specifically — a superset of skipReason. */

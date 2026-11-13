@@ -32,10 +32,10 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.Constant
 import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBodyUKV310
-import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, UserXORApplication, connectorEmptyResponse, mockedDataText, passesPsd2Aisp, unboxFullOrFail, parseIso8601OrDayDate}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, connectorEmptyResponse, mockedDataText, passesPsd2Aisp, unboxFullOrFail, parseIso8601OrDayDate}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, InvalidUKConsentPermissions, UnknownError}
+import code.api.util.ErrorMessages.{ApplicationNotIdentified, AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, InvalidUKConsentPermissions, UnknownError}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.CallContext
 import code.api.util.{Consent, ConsentJWT, JwtUtil, NewStyle}
@@ -195,15 +195,11 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
     "LastAvailableDateTime": "2020-10-20T08:40:47.375Z"
   }
 }"""),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(ApplicationNotIdentified, UnknownError),
     ApiTag("Account Access") :: Nil,
     // Consent lodging is a client-credentials call: the TPP is authenticated as an app, and there
-    // is no PSU yet. The handler above already says so; this makes the ResourceDoc say it too.
-    // Without it the doc defaults to UserOnly, which sends the middleware down anonymousAccess and
-    // 401s any request that carries no user -- so the endpoint only works today because OAuth2
-    // token parsing auto-vivifies a user for a client-credentials token. Matches the Berlin Group
-    // twin (Http4sBGv13AIS.createConsent), which has always been UserXORApplication.
-    authMode = UserXORApplication,
+    // is no PSU yet. The error list says so: ApplicationNotIdentified without AuthenticatedUserIsRequired
+    // means an identified application is required and a user is optional (requiresApplicationButNotUser).
     http4sPartialFunction = Some(createAccountAccessConsents)
   )
 
@@ -236,11 +232,10 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
        |""".stripMargin,
     EmptyBody,
     EmptyBody,
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(ApplicationNotIdentified, UnknownError),
     ApiTag("Account Access") :: Nil,
     // As with the POST that lodges the consent: revoking is a client-credentials call in the
     // standard's AISP flow, so a PSU cannot be required. See Consent.checkUKConsentAccess.
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(deleteAccountAccessConsentsConsentId)
   )
 
@@ -315,10 +310,9 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
     "LastAvailableDateTime": "2020-10-20T10:28:39.801Z"
   }
 }"""),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(ApplicationNotIdentified, UnknownError),
     ApiTag("Account Access") :: Nil,
     // As above: the AISP polls its own consent with a client-credentials token.
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(getAccountAccessConsentsConsentId)
   )
 

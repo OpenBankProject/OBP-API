@@ -34,11 +34,11 @@ import cats.effect.IO
 import code.api.APIFailureNewStyle
 import code.api.Constant
 import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBodyUKV310
-import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, HTTPParam, UserXORApplication, connectorEmptyResponse, createQueriesByHttpParams, defaultBankId, fullBoxOrException, passesPsd2Aisp, unboxFull, unboxFullOrFail, parseIso8601OrDayDate}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, HTTPParam, connectorEmptyResponse, createQueriesByHttpParams, defaultBankId, fullBoxOrException, passesPsd2Aisp, unboxFull, unboxFullOrFail, parseIso8601OrDayDate}
 import code.api.util.ApiTag
 import code.api.util.CallContext
 import code.api.util.CustomJsonFormats
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, InvalidUKConsentPermissions, UnknownError}
+import code.api.util.ErrorMessages.{ApplicationNotIdentified, AuthenticatedUserIsRequired, BankNotFound, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, InvalidUKConsentPermissions, UnknownError}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, Consent, ConsentJWT, JwtUtil, NewStyle}
@@ -203,15 +203,11 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     """Enables an AISP to ask an ASPSP to create a new account-access-consent resource, by sending a copy of the consent to the ASPSP.""",
     parseBody(EXREQ_createAccountAccessConsents),
     parseBody(EX_createAccountAccessConsents),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(ApplicationNotIdentified, UnknownError),
     ApiTag("Account Access Consents") :: Nil,
     // Consent lodging is a client-credentials call: the TPP is authenticated as an app, and there
-    // is no PSU yet. The handler above already says so; this makes the ResourceDoc say it too.
-    // Without it the doc defaults to UserOnly, which sends the middleware down anonymousAccess and
-    // 401s any request that carries no user -- so the endpoint only works today because OAuth2
-    // token parsing auto-vivifies a user for a client-credentials token. Matches the Berlin Group
-    // twin (Http4sBGv13AIS.createConsent), which has always been UserXORApplication.
-    authMode = UserXORApplication,
+    // is no PSU yet. The error list says so: ApplicationNotIdentified without AuthenticatedUserIsRequired
+    // means an identified application is required and a user is optional (requiresApplicationButNotUser).
     http4sPartialFunction = Some(createAccountAccessConsents)
   )
 
@@ -287,11 +283,10 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     """Enables an AISP to retrieve the status of an AIS consent.""",
     EmptyBody,
     parseBody(EX_getAccountAccessConsentsConsentId),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(ApplicationNotIdentified, UnknownError),
     ApiTag("Account Access Consents") :: Nil,
     // Same reasoning as the POST that lodges the consent: the AISP polls it with a
     // client-credentials token, so a PSU cannot be required. See Consent.checkUKConsentAccess.
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(getAccountAccessConsentsConsentId)
   )
 
@@ -321,10 +316,9 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     """Enables an AISP to inform the ASPSP that the PSU has revoked their consent.""",
     EmptyBody,
     parseBody(EX_deleteAccountAccessConsentsConsentId),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    List(ApplicationNotIdentified, UnknownError),
     ApiTag("Account Access Consents") :: Nil,
     // As above: revoking is a client-credentials call in the standard's AISP flow.
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(deleteAccountAccessConsentsConsentId)
   )
 

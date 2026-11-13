@@ -29,7 +29,7 @@ package code.api.v7_0_0
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetAllScopes, CanGetReachableRoles, CanGetTelemetry}
-import code.api.util.ErrorMessages.{ApplicationNotIdentified, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.api.v6_0_0.V600ServerSetup
 import code.api.v7_0_0.JSONFactory700.{ReachableRolesJsonV700, ScopeJsonV700, ScopesJsonV700}
 import code.entitlement.Entitlement
@@ -68,7 +68,7 @@ class GrantsEndpointTest extends V600ServerSetup {
     scenario("Anonymous access fails with 401", GetAllScopes, VersionOfApi) {
       val response = makeGetRequest(scopesRequest.GET)
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("A logged-in user without CanGetAllScopes gets 403", GetAllScopes, VersionOfApi) {
@@ -92,7 +92,7 @@ class GrantsEndpointTest extends V600ServerSetup {
     scenario("Anonymous access fails with 401", GetReachableRoles, VersionOfApi) {
       val response = makeGetRequest(reachableRequest.GET)
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("A logged-in user without CanGetReachableRoles gets 403", GetReachableRoles, VersionOfApi) {
