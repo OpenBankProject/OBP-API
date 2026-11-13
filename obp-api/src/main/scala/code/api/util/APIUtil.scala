@@ -64,7 +64,6 @@ import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import code.util.{Helper, JsonSchemaUtil}
-import code.views.system.AccountAccess
 import code.views.{MapperViews, Views}
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.github.dwickern.macros.NameOf.{nameOf, nameOfType}
@@ -5209,13 +5208,5 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount + s"Current source viewId(${sourceViewId.value}) and target viewId (${targetViewId.value})"
 
 
-  def intersectAccountAccessAndView(accountAccesses: List[AccountAccess], views: List[View]): List[BankIdAccountId] = {
-    val intersectedViewIds = accountAccesses.map(item => item.view_id.get)
-      .intersect(views.map(item => item.viewId.value)).distinct // Join view definition and account access via view_id
-    accountAccesses
-      .filter(i => intersectedViewIds.contains(i.view_id.get))
-      .map(item => BankIdAccountId(BankId(item.bank_id.get), AccountId(item.account_id.get)))
-      .distinct // List pairs (bank_id, account_id)
-  }
   
 }

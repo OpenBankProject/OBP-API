@@ -935,9 +935,9 @@ object Http4s510 {
           val bankId = BankId(bankIdStr)
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
-            (allowedAccounts, _) <- BalanceNewStyle.getAccountAccessAtBank(user, bankId, Some(cc))
-            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts, Some(cc))
-          } yield createBalancesJson(accountsBalances)
+            (allowedAccounts, _) <- BalanceNewStyle.getAccountsWithBalancePermission(user, bankId, None, Some(cc))
+            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts.map(_._1), Some(cc))
+          } yield createBalancesJson(BalanceNewStyle.moderateAccountsBalances(accountsBalances, allowedAccounts.toMap))
         }
     }
 
@@ -3640,7 +3640,7 @@ object Http4s510 {
               view.allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_BALANCE)
             }
             (accountBalances, _) <- BalanceNewStyle.getBankAccountBalances(bankIdAccountId, Some(cc))
-          } yield createAccountBalancesJson(accountBalances)
+          } yield createAccountBalancesJson(BalanceNewStyle.moderateAccountBalances(accountBalances, view.allowed_actions.toSet))
         }
     }
     resourceDocs += ResourceDoc(
@@ -3665,9 +3665,9 @@ object Http4s510 {
           val bankId = BankId(bankIdStr); val viewId = ViewId(viewIdStr)
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
-            (allowedAccounts, _) <- BalanceNewStyle.getAccountAccessAtBankThroughView(user, bankId, viewId, Some(cc))
-            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts, Some(cc))
-          } yield createBalancesJson(accountsBalances)
+            (allowedAccounts, _) <- BalanceNewStyle.getAccountsWithBalancePermission(user, bankId, Some(viewId), Some(cc))
+            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts.map(_._1), Some(cc))
+          } yield createBalancesJson(BalanceNewStyle.moderateAccountsBalances(accountsBalances, allowedAccounts.toMap))
         }
     }
     resourceDocs += ResourceDoc(

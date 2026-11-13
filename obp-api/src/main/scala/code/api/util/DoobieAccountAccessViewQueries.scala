@@ -31,8 +31,7 @@ import doobie._
 import doobie.implicits._
 
 /**
- * Row from the v_account_access_with_views SQL view.
- * This view joins accountaccess + resourceuser + viewdefinition in a single query.
+ * One account access row, joined with its user and its view definition.
  */
 case class AccountAccessWithViewRow(
   accountAccessId: Long,
@@ -54,21 +53,63 @@ case class AccountAccessWithViewRow(
 )
 
 /**
- * Doobie queries against the v_account_access_with_views SQL view.
+ * Doobie queries that read account access together with its user and view definition.
  *
  * These replace multiple Mapper queries (AccountAccess + ResourceUser + ViewDefinition)
  * with a single SQL query, eliminating N+1 patterns and reducing round-trips.
  *
- * The SQL view is created by MigrationOfAccountAccessWithViewsView.
+ * The join used to live in the SQL view v_account_access_with_views. A SQL view stops a migration
+ * from changing the type of any column it uses, and a model field change in Lift Schemifier can
+ * do that without anyone noticing, so the join is written here instead. The database plans the
+ * subquery in the same way as it planned the view, so the queries cost the same.
  */
 object DoobieAccountAccessViewQueries {
 
-  private val baseSelect = fr"""
+  // The columns of one branch of the join. A system view is shared by every account, so it is
+  // matched by view id only. A custom view belongs to one account, so it is matched by bank, account
+  // and view id.
+  private val joinedColumns = fr"""
+    SELECT
+      aa.id            AS account_access_id,
+      aa.bank_id       AS bank_id,
+      aa.account_id    AS account_id,
+      aa.view_id       AS view_id,
+      aa.consumer_id   AS consumer_id,
+      ru.userid_       AS user_id,
+      ru.name_         AS username,
+      ru.email         AS email,
+      ru.provider_     AS provider,
+      ru.id            AS resource_user_primary_key,
+      vd.name_         AS view_name,
+      vd.description_  AS view_description,
+      vd.metadataview_ AS metadata_view,
+      vd.issystem_     AS is_system,
+      vd.ispublic_     AS is_public,
+      vd.isfirehose_   AS is_firehose
+    FROM accountaccess aa
+    JOIN resourceuser ru ON ru.id = aa.user_fk
+  """
+
+  // The booleans are bound as parameters, so the same SQL runs on PostgreSQL, H2 and SQL Server
+  private val baseSelect =
+    fr"""
     SELECT account_access_id, bank_id, account_id, view_id, consumer_id,
            user_id, username, email, provider, resource_user_primary_key,
            view_name, view_description, metadata_view, is_system, is_public, is_firehose
-    FROM v_account_access_with_views
-  """
+    FROM (
+    """ ++
+      joinedColumns ++
+      fr"""JOIN viewdefinition vd ON vd.issystem_ = ${true}
+                             AND vd.view_id = aa.view_id
+      UNION ALL
+    """ ++
+      joinedColumns ++
+      fr"""JOIN viewdefinition vd ON vd.issystem_ = ${false}
+                             AND vd.bank_id = aa.bank_id
+                             AND vd.account_id = aa.account_id
+                             AND vd.view_id = aa.view_id
+    ) account_access_with_views
+    """
 
   /**
    * Filter for private views only, unless allowPublicViews is enabled.
