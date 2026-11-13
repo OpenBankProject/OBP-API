@@ -42,7 +42,17 @@ import java.util.Date
 
 case class ViewExtended(val view: View) extends MdcLoggable {
 
-  def getViewPermissions: List[String] =
+  /**
+   * The permissions of this view, looked up once per ViewExtended.
+   *
+   * Moderating a list of transactions moderates the account, the transaction and the counterparty of
+   * each one, and each of those reads these permissions. Without the lazy val, a page of 50
+   * transactions ran about 150 identical permission queries; now it runs one.
+   *
+   * A ViewExtended is made by the implicit toViewExtended for each moderation call, so the cached
+   * permissions last only for that call and do not go out of date.
+   */
+  lazy val getViewPermissions: List[String] =
     if (view.isSystem) {
       ViewPermission.findSystemViewPermissions(view.viewId).map(_.permission.get)
     } else {
