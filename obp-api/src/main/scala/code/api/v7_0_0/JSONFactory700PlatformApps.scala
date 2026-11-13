@@ -51,6 +51,8 @@ case class PlatformAppScopeStatusJsonV700(role_name: String, bank_id: String, ne
 case class PlatformAppJsonV700(
   consumer_id: String,
   consumer_name: String,
+  /** False while the Consumer is disabled: the app cannot get a token until an administrator enables it. */
+  consumer_enabled: Boolean,
   label: String,
   marked_by_user_id: String,
   marked_at: Date,
@@ -68,6 +70,7 @@ object JSONFactory700PlatformApps {
   def createPlatformAppJson(
     app: PlatformAppTrait,
     consumerName: String,
+    consumerEnabled: Boolean,
     declared: List[PlatformAppRequiredScopeTrait],
     held: List[(String, String)]
   ): PlatformAppJsonV700 = {
@@ -84,6 +87,7 @@ object JSONFactory700PlatformApps {
     PlatformAppJsonV700(
       consumer_id = app.consumerId,
       consumer_name = consumerName,
+      consumer_enabled = consumerEnabled,
       label = app.label,
       marked_by_user_id = app.markedByUserId,
       marked_at = app.markedAt,
@@ -106,6 +110,7 @@ object JSONFactory700PlatformApps {
   lazy val platformAppJsonV700Example = PlatformAppJsonV700(
     consumer_id = ExampleValue.consumerIdExample.value,
     consumer_name = "obp-portal-client",
+    consumer_enabled = true,
     label = "Portal",
     marked_by_user_id = ExampleValue.userIdExample.value,
     marked_at = new Date(),

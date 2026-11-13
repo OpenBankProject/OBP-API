@@ -81,6 +81,7 @@ object Http4s700PlatformApps {
     JSONFactory700PlatformApps.createPlatformAppJson(
       app,
       consumer.map(_.name.get).openOr(""),
+      consumer.exists(_.isActive.get),
       provider.getRequiredScopes(app.consumerId).openOr(Nil),
       held)
   }
@@ -99,6 +100,9 @@ object Http4s700PlatformApps {
        |Portal or the API Manager, which calls OBP with its own application token. An administrator marks the
        |Consumer as a Platform App; the app then declares, as itself, the Scopes it needs and what they are
        |needed for, and the administrator can see which of them its Consumer holds.
+       |
+       |consumer_enabled is false while the Consumer is disabled. A disabled Consumer cannot get a token, so the
+       |app cannot declare its Scopes or call OBP until an administrator enables it. Marking does not enable it.
        |
        |For more information see ${Glossary.getGlossaryItemLink("Platform Apps")}""".stripMargin
 
