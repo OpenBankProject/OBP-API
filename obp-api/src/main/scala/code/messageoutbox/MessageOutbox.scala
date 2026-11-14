@@ -161,17 +161,14 @@ object MessageOutbox {
     metadataJson: String = ""
   ): MessageOutbox = {
     val ts = now()
-    DoobieUtil.runUpdate(
+    val id = DoobieUtil.runUpdate(
       sql"""INSERT INTO message_outbox
             (outbox_type, subject_id, subject_id_type, operation_name, target_id, payload_json,
              status, attempts, last_error, last_reply_json, metadata_json, created_at, updated_at)
             VALUES
             ($outboxType, $subjectId, $subjectIdType, $operationName, $targetId, $payloadJson,
              $STATUS_PENDING, 0, '', '', ${Option(metadataJson).getOrElse("")}, $ts, $ts)"""
-        .update.run)
-    val id = DoobieUtil.runQuery(
-      sql"SELECT MAX(id) FROM message_outbox WHERE subject_id = $subjectId AND operation_name = $operationName"
-        .query[Long].unique)
+        .update.withUniqueGeneratedKeys[Long]("id"))
     MessageOutbox(id, outboxType, subjectId, subjectIdType, operationName, targetId, payloadJson,
       STATUS_PENDING, 0, "", "", Option(metadataJson).getOrElse(""), new Date(ts.getTime), new Date(ts.getTime))
   }
@@ -205,7 +202,7 @@ object MessageOutbox {
   /** Set the status and last error, leaving the attempt counter alone (the claim already counted it). */
   def setStatusAndError(id: Long, status: String, lastError: String): Unit = {
     DoobieUtil.runUpdate(
-      sql"""UPDATE message_outbox SET status = $status, last_error = $lastError, updated_at = ${now()}
+      sql"""UPDATE message_outbox SET status = $status, last_error = ${Option(lastError)}, updated_at = ${now()}
             WHERE id = $id""".update.run)
     ()
   }
@@ -215,7 +212,7 @@ object MessageOutbox {
   def bySubjectId(subjectId: String): List[MessageOutbox] = query(fr"WHERE subject_id = $subjectId")
 
   def findById(id: Long): Box[MessageOutbox] =
-    query(fr"WHERE id = $id LIMIT 1").headOption match {
+    query(fr"WHERE id = $id").headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -233,8 +230,8 @@ object MessageOutbox {
   /** Record an attempt that did not settle the row: bumps attempts, keeps it PENDING. */
   def recordAttempt(id: Long, attempts: Int, lastError: String, lastReplyJson: String): Unit = {
     DoobieUtil.runUpdate(
-      sql"""UPDATE message_outbox SET attempts = $attempts, last_error = $lastError,
-              last_reply_json = $lastReplyJson, updated_at = ${now()}
+      sql"""UPDATE message_outbox SET attempts = $attempts, last_error = ${Option(lastError)},
+              last_reply_json = ${Option(lastReplyJson)}, updated_at = ${now()}
             WHERE id = $id""".update.run)
     ()
   }
@@ -242,7 +239,7 @@ object MessageOutbox {
   /** Record an attempt with no reply body to store (transport failure). */
   def recordAttempt(id: Long, attempts: Int, lastError: String): Unit = {
     DoobieUtil.runUpdate(
-      sql"""UPDATE message_outbox SET attempts = $attempts, last_error = $lastError,
+      sql"""UPDATE message_outbox SET attempts = $attempts, last_error = ${Option(lastError)},
               updated_at = ${now()}
             WHERE id = $id""".update.run)
     ()
@@ -251,7 +248,7 @@ object MessageOutbox {
   def markDelivered(id: Long, lastReplyJson: String): Unit = {
     DoobieUtil.runUpdate(
       sql"""UPDATE message_outbox SET status = $STATUS_DELIVERED, last_error = '',
-              last_reply_json = $lastReplyJson, updated_at = ${now()}
+              last_reply_json = ${Option(lastReplyJson)}, updated_at = ${now()}
             WHERE id = $id""".update.run)
     ()
   }
@@ -259,7 +256,7 @@ object MessageOutbox {
   def markSticky(id: Long, attempts: Int, lastError: String, lastReplyJson: String): Unit = {
     DoobieUtil.runUpdate(
       sql"""UPDATE message_outbox SET status = $STATUS_STICKY, attempts = $attempts,
-              last_error = $lastError, last_reply_json = $lastReplyJson, updated_at = ${now()}
+              last_error = ${Option(lastError)}, last_reply_json = ${Option(lastReplyJson)}, updated_at = ${now()}
             WHERE id = $id""".update.run)
     ()
   }
@@ -267,7 +264,7 @@ object MessageOutbox {
   def markSticky(id: Long, attempts: Int, lastError: String): Unit = {
     DoobieUtil.runUpdate(
       sql"""UPDATE message_outbox SET status = $STATUS_STICKY, attempts = $attempts,
-              last_error = $lastError, updated_at = ${now()}
+              last_error = ${Option(lastError)}, updated_at = ${now()}
             WHERE id = $id""".update.run)
     ()
   }
@@ -284,8 +281,8 @@ object MessageOutbox {
   /** Set the outcome of an attempt the claim already counted: status, last error and last reply together. */
   def setOutcome(id: Long, status: String, lastError: String, lastReplyJson: String): Unit = {
     DoobieUtil.runUpdate(
-      sql"""UPDATE message_outbox SET status = $status, last_error = $lastError,
-              last_reply_json = $lastReplyJson, updated_at = ${now()}
+      sql"""UPDATE message_outbox SET status = $status, last_error = ${Option(lastError)},
+              last_reply_json = ${Option(lastReplyJson)}, updated_at = ${now()}
             WHERE id = $id""".update.run)
     ()
   }

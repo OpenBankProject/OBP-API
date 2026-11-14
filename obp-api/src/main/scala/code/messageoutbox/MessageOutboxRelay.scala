@@ -147,7 +147,11 @@ object MessageOutboxRelay extends MdcLoggable {
       row.updatedAt.getTime + backoff.toMillis <= now || row.attempts == 0
     }
     if (due.nonEmpty) logger.debug(s"message outbox relay: ${due.size} row(s) due")
-    due.foreach(relayRow)
+    // One bad row must not stop the rows behind it from being relayed in this pass.
+    due.foreach { row =>
+      try relayRow(row)
+      catch { case e: Exception => logger.error(s"message outbox row ${row.id}: relay failed: ${e.getMessage}", e) }
+    }
   }
 
   def relayRow(row: MessageOutbox): Unit = row.outboxType match {
