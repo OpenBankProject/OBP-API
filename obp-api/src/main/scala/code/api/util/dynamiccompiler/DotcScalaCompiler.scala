@@ -85,11 +85,15 @@ object DotcScalaCompiler extends DynamicScalaCompiler with MdcLoggable {
    * object and the prepended imports change what compiles, so checking the bare snippet would
    * report errors the real compile never sees (and miss ones it does). The compiler positions
    * refer to the wrapped unit, so each reported line is moved back to the line of `code` it came
-   * from, found by its text; a line that only exists in the wrapper, or a blank one, is reported as 0.
+   * from, through the number each line carries as a trailing comment; a line that only exists in the wrapper is reported as 0.
    */
   def check(code: String): List[DynamicCompileDiagnostic] = {
     val wrapperName = s"DynCheck_${nextId.incrementAndGet()}"
-    val withImports = s"${_root_.code.api.util.DynamicUtil.importStatements}\n$code"
+    // Every line of the author's code carries its own number as a trailing comment, so a compiler
+    // position can be traced back to the line it came from however the wrapper hoists and reorders.
+    // The comment is at the end of the line, so no column moves.
+    val tagged = code.split("\n", -1).zipWithIndex.map { case (line, index) => s"$line //@L${index + 1}" }.mkString("\n")
+    val withImports = s"${_root_.code.api.util.DynamicUtil.importStatements}\n$tagged"
     val (hoisted, kept) = hoistTypeDefinitions(withImports)
     val source =
       s"""object $wrapperName {
@@ -118,20 +122,14 @@ object DotcScalaCompiler extends DynamicScalaCompiler with MdcLoggable {
       )
 
       val wrappedLines = source.split("\n", -1)
-      val codeLines = code.split("\n", -1)
-      // Lines the wrapper adds in front of `code`: the object header and the prepended imports.
-      val wrapperLinesBefore = _root_.code.api.util.DynamicUtil.importStatements.count(_ == '\n') + 2
+      val lineTag = """//@L(\d+)\s*$""".r.unanchored
       // The compiler's line numbers count from 0; the line reported is the 1-based line of `code`, or 0
-      // when the line is blank or belongs to the wrapper. Where the same text occurs several times in
-      // `code` (a closing brace, a repeated statement) the occurrence nearest to where the wrapper put
-      // the line is taken, so an error on the second of two identical lines is not reported on the first.
+      // for a line that belongs to the wrapper.
       def lineInCode(wrappedLine: Int): Int =
-        if (wrappedLine < 0 || wrappedLine >= wrappedLines.length || wrappedLines(wrappedLine).trim.isEmpty) 0
-        else {
-          val text = wrappedLines(wrappedLine)
-          val expected = wrappedLine - wrapperLinesBefore
-          val candidates = codeLines.indices.filter(i => codeLines(i) == text)
-          if (candidates.isEmpty) 0 else candidates.minBy(i => math.abs(i - expected)) + 1
+        if (wrappedLine < 0 || wrappedLine >= wrappedLines.length) 0
+        else wrappedLines(wrappedLine) match {
+          case lineTag(number) => number.toInt
+          case _ => 0
         }
 
       val reporter = new Driver().process(args)

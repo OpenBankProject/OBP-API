@@ -247,8 +247,9 @@ object CompiledObjects {
     val (requestBodyCaseClasses, responseBodyCaseClasses) = DynamicEndpointCodeGenerator.buildCaseClasses(requestExample, responseExample)
     val (code, bodyStartLine) = wrapMethodBody(requestBodyCaseClasses, responseBodyCaseClasses, decodedMethodBody)
     DynamicUtil.checkScalaCode(code).map { p =>
-      // A line before the method body (the template) is not a line of what the author wrote.
-      if (p.line >= bodyStartLine) p.copy(line = p.line - bodyStartLine + 1) else p.copy(line = 0)
+      // A line before or after the method body (the template) is not a line of what the author wrote.
+      if (p.line >= bodyStartLine && p.line < bodyStartLine + decodedMethodBody.split("\n", -1).length) p.copy(line = p.line - bodyStartLine + 1)
+      else p.copy(line = 0)
     }
   }
 
