@@ -616,7 +616,7 @@ object MakerChecker extends MdcLoggable {
   /**
    * Run ONCE per database, the first time the instance boots with dynamic_code_requires_approval=true.
    * Rows that predate the feature have no ApprovedHash and would stop executing, so their current body
-   * is recorded as approved and the run is logged in MigrationScriptLog under `seedMigrationName`.
+   * is recorded as approved and the run is logged in MigrationScriptLog under `seedMigrationName`. Seeding records the hash only: a row that was switched off stays off.
    * It is deliberately not repeated at later boots: after the seed, the only way a row gains an
    * ApprovedHash is a checker's approval, so a row written straight into the database (or created while
    * the feature was switched off) stays unexecutable until a second person ACTIVATEs it through a change
@@ -636,16 +636,16 @@ object MakerChecker extends MdcLoggable {
         List(
           seed("DynamicResourceDoc", DynamicResourceDoc.findAllWithoutApprovedHash())(
             r => bodyHashOf(r.programmingLang, r.methodBody),
-            (r, h) => { DynamicResourceDoc.setApproved(r.dynamicResourceDocId, h); () }),
+            (r, h) => { DynamicResourceDoc.setApproved(r.dynamicResourceDocId, h, makeActive = false); () }),
           seed("DynamicMessageDoc", DynamicMessageDoc.findAllWithoutApprovedHash())(
             r => bodyHashOf(r.programmingLang, r.methodBody),
-            (r, h) => { DynamicMessageDoc.setApproved(r.dynamicMessageDocId, h); () }),
+            (r, h) => { DynamicMessageDoc.setApproved(r.dynamicMessageDocId, h, makeActive = false); () }),
           seed("ConnectorMethod", DoobieConnectorMethodProvider.findAllWithoutApprovedHash())(
             r => bodyHashOf(r.connectorMethod.programmingLang, r.connectorMethod.methodBody),
-            (r, h) => { DoobieConnectorMethodProvider.setApproved(r.connectorMethod.connectorMethodId.getOrElse(""), h); () }),
+            (r, h) => { DoobieConnectorMethodProvider.setApproved(r.connectorMethod.connectorMethodId.getOrElse(""), h, makeActive = false); () }),
           seed("AbacRule", AbacRule.findAllWithoutApprovedHash())(
             r => sha256Hex(Option(r.ruleCode).getOrElse("")),
-            (r, h) => { AbacRule.setApproved(r.abacRuleId, h); () })
+            (r, h) => { AbacRule.setApproved(r.abacRuleId, h, makeActive = false); () })
         ).mkString(", ")
       } match {
         case Full(summary) =>

@@ -141,9 +141,9 @@ object AbacRule {
   // An ABAC rule's approved hash covers its RuleCode, not a method body: the engine refuses to
   // compile a rule whose current code hash differs from the one a checker approved.
 
-  def setApproved(abacRuleId: String, hash: String): Boolean =
+  def setApproved(abacRuleId: String, hash: String, makeActive: Boolean = true): Boolean =
     DoobieUtil.runUpdate(
-      sql"""UPDATE abacrule SET approvedhash = ${Option(hash)}, isactive = true
+      sql"""UPDATE abacrule SET approvedhash = ${Option(hash)}, isactive = CASE WHEN $makeActive THEN true ELSE isactive END
             WHERE abacruleid = $abacRuleId""".update.run) == 1
 
   def setActive(abacRuleId: String, active: Boolean): Boolean =

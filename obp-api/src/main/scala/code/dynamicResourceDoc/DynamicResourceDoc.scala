@@ -232,13 +232,13 @@ object DynamicResourceDoc {
   // Upstream drives these off the Mapper entity (`r.MethodBodyHash(h).ApprovedHash(h).IsActive(true).save`);
   // with a Doobie store the same three writes are one statement.
 
-  /** Record `hash` as both the current body hash and the approved one, and make the row live. */
-  def setApproved(dynamicresourcedocid: String, hash: String): Boolean = {
+  /** Record `hash` as both the current body hash and the approved one, and make the row live unless `makeActive` is false. */
+  def setApproved(dynamicresourcedocid: String, hash: String, makeActive: Boolean = true): Boolean = {
     val now = new java.sql.Timestamp(System.currentTimeMillis())
     DoobieUtil.runUpdate(
       sql"""UPDATE dynamicresourcedoc
               SET methodbodyhash = ${Option(hash)}, approvedhash = ${Option(hash)},
-                  isactive = true, updatedat = $now
+                  isactive = CASE WHEN $makeActive THEN true ELSE isactive END, updatedat = $now
             WHERE dynamicresourcedocid = $dynamicresourcedocid""".update.run) == 1
   }
 

@@ -149,12 +149,12 @@ object DoobieConnectorMethodProvider extends ConnectorMethodProvider {
 
   // ── Maker/checker write helpers (upstream commit 5d4af81c3) ────────────────────────────────
 
-  def setApproved(connectorMethodId: String, hash: String): Boolean = {
+  def setApproved(connectorMethodId: String, hash: String, makeActive: Boolean = true): Boolean = {
     val now = new java.sql.Timestamp(System.currentTimeMillis())
     DoobieUtil.runUpdate(
       sql"""UPDATE connectormethod
               SET methodbodyhash = ${Option(hash)}, approvedhash = ${Option(hash)},
-                  isactive = true, updatedat = $now
+                  isactive = CASE WHEN $makeActive THEN true ELSE isactive END, updatedat = $now
             WHERE connectormethodid = $connectorMethodId""".update.run) == 1
   }
 
