@@ -132,8 +132,7 @@ class UKOpenBankingV200Tests extends UKOpenBankingV200ServerSetup with DefaultUs
     }
 
     // A date window that matches no transaction must give 200 with an empty list and the account id from the path in the link.
-    Scenario("No transactions in the date window gives an empty list", UKOpenBankingV200)
-    {
+    Scenario("No transactions in the date window gives an empty list", UKOpenBankingV200) {
       val requestGetAll = (UKOpenBankingV200Request / "accounts"/ testAccountId1.value /"transactions" ).GET <@(user1)
       val params = ("obp_from_date", "2100-01-01T00:00:00.000Z") :: ("obp_to_date", "2100-01-02T00:00:00.000Z") :: Nil
       val response = makeGetRequest(requestGetAll, params)
@@ -145,8 +144,7 @@ class UKOpenBankingV200Tests extends UKOpenBankingV200ServerSetup with DefaultUs
       transactionsJsonUKV200.Links.Self contains (s"/accounts/${testAccountId1.value}/transactions") should be (true)
     }
 
-    Scenario("Unauthenticated access is rejected", UKOpenBankingV200)
-    {
+    Scenario("Unauthenticated access is rejected", UKOpenBankingV200) {
       val requestGetAll = (UKOpenBankingV200Request / "accounts"/ testAccountId1.value /"transactions" ).GET
       val response = makeGetRequest(requestGetAll)
 
