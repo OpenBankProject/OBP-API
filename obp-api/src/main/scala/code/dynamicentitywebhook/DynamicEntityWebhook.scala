@@ -232,15 +232,16 @@ object DynamicEntityWebhookDbProvider extends DynamicEntityWebhookProvider {
   override def getByDynamicEntityId(dynamicEntityId: String): Box[List[DynamicEntityWebhookTrait]] =
     tryo(DynamicEntityWebhook.findByDynamicEntityId(dynamicEntityId))
 
+  // Narrow statements, not a rewrite of the whole row: a concurrent edit of the url, events or conditions
+  // must survive a deactivation or a rename that was decided on an older read.
   override def deactivate(webhookId: String, reason: String): Box[DynamicEntityWebhookTrait] =
-    DynamicEntityWebhook.first(fr"WHERE webhook_id = ${Option(webhookId)}").flatMap { row =>
-      tryo(DynamicEntityWebhook.update(row.copy(isActive = false, deactivatedReasonRaw = reason, updatedAt = new Date())))
-    }
+    tryo(DynamicEntityWebhook.setInactive(webhookId, reason)).flatMap(_ =>
+      DynamicEntityWebhook.first(fr"WHERE webhook_id = ${Option(webhookId)}"))
 
   override def renameEntity(dynamicEntityId: String, entityName: String): Box[Int] =
     tryo(DynamicEntityWebhook.findByDynamicEntityId(dynamicEntityId)
       .filter(_.entityName != entityName)
-      .map(row => DynamicEntityWebhook.update(row.copy(entityName = entityName, updatedAt = new Date())))
+      .map(row => DynamicEntityWebhook.setEntityName(row.webhookId, entityName))
       .size)
 
   override def deleteByDynamicEntityId(dynamicEntityId: String): Box[Int] =
@@ -340,6 +341,23 @@ object DynamicEntityWebhook {
               description = ${Option(w.descriptionRaw)}, updated_at = ${ts(w.updatedAt)}
             WHERE webhook_id = ${Option(w.webhookId)}""".update.run)
     w
+  }
+
+  /** Switches the webhook off and records why; nothing else about it changes. */
+  def setInactive(webhookId: String, reason: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE dynamic_entity_webhook SET is_active = ${false}, deactivated_reason = ${Option(reason)},
+              updated_at = ${ts(new Date())}
+            WHERE webhook_id = ${Option(webhookId)}""".update.run)
+    ()
+  }
+
+  /** Points the webhook at the renamed entity; nothing else about it changes. */
+  def setEntityName(webhookId: String, entityName: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE dynamic_entity_webhook SET entity_name = ${Option(entityName)}, updated_at = ${ts(new Date())}
+            WHERE webhook_id = ${Option(webhookId)}""".update.run)
+    ()
   }
 
   def delete(webhookId: String): Boolean =
