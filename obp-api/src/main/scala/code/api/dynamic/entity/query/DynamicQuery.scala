@@ -36,6 +36,7 @@ import net.liftweb.util.StringHelpers
 import org.json4s.JsonAST._
 
 import scala.util.Try
+import org.json4s.jvalue2monadic
 
 /**
  * A Dynamic Query is a Dynamic Resource Doc whose body is a declaration rather than code

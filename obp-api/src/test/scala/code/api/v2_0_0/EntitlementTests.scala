@@ -49,9 +49,9 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
      super.afterAll()
    }
 
-  feature("Assuring that endpoint getEntitlements works as expected - v2.0.0") {
+  Feature("Assuring that endpoint getEntitlements works as expected - v2.0.0") {
 
-    scenario("We try to get entitlements without login - getEntitlements") {
+    Scenario("We try to get entitlements without login - getEntitlements") {
       When("We make the request")
       val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET
       val responseGet = makeGetRequest(requestGet)
@@ -62,7 +62,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
 
     }
 
-    scenario("We try to get entitlements without roles - getEntitlements") {
+    Scenario("We try to get entitlements without roles - getEntitlements") {
       When("We make the request")
       val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
@@ -72,7 +72,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
     }
 
-    scenario("We try to get entitlements with roles - getEntitlements") {
+    Scenario("We try to get entitlements with roles - getEntitlements") {
       When("We add required entitlement")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementsForAnyUserAtAnyBank.toString)
       And("We make the request")
@@ -82,7 +82,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       responseGet.code should equal(200)
     }
 
-    scenario("We try to delete some entitlement - deleteEntitlement") {
+    Scenario("We try to delete some entitlement - deleteEntitlement") {
       When("We add required entitlement")
       val ent = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString).openOrThrowException(attemptedToOpenAnEmptyBox)
       And("We make the request")
@@ -94,7 +94,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       responseDelete.code should equal(204)
     }
 
-    scenario("We try to create entitlement - addEntitlement-canCreateEntitlementAtOneBank") {
+    Scenario("We try to create entitlement - addEntitlement-canCreateEntitlementAtOneBank") {
       val requestBody = SwaggerDefinitionsJSON.createEntitlementJSON
       And("We make the request")
       val requestPost = (v2_0Request / "users" / resourceUser1.userId / "entitlements").POST <@ (user1)
@@ -121,7 +121,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       responsePost3.body.extract[EntitlementJSON].bank_id should equal(testBankId1.value) 
     }
 
-    scenario("We try to create entitlement - addEntitlement-canCreateEntitlementAtAnyBank") {
+    Scenario("We try to create entitlement - addEntitlement-canCreateEntitlementAtAnyBank") {
       val requestBody = SwaggerDefinitionsJSON.createEntitlementJSON.copy(bank_id = testBankId1.value)
       And("We make the request")
       val requestPost = (v2_0Request / "users" / resourceUser1.userId / "entitlements").POST <@ (user1)

@@ -77,7 +77,7 @@ object Http4s700OpenIdConnect {
           status = consent.status,
           consent_request_id = Option(consent.consentRequestId).filter(_.nonEmpty),
           consumer_id = consent.consumerId,
-          client_id = consumerBox.toOption.map(_.key.get),
+          client_id = consumerBox.toOption.map(_.key),
           user_id = user.userId,
           username = user.name,
           provider = user.provider

@@ -26,14 +26,15 @@ TESOBE (http://www.tesobe.com/)
   */
 package deletion
 
-import org.scalatest.{FeatureSpec, Matchers}
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 import java.lang.reflect.{InvocationHandler, Method, Proxy => JProxy}
 import java.sql.{Connection, SQLException, SQLFeatureNotSupportedException, Savepoint}
 import scala.collection.mutable.ListBuffer
 
 /** How a cascade uses the savepoint on its connection: DeletionUtil.withSavepoint against a recording connection. */
-class DeletionUtilTest extends FeatureSpec with Matchers {
+class DeletionUtilTest extends AnyFeatureSpec with Matchers {
 
   private val savepoint: Savepoint = new Savepoint {
     def getSavepointId: Int = 1

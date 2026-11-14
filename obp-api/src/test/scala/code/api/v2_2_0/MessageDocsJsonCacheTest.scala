@@ -6,11 +6,13 @@ import java.util.concurrent.atomic.AtomicInteger
 import code.api.v2_2_0.MessageDocsJsonCache.SharedStore
 import org.json4s.JValue
 import org.json4s.JsonDSL._
-import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.concurrent.TrieMap
 
-class MessageDocsJsonCacheTest extends FlatSpec with Matchers with BeforeAndAfterEach {
+class MessageDocsJsonCacheTest extends AnyFlatSpec with Matchers with BeforeAndAfterEach {
 
   /** A shared level that counts traffic; `down` makes it behave like an unreachable Redis. */
   private class FakeStore(down: Boolean = false) extends SharedStore {

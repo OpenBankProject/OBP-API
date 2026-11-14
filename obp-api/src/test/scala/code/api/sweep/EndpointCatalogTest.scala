@@ -52,9 +52,9 @@ class EndpointCatalogTest extends ServerSetupWithTestData {
 
   object EndpointCatalogPlaceholders extends Tag("EndpointCatalogPlaceholders")
 
-  feature("EndpointCatalog substitutes every real path placeholder, not just the ones ending in ID/_CODE/_NAME") {
+  Feature("EndpointCatalog substitutes every real path placeholder, not just the ones ending in ID/_CODE/_NAME") {
 
-    scenario("PAYMENT_SERVICE is substituted with a value the endpoint's own guard would accept",
+    Scenario("PAYMENT_SERVICE is substituted with a value the endpoint's own guard would accept",
              EndpointCatalogPlaceholders) {
       // No ResourceDoc in the current EndpointCatalog carries a PAYMENT_SERVICE segment --
       // Berlin Group's route trees are not aggregated into Http4s700.allResourceDocs (only the
@@ -73,7 +73,7 @@ class EndpointCatalogTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("SCA_METHOD is substituted with a value the endpoint's own guard accepts",
+    Scenario("SCA_METHOD is substituted with a value the endpoint's own guard accepts",
              EndpointCatalogPlaceholders) {
       val docs = EndpointCatalog.all.filter(_.requestUrl.contains("SCA_METHOD"))
       withClue("no ResourceDoc in the catalog carries a SCA_METHOD segment any more -- this " +
@@ -90,7 +90,7 @@ class EndpointCatalogTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("literal ALL_CAPS segments that are not placeholders stay untouched",
+    Scenario("literal ALL_CAPS segments that are not placeholders stay untouched",
              EndpointCatalogPlaceholders) {
       // The fix must not turn every unrecognised ALL_CAPS segment into a placeholder -- only the
       // three named above. CARDANO/MOBILE_WALLET/ETH_SEND_TRANSACTION are genuine literals this

@@ -55,7 +55,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
 
 
 
-  feature(s"customer account link $VersionOfApi - Error cases ") {
+  Feature(s"customer account link $VersionOfApi - Error cases ") {
 
     lazy val testBankId = randomBankId
     lazy val testAccountId = testAccountId1
@@ -64,7 +64,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
     lazy val customerAccountLinkId1 = "wrongId"
     lazy val customerId1 = "wrongId"
     
-    scenario("We will call the endpoints without user credentials", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6,  VersionOfApi) {
+    Scenario("We will call the endpoints without user credentials", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6,  VersionOfApi) {
       val requestApiEndpoint1 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links" ).POST 
       val responseApiEndpoint1 = makePostRequest(requestApiEndpoint1, write(createCustomerAccountLinkJson))
       Then("We should get a 401")
@@ -117,7 +117,7 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
       responseApiEndpoint2.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }    
 
-    scenario("We will call the endpoint without roles", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
+    Scenario("We will call the endpoint without roles", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
       val requestApiEndpoint1 =  (v5_0_0_Request / "banks" / testBankId / "customer-account-links" ).POST <@(user1)
       val responseApiEndpoint1 = makePostRequest(requestApiEndpoint1, write(createCustomerAccountLinkJson))
       Then("We should get a 403")
@@ -178,10 +178,10 @@ class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
   }
   
 
-  feature(s"Create Account $VersionOfApi - Success access") {
+  Feature(s"Create Account $VersionOfApi - Success access") {
     
     
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
       When(s"We make a request $VersionOfApi $ApiEndpoint1")
       
       lazy val testBankId = randomBankId

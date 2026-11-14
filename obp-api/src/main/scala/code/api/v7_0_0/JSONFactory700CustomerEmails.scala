@@ -66,5 +66,5 @@ object JSONFactory700CustomerEmails {
   )
 
   def createCustomerEmailJson(row: MessageOutbox, bankId: String, customerId: String, subject: String, reference: Option[String]): CustomerEmailJsonV700 =
-    CustomerEmailJsonV700(row.id.get.toString, bankId, customerId, subject, reference, row.status, row.CreatedAt.get)
+    CustomerEmailJsonV700(row.id.toString, bankId, customerId, subject, reference, row.status, row.createdAt)
 }

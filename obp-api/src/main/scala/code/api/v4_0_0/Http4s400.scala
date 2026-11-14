@@ -1468,7 +1468,7 @@ object Http4s400 {
                   .getAccountIdsByParams(bank.bankId, params.map { case (k, v) => k -> List(v) })
                   .map { boxedAccountIds =>
                     val accountIds = boxedAccountIds.getOrElse(Nil)
-                    privateAccountAccess.filter(aa => accountIds.contains(aa.account_id.get))
+                    privateAccountAccess.filter(aa => accountIds.contains(aa.accountId))
                   }
             (availablePrivateAccounts, _) <- code.model.BankExtended(bank).privateAccountsFuture(
               privateAccountAccess2, Some(cc))
@@ -1580,7 +1580,11 @@ object Http4s400 {
             _ <- DynamicEntitySpace.requireRoleAtSystemSpace(canGetDynamicEntityDefinitions, cc)
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(None, false))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities
+            // dynamicEntities is List[DynamicEntityT] - the provider trait, not necessarily
+            // DynamicEntityCommons - so this can't be a blind asInstanceOf cast; it goes through
+            // DynamicEntityCommons's own ConverterWithType conversion (same reflection machinery
+            // as ReflectUtils.toOther, fixed for Scala 3 case-class-val sources this session).
+            val listCommons: List[DynamicEntityCommons] = DynamicEntityCommons.toCommonsList(dynamicEntities)
             ListResult("dynamic_entities", listCommons.map(_.jValue))
           }
         }
@@ -1620,7 +1624,11 @@ object Http4s400 {
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntities(Some(bank.bankId.value), false))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities
+            // dynamicEntities is List[DynamicEntityT] - the provider trait, not necessarily
+            // DynamicEntityCommons - so this can't be a blind asInstanceOf cast; it goes through
+            // DynamicEntityCommons's own ConverterWithType conversion (same reflection machinery
+            // as ReflectUtils.toOther, fixed for Scala 3 case-class-val sources this session).
+            val listCommons: List[DynamicEntityCommons] = DynamicEntityCommons.toCommonsList(dynamicEntities)
             ListResult("dynamic_entities", listCommons.map(_.jValue))
           }
         }
@@ -1661,7 +1669,11 @@ object Http4s400 {
           for {
             dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(user.userId))
           } yield {
-            val listCommons: List[DynamicEntityCommons] = dynamicEntities
+            // dynamicEntities is List[DynamicEntityT] - the provider trait, not necessarily
+            // DynamicEntityCommons - so this can't be a blind asInstanceOf cast; it goes through
+            // DynamicEntityCommons's own ConverterWithType conversion (same reflection machinery
+            // as ReflectUtils.toOther, fixed for Scala 3 case-class-val sources this session).
+            val listCommons: List[DynamicEntityCommons] = DynamicEntityCommons.toCommonsList(dynamicEntities)
             ListResult("dynamic_entities", listCommons.map(_.jValue))
           }
         }
@@ -1716,7 +1728,7 @@ object Http4s400 {
       if (box.isInstanceOf[Failure]) {
         val failure = box.asInstanceOf[Failure]
         val msg = failure.msg.replace(
-          DynamicData.DynamicDataId.dbColumnName,
+          DynamicData.idColumnName,
           StringUtils.uncapitalize(entityName) + "Id")
         val changedMsgFailure = failure.copy(msg = s"${code.api.util.ErrorMessages.InternalServerError} $msg")
         APIUtil.fullBoxOrException[T](changedMsgFailure)
@@ -2654,12 +2666,12 @@ object Http4s400 {
             }
             _ <- Future {
               NewStyle.function.hasEntitlementAndScope(
-                "", user.userId, callingConsumer.id.get.toString,
+                "", user.userId, callingConsumer.id.toString,
                 canGetEntitlementsForAnyUserAtAnyBank, Some(cc))
             } flatMap { unboxFullAndWrapIntoFuture(_) }
             targetConsumer <- NewStyle.function.getConsumerByConsumerId(uuidOfConsumer, Some(cc))
             scopes <- Future {
-              code.scope.Scope.scope.vend.getScopesByConsumerId(targetConsumer.id.get.toString)
+              code.scope.Scope.scope.vend.getScopesByConsumerId(targetConsumer.id.toString)
             } map { unboxFull(_) }
           } yield code.api.v3_0_0.JSONFactory300.createScopeJSONs(scopes)
         }
@@ -2713,7 +2725,7 @@ object Http4s400 {
             }
             addedEntitlement <- Future {
               code.scope.Scope.scope.vend.addScope(
-                postedData.bank_id, consumer.id.get.toString, postedData.role_name)
+                postedData.bank_id, consumer.id.toString, postedData.role_name)
             } map { unboxFull(_) }
           } yield code.api.v3_0_0.JSONFactory300.createScopeJson(addedEntitlement)
         }
@@ -2947,7 +2959,7 @@ object Http4s400 {
                 s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${account.bankId.value}) and ACCOUNT_ID(${account.accountId.value}) and VIEW_ID(${view.viewId.value})"),
               cc = Some(cc)) { existingCp.isEmpty }
             _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidValueLength. The maximum length of `description` field is ${code.metadata.counterparties.MappedCounterparty.mDescription.maxLen}",
+              s"$InvalidValueLength. The maximum length of `description` field is ${code.metadata.counterparties.MappedCounterparty.descriptionMaxLength}",
               cc = Some(cc)) { postJson.description.length <= 36 }
             _ <- code.util.Helper.booleanToFuture(
               s"$InvalidISOCurrencyCode Current input is: '${postJson.currency}'",
@@ -3616,8 +3628,8 @@ object Http4s400 {
     private def transactionRequestInvolvesAccount(transactionRequest: TransactionRequest, bankId: BankId, accountId: AccountId): Boolean = {
       val paysFrom = transactionRequest.from.bank_id == bankId.value && transactionRequest.from.account_id == accountId.value
       lazy val paysTo = code.transactionrequests.MappedTransactionRequest
-        .find(net.liftweb.mapper.By(code.transactionrequests.MappedTransactionRequest.mTransactionRequestId, transactionRequest.id.value))
-        .exists(stored => stored.mTo_BankId.get == bankId.value && stored.mTo_AccountId.get == accountId.value)
+        .findByTransactionRequestId(transactionRequest.id.value)
+        .exists(stored => stored.toBankId == bankId.value && stored.toAccountId == accountId.value)
       paysFrom || paysTo
     }
 
@@ -3945,7 +3957,10 @@ object Http4s400 {
       for {
         (endpointMappings, _) <- NewStyle.function.getEndpointMappings(bankId, Some(cc))
       } yield {
-        val listCommons: List[EndpointMappingCommons] = endpointMappings
+        // endpointMappings is List[EndpointMappingT] - the provider's own row type, not
+        // necessarily EndpointMappingCommons - so the elements are converted, not cast; a blind
+        // asInstanceOf threw ClassCastException whenever the concrete row type differed.
+        val listCommons: List[EndpointMappingCommons] = EndpointMappingCommons.toCommonsList(endpointMappings)
         com.openbankproject.commons.model.ListResult("endpoint-mappings", listCommons.map(_.toJson))
       }
 
@@ -5207,7 +5222,7 @@ object Http4s400 {
             }
             _ <- code.util.Helper.booleanToFuture(CannotFindUserInvitation, 404, Some(cc)) {
               val validUntil = java.util.Calendar.getInstance
-              validUntil.setTime(invitation.createdAt.get)
+              validUntil.setTime(invitation.createdAt)
               validUntil.add(java.util.Calendar.HOUR, 24)
               validUntil.getTime.after(new java.util.Date())
             }
@@ -5309,7 +5324,7 @@ object Http4s400 {
         EndpointHelpers.withUserAndBodyCreated[PostApiCollectionJson400, Any](req) { (user, postJson, cc) =>
           for {
             apiCollection <- Future {
-              code.apicollection.MappedApiCollectionsProvider
+              code.apicollection.DoobieApiCollectionsProvider
                 .getApiCollectionByUserIdAndCollectionName(user.userId, postJson.api_collection_name)
             }
             _ <- code.util.Helper.booleanToFuture(
@@ -5336,7 +5351,7 @@ object Http4s400 {
             (apiCollection, _) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(
               user.userId, apiCollectionName, Some(cc))
             existing <- Future {
-              code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
+              code.apicollectionendpoint.DoobieApiCollectionEndpointsProvider
                 .getApiCollectionEndpointByApiCollectionIdAndOperationId(
                   apiCollection.apiCollectionId, postJson.operation_id)
             }
@@ -5369,7 +5384,7 @@ object Http4s400 {
               apiCollection.userId == user.userId
             }
             existing <- Future {
-              code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
+              code.apicollectionendpoint.DoobieApiCollectionEndpointsProvider
                 .getApiCollectionEndpointByApiCollectionIdAndOperationId(
                   apiCollection.apiCollectionId, postJson.operation_id)
             }
@@ -10780,7 +10795,7 @@ object Http4s400 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostCounterpartyJson400]
             }
             _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}",
+              s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.descriptionMaxLength}",
               cc = Some(cc)) { postJson.description.length <= 36 }
             (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(
               postJson.name, bankId.value, accountId.value, viewIdStr, Some(cc))

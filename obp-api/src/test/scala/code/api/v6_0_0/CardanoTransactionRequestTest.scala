@@ -109,9 +109,9 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
     response.body.extract[ErrorMessage].message should include(expectedMessage)
   }
 
-  feature("Create Cardano Transaction Request - v6.0.0") {
+  Feature("Create Cardano Transaction Request - v6.0.0") {
 
-    scenario("We will create Cardano transaction request - user is NOT logged in", CreateTransactionRequestCardano, VersionOfApi) {
+    Scenario("We will create Cardano transaction request - user is NOT logged in", CreateTransactionRequestCardano, VersionOfApi) {
       When("We make a request v6.0.0")
       val response600 = makePostRequest(cardanoRequest, write(basicTransferBody()))
       Then("We should get a 401")
@@ -120,7 +120,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
       response600.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will try to create Cardano transaction request for someone else account - user is logged in", CreateTransactionRequestCardano, VersionOfApi) {
+    Scenario("We will try to create Cardano transaction request for someone else account - user is logged in", CreateTransactionRequestCardano, VersionOfApi) {
       createWalletAccountAndEnableCardano()
       When("user2, who has no view on the account, makes a request v6.0.0")
       val response600 = makePostRequest(cardanoRequest <@ (user2), write(basicTransferBody()))
@@ -130,13 +130,13 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
       response600.body.extract[ErrorMessage].message should include(UserNoPermissionAccessView)
     }
 
-    scenario("We will try to create Cardano transaction request with invalid address format", CreateTransactionRequestCardano, VersionOfApi) {
+    Scenario("We will try to create Cardano transaction request with invalid address format", CreateTransactionRequestCardano, VersionOfApi) {
       When("We make a request v6.0.0 with invalid address")
       val body = basicTransferBody().copy(to = basicTransferBody().to.copy(address = "invalid_address_format"))
       postExpecting400(write(body), "Cardano address format is invalid")
     }
 
-    scenario("We will try to create Cardano transaction request with missing amount", CreateTransactionRequestCardano, VersionOfApi) {
+    Scenario("We will try to create Cardano transaction request with missing amount", CreateTransactionRequestCardano, VersionOfApi) {
       When("We make a request v6.0.0 with missing amount")
       val invalidJson =
         s"""
@@ -155,19 +155,19 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
       postExpecting400(invalidJson, InvalidJsonFormat)
     }
 
-    scenario("We will try to create Cardano transaction request with negative amount", CreateTransactionRequestCardano, VersionOfApi) {
+    Scenario("We will try to create Cardano transaction request with negative amount", CreateTransactionRequestCardano, VersionOfApi) {
       When("We make a request v6.0.0 with negative amount")
       val body = basicTransferBody().copy(to = basicTransferBody().to.copy(amount = CardanoAmountJsonV600(quantity = -1000000, unit = "lovelace")))
       postExpecting400(write(body), "Cardano amount quantity must be non-negative")
     }
 
-    scenario("We will try to create Cardano transaction request with invalid amount unit", CreateTransactionRequestCardano, VersionOfApi) {
+    Scenario("We will try to create Cardano transaction request with invalid amount unit", CreateTransactionRequestCardano, VersionOfApi) {
       When("We make a request v6.0.0 with invalid amount unit")
       val body = basicTransferBody().copy(to = basicTransferBody().to.copy(amount = CardanoAmountJsonV600(quantity = 1000000, unit = "abc")))
       postExpecting400(write(body), "Cardano amount unit must be 'lovelace'")
     }
 
-    scenario("We will try to create Cardano transaction request with zero amount but no assets", CreateTransactionRequestCardano, VersionOfApi) {
+    Scenario("We will try to create Cardano transaction request with zero amount but no assets", CreateTransactionRequestCardano, VersionOfApi) {
       When("We make a request v6.0.0 with zero amount but no assets")
       val body = basicTransferBody("Zero amount without assets").copy(
         to = basicTransferBody().to.copy(amount = CardanoAmountJsonV600(quantity = 0, unit = "lovelace")),
@@ -178,7 +178,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
       postExpecting400(write(body), NotPositiveAmount)
     }
 
-    scenario("We will try to create Cardano transaction request with invalid assets", CreateTransactionRequestCardano, VersionOfApi) {
+    Scenario("We will try to create Cardano transaction request with invalid assets", CreateTransactionRequestCardano, VersionOfApi) {
       When("We make a request v6.0.0 with invalid assets")
       val body = basicTransferBody("Invalid assets").copy(
         to = basicTransferBody().to.copy(assets = Some(List(CardanoAssetJsonV600(policy_id = "", asset_name = "", quantity = 0))))
@@ -186,7 +186,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
       postExpecting400(write(body), "Cardano assets must have valid policy_id and asset_name")
     }
 
-    scenario("We will try to create Cardano transaction request with invalid metadata", CreateTransactionRequestCardano, VersionOfApi) {
+    Scenario("We will try to create Cardano transaction request with invalid metadata", CreateTransactionRequestCardano, VersionOfApi) {
       When("We make a request v6.0.0 with invalid metadata")
       val body = basicTransferBody("ADA transfer with invalid metadata").copy(
         metadata = Some(Map("" -> CardanoMetadataStringJsonV600("")))
@@ -196,7 +196,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
 
     // The scenarios below send a real payment through cardano-wallet; see the class comment.
 
-    scenario("We will create Cardano transaction request - user is logged in", CreateTransactionRequestCardano, VersionOfApi, RequiresCardanoWallet) {
+    Scenario("We will create Cardano transaction request - user is logged in", CreateTransactionRequestCardano, VersionOfApi, RequiresCardanoWallet) {
       createWalletAccountAndEnableCardano()
       routePaymentsToCardanoWallet()
       When("We make a request v6.0.0")
@@ -207,7 +207,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
       response600.body.extract[TransactionRequestWithChargeJSON400].status should not be empty
     }
 
-    scenario("We will create Cardano transaction request with metadata - user is logged in", CreateTransactionRequestCardano, VersionOfApi, RequiresCardanoWallet) {
+    Scenario("We will create Cardano transaction request with metadata - user is logged in", CreateTransactionRequestCardano, VersionOfApi, RequiresCardanoWallet) {
       createWalletAccountAndEnableCardano()
       routePaymentsToCardanoWallet()
       When("We make a request v6.0.0 with metadata")
@@ -221,7 +221,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
       response600.body.extract[TransactionRequestWithChargeJSON400].status should not be empty
     }
 
-    scenario("We will create Cardano transaction request with token - user is logged in", CreateTransactionRequestCardano, VersionOfApi, RequiresCardanoWallet) {
+    Scenario("We will create Cardano transaction request with token - user is logged in", CreateTransactionRequestCardano, VersionOfApi, RequiresCardanoWallet) {
       createWalletAccountAndEnableCardano()
       routePaymentsToCardanoWallet()
       When("We make a request v6.0.0 with token")
@@ -239,7 +239,7 @@ class CardanoTransactionRequestTest extends V600ServerSetup {
       response600.body.extract[TransactionRequestWithChargeJSON400].status should not be empty
     }
 
-    scenario("We will create Cardano transaction request with token and metadata - user is logged in", CreateTransactionRequestCardano, VersionOfApi, RequiresCardanoWallet) {
+    Scenario("We will create Cardano transaction request with token and metadata - user is logged in", CreateTransactionRequestCardano, VersionOfApi, RequiresCardanoWallet) {
       createWalletAccountAndEnableCardano()
       routePaymentsToCardanoWallet()
       When("We make a request v6.0.0 with token and metadata")

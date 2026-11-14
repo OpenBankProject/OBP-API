@@ -36,8 +36,8 @@ import code.transactionrequests.MappedTransactionRequest
 import code.views.Views
 import com.openbankproject.commons.model.{BankIdAccountId, CreateViewJson, ErrorMessage, ViewId}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.By
 import org.json4s.JsonDSL._
+import org.json4s.{jvalue2extractable, jvalue2monadic}
 import org.json4s.native.JsonMethods.{compact, render}
 import org.scalatest.Tag
 
@@ -127,7 +127,7 @@ class ConsumerAccountAccessTest extends V600ServerSetup {
       setPropsValues("open_corridor_enabled" -> "true")
       revokeAll()
       val viewId = createPaymentInitiationView()
-      val consumerId = testConsumer.consumerId.get
+      val consumerId = testConsumer.consumerId
 
       When("the application creates a promise through the view before its Consumer has access")
       val before = makePostRequest(promise(viewId).POST <@ (application1), promiseBody)
@@ -153,8 +153,8 @@ class ConsumerAccountAccessTest extends V600ServerSetup {
       created.code should equal(201)
       (created.body \ "status").extract[String] should equal("PENDING")
       val trId = (created.body \ "id").extract[String]
-      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, trId))
-        .map(_.mConsumerId.get).openOr("") should equal(consumerId)
+      MappedTransactionRequest.findByTransactionRequestId(trId)
+        .map(_.consumerId).openOr("") should equal(consumerId)
 
       And("the account holder sees the grant")
       val listed = makeGetRequest(access(SYSTEM_OWNER_VIEW_ID).GET <@ (user1))
@@ -177,7 +177,7 @@ class ConsumerAccountAccessTest extends V600ServerSetup {
       revokeAll()
       val viewId = createPaymentInitiationView()
       Given("the view is granted to testConsumer2, the Consumer user2 calls through")
-      makePostRequest(access(Manage).POST <@ (user1), grantBody(testConsumer2.consumerId.get, viewId)).code should equal(201)
+      makePostRequest(access(Manage).POST <@ (user1), grantBody(testConsumer2.consumerId, viewId)).code should equal(201)
       try {
         When("user2, a person, creates a promise through the view")
         val response = makePostRequest(promise(viewId).POST <@ (user2), promiseBody)
@@ -189,7 +189,7 @@ class ConsumerAccountAccessTest extends V600ServerSetup {
     scenario("the grant does not count on an endpoint that does not admit an application", ApiEndpoint2, VersionOfApi) {
       revokeAll()
       val viewId = createPaymentInitiationView()
-      makePostRequest(access(Manage).POST <@ (user1), grantBody(testConsumer.consumerId.get, viewId)).code should equal(201)
+      makePostRequest(access(Manage).POST <@ (user1), grantBody(testConsumer.consumerId, viewId)).code should equal(201)
       try {
         When("the application calls a User-only endpoint of the same view")
         val response = makeGetRequest(access(viewId).GET <@ (application1))
@@ -203,7 +203,7 @@ class ConsumerAccountAccessTest extends V600ServerSetup {
       revokeAll()
       val viewId = createPaymentInitiationView()
 
-      val owner = makePostRequest(access(SYSTEM_OWNER_VIEW_ID).POST <@ (user1), grantBody(testConsumer.consumerId.get, SYSTEM_OWNER_VIEW_ID))
+      val owner = makePostRequest(access(SYSTEM_OWNER_VIEW_ID).POST <@ (user1), grantBody(testConsumer.consumerId, SYSTEM_OWNER_VIEW_ID))
       owner.code should equal(400)
       message(owner) should include(CannotGrantConsumerAccountAccessToView)
 
@@ -212,13 +212,13 @@ class ConsumerAccountAccessTest extends V600ServerSetup {
       message(unknown) should include(ConsumerNotFoundByConsumerId)
 
       Then("user2, who has no access to the account, can't grant")
-      makePostRequest(access(Manage).POST <@ (user2), grantBody(testConsumer.consumerId.get, viewId)).code should equal(403)
+      makePostRequest(access(Manage).POST <@ (user2), grantBody(testConsumer.consumerId, viewId)).code should equal(403)
 
       Then("nobody can grant anonymously")
-      makePostRequest(access(Manage).POST, grantBody(testConsumer.consumerId.get, viewId)).code should equal(401)
+      makePostRequest(access(Manage).POST, grantBody(testConsumer.consumerId, viewId)).code should equal(401)
 
       ConsumerAccountAccesses.consumerAccountAccessProvider.vend
-        .find(testConsumer.consumerId.get, bankId, accountId, ViewId(viewId)).isEmpty should equal(true)
+        .find(testConsumer.consumerId, bankId, accountId, ViewId(viewId)).isEmpty should equal(true)
     }
   }
 }

@@ -34,10 +34,12 @@ import code.api.util.CallContext
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, callContextKey}
 import org.json4s.{DefaultFormats, Formats}
 import org.http4s.{Request, Response}
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
 import org.typelevel.ci.CIString
 
 import scala.concurrent.Future
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Regression tests for the native http4s endpoint response helpers in
@@ -53,7 +55,7 @@ import scala.concurrent.Future
  * endpoints and the Lift -> http4s bridge set `application/json` correctly (covered by
  * Http4sResponseConversionTest); this test pins the *native* http4s builders.
  */
-class Http4sJsonContentTypeTest extends FeatureSpec with Matchers with GivenWhenThen {
+class Http4sJsonContentTypeTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   private implicit val formats: Formats = DefaultFormats
 
@@ -64,9 +66,9 @@ class Http4sJsonContentTypeTest extends FeatureSpec with Matchers with GivenWhen
   private def contentTypeOf(resp: Response[IO]): String =
     resp.headers.get(CIString("Content-Type")).map(_.head.value).getOrElse("")
 
-  feature("Native http4s endpoint helpers label JSON responses as application/json") {
+  Feature("Native http4s endpoint helpers label JSON responses as application/json") {
 
-    scenario("executeAndRespond (200 OK) sets application/json") {
+    Scenario("executeAndRespond (200 OK) sets application/json") {
       Given("a 200 helper returning a JSON object")
       When("the response is built")
       val resp = EndpointHelpers
@@ -78,7 +80,7 @@ class Http4sJsonContentTypeTest extends FeatureSpec with Matchers with GivenWhen
       contentTypeOf(resp) should include("application/json")
     }
 
-    scenario("executeFutureCreated (201 Created) sets application/json") {
+    Scenario("executeFutureCreated (201 Created) sets application/json") {
       Given("a 201 helper returning a JSON object")
       When("the response is built")
       val resp = EndpointHelpers
@@ -90,7 +92,7 @@ class Http4sJsonContentTypeTest extends FeatureSpec with Matchers with GivenWhen
       contentTypeOf(resp) should include("application/json")
     }
 
-    scenario("executeFutureWithStatus sets application/json for a custom status") {
+    Scenario("executeFutureWithStatus sets application/json for a custom status") {
       Given("a helper returning a JSON object with an explicit 202 status")
       When("the response is built")
       val resp = EndpointHelpers
@@ -102,7 +104,7 @@ class Http4sJsonContentTypeTest extends FeatureSpec with Matchers with GivenWhen
       contentTypeOf(resp) should include("application/json")
     }
 
-    scenario("regression: helpers must NOT fall back to text/plain") {
+    Scenario("regression: helpers must NOT fall back to text/plain") {
       Given("the 201 helper (the path the dynamic-entity create endpoint uses)")
       When("the response is built")
       val resp = EndpointHelpers

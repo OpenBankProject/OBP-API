@@ -1,7 +1,9 @@
 package code.util
 
 import code.api.util.APIUtil
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * This class tests how OBP-API treats currency codes: which codes are accepted, how many decimal
@@ -18,7 +20,7 @@ import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
  *
  * Everything here is a pure function call: no server, no database.
  */
-class CurrencyHandlingTest extends FeatureSpec with Matchers with GivenWhenThen {
+class CurrencyHandlingTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   /**
    * Every distinct code in media/xml/ISOCurrencyCodes.xml at the time of writing (183 codes).

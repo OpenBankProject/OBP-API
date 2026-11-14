@@ -1,0 +1,110 @@
+databaseChangeLog:
+  # The Dynamic Entity space model on a database that predates it.
+  #
+  # A system level Dynamic Entity definition, record, access row or resource doc used to hold SQL NULL
+  # in bankid. It now holds the literal SYS (Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID), as every
+  # read and write names the space exactly: Postgres and H2 treat NULLs as distinct inside a unique
+  # index, so a nullable bankid in the space-scoped indexes would enforce nothing for exactly the
+  # system level rows. The back fill cannot produce a duplicate: the indexes being replaced made the
+  # ids unique across the instance, so no two system level rows can already share one.
+  #
+  # Then the indexes the space-scoped ones (db.changelog-develop-merge-3.yaml) supersede are dropped:
+  # left in place they would keep refusing the duplicate ids across spaces that the new ones allow.
+  #
+  # Data changes, so not in check_changelog_preconditions.py's schema list: each UPDATE runs once and
+  # is idempotent, and each drop is guarded by the index being there.
+
+  - changeSet:
+      id: system-space-sentinel-dynamicdata
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: dynamicdata
+      changes:
+        - update:
+            tableName: dynamicdata
+            columns:
+              - column: {name: bankid, value: SYS}
+            where: bankid IS NULL
+
+  - changeSet:
+      id: system-space-sentinel-dynamicdataaccess
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: dynamicdataaccess
+      changes:
+        - update:
+            tableName: dynamicdataaccess
+            columns:
+              - column: {name: bankid, value: SYS}
+            where: bankid IS NULL
+
+  - changeSet:
+      id: system-space-sentinel-dynamicentity
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: dynamicentity
+      changes:
+        - update:
+            tableName: dynamicentity
+            columns:
+              - column: {name: bankid, value: SYS}
+            where: bankid IS NULL
+
+  - changeSet:
+      id: system-space-sentinel-dynamicresourcedoc
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: dynamicresourcedoc
+      changes:
+        - update:
+            tableName: dynamicresourcedoc
+            columns:
+              - column: {name: bankid, value: SYS}
+            where: bankid IS NULL
+
+  - changeSet:
+      id: drop-superseded-index-dynamicdata_dynamicdataid
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - indexExists:
+            tableName: dynamicdata
+            indexName: dynamicdata_dynamicdataid
+      changes:
+        - dropIndex:
+            tableName: dynamicdata
+            indexName: dynamicdata_dynamicdataid
+
+  - changeSet:
+      id: drop-superseded-index-dynamicdataaccess_dynamicdataid_userid
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - indexExists:
+            tableName: dynamicdataaccess
+            indexName: dynamicdataaccess_dynamicdataid_userid
+      changes:
+        - dropIndex:
+            tableName: dynamicdataaccess
+            indexName: dynamicdataaccess_dynamicdataid_userid
+
+  - changeSet:
+      id: drop-superseded-index-dynamicresourcedoc_requesturl_requestverb
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - indexExists:
+            tableName: dynamicresourcedoc
+            indexName: dynamicresourcedoc_requesturl_requestverb
+      changes:
+        - dropIndex:
+            tableName: dynamicresourcedoc
+            indexName: dynamicresourcedoc_requesturl_requestverb

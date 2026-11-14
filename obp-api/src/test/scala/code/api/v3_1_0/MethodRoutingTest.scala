@@ -59,8 +59,8 @@ class MethodRoutingTest extends V310ServerSetup {
   val wrongEntity = MethodRoutingCommons("getBank", "mapped", false, Some("some_bankId_([")) // wrong regex
 
 
-  feature("Add a MethodRouting v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Add a MethodRouting v3.1.0 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "method_routings").POST
       val response310 = makePostRequest(request310, write(rightEntity))
@@ -70,8 +70,8 @@ class MethodRoutingTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Update a MethodRouting v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature("Update a MethodRouting v3.1.0 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "method_routings"/ "some-method-routing-id").PUT
       val response310 = makePutRequest(request310, write(rightEntity))
@@ -81,8 +81,8 @@ class MethodRoutingTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Get MethodRoutings v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature("Get MethodRoutings v3.1.0 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "method_routings").GET  <<? (List(("method_name", "getBank")))
       val response310 = makeGetRequest(request310)
@@ -92,8 +92,8 @@ class MethodRoutingTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Delete the MethodRouting specified by METHOD_ROUTING_ID v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
+  Feature("Delete the MethodRouting specified by METHOD_ROUTING_ID v3.1.0 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "method_routings" / "METHOD_ROUTING_ID").DELETE
       val response310 = makeDeleteRequest(request310)
@@ -105,8 +105,8 @@ class MethodRoutingTest extends V310ServerSetup {
   }
 
 
-  feature("Add a MethodRouting v3.1.0 - Unauthorized access - Authorized access") {
-    scenario("We will call the endpoint without the proper Role " + canCreateMethodRouting, ApiEndpoint1, VersionOfApi) {
+  Feature("Add a MethodRouting v3.1.0 - Unauthorized access - Authorized access") {
+    Scenario("We will call the endpoint without the proper Role " + canCreateMethodRouting, ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canCreateTaxResidence)
       val request310 = (v3_1_0_Request / "management" / "method_routings").POST <@(user1)
       val response310 = makePostRequest(request310, write(rightEntity))
@@ -116,7 +116,7 @@ class MethodRoutingTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateMethodRouting)
     }
 
-    scenario("We will call the endpoint with the proper Role " + canCreateMethodRouting , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper Role " + canCreateMethodRouting , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateMethodRouting.toString)
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "method_routings").POST <@(user1)

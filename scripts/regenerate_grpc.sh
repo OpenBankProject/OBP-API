@@ -35,14 +35,16 @@ set -euo pipefail
 # Must match scalapb-runtime-grpc in obp-api/pom.xml. The generated code and its runtime are one
 # unit: 0.8.4-generated sources do not compile against the 0.9.0 runtime at all (the
 # GeneratedMessageCompanion signatures changed), so upgrading one without the other does not work.
-SCALAPB_VERSION="0.9.0"
+# 0.11.17, not 0.11.20+: it is the last version with a scalapbc zip on GitHub releases, which is
+# what this script fetches; later 0.11.x are Maven-only. Same 0.11 line, publishes _3 artifacts.
+SCALAPB_VERSION="0.11.17"
 
 # scalapbc bundles protoc-jar, which pins protoc 3.7.1 - a release with no osx-aarch_64 binary, so
 # it cannot run on Apple Silicon at all. protoc is therefore fetched directly and handed the
-# protoc-gen-scala plugin from the scalapbc distribution. 3.17.3 is the earliest release published
-# for osx-aarch_64, which makes it the closest available to scalapb 0.9.0's own era; do not reach
-# for a much newer protoc, whose descriptors this scalapb was never built against.
-PROTOC_VERSION="3.17.3"
+# scalapb code generator as a plugin. 3.19.6 is exactly the protobuf-java version in the
+# scalapbc 0.11.17 lib/ - do not reach for a much newer protoc, whose descriptors this
+# scalapb was never built against.
+PROTOC_VERSION="3.19.6"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROTO_DIR="$REPO_ROOT/obp-api/src/main/protobuf"
@@ -85,7 +87,21 @@ if [[ ! -d "$SCALAPBC_HOME" ]]; then
   unzip -q -d "$CACHE_DIR" "$CACHE_DIR/scalapbc.zip"
   rm -f "$CACHE_DIR/scalapbc.zip"
 fi
+# The 0.9.x zips shipped bin/protoc-gen-scala; 0.11.x zips only ship the scalapbc
+# launcher. The plugin entry point still exists as scalapb.ScalaPbCodeGenerator (a
+# standard stdin/stdout protoc plugin), so synthesize the shim the old zips contained.
 PLUGIN="$SCALAPBC_HOME/bin/protoc-gen-scala"
+if [[ ! -f "$PLUGIN" ]]; then
+  # The shim locates its own lib/ at run time rather than having this machine's absolute path
+  # baked in. Both forms work where they were written, but a baked-in path silently points at
+  # another checkout's jars if target/grpc-codegen is ever copied or the worktree is moved -
+  # and this repository is routinely checked out into several worktrees at once.
+  cat > "$PLUGIN" <<'SHIM'
+#!/bin/sh
+DIR="$(cd "$(dirname "$0")/.." && pwd)"
+exec java -cp "$DIR/lib/*" scalapb.ScalaPbCodeGenerator "$@"
+SHIM
+fi
 chmod +x "$PLUGIN"
 
 # --- destination --------------------------------------------------------------------------
@@ -107,9 +123,13 @@ fi
 # this script. The generated copy was committed by accident with the scalapb upgrade (335ace483,
 # 360 lines over 4 files) and removed again; without this exclusion the next regeneration restores
 # it. Reconcile connector.proto with the .api package before dropping the exclusion.
+# signal.proto is excluded too: it has no checked-in Scala and no Scala consumer (the
+# signal channel's server side is external); generating it would only add dead files.
+# scalapb/ is the vendored scalapb.proto for the file-level options - an import, not a
+# generation source.
 PROTOS=()
 while IFS= read -r proto; do PROTOS+=("$proto"); done \
-  < <(find "$PROTO_DIR" -name '*.proto' -not -path '*/google/*' -not -name 'connector.proto' | sort)
+  < <(find "$PROTO_DIR" -name '*.proto' -not -path '*/google/*' -not -path '*/scalapb/*' -not -name 'connector.proto' -not -name 'signal.proto' | sort)
 
 echo "Generating from ${#PROTOS[@]} proto files (protoc $PROTOC_VERSION, scalapb $SCALAPB_VERSION)"
 "$PROTOC" \

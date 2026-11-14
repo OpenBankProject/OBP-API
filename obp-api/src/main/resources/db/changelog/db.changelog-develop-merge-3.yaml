@@ -1,0 +1,1365 @@
+databaseChangeLog:
+  # Schema for the features the third origin/develop merge brought in (develop up to db74dd46e).
+  #
+  # Upstream creates these through Lift's Schemifier; this branch has none, so every table, column
+  # and index the ported Doobie stores rely on is declared here. The definitions were taken from
+  # the schema Schemifier itself built for upstream, at the merge base and at the merged commit, on
+  # Postgres, and diffed - not transcribed from the entity declarations.
+  #
+  # Each changeset guards itself with tableExists / indexExists / columnExists / a width check, so a
+  # database that already has the object records the changeset as run instead of aborting the boot.
+
+  - changeSet:
+      id: create-table-account_creation
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: account_creation
+      comment: >-
+        Who created each account (the caller and the user it acted for, and the consent if one was used), recorded when the account is created.
+      changes:
+        - createTable:
+            tableName: account_creation
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: created_by_user_id, type: VARCHAR(255)}
+              - column: {name: account_id, type: VARCHAR(255)}
+              - column: {name: created_by_on_behalf_of_user_id, type: VARCHAR(255)}
+              - column: {name: consent_reference_id, type: VARCHAR(255)}
+              - column: {name: bank_id, type: VARCHAR(255)}
+              - column: {name: created_at, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-indexes-account_creation
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: account_creation_bank_id_account_id
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: account_creation
+            indexName: account_creation_bank_id_account_id
+            unique: true
+            columns:
+              - column: {name: bank_id}
+              - column: {name: account_id}
+
+  - changeSet:
+      id: create-table-asset
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: asset
+      comment: >-
+        An asset a bank issues (a token, a stablecoin or a security), with its code, chain identifiers and lifecycle status.
+      changes:
+        - createTable:
+            tableName: asset
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: createdbyuserid, type: VARCHAR(255)}
+              - column: {name: creationdate, type: TIMESTAMP}
+              - column: {name: lastupdate, type: TIMESTAMP}
+              - column: {name: assetcode, type: VARCHAR(10)}
+              - column: {name: assetid, type: VARCHAR(36)}
+              - column: {name: issuerbankid, type: VARCHAR(255)}
+              - column: {name: assettype, type: VARCHAR(32)}
+              - column: {name: decimalplaces, type: INTEGER}
+              - column: {name: issuerproductcode, type: VARCHAR(50)}
+              - column: {name: chainscheme, type: VARCHAR(64)}
+              - column: {name: chainassetid, type: VARCHAR(255)}
+              - column: {name: dti, type: VARCHAR(9)}
+              - column: {name: status, type: VARCHAR(16)}
+              - column: {name: name, type: VARCHAR(125)}
+
+  - changeSet:
+      id: create-indexes-asset
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: asset_assetcode
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: asset
+            indexName: asset_assetcode
+            unique: true
+            columns:
+              - column: {name: assetcode}
+        - createIndex:
+            tableName: asset
+            indexName: asset_assetid
+            unique: true
+            columns:
+              - column: {name: assetid}
+        - createIndex:
+            tableName: asset
+            indexName: asset_issuerbankid
+            columns:
+              - column: {name: issuerbankid}
+
+  - changeSet:
+      id: create-table-assetstatushistory
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: assetstatushistory
+      comment: >-
+        Each lifecycle status change of an asset, who made it and why.
+      changes:
+        - createTable:
+            tableName: assetstatushistory
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: fromstatus, type: VARCHAR(16)}
+              - column: {name: tostatus, type: VARCHAR(16)}
+              - column: {name: changedbyuserid, type: VARCHAR(255)}
+              - column: {name: changedat, type: TIMESTAMP}
+              - column: {name: assetid, type: VARCHAR(36)}
+              - column: {name: reason, type: "${text.type}"}
+
+  - changeSet:
+      id: create-indexes-assetstatushistory
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: assetstatushistory_assetid
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: assetstatushistory
+            indexName: assetstatushistory_assetid
+            columns:
+              - column: {name: assetid}
+
+  - changeSet:
+      id: create-table-consumer_account_access
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: consumer_account_access
+      comment: >-
+        An account a Consumer may read without a user, through a view, granted by an administrator.
+      changes:
+        - createTable:
+            tableName: consumer_account_access
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: consumer_id, type: VARCHAR(250)}
+              - column: {name: account_id, type: VARCHAR(255)}
+              - column: {name: view_id, type: VARCHAR(255)}
+              - column: {name: bank_id, type: VARCHAR(255)}
+              - column: {name: granted_by_user_id, type: VARCHAR(255)}
+              - column: {name: created_at, type: TIMESTAMP}
+              - column: {name: updated_at, type: TIMESTAMP}
+              - column: {name: consumer_account_access_id, type: VARCHAR(36)}
+
+  - changeSet:
+      id: create-indexes-consumer_account_access
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: consumer_account_access_bank_id_account_id
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: consumer_account_access
+            indexName: consumer_account_access_bank_id_account_id
+            columns:
+              - column: {name: bank_id}
+              - column: {name: account_id}
+        - createIndex:
+            tableName: consumer_account_access
+            indexName: consumer_account_access_consumer_account_access_id
+            unique: true
+            columns:
+              - column: {name: consumer_account_access_id}
+        - createIndex:
+            tableName: consumer_account_access
+            indexName: consumer_account_access_consumer_id_bank_id_account_id_view_id
+            unique: true
+            columns:
+              - column: {name: consumer_id}
+              - column: {name: bank_id}
+              - column: {name: account_id}
+              - column: {name: view_id}
+
+  - changeSet:
+      id: create-table-domain_api
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: domain_api
+      comment: >-
+        A Domain API: a base path under which a bank publishes its own URL shapes, rewritten to OBP endpoints.
+      changes:
+        - createTable:
+            tableName: domain_api
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: created_by_user_id, type: VARCHAR(255)}
+              - column: {name: description, type: VARCHAR(2000)}
+              - column: {name: bank_id, type: VARCHAR(255)}
+              - column: {name: created_at, type: TIMESTAMP}
+              - column: {name: domain_api_id, type: VARCHAR(36)}
+              - column: {name: base_path, type: VARCHAR(255)}
+              - column: {name: is_publicly_discoverable, type: BOOLEAN}
+              - column: {name: updated_at, type: TIMESTAMP}
+              - column: {name: title, type: VARCHAR(255)}
+              - column: {name: version, type: VARCHAR(50)}
+
+  - changeSet:
+      id: create-indexes-domain_api
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: domain_api_bank_id
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: domain_api
+            indexName: domain_api_bank_id
+            columns:
+              - column: {name: bank_id}
+        - createIndex:
+            tableName: domain_api
+            indexName: domain_api_base_path
+            unique: true
+            columns:
+              - column: {name: base_path}
+        - createIndex:
+            tableName: domain_api
+            indexName: domain_api_domain_api_id
+            unique: true
+            columns:
+              - column: {name: domain_api_id}
+
+  - changeSet:
+      id: create-table-dynamic_entity_webhook
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: dynamic_entity_webhook
+      comment: >-
+        A webhook on a Dynamic Entity: the URL called when records of the entity are created, updated or deleted.
+      changes:
+        - createTable:
+            tableName: dynamic_entity_webhook
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: entity_name, type: VARCHAR(255)}
+              - column: {name: is_active, type: BOOLEAN}
+              - column: {name: created_by_user_id, type: VARCHAR(255)}
+              - column: {name: description, type: VARCHAR(2000)}
+              - column: {name: webhook_id, type: VARCHAR(36)}
+              - column: {name: url, type: VARCHAR(1024)}
+              - column: {name: created_by_on_behalf_of_user_id, type: VARCHAR(255)}
+              - column: {name: events, type: VARCHAR(64)}
+              - column: {name: field_conditions, type: "${text.type}"}
+              - column: {name: deactivated_reason, type: VARCHAR(64)}
+              - column: {name: bank_id, type: VARCHAR(255)}
+              - column: {name: dynamic_entity_id, type: VARCHAR(255)}
+              - column: {name: created_at, type: TIMESTAMP}
+              - column: {name: updated_at, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-indexes-dynamic_entity_webhook
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamic_entity_webhook_bank_id_entity_name
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: dynamic_entity_webhook
+            indexName: dynamic_entity_webhook_bank_id_entity_name
+            columns:
+              - column: {name: bank_id}
+              - column: {name: entity_name}
+        - createIndex:
+            tableName: dynamic_entity_webhook
+            indexName: dynamic_entity_webhook_dynamic_entity_id_url
+            unique: true
+            columns:
+              - column: {name: dynamic_entity_id}
+              - column: {name: url}
+        - createIndex:
+            tableName: dynamic_entity_webhook
+            indexName: dynamic_entity_webhook_webhook_id
+            unique: true
+            columns:
+              - column: {name: webhook_id}
+
+  - changeSet:
+      id: create-table-file_t
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: file_t
+      comment: >-
+        A stored file's metadata: owner, size, digest, media type and virus-scan status. The content is in filecontent.
+      changes:
+        - createTable:
+            tableName: file_t
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: fileid, type: VARCHAR(36)}
+              - column: {name: bankid, type: VARCHAR(255)}
+              - column: {name: userid, type: VARCHAR(255)}
+              - column: {name: scanstatusupdatedat, type: TIMESTAMP}
+              - column: {name: scanstatusupdatedbyuserid, type: VARCHAR(255)}
+              - column: {name: sha256, type: VARCHAR(64)}
+              - column: {name: sizeinbytes, type: BIGINT}
+              - column: {name: mediatype, type: VARCHAR(100)}
+              - column: {name: filename, type: VARCHAR(255)}
+              - column: {name: onbehalfofuserid, type: VARCHAR(255)}
+              - column: {name: ispublic, type: BOOLEAN}
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: ispersonal, type: BOOLEAN}
+              - column: {name: scanstatus, type: VARCHAR(20)}
+              - column: {name: scanstatusreason, type: VARCHAR(1000)}
+
+  - changeSet:
+      id: create-indexes-file_t
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: file_t_bankid_fileid
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: file_t
+            indexName: file_t_bankid_fileid
+            columns:
+              - column: {name: bankid}
+              - column: {name: fileid}
+        - createIndex:
+            tableName: file_t
+            indexName: file_t_fileid
+            unique: true
+            columns:
+              - column: {name: fileid}
+
+  - changeSet:
+      id: create-table-fileaccess
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: fileaccess
+      comment: >-
+        A user other than the owner who may read a file.
+      changes:
+        - createTable:
+            tableName: fileaccess
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: fileid, type: VARCHAR(36)}
+              - column: {name: onbehalfofuserid, type: VARCHAR(255)}
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: granteeuserid, type: VARCHAR(255)}
+              - column: {name: grantedbyuserid, type: VARCHAR(255)}
+
+  - changeSet:
+      id: create-indexes-fileaccess
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: fileaccess_fileid_granteeuserid
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: fileaccess
+            indexName: fileaccess_fileid_granteeuserid
+            unique: true
+            columns:
+              - column: {name: fileid}
+              - column: {name: granteeuserid}
+        - createIndex:
+            tableName: fileaccess
+            indexName: fileaccess_granteeuserid
+            columns:
+              - column: {name: granteeuserid}
+
+  - changeSet:
+      id: create-table-fileattachment
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: fileattachment
+      comment: >-
+        A file attached to a record (a Dynamic Entity record, a customer, an account ...).
+      changes:
+        - createTable:
+            tableName: fileattachment
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: fileid, type: VARCHAR(36)}
+              - column: {name: bankid, type: VARCHAR(255)}
+              - column: {name: userid, type: VARCHAR(255)}
+              - column: {name: onbehalfofuserid, type: VARCHAR(255)}
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: fileattachmentid, type: VARCHAR(36)}
+              - column: {name: recordtype, type: VARCHAR(255)}
+              - column: {name: recordid, type: VARCHAR(255)}
+
+  - changeSet:
+      id: create-indexes-fileattachment
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: fileattachment_bankid_recordtype_recordid
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: fileattachment
+            indexName: fileattachment_bankid_recordtype_recordid
+            columns:
+              - column: {name: bankid}
+              - column: {name: recordtype}
+              - column: {name: recordid}
+        - createIndex:
+            tableName: fileattachment
+            indexName: fileattachment_fileattachmentid
+            unique: true
+            columns:
+              - column: {name: fileattachmentid}
+        - createIndex:
+            tableName: fileattachment
+            indexName: fileattachment_fileid_recordtype_recordid
+            unique: true
+            columns:
+              - column: {name: fileid}
+              - column: {name: recordtype}
+              - column: {name: recordid}
+
+  - changeSet:
+      id: create-table-filecontent
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: filecontent
+      comment: >-
+        The bytes of a stored file, kept apart from its metadata so listing files never reads them.
+      changes:
+        - createTable:
+            tableName: filecontent
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: fileid, type: VARCHAR(36)}
+              - column: {name: content, type: "${blob.type}"}
+
+  - changeSet:
+      id: create-indexes-filecontent
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: filecontent_fileid
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: filecontent
+            indexName: filecontent_fileid
+            unique: true
+            columns:
+              - column: {name: fileid}
+
+  - changeSet:
+      id: create-table-groupmembership
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: groupmembership
+      comment: >-
+        A user's membership of a Group.
+      changes:
+        - createTable:
+            tableName: groupmembership
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: createdbyuserid, type: VARCHAR(44)}
+              - column: {name: groupid, type: VARCHAR(44)}
+              - column: {name: userid, type: VARCHAR(44)}
+              - column: {name: updatedat, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-indexes-groupmembership
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: groupmembership_groupid_userid
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: groupmembership
+            indexName: groupmembership_groupid_userid
+            unique: true
+            columns:
+              - column: {name: groupid}
+              - column: {name: userid}
+        - createIndex:
+            tableName: groupmembership
+            indexName: groupmembership_userid
+            columns:
+              - column: {name: userid}
+
+  - changeSet:
+      id: create-table-platform_app
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: platform_app
+      comment: >-
+        A Consumer declared to be a platform application, with the version it declared.
+      changes:
+        - createTable:
+            tableName: platform_app
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: consumer_id, type: VARCHAR(250)}
+              - column: {name: platform_app_id, type: VARCHAR(36)}
+              - column: {name: label, type: VARCHAR(100)}
+              - column: {name: marked_by_user_id, type: VARCHAR(255)}
+              - column: {name: declared_at, type: TIMESTAMP}
+              - column: {name: declared_version, type: VARCHAR(100)}
+              - column: {name: created_at, type: TIMESTAMP}
+              - column: {name: updated_at, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-indexes-platform_app
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: platform_app_consumer_id
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: platform_app
+            indexName: platform_app_consumer_id
+            unique: true
+            columns:
+              - column: {name: consumer_id}
+
+  - changeSet:
+      id: create-table-platform_app_required_scope
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: platform_app_required_scope
+      comment: >-
+        A Scope a platform application declares it needs, and what for.
+      changes:
+        - createTable:
+            tableName: platform_app_required_scope
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: consumer_id, type: VARCHAR(250)}
+              - column: {name: bank_id, type: VARCHAR(255)}
+              - column: {name: role_name, type: VARCHAR(255)}
+              - column: {name: needed_for, type: VARCHAR(1000)}
+              - column: {name: is_optional, type: BOOLEAN}
+
+  - changeSet:
+      id: create-indexes-platform_app_required_scope
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: platform_app_required_scope_consumer_id
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: platform_app_required_scope
+            indexName: platform_app_required_scope_consumer_id
+            columns:
+              - column: {name: consumer_id}
+
+  - changeSet:
+      id: create-table-retentionarchive
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: retentionarchive
+      comment: >-
+        A copy of a resource a retention run removed, kept until deleteafter.
+      changes:
+        - createTable:
+            tableName: retentionarchive
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: entityname, type: VARCHAR(255)}
+              - column: {name: retentionpolicyid, type: VARCHAR(36)}
+              - column: {name: resourcetype, type: VARCHAR(64)}
+              - column: {name: retentionarchiveid, type: VARCHAR(36)}
+              - column: {name: resourceid, type: VARCHAR(255)}
+              - column: {name: deleteafter, type: TIMESTAMP}
+              - column: {name: retentionrunid, type: VARCHAR(36)}
+              - column: {name: owneruserid, type: VARCHAR(255)}
+              - column: {name: parentresourcetype, type: VARCHAR(64)}
+              - column: {name: parentresourceid, type: VARCHAR(255)}
+              - column: {name: jsoncopy, type: "${text.type}"}
+              - column: {name: hascontent, type: BOOLEAN}
+              - column: {name: contentsizeinbytes, type: BIGINT}
+              - column: {name: archivedat, type: TIMESTAMP}
+              - column: {name: bankid, type: VARCHAR(255)}
+
+  - changeSet:
+      id: create-indexes-retentionarchive
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: retentionarchive_bankid_resourcetype_resourceid
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: retentionarchive
+            indexName: retentionarchive_bankid_resourcetype_resourceid
+            columns:
+              - column: {name: bankid}
+              - column: {name: resourcetype}
+              - column: {name: resourceid}
+        - createIndex:
+            tableName: retentionarchive
+            indexName: retentionarchive_deleteafter
+            columns:
+              - column: {name: deleteafter}
+        - createIndex:
+            tableName: retentionarchive
+            indexName: retentionarchive_retentionarchiveid
+            unique: true
+            columns:
+              - column: {name: retentionarchiveid}
+        - createIndex:
+            tableName: retentionarchive
+            indexName: retentionarchive_retentionpolicyid
+            columns:
+              - column: {name: retentionpolicyid}
+
+  - changeSet:
+      id: create-table-retentionarchivecontent
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: retentionarchivecontent
+      comment: >-
+        The base64 content of an archived file, kept apart from the archive row.
+      changes:
+        - createTable:
+            tableName: retentionarchivecontent
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: retentionarchiveid, type: VARCHAR(36)}
+              - column: {name: contentbase64, type: "${text.type}"}
+
+  - changeSet:
+      id: create-indexes-retentionarchivecontent
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: retentionarchivecontent_retentionarchiveid
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: retentionarchivecontent
+            indexName: retentionarchivecontent_retentionarchiveid
+            unique: true
+            columns:
+              - column: {name: retentionarchiveid}
+
+  - changeSet:
+      id: create-table-retentionhold
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: retentionhold
+      comment: >-
+        A hold that stops retention runs from disposing of a resource until it is released.
+      changes:
+        - createTable:
+            tableName: retentionhold
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: entityname, type: VARCHAR(255)}
+              - column: {name: resourcetype, type: VARCHAR(64)}
+              - column: {name: resourceid, type: VARCHAR(255)}
+              - column: {name: placedbyuserid, type: VARCHAR(255)}
+              - column: {name: placedat, type: TIMESTAMP}
+              - column: {name: releasedbyuserid, type: VARCHAR(255)}
+              - column: {name: releasedat, type: TIMESTAMP}
+              - column: {name: bankid, type: VARCHAR(255)}
+              - column: {name: retentionholdid, type: VARCHAR(36)}
+              - column: {name: reason, type: "${text.type}"}
+
+  - changeSet:
+      id: create-indexes-retentionhold
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: retentionhold_bankid_resourcetype
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: retentionhold
+            indexName: retentionhold_bankid_resourcetype
+            columns:
+              - column: {name: bankid}
+              - column: {name: resourcetype}
+        - createIndex:
+            tableName: retentionhold
+            indexName: retentionhold_retentionholdid
+            unique: true
+            columns:
+              - column: {name: retentionholdid}
+
+  - changeSet:
+      id: create-table-retentionpolicy
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: retentionpolicy
+      comment: >-
+        A retention policy: which resources it matches, how long they are kept and what happens then.
+      changes:
+        - createTable:
+            tableName: retentionpolicy
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: enabled, type: BOOLEAN}
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: cascade_c, type: BOOLEAN}
+              - column: {name: entityname, type: VARCHAR(255)}
+              - column: {name: createdbyuserid, type: VARCHAR(255)}
+              - column: {name: description, type: "${text.type}"}
+              - column: {name: retentionpolicyid, type: VARCHAR(36)}
+              - column: {name: resourcetype, type: VARCHAR(64)}
+              - column: {name: datebasis, type: VARCHAR(255)}
+              - column: {name: conditionfield, type: VARCHAR(255)}
+              - column: {name: conditionvalue, type: VARCHAR(2000)}
+              - column: {name: retaindays, type: INTEGER}
+              - column: {name: archivedays, type: INTEGER}
+              - column: {name: requiresapproval, type: BOOLEAN}
+              - column: {name: bankid, type: VARCHAR(255)}
+              - column: {name: updatedat, type: TIMESTAMP}
+              - column: {name: action, type: VARCHAR(32)}
+              - column: {name: name, type: VARCHAR(255)}
+
+  - changeSet:
+      id: create-indexes-retentionpolicy
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: retentionpolicy_bankid
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: retentionpolicy
+            indexName: retentionpolicy_bankid
+            columns:
+              - column: {name: bankid}
+        - createIndex:
+            tableName: retentionpolicy
+            indexName: retentionpolicy_retentionpolicyid
+            unique: true
+            columns:
+              - column: {name: retentionpolicyid}
+
+  - changeSet:
+      id: create-table-retentionrun
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: retentionrun
+      comment: >-
+        One run of a retention policy, with its approval and its counts.
+      changes:
+        - createTable:
+            tableName: retentionrun
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: retentionpolicyid, type: VARCHAR(36)}
+              - column: {name: retentionrunid, type: VARCHAR(36)}
+              - column: {name: requestedat, type: TIMESTAMP}
+              - column: {name: requestedbyuserid, type: VARCHAR(255)}
+              - column: {name: approvedbyuserid, type: VARCHAR(255)}
+              - column: {name: approvaldecision, type: VARCHAR(16)}
+              - column: {name: approvalcomment, type: "${text.type}"}
+              - column: {name: matchedcount, type: INTEGER}
+              - column: {name: archivedcount, type: INTEGER}
+              - column: {name: anonymisedcount, type: INTEGER}
+              - column: {name: deletedcount, type: INTEGER}
+              - column: {name: heldcount, type: INTEGER}
+              - column: {name: failedcount, type: INTEGER}
+              - column: {name: message, type: "${text.type}"}
+              - column: {name: bankid, type: VARCHAR(255)}
+              - column: {name: mode_c, type: VARCHAR(16)}
+              - column: {name: startedat, type: TIMESTAMP}
+              - column: {name: endedat, type: TIMESTAMP}
+              - column: {name: status, type: VARCHAR(16)}
+
+  - changeSet:
+      id: create-indexes-retentionrun
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: retentionrun_bankid_requestedat
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: retentionrun
+            indexName: retentionrun_bankid_requestedat
+            columns:
+              - column: {name: bankid}
+              - column: {name: requestedat}
+        - createIndex:
+            tableName: retentionrun
+            indexName: retentionrun_retentionpolicyid_status
+            columns:
+              - column: {name: retentionpolicyid}
+              - column: {name: status}
+        - createIndex:
+            tableName: retentionrun
+            indexName: retentionrun_retentionrunid
+            unique: true
+            columns:
+              - column: {name: retentionrunid}
+
+  - changeSet:
+      id: create-table-retentionrunitem
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: retentionrunitem
+      comment: >-
+        One resource a retention run disposed of, and how.
+      changes:
+        - createTable:
+            tableName: retentionrunitem
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: entityname, type: VARCHAR(255)}
+              - column: {name: retentionpolicyid, type: VARCHAR(36)}
+              - column: {name: resourcetype, type: VARCHAR(64)}
+              - column: {name: retentionarchiveid, type: VARCHAR(36)}
+              - column: {name: resourceid, type: VARCHAR(255)}
+              - column: {name: retentionrunid, type: VARCHAR(36)}
+              - column: {name: owneruserid, type: VARCHAR(255)}
+              - column: {name: parentresourcetype, type: VARCHAR(64)}
+              - column: {name: parentresourceid, type: VARCHAR(255)}
+              - column: {name: bankid, type: VARCHAR(255)}
+              - column: {name: retentionrunitemid, type: VARCHAR(36)}
+              - column: {name: disposedat, type: TIMESTAMP}
+              - column: {name: action, type: VARCHAR(32)}
+
+  - changeSet:
+      id: create-indexes-retentionrunitem
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: retentionrunitem_bankid_resourcetype_resourceid
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: retentionrunitem
+            indexName: retentionrunitem_bankid_resourcetype_resourceid
+            columns:
+              - column: {name: bankid}
+              - column: {name: resourcetype}
+              - column: {name: resourceid}
+        - createIndex:
+            tableName: retentionrunitem
+            indexName: retentionrunitem_retentionrunid
+            columns:
+              - column: {name: retentionrunid}
+        - createIndex:
+            tableName: retentionrunitem
+            indexName: retentionrunitem_retentionrunitemid
+            unique: true
+            columns:
+              - column: {name: retentionrunitemid}
+
+  - changeSet:
+      id: create-table-selfservicebank
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: selfservicebank
+      comment: >-
+        A bank made with Create My Bank, recorded so the self-service quota counts only those.
+      changes:
+        - createTable:
+            tableName: selfservicebank
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: createdbyuserid, type: VARCHAR(255)}
+              - column: {name: bankid, type: VARCHAR(255)}
+              - column: {name: createdat, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-indexes-selfservicebank
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: selfservicebank_bankid
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: selfservicebank
+            indexName: selfservicebank_bankid
+            unique: true
+            columns:
+              - column: {name: bankid}
+
+  - changeSet:
+      id: create-table-tenant
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: tenant
+      comment: >-
+        A Tenant (formerly an Organisation): the body that groups banks and users on an instance.
+      changes:
+        - createTable:
+            tableName: tenant
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: createdbyuserid, type: VARCHAR(255)}
+              - column: {name: tenantid, type: VARCHAR(64)}
+              - column: {name: website, type: VARCHAR(1024)}
+              - column: {name: logourl, type: VARCHAR(1024)}
+              - column: {name: visibility, type: VARCHAR(32)}
+              - column: {name: creationdate, type: TIMESTAMP}
+              - column: {name: lastupdate, type: TIMESTAMP}
+              - column: {name: status, type: VARCHAR(32)}
+              - column: {name: name, type: VARCHAR(255)}
+
+  - changeSet:
+      id: create-indexes-tenant
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: tenant_tenantid
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: tenant
+            indexName: tenant_tenantid
+            unique: true
+            columns:
+              - column: {name: tenantid}
+
+
+  # ── Columns and indexes the merged features add to existing tables ─────────────────────
+
+  - changeSet:
+      id: add-record-metadata-dynamicdata
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: dynamicdata
+                columnName: createdat
+      comment: >-
+        When a Dynamic Entity record was created and last updated, and by whom: the user who made the call and the user it was made for, which differ only when an agent acted for somebody. Nullable: records saved before the columns existed hold NULL until they are next saved, and their creation time is never guessed.
+      changes:
+        - addColumn:
+            tableName: dynamicdata
+            columns:
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: updatedat, type: TIMESTAMP}
+              - column: {name: createdbyuserid, type: VARCHAR(255)}
+              - column: {name: createdbyonbehalfofuserid, type: VARCHAR(255)}
+              - column: {name: updatedbyuserid, type: VARCHAR(255)}
+              - column: {name: updatedbyonbehalfofuserid, type: VARCHAR(255)}
+
+  - changeSet:
+      id: add-lang-dynamicresourcedoc
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: dynamicresourcedoc
+                columnName: lang
+      comment: >-
+        The source language of the endpoint body, Scala or Java. NULL on docs created before the column existed, which read back as Scala.
+      changes:
+        - addColumn:
+            tableName: dynamicresourcedoc
+            columns:
+              - column: {name: lang, type: VARCHAR(50)}
+
+  - changeSet:
+      id: add-created-by-on-behalf-of-mappedcounterparty
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: mappedcounterparty
+                columnName: mcreatedbyonbehalfofuserid
+      comment: >-
+        The user the creator of a counterparty acted for when a consent was involved, otherwise the creator again. An internal audit column; no response carries it.
+      changes:
+        - addColumn:
+            tableName: mappedcounterparty
+            columns:
+              - column: {name: mcreatedbyonbehalfofuserid, type: VARCHAR(36)}
+
+  - changeSet:
+      id: add-bankid-mappeduserauthcontextupdate
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: mappeduserauthcontextupdate
+                columnName: bankid
+      comment: >-
+        The bank a user auth context update was requested at; its answer is accepted at that bank only. NULL on updates requested before the column existed, which no bank accepts.
+      changes:
+        - addColumn:
+            tableName: mappeduserauthcontextupdate
+            columns:
+              - column: {name: bankid, type: VARCHAR(255)}
+
+  - changeSet:
+      id: add-forwarded-for-domain-api-url-metric
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: metric
+                columnName: forwarded_for
+      comment: >-
+        The hops a request passed through (the X-Forwarded-For chain followed by the TCP peer), and the path a caller used under a Domain API before it was rewritten to the OBP URL in url.
+      changes:
+        - addColumn:
+            tableName: metric
+            columns:
+              - column: {name: forwarded_for, type: VARCHAR(512)}
+              - column: {name: domain_api_url, type: VARCHAR(2000)}
+
+  - changeSet:
+      id: add-forwarded-for-domain-api-url-metricarchive
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: metricarchive
+                columnName: forwarded_for
+      comment: >-
+        The archive copy of the two metric columns of the same name, at the same widths, so the archiver can copy every row.
+      changes:
+        - addColumn:
+            tableName: metricarchive
+            columns:
+              - column: {name: forwarded_for, type: VARCHAR(512)}
+              - column: {name: domain_api_url, type: VARCHAR(2000)}
+
+  - changeSet:
+      id: add-consumerid-signingbasket
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: signingbasket
+                columnName: consumerid
+      comment: >-
+        The consumer (TPP) that created a signing basket. NULL on baskets created before it was recorded.
+      changes:
+        - addColumn:
+            tableName: signingbasket
+            columns:
+              - column: {name: consumerid, type: VARCHAR(255)}
+
+  - changeSet:
+      id: widen-dynamicdata-dynamicdataid
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - sqlCheck:
+                expectedResult: 0
+                sql: >-
+                  SELECT COUNT(*) FROM information_schema.columns
+                  WHERE LOWER(table_name) = 'dynamicdata' AND LOWER(column_name) = 'dynamicdataid'
+                  AND character_maximum_length = 36
+      comment: >-
+        A caller may supply a record id itself, which is how a Dynamic Entity gets a natural key such as
+        a country code or a scheme name, so the id is not always a UUID and can exceed 36 characters.
+        255 is the width of the two other columns holding the same id (dynamicdataaccess.dynamicdataid
+        and the projection tables' data_id). The precondition counts the columns still at 36, so a
+        database already widened marks this run.
+      changes:
+        - modifyDataType:
+            tableName: dynamicdata
+            columnName: dynamicdataid
+            newDataType: VARCHAR(255)
+
+  - changeSet:
+      id: create-index-dynamicdata_bankid_dynamicentityname_dynamicdataid
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamicdata_bankid_dynamicentityname_dynamicdataid
+      comment: >-
+        A record id is unique within one space and one entity, not across the instance: two spaces may each hold a record whose natural key is DE. Supersedes dynamicdata_dynamicdataid, which db.changelog-dynamic-entity-space.yaml drops.
+      changes:
+        - createIndex:
+            tableName: dynamicdata
+            indexName: dynamicdata_bankid_dynamicentityname_dynamicdataid
+            unique: true
+            columns:
+              - column: {name: bankid}
+              - column: {name: dynamicentityname}
+              - column: {name: dynamicdataid}
+
+  - changeSet:
+      id: create-index-dynamicdataaccess_bankid_entityname_dynamicdataid_userid
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamicdataaccess_bankid_entityname_dynamicdataid_userid
+      comment: >-
+        One access row per (space, entity, record, user), with the same discriminators as the record index. Supersedes dynamicdataaccess_dynamicdataid_userid.
+      changes:
+        - createIndex:
+            tableName: dynamicdataaccess
+            indexName: dynamicdataaccess_bankid_entityname_dynamicdataid_userid
+            unique: true
+            columns:
+              - column: {name: bankid}
+              - column: {name: entityname}
+              - column: {name: dynamicdataid}
+              - column: {name: userid}
+
+  - changeSet:
+      id: create-index-dynamicresourcedoc_bankid_requesturl_requestverb
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamicresourcedoc_bankid_requesturl_requestverb
+      comment: >-
+        A verb and URL are unique within one space, not across spaces. Supersedes dynamicresourcedoc_requesturl_requestverb.
+      changes:
+        - createIndex:
+            tableName: dynamicresourcedoc
+            indexName: dynamicresourcedoc_bankid_requesturl_requestverb
+            unique: true
+            columns:
+              - column: {name: bankid}
+              - column: {name: requesturl}
+              - column: {name: requestverb}
+
+  - changeSet:
+      id: create-index-message_outbox_target_id
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: message_outbox_target_id
+      comment: >-
+        Webhook deliveries are listed and counted per webhook, which is the target id of a WEBHOOK row.
+      changes:
+        - createIndex:
+            tableName: message_outbox
+            indexName: message_outbox_target_id
+            columns:
+              - column: {name: target_id}
+
+  - changeSet:
+      id: create-index-token_key_c
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: token_key_c
+      comment: >-
+        Every authenticated request looks its token up by key, so without this each request scanned the whole table. Not unique, so a database that already holds a duplicate key still starts.
+      changes:
+        - createIndex:
+            tableName: token
+            indexName: token_key_c
+            columns:
+              - column: {name: key_c}
+

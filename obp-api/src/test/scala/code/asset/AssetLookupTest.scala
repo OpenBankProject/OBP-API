@@ -18,7 +18,7 @@ import code.util.Helper
 class AssetLookupTest extends ServerSetup with RestoresSeededAssetRegistry {
 
   private def seedRegistry(): Unit = {
-    Asset.bulkDelete_!!()
+    Asset.deleteAll()
     AssetSeed.run()
     AssetLookup.invalidate()
   }
@@ -73,7 +73,7 @@ class AssetLookupTest extends ServerSetup with RestoresSeededAssetRegistry {
     }
 
     scenario("With the registry empty, the built-in answers are used") {
-      Asset.bulkDelete_!!()
+      Asset.deleteAll()
       AssetLookup.invalidate()
       APIUtil.isValidCurrencyISOCode("EUR") shouldBe true
       APIUtil.isValidCurrencyISOCode("eur") shouldBe true

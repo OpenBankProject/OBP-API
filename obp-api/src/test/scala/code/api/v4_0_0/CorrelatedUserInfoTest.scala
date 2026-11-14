@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.{CanGetCorrelatedUsersInfo, CanGetCorrelatedUsersInfoAtAnyBank}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
@@ -52,9 +53,9 @@ class CorrelatedUserInfoTest extends V400ServerSetup {
 
   lazy val bankId = randomBankId
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "correlated-users").GET
       val response400 = makeGetRequest(request400)
@@ -63,9 +64,9 @@ class CorrelatedUserInfoTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access without roles") {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access without roles") {
     lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "customers" / customerId / "correlated-users").GET <@(user1)
       val response400 = makeGetRequest(request400)
@@ -77,8 +78,8 @@ class CorrelatedUserInfoTest extends V400ServerSetup {
     }
   }
   
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with roles") {
-    scenario("We will call the endpoint without user credentials-bank level role", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with roles") {
+    Scenario("We will call the endpoint without user credentials-bank level role", ApiEndpoint1, VersionOfApi) {
       lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
       val link = createUserCustomerLink(bankId, resourceUser1.userId, customerId)
       
@@ -93,7 +94,7 @@ class CorrelatedUserInfoTest extends V400ServerSetup {
       customerAndUsersWithAttributesResponseJson.users.length should be (1)
     }
 
-    scenario("We will call the endpoint without user credentials - system level role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials - system level role", ApiEndpoint1, VersionOfApi) {
       lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
       val link = createUserCustomerLink(bankId, resourceUser1.userId, customerId)
       
@@ -110,9 +111,9 @@ class CorrelatedUserInfoTest extends V400ServerSetup {
   }
 
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
     lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "my" / "correlated-entities").GET
       val response400 = makeGetRequest(request400)
@@ -121,8 +122,8 @@ class CorrelatedUserInfoTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint without user credentials-bank level role", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint without user credentials-bank level role", ApiEndpoint1, VersionOfApi) {
       lazy val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
       val link = createUserCustomerLink(bankId, resourceUser1.userId, customerId)
       

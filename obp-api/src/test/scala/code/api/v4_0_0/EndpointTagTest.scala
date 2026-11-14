@@ -57,8 +57,8 @@ class EndpointTagTest extends V400ServerSetup {
 
   val operationIdInUrl = "OBPv4.0.0-getBanks"
   
-  feature("Test System Level Endpoint Tag Endpoints ") {
-    scenario("We test CURD the Endpoint Tag Endpoints", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+  Feature("Test System Level Endpoint Tag Endpoints ") {
+    Scenario("We test CURD the Endpoint Tag Endpoints", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateSystemLevelEndpointTag.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateSystemLevelEndpointTag.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetSystemLevelEndpointTag.toString)
@@ -120,7 +120,7 @@ class EndpointTagTest extends V400ServerSetup {
       endpointTagsJsonGetAfterDelete.length should be (0)
     }
 
-    scenario("We test roles the Endpoint Tag Endpoints", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario("We test roles the Endpoint Tag Endpoints", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       When(s"First we test the $ApiEndpoint1")
       val request = (v4_0_0_Request / "management" / "endpoints" / operationIdInUrl /"tags").POST <@ (user1)
       lazy val endpointTagJson= SwaggerDefinitionsJSON.endpointTagJson400
@@ -164,8 +164,8 @@ class EndpointTagTest extends V400ServerSetup {
     }
   }
   
-  feature("Test Bank Level Endpoint Tag Endpoints ") {
-    scenario("We test CURD the Endpoint Tag Endpoints", ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, ApiEndpoint8, VersionOfApi) {
+  Feature("Test Bank Level Endpoint Tag Endpoints ") {
+    Scenario("We test CURD the Endpoint Tag Endpoints", ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanCreateBankLevelEndpointTag.toString)
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanUpdateBankLevelEndpointTag.toString)
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanGetBankLevelEndpointTag.toString)
@@ -228,7 +228,7 @@ class EndpointTagTest extends V400ServerSetup {
       endpointTagsJsonGetAfterDelete.length should be (0)
     }
     
-    scenario("We test roles the Endpoint Tag Endpoints", ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, ApiEndpoint8, VersionOfApi) {
+    Scenario("We test roles the Endpoint Tag Endpoints", ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, ApiEndpoint8, VersionOfApi) {
       When(s"First we test the $ApiEndpoint5")
       val request = (v4_0_0_Request / "management" /"banks"/testBankId1.value / "endpoints" / operationIdInUrl /"tags").POST <@ (user1)
       lazy val endpointTagJson= SwaggerDefinitionsJSON.endpointTagJson400

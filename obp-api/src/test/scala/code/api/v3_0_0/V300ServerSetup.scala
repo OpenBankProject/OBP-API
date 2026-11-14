@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_0_0
 
 import code.api.Constant._
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.v1_2_1.{AccountJSON, AccountsJSON, BanksJSON, ViewsJSONV121}
 import code.api.v2_0_0.BasicAccountsJSON

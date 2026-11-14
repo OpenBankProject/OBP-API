@@ -63,23 +63,23 @@ class BankAccountBalanceTest extends V510ServerSetup with DefaultUsers {
     (response.body.extract[BankAccountBalanceResponseJsonV510].balance_id)
   }
   
-  feature("Create Bank Account Balance") {
+  Feature("Create Bank Account Balance") {
     
-    scenario("401 Unauthorized", Create, VersionOfApi) {
+    Scenario("401 Unauthorized", Create, VersionOfApi) {
       val request = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "balances").POST
       val response = makePostRequest(request, write(bankAccountBalanceRequestJsonV510))
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("403 Forbidden (no role)", Create, VersionOfApi) {
+    Scenario("403 Forbidden (no role)", Create, VersionOfApi) {
       val request = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "balances").POST <@ user1
       val response = makePostRequest(request, write(bankAccountBalanceRequestJsonV510))
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should startWith(ErrorMessages.UserHasMissingRoles + CanCreateBankAccountBalance.toString)
     }
 
-    scenario("201 Success + Field Echo", Create, VersionOfApi) {
+    Scenario("201 Success + Field Echo", Create, VersionOfApi) {
       val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateBankAccountBalance.toString)
       val request = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "balances").POST <@ user1
       val response = makePostRequest(request, write(bankAccountBalanceRequestJsonV510))
@@ -92,21 +92,21 @@ class BankAccountBalanceTest extends V510ServerSetup with DefaultUsers {
     }
   }
 
-  feature("Update Bank Account Balance") {
+  Feature("Update Bank Account Balance") {
     
-    scenario("401 Unauthorized", Update, VersionOfApi) {
+    Scenario("401 Unauthorized", Update, VersionOfApi) {
       val request = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "balances" / balanceId).PUT
       val response = makePutRequest(request, write(bankAccountBalanceRequestJsonV510))
       response.code should equal(401)
     }
 
-    scenario("403 Forbidden", Update, VersionOfApi) {
+    Scenario("403 Forbidden", Update, VersionOfApi) {
       val request = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "balances" / balanceId).PUT <@ user1
       val response = makePutRequest(request, write(bankAccountBalanceRequestJsonV510))
       response.code should equal(403)
     }
 
-    scenario("200 Success", Update, VersionOfApi) {
+    Scenario("200 Success", Update, VersionOfApi) {
       lazy val bankId = testBankId1.value
       lazy val accountId = testAccountId1.value
       lazy val balanceId = createMockBalance(bankId, accountId)
@@ -119,24 +119,24 @@ class BankAccountBalanceTest extends V510ServerSetup with DefaultUsers {
     }
   }
 
-  feature("Delete Bank Account Balance") {
+  Feature("Delete Bank Account Balance") {
     lazy val bankId = testBankId1.value
     lazy val accountId = testAccountId1.value
     lazy val balanceId = createMockBalance(bankId, accountId)
     
-    scenario("401 Unauthorized", Delete, VersionOfApi) {
+    Scenario("401 Unauthorized", Delete, VersionOfApi) {
       val request = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "balances" / balanceId).DELETE
       val response = makeDeleteRequest(request)
       response.code should equal(401)
     }
 
-    scenario("403 Forbidden", Delete, VersionOfApi) {
+    Scenario("403 Forbidden", Delete, VersionOfApi) {
       val request = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "balances" / balanceId).DELETE <@ user1
       val response = makeDeleteRequest(request)
       response.code should equal(403)
     }
 
-    scenario("204 Success", Delete, VersionOfApi) {
+    Scenario("204 Success", Delete, VersionOfApi) {
       lazy val bankId = testBankId1.value
       lazy val accountId = testAccountId1.value
       lazy val balanceId = createMockBalance(bankId, accountId)
@@ -148,26 +148,26 @@ class BankAccountBalanceTest extends V510ServerSetup with DefaultUsers {
     }
   }
 
-  feature("Get All Bank Account Balances") {
+  Feature("Get All Bank Account Balances") {
     lazy val bankId = testBankId1.value
     lazy val accountId = testAccountId1.value
     lazy val balanceId = createMockBalance(bankId, accountId)
     
-    scenario("401 Unauthorized", GetAll, VersionOfApi) {
+    Scenario("401 Unauthorized", GetAll, VersionOfApi) {
       val request = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "balances").GET
       val response = makeGetRequest(request)
       response.code should equal(401)
     }
 
     // user2 has no view on user1's account, so it must not read that account's balances
-    scenario("403 Forbidden (no view that can see balances)", GetAll, VersionOfApi) {
+    Scenario("403 Forbidden (no view that can see balances)", GetAll, VersionOfApi) {
       val request = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "balances").GET <@ user2
       val response = makeGetRequest(request)
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should startWith(ErrorMessages.ViewDoesNotPermitAccess)
     }
 
-    scenario("200 Success", GetAll, VersionOfApi) {
+    Scenario("200 Success", GetAll, VersionOfApi) {
       lazy val bankId = testBankId1.value
       lazy val accountId = testAccountId1.value
       val request = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "balances").GET <@ user1
@@ -176,17 +176,17 @@ class BankAccountBalanceTest extends V510ServerSetup with DefaultUsers {
     }
   }
 
-  feature("Get Bank Account Balance by ID") {
+  Feature("Get Bank Account Balance by ID") {
     lazy val bankId = testBankId1.value
     lazy val accountId = testAccountId1.value
     
-    scenario("401 Unauthorized", GetOne, VersionOfApi) {
+    Scenario("401 Unauthorized", GetOne, VersionOfApi) {
       val request = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "balances" / balanceId).GET
       val response = makeGetRequest(request)
       response.code should equal(401)
     }
 
-    scenario("200 Success", GetOne, VersionOfApi) {
+    Scenario("200 Success", GetOne, VersionOfApi) {
       lazy val bankId = testBankId1.value
       lazy val accountId = testAccountId1.value
       lazy val balanceId = createMockBalance(bankId, accountId)

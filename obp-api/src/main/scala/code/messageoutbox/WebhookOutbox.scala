@@ -36,7 +36,6 @@ import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jose.{JOSEObjectType, JWSAlgorithm, JWSHeader, JWSObject, Payload}
-import net.liftweb.mapper.{By, By_>, Descending, MaxRows, OrderBy, QueryParam, StartAt}
 import okhttp3.{MediaType, OkHttpClient, Request, RequestBody}
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
@@ -129,47 +128,30 @@ object WebhookOutbox extends MdcLoggable {
 
   /** This drops the requests of a webhook that have not been delivered yet, when the webhook is deleted. */
   def discardPending(webhookId: String): Int =
-    MessageOutbox.findAll(
-      By(MessageOutbox.OutboxType, MessageOutbox.TYPE_WEBHOOK),
-      By(MessageOutbox.TargetId, webhookId),
-      By(MessageOutbox.Status, MessageOutbox.STATUS_PENDING)
-    ).count(_.delete_!)
+    MessageOutbox.deletePendingWebhookRows(webhookId)
 
   /** A webhook's requests, newest first; `status` narrows them to PENDING, DELIVERED or STICKY. */
   def deliveries(webhookId: String, status: Option[String], limit: Int, offset: Int): List[MessageOutbox] =
-    MessageOutbox.findAll(
-      List[QueryParam[MessageOutbox]](
-        By(MessageOutbox.OutboxType, MessageOutbox.TYPE_WEBHOOK),
-        By(MessageOutbox.TargetId, webhookId),
-        OrderBy(MessageOutbox.id, Descending),
-        StartAt(offset),
-        MaxRows(limit)
-      ) ++ status.map(By(MessageOutbox.Status, _)): _*)
+    MessageOutbox.findWebhookRows(webhookId, status, limit, offset)
 
   /** How many requests were queued for a webhook since `since`. */
   def queuedSince(webhookId: String, since: java.util.Date): Long =
-    MessageOutbox.count(
-      By(MessageOutbox.OutboxType, MessageOutbox.TYPE_WEBHOOK),
-      By(MessageOutbox.TargetId, webhookId),
-      By_>(MessageOutbox.CreatedAt, since))
+    MessageOutbox.countWebhookRowsSince(webhookId, since)
 
   /** One request of a webhook, by its event id. */
   def delivery(webhookId: String, eventId: String): Option[MessageOutbox] =
-    MessageOutbox.find(
-      By(MessageOutbox.OutboxType, MessageOutbox.TYPE_WEBHOOK),
-      By(MessageOutbox.TargetId, webhookId),
-      By(MessageOutbox.SubjectId, eventId)).toOption
+    MessageOutbox.findWebhookRow(webhookId, eventId)
 
   /**
    * This sends a STICKY request again: it goes back to PENDING with its attempts reset, so it gets the
    * full number of attempts again, and keeps its event id and body.
    */
   def requeue(row: MessageOutbox): MessageOutbox =
-    row.Status(MessageOutbox.STATUS_PENDING).Attempts(0).LastError("").saveMe()
+    MessageOutbox.resetForRetry(row.id).openOr(row)
 
   /** The reply a row last got, if it got one. */
   def lastReply(row: MessageOutbox): Option[OutboxWebhookReply] =
-    Option(row.LastReplyJson.get).filter(_.trim.nonEmpty)
+    Option(row.lastReplyJson).filter(_.trim.nonEmpty)
       .flatMap(json => Try(Serialization.read[OutboxWebhookReply](json)).toOption)
 
   private lazy val client: OkHttpClient = new OkHttpClient.Builder()
@@ -189,10 +171,10 @@ object WebhookOutbox extends MdcLoggable {
   def deliver(read: MessageOutbox): Unit =
     // Another instance's relay may have claimed it first; then it is theirs to send.
     if (MessageOutbox.claimForDelivery(read)) {
-      val row = MessageOutbox.find(By(MessageOutbox.id, read.id.get)).openOrThrowException("claimed row")
-      val url = Try(Serialization.read[OutboxWebhookMetadata](row.MetadataJson.get).url).toOption.getOrElse("")
+      val row = MessageOutbox.findById(read.id).openOrThrowException("claimed row")
+      val url = Try(Serialization.read[OutboxWebhookMetadata](row.metadataJson).url).toOption.getOrElse("")
       WebhookUrlCheck.problem(url) match {
-        case Some(problem) => giveUp(row, s"The url is refused: $problem")
+        case Some(problem) => giveUp(row, row.lastReplyJson, s"The url is refused: $problem")
         case None => post(row, url)
       }
     }
@@ -216,30 +198,30 @@ object WebhookOutbox extends MdcLoggable {
       try {
         val httpStatus = response.code
         val reply = Serialization.write(OutboxWebhookReply(httpStatus, Try(response.peekBody(MaxReplyBodyLength).string()).getOrElse("")))
-        row.LastReplyJson(reply)
         if (response.isSuccessful) {
-          row.Status(MessageOutbox.STATUS_DELIVERED).LastError("").saveMe()
-          logger.info(s"message outbox row ${row.id.get}: ${row.operationName} for webhook ${row.targetId} DELIVERED ($httpStatus)")
-        } else if (isRetryable(httpStatus)) retryOrGiveUp(row, s"The receiver replied $httpStatus ${response.message}.")
-        else giveUp(row, s"The receiver replied $httpStatus ${response.message}.")
+          MessageOutbox.setOutcome(row.id, MessageOutbox.STATUS_DELIVERED, "", reply)
+          logger.info(s"message outbox row ${row.id}: ${row.operationName} for webhook ${row.targetId} DELIVERED ($httpStatus)")
+        } else if (isRetryable(httpStatus)) retryOrGiveUp(row, reply, s"The receiver replied $httpStatus ${response.message}.")
+        else giveUp(row, reply, s"The receiver replied $httpStatus ${response.message}.")
       } finally response.close()
     } catch {
-      case e: ForbiddenWebhookAddress => giveUp(row.LastReplyJson(""), s"The url is refused: ${e.getMessage}")
-      case e: java.io.IOException => retryOrGiveUp(row.LastReplyJson(""), s"No reply: ${e.getClass.getSimpleName} ${Option(e.getMessage).getOrElse("")}".trim)
+      case e: ForbiddenWebhookAddress => giveUp(row, "", s"The url is refused: ${e.getMessage}")
+      case e: java.io.IOException => retryOrGiveUp(row, "", s"No reply: ${e.getClass.getSimpleName} ${Option(e.getMessage).getOrElse("")}".trim)
     }
   }
 
   // The claim already counted this attempt.
-  private def retryOrGiveUp(row: MessageOutbox, error: String): Unit =
-    if (row.attempts >= maxAttemptsInEffect) giveUp(row, s"Gave up after ${row.attempts} attempts. $error")
+  // `reply` is what to keep as last_reply_json: this attempt's reply, or "" when there was none.
+  private def retryOrGiveUp(row: MessageOutbox, reply: String, error: String): Unit =
+    if (row.attempts >= maxAttemptsInEffect) giveUp(row, reply, s"Gave up after ${row.attempts} attempts. $error")
     else {
-      row.Status(MessageOutbox.STATUS_PENDING).LastError(error.take(2000)).saveMe()
-      logger.warn(s"message outbox row ${row.id.get}: ${row.operationName} for webhook ${row.targetId} " +
+      MessageOutbox.setOutcome(row.id, MessageOutbox.STATUS_PENDING, error.take(2000), reply)
+      logger.warn(s"message outbox row ${row.id}: ${row.operationName} for webhook ${row.targetId} " +
         s"not delivered (attempt ${row.attempts}), will retry: $error")
     }
 
-  private def giveUp(row: MessageOutbox, error: String): Unit = {
-    row.Status(MessageOutbox.STATUS_STICKY).LastError(error.take(2000)).saveMe()
-    logger.warn(s"message outbox row ${row.id.get}: ${row.operationName} for webhook ${row.targetId} STICKY: $error")
+  private def giveUp(row: MessageOutbox, reply: String, error: String): Unit = {
+    MessageOutbox.setOutcome(row.id, MessageOutbox.STATUS_STICKY, error.take(2000), reply)
+    logger.warn(s"message outbox row ${row.id}: ${row.operationName} for webhook ${row.targetId} STICKY: $error")
   }
 }

@@ -74,15 +74,13 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
   override def beforeAll(): Unit = {
     super.beforeAll()
     // Create a test user for credential verification
-    testAuthUser = AuthUser.create
-      .email(testEmail)
-      .username(testUsername)
-      .password(testPassword)
-      .validated(true)
-      .firstName("Test")
-      .lastName("User")
-      .provider(Constant.localIdentityProvider)
-      .saveMe()
+    testAuthUser = AuthUser(
+        email = testEmail,
+        username = testUsername,
+        validated = true,
+        firstName = "Test",
+        lastName = "User",
+        provider = Constant.localIdentityProvider).withPassword(testPassword).saveMe()
   }
 
   override def afterAll(): Unit = {
@@ -95,9 +93,9 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
     super.afterAll()
   }
 
-  feature(s"Verify User Credentials - POST /obp/v6.0.0/users/verify-credentials - $VersionOfApi") {
+  Feature(s"Verify User Credentials - POST /obp/v6.0.0/users/verify-credentials - $VersionOfApi") {
 
-    scenario("Anonymous access should fail with 401", ApiEndpoint, VersionOfApi) {
+    Scenario("Anonymous access should fail with 401", ApiEndpoint, VersionOfApi) {
       When("We make the request without authentication")
       val postJson = Map(
         "username" -> testUsername,
@@ -113,7 +111,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include("OBP-20200")
     }
 
-    scenario("Authenticated user without role should fail with 403", ApiEndpoint, VersionOfApi) {
+    Scenario("Authenticated user without role should fail with 403", ApiEndpoint, VersionOfApi) {
       When("We make the request as an authenticated user without the required role")
       val postJson = Map(
         "username" -> testUsername,
@@ -129,9 +127,9 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanVerifyUserCredentials)
     }
 
-    scenario("Successfully verify valid credentials with consumer scope, the Consumer acting as itself (no user entitlement)", ApiEndpoint, VersionOfApi) {
+    Scenario("Successfully verify valid credentials with consumer scope, the Consumer acting as itself (no user entitlement)", ApiEndpoint, VersionOfApi) {
       // Add scope to consumer instead of entitlement to user — UserXORApplication accepts it when the Consumer acts as itself
-      val addedScope = Scope.scope.vend.addScope("", testConsumer.id.get.toString, ApiRole.CanVerifyUserCredentials.toString)
+      val addedScope = Scope.scope.vend.addScope("", testConsumer.id.toString, ApiRole.CanVerifyUserCredentials.toString)
 
       When("We verify valid credentials using consumer with scope")
       val postJson = Map(
@@ -158,7 +156,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       (json \ "username").extract[String] should equal(testUsername)
     }
 
-    scenario("Successfully verify valid credentials", ApiEndpoint, VersionOfApi) {
+    Scenario("Successfully verify valid credentials", ApiEndpoint, VersionOfApi) {
       // Add the required entitlement
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -187,7 +185,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       (json \ "user_id").extract[String] should not be empty
     }
 
-    scenario("Fail to verify with wrong password", ApiEndpoint, VersionOfApi) {
+    Scenario("Fail to verify with wrong password", ApiEndpoint, VersionOfApi) {
       // Add the required entitlement
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -213,7 +211,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include("OBP-20004")
     }
 
-    scenario("Fail to verify with non-existent username", ApiEndpoint, VersionOfApi) {
+    Scenario("Fail to verify with non-existent username", ApiEndpoint, VersionOfApi) {
       // Add the required entitlement
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -237,7 +235,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include("OBP-20004")
     }
 
-    scenario("Fail to verify with mismatched provider", ApiEndpoint, VersionOfApi) {
+    Scenario("Fail to verify with mismatched provider", ApiEndpoint, VersionOfApi) {
       // Add the required entitlement
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -261,7 +259,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include("OBP-20004")
     }
 
-    scenario("Wrong password for external provider should not increment local user bad login attempts", ApiEndpoint, VersionOfApi) {
+    Scenario("Wrong password for external provider should not increment local user bad login attempts", ApiEndpoint, VersionOfApi) {
       // This test verifies the fix for collateral damage: two users share the same username
       // but have different providers. Verifying the external user with wrong credentials
       // must NOT increment bad login attempts on the local user.
@@ -271,25 +269,23 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       val externalProvider = "external_test_provider"
 
       // Create a local user
-      val localUser = AuthUser.create
-        .email(localEmail)
-        .username(sharedUsername)
-        .password(localPassword)
-        .validated(true)
-        .firstName("Local")
-        .lastName("User")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val localUser = AuthUser(
+        email = localEmail,
+        username = sharedUsername,
+        validated = true,
+        firstName = "Local",
+        lastName = "User",
+        provider = Constant.localIdentityProvider).withPassword(localPassword).saveMe()
 
       // Create an external user with the same username (dummy password, as external users have)
-      val externalUser = AuthUser.create
-        .email(sharedUsername + "@external.example.com")
-        .username(sharedUsername)
-        .password(net.liftweb.util.Helpers.randomString(40)) // random dummy password
-        .validated(true)
-        .firstName("External")
-        .lastName("User")
-        .provider(externalProvider)
+      val externalUser = AuthUser(
+        email = sharedUsername + "@external.example.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "External",
+        lastName = "User",
+        provider = externalProvider)
+        .withPassword(net.liftweb.util.Helpers.randomString(40)) // random dummy password
         .saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
@@ -341,7 +337,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       }
     }
 
-    scenario("Empty provider should be treated as local provider", ApiEndpoint, VersionOfApi) {
+    Scenario("Empty provider should be treated as local provider", ApiEndpoint, VersionOfApi) {
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
       When("We verify valid credentials with an empty provider string")
@@ -364,7 +360,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       (response.body \ "username").extract[String] should equal(testUsername)
     }
 
-    scenario("Same username across multiple realistic providers should be fully isolated", ApiEndpoint, VersionOfApi) {
+    Scenario("Same username across multiple realistic providers should be fully isolated", ApiEndpoint, VersionOfApi) {
       // In production, a single username like "alice" might exist under several providers:
       // the local OBP instance, Google OIDC, GitHub, and possibly erroneous entries.
       // Each must be completely isolated from the others.
@@ -376,47 +372,41 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       val erroneousProvider = "https://gogle.com"  // typo in production data
 
       // Create a local user
-      val localUser = AuthUser.create
-        .email(sharedUsername + "@openbankproject.com")
-        .username(sharedUsername)
-        .password(localPassword)
-        .validated(true)
-        .firstName("Alice")
-        .lastName("Local")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val localUser = AuthUser(
+        email = sharedUsername + "@openbankproject.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Alice",
+        lastName = "Local",
+        provider = Constant.localIdentityProvider).withPassword(localPassword).saveMe()
 
       // Create external users with the same username under different providers
       // (as would exist in production when users sign in via different identity providers)
-      val googleUser = AuthUser.create
-        .email(sharedUsername + "@gmail.com")
-        .username(sharedUsername)
-        .password(randomString(40)) // dummy password, as with all external users
-        .validated(true)
-        .firstName("Alice")
-        .lastName("Google")
-        .provider(googleProvider)
+      val googleUser = AuthUser(
+        email = sharedUsername + "@gmail.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Alice",
+        lastName = "Google",
+        provider = googleProvider)
+        .withPassword(randomString(40)) // dummy password, as with all external users
         .saveMe()
 
-      val githubUser = AuthUser.create
-        .email(sharedUsername + "@github.com")
-        .username(sharedUsername)
-        .password(randomString(40))
-        .validated(true)
-        .firstName("Alice")
-        .lastName("GitHub")
-        .provider(githubProvider)
-        .saveMe()
+      val githubUser = AuthUser(
+        email = sharedUsername + "@github.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Alice",
+        lastName = "GitHub",
+        provider = githubProvider).withPassword(randomString(40)).saveMe()
 
-      val erroneousUser = AuthUser.create
-        .email(sharedUsername + "@gogle.com")
-        .username(sharedUsername)
-        .password(randomString(40))
-        .validated(true)
-        .firstName("Alice")
-        .lastName("Erroneous")
-        .provider(erroneousProvider)
-        .saveMe()
+      val erroneousUser = AuthUser(
+        email = sharedUsername + "@gogle.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Alice",
+        lastName = "Erroneous",
+        provider = erroneousProvider).withPassword(randomString(40)).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -481,32 +471,28 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       }
     }
 
-    scenario("Failed external auth for one provider should not affect a different external provider", ApiEndpoint, VersionOfApi) {
+    Scenario("Failed external auth for one provider should not affect a different external provider", ApiEndpoint, VersionOfApi) {
       // Providers are independent namespaces. Failing against https://accounts.google.com
       // should not increment bad attempts for https://github.com/login/oauth.
       val sharedUsername = "multi_ext_" + randomString(8).toLowerCase
       val googleProvider = "https://accounts.google.com"
       val githubProvider = "https://github.com/login/oauth"
 
-      val googleUser = AuthUser.create
-        .email(sharedUsername + "@gmail.com")
-        .username(sharedUsername)
-        .password(randomString(40))
-        .validated(true)
-        .firstName("Test")
-        .lastName("Google")
-        .provider(googleProvider)
-        .saveMe()
+      val googleUser = AuthUser(
+        email = sharedUsername + "@gmail.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Test",
+        lastName = "Google",
+        provider = googleProvider).withPassword(randomString(40)).saveMe()
 
-      val githubUser = AuthUser.create
-        .email(sharedUsername + "@github.com")
-        .username(sharedUsername)
-        .password(randomString(40))
-        .validated(true)
-        .firstName("Test")
-        .lastName("GitHub")
-        .provider(githubProvider)
-        .saveMe()
+      val githubUser = AuthUser(
+        email = sharedUsername + "@github.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Test",
+        lastName = "GitHub",
+        provider = githubProvider).withPassword(randomString(40)).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -540,32 +526,28 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       }
     }
 
-    scenario("Failed local auth should not affect external users with the same username", ApiEndpoint, VersionOfApi) {
+    Scenario("Failed local auth should not affect external users with the same username", ApiEndpoint, VersionOfApi) {
       // The reverse of the external→local test: wrong local password should not
       // touch the external provider's login attempt counter.
       val sharedUsername = "reverse_iso_" + randomString(8).toLowerCase
       val localPassword = "LocalPassword123!"
       val googleProvider = "https://accounts.google.com"
 
-      val localUser = AuthUser.create
-        .email(sharedUsername + "@openbankproject.com")
-        .username(sharedUsername)
-        .password(localPassword)
-        .validated(true)
-        .firstName("Test")
-        .lastName("Local")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val localUser = AuthUser(
+        email = sharedUsername + "@openbankproject.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Test",
+        lastName = "Local",
+        provider = Constant.localIdentityProvider).withPassword(localPassword).saveMe()
 
-      val googleUser = AuthUser.create
-        .email(sharedUsername + "@gmail.com")
-        .username(sharedUsername)
-        .password(randomString(40))
-        .validated(true)
-        .firstName("Test")
-        .lastName("Google")
-        .provider(googleProvider)
-        .saveMe()
+      val googleUser = AuthUser(
+        email = sharedUsername + "@gmail.com",
+        username = sharedUsername,
+        validated = true,
+        firstName = "Test",
+        lastName = "Google",
+        provider = googleProvider).withPassword(randomString(40)).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -599,7 +581,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       }
     }
 
-    scenario("Non-existent external user should fail cleanly", ApiEndpoint, VersionOfApi) {
+    Scenario("Non-existent external user should fail cleanly", ApiEndpoint, VersionOfApi) {
       // Post a username that has no AuthUser record at all for this external provider.
       // Should get 401 without any side effects on other providers.
       val nonExistentUsername = "no_such_user_" + randomString(8).toLowerCase
@@ -625,7 +607,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       }
     }
 
-    scenario("Fail with invalid JSON format", ApiEndpoint, VersionOfApi) {
+    Scenario("Fail with invalid JSON format", ApiEndpoint, VersionOfApi) {
       // Add the required entitlement
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -644,7 +626,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include("OBP-10001")
     }
 
-    scenario("Successfully verify credentials with URL-encoded local provider", ApiEndpoint, VersionOfApi) {
+    Scenario("Successfully verify credentials with URL-encoded local provider", ApiEndpoint, VersionOfApi) {
       // Test that URL-encoded local provider strings are correctly decoded
       // The local provider constant might be URL-encoded in some scenarios
       val urlEncodedLocalProvider = java.net.URLEncoder.encode(Constant.localIdentityProvider, "UTF-8")
@@ -653,15 +635,13 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       val email = username + "@example.com"
 
       // Create a local user
-      val testUser = AuthUser.create
-        .email(email)
-        .username(username)
-        .password(password)
-        .validated(true)
-        .firstName("Test")
-        .lastName("EncodedLocal")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val testUser = AuthUser(
+        email = email,
+        username = username,
+        validated = true,
+        firstName = "Test",
+        lastName = "EncodedLocal",
+        provider = Constant.localIdentityProvider).withPassword(password).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -687,7 +667,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       }
     }
 
-    scenario("Successfully verify credentials with provider containing special characters", ApiEndpoint, VersionOfApi) {
+    Scenario("Successfully verify credentials with provider containing special characters", ApiEndpoint, VersionOfApi) {
       // Test that the provider field correctly handles URL encoding/decoding
       // In this test, we verify that empty provider (treated as local) works correctly
       val username = "special_chars_test_" + randomString(8).toLowerCase
@@ -695,15 +675,13 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       val email = username + "@example.com"
 
       // Create a local user (empty provider is treated as local)
-      val testUser = AuthUser.create
-        .email(email)
-        .username(username)
-        .password(password)
-        .validated(true)
-        .firstName("Test")
-        .lastName("SpecialChars")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val testUser = AuthUser(
+        email = email,
+        username = username,
+        validated = true,
+        firstName = "Test",
+        lastName = "SpecialChars",
+        provider = Constant.localIdentityProvider).withPassword(password).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -729,22 +707,20 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       }
     }
 
-    scenario("Verify credentials with non-encoded local provider should work", ApiEndpoint, VersionOfApi) {
+    Scenario("Verify credentials with non-encoded local provider should work", ApiEndpoint, VersionOfApi) {
       // Test that non-encoded local provider (the normal case) still works correctly
       val username = "non_encoded_test_" + randomString(8).toLowerCase
       val password = "TestPassword123!"
       val email = username + "@example.com"
 
       // Create a local user
-      val testUser = AuthUser.create
-        .email(email)
-        .username(username)
-        .password(password)
-        .validated(true)
-        .firstName("Test")
-        .lastName("NonEncoded")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val testUser = AuthUser(
+        email = email,
+        username = username,
+        validated = true,
+        firstName = "Test",
+        lastName = "NonEncoded",
+        provider = Constant.localIdentityProvider).withPassword(password).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 
@@ -770,7 +746,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       }
     }
 
-    scenario("URL-encoded provider mismatch should fail with 401", ApiEndpoint, VersionOfApi) {
+    Scenario("URL-encoded provider mismatch should fail with 401", ApiEndpoint, VersionOfApi) {
       // Test that provider mismatch is detected even with URL encoding
       // User has local provider, but request sends a different (encoded) provider
       val wrongProvider = "https://github.com/login/oauth"
@@ -780,15 +756,13 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
       val email = username + "@example.com"
 
       // Create a local user
-      val testUser = AuthUser.create
-        .email(email)
-        .username(username)
-        .password(password)
-        .validated(true)
-        .firstName("Test")
-        .lastName("Mismatch")
-        .provider(Constant.localIdentityProvider)
-        .saveMe()
+      val testUser = AuthUser(
+        email = email,
+        username = username,
+        validated = true,
+        firstName = "Test",
+        lastName = "Mismatch",
+        provider = Constant.localIdentityProvider).withPassword(password).saveMe()
 
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanVerifyUserCredentials.toString)
 

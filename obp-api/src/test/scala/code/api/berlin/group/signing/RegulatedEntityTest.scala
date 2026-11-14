@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.berlin.group.signing
 
 import code.api.berlin.group.v1_3.BerlinGroupServerSetupV1_3
+import org.json4s.jvalue2extractable
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ErrorMessagesBG
 
 class RegulatedEntityTest extends BerlinGroupServerSetupV1_3 with PSD2SigningTestSupport {
@@ -52,7 +53,7 @@ class RegulatedEntityTest extends BerlinGroupServerSetupV1_3 with PSD2SigningTes
   override protected def tppSignaturePassword: String = "testpassword123"
   override protected def tppSignatureAlias: String = "bnm test"
 
-  scenario("Create signed consent request with dynamically generated certificates") {
+  Scenario("Create signed consent request with dynamically generated certificates") {
     Given("A consent request body")
     val requestBody = """{
       "access": {
@@ -83,7 +84,7 @@ class RegulatedEntityTest extends BerlinGroupServerSetupV1_3 with PSD2SigningTes
     response.body.extract[ErrorMessagesBG].tppMessages.head.code should equal("CERTIFICATE_BLOCKED")
   }
 
-  scenario("Test certificate validation and signing process") {
+  Scenario("Test certificate validation and signing process") {
     Given("A payment initiation request body")
     val paymentRequestBody = """{
       "instructedAmount": {
@@ -117,7 +118,7 @@ class RegulatedEntityTest extends BerlinGroupServerSetupV1_3 with PSD2SigningTes
     response.code should (equal(401) or equal(400) or equal(403))
   }
 
-  scenario("Test custom certificate parameters") {
+  Scenario("Test custom certificate parameters") {
     Given("Custom certificate parameters")
     val customCertData = TestCertificateGenerator.generateTestCertificate(
       commonName = "Custom Test Certificate",
@@ -125,7 +126,7 @@ class RegulatedEntityTest extends BerlinGroupServerSetupV1_3 with PSD2SigningTes
       validityDays = 30
     )
 
-    customCertData should be a 'success
+    customCertData should be a Symbol("success")
 
     When("I inspect the generated certificate")
     val certData = customCertData.get

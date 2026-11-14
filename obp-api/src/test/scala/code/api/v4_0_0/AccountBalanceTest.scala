@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.ErrorMessages.CannotFindAccountAccess
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import com.github.dwickern.macros.NameOf.nameOf
@@ -49,8 +50,8 @@ class AccountBalanceTest extends V400ServerSetup {
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
 
-  feature(s"test $ApiEndpoint1 and $ApiEndpoint2 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
+  Feature(s"test $ApiEndpoint1 and $ApiEndpoint2 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
       val requestGetAccountBalances = (v4_0_0_Request / "banks" / bankAccount.bank_id / "accounts" / bankAccount.id / "balances").GET <@ (user1)
       val responseGetAccountBalances = makeGetRequest(requestGetAccountBalances)
       Then("We should get a 200")
@@ -61,7 +62,7 @@ class AccountBalanceTest extends V400ServerSetup {
       Then("We should get a 200")
       responseGetAccountsBalances.code should equal(200)
     }
-    scenario("We will call the endpoint with user2 who has no account access ", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
+    Scenario("We will call the endpoint with user2 who has no account access ", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
       val requestGetAccountBalances = (v4_0_0_Request / "banks" / bankAccount.bank_id / "accounts" / bankAccount.id / "balances").GET <@ (user2)
       val responseGetAccountBalances = makeGetRequest(requestGetAccountBalances)
       Then("We should get a 200")

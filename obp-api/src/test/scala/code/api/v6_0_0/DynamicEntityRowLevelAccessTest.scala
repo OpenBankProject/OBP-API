@@ -86,8 +86,8 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
 
   // ==================== Feature 1: owner bootstrap & read isolation ====================
 
-  feature("Feature 1: owner bootstrap & per-row read isolation") {
-    scenario("1.1: creator reads own record; another user gets 404; list is ACL-filtered", VersionOfApi) {
+  Feature("Feature 1: owner bootstrap & per-row read isolation") {
+    Scenario("1.1: creator reads own record; another user gets 404; list is ACL-filtered", VersionOfApi) {
       val (code, body) = createSystemEntity(entityRowLevel)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -117,8 +117,8 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
 
   // ==================== Feature 2: owner shares with no role; per-row update gate ====================
 
-  feature("Feature 2: owner shares (no role) and the per-row update gate") {
-    scenario("2.1: owner grants read → grantee reads; update needs a separate grant", VersionOfApi) {
+  Feature("Feature 2: owner shares (no role) and the per-row update gate") {
+    Scenario("2.1: owner grants read → grantee reads; update needs a separate grant", VersionOfApi) {
       val (code, body) = createSystemEntity(entityRowLevel)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -154,8 +154,8 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
 
   // ==================== Feature 3: revoke ====================
 
-  feature("Feature 3: revoke removes access") {
-    scenario("3.1: revoke a grantee → they lose read", VersionOfApi) {
+  Feature("Feature 3: revoke removes access") {
+    Scenario("3.1: revoke a grantee → they lose read", VersionOfApi) {
       val (code, body) = createSystemEntity(entityRowLevel)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -179,8 +179,8 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
 
   // ==================== Feature 4: admin-role override ====================
 
-  feature("Feature 4: CanGrantDynamicEntityRowAccess admin override") {
-    scenario("4.1: a role holder may list/grant access on a row they cannot read", VersionOfApi) {
+  Feature("Feature 4: CanGrantDynamicEntityRowAccess admin override") {
+    Scenario("4.1: a role holder may list/grant access on a row they cannot read", VersionOfApi) {
       val (code, body) = createSystemEntity(entityRowLevel)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -208,8 +208,8 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
 
   // ==================== Feature 5: flag-off & definition-time validation ====================
 
-  feature("Feature 5: flag-off and mutual-exclusion validation") {
-    scenario("5.1: access endpoints return 400 for a non-row-level entity", VersionOfApi) {
+  Feature("Feature 5: flag-off and mutual-exclusion validation") {
+    Scenario("5.1: access endpoints return 400 for a non-row-level entity", VersionOfApi) {
       val normalEntity: JValue =
         ("entity_name" -> "test_normal_rl") ~ ("has_personal_entity" -> false) ~ ("schema" -> simpleSchema)
       val (code, body) = createSystemEntity(normalEntity)
@@ -227,7 +227,7 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
       } finally deleteSystemEntity(dynamicEntityId)
     }
 
-    scenario("5.2: use_row_level_access cannot be combined with has_public_access (§8.3)", VersionOfApi) {
+    Scenario("5.2: use_row_level_access cannot be combined with has_public_access (§8.3)", VersionOfApi) {
       val contradictory: JValue =
         ("entity_name" -> "test_rl_conflict") ~
         ("use_row_level_access" -> true) ~
@@ -296,11 +296,16 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
       val id = createRecordOf("damaged")
 
       Given("a record written by an earlier version, whose stored JSON has no id")
-      val row = code.DynamicData.DynamicData.find(
-        net.liftweb.mapper.By(code.DynamicData.DynamicData.DynamicEntityName, entityName),
-        net.liftweb.mapper.By(code.DynamicData.DynamicData.DynamicDataId, id)
-      ).openOrThrowException("the record should exist")
-      row.DataJson("""{"name":"damaged"}""").save
+      // Rewrites the stored JSON directly, as the record's row in the database; the store has no
+      // setter for it, since every write path through it keeps the id.
+      locally {
+        import doobie.implicits._
+        val damaged = """{"name":"damaged"}"""
+        val updated = code.api.util.DoobieUtil.runUpdate(
+          sql"UPDATE dynamicdata SET datajson = $damaged WHERE dynamicentityname = $entityName AND dynamicdataid = $id"
+            .update.run)
+        require(updated == 1, "the record should exist")
+      }
 
       When("the entity is deleted with its records")
       Then("it succeeds instead of failing on the missing id")

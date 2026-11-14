@@ -29,9 +29,7 @@ package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.transactionChallenge.MappedExpectedChallengeAnswer
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 import java.time.format.DateTimeFormatter
@@ -44,7 +42,7 @@ object MigrationOfMappedExpectedChallengeAnswerFieldLength {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterColumnLength(name: String): Boolean = {
-    DbFunction.tableExists(MappedExpectedChallengeAnswer) 
+    DbFunction.tableExistsByName("expectedchallengeanswer") 
     match {
       case true =>
         val startDate = System.currentTimeMillis()
@@ -52,7 +50,7 @@ object MigrationOfMappedExpectedChallengeAnswerFieldLength {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -80,7 +78,7 @@ object MigrationOfMappedExpectedChallengeAnswerFieldLength {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedExpectedChallengeAnswer._dbTableNameLC} table does not exist""".stripMargin
+          "expectedchallengeanswer table does not exist"
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

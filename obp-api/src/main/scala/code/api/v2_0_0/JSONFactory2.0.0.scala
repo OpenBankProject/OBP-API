@@ -502,13 +502,13 @@ object JSONFactory200 extends CustomJsonFormats {
 
 
   def createUserJSONfromAuthUser(user : AuthUser) : UserJsonV200 = {
-    val (userId, provider, providerId,  entitlements) = Users.users.vend.getUserByResourceUserId(user.user.get) match {
+    val (userId, provider, providerId,  entitlements) = Users.users.vend.getUserByResourceUserId(user.user) match {
       case Full(u) => (u.userId,u.provider,u.idGivenByProvider, u.assignedEntitlements)
       case _       => ("","","", List())
     }
     new UserJsonV200(user_id = userId,
-      email = user.email.get,
-      username = stringOrNull(user.username.get),
+      email = user.email,
+      username = stringOrNull(user.username),
       provider_id = stringOrNull(providerId),
       provider = stringOrNull(provider),
       entitlements = createEntitlementJSONs(entitlements)

@@ -1,14 +1,12 @@
 package code.asset
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, DoobieUtil}
 import code.api.util.migration.MigrationOfCurrencyCodesUpperCase
-import code.customer.MappedCustomer
-import code.fx.{MappedCurrency, MappedFXRate}
-import code.migration.MigrationScriptLog
+import code.customer.{CustomerQuery, MappedCustomer}
+import code.fx.{DoobieFXRateQueries, FXRateRow}
+import code.migration.DoobieMigrationScriptLogProvider
 import code.setup.ServerSetup
-import net.liftweb.db.DB
-import net.liftweb.mapper.By
-import net.liftweb.util.DefaultConnectionIdentifier
+import doobie.implicits._
 
 /**
  * This class tests the migration that rewrites every stored currency code in upper case
@@ -24,32 +22,39 @@ class CurrencyCodesUpperCaseMigrationTest extends ServerSetup {
 
   private val bankId = s"currency-migration-${APIUtil.generateUUID().take(8)}"
 
-  private def addFxRate(fromCurrencyCode: String, toCurrencyCode: String): MappedFXRate =
-    MappedFXRate.create.mBankId(bankId).mFromCurrencyCode(fromCurrencyCode).mToCurrencyCode(toCurrencyCode)
-      .mConversionValue(1.5).mInverseConversionValue(1 / 1.5).mEffectiveDate(new java.util.Date()).saveMe()
+  private def addFxRate(fromCurrencyCode: String, toCurrencyCode: String): FXRateRow =
+    DoobieFXRateQueries.createOrUpdate(bankId, fromCurrencyCode, toCurrencyCode, 1.5, 1 / 1.5, new java.util.Date())
+      .openOrThrowException(s"the FX rate $fromCurrencyCode -> $toCurrencyCode should have been stored")
 
   private def fxRatesAtTestBank: List[(String, String)] =
-    MappedFXRate.findAll(By(MappedFXRate.mBankId, bankId)).map(rate => (rate.fromCurrencyCode, rate.toCurrencyCode)).sorted
+    DoobieFXRateQueries.findAllForBank(bankId).map(rate => (rate.fromCurrencyCode, rate.toCurrencyCode)).sorted
+
+  private def customersAtTestBank: List[MappedCustomer] =
+    MappedCustomer.findAll(Some(bankId), None, CustomerQuery(None, None, None, None, None))
+
+  /**
+   * Whether this database has the `mappedcurrency` table. The changelog does not create it, so the migration skips
+   * the column, and the scenario about it has nothing to run against.
+   */
+  private def currencyTableExists: Boolean =
+    DoobieUtil.runQuery(
+      sql"SELECT COUNT(*) FROM information_schema.tables WHERE LOWER(table_name) = 'mappedcurrency'".query[Long].unique) > 0
 
   private def currencyCodesLike(code: String): List[String] =
-    MappedCurrency.findAll().map(_.currencyCode).filter(_.equalsIgnoreCase(code)).sorted
+    DoobieUtil.runQuery(sql"SELECT mcurrencycode FROM mappedcurrency".query[Option[String]].to[List])
+      .flatten.filter(_.equalsIgnoreCase(code)).sorted
 
-  /** Mapper does not let a string primary key be set, so the row is written with SQL. */
-  private def addCurrency(code: String): Unit =
-    DB.use(DefaultConnectionIdentifier) { connection =>
-      val statement = connection.prepareStatement(
-        s"INSERT INTO ${MappedCurrency.dbTableName} (${MappedCurrency.mCurrencyCode.dbColumnName}, ${MappedCurrency.mCurrencyName.dbColumnName}) VALUES (?, ?)")
-      try {
-        statement.setString(1, code)
-        statement.setString(2, s"Test currency $code")
-        statement.executeUpdate()
-      } finally statement.close()
-    }
+  /** The table is keyed by the code, and has no store, so the row is written with SQL. */
+  private def addCurrency(code: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"INSERT INTO mappedcurrency (mcurrencycode, mcurrencyname) VALUES ($code, ${s"Test currency $code"})".update.run)
+    ()
+  }
 
   /** The remark the migration recorded under this name. */
   private def recordedRemark(migrationName: String): String =
-    MigrationScriptLog.find(By(MigrationScriptLog.Name, migrationName))
-      .map(_.remark).openOrThrowException(s"the migration $migrationName should have recorded a log entry")
+    DoobieMigrationScriptLogProvider.getMigrationScriptLogs().find(_.name == migrationName)
+      .map(_.remark).getOrElse(fail(s"the migration $migrationName should have recorded a log entry"))
 
   feature("Upper-casing the stored currency codes") {
 
@@ -85,7 +90,12 @@ class CurrencyCodesUpperCaseMigrationTest extends ServerSetup {
     scenario("A code with spaces around it is trimmed, including when it is already in upper case") {
       Given("credit limit currencies stored as 'EUR ' (upper case, trailing space), ' usd' and 'gbp  '")
       List("EUR " -> "1", " usd" -> "2", "gbp  " -> "3").foreach { case (currency, number) =>
-        MappedCustomer.create.mBank(bankId).mNumber(s"trim-$number").mCreditLimitCurrency(currency).saveMe()
+        MappedCustomer.insert(bankIdValue = bankId, email = null, faceImageTime = null, faceImageUrl = null,
+          legalName = null, mobileNumber = null, number = s"trim-$number", dateOfBirth = null,
+          relationshipStatus = null, dependents = 0, highestEducationAttained = null, employmentStatus = null,
+          kycStatus = false, lastOkDate = null, creditRating = null, creditSource = null,
+          creditLimitCurrency = currency, creditLimitAmount = null, title = null, branchId = null, nameSuffix = null,
+          customerType = null, parentCustomerId = null, isPendingAgent = false, isConfirmedAgent = false)
       }
 
       When("the migration runs")
@@ -93,13 +103,16 @@ class CurrencyCodesUpperCaseMigrationTest extends ServerSetup {
       MigrationOfCurrencyCodesUpperCase.upperCaseEverywhere(migrationName) shouldBe true
 
       Then("every code is trimmed and in upper case, and no row is lost")
-      MappedCustomer.findAll(By(MappedCustomer.mBank, bankId)).map(c => c.mNumber.get -> c.mCreditLimitCurrency.get).sorted shouldBe
+      customersAtTestBank.map(c => c.number -> c.creditLimitCurrency).sorted shouldBe
         List("trim-1" -> "EUR", "trim-2" -> "USD", "trim-3" -> "GBP")
     }
 
     scenario("A currency row whose upper-case code already exists is left as it is") {
       if (code.api.util.DBUtil.isSqlServer) {
         cancel("SQL Server uses case-insensitive collation for primary keys, preventing duplicate-case rows")
+      }
+      if (!currencyTableExists) {
+        cancel("this database has no mappedcurrency table: the changelog does not create it")
       }
       Given("a currency stored as qqa and as QQA, and another stored only as qqb")
       addCurrency("qqa")
@@ -122,9 +135,10 @@ class CurrencyCodesUpperCaseMigrationTest extends ServerSetup {
   }
 
   override def afterAll(): Unit = {
-    MappedFXRate.findAll(By(MappedFXRate.mBankId, bankId)).foreach(_.delete_!)
-    MappedCustomer.findAll(By(MappedCustomer.mBank, bankId)).foreach(_.delete_!)
-    MappedCurrency.findAll().filter(currency => Set("qqa", "qqb").contains(currency.currencyCode.toLowerCase)).foreach(_.delete_!)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedfxrate WHERE mbankid = $bankId".update.run)
+    customersAtTestBank.foreach(c => MappedCustomer.deleteByCustomerId(c.customerId))
+    if (currencyTableExists)
+      DoobieUtil.runUpdate(sql"DELETE FROM mappedcurrency WHERE LOWER(mcurrencycode) IN ('qqa', 'qqb')".update.run)
     super.afterAll()
   }
 }

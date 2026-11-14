@@ -30,6 +30,7 @@ package code.util
 import org.json4s._
 import code.api.cache.{Redis, RedisLogger}
 
+import java.net.{Socket, SocketException, URL}
 import java.net.{Socket, SocketException}
 import java.util.UUID.randomUUID
 import java.util.Date
@@ -38,13 +39,12 @@ import code.api.{APIFailureNewStyle, Constant}
 import code.api.util.APIUtil.fullBoxOrException
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
-import code.transaction.internalMapping.MappedTransactionIdMappingProvider
+import code.transaction.internalMapping.DoobieTransactionIdMappingProvider
 import net.liftweb.common._
 import org.json4s.Extraction._
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountBalance, AccountBalances, AccountHeld, AccountId, CoreAccount, Customer, CustomerId, Transaction, TransactionCore, TransactionId}
-import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, RequiredInfo}
-import com.tesobe.CacheKeyFromArguments
+import com.openbankproject.commons.util.{HelperTypes, ReflectUtils, RequiredFieldValidation, RequiredInfo}
 
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
@@ -242,10 +242,11 @@ object Helper extends Loggable {
     }
 
     var candidatePort = -1
-    do {
+    var found = false
+    while (!found) {
       candidatePort = findRandomPort()
+      found = isPortAvailable(candidatePort)
     }
-    while (!isPortAvailable(candidatePort))
     candidatePort
   }
 
@@ -323,11 +324,12 @@ object Helper extends Loggable {
     // still queued at exit would be lost. Give the queue a short, bounded chance to drain.
     // Registration is refused once the JVM is already shutting down. That must not make the
     // first log call of a dying process throw, so the pool simply runs without a hook then.
-    try Runtime.getRuntime.addShutdownHook(new Thread(() => {
+    val drainOnExit: Runnable = () => {
       executor.shutdown()
-      try executor.awaitTermination(2, java.util.concurrent.TimeUnit.SECONDS)
+      try { executor.awaitTermination(2, java.util.concurrent.TimeUnit.SECONDS); () }
       catch { case _: InterruptedException => () }
-    }, "mdc-log-dispatch-shutdown"))
+    }
+    try Runtime.getRuntime.addShutdownHook(new Thread(drainOnExit, "mdc-log-dispatch-shutdown"))
     catch { case _: IllegalStateException => () }
     executor
   }
@@ -528,7 +530,7 @@ object Helper extends Loggable {
     protected def initiate(): Unit = ()
 
     initiate()
-    MDC.put("host" -> getHostname)
+    MDC.put("host" -> getHostname())
   }
 
 
@@ -564,13 +566,11 @@ object Helper extends Loggable {
    * @return RequiredInfo
    */
   def getRequiredFieldInfo(tpe: Type): RequiredInfo = {
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      code.api.cache.Caching.memoizeSyncWithImMemory (Some(cacheKey.toString())) (100000.days) {
+    val cacheKey = ("code.util.Helper", "getRequiredFieldInfo", List(tpe).mkString("_"))
+    code.api.cache.Caching.memoizeSyncWithImMemory (Some(cacheKey.toString())) (100000.days) {
 
-        RequiredFieldValidation.getRequiredInfo(tpe)
+      RequiredFieldValidation.getRequiredInfo(tpe)
 
-      }
     }
   }
 
@@ -603,25 +603,25 @@ object Helper extends Loggable {
     //2rd: if connector != mapped, we still need the `implicitly_convert_ids == true`
 
     def isCustomerId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
-      ownerType =:= typeOf[CustomerId] ||
-        (fieldName.equalsIgnoreCase("customerId") && fieldType =:= typeOf[String]) ||
-        (ownerType <:< typeOf[Customer] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
+      ownerType =:= HelperTypes.tCustomerId ||
+        (fieldName.equalsIgnoreCase("customerId") && fieldType =:= HelperTypes.tString) ||
+        (ownerType <:< HelperTypes.tCustomer && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)
     }
 
     def isAccountId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
-      ownerType <:< typeOf[AccountId] ||
-        (fieldName.equalsIgnoreCase("accountId") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[CoreAccount] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[AccountBalance] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[AccountBalances] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[AccountHeld] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
+      ownerType <:< HelperTypes.tAccountId ||
+        (fieldName.equalsIgnoreCase("accountId") && fieldType =:= HelperTypes.tString)||
+        (ownerType <:< HelperTypes.tCoreAccount && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)||
+        (ownerType <:< HelperTypes.tAccountBalance && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)||
+        (ownerType <:< HelperTypes.tAccountBalances && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)||
+        (ownerType <:< HelperTypes.tAccountHeld && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)
     }
 
     def isTransactionId(fieldName: String, fieldType: Type, fieldValue: Any, ownerType: Type) = {
-      ownerType <:< typeOf[TransactionId] ||
-        (fieldName.equalsIgnoreCase("transactionId") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[TransactionCore] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])||
-        (ownerType <:< typeOf[Transaction] && fieldName.equalsIgnoreCase("id") && fieldType =:= typeOf[String])
+      ownerType <:< HelperTypes.tTransactionId ||
+        (fieldName.equalsIgnoreCase("transactionId") && fieldType =:= HelperTypes.tString)||
+        (ownerType <:< HelperTypes.tTransactionCore && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)||
+        (ownerType <:< HelperTypes.tTransaction && fieldName.equalsIgnoreCase("id") && fieldType =:= HelperTypes.tString)
     }
 
     if(APIUtil.getPropsValue("connector","mapped") != "mapped" && APIUtil.getPropsAsBoolValue("implicitly_convert_ids",false)){
@@ -649,7 +649,7 @@ object Helper extends Loggable {
     def accountIdConverter(accountId: String): String = MappedAccountIdMappingProvider
       .getAccountPlainTextReference(AccountId(accountId))
       .openOrThrowException(s"$InvalidAccountIdFormat the invalid accountId is $accountId")
-    def transactionIdConverter(transactionId: String): String = MappedTransactionIdMappingProvider
+    def transactionIdConverter(transactionId: String): String = DoobieTransactionIdMappingProvider
       .getTransactionPlainTextReference(TransactionId(transactionId))
       .openOrThrowException(s"$InvalidAccountIdFormat the invalid transactionId is $transactionId")
     convertId[T](obj, customerIdConverter, accountIdConverter, transactionIdConverter)
@@ -670,7 +670,7 @@ object Helper extends Loggable {
     def accountIdConverter(accountReference: String): String = MappedAccountIdMappingProvider
       .getOrCreateAccountId(accountReference)
       .map(_.value).openOrThrowException(s"$InvalidAccountIdFormat the invalid accountReference is $accountReference")
-    def transactionIdConverter(transactionReference: String): String = MappedTransactionIdMappingProvider
+    def transactionIdConverter(transactionReference: String): String = DoobieTransactionIdMappingProvider
       .getOrCreateTransactionId(transactionReference)
       .map(_.value).openOrThrowException(s"$InvalidAccountIdFormat the invalid transactionReference is $transactionReference")
     if(obj.isInstanceOf[EmptyBox]) {

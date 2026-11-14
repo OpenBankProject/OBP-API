@@ -1,7 +1,9 @@
 package code.api.util
 
+import org.json4s.jvalue2monadic
 import code.api.util.APIUtil.MessageDoc
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Guards the in-process cache added to JsonSchemaGenerator.messageDocsToJsonSchema.
@@ -18,7 +20,7 @@ import org.scalatest.{FlatSpec, Matchers}
  * Each scenario uses its own unique connector name (via a nanoTime suffix) so it always starts
  * from a genuinely cold cache entry, independent of whatever else has run in this JVM.
  */
-class JsonSchemaGeneratorCacheTest extends FlatSpec with Matchers {
+class JsonSchemaGeneratorCacheTest extends AnyFlatSpec with Matchers {
 
   // A case class tree wide and deep enough that the reflection cost this cache exists to avoid
   // clearly dominates JVM/JIT noise -- a handful of fields on a single small type (tried first)

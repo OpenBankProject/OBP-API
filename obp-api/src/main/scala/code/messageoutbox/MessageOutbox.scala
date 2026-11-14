@@ -28,9 +28,15 @@ TESOBE (http://www.tesobe.com/)
 package code.messageoutbox
 
 import code.api.util.CommonsEmailWrapper.EmailContent
-import net.liftweb.mapper._
+import code.api.util.DoobieUtil
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
+
+import java.util.Date
 
 /** An email as stored in an EMAIL outbox row: everything needed to send it, rendered at enqueue time. */
 case class OutboxEmailPayload(
@@ -46,6 +52,7 @@ case class OutboxEmailPayload(
     EmailContent(from = from, to = to, cc = cc, bcc = bcc, subject = subject,
       textContent = text_content, htmlContent = html_content)
 }
+
 
 /**
  * Generic transactional outbox for asynchronous messages OBP-API must deliver.
@@ -77,87 +84,30 @@ case class OutboxEmailPayload(
  *               or the relay used up the type's attempt limit without
  *               delivering it. Needs operator reconciliation: visible via
  *               GET /management/message-outbox, re-queued via its /retry.
+ *
+ * `updatedAt` is load-bearing rather than decoration: the relay computes its
+ * exponential backoff from it, so every mutation stamps it. That is why the
+ * update helpers below all write updated_at rather than leaving it to a
+ * database default.
  */
-class MessageOutbox extends LongKeyedMapper[MessageOutbox] with IdPK {
-  def getSingleton = MessageOutbox
+case class MessageOutbox(
+  id: Long,
+  outboxType: String,
+  subjectId: String,
+  subjectIdType: String,
+  operationName: String,
+  targetId: String,
+  payloadJson: String,
+  status: String,
+  attempts: Int,
+  lastError: String,
+  lastReplyJson: String,
+  metadataJson: String,
+  createdAt: Date,
+  updatedAt: Date
+)
 
-  /** Message family; decides how the relay publishes the row. */
-  object OutboxType extends MappedString(this, 32) {
-    override def dbColumnName = "outbox_type"
-  }
-  /** The id of the business object this message is about. NOT the
-    * per-REST-call Correlation-Id, and not the AMQP reply correlationId. */
-  object SubjectId extends MappedString(this, 64) {
-    override def dbColumnName = "subject_id"
-  }
-  /** The OBP id-field name whose value space subject_id belongs to, e.g.
-    * transaction_request_id / settlement_id — makes rows self-describing
-    * instead of relying on per-operation conventions. */
-  object SubjectIdType extends MappedString(this, 32) {
-    override def dbColumnName = "subject_id_type"
-  }
-  /** The operation this message performs, e.g. obp_credit_notification /
-    * obp_settlement_advice. On the OPEN_CORRIDOR wire this becomes the AMQP
-    * messageId property (locked contract). Named operation_name here to avoid
-    * colliding with message_id-as-instance-id elsewhere in OBP (e.g. signal
-    * channel messages). */
-  object OperationName extends MappedString(this, 64) {
-    override def dbColumnName = "operation_name"
-  }
-  /** Delivery target, per outbox_type (OPEN_CORRIDOR: the bank id whose
-    * vhost the message is published to). */
-  object TargetId extends MappedString(this, 255) {
-    override def dbColumnName = "target_id"
-  }
-  /** The wire body, serialized at enqueue time. */
-  object PayloadJson extends MappedText(this) {
-    override def dbColumnName = "payload_json"
-  }
-  object Status extends MappedString(this, 16) {
-    override def dbColumnName = "status"
-    override def defaultValue = MessageOutbox.STATUS_PENDING
-  }
-  object Attempts extends MappedInt(this) {
-    override def dbColumnName = "attempts"
-    override def defaultValue = 0
-  }
-  object LastError extends MappedString(this, 2000) {
-    override def dbColumnName = "last_error"
-  }
-  /** The receiver's last reply, verbatim, for audit/reconciliation. */
-  object LastReplyJson extends MappedText(this) {
-    override def dbColumnName = "last_reply_json"
-  }
-  /** Per-type optional extras; empty for OPEN_CORRIDOR, the URL for WEBHOOK. */
-  object MetadataJson extends MappedText(this) {
-    override def dbColumnName = "metadata_json"
-  }
-  object CreatedAt extends MappedDateTime(this) {
-    override def dbColumnName = "created_at"
-    override def defaultValue = new java.util.Date()
-  }
-  object UpdatedAt extends MappedDateTime(this) {
-    override def dbColumnName = "updated_at"
-    override def defaultValue = new java.util.Date()
-  }
-
-  def outboxType: String = OutboxType.get
-  def subjectId: String = SubjectId.get
-  def subjectIdType: String = SubjectIdType.get
-  def operationName: String = OperationName.get
-  def targetId: String = TargetId.get
-  def payloadJson: String = PayloadJson.get
-  def status: String = Status.get
-  def attempts: Int = Attempts.get
-
-  // updated_at drives the relay's backoff; stamp it on every save.
-  override def save: Boolean = {
-    UpdatedAt(new java.util.Date())
-    super.save
-  }
-}
-
-object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbox] {
+object MessageOutbox {
   val STATUS_PENDING = "PENDING"
   val STATUS_DELIVERED = "DELIVERED"
   val STATUS_STICKY = "STICKY"
@@ -177,10 +127,29 @@ object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbo
 
   private val emailFormats: Formats = DefaultFormats
 
-  override def dbTableName = "message_outbox"
+  private val selectColumns =
+    fr"""SELECT id, outbox_type, subject_id, subject_id_type, operation_name, target_id,
+                payload_json, status, attempts, last_error, last_reply_json, metadata_json,
+                created_at, updated_at
+         FROM message_outbox"""
 
-  override def dbIndexes: List[BaseIndex[MessageOutbox]] =
-    Index(Status) :: Index(SubjectId) :: Index(OutboxType) :: Index(TargetId) :: super.dbIndexes
+  private type Row = (Long, Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[Int], Option[String], Option[String],
+    Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+
+  private def fromRow(row: Row): MessageOutbox = row match {
+    case (id, outboxType, subjectId, subjectIdType, operationName, targetId, payloadJson,
+          status, attempts, lastError, lastReplyJson, metadataJson, createdAt, updatedAt) =>
+      MessageOutbox(id, outboxType.orNull, subjectId.orNull, subjectIdType.orNull,
+        operationName.orNull, targetId.orNull, payloadJson.orNull, status.orNull,
+        attempts.getOrElse(0), lastError.orNull, lastReplyJson.orNull, metadataJson.orNull,
+        createdAt.map(t => new Date(t.getTime)).orNull, updatedAt.map(t => new Date(t.getTime)).orNull)
+  }
+
+  private def query(condition: Fragment): List[MessageOutbox] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  private def now(): java.sql.Timestamp = new java.sql.Timestamp(System.currentTimeMillis())
 
   def enqueue(
     outboxType: String,
@@ -190,17 +159,19 @@ object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbo
     targetId: String,
     payloadJson: String,
     metadataJson: String = ""
-  ): MessageOutbox =
-    MessageOutbox.create
-      .OutboxType(outboxType)
-      .SubjectId(subjectId)
-      .SubjectIdType(subjectIdType)
-      .OperationName(operationName)
-      .TargetId(targetId)
-      .PayloadJson(payloadJson)
-      .MetadataJson(metadataJson)
-      .Status(STATUS_PENDING)
-      .saveMe()
+  ): MessageOutbox = {
+    val ts = now()
+    val id = DoobieUtil.runUpdate(
+      sql"""INSERT INTO message_outbox
+            (outbox_type, subject_id, subject_id_type, operation_name, target_id, payload_json,
+             status, attempts, last_error, last_reply_json, metadata_json, created_at, updated_at)
+            VALUES
+            ($outboxType, $subjectId, $subjectIdType, $operationName, $targetId, $payloadJson,
+             $STATUS_PENDING, 0, '', '', ${Option(metadataJson).getOrElse("")}, $ts, $ts)"""
+        .update.withUniqueGeneratedKeys[Long]("id"))
+    MessageOutbox(id, outboxType, subjectId, subjectIdType, operationName, targetId, payloadJson,
+      STATUS_PENDING, 0, "", "", Option(metadataJson).getOrElse(""), new Date(ts.getTime), new Date(ts.getTime))
+  }
 
   /** Queue an email; the relay sends it (attachments are not supported). */
   def enqueueEmail(subjectId: String, subjectIdType: String, operationName: String, email: EmailContent,
@@ -220,19 +191,134 @@ object MessageOutbox extends MessageOutbox with LongKeyedMetaMapper[MessageOutbo
    * running the relay a message is sent by one of them only. It commits at once (outside a request);
    * if the claimant dies before sending, the row is still PENDING and is retried after the backoff.
    */
-  def claimForDelivery(row: MessageOutbox): Boolean = {
-    import doobie.implicits._
-    code.api.util.DoobieUtil.runUpdate(
+  def claimForDelivery(row: MessageOutbox): Boolean =
+    DoobieUtil.runUpdate(
       sql"""UPDATE message_outbox
             SET attempts = attempts + 1, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ${row.id.get}
+            WHERE id = ${row.id}
               AND status = $STATUS_PENDING
               AND attempts = ${row.attempts}""".update.run) == 1
+
+  /** Set the status and last error, leaving the attempt counter alone (the claim already counted it). */
+  def setStatusAndError(id: Long, status: String, lastError: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET status = $status, last_error = ${Option(lastError)}, updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    ()
   }
 
-  def pending(): List[MessageOutbox] =
-    MessageOutbox.findAll(By(MessageOutbox.Status, STATUS_PENDING))
+  def pending(): List[MessageOutbox] = query(fr"WHERE status = $STATUS_PENDING")
 
-  def bySubjectId(subjectId: String): List[MessageOutbox] =
-    MessageOutbox.findAll(By(MessageOutbox.SubjectId, subjectId))
+  def bySubjectId(subjectId: String): List[MessageOutbox] = query(fr"WHERE subject_id = $subjectId")
+
+  def findById(id: Long): Box[MessageOutbox] =
+    query(fr"WHERE id = $id").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  /** Operator listing: newest first, optionally narrowed by status and/or type. */
+  def findAllFiltered(status: Option[String], outboxType: Option[String], limit: Int): List[MessageOutbox] = {
+    val conditions = List(
+      status.map(s => fr"status = $s"),
+      outboxType.map(t => fr"outbox_type = $t")
+    ).flatten
+    val where = if (conditions.isEmpty) Fragment.empty else fr"WHERE " ++ conditions.reduce((a, b) => a ++ fr"AND" ++ b)
+    query(where ++ fr"ORDER BY id DESC LIMIT $limit")
+  }
+
+  /** Record an attempt that did not settle the row: bumps attempts, keeps it PENDING. */
+  def recordAttempt(id: Long, attempts: Int, lastError: String, lastReplyJson: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET attempts = $attempts, last_error = ${Option(lastError)},
+              last_reply_json = ${Option(lastReplyJson)}, updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    ()
+  }
+
+  /** Record an attempt with no reply body to store (transport failure). */
+  def recordAttempt(id: Long, attempts: Int, lastError: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET attempts = $attempts, last_error = ${Option(lastError)},
+              updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    ()
+  }
+
+  def markDelivered(id: Long, lastReplyJson: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET status = $STATUS_DELIVERED, last_error = '',
+              last_reply_json = ${Option(lastReplyJson)}, updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    ()
+  }
+
+  def markSticky(id: Long, attempts: Int, lastError: String, lastReplyJson: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET status = $STATUS_STICKY, attempts = $attempts,
+              last_error = ${Option(lastError)}, last_reply_json = ${Option(lastReplyJson)}, updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    ()
+  }
+
+  def markSticky(id: Long, attempts: Int, lastError: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET status = $STATUS_STICKY, attempts = $attempts,
+              last_error = ${Option(lastError)}, updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    ()
+  }
+
+  /** Operator retry: back to PENDING with the attempt counter and error cleared. */
+  def resetForRetry(id: Long): Box[MessageOutbox] = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET status = $STATUS_PENDING, attempts = 0, last_error = '',
+              updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    findById(id)
+  }
+
+  /** Set the outcome of an attempt the claim already counted: status, last error and last reply together. */
+  def setOutcome(id: Long, status: String, lastError: String, lastReplyJson: String): Unit = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE message_outbox SET status = $status, last_error = ${Option(lastError)},
+              last_reply_json = ${Option(lastReplyJson)}, updated_at = ${now()}
+            WHERE id = $id""".update.run)
+    ()
+  }
+
+  private def webhookRows(webhookId: String): Fragment =
+    fr"WHERE outbox_type = $TYPE_WEBHOOK AND target_id = $webhookId"
+
+  /** Drop a webhook's requests that have not been delivered yet; the number dropped. */
+  def deletePendingWebhookRows(webhookId: String): Int =
+    DoobieUtil.runUpdate(
+      (fr"DELETE FROM message_outbox" ++ webhookRows(webhookId) ++ fr"AND status = $STATUS_PENDING").update.run)
+
+  /** A webhook's requests, newest first, optionally narrowed by status. */
+  def findWebhookRows(webhookId: String, status: Option[String], limit: Int, offset: Int): List[MessageOutbox] =
+    query(webhookRows(webhookId) ++ status.map(s => fr"AND status = $s").getOrElse(Fragment.empty) ++
+      fr"ORDER BY id DESC" ++ DoobieUtil.pagination(limit, offset))
+
+  /** How many messages of one type and operation were queued about one subject after `since`. */
+  def countQueuedSince(outboxType: String, operationName: String, subjectId: String, since: Date): Long =
+    DoobieUtil.runQuery(
+      sql"""SELECT COUNT(*) FROM message_outbox
+            WHERE outbox_type = $outboxType AND operation_name = $operationName AND subject_id = $subjectId
+              AND created_at > ${new java.sql.Timestamp(since.getTime)}""".query[Long].unique)
+
+  /** How many requests were queued for a webhook after `since`. */
+  def countWebhookRowsSince(webhookId: String, since: Date): Long =
+    DoobieUtil.runQuery(
+      (fr"SELECT COUNT(*) FROM message_outbox" ++ webhookRows(webhookId) ++
+        fr"AND created_at > ${new java.sql.Timestamp(since.getTime)}").query[Long].unique)
+
+  /** One request of a webhook, by its event id. */
+  def findWebhookRow(webhookId: String, eventId: String): Option[MessageOutbox] =
+    query(webhookRows(webhookId) ++ fr"AND subject_id = $eventId ORDER BY id ASC").headOption
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM message_outbox".update.run)
+    ()
+  }
 }

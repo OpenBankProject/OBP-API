@@ -29,20 +29,18 @@ package code.api.sweep
 
 import java.io.File
 
-import bootstrap.liftweb.ToSchemify
 import cats.effect.unsafe.IORuntime
 import code.accountholders.AccountHolders
 import code.api.RequestHeader
 import code.api.util.APIUtil.generateUUID
-import code.api.util.{Consent, DBUtil}
+import code.api.util.{Consent, DBUtil, DoobieUtil}
 import code.api.v3_1_0.ConsentJsonV310
 import code.api.v4_0_0.PostApiCollectionJson400
 import code.api.v7_0_0.JSONFactory700.CreateAccountRequestJsonV700
 import code.setup.{DefaultUsers, ServerSetupWithTestData}
 import code.users.{AttributionPolicy, UserReference}
 import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankId}
-import net.liftweb.mapper.MetaMapper
-import org.json4s.{Extraction, JValue}
+import org.json4s.{Extraction, JValue, jvalue2extractable, jvalue2monadic}
 import org.json4s.JsonAST.{JArray, JObject}
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods.{compact, render}
@@ -171,8 +169,110 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
 
   // ── the leak scan ──────────────────────────────────────────────────────────
 
-  private lazy val metaByClassName: Map[String, MetaMapper[_]] =
-    ToSchemify.models.map(meta => meta.getClass.getName.stripSuffix("$") -> meta).toMap
+  /**
+   * The table each class a UseOnBehalfOfUserId reference names writes to.
+   *
+   * Upstream read the table and column names off the Lift Mapper entities in ToSchemify.models.
+   * This branch has none -- the schema is the Liquibase changelog -- so the table is named here, as
+   * UserReferenceAttributionPolicyTest names it, and the column is looked up in the database the
+   * suite has just built. A reference whose class is missing here fails the scan rather than being
+   * skipped, so the scan can never quietly look at fewer tables than the policy file names.
+   */
+  private val storeTables: Map[String, String] = Map(
+    "code.DynamicData.DynamicData" -> "dynamicdata",
+    "code.DynamicData.DynamicDataAccess" -> "dynamicdataaccess",
+    "code.DynamicEndpoint.DynamicEndpoint" -> "dynamicendpoint",
+    "code.abacrule.AbacRule" -> "abacrule",
+    "code.accountaccessrequest.AccountAccessRequest" -> "accountaccessrequest",
+    "code.accountapplication.MappedAccountApplication" -> "mappedaccountapplication",
+    "code.accountcreation.AccountCreation" -> "account_creation",
+    "code.accountholders.MapperAccountHolders" -> "mapperaccountholders",
+    "code.apicollection.DoobieApiCollectionsProvider" -> "apicollection",
+    "code.apiproductsubscription.ApiProductSubscription" -> "apiproductsubscription",
+    "code.asset.Asset" -> "asset",
+    "code.chat.ChatEmailDigestState" -> "chat_email_digest_state",
+    "code.chat.ChatMessage" -> "chatmessage",
+    "code.chat.ChatRoom" -> "chatroom",
+    "code.chat.Participant" -> "participant",
+    "code.chat.Reaction" -> "reaction",
+    "code.connectormethod.DoobieConnectorMethodProvider" -> "connectormethod",
+    "code.context.DoobieUserAuthContextProvider" -> "mappeduserauthcontext",
+    "code.context.MappedUserAuthContextUpdateProvider" -> "mappeduserauthcontextupdate",
+    "code.crm.DoobieCrmEventProvider" -> "mappedcrmevent",
+    "code.customer.MappedCustomerMessage" -> "mappedcustomermessage",
+    "code.directdebit.DirectDebit" -> "directdebit",
+    "code.domainapi.DomainApi" -> "domain_api",
+    "code.dynamicEntity.DynamicEntity" -> "dynamicentity",
+    "code.dynamicMessageDoc.DynamicMessageDoc" -> "dynamicmessagedoc",
+    "code.dynamicResourceDoc.DynamicResourceDoc" -> "dynamicresourcedoc",
+    "code.dynamicchangerequest.DynamicChangeRequest" -> "dynamicchangerequest",
+    "code.dynamicentitywebhook.DynamicEntityWebhook" -> "dynamic_entity_webhook",
+    "code.entitlement.MappedEntitlement" -> "mappedentitlement",
+    "code.entitlementrequest.MappedEntitlementRequest" -> "mappedentitlementrequest",
+    "code.files.File" -> "file_t",
+    "code.files.FileAccess" -> "fileaccess",
+    "code.files.FileAttachment" -> "fileattachment",
+    "code.glossaryitem.DynamicGlossaryItem" -> "dynamicglossaryitem",
+    "code.group.GroupMembership" -> "groupmembership",
+    "code.kycchecks.MappedKycCheck" -> "mappedkyccheck",
+    "code.kycdocuments.MappedKycDocument" -> "mappedkycdocument",
+    "code.kycstatuses.MappedKycStatus" -> "mappedkycstatus",
+    "code.mandate.Mandate" -> "mandate",
+    "code.mandate.SignatoryPanel" -> "signatorypanel",
+    "code.meetings.MappedMeeting" -> "mappedmeeting",
+    "code.metadata.counterparties.MappedCounterparty" -> "mappedcounterparty",
+    "code.metadata.counterparties.MappedCounterpartyWhereTag" -> "mappedcounterpartywheretag",
+    "code.metadata.tags.DoobieTags" -> "mappedtag",
+    "code.metadata.transactionimages.DoobieTransactionImages" -> "mappedtransactionimage",
+    "code.metadata.wheretags.DoobieWhereTags" -> "mappedwheretag",
+    "code.model.dataAccess.MappedBank" -> "mappedbank",
+    "code.model.dataAccess.SelfServiceBank" -> "selfservicebank",
+    "code.payeelookup.DoobiePayeeLookupProvider" -> "payeelookup",
+    "code.routingscheme.RoutingScheme" -> "routingscheme",
+    "code.socialmedia.MappedSocialMedia" -> "mappedsocialmedia",
+    "code.standingorders.StandingOrder" -> "standingorder",
+    "code.tenant.Tenant" -> "tenant",
+    "code.transactionChallenge.MappedExpectedChallengeAnswer" -> "expectedchallengeanswer",
+    "code.transactionrequests.MappedTransactionRequest" -> "mappedtransactionrequest",
+    "code.usercustomerlinks.DoobieUserCustomerLinkProvider" -> "mappedusercustomerlink",
+    "code.users.UserAgreement" -> "useragreement",
+    "code.users.UserAttribute" -> "userattribute",
+    "code.users.UserInitActionProvider" -> "userinitaction",
+    "code.utilitypayment.DoobieUtilityPaymentCallbackProvider" -> "utilitypaymentcallback",
+    "code.webhook.BankAccountNotificationWebhook" -> "bankaccountnotificationwebhook",
+    "code.webhook.MappedAccountWebhook" -> "mappedaccountwebhook",
+    "code.webhook.SystemAccountNotificationWebhook" -> "systemaccountnotificationwebhook"
+  )
+
+  /** Every column of every table, lower case, read from the database the suite built. */
+  private lazy val schemaColumns: Map[String, Set[String]] = DoobieUtil.runQuery(
+    doobie.free.connection.raw { connection =>
+      val metadata = connection.getMetaData
+      val rows = metadata.getColumns(connection.getCatalog, connection.getSchema, null, null)
+      val found = scala.collection.mutable.ListBuffer[(String, String)]()
+      try while (rows.next()) found += ((rows.getString("TABLE_NAME").toLowerCase, rows.getString("COLUMN_NAME").toLowerCase))
+      finally rows.close()
+      found.toList
+    }
+  ).groupBy(_._1).map { case (table, pairs) => table -> pairs.map(_._2).toSet }
+
+  private def snake(name: String): String =
+    name.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase
+
+  /** The table a reference's class writes, failing rather than skipping when it is not known. */
+  private def tableOf(ref: UserReference): String =
+    storeTables.getOrElse(ref.mapperClass,
+      fail(s"${ref.name}: no table is known for ${ref.mapperClass}; add it to storeTables"))
+
+  /**
+   * The column of `table` a UserReference field names: the Mapper field name lowercased, as
+   * snake_case, or with Mapper's `_c` suffix for a reserved word -- the same rule
+   * UserReferenceAttributionPolicyTest applies.
+   */
+  private def columnOf(table: String, field: String): String =
+    schemaColumns.get(table).flatMap { columns =>
+      List(field.toLowerCase, snake(field), field.toLowerCase + "_c").find(columns.contains)
+    }.getOrElse(fail(s"table $table has no column for the field $field"))
 
   /**
    * This says how to tell two references apart when they name the same column under different
@@ -226,21 +326,21 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
 
   private def referencesOwnedBy(userId: String, primaryKey: String): List[String] =
     for {
-      ref   <- UserReference.byPolicy(AttributionPolicy.UseOnBehalfOfUserId)
-      meta  <- metaByClassName.get(ref.mapperClass).toList
-      field <- ownershipFields(ref).flatMap(name => meta.mappedFields.find(_.name == name))
-      where  = sharedColumnDiscriminator.get(ref.name).flatMap { case (discriminator, otherValue) =>
-                 meta.mappedFields.find(_.name == discriminator).map(d =>
-                   s" WHERE ${d.dbColumnName} IS NULL OR ${d.dbColumnName} <> '$otherValue'")
-               }.getOrElse("")
-      values = DBUtil.runQuery(s"SELECT ${field.dbColumnName} FROM ${meta.dbTableName}$where")._2.flatten
-      if values.exists(v => v == primaryKey || v.contains(userId))
+      ref    <- UserReference.byPolicy(AttributionPolicy.UseOnBehalfOfUserId)
+      table   = tableOf(ref)
+      column <- ownershipFields(ref).map(name => columnOf(table, name))
+      where   = sharedColumnDiscriminator.get(ref.name).map { case (discriminator, otherValue) =>
+                  val d = columnOf(table, discriminator)
+                  s" WHERE $d IS NULL OR $d <> '$otherValue'"
+                }.getOrElse("")
+      values  = DBUtil.runQuery(s"SELECT $column FROM $table$where")._2.flatten
+      if values.exists(v => v != null && (v == primaryKey || v.contains(userId)))
     } yield ref.name
 
   // ── minting a consent user over the wire ───────────────────────────────────
 
   private def consumerKeyHeader: Map[String, String] =
-    Map(RequestHeader.`Consumer-Key` -> testConsumer.key.get)
+    Map(RequestHeader.`Consumer-Key` -> testConsumer.key)
 
   private def consentBody(entitlements: List[(String, String)]): String = {
     val json: JObject =
@@ -248,7 +348,7 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
       ("views"        -> JArray(Nil)) ~
       ("entitlements" -> JArray(entitlements.map { case (bank, role) =>
                             ("bank_id" -> bank) ~ ("role_name" -> role) })) ~
-      ("consumer_id"  -> testConsumer.consumerId.get) ~
+      ("consumer_id"  -> testConsumer.consumerId) ~
       ("time_to_live" -> 3600)
     compact(render(json))
   }
@@ -286,8 +386,8 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
 
   private def primaryKeyOf(userId: String): String =
     code.model.dataAccess.ResourceUser
-      .find(net.liftweb.mapper.By(code.model.dataAccess.ResourceUser.userId_, userId))
-      .map(_.id.get.toString)
+      .findByUserId(userId)
+      .map(_.id.toString)
       .openOrThrowException(s"expected a ResourceUser row for $userId")
 
   private def bankId: String = realBankId.getOrElse(
@@ -386,8 +486,9 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
 
       // ... and names the Consent it acted under, by the reference id the metrics record for the call.
       val agentConsentReferenceId = code.model.dataAccess.ResourceUser
-        .find(net.liftweb.mapper.By(code.model.dataAccess.ResourceUser.userId_, agentId))
-        .flatMap(ru => code.consent.Consents.consentProvider.vend.getConsentByConsentId(ru.CreatedByConsentId.get))
+        .findByUserId(agentId)
+        .flatMap(ru => net.liftweb.common.Box(ru.createdByConsentId))
+        .flatMap(consentId => code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId))
         .map(_.consentReferenceId)
       agentConsentReferenceId.isDefined should be(true)
       (body \ "metadata" \ "created" \ "consent_reference_id").extractOpt[String] should equal(agentConsentReferenceId.toOption)

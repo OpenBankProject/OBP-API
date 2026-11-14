@@ -91,7 +91,7 @@ class CustomerConsentUserTest extends V600ServerSetup {
       ("everything" -> false) ~
       ("views" -> JArray(Nil)) ~
       ("entitlements" -> JArray(Nil)) ~
-      ("consumer_id" -> testConsumer.consumerId.get) ~
+      ("consumer_id" -> testConsumer.consumerId) ~
       ("time_to_live" -> 3600)
     myResources.map(mr => base ~ ("my_resources" -> mr)).getOrElse(base)
   }

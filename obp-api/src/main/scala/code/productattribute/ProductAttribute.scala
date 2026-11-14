@@ -30,7 +30,6 @@ package code.productattribute
 /* For ProductAttribute */
 
 import code.api.util.APIUtil
-import code.productAttributeattribute.MappedProductAttributeProvider
 import com.openbankproject.commons.model.enums.ProductAttributeType
 import com.openbankproject.commons.model.{BankId, ProductAttribute, ProductCode}
 import net.liftweb.common.{Box, Logger}
@@ -43,7 +42,7 @@ object ProductAttributeX extends SimpleInjector {
 
   val productAttributeProvider = new Inject(() => buildOne) {}
 
-  def buildOne: ProductAttributeProvider = MappedProductAttributeProvider
+  def buildOne: ProductAttributeProvider = DoobieProductAttributeProvider
 
   // Helper to get the count out of an option
   def countOfProductAttribute(listOpt: Option[List[ProductAttribute]]): Int = {

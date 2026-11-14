@@ -32,6 +32,7 @@ import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.UserOnly
 import code.api.util.ApiRole
+import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.{CanCreateEntitlementAtAnyBank, CanCreateEntitlementAtOneBank, CanGetAnyUser, CanGetMetricsAtOneBank}
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.v2_1_0.MetricsJson
@@ -64,8 +65,8 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
     super.afterAll()
   }
 
-  feature(s"Assuring Just In Time Entitlements work as expected in case of system roles - $VersionOfApi") {
-    scenario("Test absence of props create_just_in_time_entitlements", ApiEndpoint1, VersionOfApi) {
+  Feature(s"Assuring Just In Time Entitlements work as expected in case of system roles - $VersionOfApi") {
+    Scenario("Test absence of props create_just_in_time_entitlements", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateEntitlementAtAnyBank.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v5_1_0_Request / "users" / "user_id" / resourceUser3.userId).GET <@(user1)
@@ -74,7 +75,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanGetAnyUser)
     }
-    scenario("Test create_just_in_time_entitlements=false", ApiEndpoint1, VersionOfApi) {
+    Scenario("Test create_just_in_time_entitlements=false", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateEntitlementAtAnyBank.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v5_1_0_Request / "users" / "user_id" / resourceUser3.userId).GET <@(user1)
@@ -84,7 +85,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanGetAnyUser)
     }
-    scenario("Test create_just_in_time_entitlements=true", ApiEndpoint1, VersionOfApi) {
+    Scenario("Test create_just_in_time_entitlements=true", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateEntitlementAtAnyBank.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v5_1_0_Request / "users" / "user_id" / resourceUser3.userId).GET <@(user1)
@@ -97,13 +98,13 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
   }
   
   
-  feature(s"Assuring Just In Time Entitlements work as expected in case of bank roles - $VersionOfApi") {
+  Feature(s"Assuring Just In Time Entitlements work as expected in case of bank roles - $VersionOfApi") {
     lazy val bankId = testBankId1.value
     def getMetrics(consumerAndToken: Option[(Consumer, Token)], bankId: String): APIResponse = {
       val request = v5_1_0_Request / "management" / "metrics" / "banks" / bankId <@(consumerAndToken)
       makeGetRequest(request)
     }
-    scenario("Test absence of props create_just_in_time_entitlements", ApiEndpoint1, VersionOfApi) {
+    Scenario("Test absence of props create_just_in_time_entitlements", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateEntitlementAtOneBank.toString)
       val response = getMetrics(user1, bankId)
@@ -111,7 +112,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message contains (UserHasMissingRoles + CanGetMetricsAtOneBank) should be (true)
     }
-    scenario("Test create_just_in_time_entitlements=false", ApiEndpoint1, VersionOfApi) {
+    Scenario("Test create_just_in_time_entitlements=false", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateEntitlementAtOneBank.toString)
       setPropsValues("create_just_in_time_entitlements" -> "false")
@@ -120,7 +121,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message contains (UserHasMissingRoles + CanGetMetricsAtOneBank) should be (true)
     }
-    scenario("Test create_just_in_time_entitlements=true", ApiEndpoint1, VersionOfApi) {
+    Scenario("Test create_just_in_time_entitlements=true", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateEntitlementAtOneBank.toString)
       setPropsValues("create_just_in_time_entitlements" -> "true")
@@ -132,12 +133,12 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
   }
 
 
-  feature(s"Just In Time Entitlements are never granted in the system space - $VersionOfApi") {
+  Feature(s"Just In Time Entitlements are never granted in the system space - $VersionOfApi") {
     // The system space is the space whose bank id is the literal SYS. A Role there is granted by
     // hand by someone holding the system space granting Role, never automatically, so that reaching
     // the instance wide space stays a deliberate act. Held at the function rather than over HTTP
     // because no endpoint resolves SYS as a bank id yet; see DYNAMIC_ENTITY_SPACE_MODEL_PLAN.md.
-    scenario("The per bank granting Role held at SYS grants nothing there", VersionOfApi) {
+    Scenario("The per bank granting Role held at SYS grants nothing there", VersionOfApi) {
       setPropsValues("create_just_in_time_entitlements" -> "true")
       val wantedRole = ApiRole.canGetMetricsAtOneBank
       Entitlement.entitlement.vend.addEntitlement(
@@ -155,7 +156,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
         DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, wantedRole.toString).isDefined should equal(false)
     }
 
-    scenario("The same caller at an ordinary bank is still granted just in time", VersionOfApi) {
+    Scenario("The same caller at an ordinary bank is still granted just in time", VersionOfApi) {
       setPropsValues("create_just_in_time_entitlements" -> "true")
       val wantedRole = ApiRole.canGetMetricsAtOneBank
       val bankId = testBankId1.value
@@ -176,7 +177,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
   }
 
 
-  feature(s"Just In Time Entitlements only grant what the caller could have granted by hand - $VersionOfApi") {
+  Feature(s"Just In Time Entitlements only grant what the caller could have granted by hand - $VersionOfApi") {
     // Granting an Entitlement by hand goes through Add Entitlement, which refuses a Role whose
     // scope does not match the bank id it is given: a Role declared with requiresBankId = false
     // lives at the system scope and cannot be attached to a bank, and the caller needs a granting
@@ -185,7 +186,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
     // scenarios sit at the function rather than over HTTP so that the scope of the row that gets
     // written is visible, which is the part a response code cannot show.
 
-    scenario("A system scoped Role is not granted from per bank granting rights", VersionOfApi) {
+    Scenario("A system scoped Role is not granted from per bank granting rights", VersionOfApi) {
       setPropsValues("create_just_in_time_entitlements" -> "true")
       val bankId = testBankId1.value
       val systemScopedRole = ApiRole.canSeeAccountAccessForAnyUser
@@ -212,7 +213,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
         "", resourceUser3.userId, systemScopedRole.toString).isDefined should equal(false)
     }
 
-    scenario("A system scoped Role granted to an any bank granter is written at the system scope", VersionOfApi) {
+    Scenario("A system scoped Role granted to an any bank granter is written at the system scope", VersionOfApi) {
       setPropsValues("create_just_in_time_entitlements" -> "true")
       val bankId = testBankId1.value
       val systemScopedRole = ApiRole.canSeeAccountAccessForAnyUser
@@ -237,7 +238,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
         bankId, resourceUser1.userId, systemScopedRole.toString).isDefined should equal(false)
     }
 
-    scenario("The granting Roles themselves are never granted this way", VersionOfApi) {
+    Scenario("The granting Roles themselves are never granted this way", VersionOfApi) {
       setPropsValues("create_just_in_time_entitlements" -> "true")
       val bankId = testBankId1.value
 

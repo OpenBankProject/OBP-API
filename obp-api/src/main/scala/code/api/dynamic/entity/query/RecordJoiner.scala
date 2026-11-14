@@ -33,6 +33,7 @@ import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.dynamic.entity.projection.{IndexingCapabilities, ProjectionDb, ProjectionNaming, ProjectionProvisioner, ProjectionStore}
 import com.openbankproject.commons.util.JsonAliases
 import org.json4s.JsonAST._
+import org.json4s.jvalue2monadic
 
 /**
  * This object applies planned [[Join]]s to a page of records.

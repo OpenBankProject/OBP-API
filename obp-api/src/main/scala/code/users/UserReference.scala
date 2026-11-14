@@ -117,10 +117,12 @@ case class Attribution(
  * it only insists that somebody answered the question. Whether a provider then really applies the
  * policy it declared is a separate guard, OnBehalfOfOwnershipSweepTest.
  *
- * The constructor takes the policy; mapperClass, the fully-qualified Mapper class written as a
- * string so that this file imports nothing and cannot trigger Mapper initialisation; fields, the
- * names of the field objects on that Mapper; and note, the reason this policy was chosen, which
- * every value carries.
+ * The constructor takes the policy; mapperClass, the fully-qualified class that owns the write -
+ * on this branch a Doobie store or row rather than a Lift Mapper entity - written as a string so
+ * that this file imports nothing; fields, the database column names it writes; and note, the
+ * reason this policy was chosen, which every value carries. mapperClass and fields are read only
+ * to build the log line in Users.attributionOf, and AgentDelegationTest asserts the class actually
+ * resolves, so an entry naming something this branch does not have fails the suite.
  *
  * A value is named after the column it governs, as Table_Column, dropping the Mapped or Mapper
  * prefix from the class and Lift's m prefix from the field. Where one reference governs two
@@ -149,16 +151,16 @@ object UserReference {
   case object AccountAccess_UserFk                             extends UserReference(UseAuthenticatedUserId, "code.views.system.AccountAccess", List("user_fk"), "views copied from the consent JWT each request; has lifecycle GC")
   case object Entitlement_UserId_ConsentScope                  extends UserReference(UseAuthenticatedUserId, "code.entitlement.MappedEntitlement", List("mUserId"), "only when createdByProcess == consent_user: the consent engine copying the consent's own scope")
   case object Entitlement_GrantedByUserId                      extends UserReference(UseAuthenticatedUserId, "code.entitlement.MappedEntitlement", List("mGrantedByUserId"), "audit: who granted")
-  case object UserLocks_UserId                                 extends UserReference(UseAuthenticatedUserId, "code.userlocks.UserLocks", List("UserId"), "lock the authenticated user")
+  case object UserLocks_UserId                                 extends UserReference(UseAuthenticatedUserId, "code.userlocks.UserLocksProvider", List("userid"), "lock the authenticated user")
   case object ExpectedChallengeAnswer_ExpectedUserId           extends UserReference(UseAuthenticatedUserId, "code.transactionChallenge.MappedExpectedChallengeAnswer", List("ExpectedUserId"), "consent and signing-basket authorisation: the caller IS the person authorising, so the challenge is theirs")
   case object ChatMessage_SenderUserId                         extends UserReference(UseAuthenticatedUserId, "code.chat.ChatMessage", List("SenderUserId"), "sender = the authenticated user is truthful")
   case object Metric_UserId                                    extends UserReference(UseAuthenticatedUserId, "code.metrics.MappedMetric", List("userId"), "record both: on-behalf-of via consent_reference_id at read time")
   case object MetricArchive_UserId                             extends UserReference(UseAuthenticatedUserId, "code.metrics.MetricArchive", List("userId"), "as Metric_UserId")
-  case object ConnectorTrace_UserId                            extends UserReference(UseAuthenticatedUserId, "code.metrics.ConnectorTrace", List("userId"), "as Metric_UserId")
+  case object ConnectorTrace_UserId                            extends UserReference(UseAuthenticatedUserId, "code.metrics.DoobieConnectorTrace", List("userid"), "as Metric_UserId")
   case object DynamicDataAccess_GrantedBy                      extends UserReference(UseAuthenticatedUserId, "code.DynamicData.DynamicDataAccess", List("GrantedBy"), "audit: who granted")
   case object AuthUser_User                                    extends UserReference(UseAuthenticatedUserId, "code.model.dataAccess.AuthUser", List("user"), "login row -> its own ResourceUser; not attribution")
   case object OpenIDConnectToken_AuthUserPrimaryKey            extends UserReference(UseAuthenticatedUserId, "code.token.OpenIDConnectToken", List("AuthUserPrimaryKey"), "token belongs to the login; not attribution")
-  case object UserRefreshes_UserId                             extends UserReference(UseAuthenticatedUserId, "code.UserRefreshes.MappedUserRefreshes", List("mUserId"), "operational: refresh of the authenticated user's own account list")
+  case object UserRefreshes_UserId                             extends UserReference(UseAuthenticatedUserId, "code.UserRefreshes.DoobieUserRefreshesProvider", List("muserid"), "operational: refresh of the authenticated user's own account list")
   case object PlatformApp_MarkedByUserId                       extends UserReference(UseAuthenticatedUserId, "code.platformapp.PlatformApp", List("MarkedByUserId"), "audit: who marked the Consumer as a platform app")
   case object ConsumerAccountAccess_GrantedByUserId            extends UserReference(UseAuthenticatedUserId, "code.consumeraccountaccess.ConsumerAccountAccess", List("GrantedByUserId"), "audit: who gave the Consumer access to the view, as Entitlement_GrantedByUserId")
   case object GroupMembership_CreatedByUserId                  extends UserReference(UseAuthenticatedUserId, "code.group.GroupMembership", List("CreatedByUserId"), "audit: who added the member, as Entitlement_GrantedByUserId")
@@ -177,7 +179,7 @@ object UserReference {
   case object Entitlement_UserId                               extends UserReference(UseOnBehalfOfUserId   , "code.entitlement.MappedEntitlement", List("mUserId"), "the role holder; the consent-engine case is Entitlement_UserId_ConsentScope")
   case object GroupMembership_UserId                           extends UserReference(UseOnBehalfOfUserId   , "code.group.GroupMembership", List("UserId"), "the member, who holds the Roles the Group grants; as Entitlement_UserId")
   case object AccountHolders_User                              extends UserReference(UseOnBehalfOfUserId   , "code.accountholders.MapperAccountHolders", List("user"), "the human holds the account; one held by a per-consent identity strands when the consent dies")
-  case object UserCustomerLink_UserId                          extends UserReference(UseOnBehalfOfUserId   , "code.usercustomerlinks.MappedUserCustomerLink", List("mUserId"), "a Customer is linked to a human; a link on an agent identity dies with its Consent")
+  case object UserCustomerLink_UserId                          extends UserReference(UseOnBehalfOfUserId   , "code.usercustomerlinks.DoobieUserCustomerLinkProvider", List("muserid"), "a Customer is linked to a human; a link on an agent identity dies with its Consent")
   case object AccountApplication_UserId                        extends UserReference(UseOnBehalfOfUserId   , "code.accountapplication.MappedAccountApplication", List("mUserId"), "explicit target: user_id comes from the request and is guarded at the endpoint, so the provider redirect is unreachable -- see ON_BEHALF_OF_USER_ID_PLAN.md row 14")
   case object AccountAccessRequest_RequestorUserId             extends UserReference(UseOnBehalfOfUserId   , "code.accountaccessrequest.AccountAccessRequest", List("RequestorUserId"), "who asked for access; the request outlives the session it was made in")
   case object AccountAccessRequest_TargetUserId                extends UserReference(UseOnBehalfOfUserId   , "code.accountaccessrequest.AccountAccessRequest", List("TargetUserId"), "explicit target: a consent user named here is rejected at the endpoint")
@@ -185,13 +187,12 @@ object UserReference {
   case object DynamicChangeRequest_RequestorUserId             extends UserReference(UseOnBehalfOfUserId   , "code.dynamicchangerequest.DynamicChangeRequest", List("RequestorUserId"), "maker of a dynamic-code change")
   case object DynamicChangeRequest_CheckerUserId               extends UserReference(UseOnBehalfOfUserId   , "code.dynamicchangerequest.DynamicChangeRequest", List("CheckerUserId"), "checker; must differ from the requestor")
   case object EntitlementRequest_UserId                        extends UserReference(UseOnBehalfOfUserId   , "code.entitlementrequest.MappedEntitlementRequest", List("mUserId"), "who asked for the role; the grant that follows lands on a human")
-  case object UserScope_UserId                                 extends UserReference(UseOnBehalfOfUserId   , "code.scope.MappedUserScope", List("mUserId"), "the scope holder")
-  case object ApiCollection_UserId                             extends UserReference(UseOnBehalfOfUserId   , "code.apicollection.ApiCollection", List("UserId"), "the user's own saved collection, created through POST /my/api-collections")
+  case object ApiCollection_UserId                             extends UserReference(UseOnBehalfOfUserId   , "code.apicollection.DoobieApiCollectionsProvider", List("userid"), "the user's own saved collection, created through POST /my/api-collections")
   case object UserAttribute_UserId                             extends UserReference(UseOnBehalfOfUserId   , "code.users.UserAttribute", List("UserId"), "the user's own attribute, created through the /my/ endpoints")
   case object UserAgreement_UserId                             extends UserReference(UseOnBehalfOfUserId   , "code.users.UserAgreement", List("UserId"), "the user's own acceptance of terms")
-  case object UserInitAction_UserId                            extends UserReference(UseOnBehalfOfUserId   , "code.users.UserInitAction", List("UserId"), "the user's own onboarding action")
-  case object UserAuthContext_UserId                           extends UserReference(UseOnBehalfOfUserId   , "code.context.MappedUserAuthContext", List("mUserId"), "consent copies the on-behalf-of user's contexts into ConsentAuthContext separately")
-  case object UserAuthContextUpdate_UserId                     extends UserReference(UseOnBehalfOfUserId   , "code.context.MappedUserAuthContextUpdate", List("mUserId"), "as UserAuthContext_UserId")
+  case object UserInitAction_UserId                            extends UserReference(UseOnBehalfOfUserId   , "code.users.UserInitActionProvider", List("userid"), "the user's own onboarding action")
+  case object UserAuthContext_UserId                           extends UserReference(UseOnBehalfOfUserId   , "code.context.DoobieUserAuthContextProvider", List("muserid"), "consent copies the on-behalf-of user's contexts into ConsentAuthContext separately")
+  case object UserAuthContextUpdate_UserId                     extends UserReference(UseOnBehalfOfUserId   , "code.context.MappedUserAuthContextUpdateProvider", List("muserid"), "as UserAuthContext_UserId")
   case object DynamicEntity_UserId                             extends UserReference(UseOnBehalfOfUserId   , "code.dynamicEntity.DynamicEntity", List("UserId"), "the definition's creator; a definition outlives the Consent that created it")
   case object DynamicData_UserId                               extends UserReference(UseOnBehalfOfUserId   , "code.DynamicData.DynamicData", List("UserId"), "personal rows, and the one reference where the redirect MUST be symmetric: MapppedDynamicDataProvider resolves on save/update/get/delete alike, because a row keyed by this column on both sides is otherwise written by an agent and then invisible to it")
   case object DynamicData_CreatedByUserId                       extends UserReference(UseOnBehalfOfUserId   , "code.DynamicData.DynamicData", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both: who made the call that created the record, agent included, and the person it was made for; published in the v7.0.0 record metadata")
@@ -200,7 +201,7 @@ object UserReference {
   case object DynamicEndpoint_UserId                           extends UserReference(UseOnBehalfOfUserId   , "code.DynamicEndpoint.DynamicEndpoint", List("UserId"), "the dynamic endpoint's creator; outlives the Consent")
   case object DynamicResourceDoc_CreatedByUserId               extends UserReference(UseOnBehalfOfUserId   , "code.dynamicResourceDoc.DynamicResourceDoc", List("CreatedByUserId", "UpdatedByUserId"), "and UpdatedByUserId; a dynamic artefact outlives the Consent that created it")
   case object DynamicMessageDoc_CreatedByUserId                extends UserReference(UseOnBehalfOfUserId   , "code.dynamicMessageDoc.DynamicMessageDoc", List("CreatedByUserId", "UpdatedByUserId"), "and UpdatedByUserId; a dynamic artefact outlives the Consent that created it")
-  case object ConnectorMethod_CreatedByUserId                  extends UserReference(UseOnBehalfOfUserId   , "code.connectormethod.ConnectorMethod", List("CreatedByUserId", "UpdatedByUserId"), "and UpdatedByUserId; a dynamic artefact outlives the Consent that created it")
+  case object ConnectorMethod_CreatedByUserId                  extends UserReference(UseOnBehalfOfUserId   , "code.connectormethod.DoobieConnectorMethodProvider", List("createdbyuserid", "updatedbyuserid"), "and UpdatedByUserId; a dynamic artefact outlives the Consent that created it")
   case object AbacRule_CreatedByUserId                         extends UserReference(UseOnBehalfOfUserId   , "code.abacrule.AbacRule", List("CreatedByUserId", "UpdatedByUserId"), "and UpdatedByUserId; an access rule outlives the Consent that created it")
   case object Counterparty_CreatedByUserId                     extends UserReference(UseOnBehalfOfUserId   , "code.metadata.counterparties.MappedCounterparty", List("mCreatedByUserId", "mCreatedByOnBehalfOfUserId"), "record both: a counterparty controls where money may be sent, so the actor stays on mCreatedByUserId (and is published as created_by_user_id) while the human goes to mCreatedByOnBehalfOfUserId")
   case object CounterpartyWhereTag_User                        extends UserReference(UseOnBehalfOfUserId   , "code.metadata.counterparties.MappedCounterpartyWhereTag", List("user"), "who tagged the counterparty's location")
@@ -210,16 +211,16 @@ object UserReference {
   case object DynamicEntityWebhook_CreatedByUserId             extends UserReference(UseOnBehalfOfUserId   , "code.dynamicentitywebhook.DynamicEntityWebhook", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: a webhook sends data out of OBP and outlives the Consent that made it, so the agent stays on CreatedByUserId (published as created_by_user_id) and the person it acted for goes to CreatedByOnBehalfOfUserId")
   case object AccountCreation_CreatedByUserId                   extends UserReference(UseOnBehalfOfUserId   , "code.accountcreation.AccountCreation", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: who made the call that created the account, agent included, and the person it was made for; published in the v7.0.0 Create Account metadata. The holder is AccountHolders_User")
   case object Bank_CreatedByUserId                             extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.MappedBank", List("CreatedByUserId"), "creator grant already resolved at the endpoint")
-  case object SelfServiceBank_CreatedByUserId                  extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.SelfServiceBank", List("CreatedByUserId"), "as Bank_CreatedByUserId; the Create My Bank quota counts these rows per creator")
+  case object SelfServiceBank_CreatedByUserId                  extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.SelfServiceBank", List("createdbyuserid"), "as Bank_CreatedByUserId; the Create My Bank quota counts these rows per creator")
   case object Tenant_CreatedByUserId                     extends UserReference(UseOnBehalfOfUserId   , "code.tenant.Tenant", List("CreatedByUserId"), "outlives the Consent that created it")
   case object Asset_CreatedByUserId                            extends UserReference(UseOnBehalfOfUserId   , "code.asset.Asset", List("CreatedByUserId"), "outlives the Consent that created it, as RoutingScheme_CreatedByUserId; seeded rows hold system:asset-seed")
   case object File_UserId                                      extends UserReference(UseOnBehalfOfUserId   , "code.files.File", List("UserId", "OnBehalfOfUserId"), "record both: UserId = who uploaded (the agent), OnBehalfOfUserId = the human, who owns the file")
   case object FileAttachment_UserId                            extends UserReference(UseOnBehalfOfUserId   , "code.files.FileAttachment", List("UserId", "OnBehalfOfUserId"), "record both: UserId = who attached (the agent), OnBehalfOfUserId = the human")
   case object FileAccess_GrantedByUserId                       extends UserReference(UseOnBehalfOfUserId   , "code.files.FileAccess", List("GrantedByUserId", "OnBehalfOfUserId"), "record both: GrantedByUserId = who granted (the agent), OnBehalfOfUserId = the file's owner it acted for")
   case object FileAccess_GranteeUserId                         extends UserReference(UseOnBehalfOfUserId   , "code.files.FileAccess", List("GranteeUserId"), "explicit target: the User given access is named in the request; access given to a consent user would die with its Consent")
-  case object PayeeLookup_CreatedByUserId                      extends UserReference(UseOnBehalfOfUserId   , "code.payeelookup.PayeeLookup", List("CreatedByUserId"), "outlives the Consent that created it")
+  case object PayeeLookup_CreatedByUserId                      extends UserReference(UseOnBehalfOfUserId   , "code.payeelookup.DoobiePayeeLookupProvider", List("createdbyuserid"), "outlives the Consent that created it")
   case object RoutingScheme_CreatedByUserId                    extends UserReference(UseOnBehalfOfUserId   , "code.routingscheme.RoutingScheme", List("CreatedByUserId"), "outlives the Consent that created it")
-  case object UtilityPaymentCallback_CreatedByUserId           extends UserReference(UseOnBehalfOfUserId   , "code.utilitypayment.UtilityPaymentCallback", List("CreatedByUserId"), "outlives the Consent that created it")
+  case object UtilityPaymentCallback_CreatedByUserId           extends UserReference(UseOnBehalfOfUserId   , "code.utilitypayment.DoobieUtilityPaymentCallbackProvider", List("createdbyuserid"), "outlives the Consent that created it")
   case object StandingOrder_UserId                             extends UserReference(UseOnBehalfOfUserId   , "code.standingorders.StandingOrder", List("UserId"), "the payer; a standing order keeps executing long after any Consent expires")
   case object DirectDebit_UserId                               extends UserReference(UseOnBehalfOfUserId   , "code.directdebit.DirectDebit", List("UserId"), "the payer; a mandate keeps executing long after any Consent expires")
   case object Mandate_CreatedByUserId                          extends UserReference(UseOnBehalfOfUserId   , "code.mandate.Mandate", List("CreatedByUserId", "UpdatedByUserId"), "and UpdatedByUserId; a mandate authorises payment and outlives the Consent that created it")
@@ -232,7 +233,7 @@ object UserReference {
   case object Reaction_UserId                                  extends UserReference(UseOnBehalfOfUserId   , "code.chat.Reaction", List("UserId"), "the person who reacted")
   case object ChatEmailDigestState_UserId                      extends UserReference(UseOnBehalfOfUserId   , "code.chat.ChatEmailDigestState", List("UserId"), "the person the digest is for")
   case object ChatMessage_MentionedUserIds                     extends UserReference(UseOnBehalfOfUserId   , "code.chat.ChatMessage", List("MentionedUserIds"), "explicit targets, humans by construction")
-  case object CrmEvent_UserId                                  extends UserReference(UseOnBehalfOfUserId   , "code.crm.MappedCrmEvent", List("mUserId"), "the user the event concerns")
+  case object CrmEvent_UserId                                  extends UserReference(UseOnBehalfOfUserId   , "code.crm.DoobieCrmEventProvider", List("muserid"), "the user the event concerns")
   case object KycCheck_User                                    extends UserReference(UseOnBehalfOfUserId   , "code.kycchecks.MappedKycCheck", List("user"), "the customer's user")
   case object KycCheck_StaffUserId                             extends UserReference(UseOnBehalfOfUserId   , "code.kycchecks.MappedKycCheck", List("mStaffUserId"), "staff = human operator")
   case object KycDocument_User                                 extends UserReference(UseOnBehalfOfUserId   , "code.kycdocuments.MappedKycDocument", List("user"), "the customer's user")
@@ -241,9 +242,9 @@ object UserReference {
   case object CustomerMessage_User                             extends UserReference(UseOnBehalfOfUserId   , "code.customer.MappedCustomerMessage", List("user"), "the customer's user")
   case object Meeting_CustomerUserId                           extends UserReference(UseOnBehalfOfUserId   , "code.meetings.MappedMeeting", List("mCustomerUserId"), "the customer side of the meeting")
   case object Meeting_StaffUserId                              extends UserReference(UseOnBehalfOfUserId   , "code.meetings.MappedMeeting", List("mStaffUserId"), "staff = human operator")
-  case object Tag_User                                         extends UserReference(UseOnBehalfOfUserId   , "code.metadata.tags.MappedTag", List("user"), "the author of the annotation; it outlives the Consent")
-  case object WhereTag_User                                    extends UserReference(UseOnBehalfOfUserId   , "code.metadata.wheretags.MappedWhereTag", List("user"), "the author of the annotation; it outlives the Consent")
-  case object TransactionImage_User                            extends UserReference(UseOnBehalfOfUserId   , "code.metadata.transactionimages.MappedTransactionImage", List("user"), "the author of the annotation; it outlives the Consent")
+  case object Tag_User                                         extends UserReference(UseOnBehalfOfUserId   , "code.metadata.tags.DoobieTags", List("user_c"), "the author of the annotation; it outlives the Consent")
+  case object WhereTag_User                                    extends UserReference(UseOnBehalfOfUserId   , "code.metadata.wheretags.DoobieWhereTags", List("user_c"), "the author of the annotation; it outlives the Consent")
+  case object TransactionImage_User                            extends UserReference(UseOnBehalfOfUserId   , "code.metadata.transactionimages.DoobieTransactionImages", List("user_c"), "the author of the annotation; it outlives the Consent")
 
   // ---- Reject: an agent must not do this at all, because what it would create outlives the
   // ---- Consent and would let the delegation extend itself.
@@ -290,7 +291,6 @@ object UserReference {
     DynamicChangeRequest_RequestorUserId,
     DynamicChangeRequest_CheckerUserId,
     EntitlementRequest_UserId,
-    UserScope_UserId,
     ApiCollection_UserId,
     UserAttribute_UserId,
     UserAgreement_UserId,
@@ -400,7 +400,6 @@ object UserReference {
     DynamicChangeRequest_RequestorUserId   -> mechanicalBatch,
     DynamicChangeRequest_CheckerUserId     -> mechanicalBatch,
     EntitlementRequest_UserId              -> mechanicalBatch,
-    UserScope_UserId                       -> mechanicalBatch,
     ApiCollection_UserId                   -> mechanicalBatch,
     UserAttribute_UserId                   -> mechanicalBatch,
     UserAgreement_UserId                   -> mechanicalBatch,
@@ -480,7 +479,8 @@ object UserReference {
     ("code.entitlement.MappedEntitlement", "mCreatedByProcess", "process tag"),
     ("code.model.dataAccess.ResourceUser", "userId_", "the user's own id"),
     ("code.model.dataAccess.ResourceUser", "CreatedByConsentId", "consent id"),
-    ("code.model.dataAccess.ResourceUser", "CreatedByUserInvitationId", "invitation id")
+    ("code.model.dataAccess.ResourceUser", "CreatedByUserInvitationId", "invitation id"),
+    ("code.model.dataAccess.ResourceUser", "principalUserId", "legacy column that no code reads or writes")
   )
 
   /** This returns every reference that carries the given policy. The sweep tests use it to ask,

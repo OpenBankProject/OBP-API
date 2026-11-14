@@ -39,12 +39,12 @@ import com.nimbusds.jose.crypto.RSASSAVerifier
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jose.{JWSObject, Payload}
 import com.sun.net.httpserver.{HttpExchange, HttpServer}
-import net.liftweb.mapper.By
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.JsonAST._
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods.{compact, render}
+import org.json4s.{jvalue2extractable, jvalue2monadic}
 import org.scalatest.Tag
 
 import java.net.InetSocketAddress
@@ -140,7 +140,7 @@ class DynamicEntityWebhooksTest extends V600ServerSetup {
   }
 
   private def outboxRow(eventId: String): MessageOutbox =
-    MessageOutbox.find(By(MessageOutbox.SubjectId, eventId)).openOrThrowException(s"outbox row $eventId")
+    MessageOutbox.bySubjectId(eventId).headOption.getOrElse(throw new IllegalStateException(s"outbox row $eventId"))
 
   /**
    * One delivery attempt of the row, as the relay makes it. The relay running in the test server may have
@@ -409,7 +409,7 @@ class DynamicEntityWebhooksTest extends V600ServerSetup {
         When("the relay sends it")
         val row = deliverOnce(eventId)
         Then("it is delivered, once")
-        withClue(row.LastError.get) { row.status should equal(MessageOutbox.STATUS_DELIVERED) }
+        withClue(row.lastError) { row.status should equal(MessageOutbox.STATUS_DELIVERED) }
         row.attempts should equal(1)
         WebhookOutbox.lastReply(row).map(_.http_status) should equal(Some(200))
         receiver.received.size should equal(1)
@@ -445,12 +445,12 @@ class DynamicEntityWebhooksTest extends V600ServerSetup {
         row.status should equal(MessageOutbox.STATUS_PENDING)
         row.attempts should equal(1)
         WebhookOutbox.lastReply(row).map(_.http_status) should equal(Some(503))
-        row.LastError.get should include("503")
+        row.lastError should include("503")
 
         When("the webhook is deleted")
         makeDeleteRequest((webhooks(SYS, entityId) / webhookId).DELETE <@ (user1)).code should equal(204)
         Then("the request is no longer queued")
-        MessageOutbox.find(By(MessageOutbox.SubjectId, eventId)).isDefined should equal(false)
+        MessageOutbox.bySubjectId(eventId).headOption.isDefined should equal(false)
       } finally receiver.stop()
     }
 
@@ -487,7 +487,7 @@ class DynamicEntityWebhooksTest extends V600ServerSetup {
         val row = deliverOnce(eventId)
         Then("the request is not sent, and is not retried")
         row.status should equal(MessageOutbox.STATUS_STICKY)
-        row.LastError.get should include("refused")
+        row.lastError should include("refused")
         receiver.received.size should equal(0)
       } finally receiver.stop()
     }
@@ -642,8 +642,8 @@ class DynamicEntityWebhooksTest extends V600ServerSetup {
 
     /** The requests queued for a webhook, oldest first, with their bodies parsed. */
     def queuedFor(webhookId: String): List[(MessageOutbox, JValue)] =
-      MessageOutbox.findAll(By(MessageOutbox.OutboxType, MessageOutbox.TYPE_WEBHOOK), By(MessageOutbox.TargetId, webhookId))
-        .sortBy(_.id.get)
+      MessageOutbox.findWebhookRows(webhookId, status = None, limit = Int.MaxValue, offset = 0)
+        .sortBy(_.id)
         .map(row => row -> org.json4s.native.JsonMethods.parse(row.payloadJson))
 
     def record(entityName: String, id: String, fields: (String, JValue)*): JObject =

@@ -41,7 +41,7 @@ import code.api.util.YAMLUtils
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v4_0_0.Http4s400
-import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
+import code.apicollectionendpoint.DoobieApiCollectionEndpointsProvider
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -81,7 +81,11 @@ trait ResourceDocsAPIMethods extends MdcLoggable {
 
   def includeTechnologyInResponse: Boolean = false
 
-  val ImplementationsResourceDocs = new Object() {
+  // A named inner class rather than `new Object() { ... }`: the anonymous form gave the
+  // val an inferred structural type, so every external member access went through
+  // reflection (and Scala 3 refuses to infer structural types at all). Same members,
+  // same behaviour, ordinary virtual dispatch.
+  class ImplementationsResourceDocsImpl {
 
     val localResourceDocs = ArrayBuffer[ResourceDoc]()
 
@@ -345,7 +349,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable {
       Some(List(canReadDynamicResourceDocsAtOneBank))
     )
 
-    implicit val formats = CustomJsonFormats.rolesMappedToClassesFormats
+    implicit val formats: org.json4s.Formats = CustomJsonFormats.rolesMappedToClassesFormats
 
     // avoid repeat execute method getSpecialInstructions, here save the calculate results.
     private val specialInstructionMap = new ConcurrentHashMap[String, Option[String]]()
@@ -738,7 +742,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable {
 //          json <- locale match {
 //            case _ if (apiCollectionIdParam.isDefined) =>
 //              NewStyle.function.tryons(s"$UnknownError Can not prepare OBP resource docs.", 500, callContext) {
-//                val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
+//                val operationIds = DoobieApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
 //                val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
 //                val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
 //                val resourceDocsJsonJValue = Full(resourceDocsJsonToJsonResponse(resourceDocsJson))
@@ -957,7 +961,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable {
 //              NewStyle.function.tryons(s"$UnknownError Can not convert internal swagger file.", 400, cc.callContext) {
 //                val resourceDocsJsonFiltered = locale match {
 //                  case _ if (apiCollectionIdParam.isDefined) =>
-//                    val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
+//                    val operationIds = DoobieApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
 //                    val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
 //                    val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
 //                    resourceDocsJson.resource_docs
@@ -1161,7 +1165,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable {
 //              NewStyle.function.tryons(s"$UnknownError Can not convert internal openapi file.", 400, cc.callContext) {
 //                val resourceDocsJsonFiltered = locale match {
 //                  case _ if (apiCollectionIdParam.isDefined) =>
-//                    val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
+//                    val operationIds = DoobieApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
 //                    val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
 //                    val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
 //                    resourceDocsJson.resource_docs
@@ -1318,6 +1322,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable {
     }
 
   }
+
+  val ImplementationsResourceDocs = new ImplementationsResourceDocsImpl
 
   private def resourceDocsJsonToJsonResponse(resourceDocsJson: ResourceDocsJson): JValue = {
     /**

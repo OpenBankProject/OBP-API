@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v4_0_0
 
+import org.json4s.jvalue2monadic
 import code.api.util.ErrorMessages.InvalidUri
 import code.api.util.APIUtil.OAuth._
 import com.openbankproject.commons.util.ApiVersion
@@ -83,7 +84,7 @@ class CascadeDeleteDisabledTest extends V400ServerSetup {
         withClue(request.baseUrl) {
           response.code should equal(404)
           (response.body \ "message") match {
-            case JString(message) => message should startWith(InvalidUri)
+            case JString(msg) => msg should startWith(InvalidUri)
             case other => fail(s"no message in $other")
           }
         }

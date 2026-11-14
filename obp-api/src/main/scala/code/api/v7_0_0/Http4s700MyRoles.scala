@@ -100,7 +100,7 @@ object Http4s700MyRoles {
                          else Nil
       val virtual = virtualRoles.contains(role.toString)
       val heldByUser = virtual || (userId.nonEmpty && hasEntitlement(heldAt, userId, role))
-      val heldByConsumer = hasScope(heldAt, consumer.id.get.toString, role)
+      val heldByConsumer = hasScope(heldAt, consumer.id.toString, role)
       val listed = getPropsValue("require_scopes_for_listed_roles", "").split(",").contains(role.toString)
       val scopesRequired = ApiPropsWithAlias.requireScopesForAllRoles || listed
       val allowed = authModes.filter { mode =>
@@ -114,7 +114,7 @@ object Http4s700MyRoles {
           case UserAndApplication => heldByUser && heldByConsumer
         })
       }
-      MyRoleJsonV700(role.toString, bankId, MyRoleCallerJsonV700(userId, consumer.consumerId.get, applicationOnly),
+      MyRoleJsonV700(role.toString, bankId, MyRoleCallerJsonV700(userId, consumer.consumerId, applicationOnly),
         MyRoleHeldByJsonV700(heldByUser, heldByConsumer), scopesRequired, allowed.map(_.toString))
     }
 

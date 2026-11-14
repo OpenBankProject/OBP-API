@@ -27,6 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v7_0_0
 
+import org.json4s.jvalue2monadic
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.canGetConsumers
 import code.api.util.ErrorMessages.{ApplicationNotIdentified, UserHasMissingRoles}
@@ -66,7 +68,7 @@ class GetConsumersTest extends V600ServerSetup {
       Then("We should get a 200")
       response.code should equal(200)
       val consumers = response.body.extract[ConsumersJsonV700].consumers
-      consumers.map(_.consumer_id) should contain(testConsumer.consumerId.get)
+      consumers.map(_.consumer_id) should contain(testConsumer.consumerId)
       And("no listed Consumer carries a consumer_key field")
       val fieldNames = (response.body \ "consumers") match {
         case JArray(items) => items.collect { case JObject(fields) => fields.map(_._1) }.flatten.toSet
@@ -75,7 +77,7 @@ class GetConsumersTest extends V600ServerSetup {
       fieldNames should contain("consumer_id")
       fieldNames should not contain("consumer_key")
       And("the key value appears nowhere in the body")
-      response.body.toString should not include(testConsumer.key.get)
+      response.body.toString should not include(testConsumer.key)
     }
   }
 }

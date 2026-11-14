@@ -46,7 +46,6 @@ import code.views.Views
 import com.openbankproject.commons.model.{AccountId, Bank, BankAccount, BankId, BankIdAccountId, User, ViewId}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.mapper.By
 
 import scala.concurrent.Future
 
@@ -78,7 +77,7 @@ object AfterApiAuth extends MdcLoggable{
     } yield {
       user match {
         case Full(u) => // There is a user. Apply init actions
-          val authUser: Box[AuthUser] = AuthUser.find(By(AuthUser.user, u.userPrimaryKey.value))
+          val authUser: Box[AuthUser] = AuthUser.findByResourceUserPrimaryKey(u.userPrimaryKey.value)
           innerLoginUserInitAction(authUser)
           (user, cc)
         case userInitActionFailure => // There is no user. Just forward the result.
@@ -111,7 +110,7 @@ object AfterApiAuth extends MdcLoggable{
       (user: Box[User], cc) <- res
     } yield {
       cc.map(_.consumer) match {
-        case Some(Full(consumer)) if !consumer.isActive.get => // There is a consumer. Check it.
+        case Some(Full(consumer)) if !consumer.isActive => // There is a consumer. Check it.
           (Failure(ConsumerIsDisabled), cc) // The Consumer is DISABLED.
         case _ => // There is no Consumer. Just forward the result.
           (user, cc)
@@ -127,7 +126,7 @@ object AfterApiAuth extends MdcLoggable{
     for {
       (user, cc) <- userIsLockedOrDeleted
       consumer = cc.flatMap(_.consumer)
-      consumerId = consumer.map(_.consumerId.get).getOrElse("")
+      consumerId = consumer.map(_.consumerId).getOrElse("")
       (rateLimit, _) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, new Date())
     } yield {
       (user, cc.map(_.copy(rateLimiting = Some(rateLimit))))
@@ -135,16 +134,13 @@ object AfterApiAuth extends MdcLoggable{
   }
   private def sofitInitAction(user: AuthUser): Boolean = applyAction("sofit.logon_init_action.enabled") {
     def getOrCreateBankAccount(bank: Bank, accountId: String, label: String, accountType: String = ""): Box[BankAccount] = {
-      MappedBankAccount.find(
-        By(MappedBankAccount.bank, bank.bankId.value), 
-        By(MappedBankAccount.theAccountId, accountId)
-      ) match {
+      MappedBankAccount.find(bank.bankId.value, accountId) match {
         case Full(bankAccount) => Full(bankAccount)
         case _ => 
           val account = LocalMappedConnectorInternal.createSandboxBankAccount(
             bankId = bank.bankId, accountId = AccountId(accountId), accountNumber = label + "-1",
             accountType = accountType, accountLabel =  s"$label",
-            currency = "EUR", initialBalance = 0, accountHolderName = user.username.get,
+            currency = "EUR", initialBalance = 0, accountHolderName = user.username,
             "",
             List.empty
           )
@@ -153,7 +149,7 @@ object AfterApiAuth extends MdcLoggable{
       }
     }
     
-    Users.users.vend.getUserByResourceUserId(user.user.get) match {
+    Users.users.vend.getUserByResourceUserId(user.user) match {
       case Full(resourceUser) =>
         // Create a bank according to the rule: bankid = user.user_id
         val bankId = "user." + resourceUser.userId
@@ -197,7 +193,7 @@ object AfterApiAuth extends MdcLoggable{
             false
         }
       case _ =>
-        logger.warn("AfterApiAuth.sofitInitAction. Cannot find resource user by primary key: " + user.id.get)
+        logger.warn("AfterApiAuth.sofitInitAction. Cannot find resource user by primary key: " + user.id)
         false
     }
   }

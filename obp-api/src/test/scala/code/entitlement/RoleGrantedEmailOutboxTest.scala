@@ -31,7 +31,6 @@ import code.api.util.ApiRole.{canCreateAccount, canCreateCustomer}
 import code.messageoutbox.{MessageOutbox, MessageOutboxRelay}
 import code.setup.{DefaultUsers, ServerSetup}
 import net.liftweb.db.DB
-import net.liftweb.mapper.By
 import net.liftweb.util.DefaultConnectionIdentifier
 
 /**
@@ -41,7 +40,7 @@ import net.liftweb.util.DefaultConnectionIdentifier
 class RoleGrantedEmailOutboxTest extends ServerSetup with DefaultUsers {
 
   private def emailRowsFor(entitlementId: String): List[MessageOutbox] =
-    MessageOutbox.findAll(By(MessageOutbox.OutboxType, MessageOutbox.TYPE_EMAIL), By(MessageOutbox.SubjectId, entitlementId))
+    MessageOutbox.bySubjectId(entitlementId).filter(_.outboxType == MessageOutbox.TYPE_EMAIL)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -89,7 +88,7 @@ class RoleGrantedEmailOutboxTest extends ServerSetup with DefaultUsers {
       }
       Then("neither the entitlement nor its email exists")
       Entitlement.entitlement.vend.getEntitlement(testBankId1.value, resourceUser2.userId, role).isDefined should equal(false)
-      MessageOutbox.findAll(By(MessageOutbox.OutboxType, MessageOutbox.TYPE_EMAIL))
+      MessageOutbox.findAllFiltered(status = None, outboxType = Some(MessageOutbox.TYPE_EMAIL), limit = Int.MaxValue)
         .exists(r => MessageOutbox.emailPayload(r).subject.contains(role)) should equal(false)
     }
   }

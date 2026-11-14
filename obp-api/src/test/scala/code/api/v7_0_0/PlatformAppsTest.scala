@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v7_0_0
 
+import org.json4s.jvalue2monadic
+import org.json4s.jvalue2extractable
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{canCreatePlatformApp, canCreateScopeAtOneBank, canDeletePlatformApp, canGetDynamicEntityDefinitions, canGetPlatformApps}
@@ -70,7 +72,7 @@ class PlatformAppsTest extends V600ServerSetup {
 
     scenario("mark a Consumer, let it declare its Scopes, see which it holds, and unmark it",
       ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
-      val consumerId = testConsumer2.consumerId.get
+      val consumerId = testConsumer2.consumerId
       PlatformApps.platformAppProvider.vend.deletePlatformApp(consumerId)
       val entitlements = List(canCreatePlatformApp, canGetPlatformApps, canDeletePlatformApp)
       var scope: net.liftweb.common.Box[Scope] = net.liftweb.common.Empty
@@ -111,7 +113,7 @@ class PlatformAppsTest extends V600ServerSetup {
           (declared.body \ "version").extract[String] should equal("1.2.3")
 
           When("its Consumer is granted the required Scope")
-          scope = Scope.scope.vend.addScope(SYS, testConsumer2.id.get.toString, canGetDynamicEntityDefinitions.toString)
+          scope = Scope.scope.vend.addScope(SYS, testConsumer2.id.toString, canGetDynamicEntityDefinitions.toString)
           val listed = makeGetRequest(platformApps.GET <@ (user1))
           Then("the list shows it held, and the app ok although the optional Scope is not held")
           listed.code should equal(200)
@@ -139,7 +141,7 @@ class PlatformAppsTest extends V600ServerSetup {
       ApiEndpoint5, VersionOfApi) {
       val consumer = testConsumer2
       val bankId = testBankId1.value
-      val scopes = v7 / "consumers" / consumer.consumerId.get / "scopes"
+      val scopes = v7 / "consumers" / consumer.consumerId / "scopes"
       def body(bank: String) = compact(render(("bank_id" -> bank) ~ ("role_name" -> canGetDynamicEntityDefinitions.toString)))
       val granted = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateScopeAtOneBank.toString)
       var added: net.liftweb.common.Box[Scope] = net.liftweb.common.Empty
@@ -154,7 +156,7 @@ class PlatformAppsTest extends V600ServerSetup {
         val created = makePostRequest(scopes.POST <@ (user1), body(bankId))
         Then("it is created")
         created.code should equal(201)
-        added = Scope.scope.vend.getScope(bankId, consumer.id.get.toString, canGetDynamicEntityDefinitions.toString)
+        added = Scope.scope.vend.getScope(bankId, consumer.id.toString, canGetDynamicEntityDefinitions.toString)
       } finally {
         granted.foreach(e => Entitlement.entitlement.vend.deleteEntitlement(Full(e)))
         added.foreach(s => Scope.scope.vend.deleteScope(Full(s)))

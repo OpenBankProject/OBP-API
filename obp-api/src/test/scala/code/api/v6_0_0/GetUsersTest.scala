@@ -28,6 +28,8 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 import code.api.util.ApiRole.CanGetAnyUser
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.UserHasMissingRoles
@@ -53,9 +55,9 @@ class GetUsersTest extends V600ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
   object ApiEndpoint extends Tag(nameOf(Implementations6_0_0.getUsers))
 
-  feature(s"Get all Users - GET /obp/v6.0.0/users - $VersionOfApi") {
+  Feature(s"Get all Users - GET /obp/v6.0.0/users - $VersionOfApi") {
 
-    scenario("Anonymous access should fail with 401", ApiEndpoint, VersionOfApi) {
+    Scenario("Anonymous access should fail with 401", ApiEndpoint, VersionOfApi) {
       When("We make the request without authentication")
       val request = (v6_0_0_Request / "users").GET
       val response = makeGetRequest(request)
@@ -66,7 +68,7 @@ class GetUsersTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("Authenticated user without CanGetAnyUser role should fail with 403", ApiEndpoint, VersionOfApi) {
+    Scenario("Authenticated user without CanGetAnyUser role should fail with 403", ApiEndpoint, VersionOfApi) {
       When("We make the request as an authenticated user without the required role")
       val request = (v6_0_0_Request / "users").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -77,7 +79,7 @@ class GetUsersTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetAnyUser)
     }
 
-    scenario("sort_by not in global whitelist returns 400 OBP-10042", ApiEndpoint, VersionOfApi) {
+    Scenario("sort_by not in global whitelist returns 400 OBP-10042", ApiEndpoint, VersionOfApi) {
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
 
       When("We make the request with a bogus sort_by value")
@@ -93,7 +95,7 @@ class GetUsersTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include("OBP-10042")
     }
 
-    scenario("sort_by in global whitelist but not allowed for /users returns 400 OBP-10043", ApiEndpoint, VersionOfApi) {
+    Scenario("sort_by in global whitelist but not allowed for /users returns 400 OBP-10043", ApiEndpoint, VersionOfApi) {
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
 
       When("We make the request with sort_by=verb (valid global, not valid per-endpoint)")
@@ -107,7 +109,7 @@ class GetUsersTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should startWith("OBP-10043")
     }
 
-    scenario("invalid sort_direction returns 400 OBP-10023", ApiEndpoint, VersionOfApi) {
+    Scenario("invalid sort_direction returns 400 OBP-10023", ApiEndpoint, VersionOfApi) {
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
 
       When("We make the request with an invalid sort_direction")
@@ -122,7 +124,7 @@ class GetUsersTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include("OBP-10023")
     }
 
-    scenario("each sort_by value in the per-endpoint whitelist is accepted by validation", ApiEndpoint, VersionOfApi) {
+    Scenario("each sort_by value in the per-endpoint whitelist is accepted by validation", ApiEndpoint, VersionOfApi) {
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
 
       try {
@@ -146,7 +148,7 @@ class GetUsersTest extends V600ServerSetup with DefaultUsers {
     // ---------- Combination scenarios ----------
     // These hit the real Doobie SQL path and verify that multiple filter/sort params compose correctly.
 
-    scenario("email filter + sort_by user_id asc returns only the matching user", ApiEndpoint, VersionOfApi) {
+    Scenario("email filter + sort_by user_id asc returns only the matching user", ApiEndpoint, VersionOfApi) {
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
 
       When("We filter by resourceUser1's email and sort by user_id asc")
@@ -167,7 +169,7 @@ class GetUsersTest extends V600ServerSetup with DefaultUsers {
       (users.head \ "user_id").extract[String] should equal(resourceUser1.userId)
     }
 
-    scenario("username + email narrowing (both match same user) returns 1 row", ApiEndpoint, VersionOfApi) {
+    Scenario("username + email narrowing (both match same user) returns 1 row", ApiEndpoint, VersionOfApi) {
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
 
       When("We filter by both username and email for the same user with sort_by")
@@ -188,7 +190,7 @@ class GetUsersTest extends V600ServerSetup with DefaultUsers {
       (users.head \ "user_id").extract[String] should equal(resourceUser1.userId)
     }
 
-    scenario("email that matches no user returns 200 with empty list, not 404", ApiEndpoint, VersionOfApi) {
+    Scenario("email that matches no user returns 200 with empty list, not 404", ApiEndpoint, VersionOfApi) {
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
 
       When("We filter by an email that no user has, with a valid sort")
@@ -206,7 +208,7 @@ class GetUsersTest extends V600ServerSetup with DefaultUsers {
       (response.body \ "users").children should be (empty)
     }
 
-    scenario("role_name filter + sort_by user_id asc returns all users with that role in sorted order", ApiEndpoint, VersionOfApi) {
+    Scenario("role_name filter + sort_by user_id asc returns all users with that role in sorted order", ApiEndpoint, VersionOfApi) {
       // Grant the SAME role to the caller AND a second user. The response should include both,
       // sorted deterministically by user_id asc.
       val callerEnt = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
@@ -231,7 +233,7 @@ class GetUsersTest extends V600ServerSetup with DefaultUsers {
       returned should equal(returned.sorted)
     }
 
-    scenario("role_name + username narrows to a single user", ApiEndpoint, VersionOfApi) {
+    Scenario("role_name + username narrows to a single user", ApiEndpoint, VersionOfApi) {
       val callerEnt = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       val extraEnt  = Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanGetAnyUser.toString)
 
@@ -254,7 +256,7 @@ class GetUsersTest extends V600ServerSetup with DefaultUsers {
       (users.head \ "user_id").extract[String] should equal(resourceUser1.userId)
     }
 
-    scenario("sort_direction desc inverts the order compared to asc", ApiEndpoint, VersionOfApi) {
+    Scenario("sort_direction desc inverts the order compared to asc", ApiEndpoint, VersionOfApi) {
       val callerEnt = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       val extraEnt  = Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, CanGetAnyUser.toString)
 

@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanReadMetrics
@@ -67,8 +68,8 @@ class MetricsTopConsumersTest extends V310ServerSetup {
       Then("user1's consumer is listed with its calls")
       response.code should equal(200)
       val topConsumers = response.body.extract[TopConsumersJson].top_consumers
-      topConsumers.map(_.app_name) should contain(testConsumer.name.get)
-      topConsumers.find(_.app_name == testConsumer.name.get).map(_.count).getOrElse(0) should be >= 3
+      topConsumers.map(_.app_name) should contain(testConsumer.name)
+      topConsumers.find(_.app_name == testConsumer.name).map(_.count).getOrElse(0) should be >= 3
 
       When("We filter on a url containing a quote, which no metric has")
       val injected = (v3_1_0_Request / "management" / "metrics" / "top-consumers").GET <@ (user1) <<? List(

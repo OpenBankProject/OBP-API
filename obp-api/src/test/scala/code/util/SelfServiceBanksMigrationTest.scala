@@ -28,7 +28,7 @@ package code.util
 
 import code.api.util.APIUtil
 import code.api.util.migration.MigrationOfSelfServiceBanks
-import code.files.{File, Files, ScanStatus}
+import code.files.{Files, ScanStatus}
 import code.model.dataAccess.{MappedBank, SelfServiceBank}
 import code.setup.ServerSetup
 import net.liftweb.db.DB
@@ -58,7 +58,9 @@ class SelfServiceBanksMigrationTest extends ServerSetup {
       val generated = BankNameGenerator.generate().bankId
       val named = s"hand-named-$suffix"
       List(generated, named).foreach { id =>
-        MappedBank.create.permalink(id).fullBankName(id).shortBankName(id).saveMe()
+        MappedBank.insert(bankId = id, fullBankName = id, shortBankName = id, logoURL = null, websiteURL = null,
+          swiftBIC = null, nationalIdentifier = null, bankRoutingScheme = null, bankRoutingAddress = null,
+          createdByUserId = null)
       }
       def oldFile(bankId: String): String = {
         val file = Files.provider.vend.createFile(bankId, "0" * 64, "image/png", "old.png", isPublic = false,
@@ -66,7 +68,7 @@ class SelfServiceBanksMigrationTest extends ServerSetup {
         // As stored before scanning existed: no status at all.
         DB.use(DefaultConnectionIdentifier) { connection =>
           val statement = connection.prepareStatement(
-            s"UPDATE ${File._dbTableNameLC} SET ${File.ScanStatus.dbColumnName} = NULL WHERE ${File.FileId.dbColumnName} = ?")
+            "UPDATE file_t SET scanstatus = NULL WHERE fileid = ?")
           try { statement.setString(1, file.fileId); statement.executeUpdate() } finally statement.close()
         }
         file.fileId

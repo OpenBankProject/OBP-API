@@ -114,9 +114,9 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
     fieldMap.get("operation_id").collect { case JString(id) => id }
   }
 
-  feature("Bug Condition Exploration - V7 Resource Docs Aggregation") {
+  Feature("Bug Condition Exploration - V7 Resource Docs Aggregation") {
 
-    scenario("Property 1: V7 resource-docs aggregates all versions (>=500 docs, dedup, no duplicate signatures)", V7ResourceDocsAggregationTag) {
+    Scenario("Property 1: V7 resource-docs aggregates all versions (>=500 docs, dedup, no duplicate signatures)", V7ResourceDocsAggregationTag) {
       Given(MSG_GIVEN_V7_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -194,7 +194,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info(s"  - v5.1.0+ endpoints discoverable: ${olderVersionEndpoints.size}")
     }
 
-    scenario("Baseline - V6 Resource Docs Returns Aggregated Endpoints (SHOULD PASS)", V7ResourceDocsAggregationTag) {
+    Scenario("Baseline - V6 Resource Docs Returns Aggregated Endpoints (SHOULD PASS)", V7ResourceDocsAggregationTag) {
       Given(MSG_GIVEN_V6_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -236,7 +236,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Purpose**: Confirms v6.0.0 aggregation works correctly")
     }
 
-    scenario("Cross-Version Query - V7 Endpoint Can Query V6 Docs", V7ResourceDocsAggregationTag) {
+    Scenario("Cross-Version Query - V7 Endpoint Can Query V6 Docs", V7ResourceDocsAggregationTag) {
       Given("The v7.0.0 endpoint is used to query v6.0.0 resource-docs")
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -255,7 +255,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Purpose**: Verifies v7 endpoint can serve other versions' docs")
     }
 
-    scenario("Specific Endpoint Discovery - V6 getScannedApiVersions Through V7", V7ResourceDocsAggregationTag) {
+    Scenario("Specific Endpoint Discovery - V6 getScannedApiVersions Through V7", V7ResourceDocsAggregationTag) {
       Given("The v7.0.0 resource-docs endpoint is queried for a specific v6.0.0 endpoint")
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -301,9 +301,9 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
    * - Non-resource-docs v7.0.0 endpoints are unchanged
    * - collectResourceDocs() deduplication by (URL, HTTP method) keeps newest version
    */
-  feature("Preservation Property Tests - Non-V7 Resource Docs Behavior") {
+  Feature("Preservation Property Tests - Non-V7 Resource Docs Behavior") {
 
-    scenario("Property 2.1: V6 Resource Docs Aggregation Preserved (MUST PASS)", V7ResourceDocsAggregationTag) {
+    Scenario("Property 2.1: V6 Resource Docs Aggregation Preserved (MUST PASS)", V7ResourceDocsAggregationTag) {
       Given(MSG_GIVEN_V6_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -357,7 +357,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Validates**: Requirements 3.1, 3.2 - v6.0.0 aggregation and deduplication work correctly")
     }
 
-    scenario("Property 2.2: V5.1 Resource Docs Aggregation Preserved (MUST PASS)", V7ResourceDocsAggregationTag) {
+    Scenario("Property 2.2: V5.1 Resource Docs Aggregation Preserved (MUST PASS)", V7ResourceDocsAggregationTag) {
       Given(MSG_GIVEN_V5_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -409,7 +409,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Validates**: Requirements 3.1, 3.2 - v5.1.0 aggregation and deduplication work correctly")
     }
 
-    scenario("Property 2.3: V4 Resource Docs Aggregation Preserved (MUST PASS)", V7ResourceDocsAggregationTag) {
+    Scenario("Property 2.3: V4 Resource Docs Aggregation Preserved (MUST PASS)", V7ResourceDocsAggregationTag) {
       Given(MSG_GIVEN_V4_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -461,7 +461,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Validates**: Requirements 3.1, 3.2 - v4.0.0 aggregation and deduplication work correctly")
     }
 
-    scenario("Property 2.4: Query Parameter Filtering Preserved - Functions (MUST PASS)", V7ResourceDocsAggregationTag) {
+    Scenario("Property 2.4: Query Parameter Filtering Preserved - Functions (MUST PASS)", V7ResourceDocsAggregationTag) {
       Given("The v6.0.0 resource-docs endpoint is called with functions filter")
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -493,7 +493,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Validates**: Requirements 3.3 - query parameter filtering works correctly")
     }
 
-    scenario("Property 2.5: Query Parameter Filtering Preserved - Tags (MUST PASS)", V7ResourceDocsAggregationTag) {
+    Scenario("Property 2.5: Query Parameter Filtering Preserved - Tags (MUST PASS)", V7ResourceDocsAggregationTag) {
       Given("The v6.0.0 resource-docs endpoint is called with tags filter")
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -530,7 +530,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Validates**: Requirements 3.3 - query parameter filtering works correctly")
     }
 
-    scenario("Property 2.6: Non-Resource-Docs V7 Endpoints Unchanged - Root (MUST PASS)", V7ResourceDocsAggregationTag) {
+    Scenario("Property 2.6: Non-Resource-Docs V7 Endpoints Unchanged - Root (MUST PASS)", V7ResourceDocsAggregationTag) {
       Given(MSG_GIVEN_NON_RESOURCE_DOCS)
 
       When("Making GET /obp/v7.0.0/root request")
@@ -554,7 +554,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Validates**: Requirements 3.5 - non-resource-docs v7.0.0 endpoints unchanged")
     }
 
-    scenario("Property 2.7: Non-Resource-Docs V7 Endpoints Unchanged - Banks (MUST PASS)", V7ResourceDocsAggregationTag) {
+    Scenario("Property 2.7: Non-Resource-Docs V7 Endpoints Unchanged - Banks (MUST PASS)", V7ResourceDocsAggregationTag) {
       Given(MSG_GIVEN_NON_RESOURCE_DOCS)
 
       When("Making GET /obp/v7.0.0/banks request")
@@ -577,7 +577,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Validates**: Requirements 3.5 - non-resource-docs v7.0.0 endpoints unchanged")
     }
 
-    scenario("Property 2.8: Deduplication Keeps Newest Version (MUST PASS)", V7ResourceDocsAggregationTag) {
+    Scenario("Property 2.8: Deduplication Keeps Newest Version (MUST PASS)", V7ResourceDocsAggregationTag) {
       Given(MSG_GIVEN_V6_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -630,7 +630,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Validates**: Requirements 3.2 - collectResourceDocs() deduplication works correctly")
     }
 
-    scenario("Property 2.9: JSON Response Format Preserved (MUST PASS)", V7ResourceDocsAggregationTag) {
+    Scenario("Property 2.9: JSON Response Format Preserved (MUST PASS)", V7ResourceDocsAggregationTag) {
       Given(MSG_GIVEN_V6_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -679,7 +679,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Validates**: Requirements 3.4 - JSON response format unchanged")
     }
 
-    scenario("Property 2.10: V7 specifiedUrl Uses V7 Version for Aggregated Docs (MUST PASS AFTER FIX)", V7ResourceDocsAggregationTag) {
+    Scenario("Property 2.10: V7 specifiedUrl Uses V7 Version for Aggregated Docs (MUST PASS AFTER FIX)", V7ResourceDocsAggregationTag) {
       Given(MSG_GIVEN_V7_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 

@@ -28,14 +28,15 @@ TESOBE (http://www.tesobe.com/)
 package code.api.dynamic.entity.query
 
 import org.json4s.JsonAST.{JBool, JString}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Pure unit tests for reading a Dynamic Query body: the shape it accepts, its defaults, and the
  * messages for a malformed body. Checking a body against entity definitions, and running it, is
  * covered by code.api.v4_0_0.DynamicQueryTest.
  */
-class DynamicQueryDeclarationSpec extends FlatSpec with Matchers {
+class DynamicQueryDeclarationSpec extends AnyFlatSpec with Matchers {
 
   private def parsed(body: String): DynamicQueryDeclaration =
     DynamicQueryDeclaration.parse(body).fold(e => fail(e.message), identity)

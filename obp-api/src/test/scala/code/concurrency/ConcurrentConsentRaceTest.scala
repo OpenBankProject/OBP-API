@@ -29,7 +29,6 @@ package code.concurrency
 import code.api.berlin.group.ConstantsBG
 import code.bankconnectors.DoobieConsentSchedulerQueries
 import code.consent.{ConsentStatus, MappedConsent}
-import net.liftweb.mapper.By
 
 import java.util.{Date, UUID}
 
@@ -55,42 +54,39 @@ import java.util.{Date, UUID}
  */
 class ConcurrentConsentRaceTest extends ConcurrentRaceSetup {
 
-  feature("Consent status finality under scheduler-vs-HTTP concurrent update") {
+  Feature("Consent status finality under scheduler-vs-HTTP concurrent update") {
 
-    scenario("J: a stale scheduler save must not overwrite a terminal consent status", ConcurrencyRace) {
+    Scenario("J: a stale scheduler save must not overwrite a terminal consent status", ConcurrencyRace) {
       Given("a Berlin Group consent with status=valid and validUntil in the past")
       val consentId = UUID.randomUUID.toString
-      MappedConsent.create
-        .mConsentId(consentId)
-        .mStatus(ConsentStatus.valid.toString)
-        .mApiStandard(ConstantsBG.berlinGroupVersion1.apiStandard)
-        .mValidUntil(new Date(1000L))
-        .saveMe()
+      MappedConsent.insertWithConsentId(consentId,
+        status = ConsentStatus.valid.toString,
+        apiStandard = ConstantsBG.berlinGroupVersion1.apiStandard,
+        validUntil = new Date(1000L))
 
       When("the scheduler loads the consent into memory (replicating expiredBerlinGroupConsents findAll)")
       // The scheduler calls MappedConsent.findAll(...) and holds a list of in-memory objects.
       // This staleConsent represents one such object loaded BEFORE the revoke below.
-      val staleConsent = MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+      val staleConsent = MappedConsent.findByConsentId(consentId)
         .openOrThrowException("test consent must exist after creation")
 
       And("the HTTP revoke endpoint runs concurrently, flipping status to terminatedByTpp")
-      MappedConsent.find(By(MappedConsent.mConsentId, consentId))
-        .foreach { c =>
-          c.mStatus(ConsentStatus.terminatedByTpp.toString)
-            .mStatusUpdateDateTime(new Date())
-            .saveMe()
+      MappedConsent.findByConsentId(consentId)
+        .foreach { _ =>
+          MappedConsent.setStatusAndStatusUpdateDateTime(consentId,
+            ConsentStatus.terminatedByTpp.toString, new Date())
         }
-      val afterRevoke = MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+      val afterRevoke = MappedConsent.findByConsentId(consentId)
         .map(_.status).getOrElse("missing")
 
       And("the scheduler attempts to expire its stale copy via the guarded conditional update")
       DoobieConsentSchedulerQueries.conditionallyExpireValidBerlinGroupConsent(
-        consentPrimaryKey = staleConsent.id.get,
+        consentPrimaryKey = staleConsent.consentPrimaryKey,
         newNote      = ""
       )
 
       Then("the final status must remain terminatedByTpp — the revoke must survive the stale save")
-      val finalStatus = MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+      val finalStatus = MappedConsent.findByConsentId(consentId)
         .map(_.status).getOrElse("missing")
       withClue(
         s"afterRevoke=$afterRevoke finalStatus=$finalStatus: " +
@@ -102,39 +98,36 @@ class ConcurrentConsentRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("U: the unfinished-consents scheduler task must not overwrite a concurrent status change", ConcurrencyRace) {
+    Scenario("U: the unfinished-consents scheduler task must not overwrite a concurrent status change", ConcurrencyRace) {
       Given("a Berlin Group consent with status=received (the unfinished-task selector)")
       val consentId = UUID.randomUUID.toString
-      MappedConsent.create
-        .mConsentId(consentId)
-        .mStatus(ConsentStatus.received.toString)
-        .mApiStandard(ConstantsBG.berlinGroupVersion1.apiStandard)
-        .saveMe()
+      MappedConsent.insertWithConsentId(consentId,
+        status = ConsentStatus.received.toString,
+        apiStandard = ConstantsBG.berlinGroupVersion1.apiStandard)
 
       When("the scheduler loads the consent into memory (replicating unfinishedBerlinGroupConsents findAll)")
-      val staleConsent = MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+      val staleConsent = MappedConsent.findByConsentId(consentId)
         .openOrThrowException("test consent must exist after creation")
 
       And("the HTTP path concurrently flips status to REVOKED and commits it")
-      MappedConsent.find(By(MappedConsent.mConsentId, consentId))
-        .foreach { c =>
-          c.mStatus(ConsentStatus.REVOKED.toString)
-            .mStatusUpdateDateTime(new Date())
-            .saveMe()
+      MappedConsent.findByConsentId(consentId)
+        .foreach { _ =>
+          MappedConsent.setStatusAndStatusUpdateDateTime(consentId,
+            ConsentStatus.REVOKED.toString, new Date())
         }
-      val afterChange = MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+      val afterChange = MappedConsent.findByConsentId(consentId)
         .map(_.status).getOrElse("missing")
 
       And("the scheduler attempts to reject its stale copy via the guarded conditional update")
       DoobieConsentSchedulerQueries.conditionallyUpdateStatus(
-        consentPrimaryKey = staleConsent.id.get,
+        consentPrimaryKey = staleConsent.consentPrimaryKey,
         guardStatus  = ConsentStatus.received.toString,
         newStatus    = ConsentStatus.rejected.toString,
         newNote      = ""
       )
 
       Then("the final status must remain REVOKED — the committed change must survive the stale save")
-      val finalStatus = MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+      val finalStatus = MappedConsent.findByConsentId(consentId)
         .map(_.status).getOrElse("missing")
       withClue(
         s"afterChange=$afterChange finalStatus=$finalStatus: " +

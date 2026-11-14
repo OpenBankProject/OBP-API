@@ -31,13 +31,15 @@ package code.util
 import code.api.Constant.ALL_CONSUMERS
 import code.api.util._
 import code.setup.PropsReset
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
-class HelperTest extends FeatureSpec with Matchers with GivenWhenThen with PropsReset {
+class HelperTest extends AnyFeatureSpec with Matchers with GivenWhenThen with PropsReset {
 
-  feature(s"test Helper.getIfNotExistsAddedColumLengthForMsSqlServer method") {
+  Feature(s"test Helper.getIfNotExistsAddedColumLengthForMsSqlServer method") {
 
-    scenario(s"test case addColumnIfNotExists") {
+    Scenario(s"test case addColumnIfNotExists") {
       val expectedValue =
         s"""
            |IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'accountaccess' AND COLUMN_NAME = 'consumer_id')
@@ -48,7 +50,7 @@ class HelperTest extends FeatureSpec with Matchers with GivenWhenThen with Props
       Helper.addColumnIfNotExists("com.microsoft.sqlserver.jdbc.SQLServerDriver","accountaccess", "consumer_id", ALL_CONSUMERS) should be(expectedValue)
     }
 
-    scenario(s"test case dropIndexIfExists") {
+    Scenario(s"test case dropIndexIfExists") {
       val expectedValue =
         s"""
            |IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'accountaccess_bank_id_account_id_view_fk_user_fk' AND object_id = OBJECT_ID('accountaccess'))
@@ -59,7 +61,7 @@ class HelperTest extends FeatureSpec with Matchers with GivenWhenThen with Props
       Helper.dropIndexIfExists("com.microsoft.sqlserver.jdbc.SQLServerDriver","accountaccess", "accountaccess_bank_id_account_id_view_fk_user_fk") should be(expectedValue)
     }
 
-    scenario(s"test case createIndexIfNotExists") {
+    Scenario(s"test case createIndexIfNotExists") {
       val expectedValue =
         s"""
            |IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'authuser_username_provider' AND object_id = OBJECT_ID('authUser'))

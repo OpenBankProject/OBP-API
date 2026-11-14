@@ -37,7 +37,6 @@ import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121}
 import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import org.json4s.native.Serialization.write
 import org.json4s._
-import net.liftweb.mapper.By
 
 import java.util.Date
 import scala.concurrent.Await
@@ -68,9 +67,9 @@ import scala.concurrent.duration._
  */
 class ConcurrentTransferRaceTest extends ConcurrentRaceSetup {
  
-  feature("Concurrent money movement on a single account (transaction-level isolation)") {
+  Feature("Concurrent money movement on a single account (transaction-level isolation)") {
 
-    scenario("A: N concurrent transfers from one account must not lose balance updates", ConcurrencyRace) {
+    Scenario("A: N concurrent transfers from one account must not lose balance updates", ConcurrencyRace) {
       Given("a funded source account and a payee, with SANDBOX_TAN challenge disabled so each transfer is one-step")
       // High threshold → amounts below it skip the challenge and complete in a single request.
       setPropsValues("transactionRequests_challenge_threshold_SANDBOX_TAN" -> "100000000")
@@ -111,7 +110,7 @@ class ConcurrentTransferRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("B: concurrent answers to one challenge must execute the payment only once", ConcurrencyRace) {
+    Scenario("B: concurrent answers to one challenge must execute the payment only once", ConcurrencyRace) {
       Given("a transaction request left in INITIATED state, with SANDBOX_TAN challenge forced on")
       // Zero threshold → every amount requires a challenge, leaving the request INITIATED.
       // DUMMY transport → the challenge is stored as hash("123"), so the fixed answer works
@@ -163,8 +162,7 @@ class ConcurrentTransferRaceTest extends ConcurrentRaceSetup {
       Then("the payment must execute exactly once — no double-spend")
       val after         = dbAccountBalance(bankId, fromId)
       val actualDebited = before - after
-      val txnCount = MappedTransaction.count(
-        By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, fromId.value))
+      val txnCount = MappedTransaction.countByBankAccount(bankId, fromId)
       withClue(s"challengeId=[$challengeId] answer codes=${answers.map(_.code)} " +
         s"firstAnswerBody=${answers.headOption.map(_.body).getOrElse("")} " +
         s"before=$before after=$after actualDebited=$actualDebited (expected=$debit) " +
@@ -174,7 +172,7 @@ class ConcurrentTransferRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("S: N concurrent makeHistoricalPayment calls must not lose balance updates", ConcurrencyRace) {
+    Scenario("S: N concurrent makeHistoricalPayment calls must not lose balance updates", ConcurrencyRace) {
       Given("a funded source account and a payee, with one shared fromAccount snapshot")
       val bank   = createBank("__conc-hist-bank-s")
       val bankId = bank.bankId

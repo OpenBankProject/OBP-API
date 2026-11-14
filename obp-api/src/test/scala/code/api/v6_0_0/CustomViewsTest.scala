@@ -64,9 +64,9 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
   object ApiEndpoint1 extends Tag(nameOf(Implementations6_0_0.getCustomViews))
   object ApiEndpoint2 extends Tag(nameOf(Implementations6_0_0.createCustomViewManagement))
 
-  feature(s"Test GET /management/custom-views endpoint - $VersionOfApi") {
+  Feature(s"Test GET /management/custom-views endpoint - $VersionOfApi") {
 
-    scenario("We try to get custom views - Anonymous access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to get custom views - Anonymous access", ApiEndpoint1, VersionOfApi) {
       When("We make the request without authentication")
       val request = (v6_0_0_Request / "management" / "custom-views").GET
       val response = makeGetRequest(request)
@@ -75,7 +75,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("We try to get custom views without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to get custom views without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request as user1 without the CanGetCustomViews role")
       val request = (v6_0_0_Request / "management" / "custom-views").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -85,7 +85,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetCustomViews)
     }
 
-    scenario("We try to get custom views with proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to get custom views with proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We grant the CanGetCustomViews role to user1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCustomViews.toString)
       
@@ -117,7 +117,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       }
     }
 
-    scenario("We verify custom views are correctly filtered from system views", ApiEndpoint1, VersionOfApi) {
+    Scenario("We verify custom views are correctly filtered from system views", ApiEndpoint1, VersionOfApi) {
       When("We grant the CanGetCustomViews role to user1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCustomViews.toString)
       
@@ -140,9 +140,9 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
     }
   }
 
-  feature(s"Test automatic role guard from ResourceDoc - $VersionOfApi") {
+  Feature(s"Test automatic role guard from ResourceDoc - $VersionOfApi") {
 
-    scenario("Verify that role check is automatic from ResourceDoc configuration", ApiEndpoint1, VersionOfApi) {
+    Scenario("Verify that role check is automatic from ResourceDoc configuration", ApiEndpoint1, VersionOfApi) {
       info("This test verifies that the automatic role guard works correctly")
       info("The endpoint should check CanGetCustomViews role automatically")
       info("without explicit hasEntitlement call in the endpoint implementation")
@@ -167,9 +167,9 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
     }
   }
 
-  feature(s"Test custom views naming convention - $VersionOfApi") {
+  Feature(s"Test custom views naming convention - $VersionOfApi") {
 
-    scenario("Verify all custom views follow naming convention", ApiEndpoint1, VersionOfApi) {
+    Scenario("Verify all custom views follow naming convention", ApiEndpoint1, VersionOfApi) {
       When("We grant the CanGetCustomViews role to user1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetCustomViews.toString)
       
@@ -197,9 +197,9 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
     }
   }
 
-  feature(s"Test POST /management/banks/BANK_ID/accounts/ACCOUNT_ID/views (Management) endpoint - $VersionOfApi") {
+  Feature(s"Test POST /management/banks/BANK_ID/accounts/ACCOUNT_ID/views (Management) endpoint - $VersionOfApi") {
 
-    scenario("We try to create a custom view via management endpoint - Anonymous access", ApiEndpoint2, VersionOfApi) {
+    Scenario("We try to create a custom view via management endpoint - Anonymous access", ApiEndpoint2, VersionOfApi) {
       When("We make the request without authentication")
       val viewJson = """
         {
@@ -219,7 +219,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("We try to create a custom view via management endpoint without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
+    Scenario("We try to create a custom view via management endpoint without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
       When("We make the request as user1 without the CanCreateCustomView role")
       val viewJson = """
         {
@@ -240,7 +240,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanCreateCustomView)
     }
 
-    scenario("We try to create a custom view via management endpoint with proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
+    Scenario("We try to create a custom view via management endpoint with proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
       When("We grant the CanCreateCustomView role to user1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCustomView.toString)
       
@@ -276,7 +276,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       description should equal("My custom view for testing")
     }
 
-    scenario("We try to create a view with invalid name via management endpoint - should fail", ApiEndpoint2, VersionOfApi) {
+    Scenario("We try to create a view with invalid name via management endpoint - should fail", ApiEndpoint2, VersionOfApi) {
       When("We grant the CanCreateCustomView role to user1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCustomView.toString)
       
@@ -302,7 +302,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should include(InvalidCustomViewFormat)
     }
 
-    scenario("We verify automatic role guard from ResourceDoc configuration for management endpoint", ApiEndpoint2, VersionOfApi) {
+    Scenario("We verify automatic role guard from ResourceDoc configuration for management endpoint", ApiEndpoint2, VersionOfApi) {
       info("This test verifies that the automatic role guard works correctly")
       info("The management endpoint should check CanCreateCustomView role automatically")
       
@@ -336,7 +336,7 @@ class CustomViewsTest extends V600ServerSetup with DefaultUsers {
       info("✓ Automatic role guard from ResourceDoc is working correctly")
     }
 
-    scenario("We try to create a custom view via management endpoint with invalid JSON", ApiEndpoint2, VersionOfApi) {
+    Scenario("We try to create a custom view via management endpoint with invalid JSON", ApiEndpoint2, VersionOfApi) {
       When("We grant the CanCreateCustomView role to user1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateCustomView.toString)
       

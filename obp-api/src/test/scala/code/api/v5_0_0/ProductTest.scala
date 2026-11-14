@@ -83,8 +83,8 @@ class ProductTest extends V500ServerSetup {
     product
   }
   
-  feature("Create Product v4.0.0") {
-    scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Create Product v4.0.0") {
+    Scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v5_0_0_Request / "banks" / testBankId / "products" / "CODE").PUT
       val response400 = makePutRequest(request400, write(parentPutProductJsonV500))
@@ -93,7 +93,7 @@ class ProductTest extends V500ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request500 = (v5_0_0_Request / "banks" / testBankId / "products" / "CODE").PUT <@(user1)
       val response500 = makePutRequest(request500, write(parentPutProductJsonV500))
@@ -104,7 +104,7 @@ class ProductTest extends V500ServerSetup {
       And("error should be " + createProductEntitlementsRequiredText)
       response500.body.extract[ErrorMessage].message contains (createProductEntitlementsRequiredText) should be (true)
     }
-    scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
 
       // Create an grandparent
@@ -132,7 +132,7 @@ class ProductTest extends V500ServerSetup {
       val products: ProductsJsonV400 = responseGetAll400.body.extract[ProductsJsonV400]
       products.products.size shouldBe 3
     }
-    scenario("We will call the Add endpoint with user credentials and role and minimal PUT JSON", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the Add endpoint with user credentials and role and minimal PUT JSON", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
       // Create an grandparent
       val grandparent: ProductJsonV400 = createProduct(

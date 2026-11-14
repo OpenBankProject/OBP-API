@@ -1,7 +1,9 @@
 package code.api.util
 
 import com.openbankproject.commons.model.enums._
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * This class checks that every attribute `type` enumeration accepts the same names, and that the
@@ -14,7 +16,7 @@ import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
  *
  * Everything here is a pure function call: no server, no database.
  */
-class AttributeTypeDocsTest extends FeatureSpec with Matchers with GivenWhenThen {
+class AttributeTypeDocsTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   private val expectedNames = Set("STRING", "INTEGER", "DOUBLE", "DECIMAL", "BOOLEAN", "DATE_WITH_DAY")
 

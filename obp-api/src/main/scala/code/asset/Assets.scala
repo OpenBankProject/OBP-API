@@ -27,8 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.asset
 
+import doobie.Fragment
 import net.liftweb.common.{Box, Failure, Full}
-import net.liftweb.mapper.{Ascending, By, MaxRows, OrderBy, QueryParam, StartAt}
 import net.liftweb.util.Helpers.tryo
 
 /** This trait is what the rest of OBP sees of one asset in the registry; see [[Asset]]. */
@@ -163,10 +163,10 @@ object Assets extends AssetProvider {
   def normaliseCode(assetCode: String): String = assetCode.trim.toUpperCase
 
   override def getAsset(assetCode: String): Box[AssetTrait] =
-    Asset.find(By(Asset.AssetCode, normaliseCode(assetCode)))
+    Asset.findByAssetCode(normaliseCode(assetCode))
 
   override def getAssets(): List[AssetTrait] =
-    Asset.findAll(OrderBy(Asset.AssetCode, Ascending))
+    Asset.findAllOrderedByCode()
 
   override def getAssets(
     assetType: Option[String],
@@ -176,26 +176,24 @@ object Assets extends AssetProvider {
     limit: Int,
     offset: Int
   ): (List[AssetTrait], Int) = {
-    val filters: List[QueryParam[Asset]] =
-      assetType.map(value => By(Asset.AssetType, value)).toList :::
-      issuerBankId.map(value => By(Asset.IssuerBankId, value)).toList :::
-      status.map(value => By(Asset.Status, value)).toList :::
-      chainScheme.map(value => By(Asset.ChainScheme, value)).toList
-    val total = Asset.count(filters: _*).toInt
-    val page = Asset.findAll((filters :+ OrderBy(Asset.AssetCode, Ascending) :+ StartAt[Asset](offset) :+ MaxRows[Asset](limit)): _*)
-    (page, total)
+    val filters: List[Fragment] =
+      assetType.map(value => Asset.column("assettype", value)).toList :::
+      issuerBankId.map(value => Asset.column("issuerbankid", value)).toList :::
+      status.map(value => Asset.column("status", value)).toList :::
+      chainScheme.map(value => Asset.column("chainscheme", value)).toList
+    Asset.findPage(filters, limit, offset)
   }
 
   override def getAssetByChainIdentity(chainScheme: String, chainAssetId: String): Box[AssetTrait] =
     if (chainScheme.isEmpty || chainAssetId.isEmpty) Failure("A chain identity needs both a chain scheme and a chain asset id.")
-    else Asset.find(By(Asset.ChainScheme, chainScheme), By(Asset.ChainAssetId, chainAssetId))
+    else Asset.findByChainIdentity(chainScheme, chainAssetId)
 
   override def getAssetByDti(dti: String): Box[AssetTrait] =
     if (dti.isEmpty) Failure("A DTI must not be empty.")
-    else Asset.find(By(Asset.Dti, dti))
+    else Asset.findByDti(dti)
 
   /** Treats a missing, empty or blank optional value as not set. */
-  private def given(value: Option[String]): Option[String] = value.map(_.trim).filter(_.nonEmpty)
+  private def nonBlank(value: Option[String]): Option[String] = value.map(_.trim).filter(_.nonEmpty)
 
   /**
    * The first rule of the registry that this asset breaks, or None when it breaks none. createAsset
@@ -215,11 +213,11 @@ object Assets extends AssetProvider {
     dti: Option[String]
   ): Option[String] = {
     val code = normaliseCode(assetCode)
-    val issuer = given(issuerBankId)
-    val productCode = given(issuerProductCode)
-    val scheme = given(chainScheme).map(_.toUpperCase)
-    val chainId = given(chainAssetId)
-    val tokenIdentifier = given(dti).map(_.toUpperCase)
+    val issuer = nonBlank(issuerBankId)
+    val productCode = nonBlank(issuerProductCode)
+    val scheme = nonBlank(chainScheme).map(_.toUpperCase)
+    val chainId = nonBlank(chainAssetId)
+    val tokenIdentifier = nonBlank(dti).map(_.toUpperCase)
     if (AssetCodePattern.findFirstIn(code).isEmpty)
       Some(s"Asset code '$assetCode' must be 3 to 10 letters or digits.")
     else if (AssetTypes.issued.contains(assetType) && IssuedAssetCodePattern.findFirstIn(code).isEmpty)
@@ -262,28 +260,27 @@ object Assets extends AssetProvider {
     dti: Option[String]
   ): Box[AssetTrait] = {
     val code = normaliseCode(assetCode)
-    val issuer = given(issuerBankId)
-    val productCode = given(issuerProductCode)
-    val scheme = given(chainScheme).map(_.toUpperCase)
-    val chainId = given(chainAssetId)
-    val tokenIdentifier = given(dti).map(_.toUpperCase)
+    val issuer = nonBlank(issuerBankId)
+    val productCode = nonBlank(issuerProductCode)
+    val scheme = nonBlank(chainScheme).map(_.toUpperCase)
+    val chainId = nonBlank(chainAssetId)
+    val tokenIdentifier = nonBlank(dti).map(_.toUpperCase)
     whyInvalid(assetCode, assetType, name, decimalPlaces, issuerBankId, status, issuerProductCode, chainScheme, chainAssetId, dti) match {
       case Some(rule) => Failure(rule)
       case None =>
         tryo {
-          Asset.create
-            .AssetCode(code)
-            .AssetType(assetType)
-            .Name(name.trim)
-            .DecimalPlaces(decimalPlaces)
-            .IssuerBankId(issuer.getOrElse(""))
-            .IssuerProductCode(productCode.getOrElse(""))
-            .ChainScheme(scheme.getOrElse(""))
-            .ChainAssetId(chainId.getOrElse(""))
-            .Dti(tokenIdentifier.getOrElse(""))
-            .Status(status)
-            .CreatedByUserId(creatorToStore(createdByUserId))
-            .saveMe()
+          Asset.insert(
+            assetCode = code,
+            assetType = assetType,
+            name = name.trim,
+            decimalPlaces = decimalPlaces,
+            issuerBankId = issuer.getOrElse(""),
+            issuerProductCode = productCode.getOrElse(""),
+            chainScheme = scheme.getOrElse(""),
+            chainAssetId = chainId.getOrElse(""),
+            dti = tokenIdentifier.getOrElse(""),
+            status = status,
+            createdByUserId = creatorToStore(createdByUserId))
         } match {
           case created @ Full(_) =>
             AssetLookup.invalidate()

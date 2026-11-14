@@ -75,8 +75,8 @@ class AccountTest extends V400ServerSetup {
   lazy val getAccountByRoutingJson = SwaggerDefinitionsJSON.bankAccountRoutingJson
   
   
-  feature(s"test $ApiEndpoint1") {
-    scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1) {
+  Feature(s"test $ApiEndpoint1") {
+    Scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1) {
       Given("We prepare the accounts in V300ServerSetup, just check the response")
 
       When("We send the request")
@@ -90,8 +90,8 @@ class AccountTest extends V400ServerSetup {
 
     }
   }
-  feature(s"test $ApiEndpoint2") {
-    scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint2) {
+  Feature(s"test $ApiEndpoint2") {
+    Scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint2) {
       Given("We prepare the accounts in V300ServerSetup, just check the response")
 
       lazy val bankId = randomBankId
@@ -110,8 +110,8 @@ class AccountTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint3 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId.value / "accounts"  ).POST
       val response400 = makePostRequest(request400, write(addAccountJson))
@@ -121,8 +121,8 @@ class AccountTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint3 - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val response400 = try {
@@ -182,7 +182,7 @@ class AccountTest extends V400ServerSetup {
       account2.account_routings should be (addAccountJsonOtherUser.account_routings)
     }
 
-    scenario("Create new account with an already existing routing scheme/address should not create the account", ApiEndpoint3, VersionOfApi) {
+    Scenario("Create new account with an already existing routing scheme/address should not create the account", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0 to create the first account")
       Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val request400_1 = (v4_0_0_Request / "banks" / testBankId.value / "accounts").POST <@(user1)
@@ -209,7 +209,7 @@ class AccountTest extends V400ServerSetup {
       response400_2.body.toString should include("OBP-30115: Account Routing already exist.")
     }
 
-    scenario("Create new account with a duplication in routing scheme should not create the account", ApiEndpoint3, VersionOfApi) {
+    Scenario("Create new account with a duplication in routing scheme should not create the account", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       When("We make a request v4.0.0 to create the account")
       val request400 = (v4_0_0_Request / "banks" / testBankId.value / "accounts").POST <@(user1)
@@ -223,8 +223,8 @@ class AccountTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint4 - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint4 - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
 
       val testBankId = randomBankId
       val putProductJsonV400: PutProductJsonV400 = SwaggerDefinitionsJSON.putProductJsonV400.copy(parent_product_code ="")
@@ -274,8 +274,8 @@ class AccountTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint5 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint5, VersionOfApi) {
+  Feature(s"test $ApiEndpoint5 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "accounts" / "account-routing-query").POST
       val response400 = makePostRequest(request400, write(getAccountByRoutingJson))
@@ -286,8 +286,8 @@ class AccountTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint5 - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
+  Feature(s"test $ApiEndpoint5 - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
       Given("We create an account with account routings")
 
       val accountRoutingSchemeTest = "AccountNumber"
@@ -352,8 +352,8 @@ class AccountTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint6 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint6, VersionOfApi) {
+  Feature(s"test $ApiEndpoint6 - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint6, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "accounts" / "account-routing-regex-query").POST
       val postBody = getAccountByRoutingJson.copy(account_routing = AccountRoutingJsonV121("AccountNumber", "123456789-[A-Z]{3}"))
@@ -365,8 +365,8 @@ class AccountTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint6 - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint6, VersionOfApi) {
+  Feature(s"test $ApiEndpoint6 - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint6, VersionOfApi) {
       Given("We create an account with account routings")
 
       val accountRoutingSchemeTest = "AccountNumber"
@@ -433,8 +433,8 @@ class AccountTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test ${ApiEndpoint3.name}") {
-    scenario("We will test ${ApiEndpoint3.name}", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test ${ApiEndpoint3.name}") {
+    Scenario("We will test ${ApiEndpoint3.name}", ApiEndpoint3, VersionOfApi) {
       Given("The test bank and test accounts")
       val requestGet = (v4_0_0_Request / "banks" / testBankId.value / "balances").GET <@ (user1)
 
@@ -444,8 +444,8 @@ class AccountTest extends V400ServerSetup {
     }
   }
   
-  feature(s"test ${ApiEndpoint7.name}") {
-    scenario(s"We will test ${ApiEndpoint7.name}", ApiEndpoint7, VersionOfApi) {
+  Feature(s"test ${ApiEndpoint7.name}") {
+    Scenario(s"We will test ${ApiEndpoint7.name}", ApiEndpoint7, VersionOfApi) {
       // Create customer
       val bankId = randomBankId
       val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)

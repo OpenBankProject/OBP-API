@@ -58,8 +58,8 @@ class UserAuthContextTest extends V310ServerSetup {
   val postUserAuthContextJson = SwaggerDefinitionsJSON.postUserAuthContextJson
   val postUserAuthContextJson2 = SwaggerDefinitionsJSON.postUserAuthContextJson.copy(key="TOKEN")
 
-  feature("Add/Get/Delete User Auth Context v3.1.0") {
-    scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Add/Get/Delete User Auth Context v3.1.0") {
+    Scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").POST
       val response310 = makePostRequest(request310, write(postUserAuthContextJson))
@@ -68,7 +68,7 @@ class UserAuthContextTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)
       val response310 = makePostRequest(request310, write(postUserAuthContextJson))
@@ -78,7 +78,7 @@ class UserAuthContextTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateUserAuthContext)
     }
 
-    scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").GET
       val response310 = makeGetRequest(request310)
@@ -87,7 +87,7 @@ class UserAuthContextTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").GET <@(user1)
       val response310 = makeGetRequest(request310)
@@ -97,7 +97,7 @@ class UserAuthContextTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetUserAuthContext)
     }
 
-    scenario("We will call the deleteUserAuthContexts endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the deleteUserAuthContexts endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").DELETE
       val response310 = makeDeleteRequest(request310)
@@ -106,7 +106,7 @@ class UserAuthContextTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the deleteUserAuthContexts endpoint without a proper role", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the deleteUserAuthContexts endpoint without a proper role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").DELETE <@(user1)
       val response310 = makeDeleteRequest(request310)
@@ -116,7 +116,7 @@ class UserAuthContextTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanDeleteUserAuthContext)
     }
 
-    scenario("We will call the deleteUserAuthContextById endpoint without a user credentials", ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the deleteUserAuthContextById endpoint without a user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context"/ "userAuthContextId").DELETE
       val response310 = makeDeleteRequest(request310)
@@ -125,7 +125,7 @@ class UserAuthContextTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the deleteUserAuthContextById endpoint without a proper role", ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the deleteUserAuthContextById endpoint without a proper role", ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context" / "userAuthContextId").DELETE <@(user1)
       val response310 = makeDeleteRequest(request310)
@@ -135,7 +135,7 @@ class UserAuthContextTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanDeleteUserAuthContext)
     }
 
-    scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       When("We try to create the UserAuthContext v3.1.0")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateUserAuthContext.toString)
       val requestUserAuthContext310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").POST <@(user1)

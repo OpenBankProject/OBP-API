@@ -31,7 +31,7 @@ import code.api.util.ErrorMessages.{ChallengeRecipientNotFound, EmailSendingFail
 import code.bankconnectors.LocalMappedConnector
 import code.customer.CustomerX
 import code.model.dataAccess.AuthUser
-import code.setup.{PropsReset, ServerSetupWithTestData}
+import code.setup.{EnvVarOverride, PropsReset, ServerSetupWithTestData}
 import code.transactionChallenge.Challenges
 import code.usercustomerlinks.UserCustomerLink
 import code.model.UserX
@@ -49,7 +49,7 @@ import scala.concurrent.duration._
  * Where the passcode of an EMAIL challenge goes: to the customers linked to the user, else to the user's own
  * address, and a challenge that no one could receive is not created.
  */
-class ChallengeRecipientTest extends ServerSetupWithTestData with PropsReset {
+class ChallengeRecipientTest extends ServerSetupWithTestData with PropsReset with EnvVarOverride {
 
   private def createUser(email: String): User =
     UserX.createResourceUser(
@@ -64,8 +64,8 @@ class ChallengeRecipientTest extends ServerSetupWithTestData with PropsReset {
 
   /** A user who signed up locally; `validated` says whether the address has been confirmed. */
   private def createLocalUser(email: String, validated: Boolean): User = {
-    val authUser = AuthUser.create.email(email).username(randomString(12)).validated(validated).saveMe()
-    Users.users.vend.getUserByResourceUserId(authUser.user.get).openOrThrowException("expected the resource user")
+    val authUser = AuthUser(email = email, username = randomString(12), validated = validated).saveMe()
+    Users.users.vend.getUserByResourceUserId(authUser.user).openOrThrowException("expected the resource user")
   }
 
   private def linkCustomer(user: User, customerEmail: String, mobileNumber: String = "+49 123 456"): Unit = {
@@ -151,7 +151,9 @@ class ChallengeRecipientTest extends ServerSetupWithTestData with PropsReset {
     }
 
     scenario("is not saved when the e-mail cannot be sent") {
-      // An SMTP port nothing listens on: the send fails at once.
+      // An SMTP port nothing listens on: the send fails at once. OBP_MAIL_TEST_MODE, which
+      // run_tests_parallel.sh sets, outranks the prop, so it is switched off for the scenario as well.
+      withEnvOverride("OBP_MAIL_TEST_MODE" -> "false") {
       setPropsValues(
         "mail.test.mode" -> "false",
         "mail.smtp.host" -> "127.0.0.1",
@@ -165,6 +167,7 @@ class ChallengeRecipientTest extends ServerSetupWithTestData with PropsReset {
       failureMessage(createChallenge(user, StrongCustomerAuthentication.EMAIL, transactionRequestId)) should startWith(EmailSendingFailed)
 
       savedChallenges(transactionRequestId) shouldBe empty
+      }
     }
 
     scenario("goes once to an address that two linked customers share") {

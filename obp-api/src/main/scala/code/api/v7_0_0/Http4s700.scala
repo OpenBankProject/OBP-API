@@ -80,7 +80,6 @@ import code.users.UserAgreementProvider
 import net.liftweb.common.{Box, Full}
 import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.json4s.{Extraction, Formats}
-import net.liftweb.mapper.{By, ByList, Descending, MaxRows, OrderBy}
 import org.http4s._
 import org.http4s.dsl.io._
 import org.typelevel.ci.CIString
@@ -335,7 +334,7 @@ object Http4s700 {
         .map(_.consentId).filter(_.nonEmpty)
       val agentUserIds =
         if (consentIds.isEmpty) Nil
-        else ResourceUser.findAll(ByList(ResourceUser.CreatedByConsentId, consentIds)).map(_.userId)
+        else ResourceUser.findAllByCreatedByConsentIds(consentIds).map(_.userId)
       (humanUserId :: agentUserIds).filter(_.nonEmpty).distinct
     }
 
@@ -374,7 +373,7 @@ object Http4s700 {
               // new consent would arrive with a fresh quota.
               // Counted in OBP's record of self-service banks; banks made with CanCreateBank do not count.
               val creatorUserIds = humanAndAgentUserIds(cc.onBehalfOfUserId)
-              SelfServiceBank.count(ByList(SelfServiceBank.CreatedByUserId, creatorUserIds))
+              code.model.dataAccess.SelfServiceBank.countByCreatedByUserIds(creatorUserIds)
             }
             _ <- Helper.booleanToFuture(SelfServiceBankLimitReached, failCode = 403, cc = Some(cc)) {
               banksCreatedByUser < selfServiceBankLimit
@@ -470,7 +469,7 @@ object Http4s700 {
           for {
             banksCreatedByUser <- Future {
               val creatorUserIds = humanAndAgentUserIds(cc.onBehalfOfUserId)
-              MappedBank.findAll(ByList(MappedBank.CreatedByUserId, creatorUserIds))
+              MappedBank.findAllByCreatedByUserIds(creatorUserIds)
             }
           } yield JSONFactory600.createBanksJsonV600(banksCreatedByUser)
         }
@@ -882,9 +881,9 @@ object Http4s700 {
           implicit val cc: CallContext = req.callContext
           for {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
-            callCounters <- Future(code.api.util.RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
+            callCounters <- Future(code.api.util.RateLimitingUtil.consumerRateLimitState(consumer.consumerId).toList)
             date = new java.util.Date()
-            (activeRateLimit, rateLimitIds) <- code.api.util.RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId.get, date)
+            (activeRateLimit, rateLimitIds) <- code.api.util.RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId, date)
           } yield JSONFactory700.createConsumerDetailsJsonV700(
             JSONFactory600.createConsumerJsonV600(
               consumer,
@@ -948,7 +947,7 @@ object Http4s700 {
             }
             _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(postJson.redirect_url, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
-              id = consumer.id.get,
+              id = consumer.id,
               isActive = Some(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", defaultValue = false)),
               redirectURL = Some(postJson.redirect_url),
               callContext = Some(cc))
@@ -983,7 +982,7 @@ object Http4s700 {
     val updateConsumerLogoURL: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "logo_url" =>
         updateConsumerField[code.api.v5_1_0.ConsumerLogoUrlJson](req, consumerId) { (postJson, consumer, cc) =>
-          NewStyle.function.updateConsumer(id = consumer.id.get, logoURL = Some(postJson.logo_url), callContext = Some(cc))
+          NewStyle.function.updateConsumer(id = consumer.id, logoURL = Some(postJson.logo_url), callContext = Some(cc))
         }
     }
 
@@ -1011,7 +1010,7 @@ object Http4s700 {
     val updateConsumerCertificate: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "certificate" =>
         updateConsumerField[code.api.v5_1_0.ConsumerCertificateJson](req, consumerId) { (postJson, consumer, cc) =>
-          NewStyle.function.updateConsumer(id = consumer.id.get, certificate = Some(postJson.certificate), callContext = Some(cc))
+          NewStyle.function.updateConsumer(id = consumer.id, certificate = Some(postJson.certificate), callContext = Some(cc))
         }
     }
 
@@ -1039,7 +1038,7 @@ object Http4s700 {
     val updateConsumerName: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "name" =>
         updateConsumerField[code.api.v5_1_0.ConsumerNameJson](req, consumerId) { (postJson, consumer, cc) =>
-          NewStyle.function.updateConsumer(id = consumer.id.get, name = Some(postJson.app_name), callContext = Some(cc))
+          NewStyle.function.updateConsumer(id = consumer.id, name = Some(postJson.app_name), callContext = Some(cc))
         }
     }
 
@@ -1075,7 +1074,7 @@ object Http4s700 {
               case Full(c) => Full(c)
               case _ => net.liftweb.common.Empty
             }).map(unboxFullOrFail(_, Some(cc), ApplicationNotIdentified, 401))
-            scopes <- Future(code.scope.Scope.scope.vend.getScopesByConsumerId(consumer.id.get.toString).openOr(Nil))
+            scopes <- Future(code.scope.Scope.scope.vend.getScopesByConsumerId(consumer.id.toString).openOr(Nil))
           } yield JSONFactory700.createCurrentConsumerScopesJsonV700(consumer, scopes)
         }
     }
@@ -1132,9 +1131,9 @@ object Http4s700 {
               APIUtil.isBankIdWhereRolesCanBeHeld(body.bank_id, Some(cc))
             }
             _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, failCode = 409, cc = Some(cc)) {
-              !APIUtil.hasScope(body.bank_id, consumer.id.get.toString, role)
+              !APIUtil.hasScope(body.bank_id, consumer.id.toString, role)
             }
-            scope <- Future(code.scope.Scope.scope.vend.addScope(body.bank_id, consumer.id.get.toString, body.role_name))
+            scope <- Future(code.scope.Scope.scope.vend.addScope(body.bank_id, consumer.id.toString, body.role_name))
               .map(unboxFull(_))
           } yield code.api.v3_0_0.JSONFactory300.createScopeJson(scope)
         }
@@ -1340,15 +1339,10 @@ object Http4s700 {
               if (agreementList.isEmpty) None else Some(agreementList)
             }
             isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
-            authUser = code.model.dataAccess.AuthUser.find(
-              By(code.model.dataAccess.AuthUser.user, user.userPrimaryKey.value)
-            )
+            authUser = code.model.dataAccess.AuthUser.findByResourceUserPrimaryKey(
+              user.userPrimaryKey.value)
             userMetrics <- Future {
-              MappedMetric.findAll(
-                By(MappedMetric.userId, userId),
-                OrderBy(MappedMetric.date, Descending),
-                MaxRows(5)
-              )
+              MappedMetric.findNewestByUserId(userId, 5)
             }
             lastActivityDate = userMetrics.headOption.map(_.getDate())
             recentOperationIds = userMetrics.map(_.getImplementedByPartialFunction()).distinct.take(5)
@@ -1356,8 +1350,8 @@ object Http4s700 {
             user,
             JSONFactory600.createUserInfoJsonV600(
               user,
-              authUser.map(_.firstName.get).getOrElse(""),
-              authUser.map(_.lastName.get).getOrElse(""),
+              authUser.map(_.firstName).getOrElse(""),
+              authUser.map(_.lastName).getOrElse(""),
               entitlements,
               agreements,
               isLocked,
@@ -1462,25 +1456,47 @@ object Http4s700 {
     // digits, spaces, dashes, dots and parentheses.
     private val mobilePhoneNumberRegex = """\+?[0-9\-\s().]{5,50}"""
 
+    // The shape alone is not enough: the character class is a UNION, so "     " (five spaces),
+    // "((.))" and "-.-.-" all satisfy it and a digit-free string would be stored as somebody's
+    // mobile number, leaving the later validation/SMS flow with nothing to send to. Require at
+    // least five actual digits as well.
+    private val MinMobilePhoneNumberDigits = 5
+
+    private def isValidMobilePhoneNumber(value: String): Boolean =
+      value.matches(mobilePhoneNumberRegex) && value.count(_.isDigit) >= MinMobilePhoneNumberDigits
+
     // Route: PUT /obp/v7.0.0/my/user/mobile-phone-number
     val updateMyMobilePhoneNumber: Http4sRoute = Http4sRoute {
       case req @ PUT -> `prefixPath` / "my" / "user" / "mobile-phone-number" =>
         EndpointHelpers.withUserAndBody[JSONFactory700.PutMyMobilePhoneNumberJsonV700, JSONFactory700.MyMobilePhoneNumberJsonV700](req) { (user, body, cc) =>
+          val mobilePhoneNumber = body.mobile_phone_number.trim
           for {
+            // Refused for a consent user rather than redirected to cc.onBehalfOfUserId, unlike
+            // the other "my" writes in this file. The mobile number is an authentication channel
+            // (validation codes, SMS OTP), so letting an agent identity minted by a Consent
+            // repoint the granting human's second factor would be an escalation, not a
+            // convenience; and writing it to the agent's own shadow row instead would silently
+            // do nothing the caller could observe. The human must set their own number.
+            _ <- Helper.booleanToFuture(
+              s"$InvalidUserId The caller is a consent user (an agent identity minted by a Consent). " +
+              "A mobile phone number is an authentication channel and can only be set by the user themselves.",
+              failCode = 400, cc = Some(cc))(!user.isConsentUser)
             _ <- Helper.booleanToFuture(InvalidPhoneNumber, cc = Some(cc)) {
-              body.mobile_phone_number.matches(mobilePhoneNumberRegex)
+              isValidMobilePhoneNumber(mobilePhoneNumber)
             }
             resourceUser <- Future {
               UserVend.users.vend.getResourceUserByResourceUserId(user.userPrimaryKey.value)
             } map { x => unboxFullOrFail(x, Some(cc), UserNotFoundByUserId, 404) }
             updated <- Future {
-              val numberChanged = !resourceUser.mobilePhoneNumber.contains(body.mobile_phone_number)
-              resourceUser.MobilePhoneNumber(body.mobile_phone_number)
+              val numberChanged = !resourceUser.mobilePhoneNumber.contains(mobilePhoneNumber)
               // a changed number is unverified: reset the flag, but keep
-              // MobilePhoneNumberValidatedDate as the audit trail of the last
-              // successful validation
-              if (numberChanged) resourceUser.MobilePhoneNumberIsValidated(false)
-              resourceUser.saveMe()
+              // mobilePhoneNumberValidatedDate as the audit trail of the last successful
+              // validation. ResourceUser is a case class here, so this is a copy rather than
+              // the chained setters develop's Mapper entity used.
+              code.model.dataAccess.ResourceUser.update(resourceUser.copy(
+                mobilePhoneNumber = Some(mobilePhoneNumber),
+                mobilePhoneNumberIsValidated =
+                  if (numberChanged) Some(false) else resourceUser.mobilePhoneNumberIsValidated))
             }
           } yield JSONFactory700.MyMobilePhoneNumberJsonV700(
             mobile_phone_number = updated.mobilePhoneNumber,
@@ -1534,18 +1550,21 @@ object Http4s700 {
             }
             mobilePhoneNumber = postedData.mobile_phone_number.map(_.trim).filter(_.nonEmpty)
             _ <- Helper.booleanToFuture(InvalidPhoneNumber, 400, Some(cc)) {
-              mobilePhoneNumber.forall(_.matches(mobilePhoneNumberRegex))
+              mobilePhoneNumber.forall(isValidMobilePhoneNumber)
             }
             savedUser <- code.api.v6_0_0.Http4s600.Implementations6_0_0.createAndSaveAuthUser(
               postedData.email, postedData.username, postedData.password, postedData.first_name, postedData.last_name
             )
             resourceUser <- Future {
-              UserVend.users.vend.getResourceUserByResourceUserId(savedUser.user.get)
+              UserVend.users.vend.getResourceUserByResourceUserId(savedUser.user)
             } map { x => unboxFullOrFail(x, Some(cc), UserNotFoundByUserId, 404) }
             storedResourceUser <- Future {
               mobilePhoneNumber match {
                 case Some(number) =>
-                  resourceUser.MobilePhoneNumber(number).MobilePhoneNumberIsValidated(false).saveMe()
+                  // A number supplied at creation starts unvalidated.
+                  code.model.dataAccess.ResourceUser.update(resourceUser.copy(
+                    mobilePhoneNumber = Some(number),
+                    mobilePhoneNumberIsValidated = Some(false)))
                 case None => resourceUser
               }
             }
@@ -1699,7 +1718,15 @@ object Http4s700 {
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-            (obpQueryParams, callContext) <- APIUtil.createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+            // applyMetricsFromDateDefault, not the raw params: without a from_date,
+            // APIUtil.getFromDate substitutes the epoch, which makes
+            // MappedMetrics.determineMetricsCacheTTL classify the query as "only stable data"
+            // and cache it for 24 HOURS -- so the default, no-parameter call to this endpoint
+            // would freeze for a day while traffic kept arriving. The same default also turns
+            // the query into a full scan of `metric` since 1970. Every other metrics-reading
+            // endpoint goes through this helper for exactly these two reasons.
+            (obpQueryParams, callContext) <- APIUtil.createQueriesByHttpParamsFuture(
+              APIMetrics.applyMetricsFromDateDefault(httpParams), cc.callContext)
             topUsers <- APIMetrics.apiMetrics.vend.getTopUsersFuture(obpQueryParams) map {
               APIUtil.unboxFullOrFail(_, callContext, GetTopUsersError)
             }
@@ -1728,9 +1755,9 @@ object Http4s700 {
         |
         |eg: /management/metrics/top-users?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50
         |
-        |1 from_date (defaults to one year ago) eg:from_date=$DateWithMsExampleString
+        |1 from_date (defaults to just inside the metrics stable boundary, i.e. a few minutes ago) eg:from_date=$DateWithMsExampleString
         |
-        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+        |2 to_date (defaults to a far-future date, i.e. no upper bound) eg:to_date=$DateWithMsExampleString
         |
         |3 consumer_id  (if null ignore)
         |
@@ -1777,7 +1804,9 @@ object Http4s700 {
         EndpointHelpers.withUser(req) { (_, cc) =>
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-            (obpQueryParams, callContext) <- APIUtil.createQueriesByHttpParamsFuture(httpParams, cc.callContext)
+            // See getTopUsers above for why the default from_date must be applied here.
+            (obpQueryParams, callContext) <- APIUtil.createQueriesByHttpParamsFuture(
+              APIMetrics.applyMetricsFromDateDefault(httpParams), cc.callContext)
             topConsumers <- APIMetrics.apiMetrics.vend.getTopConsumersByConsumerIdFuture(obpQueryParams) map {
               APIUtil.unboxFullOrFail(_, callContext, GetTopConsumersError)
             }
@@ -1808,9 +1837,9 @@ object Http4s700 {
         |
         |eg: /management/metrics/top-consumers?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50
         |
-        |1 from_date (defaults to one year ago) eg:from_date=$DateWithMsExampleString
+        |1 from_date (defaults to just inside the metrics stable boundary, i.e. a few minutes ago) eg:from_date=$DateWithMsExampleString
         |
-        |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+        |2 to_date (defaults to a far-future date, i.e. no upper bound) eg:to_date=$DateWithMsExampleString
         |
         |3 consumer_id  (if null ignore)
         |
@@ -2656,10 +2685,13 @@ object Http4s700 {
         address = "0xdestination",
         status = "pending",
         tx_hash = None,
-        confirmations = None,
+        // An Option[<value type>] left at None publishes as a $ref to a definition that does not
+        // exist - see refineErasedTypeArgument in SwaggerJSONFactory. The example value is what the
+        // field's documented type is derived from, so it has to be present.
+        confirmations = Some(3),
         required_confirmations = 12,
-        nonce = None,
-        gas_used = None,
+        nonce = Some(42L),
+        gas_used = Some(21000L),
         error_message = None,
         user_id = "user-abc-123",
         consent_id = None,
@@ -2933,13 +2965,6 @@ object Http4s700 {
     // the DoS surface to "spam yourself", and the role gate (canCreateTestEmail)
     // restricts it further to trusted operators.
 
-    case class TestEmailResponseJsonV700(
-      to: String,
-      from: String,
-      subject: String,
-      message_id: String
-    )
-
     val createTestEmail: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "self-test-emails" =>
         EndpointHelpers.executeFutureCreated(req) {
@@ -2994,7 +3019,7 @@ object Http4s700 {
                 val (errMsg, status) = classifySmtpException(e)
                 Helper.booleanToFuture(errMsg, status, Some(cc)) { false }.map(_ => "")
             }
-          } yield TestEmailResponseJsonV700(
+          } yield JSONFactory700.TestEmailResponseJsonV700(
             to = toAddress,
             from = fromAddress,
             subject = subject,
@@ -3066,7 +3091,7 @@ object Http4s700 {
         |appended after `Detail:` so the operator can diagnose without server logs.
         |""".stripMargin,
       EmptyBody,
-      TestEmailResponseJsonV700(
+      JSONFactory700.TestEmailResponseJsonV700(
         to = "alice@example.com",
         from = "noreply@openbankproject.com",
         subject = "OBP test email from openbankproject.com",
@@ -3161,13 +3186,10 @@ object Http4s700 {
               if (!allowed) {
                 logger.info(s"createValidationEmail says: skipped (rate limit exceeded, count=$count, max=$ResendValidationRateLimit per ${ResendValidationRateLimitWindowSeconds}s)")
               } else {
-                AuthUser.find(
-                  By(AuthUser.username, username),
-                  By(AuthUser.provider, Constant.localIdentityProvider)
-                ) match {
-                  case Full(user) if user.email.get != null
-                                  && user.email.get.toLowerCase == emailLower
-                                  && !user.validated.get =>
+                AuthUser.findByUsernameAndProvider(username, Constant.localIdentityProvider) match {
+                  case Full(user) if user.email != null
+                                  && user.email.toLowerCase == emailLower
+                                  && !user.validated =>
                     val portalUrlBox = APIUtil.getPropsValue("portal_external_url")
                     val senderAddress = AuthUser.emailFrom
                     val portalMissing = portalUrlBox.isEmpty || portalUrlBox.exists(_.trim.isEmpty)
@@ -3180,7 +3202,7 @@ object Http4s700 {
                       val portalUrl = portalUrlBox.openOr("")
                       val expiryMinutes = APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)
                         val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
-                          .subject(user.uniqueId.get)
+                          .subject(user.uniqueId)
                           .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
                           .issueTime(new java.util.Date())
                           .build()
@@ -3188,7 +3210,7 @@ object Http4s700 {
                       val emailLink = portalUrl + "/user-validation?token=" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
                       val outcome = CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
                         from = senderAddress,
-                        to = List(user.email.get),
+                        to = List(user.email),
                         bcc = AuthUser.bccEmail.toList,
                         subject = "Sign up confirmation",
                         textContent = Some(s"Welcome! Please validate your account: $emailLink"),
@@ -4888,12 +4910,10 @@ object Http4s700 {
             val params = req.uri.query.params
             val limit = params.get("limit").flatMap(l => scala.util.Try(l.toInt).toOption)
               .filter(l => l > 0 && l <= 500).getOrElse(100)
-            val filters: List[net.liftweb.mapper.QueryParam[MessageOutbox]] = List(
-              params.get("status").map(_.trim.toUpperCase).filter(_.nonEmpty).map(s => By(MessageOutbox.Status, s)),
-              params.get("outbox_type").map(_.trim.toUpperCase).filter(_.nonEmpty).map(t => By(MessageOutbox.OutboxType, t))
-            ).flatten
-            val rows = MessageOutbox.findAll(
-              (filters ::: List(OrderBy(MessageOutbox.id, Descending), MaxRows[MessageOutbox](limit))): _*)
+            val rows = MessageOutbox.findAllFiltered(
+              params.get("status").map(_.trim.toUpperCase).filter(_.nonEmpty),
+              params.get("outbox_type").map(_.trim.toUpperCase).filter(_.nonEmpty),
+              limit)
             JSONFactory700.MessageOutboxJsonV700(rows.map(JSONFactory700.createMessageOutboxRowJson))
           }
         }
@@ -4904,7 +4924,7 @@ object Http4s700 {
         EndpointHelpers.withUser(req) { (_, cc) =>
           import code.messageoutbox.MessageOutbox
           val rowOpt: Option[MessageOutbox] = scala.util.Try(outboxIdStr.toLong).toOption
-            .flatMap(id => MessageOutbox.find(By(MessageOutbox.id, id)).toOption)
+            .flatMap(id => MessageOutbox.findById(id).toOption)
           for {
             _ <- Helper.booleanToFuture(s"$MessageOutboxRowNotFound OUTBOX_ID: $outboxIdStr", failCode = 404, cc = Some(cc)) {
               rowOpt.isDefined
@@ -4914,7 +4934,8 @@ object Http4s700 {
               row.status == MessageOutbox.STATUS_STICKY
             }
             updated <- scala.concurrent.Future {
-              row.Status(MessageOutbox.STATUS_PENDING).Attempts(0).LastError("").saveMe()
+              MessageOutbox.resetForRetry(row.id)
+                .openOrThrowException("the row just checked must still be readable")
             }
           } yield JSONFactory700.createMessageOutboxRowJson(updated)
         }
@@ -6073,7 +6094,7 @@ object Http4s700 {
     val getDynamicResourceDocsProvenance: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "dynamic-resource-docs" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
-          Future(code.dynamicResourceDoc.DynamicResourceDoc.findAll())
+          Future(code.dynamicResourceDoc.DynamicResourceDoc.findAll(None))
             .map(rows => JSONFactory700.DynamicResourceDocsProvenanceJsonV700(
               rows.map(JSONFactory700.createDynamicResourceDocProvenanceJsonV700)))
         }
@@ -6100,8 +6121,7 @@ object Http4s700 {
     val getDynamicResourceDocProvenance: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "dynamic-resource-docs" / dynamicResourceDocId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
-          Future(code.dynamicResourceDoc.DynamicResourceDoc.find(
-            By(code.dynamicResourceDoc.DynamicResourceDoc.DynamicResourceDocId, dynamicResourceDocId)))
+          Future(code.dynamicResourceDoc.DynamicResourceDoc.findById(None, dynamicResourceDocId))
             .map(box => unboxFullOrFail(box, Some(cc), s"$DynamicResourceDocNotFound Current DYNAMIC_RESOURCE_DOC_ID($dynamicResourceDocId)", 404))
             .map(JSONFactory700.createDynamicResourceDocProvenanceJsonV700)
         }
@@ -6120,7 +6140,7 @@ object Http4s700 {
       EmptyBody,
       JSONFactory700.DynamicResourceDocProvenanceJsonV700(
         jsonDynamicResourceDoc,
-        JSONFactory700.ProvenanceJsonV700(Some(code.api.util.ExampleValue.userIdExample.value), None, Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(APIUtil.DateWithMsExampleString), Some(APIUtil.DateWithMsExampleString))
+        JSONFactory700.ProvenanceJsonV700(Some(code.api.util.ExampleValue.userIdExample.value), None, Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(APIUtil.DateWithMsExampleString), Some(APIUtil.DateWithMsExampleString), Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(true))
       ),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicResourceDocNotFound, UnknownError),
       apiTagDynamicResourceDoc :: Nil,
@@ -6131,7 +6151,7 @@ object Http4s700 {
     val getConnectorMethodsProvenance: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "connector-methods" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
-          Future(code.connectormethod.ConnectorMethod.findAll())
+          Future(code.connectormethod.DoobieConnectorMethodProvider.getAllWithProvenance())
             .map(rows => JSONFactory700.ConnectorMethodsProvenanceJsonV700(
               rows.map(JSONFactory700.createConnectorMethodProvenanceJsonV700)))
         }
@@ -6158,8 +6178,7 @@ object Http4s700 {
     val getConnectorMethodProvenance: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "connector-methods" / connectorMethodId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
-          Future(code.connectormethod.ConnectorMethod.find(
-            By(code.connectormethod.ConnectorMethod.ConnectorMethodId, connectorMethodId)))
+          Future(code.connectormethod.DoobieConnectorMethodProvider.getByIdWithProvenance(connectorMethodId))
             .map(box => unboxFullOrFail(box, Some(cc), s"$ConnectorMethodNotFound Current CONNECTOR_METHOD_ID($connectorMethodId)", 404))
             .map(JSONFactory700.createConnectorMethodProvenanceJsonV700)
         }
@@ -6178,7 +6197,7 @@ object Http4s700 {
       EmptyBody,
       JSONFactory700.ConnectorMethodProvenanceJsonV700(
         jsonScalaConnectorMethod,
-        JSONFactory700.ProvenanceJsonV700(Some(code.api.util.ExampleValue.userIdExample.value), None, Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(APIUtil.DateWithMsExampleString), Some(APIUtil.DateWithMsExampleString))
+        JSONFactory700.ProvenanceJsonV700(Some(code.api.util.ExampleValue.userIdExample.value), None, Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(APIUtil.DateWithMsExampleString), Some(APIUtil.DateWithMsExampleString), Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(true))
       ),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, ConnectorMethodNotFound, UnknownError),
       apiTagConnectorMethod :: Nil,
@@ -6189,7 +6208,7 @@ object Http4s700 {
     val getDynamicMessageDocsProvenance: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "dynamic-message-docs" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
-          Future(code.dynamicMessageDoc.DynamicMessageDoc.findAll())
+          Future(code.dynamicMessageDoc.DynamicMessageDoc.findAll(None))
             .map(rows => JSONFactory700.DynamicMessageDocsProvenanceJsonV700(
               rows.map(JSONFactory700.createDynamicMessageDocProvenanceJsonV700)))
         }
@@ -6216,8 +6235,7 @@ object Http4s700 {
     val getDynamicMessageDocProvenance: Http4sRoute = Http4sRoute {
       case req @ GET -> `prefixPath` / "management" / "dynamic-message-docs" / dynamicMessageDocId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
-          Future(code.dynamicMessageDoc.DynamicMessageDoc.find(
-            By(code.dynamicMessageDoc.DynamicMessageDoc.DynamicMessageDocId, dynamicMessageDocId)))
+          Future(code.dynamicMessageDoc.DynamicMessageDoc.findById(None, dynamicMessageDocId))
             .map(box => unboxFullOrFail(box, Some(cc), s"$DynamicMessageDocNotFound Current DYNAMIC_MESSAGE_DOC_ID($dynamicMessageDocId)", 404))
             .map(JSONFactory700.createDynamicMessageDocProvenanceJsonV700)
         }
@@ -6236,7 +6254,7 @@ object Http4s700 {
       EmptyBody,
       JSONFactory700.DynamicMessageDocProvenanceJsonV700(
         jsonDynamicMessageDoc,
-        JSONFactory700.ProvenanceJsonV700(Some(code.api.util.ExampleValue.userIdExample.value), None, Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(APIUtil.DateWithMsExampleString), Some(APIUtil.DateWithMsExampleString))
+        JSONFactory700.ProvenanceJsonV700(Some(code.api.util.ExampleValue.userIdExample.value), None, Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(APIUtil.DateWithMsExampleString), Some(APIUtil.DateWithMsExampleString), Some("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"), Some(true))
       ),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicMessageDocNotFound, UnknownError),
       apiTagDynamicMessageDoc :: Nil,
@@ -6257,7 +6275,7 @@ object Http4s700 {
       attributes.find(a => a.name.equalsIgnoreCase(name) && a.isActive.getOrElse(true)).map(_.value.trim.toLowerCase)
 
     private def userOwnsConsumer(consumer: code.model.Consumer, userId: String): Boolean =
-      Option(consumer.createdByUserId.get).exists(_ == userId)
+      Option(consumer.createdByUserId).exists(_ == userId)
 
     private def userOwnsSubscription(subscription: ApiProductSubscriptionTrait, userId: String): Future[Boolean] =
       code.consumer.Consumers.consumers.vend.getConsumerByConsumerIdFuture(subscription.consumerId)
@@ -6298,10 +6316,10 @@ object Http4s700 {
             // No role needed when the product is open to self-service AND the caller owns the consumer.
             _ <- if (selfSubscribe && userOwnsConsumer(consumer, user.userId)) Future.successful(Full(()))
                  else subscriptionRoleCheck(product.bankId, user.userId, ApiRole.canCreateApiProductSubscriptionAtOneBank, cc)
-            existing <- NewStyle.function.getNonCancelledApiProductSubscription(consumer.consumerId.get, product.bankId, product.apiProductCode, Some(cc))
+            existing <- NewStyle.function.getNonCancelledApiProductSubscription(consumer.consumerId, product.bankId, product.apiProductCode, Some(cc))
             _ <- Helper.booleanToFuture(ApiProductSubscriptionAlreadyExists, 409, Some(cc)) { existing.isEmpty }
             (created, _) <- NewStyle.function.createApiProductSubscription(
-              product.bankId, product.apiProductCode, consumer.consumerId.get, ApiProductSubscriptionStatus.Requested,
+              product.bankId, product.apiProductCode, consumer.consumerId, ApiProductSubscriptionStatus.Requested,
               postJson.start_date.getOrElse(new java.util.Date()), postJson.end_date, user.userId, Some(cc))
             // BILLING_SYSTEM none / absent: nobody needs to approve or pay, so it is active at once.
             (subscription, _) <- if (billingSystem == "none")
@@ -6348,7 +6366,7 @@ object Http4s700 {
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
             consumers <- code.consumer.Consumers.consumers.vend.getConsumersByUserIdFuture(user.userId)
-            (subscriptions, _) <- NewStyle.function.getApiProductSubscriptionsByConsumerIds(consumers.map(_.consumerId.get), Some(cc))
+            (subscriptions, _) <- NewStyle.function.getApiProductSubscriptionsByConsumerIds(consumers.map(_.consumerId), Some(cc))
             json <- subscriptionsWithAttributesJson(subscriptions, cc)
           } yield json
         }
@@ -6492,7 +6510,7 @@ object Http4s700 {
           for {
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             owner = userOwnsConsumer(consumer, user.userId)
-            (subscriptions, _) <- NewStyle.function.getApiProductSubscriptionsByConsumerId(consumer.consumerId.get, Some(cc))
+            (subscriptions, _) <- NewStyle.function.getApiProductSubscriptionsByConsumerId(consumer.consumerId, Some(cc))
             // The owner sees every subscription. Anyone else sees those at the banks where they hold the
             // role, and is refused outright when they hold it nowhere.
             visible <- if (owner) Future.successful(subscriptions)
@@ -7492,7 +7510,7 @@ object Http4s700 {
             rows <- code.ratelimiting.RateLimitingDI.rateLimiting.vend.getAll()
             consumerIds = rows.map(_.consumerId).distinct
             consumers <- Future.traverse(consumerIds)(id =>
-              code.consumer.Consumers.consumers.vend.getConsumerByConsumerIdFuture(id).map(box => id -> box.map(_.name.get).openOr(""))
+              code.consumer.Consumers.consumers.vend.getConsumerByConsumerIdFuture(id).map(box => id -> box.map(_.name).openOr(""))
             )
             names = consumers.toMap
             now = new java.util.Date()

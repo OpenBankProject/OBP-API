@@ -65,8 +65,8 @@ class JsonSchemaValidationTest extends V400ServerSetup {
   lazy val bankId = randomBankId
   private val mockOperationId = "MOCK_OPERATION_ID"
 
-  feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Unauthenticated access") {
-    scenario(s"We will call the endpoint $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Unauthenticated access") {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).POST
       val response= makePostRequest(request, jsonSchemaFooBar)
@@ -75,7 +75,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).PUT
       val response= makePutRequest(request, jsonSchemaFooBar)
@@ -84,7 +84,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).DELETE
       val response= makeDeleteRequest(request)
@@ -93,7 +93,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 without user credentials", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 without user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).GET
       val response= makeGetRequest(request)
@@ -102,7 +102,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint5 without user credentials", ApiEndpoint5, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint5 without user credentials", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "json-schema-validations" ).GET
       val response= makeGetRequest(request)
@@ -112,8 +112,8 @@ class JsonSchemaValidationTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Unauthorized access") {
-    scenario(s"We will call the endpoint $ApiEndpoint1 without required role", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Unauthorized access") {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 without required role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).POST <@ user1
       val response= makePostRequest(request, jsonSchemaFooBar)
@@ -122,7 +122,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canCreateJsonSchemaValidation")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint2 without required role", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 without required role", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).PUT <@ user1
       val response= makePutRequest(request, jsonSchemaFooBar)
@@ -131,7 +131,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canUpdateJsonSchemaValidation")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint3 without required role", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 without required role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).DELETE <@ user1
       val response= makeDeleteRequest(request)
@@ -140,7 +140,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canDeleteJsonSchemaValidation")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 without required role", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 without required role", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).GET <@ user1
       val response= makeGetRequest(request)
@@ -149,7 +149,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       response.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles$canGetJsonSchemaValidation")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint5 without required role", ApiEndpoint5, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint5 without required role", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "json-schema-validations" ).GET <@ user1
       val response= makeGetRequest(request)
@@ -159,8 +159,8 @@ class JsonSchemaValidationTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Authorized access") {
-    scenario(s"We will call the endpoint $ApiEndpoint1 with required role", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Authorized access") {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with required role", ApiEndpoint1, VersionOfApi) {
       addEntitlement(canCreateJsonSchemaValidation)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "json-schema-validations" /  mockOperationId).POST <@ user1
@@ -172,7 +172,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       validation \ "json_schema" should equal (json.parse(jsonSchemaFooBar))
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint2 with required role", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 with required role", ApiEndpoint2, VersionOfApi) {
       addOneValidation(jsonSchemaFooBar, mockOperationId)
       addEntitlement(canUpdateJsonSchemaValidation)
       // change the root.title to " This is a new Title "
@@ -188,7 +188,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       validation \ "json_schema" should equal (json.parse(newJsonSchema))
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint3 with required role", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 with required role", ApiEndpoint3, VersionOfApi) {
       addOneValidation(jsonSchemaFooBar, mockOperationId)
       addEntitlement(canDeleteJsonSchemaValidation)
 
@@ -200,7 +200,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       response.body should equal(JBool(true))
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 with required role", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 with required role", ApiEndpoint4, VersionOfApi) {
       addOneValidation(jsonSchemaFooBar, mockOperationId)
       addEntitlement(canGetJsonSchemaValidation)
 
@@ -214,7 +214,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       validation \ "json_schema" should equal (json.parse(jsonSchemaFooBar))
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint5 with required role", ApiEndpoint5, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint5 with required role", ApiEndpoint5, VersionOfApi) {
       addOneValidation(jsonSchemaFooBar, mockOperationId)
       addEntitlement(canGetJsonSchemaValidation)
 
@@ -231,7 +231,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       validation \ "json_schema" should equal (json.parse(jsonSchemaFooBar))
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint6 anonymously", ApiEndpoint6, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint6 anonymously", ApiEndpoint6, VersionOfApi) {
       addOneValidation(jsonSchemaFooBar, mockOperationId)
 
       When("We make a request v4.0.0")
@@ -248,8 +248,8 @@ class JsonSchemaValidationTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Wrong request") {
-    scenario(s"We will call the endpoint $ApiEndpoint1 with wrong format json-schema", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Wrong request") {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with wrong format json-schema", ApiEndpoint1, VersionOfApi) {
       addEntitlement(canCreateJsonSchemaValidation)
 
       When("We make a request v4.0.0")
@@ -264,7 +264,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       message should include("$.$schema: is missing but it is required")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint1 with exists operationId", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with exists operationId", ApiEndpoint1, VersionOfApi) {
       addOneValidation(jsonSchemaFooBar, mockOperationId)
 
       When("We make a request v4.0.0")
@@ -279,7 +279,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       message should include(OperationIdExistsError)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint2 with not exists operationId", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 with not exists operationId", ApiEndpoint2, VersionOfApi) {
       addEntitlement(canUpdateJsonSchemaValidation)
 
       When("We make a request v4.0.0")
@@ -293,7 +293,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       message should include(JsonSchemaValidationNotFound)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint3 with required role", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 with required role", ApiEndpoint3, VersionOfApi) {
       addEntitlement(canDeleteJsonSchemaValidation)
 
       When("We make a request v4.0.0")
@@ -307,7 +307,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       message should include(JsonSchemaValidationNotFound)
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 with required role", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 with required role", ApiEndpoint4, VersionOfApi) {
       addEntitlement(canGetJsonSchemaValidation)
 
       When("We make a request v4.0.0")
@@ -324,8 +324,8 @@ class JsonSchemaValidationTest extends V400ServerSetup {
   }
 
 
-  feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Validate static endpoint request body") {
-    scenario(s"We will call the endpoint $ApiEndpointCreateFx with invalid Fx", VersionOfApi) {
+  Feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Validate static endpoint request body") {
+    Scenario(s"We will call the endpoint $ApiEndpointCreateFx with invalid Fx", VersionOfApi) {
       addOneValidation(jsonSchemaCreateFx, "OBPv2.2.0-createFx")
       addEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
@@ -341,7 +341,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       message should include("$.to_currency_code: does not have a value in the enumeration [EUR, USD]")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpointCreateFx with valid Fx", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpointCreateFx with valid Fx", VersionOfApi) {
       addOneValidation(jsonSchemaCreateFx, "OBPv2.2.0-createFx")
       addEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
@@ -353,8 +353,8 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
   }
 
-  feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Validate dynamic entity endpoint request body") {
-    scenario(s"We will call the endpoint $ApiEndpoint1 with invalid FooBar", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Validate dynamic entity endpoint request body") {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with invalid FooBar", ApiEndpoint1, VersionOfApi) {
       addOneValidation(jsonSchemaFooBar, s"OBPv4.0.0-dynamicEntity_createFooBar_")
       addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntityRecord_FooBar", "")
@@ -371,7 +371,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       message should include("$.number: must have a minimum value of 10")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint1 with valid FooBar", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with valid FooBar", ApiEndpoint1, VersionOfApi) {
       addOneValidation(jsonSchemaFooBar, s"OBPv4.0.0-dynamicEntity_createFooBar_${bankId}")
       addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntityRecord_FooBar", "")
@@ -385,8 +385,8 @@ class JsonSchemaValidationTest extends V400ServerSetup {
 
   }
 
-  feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Validate dynamic endpoints endpoint request body") {
-    scenario("We will call the endpoint /dynamic/save with invalid FooBar", VersionOfApi) {
+  Feature(s"test JSON Schema Validation endpoints version $VersionOfApi - Validate dynamic endpoints endpoint request body") {
+    Scenario("We will call the endpoint /dynamic/save with invalid FooBar", VersionOfApi) {
       addOneValidation(jsonSchemaDynamicEndpoint, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
@@ -405,7 +405,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
       message should include("$.age: must have a maximum value of 150")
     }
 
-    scenario("We will call the endpoint /dynamic/save with valid FooBar", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint /dynamic/save with valid FooBar", ApiEndpoint1, VersionOfApi) {
       addOneValidation(jsonSchemaDynamicEndpoint, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()
       addStringEntitlement("CanCreateDynamicEndpoint_User469")

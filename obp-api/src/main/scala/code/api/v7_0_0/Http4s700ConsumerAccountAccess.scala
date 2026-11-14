@@ -113,9 +113,9 @@ object Http4s700ConsumerAccountAccess {
             }
             consumer <- NewStyle.function.getConsumerByConsumerId(body.consumer_id.trim, Some(cc))
             _ <- Helper.booleanToFuture(ConsumerAccountAccessAlreadyExists, failCode = 409, cc = Some(cc)) {
-              provider.find(consumer.consumerId.get, account.bankId, account.accountId, targetView.viewId).isEmpty
+              provider.find(consumer.consumerId, account.bankId, account.accountId, targetView.viewId).isEmpty
             }
-            granted <- Future(provider.grant(consumer.consumerId.get, account.bankId, account.accountId, targetView.viewId, user.userId)) map {
+            granted <- Future(provider.grant(consumer.consumerId, account.bankId, account.accountId, targetView.viewId, user.userId)) map {
               x => fullOrFail(x, cc)
             }
           } yield JSONFactory700ConsumerAccountAccess.createConsumerAccountAccessJson(granted)

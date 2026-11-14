@@ -1,10 +1,13 @@
 package code.api.util
 
+import org.json4s.jvalue2monadic
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import org.http4s.{Method, Request, Uri}
 import org.json4s.native.JsonMethods.parse
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Focused unit test for DynamicUtil.createJavaHttp4sEndpoint, isolated from the full
@@ -12,7 +15,7 @@ import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
  * Exercises the adapter directly: compiled Java Supplier<Function<Object[], Object>> ->
  * Http4sEndpointIO.apply(Request[IO]) -> CallContext => IO[Response[IO]].
  */
-class DynamicUtilJavaHttp4sEndpointTest extends FeatureSpec with Matchers with GivenWhenThen {
+class DynamicUtilJavaHttp4sEndpointTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   private val echoMethodBody =
     """package code.api.util.dynamic;

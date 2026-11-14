@@ -5,44 +5,48 @@
 
 package code.obp.grpc.chat.api
 
-object ChatStreamServiceGrpc {
 
+object ChatStreamServiceGrpc {
   val METHOD_STREAM_MESSAGES: _root_.io.grpc.MethodDescriptor[code.obp.grpc.chat.api.StreamMessagesRequest, code.obp.grpc.chat.api.ChatMessageEvent] =
     _root_.io.grpc.MethodDescriptor.newBuilder()
       .setType(_root_.io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
       .setFullMethodName(_root_.io.grpc.MethodDescriptor.generateFullMethodName("code.obp.grpc.chat.g1.ChatStreamService", "StreamMessages"))
       .setSampledToLocalTracing(true)
-      .setRequestMarshaller(new scalapb.grpc.Marshaller(code.obp.grpc.chat.api.StreamMessagesRequest))
-      .setResponseMarshaller(new scalapb.grpc.Marshaller(code.obp.grpc.chat.api.ChatMessageEvent))
+      .setRequestMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[code.obp.grpc.chat.api.StreamMessagesRequest])
+      .setResponseMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[code.obp.grpc.chat.api.ChatMessageEvent])
+      .setSchemaDescriptor(_root_.scalapb.grpc.ConcreteProtoMethodDescriptorSupplier.fromMethodDescriptor(code.obp.grpc.chat.api.ChatProto.javaDescriptor.getServices().get(0).getMethods().get(0)))
       .build()
-
+  
   val METHOD_STREAM_TYPING: _root_.io.grpc.MethodDescriptor[code.obp.grpc.chat.api.TypingEvent, code.obp.grpc.chat.api.TypingIndicator] =
     _root_.io.grpc.MethodDescriptor.newBuilder()
       .setType(_root_.io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
       .setFullMethodName(_root_.io.grpc.MethodDescriptor.generateFullMethodName("code.obp.grpc.chat.g1.ChatStreamService", "StreamTyping"))
       .setSampledToLocalTracing(true)
-      .setRequestMarshaller(new scalapb.grpc.Marshaller(code.obp.grpc.chat.api.TypingEvent))
-      .setResponseMarshaller(new scalapb.grpc.Marshaller(code.obp.grpc.chat.api.TypingIndicator))
+      .setRequestMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[code.obp.grpc.chat.api.TypingEvent])
+      .setResponseMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[code.obp.grpc.chat.api.TypingIndicator])
+      .setSchemaDescriptor(_root_.scalapb.grpc.ConcreteProtoMethodDescriptorSupplier.fromMethodDescriptor(code.obp.grpc.chat.api.ChatProto.javaDescriptor.getServices().get(0).getMethods().get(1)))
       .build()
-
+  
   val METHOD_STREAM_PRESENCE: _root_.io.grpc.MethodDescriptor[code.obp.grpc.chat.api.StreamPresenceRequest, code.obp.grpc.chat.api.PresenceEvent] =
     _root_.io.grpc.MethodDescriptor.newBuilder()
       .setType(_root_.io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
       .setFullMethodName(_root_.io.grpc.MethodDescriptor.generateFullMethodName("code.obp.grpc.chat.g1.ChatStreamService", "StreamPresence"))
       .setSampledToLocalTracing(true)
-      .setRequestMarshaller(new scalapb.grpc.Marshaller(code.obp.grpc.chat.api.StreamPresenceRequest))
-      .setResponseMarshaller(new scalapb.grpc.Marshaller(code.obp.grpc.chat.api.PresenceEvent))
+      .setRequestMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[code.obp.grpc.chat.api.StreamPresenceRequest])
+      .setResponseMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[code.obp.grpc.chat.api.PresenceEvent])
+      .setSchemaDescriptor(_root_.scalapb.grpc.ConcreteProtoMethodDescriptorSupplier.fromMethodDescriptor(code.obp.grpc.chat.api.ChatProto.javaDescriptor.getServices().get(0).getMethods().get(2)))
       .build()
-
+  
   val METHOD_STREAM_UNREAD_COUNTS: _root_.io.grpc.MethodDescriptor[code.obp.grpc.chat.api.StreamUnreadCountsRequest, code.obp.grpc.chat.api.UnreadCountEvent] =
     _root_.io.grpc.MethodDescriptor.newBuilder()
       .setType(_root_.io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
       .setFullMethodName(_root_.io.grpc.MethodDescriptor.generateFullMethodName("code.obp.grpc.chat.g1.ChatStreamService", "StreamUnreadCounts"))
       .setSampledToLocalTracing(true)
-      .setRequestMarshaller(new scalapb.grpc.Marshaller(code.obp.grpc.chat.api.StreamUnreadCountsRequest))
-      .setResponseMarshaller(new scalapb.grpc.Marshaller(code.obp.grpc.chat.api.UnreadCountEvent))
+      .setRequestMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[code.obp.grpc.chat.api.StreamUnreadCountsRequest])
+      .setResponseMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[code.obp.grpc.chat.api.UnreadCountEvent])
+      .setSchemaDescriptor(_root_.scalapb.grpc.ConcreteProtoMethodDescriptorSupplier.fromMethodDescriptor(code.obp.grpc.chat.api.ChatProto.javaDescriptor.getServices().get(0).getMethods().get(3)))
       .build()
-
+  
   val SERVICE: _root_.io.grpc.ServiceDescriptor =
     _root_.io.grpc.ServiceDescriptor.newBuilder("code.obp.grpc.chat.g1.ChatStreamService")
       .setSchemaDescriptor(new _root_.scalapb.grpc.ConcreteProtoFileDescriptorSupplier(code.obp.grpc.chat.api.ChatProto.javaDescriptor))
@@ -51,64 +55,99 @@ object ChatStreamServiceGrpc {
       .addMethod(METHOD_STREAM_PRESENCE)
       .addMethod(METHOD_STREAM_UNREAD_COUNTS)
       .build()
-
+  
   trait ChatStreamService extends _root_.scalapb.grpc.AbstractService {
-    override def serviceCompanion = ChatStreamService
-
-    /** Server-side stream: pushes new/updated/deleted messages for a room */
-    def streamMessages(request: code.obp.grpc.chat.api.StreamMessagesRequest,
-                       responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.ChatMessageEvent]): Unit
-
-    /** Bidi stream: client sends typing events, server broadcasts others' typing */
+    override def serviceCompanion: _root_.scalapb.grpc.ServiceCompanion[ChatStreamService] = ChatStreamService
+    def streamMessages(request: code.obp.grpc.chat.api.StreamMessagesRequest, responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.ChatMessageEvent]): _root_.scala.Unit
     def streamTyping(responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.TypingIndicator]): _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.TypingEvent]
-
-    /** Server-side stream: online/offline status changes for room participants */
-    def streamPresence(request: code.obp.grpc.chat.api.StreamPresenceRequest,
-                       responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.PresenceEvent]): Unit
-
-    /** Server-side stream: unread count updates for all user's rooms */
-    def streamUnreadCounts(request: code.obp.grpc.chat.api.StreamUnreadCountsRequest,
-                           responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.UnreadCountEvent]): Unit
+    def streamPresence(request: code.obp.grpc.chat.api.StreamPresenceRequest, responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.PresenceEvent]): _root_.scala.Unit
+    def streamUnreadCounts(request: code.obp.grpc.chat.api.StreamUnreadCountsRequest, responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.UnreadCountEvent]): _root_.scala.Unit
   }
-
+  
   object ChatStreamService extends _root_.scalapb.grpc.ServiceCompanion[ChatStreamService] {
     implicit def serviceCompanion: _root_.scalapb.grpc.ServiceCompanion[ChatStreamService] = this
-    def javaDescriptor: _root_.com.google.protobuf.Descriptors.ServiceDescriptor =
-      code.obp.grpc.chat.api.ChatProto.javaDescriptor.getServices().get(0)
-  }
-
-  def bindService(serviceImpl: ChatStreamService, executionContext: scala.concurrent.ExecutionContext): _root_.io.grpc.ServerServiceDefinition =
-    _root_.io.grpc.ServerServiceDefinition.builder(SERVICE)
+    def javaDescriptor: _root_.com.google.protobuf.Descriptors.ServiceDescriptor = code.obp.grpc.chat.api.ChatProto.javaDescriptor.getServices().get(0)
+    def scalaDescriptor: _root_.scalapb.descriptors.ServiceDescriptor = code.obp.grpc.chat.api.ChatProto.scalaDescriptor.services(0)
+    def bindService(serviceImpl: ChatStreamService, executionContext: scala.concurrent.ExecutionContext): _root_.io.grpc.ServerServiceDefinition =
+      _root_.io.grpc.ServerServiceDefinition.builder(SERVICE)
       .addMethod(
         METHOD_STREAM_MESSAGES,
-        _root_.io.grpc.stub.ServerCalls.asyncServerStreamingCall(
-          new _root_.io.grpc.stub.ServerCalls.ServerStreamingMethod[code.obp.grpc.chat.api.StreamMessagesRequest, code.obp.grpc.chat.api.ChatMessageEvent] {
-            override def invoke(request: code.obp.grpc.chat.api.StreamMessagesRequest,
-                                responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.ChatMessageEvent]): Unit =
-              serviceImpl.streamMessages(request, responseObserver)
-          }))
+        _root_.io.grpc.stub.ServerCalls.asyncServerStreamingCall((request: code.obp.grpc.chat.api.StreamMessagesRequest, observer: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.ChatMessageEvent]) => {
+          serviceImpl.streamMessages(request, observer)
+        }))
       .addMethod(
         METHOD_STREAM_TYPING,
-        _root_.io.grpc.stub.ServerCalls.asyncBidiStreamingCall(
-          new _root_.io.grpc.stub.ServerCalls.BidiStreamingMethod[code.obp.grpc.chat.api.TypingEvent, code.obp.grpc.chat.api.TypingIndicator] {
-            override def invoke(responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.TypingIndicator]): _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.TypingEvent] =
-              serviceImpl.streamTyping(responseObserver)
-          }))
+        _root_.io.grpc.stub.ServerCalls.asyncBidiStreamingCall((observer: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.TypingIndicator]) => {
+          serviceImpl.streamTyping(observer)
+        }))
       .addMethod(
         METHOD_STREAM_PRESENCE,
-        _root_.io.grpc.stub.ServerCalls.asyncServerStreamingCall(
-          new _root_.io.grpc.stub.ServerCalls.ServerStreamingMethod[code.obp.grpc.chat.api.StreamPresenceRequest, code.obp.grpc.chat.api.PresenceEvent] {
-            override def invoke(request: code.obp.grpc.chat.api.StreamPresenceRequest,
-                                responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.PresenceEvent]): Unit =
-              serviceImpl.streamPresence(request, responseObserver)
-          }))
+        _root_.io.grpc.stub.ServerCalls.asyncServerStreamingCall((request: code.obp.grpc.chat.api.StreamPresenceRequest, observer: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.PresenceEvent]) => {
+          serviceImpl.streamPresence(request, observer)
+        }))
       .addMethod(
         METHOD_STREAM_UNREAD_COUNTS,
-        _root_.io.grpc.stub.ServerCalls.asyncServerStreamingCall(
-          new _root_.io.grpc.stub.ServerCalls.ServerStreamingMethod[code.obp.grpc.chat.api.StreamUnreadCountsRequest, code.obp.grpc.chat.api.UnreadCountEvent] {
-            override def invoke(request: code.obp.grpc.chat.api.StreamUnreadCountsRequest,
-                                responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.UnreadCountEvent]): Unit =
-              serviceImpl.streamUnreadCounts(request, responseObserver)
-          }))
+        _root_.io.grpc.stub.ServerCalls.asyncServerStreamingCall((request: code.obp.grpc.chat.api.StreamUnreadCountsRequest, observer: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.UnreadCountEvent]) => {
+          serviceImpl.streamUnreadCounts(request, observer)
+        }))
       .build()
+  }
+  
+  trait ChatStreamServiceBlockingClient {
+    def serviceCompanion: _root_.scalapb.grpc.ServiceCompanion[ChatStreamService] = ChatStreamService
+    def streamMessages(request: code.obp.grpc.chat.api.StreamMessagesRequest): scala.collection.Iterator[code.obp.grpc.chat.api.ChatMessageEvent]
+    def streamPresence(request: code.obp.grpc.chat.api.StreamPresenceRequest): scala.collection.Iterator[code.obp.grpc.chat.api.PresenceEvent]
+    def streamUnreadCounts(request: code.obp.grpc.chat.api.StreamUnreadCountsRequest): scala.collection.Iterator[code.obp.grpc.chat.api.UnreadCountEvent]
+  }
+  
+  class ChatStreamServiceBlockingStub(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions = _root_.io.grpc.CallOptions.DEFAULT) extends _root_.io.grpc.stub.AbstractStub[ChatStreamServiceBlockingStub](channel, options) with ChatStreamServiceBlockingClient {
+    override def streamMessages(request: code.obp.grpc.chat.api.StreamMessagesRequest): scala.collection.Iterator[code.obp.grpc.chat.api.ChatMessageEvent] = {
+      _root_.scalapb.grpc.ClientCalls.blockingServerStreamingCall(channel, METHOD_STREAM_MESSAGES, options, request)
+    }
+    
+    override def streamPresence(request: code.obp.grpc.chat.api.StreamPresenceRequest): scala.collection.Iterator[code.obp.grpc.chat.api.PresenceEvent] = {
+      _root_.scalapb.grpc.ClientCalls.blockingServerStreamingCall(channel, METHOD_STREAM_PRESENCE, options, request)
+    }
+    
+    override def streamUnreadCounts(request: code.obp.grpc.chat.api.StreamUnreadCountsRequest): scala.collection.Iterator[code.obp.grpc.chat.api.UnreadCountEvent] = {
+      _root_.scalapb.grpc.ClientCalls.blockingServerStreamingCall(channel, METHOD_STREAM_UNREAD_COUNTS, options, request)
+    }
+    
+    override def build(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions): ChatStreamServiceBlockingStub = new ChatStreamServiceBlockingStub(channel, options)
+  }
+  
+  class ChatStreamServiceStub(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions = _root_.io.grpc.CallOptions.DEFAULT) extends _root_.io.grpc.stub.AbstractStub[ChatStreamServiceStub](channel, options) with ChatStreamService {
+    override def streamMessages(request: code.obp.grpc.chat.api.StreamMessagesRequest, responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.ChatMessageEvent]): _root_.scala.Unit = {
+      _root_.scalapb.grpc.ClientCalls.asyncServerStreamingCall(channel, METHOD_STREAM_MESSAGES, options, request, responseObserver)
+    }
+    
+    override def streamTyping(responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.TypingIndicator]): _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.TypingEvent] = {
+      _root_.scalapb.grpc.ClientCalls.asyncBidiStreamingCall(channel, METHOD_STREAM_TYPING, options, responseObserver)
+    }
+    
+    override def streamPresence(request: code.obp.grpc.chat.api.StreamPresenceRequest, responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.PresenceEvent]): _root_.scala.Unit = {
+      _root_.scalapb.grpc.ClientCalls.asyncServerStreamingCall(channel, METHOD_STREAM_PRESENCE, options, request, responseObserver)
+    }
+    
+    override def streamUnreadCounts(request: code.obp.grpc.chat.api.StreamUnreadCountsRequest, responseObserver: _root_.io.grpc.stub.StreamObserver[code.obp.grpc.chat.api.UnreadCountEvent]): _root_.scala.Unit = {
+      _root_.scalapb.grpc.ClientCalls.asyncServerStreamingCall(channel, METHOD_STREAM_UNREAD_COUNTS, options, request, responseObserver)
+    }
+    
+    override def build(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions): ChatStreamServiceStub = new ChatStreamServiceStub(channel, options)
+  }
+  
+  object ChatStreamServiceStub extends _root_.io.grpc.stub.AbstractStub.StubFactory[ChatStreamServiceStub] {
+    override def newStub(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions): ChatStreamServiceStub = new ChatStreamServiceStub(channel, options)
+    
+    implicit val stubFactory: _root_.io.grpc.stub.AbstractStub.StubFactory[ChatStreamServiceStub] = this
+  }
+  
+  def bindService(serviceImpl: ChatStreamService, executionContext: scala.concurrent.ExecutionContext): _root_.io.grpc.ServerServiceDefinition = ChatStreamService.bindService(serviceImpl, executionContext)
+  
+  def blockingStub(channel: _root_.io.grpc.Channel): ChatStreamServiceBlockingStub = new ChatStreamServiceBlockingStub(channel)
+  
+  def stub(channel: _root_.io.grpc.Channel): ChatStreamServiceStub = new ChatStreamServiceStub(channel)
+  
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.ServiceDescriptor = code.obp.grpc.chat.api.ChatProto.javaDescriptor.getServices().get(0)
+  
 }

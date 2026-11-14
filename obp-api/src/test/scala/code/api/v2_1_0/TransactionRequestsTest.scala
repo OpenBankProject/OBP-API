@@ -315,13 +315,13 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       }
     }
 
-  feature("Security Tests: permissions, roles, views...") {
+  Feature("Security Tests: permissions, roles, views...") {
 
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No login user", TransactionRequest) {}
     } else {
-      scenario("No login user", TransactionRequest) {
+      Scenario("No login user", TransactionRequest) {
 
         val helper = defaultSetup()
 
@@ -343,7 +343,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No owner view , No CanCreateAnyTransactionRequest role", TransactionRequest) {}
     } else {
-      scenario("No owner view, No CanCreateAnyTransactionRequest role", TransactionRequest) {
+      Scenario("No owner view, No CanCreateAnyTransactionRequest role", TransactionRequest) {
 
         val helper = defaultSetup()
 
@@ -364,7 +364,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No owner view, With CanCreateAnyTransactionRequest role", TransactionRequest) {}
     } else {
-      scenario("No owner view, With CanCreateAnyTransactionRequest role", TransactionRequest) {
+      Scenario("No owner view, With CanCreateAnyTransactionRequest role", TransactionRequest) {
 
         val helper = defaultSetup()
 
@@ -385,7 +385,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("Invalid transactionRequestType", TransactionRequest) {}
     } else {
-      scenario("Invalid transactionRequestType", TransactionRequest) {
+      Scenario("Invalid transactionRequestType", TransactionRequest) {
 
         val helper = defaultSetup()
 
@@ -408,12 +408,12 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
   }
 
-  feature("we can create transaction requests -- SANDBOX_TAN") {
+  Feature("we can create transaction requests -- SANDBOX_TAN") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, No FX (same currencies)", TransactionRequest) {}
     } else {
-      scenario("No challenge, No FX (same currencies)", TransactionRequest) {
+      Scenario("No challenge, No FX (same currencies)", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup()
@@ -443,7 +443,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, With FX ", TransactionRequest) {}
     } else {
-      scenario("No challenge, With FX ", TransactionRequest) {
+      Scenario("No challenge, With FX ", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup()
@@ -483,7 +483,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, No FX", TransactionRequest) {}
     } else {
-      scenario("With challenge, No FX ", TransactionRequest) {
+      Scenario("With challenge, No FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup()
         And("We set the special conditions for different currencies")
@@ -529,7 +529,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, With FX ", TransactionRequest) {}
     } else {
-      scenario("With challenge, With FX ", TransactionRequest) {
+      Scenario("With challenge, With FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup()
 
@@ -577,12 +577,12 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
   }
 
-  feature("we can create transaction requests -- FREE_FORM") {
+  Feature("we can create transaction requests -- FREE_FORM") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, No FX ", TransactionRequest) {}
     } else {
-      scenario("No challenge, No FX ", TransactionRequest) {
+      Scenario("No challenge, No FX ", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup(FREE_FORM.toString)
@@ -612,7 +612,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, With FX ", TransactionRequest) {}
     } else {
-      scenario("No challenge, With FX ", TransactionRequest) {
+      Scenario("No challenge, With FX ", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup(FREE_FORM.toString)
@@ -652,7 +652,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, No FX", TransactionRequest) {}
     } else {
-      scenario("With challenge, No FX ", TransactionRequest) {
+      Scenario("With challenge, No FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup(FREE_FORM.toString)
         And("We set the special conditions for different currencies")
@@ -698,7 +698,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, With FX ", TransactionRequest) {}
     } else {
-      scenario("With challenge, With FX ", TransactionRequest) {
+      Scenario("With challenge, With FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup(FREE_FORM.toString)
 
@@ -746,12 +746,12 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
   }
 
-  feature("we can create transaction requests -- SEPA") {
+  Feature("we can create transaction requests -- SEPA") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, No FX ", TransactionRequest) {}
     } else {
-      scenario("No challenge, No FX ", TransactionRequest) {
+      Scenario("No challenge, No FX ", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup(SEPA.toString)
@@ -781,7 +781,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, With FX ", TransactionRequest) {}
     } else {
-      scenario("No challenge, With FX ", TransactionRequest) {
+      Scenario("No challenge, With FX ", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup(SEPA.toString)
@@ -821,7 +821,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, No FX ", TransactionRequest) {}
     } else {
-      scenario("With challenge, No FX ", TransactionRequest) {
+      Scenario("With challenge, No FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup(SEPA.toString)
         And("We set the special conditions for different currencies")
@@ -867,7 +867,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, With FX ", TransactionRequest) {}
     } else {
-      scenario("With challenge, With FX ", TransactionRequest) {
+      Scenario("With challenge, With FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup(SEPA.toString)
 
@@ -915,7 +915,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
   }
 
-  feature("Answer Transaction Request Challenge -- SEPA: account and maker-checker checks") {
+  Feature("Answer Transaction Request Challenge -- SEPA: account and maker-checker checks") {
 
     // Creates a SEPA request with a challenge from accountId1 and returns its id and challenge id
     def createSepaRequestWithChallenge(helper: DefaultSetup): (String, String) = {
@@ -930,7 +930,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("Answering a request through an account it does not pay from", TransactionRequest) {}
     } else {
-      scenario("Answering a request through an account it does not pay from", TransactionRequest) {
+      Scenario("Answering a request through an account it does not pay from", TransactionRequest) {
         val helper = defaultSetup(SEPA.toString)
         val (transRequestId, challengeId) = createSepaRequestWithChallenge(helper)
 
@@ -949,7 +949,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("The maker answers their own challenge on a view without the maker-checker bypass", TransactionRequest) {}
     } else {
-      scenario("The maker answers their own challenge on a view without the maker-checker bypass", TransactionRequest) {
+      Scenario("The maker answers their own challenge on a view without the maker-checker bypass", TransactionRequest) {
         val helper = defaultSetup(SEPA.toString)
         val (transRequestId, challengeId) = createSepaRequestWithChallenge(helper)
 
@@ -972,12 +972,12 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
   }
 
-  feature("we can create transaction requests -- COUNTERPARTY") {
+  Feature("we can create transaction requests -- COUNTERPARTY") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, No FX ", TransactionRequest) {}
     } else {
-      scenario("No challenge, No FX ", TransactionRequest) {
+      Scenario("No challenge, No FX ", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup(COUNTERPARTY.toString)
@@ -1007,7 +1007,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, With FX ", TransactionRequest) {}
     } else {
-      scenario("No challenge, With FX ", TransactionRequest) {
+      Scenario("No challenge, With FX ", TransactionRequest) {
 
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup(COUNTERPARTY.toString)
@@ -1047,7 +1047,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, No FX ", TransactionRequest) {}
     } else {
-      scenario("With challenge, No FX ", TransactionRequest) {
+      Scenario("With challenge, No FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup(COUNTERPARTY.toString)
         And("We set the special conditions for different currencies")
@@ -1093,7 +1093,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, With FX", TransactionRequest) {}
     } else {
-      scenario("With challenge, With FX", TransactionRequest) {
+      Scenario("With challenge, With FX", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
         val helper = defaultSetup(COUNTERPARTY.toString)
 
@@ -1143,7 +1143,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
   // TODO Make this tests functional
   /** notes: this is from V140, not the latest test, need to be fixed
-  scenario("we can't make a payment of zero units of currency", Payments) {
+  Scenario("we can't make a payment of zero units of currency", Payments) {
     When("we try to make a payment with amount = 0")
 
     val testBank = createPaymentTestBank()
@@ -1185,7 +1185,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     beforeToBalance should equal(getToAccount.balance)
   }
 
-  scenario("we can't make a payment with a negative amount of money", Payments) {
+  Scenario("we can't make a payment with a negative amount of money", Payments) {
 
     val testBank = createPaymentTestBank()
     val bankId = testBank.bankId
@@ -1228,7 +1228,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     beforeToBalance should equal(getToAccount.balance)
   }
 
-  scenario("we can't make a payment to an account that doesn't exist", Payments) {
+  Scenario("we can't make a payment to an account that doesn't exist", Payments) {
 
     val testBank = createPaymentTestBank()
     val bankId = testBank.bankId
