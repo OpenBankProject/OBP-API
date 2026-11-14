@@ -77,7 +77,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
       // Every record of the entity in scope, whatever its owner — switching row-level access on
       // affects them all.
       val existingRowCount = code.DynamicData.DynamicData
-        .findAllCommunity(dynamicEntity.bankId, dynamicEntity.entityName).size
+        .countInSpace(dynamicEntity.bankId, dynamicEntity.entityName)
       if (existingRowCount > 0)
         logger.warn(s"createOrUpdate says: useRowLevelAccess switched on for entity '${dynamicEntity.entityName}' " +
           s"(bankId=${dynamicEntity.bankId.getOrElse("none")}) which already has $existingRowCount row(s); these are now " +
