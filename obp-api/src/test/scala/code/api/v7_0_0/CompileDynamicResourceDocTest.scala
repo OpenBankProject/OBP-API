@@ -101,6 +101,21 @@ class CompileDynamicResourceDocTest extends ServerSetupWithTestData {
       makePostRequest(compileRequest <@ (user1), body(validScalaBody, None)).code should equal(403)
     }
 
+    scenario("an error on the second of two identical lines is reported on the second, and never on a negative line", ApiEndpoint1, VersionOfApi) {
+      dynamicCodeOn(); grantCreateRole()
+      val twice = makePostRequest(compileRequest <@ (user1),
+        body("val a = 1\nval b = (a +\nval c = 2\nval b = (a +\nFuture.successful((a, HttpCode.`200`(callContext.callContext)))", None))
+      val unclosed = makePostRequest(compileRequest <@ (user1),
+        body("val a = {\nFuture.successful((a, HttpCode.`200`(callContext.callContext)))", None))
+      withClue(s"twice ${twice.body}, unclosed ${unclosed.body}: ") {
+        def linesOf(r: code.setup.APIResponse) =
+          (r.body \ "errors").asInstanceOf[JArray].arr.map(e => (e \ "line").asInstanceOf[JInt].num.toInt)
+        // `val b = (a +` is on lines 2 and 4 of the body; the compiler stops at the second one.
+        linesOf(twice).head should equal(4)
+        all(linesOf(twice) ++ linesOf(unclosed)) should be >= 0
+      }
+    }
+
     scenario("a Scala body compiles when programming_lang is omitted or Scala", ApiEndpoint1, VersionOfApi) {
       dynamicCodeOn(); grantCreateRole()
       for (lang <- List(None, Some("Scala"), Some("scala"))) {

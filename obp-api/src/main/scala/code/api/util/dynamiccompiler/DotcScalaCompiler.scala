@@ -85,7 +85,7 @@ object DotcScalaCompiler extends DynamicScalaCompiler with MdcLoggable {
    * object and the prepended imports change what compiles, so checking the bare snippet would
    * report errors the real compile never sees (and miss ones it does). The compiler positions
    * refer to the wrapped unit, so each reported line is moved back to the line of `code` it came
-   * from, found by its text; a line that only exists in the wrapper keeps the wrapped number.
+   * from, found by its text; a line that only exists in the wrapper, or a blank one, is reported as 0.
    */
   def check(code: String): List[DynamicCompileDiagnostic] = {
     val wrapperName = s"DynCheck_${nextId.incrementAndGet()}"
@@ -119,12 +119,19 @@ object DotcScalaCompiler extends DynamicScalaCompiler with MdcLoggable {
 
       val wrappedLines = source.split("\n", -1)
       val codeLines = code.split("\n", -1)
-      // The compiler's line numbers count from 0; the line reported is the 1-based line of `code`.
+      // Lines the wrapper adds in front of `code`: the object header and the prepended imports.
+      val wrapperLinesBefore = _root_.code.api.util.DynamicUtil.importStatements.count(_ == '\n') + 2
+      // The compiler's line numbers count from 0; the line reported is the 1-based line of `code`, or 0
+      // when the line is blank or belongs to the wrapper. Where the same text occurs several times in
+      // `code` (a closing brace, a repeated statement) the occurrence nearest to where the wrapper put
+      // the line is taken, so an error on the second of two identical lines is not reported on the first.
       def lineInCode(wrappedLine: Int): Int =
-        if (wrappedLine < 0 || wrappedLine >= wrappedLines.length) wrappedLine
+        if (wrappedLine < 0 || wrappedLine >= wrappedLines.length || wrappedLines(wrappedLine).trim.isEmpty) 0
         else {
-          val index = codeLines.indexWhere(_ == wrappedLines(wrappedLine))
-          if (index >= 0) index + 1 else wrappedLine + 1
+          val text = wrappedLines(wrappedLine)
+          val expected = wrappedLine - wrapperLinesBefore
+          val candidates = codeLines.indices.filter(i => codeLines(i) == text)
+          if (candidates.isEmpty) 0 else candidates.minBy(i => math.abs(i - expected)) + 1
         }
 
       val reporter = new Driver().process(args)
@@ -134,15 +141,16 @@ object DotcScalaCompiler extends DynamicScalaCompiler with MdcLoggable {
         val diagnostic: dotty.tools.dotc.interfaces.Diagnostic = error
         val position = diagnostic.position()
         val (line, column) =
-          if (position.isPresent) (position.get().line(), position.get().column()) else (0, 0)
+          if (position.isPresent) (position.get().line(), position.get().column() + 1) else (0, 0)
         DynamicCompileDiagnostic(lineInCode(line), column, "ERROR", diagnostic.message())
       }
     } catch {
       case NonFatal(e) =>
         List(DynamicCompileDiagnostic(0, 0, "ERROR", Option(e.getMessage).getOrElse(e.toString)))
     } finally {
-      // Unlike compileAndEvaluate nothing here is ever loaded, so the output can go immediately.
-      if (workDir != null) registerForDeleteOnExit(workDir)
+      // Unlike compileAndEvaluate nothing here is ever loaded, so the output goes at once; a dry run
+      // is not cached, so leaving it for JVM exit would grow with every call.
+      if (workDir != null) deleteRecursively(workDir)
     }
   }
 
@@ -380,6 +388,15 @@ object DotcScalaCompiler extends DynamicScalaCompiler with MdcLoggable {
   // order, so a parent must be registered before its children for the parent's removal to
   // actually happen after its children are gone rather than being attempted (and silently
   // failing, since a non-empty directory can't be deleted) first.
+  private def deleteRecursively(path: Path): Unit =
+    try {
+      val walk = Files.walk(path)
+      try walk.sorted(java.util.Comparator.reverseOrder[Path]()).forEach(p => Files.deleteIfExists(p))
+      finally walk.close()
+    } catch {
+      case NonFatal(e) => logger.warn(s"Could not delete the dry-run output $path", e)
+    }
+
   private def registerForDeleteOnExit(path: Path): Unit = {
     try {
       path.toFile.deleteOnExit()
