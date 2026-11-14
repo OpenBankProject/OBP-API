@@ -357,10 +357,20 @@ object DynamicUtil extends MdcLoggable{
     // this same path -- returning it as a leaf here would flag the method's own name
     // (unwhitelistable, like any other randomly-named dynamic class) as a forbidden dependency,
     // exactly the bug this whole function exists to avoid.
+    // A class the snippet's own loader defines (the wrapper object, a local object or class, a closure)
+    // is part of the snippet whatever its name: the compiler names the wrapper without a package, so the
+    // package-prefix test above never matches it, and a call into it would stay an unpoliced leaf with
+    // the restricted call inside it never scanned. The loader's parent classes (OBP's own) are not.
+    val snippetLoader = clazz.getClassLoader
+    def definedBySnippet(typeName: String): Boolean =
+      snippetLoader != null && snippetLoader != classOf[APIUtil.type].getClassLoader &&
+        scala.util.Try(Class.forName(typeName, false, snippetLoader)).toOption.exists(_.getClassLoader eq snippetLoader)
+
     def expand(typeName: String, methodName: String, signature: String, visited: Set[(String, String, String)]): List[(String, String, String)] = {
       val key = (typeName, methodName, signature)
       val sameUnit = typeName == className ||
-        (className.startsWith(typeName) && methodName.startsWith(clazz.getPackage.getName + "$"))
+        (className.startsWith(typeName) && methodName.startsWith(clazz.getPackage.getName + "$")) ||
+        definedBySnippet(typeName)
       if (!sameUnit) {
         List(key)
       } else if (visited.contains(key)) {
@@ -372,10 +382,30 @@ object DynamicUtil extends MdcLoggable{
       }
     }
 
+    // The compiler puts a closure's body in a class of its own, reached from the class under test through
+    // an invokedynamic call that bytecode inspection does not see as a method call. So every class the
+    // snippet's loader defines is scanned, not only the one that was handed in.
+    val snippetClassNames: List[String] = snippetLoader match {
+      case urlLoader: java.net.URLClassLoader =>
+        urlLoader.getURLs.toList.flatMap { url =>
+          scala.util.Try(java.nio.file.Paths.get(url.toURI)).toOption.filter(java.nio.file.Files.isDirectory(_)).toList.flatMap { dir =>
+            val walk = java.nio.file.Files.walk(dir)
+            try scala.jdk.CollectionConverters.IteratorHasAsScala(walk.iterator()).asScala.toList
+              .map(dir.relativize(_).toString)
+              .filter(_.endsWith(".class"))
+              .map(_.stripSuffix(".class").replace(java.io.File.separatorChar, '.'))
+            finally walk.close()
+          }
+        }
+      case _ => Nil
+    }
+
     for {
-      method <- ctClass.getDeclaredMethods.toList
+      scannedName <- (className :: snippetClassNames.filterNot(_ == className)).distinct
+      scannedCtClass = if (scannedName == className) ctClass else classPool.get(scannedName)
+      method <- scannedCtClass.getDeclaredMethods.toList
       if predicate(method.getName)
-      (typeName, methodName, signature) <- APIUtil.getDependentMethods(className, method.getName, method.getSignature, force, classPool)
+      (typeName, methodName, signature) <- APIUtil.getDependentMethods(scannedName, method.getName, method.getSignature, force, classPool)
     } yield {
       listBuffer.appendAll(expand(typeName, methodName, signature, Set.empty))
     }

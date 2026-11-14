@@ -88,6 +88,11 @@ class DynamicResourceDocJavaSecurityValidationTest extends V400ServerSetup {
       |}
       |""".stripMargin
 
+  private def scalaDoc(name: String, body: String) = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
+    dynamicResourceDocId = None, bankId = None, roles = "",
+    partialFunctionName = name, requestUrl = s"/$name/MY_USER_ID",
+    methodBody = java.net.URLEncoder.encode(body, "UTF-8"), programmingLang = "Scala")
+
   private def createRequest = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
 
   feature("Security validation of Java method_body against dynamic_code_allowed_obp_methods") {
@@ -115,6 +120,27 @@ class DynamicResourceDocJavaSecurityValidationTest extends V400ServerSetup {
       Then("the compile succeeds -- the Supplier.get() bridge method's self-call is not a forbidden dependency")
       resp.code should equal(201)
     }
+    scenario("A Scala body that calls a non-whitelisted OBP method is rejected, also when the call goes through a class the body defines") {
+      enableStrictValidation()
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+      val direct =
+        """val leaked = code.api.util.APIUtil.getPropsValue("hostname", "none")
+          |Future.successful((leaked, HttpCode.`200`(callContext.callContext)))""".stripMargin
+      val viaLocalObject =
+        """object Hidden { def run(): String = code.api.util.APIUtil.getPropsValue("hostname", "none") }
+          |val leaked = Hidden.run()
+          |Future.successful((leaked, HttpCode.`200`(callContext.callContext)))""".stripMargin
+
+      val directResp = makePostRequest(createRequest, write(scalaDoc("scalaDirectProbe", direct)))
+      val hiddenResp = makePostRequest(createRequest, write(scalaDoc("scalaHiddenProbe", viaLocalObject)))
+
+      withClue(s"direct ${directResp.body}, via a local object ${hiddenResp.body}: ") {
+        directResp.code should equal(400)
+        hiddenResp.code should equal(400)
+        hiddenResp.body.extract[ErrorMessage].message should include(DynamicResourceDocMethodDependency)
+      }
+    }
+
     scenario("Registering a Java doc that calls a non-whitelisted OBP method is rejected with 400") {
       enableStrictValidation()
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
