@@ -141,6 +141,71 @@ class DynamicResourceDocJavaSecurityValidationTest extends V400ServerSetup {
       }
     }
 
+    scenario("A plain Scala body is accepted under strict validation: the wrapper's own calls are not the author's") {
+      enableStrictValidation()
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+      val benign = """Future.successful(("ok", HttpCode.`200`(callContext.callContext)))"""
+      val resp = makePostRequest(createRequest, write(scalaDoc("scalaBenignProbe", benign)))
+      withClue(s"${resp.body}: ") { resp.code should equal(201) }
+    }
+
+    scenario("A Scala body that reaches a restricted call from an initialiser or a constructor is rejected") {
+      enableStrictValidation()
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+      val fieldInitialiser =
+        """object Hidden { val v: String = code.api.util.APIUtil.getPropsValue("hostname", "none") }
+          |val leaked = Hidden.v
+          |Future.successful((leaked, HttpCode.`200`(callContext.callContext)))""".stripMargin
+      val constructor =
+        """class Holder { val v: String = code.api.util.APIUtil.getPropsValue("hostname", "none") }
+          |val leaked = new Holder().v
+          |Future.successful((leaked, HttpCode.`200`(callContext.callContext)))""".stripMargin
+      List("scalaInitProbe" -> fieldInitialiser, "scalaCtorProbe" -> constructor).foreach { case (name, body) =>
+        val resp = makePostRequest(createRequest, write(scalaDoc(name, body)))
+        withClue(s"$name ${resp.body}: ") { resp.code should equal(400) }
+      }
+    }
+
+    scenario("A Java doc whose restricted call sits in an anonymous or nested class is rejected with 400, not an error") {
+      enableStrictValidation()
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+      val anonymous =
+        """package code.api.util.dynamic;
+          |
+          |import java.util.function.Function;
+          |import java.util.function.Supplier;
+          |
+          |public class DynamicJavaAnonymousProbe implements Supplier<Function<Object[], Object>> {
+          |    @Override
+          |    public Function<Object[], Object> get() {
+          |        Supplier<String> inner = new Supplier<String>() {
+          |            public String get() { return code.api.util.APIUtil$.MODULE$.getPropsValue("hostname", "none"); }
+          |        };
+          |        return args -> inner.get();
+          |    }
+          |}
+          |""".stripMargin
+      val nested =
+        """package code.api.util.dynamic;
+          |
+          |import java.util.function.Function;
+          |import java.util.function.Supplier;
+          |
+          |public class DynamicJavaNestedProbe implements Supplier<Function<Object[], Object>> {
+          |    static class Helper {
+          |        static String leak() { return code.api.util.APIUtil$.MODULE$.getPropsValue("hostname", "none"); }
+          |    }
+          |    @Override
+          |    public Function<Object[], Object> get() { return args -> Helper.leak(); }
+          |}
+          |""".stripMargin
+      List("javaAnonProbe" -> anonymous, "javaNestedProbe" -> nested).foreach { case (name, body) =>
+        val doc = scalaDoc(name, "").copy(methodBody = java.net.URLEncoder.encode(body, "UTF-8"), programmingLang = "Java")
+        val resp = makePostRequest(createRequest, write(doc))
+        withClue(s"$name ${resp.body}: ") { resp.code should equal(400) }
+      }
+    }
+
     scenario("Registering a Java doc that calls a non-whitelisted OBP method is rejected with 400") {
       enableStrictValidation()
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)

@@ -4617,7 +4617,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val ctClass = pool.get(className)
     //eg:methodName = isDefinedAt, sinature =(Lnet/liftweb/http/Req;)Z
     // method => javassist.CtMethod@c40c7953[public final isDefinedAt (Lnet/liftweb/http/Req;)Z]
-    val method = ctClass.getMethod(methodName, signature)
+    // Constructors and the class initialiser are behaviours too: a field initialiser runs in them.
+    val method: javassist.CtBehavior = methodName match {
+      case "<init>" => ctClass.getDeclaredConstructors.find(c => !c.isClassInitializer && c.getSignature == signature)
+        .getOrElse(throw new javassist.NotFoundException(s"constructor $signature of $className"))
+      case "<clinit>" => ctClass.getClassInitializer
+      case _ => ctClass.getMethod(methodName, signature)
+    }
 
     //this exprEditor will read the method body line by, if it is a methodCall, we will add it into ListBuffer
     // eg, the following 3 methods all call the `isDefinedAt`, then add all of them into the ListBuffer
@@ -4632,6 +4638,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       override def edit(m: MethodCall): Unit = { //it will be called whenever this method is used..
         val tuple = (m.getClassName, m.getMethodName, m.getSignature)
         methods += tuple
+      }
+      // `new X(...)` runs X's constructor: recorded so the caller can follow it into classes it scans.
+      override def edit(c: javassist.expr.NewExpr): Unit = {
+        methods += ((c.getClassName, "<init>", c.getSignature))
       }
     }
 

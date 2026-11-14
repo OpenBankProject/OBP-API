@@ -372,7 +372,8 @@ object DynamicUtil extends MdcLoggable{
         (className.startsWith(typeName) && methodName.startsWith(clazz.getPackage.getName + "$")) ||
         definedBySnippet(typeName)
       if (!sameUnit) {
-        List(key)
+        // A constructor call to a class outside the snippet was never policed, and still is not.
+        if (methodName == "<init>") Nil else List(key)
       } else if (visited.contains(key)) {
         Nil
       } else {
@@ -397,15 +398,29 @@ object DynamicUtil extends MdcLoggable{
             finally walk.close()
           }
         }
+      // Java snippets are held in memory by the script engine's loader, keyed by binary class name.
+      case memoryLoader if memoryLoader != null && memoryLoader.getClass.getName.endsWith("MemoryClassLoader") =>
+        scala.util.Try {
+          val field = memoryLoader.getClass.getDeclaredField("mapClassBytes")
+          field.setAccessible(true)
+          scala.jdk.CollectionConverters.SetHasAsScala(
+            field.get(memoryLoader).asInstanceOf[java.util.Map[String, Array[Byte]]].keySet()).asScala.toList
+        }.getOrElse(Nil)
       case _ => Nil
     }
 
     for {
       scannedName <- (className :: snippetClassNames.filterNot(_ == className)).distinct
       scannedCtClass = if (scannedName == className) ctClass else classPool.get(scannedName)
-      method <- scannedCtClass.getDeclaredMethods.toList
+      method <- (scannedCtClass.getDeclaredBehaviors.toList ++ Option(scannedCtClass.getClassInitializer).toList).distinct
+      // Javassist names a constructor after its class; the bytecode names it <init>, the initialiser <clinit>.
+      behaviourName = method match {
+        case c: javassist.CtConstructor if c.isClassInitializer => "<clinit>"
+        case _: javassist.CtConstructor => "<init>"
+        case other => other.getName
+      }
       if predicate(method.getName)
-      (typeName, methodName, signature) <- APIUtil.getDependentMethods(scannedName, method.getName, method.getSignature, force, classPool)
+      (typeName, methodName, signature) <- APIUtil.getDependentMethods(scannedName, behaviourName, method.getSignature, force, classPool)
     } yield {
       listBuffer.appendAll(expand(typeName, methodName, signature, Set.empty))
     }
@@ -620,7 +635,13 @@ object DynamicUtil extends MdcLoggable{
       // def (see the "def, not val" comment above) so it observes a live props change, but it
       // recompiles the whitelist source on every access -- reading it twice per element inside
       // the `collect` guard below would mean up to 2N re-derivations for N dependency tuples.
-      val allowedCompilationMethods = this.allowedCompilationMethods
+      // The wrapper every Scala snippet is compiled into reads the JSON formats; that call is not the author's.
+      val templateCalls = Map(
+        "code.api.util.CustomJsonFormats$" -> Set("formats"),
+        "code.api.dynamic.endpoint.helper.DynamicCompileEndpoint$" -> Set("obpReturnTypeToIOResponse"))
+      val allowedCompilationMethods = this.allowedCompilationMethods ++ templateCalls.map { case (t, ms) =>
+        t -> (this.allowedCompilationMethods.getOrElse(t, Set.empty[String]) ++ ms)
+      }
       val notAllowedDependentMethods = dependentMethods collect {
         case (typeName, method, _)
           if isRestrictedType(typeName) &&
@@ -866,8 +887,12 @@ object DynamicUtil extends MdcLoggable{
                 s"createJavaHttp4sEndpoint: MemoryClassLoader.mapClassBytes has no entry for " +
                   s"${compiledClass.getName} -- java-scriptengine's internal layout may have changed")
             }
-            getClassPool(compiledClass.getClassLoader)
-              .appendClassPath(new javassist.ByteArrayClassPath(compiledClass.getName, classBytes))
+            // Every class the snippet defines (nested, anonymous and helper classes included) is added, not only
+            // the main one: the dependency scan reads them all, and the loader cannot serve them as resources.
+            val snippetPool = getClassPool(compiledClass.getClassLoader)
+            scala.jdk.CollectionConverters.MapHasAsScala(
+              classBytesField.get(compiledClass.getClassLoader).asInstanceOf[java.util.Map[String, Array[Byte]]]).asScala
+              .foreach { case (name, bytes) => snippetPool.appendClassPath(new javassist.ByteArrayClassPath(name, bytes)) }
 
             compiledScript
           }
