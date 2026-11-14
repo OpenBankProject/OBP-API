@@ -6,7 +6,7 @@ import org.scalatest.matchers.should.Matchers
 class SecureLoggingTest extends AnyFlatSpec with Matchers {
 
   "maskSensitive" should "mask a password normally, outside the sensitivePatterns bootstrap window" in {
-    val masked = SecureLogging.maskSensitive("password=hunter2")
+    val masked = SecureLogging.maskSensitive("password=hunter2") // NOSONAR fixture for the masking test, not a credential
     masked should not include "hunter2"
   }
 

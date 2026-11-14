@@ -203,7 +203,7 @@ import net.liftweb.util.Helpers._
    * v_oidc_users reads both columns straight out of the table, so this format is a contract with
    * OBP-OIDC and the Keycloak user storage provider, not an implementation detail.
    */
-  val unsetPassword = "*"
+  val unsetPassword = "*" // NOSONAR marker for "no password set", not a credential
 
   def hashPassword(plain: String): (String, String) = plain match {
     case null => (unsetPassword, "")

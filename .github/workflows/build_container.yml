@@ -286,7 +286,7 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: postgres # NOSONAR throwaway database of the CI job, not a secret
           POSTGRES_DB: postgres
         ports:
           - 5432:5432
@@ -422,7 +422,7 @@ jobs:
         env:
           OBP_TEST_POSTGRES_URL: jdbc:postgresql://localhost:5432/postgres
           OBP_TEST_POSTGRES_USER: postgres
-          OBP_TEST_POSTGRES_PASSWORD: postgres
+          OBP_TEST_POSTGRES_PASSWORD: postgres # NOSONAR throwaway database of the CI job, not a secret
           # Turns PostgresMigrationTest's self-cancellation into a failure - see PostgresTestTarget.
           OBP_TEST_POSTGRES_REQUIRED: "true"
         run: |
