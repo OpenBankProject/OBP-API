@@ -5793,7 +5793,14 @@ object Http4s600 {
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
             (qp, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
-            withLimit = qp ++ List(code.api.util.OBPLimit(50))
+            // This endpoint is public, so keep only the date range. Filters such as user_id,
+            // consumer_id, app_name, correlation_id and url would show what one user or app calls,
+            // and a caller's limit would replace the cap of 50.
+            dateRange = qp.collect {
+              case fromDate: code.api.util.OBPFromDate => fromDate
+              case toDate: code.api.util.OBPToDate => toDate
+            }
+            withLimit = code.api.util.OBPLimit(50) :: dateRange
             topApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(withLimit)
               .map(unboxFullOrFail(_, Some(cc), UnknownError))
           } yield {
@@ -14081,6 +14088,8 @@ object Http4s600 {
         s"""Returns the operation IDs of the 50 most popular endpoints based on usage metrics.
         |
         |This endpoint is public and does not require authentication.
+        |
+        |You can narrow the period with the from_date and to_date query parameters. All other metrics filters, such as user_id, consumer_id, app_name, correlation_id, url and limit, are ignored. Use Get Metrics or Get Top APIs, which need a Role, to filter by user or app.
         |
         |The response contains a simple list of operation_id strings, ordered by popularity (most called first).
         |

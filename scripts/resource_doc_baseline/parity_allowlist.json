@@ -132,6 +132,14 @@
   ],
   "field_mismatches": [
     {
+      "version": "v6_0_0",
+      "endpoint": "getPopularApis",
+      "field": "description",
+      "reason": "The public endpoint now uses only from_date and to_date, so filtering by user or app needs a Role. The description says which filters are ignored.",
+      "lift_digest": "23846b4ba3c1ae811448bcfeef69c445790d7d138dccac8f929e415f3a250f74",
+      "http4s_digest": "5a8117168f16e523c860e789cdfc5969a95c43e163cf170dbaae992f6e7bbb6b"
+    },
+    {
       "version": "v4_0_0",
       "endpoint": "getAtms",
       "field": "errorResponseBodies",
