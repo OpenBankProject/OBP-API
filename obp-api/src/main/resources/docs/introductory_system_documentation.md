@@ -31,6 +31,8 @@ For more detailed information or the sources of truths, please refer to the indi
    - 3.13 [OBP-MCP (Model Context Protocol Server)](#313-obp-mcp-model-context-protocol-server)
    - 3.14 [OBP-Sentinel](#314-obp-sentinel)
    - 3.15 [OBP Bank Node](#315-obp-bank-node)
+   - 3.16 [OBP Cohort](#316-obp-cohort)
+   - 3.17 [Conformator](#317-conformator)
 4. [Standards Compliance](#standards-compliance)
 5. [Installation and Configuration](#installation-and-configuration)
 6. [Migration Scripts and Migration Script Logs](#migration-scripts-and-migration-script-logs)
@@ -236,8 +238,10 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **Keycloak Integration:** Production-grade OIDC provider support
 - **OBP Portal:** Developer portal where people sign up, register applications and try the API
 - **OBP-MCP:** Model Context Protocol server, so AI agents can find and call OBP endpoints
-- **OBP-Sentinel:** Watches running OBP instances and suggests the improvements that matter most
+- **OBP-Sentinel (OBP Senti):** Watches running OBP instances and suggests the improvements that matter most
 - **OBP Bank Node:** Runs inside a bank's network and connects its core banking system to an OBP instance run by a platform operator
+- **OBP Cohort:** Runs startup programmes, from the call for applications to graduation
+- **Conformator:** Tests open banking APIs against the agreed standard and issues signed conformance reports
 
 ---
 
@@ -1399,6 +1403,8 @@ The server starts at `http://localhost:9100` with the MCP endpoint at `/mcp`.
 
 ### 3.14 OBP-Sentinel
 
+OBP-Sentinel, or Senti for short, is sold as **OBP Senti**, and as **TESOBE Senti** for systems that do not use OBP. See https://senti.tesobe.com.
+
 **Purpose:** Watches running OBP-API instances, and the apps around them (API Explorer II, API Manager, the Portal, OBP-OIDC), works out what is actually going wrong or getting slower, and suggests the few improvements that matter most.
 
 **How it works:**
@@ -1420,6 +1426,33 @@ See the Glossary item OBP-Sentinel.
 - Calls OBP-API as a client, acting as itself as a Platform App with its own token, unlike a South Side Adapter, which OBP calls
 
 See the Glossary items OBP Bank Node, Connector and Adapter.
+
+### 3.16 OBP Cohort
+
+**Purpose:** Runs startup programmes for incubators, accelerators, banks, regulators and innovation hubs, from the call for applications to graduation, in English and Arabic.
+
+**Key Features:**
+
+- Public calls with application forms, saved drafts and eligibility checks
+- Reviews against a weighted rubric, with conflicts of interest declared first, and a ranked shortlist
+- Milestones, sessions, attendance and surveys for each startup, and stage gates before graduation
+- A Platform App in the OBP-Frontend repository (`apps/cohort`), keeping its records in OBP-API as Dynamic Entities
+
+See https://cohort.tesobe.com and the Glossary item OBP Cohort.
+
+### 3.17 Conformator
+
+**Purpose:** Lets a regulator test the open banking APIs of the banks, payment service providers and third-party providers it supervises against the agreed standard, review the results and issue conformance reports.
+
+**Key Features:**
+
+- Requirements, and the tests that check them, kept in versioned suites; a suite can come from a standard OBP implements or from an OpenAPI document
+- Each participant has a space of its own and runs the suites against its own non-production systems
+- Participants submit results with evidence; reviewers assess them, and a separate approver decides
+- Approval issues a report signed with Ed25519, which anyone can check by its reference
+- Two Platform Apps in the OBP-Frontend repository: the web app (`apps/conformator`) and the runner that carries out the tests (`apps/conformator-runner`)
+
+See the Glossary item Conformator.
 
 ---
 
@@ -2739,7 +2772,7 @@ GET /obp/v5.1.0/management/consumers
 
 **Grant types:** a Consumer's grant types control how tokens can be obtained through it: whether people can log in through it, whether the application can get a token for itself (`client_credentials`), or both. A Consumer with no grant types set can be used in every way. Grant types do not decide what the application may do with a token.
 
-**Platform Apps:** a Platform App is an application the installation runs as part of its own deployment, such as the Portal, API Manager, Opey, Sentinel, Cohort or a Bank Node. Only a Platform App can act as itself on its Consumer's Scopes (see 8.7).
+**Platform Apps:** a Platform App is an application the installation runs as part of its own deployment, such as the Portal, API Manager, Opey, Sentinel, Cohort, Conformator or a Bank Node. Only a Platform App can act as itself on its Consumer's Scopes (see 8.7).
 
 1. An administrator marks the Consumer as a Platform App (Role CanCreatePlatformApp).
 2. The app declares the Scopes it needs, and what each one is for, every time it starts.
