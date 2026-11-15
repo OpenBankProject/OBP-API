@@ -109,8 +109,8 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
 
       Then("We should get a 401")
       response.code should equal(401)
-      And("The error message should indicate application not identified (UserXORApplication mode requires at least app auth)")
-      response.body.extract[ErrorMessage].message should include("OBP-20200")
+      And("The error message should say the user is not logged in")
+      response.body.extract[ErrorMessage].message should include("OBP-20001")
     }
 
     scenario("Authenticated user without role should fail with 403", ApiEndpoint, VersionOfApi) {
@@ -130,7 +130,7 @@ class VerifyUserCredentialsTest extends V600ServerSetup with DefaultUsers {
     }
 
     scenario("Successfully verify valid credentials with consumer scope, the Consumer acting as itself (no user entitlement)", ApiEndpoint, VersionOfApi) {
-      // Add scope to consumer instead of entitlement to user — UserXORApplication accepts it when the Consumer acts as itself
+      // Add scope to consumer instead of entitlement to user — it counts when the Consumer, a Platform App, acts as itself
       val addedScope = Scope.scope.vend.addScope("", testConsumer.id.get.toString, ApiRole.CanVerifyUserCredentials.toString)
 
       When("We verify valid credentials using consumer with scope")

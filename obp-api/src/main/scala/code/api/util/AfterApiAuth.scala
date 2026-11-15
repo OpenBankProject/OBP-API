@@ -33,7 +33,8 @@ import code.accountholders.AccountHolders
 import code.api.Constant
 import code.api.util.APIUtil.getPropsAsBoolValue
 import code.api.util.ApiRole.{CanCreateAccount, CanCreateHistoricalTransactionAtBank}
-import code.api.util.ErrorMessages.{ConsumerIsDisabled, UserIsDeleted, UsernameHasBeenLocked}
+import code.api.util.ErrorMessages.{ConsumerGrantTypeNotAllowed, ConsumerIsDisabled, UserIsDeleted, UsernameHasBeenLocked}
+import code.consumer.ConsumerGrantTypes
 import code.api.util.RateLimitingJson.CallLimit
 import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
 import code.entitlement.Entitlement
@@ -115,6 +116,27 @@ object AfterApiAuth extends MdcLoggable{
           (Failure(ConsumerIsDisabled), cc) // The Consumer is DISABLED.
         case _ => // There is no Consumer. Just forward the result.
           (user, cc)
+      }
+    }
+  }
+
+  /**
+   * Refuses a call that the Consumer's grant types do not allow (see ConsumerGrantTypes). For example, if a
+   * Consumer allows only client_credentials, a person's call through it is refused here. This happens wherever
+   * the person's token was issued.
+   */
+  def checkConsumerGrantTypes(res: Future[(Box[User], Option[CallContext])]): Future[(Box[User], Option[CallContext])] = {
+    for {
+      (user: Box[User], cc) <- res
+    } yield {
+      (cc, cc.map(_.consumer)) match {
+        case (Some(callContext), Some(Full(consumer))) =>
+          ConsumerGrantTypes.refusal(consumer, user, callContext) match {
+            case Some(needed) =>
+              (Failure(s"$ConsumerGrantTypeNotAllowed This call needs $needed. The Consumer's grant types are: ${ConsumerGrantTypes.of(consumer).mkString(", ")}."), cc)
+            case None => (user, cc)
+          }
+        case _ => (user, cc)
       }
     }
   }

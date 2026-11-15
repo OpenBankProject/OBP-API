@@ -832,7 +832,6 @@ object Http4s700 {
       List(ApplicationNotIdentified, UnknownError),
       apiTagConsumer :: apiTagApi :: Nil,
       None,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getCurrentConsumerIdentity)
     )
 
@@ -870,7 +869,6 @@ object Http4s700 {
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       apiTagConsumer :: Nil,
       Some(List(ApiRole.canGetConsumers)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsumers)
     )
 
@@ -1101,7 +1099,6 @@ object Http4s700 {
       List(ApplicationNotIdentified, UnknownError),
       apiTagConsumer :: apiTagScope :: apiTagApi :: Nil,
       None,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getCurrentConsumerScopes)
     )
 
@@ -4802,7 +4799,6 @@ object Http4s700 {
            InsufficientAuthorisationToCreateTransactionRequest, UnknownError),
       apiTagTransactionRequest :: Nil,
       None,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(createTransactionRequestOpenCorridor)
     )
 
@@ -4851,7 +4847,7 @@ object Http4s700 {
         |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
         |Such a token gives the application a User of its own (provider obp-oidc#client), so `reported_by_user_id` is
         |the application's own User when it acted, or the person's when a person did.
-        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement.
         |
         |Authentication is Required.""".stripMargin,
       openCorridorPromiseBodyExample,
@@ -4872,7 +4868,6 @@ object Http4s700 {
            OpenCorridorPromiseEvidenceConflict, TransactionRequestLockFailed, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canAttachOpenCorridorPromise)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(attachOpenCorridorPromise)
     )
 
@@ -5388,7 +5383,7 @@ object Http4s700 {
         |
         |**Who may call it.** A person with the Role CanSettleOpenCorridor at BANK_ID, or an application whose Consumer holds it
         |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
-        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement.
         |
         |Authentication is Required.""".stripMargin,
       JSONFactory700.PostOpenCorridorSettlementJsonV700(other_bank_id = "ke.01.kcs", currency = "KES"),
@@ -5409,7 +5404,6 @@ object Http4s700 {
            $BankNotFound, AmqpBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(createOpenCorridorSettlement)
     )
 
@@ -5450,7 +5444,7 @@ object Http4s700 {
         |
         |**Who may call it.** A person with the Role CanSettleOpenCorridor at BANK_ID, or an application whose Consumer holds it
         |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
-        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement.
         |
         |Authentication is Required.""".stripMargin,
       JSONFactory700.PostOpenCorridorFeeSettlementJsonV700(currency = "KES"),
@@ -5467,7 +5461,6 @@ object Http4s700 {
            $BankNotFound, AmqpBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(createOpenCorridorFeeSettlement)
     )
 
@@ -5506,7 +5499,7 @@ object Http4s700 {
         |
         |**Who may call it.** A person with the Role CanSettleOpenCorridor at BANK_ID, or an application whose Consumer holds it
         |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
-        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement.
         |
         |Authentication is Required.""".stripMargin,
       EmptyBody,
@@ -5536,7 +5529,6 @@ object Http4s700 {
            OpenCorridorSettlementNotFound, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getOpenCorridorSettlement)
     )
 
@@ -7691,6 +7683,9 @@ object Http4s700 {
 
     // Platform Apps: the Consumers this installation runs as part of its own deployment, and the Scopes they need.
     resourceDocs ++= Http4s700PlatformApps.resourceDocs
+
+    // Consumer grant types: how people and the application itself may call through a Consumer.
+    resourceDocs ++= Http4s700ConsumerGrantTypes.resourceDocs
 
     // Domain APIs: a space's Dynamic Entities and Dynamic Resource Docs published under a base path of its own.
     resourceDocs ++= Http4s700DomainApis.resourceDocs

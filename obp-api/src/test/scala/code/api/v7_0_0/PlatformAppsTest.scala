@@ -132,6 +132,8 @@ class PlatformAppsTest extends V600ServerSetup {
       } finally {
         scope.foreach(s => Scope.scope.vend.deleteScope(Full(s)))
         PlatformApps.platformAppProvider.vend.deletePlatformApp(consumerId)
+        // Other suites use testConsumer2 as a Platform App acting as itself: leave it marked, as it was.
+        ensurePlatformApp(testConsumer2)
       }
     }
 

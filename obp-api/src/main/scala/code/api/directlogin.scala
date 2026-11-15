@@ -33,6 +33,7 @@ import code.api.util.ErrorMessages.{InvalidDirectLoginParameters, attemptedToOpe
 import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.consumer.Consumers._
+import code.consumer.ConsumerGrantTypes
 import code.model.dataAccess.AuthUser
 import code.model.{Consumer, Token, TokenType, UserX}
 import code.token.Tokens
@@ -122,6 +123,14 @@ object DirectLogin extends MdcLoggable {
   def createTokenCommonPart(code: Int, msg: String, directLoginParameters: Map[String, String]): (Int, String, Long) = {
     var message = msg
     var httpCode = code
+    // A Consumer that sets grant types without direct_login issues no DirectLogin token. Checked before the
+    // password, so a refused Consumer cannot be used to test passwords.
+    val consumer = consumers.vend.getConsumerByConsumerKey(directLoginParameters.getOrElse("consumer_key", ""))
+    val consumerGrantTypes = consumer.map(ConsumerGrantTypes.of).openOr(Nil)
+    val consumerRefusesDirectLogin = consumer.exists(c => !ConsumerGrantTypes.allows(c, ConsumerGrantTypes.DirectLogin))
+    if (httpCode == 200 && consumerRefusesDirectLogin) {
+      return (401, s"${ErrorMessages.ConsumerGrantTypeNotAllowed} This call needs ${ConsumerGrantTypes.DirectLogin}. The Consumer's grant types are: ${consumerGrantTypes.mkString(", ")}.", 0)
+    }
     val userId: Long = (for {id <- getUserId(directLoginParameters)} yield id).getOrElse(0)       
     if (httpCode == 200) {
       if (userId == 0) {

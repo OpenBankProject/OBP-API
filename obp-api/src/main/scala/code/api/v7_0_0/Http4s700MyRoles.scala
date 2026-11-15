@@ -53,12 +53,12 @@ case class MyRoleJsonV700(
   caller: MyRoleCallerJsonV700,
   held_by: MyRoleHeldByJsonV700,
   scopes_required: Boolean,
-  allowed_for_auth_modes: List[String]
+  allowed: Boolean
 )
 
 /**
  * One Role, as the caller holds it: whether the calling User holds it, whether the calling Consumer holds it
- * as a Scope, and so for which endpoint auth modes an endpoint that needs this Role would let the caller in.
+ * as a Scope, and so whether an endpoint that needs this Role would let the caller in.
  *
  * A service in front of OBP-API (API Explorer II, the Portal, API Manager) forwards the token it was given
  * and gets OBP-API's own answer, instead of copying OBP-API's access rules.
@@ -74,10 +74,8 @@ object Http4s700MyRoles {
 
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
-  private val authModes: List[EndpointAuthMode] = List(UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication)
-
-  /** The same decision as handleAccessControlWithAuthMode, for each auth mode, without granting
-   *  just-in-time Entitlements: a GET must not create them. */
+  /** The same decision as handleAccessControlRegardingEntitlementsAndScopes, without granting just-in-time
+   *  Entitlements: a GET must not create them. */
   private def myRole(roleName: String, bankId: String, cc: CallContext): Future[MyRoleJsonV700] =
     for {
       consumer <- Future(cc.consumer match {
@@ -92,8 +90,9 @@ object Http4s700MyRoles {
       val heldAt = if (role.requiresBankId) bankId else ""
       val user = cc.user.toOption
       val userId = user.map(_.userId).getOrElse("")
-      // A client-credentials token still brings a pseudo-user, named after the Consumer's client id.
-      val applicationOnly = user.forall(u => isApplicationsOwnUser(u, consumer))
+      // The application acts as itself only if its Consumer is a Platform App, calling as its own user (a
+      // client-credentials token brings one, named after the Consumer's client id) or with no user.
+      val applicationOnly = isPlatformApp(consumer) && user.forall(u => isApplicationsOwnUser(u, consumer))
       val virtualRoles = if (userId.isEmpty) Nil
                          else if (isSuperAdmin(userId)) superAdminVirtualRoles
                          else if (isOidcOperator(userId)) oidcOperatorVirtualRoles
@@ -103,19 +102,10 @@ object Http4s700MyRoles {
       val heldByConsumer = hasScope(heldAt, consumer.id.get.toString, role)
       val listed = getPropsValue("require_scopes_for_listed_roles", "").split(",").contains(role.toString)
       val scopesRequired = ApiPropsWithAlias.requireScopesForAllRoles || listed
-      val allowed = authModes.filter { mode =>
-        virtual || (if (scopesRequired) mode match {
-          case ApplicationOnly | UserXORApplication if applicationOnly => heldByConsumer
-          case _ => heldByUser && heldByConsumer
-        } else mode match {
-          case UserOnly => heldByUser
-          case ApplicationOnly => heldByConsumer
-          case UserXORApplication => if (applicationOnly) heldByConsumer else heldByUser
-          case UserAndApplication => heldByUser && heldByConsumer
-        })
-      }
+      val allowed = virtual ||
+        (if (applicationOnly) heldByConsumer else if (scopesRequired) heldByUser && heldByConsumer else heldByUser)
       MyRoleJsonV700(role.toString, bankId, MyRoleCallerJsonV700(userId, consumer.consumerId.get, applicationOnly),
-        MyRoleHeldByJsonV700(heldByUser, heldByConsumer), scopesRequired, allowed.map(_.toString))
+        MyRoleHeldByJsonV700(heldByUser, heldByConsumer), scopesRequired, allowed)
     }
 
   // Route: GET /obp/v7.0.0/banks/BANK_ID/my/roles/ROLE_NAME (BANK_ID SYS for system Roles)
@@ -130,7 +120,7 @@ object Http4s700MyRoles {
     caller = MyRoleCallerJsonV700(user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1", consumer_id = "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh", application_only = true),
     held_by = MyRoleHeldByJsonV700(user = false, consumer = true),
     scopes_required = false,
-    allowed_for_auth_modes = List("ApplicationOnly", "UserXORApplication")
+    allowed = true
   )
 
   resourceDocs += ResourceDoc(
@@ -147,16 +137,17 @@ object Http4s700MyRoles {
        |Use it from a service that receives an OBP-API token (for example API Explorer II, the Portal or API Manager)
        |and must decide, as OBP-API would, whether that token may see something the service guards with an OBP Role.
        |
-       |* `caller`: the User and Consumer of the token. `application_only` is true when no person is behind it
-       |  (a client-credentials token, whose User is a pseudo-user named after the Consumer's client id).
+       |* `caller`: the User and Consumer of the token. `application_only` is true when the application is acting as
+       |  itself. That means its Consumer is a Platform App, and it calls with no User or as its own User. A
+       |  client-credentials token brings that User, named after the Consumer's client id.
        |* `held_by.user`: the User holds the Role as an Entitlement, or as a virtual Role from `super_admin_user_ids` or
        |  `oidc_operator_user_ids`.
        |* `held_by.consumer`: the Consumer holds the Role as a Scope.
-       |* `scopes_required`: the props `require_scopes_for_all_roles` or `require_scopes_for_listed_roles` make
-       |  every endpoint need both.
-       |* `allowed_for_auth_modes`: the endpoint auth modes (`UserOnly`, `ApplicationOnly`, `UserXORApplication`,
-       |  `UserAndApplication`) under which an endpoint that needs this Role would let the caller in.
-       |  An endpoint that accepts several Roles lets the caller in if any one of them is allowed.
+       |* `scopes_required`: the props `require_scopes_for_all_roles` or `require_scopes_for_listed_roles` say that
+       |  a person also needs the Role as a Scope on the Consumer they call through.
+       |* `allowed`: an endpoint that needs this Role would let the caller in. An application acting as itself needs
+       |  the Scope. A person needs the Entitlement, and also the Scope when `scopes_required` is true. A virtual Role
+       |  is always allowed. An endpoint that accepts several Roles lets the caller in if any one of them is allowed.
        |
        |Just-in-time Entitlements (`create_just_in_time_entitlements`) are not granted here: an endpoint may still
        |grant one when it is called.
@@ -169,7 +160,6 @@ object Http4s700MyRoles {
     List(ApplicationNotIdentified, BankNotFound, IncorrectRoleName, EntitlementIsSystemRole, UnknownError),
     List(apiTagRole, apiTagEntitlement, apiTagScope),
     None,
-    authMode = UserXORApplication,
     http4sPartialFunction = Some(getMyRole)
   ).allowSystemSpace()
 }

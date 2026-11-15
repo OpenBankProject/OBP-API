@@ -42,10 +42,9 @@ import org.scalatest.Tag
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 
 /**
- * auth_mode on a Dynamic Entity decides who may hold the roles guarding its data endpoints:
- * the User's Entitlements (UserOnly, the default), the Consumer's Scopes (ApplicationOnly),
- * the Consumer's Scopes when it acts as itself and the User's Entitlements when a person acts (UserXORApplication),
- * or both (UserAndApplication).
+ * auth_mode on a Dynamic Entity is gone. A client that still sends it is not refused: the field is ignored.
+ * The entity's data endpoints work like static endpoints: a person needs the entity's Role as an Entitlement,
+ * and a Platform App acting as itself needs it as a Scope.
  */
 class DynamicEntityAuthModeTest extends V600ServerSetup {
   // user1 defines the entities (and may hold broad roles in the shared test DB);
@@ -86,53 +85,58 @@ class DynamicEntityAuthModeTest extends V600ServerSetup {
 
   feature("auth_mode on the entity definition") {
 
-    scenario("defaults to UserOnly and is returned on the definition", VersionOfApi) {
+    scenario("is not returned on the definition", VersionOfApi) {
       val (code, body) = createSystemEntity(entityJson("am_default", None))
       code should equal(201)
-      (body \ "auth_mode").extract[String] should equal("UserOnly")
+      (body \ "auth_mode") should equal(JNothing)
       deleteSystemEntity((body \ "dynamic_entity_id").extract[String])
     }
 
-    scenario("accepts UserXORApplication and returns it", VersionOfApi) {
-      val (code, body) = createSystemEntity(entityJson("am_either", Some("UserXORApplication")))
-      code should equal(201)
-      (body \ "auth_mode").extract[String] should equal("UserXORApplication")
-      deleteSystemEntity((body \ "dynamic_entity_id").extract[String])
+    scenario("is accepted and ignored when an older client still sends it, whatever its value", VersionOfApi) {
+      for ((name, mode) <- List("am_either" -> "UserXORApplication", "am_bad" -> "Nobody")) {
+        val (code, body) = createSystemEntity(entityJson(name, Some(mode)))
+        code should equal(201)
+        (body \ "auth_mode") should equal(JNothing)
+        deleteSystemEntity((body \ "dynamic_entity_id").extract[String])
+      }
     }
 
-    scenario("accepts the former name UserOrApplication and stores it as UserXORApplication", VersionOfApi) {
-      val (code, body) = createSystemEntity(entityJson("am_legacy", Some("UserOrApplication")))
-      code should equal(201)
-      (body \ "auth_mode").extract[String] should equal("UserXORApplication")
-      deleteSystemEntity((body \ "dynamic_entity_id").extract[String])
-    }
-
-    scenario("rejects an unknown value", VersionOfApi) {
-      val (code, body) = createSystemEntity(entityJson("am_bad", Some("Nobody")))
-      code should equal(400)
-      (body \ "message").extract[String] should include(DynamicEntityInstanceValidateFail)
-    }
-
-    scenario("rejects ApplicationOnly on a personal entity", VersionOfApi) {
+    scenario("ApplicationOnly on a personal entity is accepted too", VersionOfApi) {
       val (code, body) = createSystemEntity(entityJson("am_personal_app", Some("ApplicationOnly"), personal = true))
-      code should equal(400)
-      (body \ "message").extract[String] should include("ApplicationOnly")
+      code should equal(201)
+      deleteSystemEntity((body \ "dynamic_entity_id").extract[String])
     }
   }
 
-  feature("auth_mode on the entity's data endpoints") {
+  feature("the entity's data endpoints work like static endpoints, whatever auth_mode says") {
 
-    scenario("UserOnly (default): a Consumer Scope alone is not enough", VersionOfApi) {
+    scenario("no auth_mode: a Platform App acting as itself is let in on its Scope", VersionOfApi) {
       val entityName = "am_useronly_data"
       val (code, body) = createSystemEntity(entityJson(entityName, None))
       code should equal(201)
       val entityId = (body \ "dynamic_entity_id").extract[String]
       val scope = Scope.scope.vend.addScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer2.id.get.toString, getRoleName(entityName))
       try {
-        val response = makeGetRequest((dynamicEntity_Request / entityName).GET <@(user2))
+        makeGetRequest((dynamicEntity_Request / entityName).GET <@(application2)).code should equal(200)
+      } finally {
+        Scope.scope.vend.deleteScope(scope)
+        deleteSystemEntity(entityId)
+      }
+    }
+
+    scenario("a Consumer that is not a Platform App does not get its Scope", VersionOfApi) {
+      val entityName = "am_not_platform"
+      val (code, body) = createSystemEntity(entityJson(entityName, Some("UserXORApplication")))
+      code should equal(201)
+      val entityId = (body \ "dynamic_entity_id").extract[String]
+      val scope = Scope.scope.vend.addScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer2.id.get.toString, getRoleName(entityName))
+      _root_.code.platformapp.PlatformApps.platformAppProvider.vend.deletePlatformApp(testConsumer2.consumerId.get)
+      try {
+        val response = makeGetRequest((dynamicEntity_Request / entityName).GET <@(Some((consumer2, tokenApplication2))))
         response.code should equal(403)
         response.body.extract[ErrorMessage].message should include(UserHasMissingRoles)
       } finally {
+        ensurePlatformApp(testConsumer2)
         Scope.scope.vend.deleteScope(scope)
         deleteSystemEntity(entityId)
       }
@@ -199,20 +203,14 @@ class DynamicEntityAuthModeTest extends V600ServerSetup {
       }
     }
 
-    scenario("UserAndApplication: needs both the Entitlement and the Scope", VersionOfApi) {
+    scenario("UserAndApplication no longer asks for the Scope as well: the Entitlement is enough", VersionOfApi) {
       val entityName = "am_both_data"
       val (code, body) = createSystemEntity(entityJson(entityName, Some("UserAndApplication")))
       code should equal(201)
       val entityId = (body \ "dynamic_entity_id").extract[String]
       try {
         Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, getRoleName(entityName))
-        makeGetRequest((dynamicEntity_Request / entityName).GET <@(user2)).code should equal(403)
-        val scope = Scope.scope.vend.addScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer2.id.get.toString, getRoleName(entityName))
-        try {
-          makeGetRequest((dynamicEntity_Request / entityName).GET <@(user2)).code should equal(200)
-        } finally {
-          Scope.scope.vend.deleteScope(scope)
-        }
+        makeGetRequest((dynamicEntity_Request / entityName).GET <@(user2)).code should equal(200)
       } finally {
         deleteSystemEntity(entityId)
       }

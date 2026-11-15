@@ -3170,7 +3170,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val path = promiseEvidencePath(testBankId1.value, testAccountId0.value, transactionRequestId)
       val ((personCode, _, _), (statusCode, json, _)) = try {
         (makeHttpRequestWithBody("POST", path, promiseEvidenceBody(), Map("DirectLogin" -> s"token=${token2.value}")),
-         makeHttpRequestWithBody("POST", path, promiseEvidenceBody(), Map("DirectLogin" -> s"token=${tokenApplication2.value}")))
+         makeHttpRequestWithBody("POST", path, promiseEvidenceBody(), Map("DirectLogin" -> s"token=${ensurePlatformApp(testConsumer2); tokenApplication2.value}")))
       } finally code.scope.Scope.scope.vend.deleteScope(granted)
 
       Then("user2 does not get the Consumer's Scope")
@@ -3188,7 +3188,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("A CanAttachOpenCorridorPromise Scope at another bank does not authorize this bank's URL", Http4s700RoutesTag) {
-      val headers = Map("DirectLogin" -> s"token=${tokenApplication2.value}")
+      val headers = Map("DirectLogin" -> s"token=${ensurePlatformApp(testConsumer2); tokenApplication2.value}")
       val granted = code.scope.Scope.scope.vend.addScope(
         testBankId2.value, testConsumer2.id.get.toString, canAttachOpenCorridorPromise.toString)
       val (statusCode, json, _) = try makeHttpRequestWithBody("POST",
@@ -3488,7 +3488,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         (makeHttpRequestWithBody("POST", settlementsPath(testBankId1.value), settleBody("EUR"),
            Map("DirectLogin" -> s"token=${token2.value}")),
          makeHttpRequestWithBody("POST", settlementsPath(testBankId1.value), settleBody("EUR"),
-           Map("DirectLogin" -> s"token=${tokenApplication2.value}")))
+           Map("DirectLogin" -> s"token=${ensurePlatformApp(testConsumer2); tokenApplication2.value}")))
       } finally code.scope.Scope.scope.vend.deleteScope(granted)
 
       Then("user2 does not get the Consumer's Scope")
@@ -3500,7 +3500,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("A CanSettleOpenCorridor Scope at another bank does not authorize this bank's URL", Http4s700RoutesTag) {
-      val headers = Map("DirectLogin" -> s"token=${tokenApplication2.value}")
+      val headers = Map("DirectLogin" -> s"token=${ensurePlatformApp(testConsumer2); tokenApplication2.value}")
       val granted = code.scope.Scope.scope.vend.addScope(
         testBankId2.value, testConsumer2.id.get.toString, canSettleOpenCorridor.toString)
       val (statusCode, json, _) = try makeHttpRequestWithBody("POST",

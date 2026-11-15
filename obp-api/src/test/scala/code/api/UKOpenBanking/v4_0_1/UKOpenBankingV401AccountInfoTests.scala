@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.UKOpenBanking.v4_0_1
 
 import code.api.Constant
-import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, UserXORApplication, buildOperationId}
+import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, buildOperationId}
 import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser, ConsentExpiredIssue, ConsentIdClaimMissing, ConsentNotFound}
 import code.api.util.{CallContext, CertificateUtil, Consent}
 import code.consent.{ConsentStatus, Consents}
@@ -188,16 +188,16 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       postUnauthed(consentPostBody, "aisp", "account-access-consents").code should equal(401)
     }
     // Lodging a consent is a client-credentials call: the TPP is authenticated as an app and no PSU
-    // exists yet. UserOnly (the ResourceDoc default) sends ResourceDocMiddleware down anonymousAccess,
-    // which 401s a request carrying no user. Pinned here because nothing else would notice the doc
-    // silently reverting to the default -- the endpoint would keep working for as long as OAuth2
+    // exists yet. A doc listing AuthenticatedUserIsRequired sends ResourceDocMiddleware down
+    // anonymousAccess, which 401s a request carrying no user. Pinned here because nothing else would
+    // notice the doc's error list changing back -- the endpoint would keep working for as long as OAuth2
     // token parsing auto-vivifies a user for a client-credentials token, and start 401ing the day
     // that stops.
-    scenario("ResourceDoc declares UserXORApplication so a PSU-less TPP call is not rejected", UKOpenBankingV401AccountInfo) {
+    scenario("ResourceDoc needs only an identified application, so a PSU-less TPP call is not rejected", UKOpenBankingV401AccountInfo) {
       val docs = ResourceDoc.getResourceDocs(
         List(buildOperationId(ApiVersion.ukOpenBankingV401, "createAccountAccessConsents")))
       docs should not be empty
-      docs.foreach(_.authMode should equal(UserXORApplication))
+      docs.foreach(_.requiresApplicationButNotUser shouldBe true)
     }
     scenario("all three datetime fields omitted -> 201, open-ended (no expiry/date restriction)", UKOpenBankingV401AccountInfo) {
       val bodyWithoutDates =

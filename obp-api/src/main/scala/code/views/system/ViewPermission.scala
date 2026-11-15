@@ -112,6 +112,62 @@ object ViewPermission extends ViewPermission with LongKeyedMetaMapper[ViewPermis
     }
 
   /**
+   * Identifies one view for permission lookups. A system view is shared by every account, so it has
+   * no bank or account. A custom view belongs to one account, and the same view id can exist on
+   * several accounts, so the bank and account are part of its identity.
+   */
+  case class ViewKey(bankId: Option[String], accountId: Option[String], viewId: String)
+
+  def viewKey(view: View): ViewKey =
+    if (view.isSystem) ViewKey(None, None, view.viewId.value)
+    else ViewKey(Some(view.bankId.value), Some(view.accountId.value), view.viewId.value)
+
+  // SQL Server allows about 2,100 parameters in one statement, so long IN lists are split
+  private val maxIdsPerQuery = 500
+
+  /**
+   * Finds the permissions of many views at once.
+   *
+   * `View.allowed_actions` runs one query per view object. A list of a user's views holds one object
+   * per account access, so a user with the owner view on 200 accounts would cause 200 identical
+   * queries. This function runs one query for all the system views, plus one query per bank for the
+   * custom views (more only if an IN list has to be split).
+   *
+   * The custom query matches account ids and view ids separately, so it can return a few rows for
+   * views the caller did not ask about. Those rows are dropped by matching on the full ViewKey.
+   */
+  def findPermissionsForViews(views: List[View]): Map[ViewKey, Set[String]] = {
+    val (systemViews, customViews) = views.partition(_.isSystem)
+
+    val systemViewIds = systemViews.map(_.viewId.value).distinct
+    val systemRows = systemViewIds.grouped(maxIdsPerQuery).toList.flatMap { viewIds =>
+      ViewPermission.findAll(
+        NullRef(ViewPermission.bank_id),
+        NullRef(ViewPermission.account_id),
+        ByList(ViewPermission.view_id, viewIds)
+      )
+    }
+
+    val customRows = customViews.groupBy(_.bankId.value).toList.flatMap { case (bankId, viewsAtBank) =>
+      val viewIds = viewsAtBank.map(_.viewId.value).distinct
+      viewsAtBank.map(_.accountId.value).distinct.grouped(maxIdsPerQuery).toList.flatMap { accountIds =>
+        viewIds.grouped(maxIdsPerQuery).toList.flatMap { viewIdsChunk =>
+          ViewPermission.findAll(
+            By(ViewPermission.bank_id, bankId),
+            ByList(ViewPermission.account_id, accountIds),
+            ByList(ViewPermission.view_id, viewIdsChunk)
+          )
+        }
+      }
+    }
+
+    val wanted = views.map(viewKey).toSet
+    (systemRows ++ customRows)
+      .groupBy(row => ViewKey(Option(row.bank_id.get), Option(row.account_id.get), row.view_id.get))
+      .collect { case (key, rows) if wanted.contains(key) => key -> rows.map(_.permission.get).toSet }
+  }
+
+  /**
    * This method first removes all existing permissions for the given view,
    * then creates new ones based on the provided parameters.
    *

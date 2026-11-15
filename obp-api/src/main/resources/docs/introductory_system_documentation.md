@@ -5,8 +5,8 @@ It provides an introduction to its key components, architecture, deployment and 
 
 For more detailed information or the sources of truths, please refer to the individual repository READMEs or contact TESOBE for commercial licences and support.
 
-**Version:** 0.6.0
-**Last Updated:** Mar 2026
+**Version:** 0.7.0
+**Last Updated:** November 2026
 **License:** Copyright TESOBE GmbH 2026 - AGPL V3
 
 ---
@@ -27,8 +27,10 @@ For more detailed information or the sources of truths, please refer to the indi
    - 3.9 [OBP-Rabbit-Cats-Adapter](#39-obp-rabbit-cats-adapter)
    - 3.10 [Connectors](#310-connectors)
    - 3.11 [Adapters](#311-adapters)
-   - 3.13 [Message Docs](#313-message-docs)
-   - 3.14 [OBP-MCP (Model Context Protocol Server)](#314-obp-mcp-model-context-protocol-server)
+   - 3.12 [Message Docs](#312-message-docs)
+   - 3.13 [OBP-MCP (Model Context Protocol Server)](#313-obp-mcp-model-context-protocol-server)
+   - 3.14 [OBP-Sentinel](#314-obp-sentinel)
+   - 3.15 [OBP Bank Node](#315-obp-bank-node)
 4. [Standards Compliance](#standards-compliance)
 5. [Installation and Configuration](#installation-and-configuration)
 6. [Migration Scripts and Migration Script Logs](#migration-scripts-and-migration-script-logs)
@@ -40,7 +42,7 @@ For more detailed information or the sources of truths, please refer to the indi
    - 8.4 [Rate Limiting](#84-rate-limiting)
    - 8.5 [Attribute-Based Access Control (ABAC)](#85-attribute-based-access-control-abac)
    - 8.6 [User Attributes and Personal Data Fields](#86-user-attributes-and-personal-data-fields)
-   - 8.7 [Endpoint Auth Modes](#87-endpoint-auth-modes)
+   - 8.7 [Entitlements and Scopes](#87-entitlements-and-scopes)
    - 8.8 [Maker/Checker for Transaction Requests](#88-makercchecker-for-transaction-requests)
    - 8.9 [Mandates](#89-mandates)
    - 8.10 [Security Best Practices](#810-security-best-practices)
@@ -92,6 +94,9 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **Signing Baskets**: Batch payment approval workflows
 - **Maker/Checker Separation**: Enforce that the creator and approver of a transaction request are different users
 - **Transaction Attributes**: Custom metadata on transactions
+- **Utility and Bill Payments** (v7.0.0): the UTILITY transaction request type, for example a prepaid electricity token or a bill payment, with a payee lookup first and an optional callback when the result arrives
+- **Payment Promises and Netting** (v7.0.0): payments between banks can be held as promises, carrying the payer's originator information (FATF Recommendation 16), and settled later as one net transaction per pair of banks
+- **Amount Precision**: an amount with more decimal places than its currency allows is refused, never rounded or cut off
 
 #### 1.2.3 Customer & KYC Management
 
@@ -101,6 +106,8 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **KYC Processes**: KYC checks, documents, media uploads, status tracking
 - **CRM Integration**: Customer relationship management features
 - **Consent Management**: PSD2-compliant consent workflows for data access
+- **Customer Emails** (v7.0.0): send a plain-text email to a Customer at the address on their record, without the address being revealed
+- **Files** (v7.0.0): store documents and photographs, attach them to Customers and other records, share them with Users, and publish them
 
 #### 1.2.4 Card Management
 
@@ -125,27 +132,31 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 
 #### 1.2.7 Authentication & Authorization
 
-- **Multiple Auth Methods**: OAuth 2.0, OpenID Connect (OIDC) with multiple concurrent providers, Direct Login, Gateway Login
-- **Consumer Management**: API consumer registration and key management
+- **Multiple Auth Methods**: OAuth 2.0, OpenID Connect (OIDC) with multiple concurrent providers, Direct Login, Gateway Login, Sign-In With Ethereum
+- **Consumer Management**: API consumer registration and key management, grant types, and Platform Apps (applications that act as themselves)
 - **Token Management**: Access token lifecycle management
 - **Consent Management**: PSD2-compliant consent workflows (AIS, PIS, PIIS)
 - **User Locks**: Account security with failed login attempt tracking
 
 #### 1.2.8 Access Control & Security
 
-- **Role-Based Access Control**: 334+ granular static roles
+- **Role-Based Access Control**: 490+ granular static roles, granted at a bank or at system level
 - **Entitlements**: Fine-grained permission system for API access
 - **Entitlement Requests**: User-initiated permission request workflows
+- **Groups**: named lists of Roles, granted to many Users at once and kept in step with sync-members
 - **Views System**: Account data visibility control (owner, public, accountant, auditor, custom)
-- **Scope Management**: OAuth 2.0 scope definitions
-- **Authentication Type Validation**: Enforce authentication requirements per endpoint
-- **Endpoint Auth Modes**: Per-endpoint control over user vs application authentication (UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication)
+- **Consumer Account Access** (v7.0.0): a view of an account granted to an application, so a service can act on the account as itself
+- **Entitlements and Scopes**: a person needs a Role as an Entitlement; a Platform App acting as itself needs it as a Scope
+- **Tenants** (v7.0.0): the customers of the operator of an OBP instance
 - **Mandates**: Corporate account governance with provisions, signatory panels, and multi-signature approval
 
 #### 1.2.9 Extensibility & Customization
 
+- **Spaces**: Dynamic Entities, Dynamic Resource Docs and Files live in a space: a bank, or `SYS` for the system space
 - **Dynamic Endpoints**: Create custom API endpoints without code deployment
-- **Dynamic Entities**: Define custom data models dynamically
+- **Dynamic Entities**: Define custom data models dynamically, with field-level read and write Roles, and a record of who created and last changed each record
+- **Dynamic Entity Webhooks**: notify an outside system when records are created, updated or deleted
+- **Domain APIs**: publish a space's Dynamic Entities and Dynamic Resource Docs under a base path of their own, with their own OpenAPI document
 - **Dynamic Resource Documentation**: Custom endpoint documentation
 - **Dynamic Message Docs**: Custom connector message documentation
 - **Endpoint Mapping**: Route custom paths to existing endpoints
@@ -158,19 +169,24 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **PSD2 Compliance**: SCA, consent management, TPP access
 - **Regulated Entities**: Manage regulatory registrations
 - **Tax Residence**: Customer tax information management
-- **Audit Trails**: Comprehensive logging and tracking
+- **Audit Trails**: Comprehensive logging and tracking, including who acted on behalf of whom
+- **Data Retention** (v7.0.0): retention policies per space, saying how long records are kept and what happens to them after
+- **Safe Deletion**: the cascade-delete endpoints are off unless `allow_cascade_delete` is set
 
 #### 1.2.11 Integration & Interoperability
 
 - **Webhooks**: Event-driven notifications for account and transaction events
-- **Foreign Exchange**: FX rate management and conversion
+- **Foreign Exchange**: FX rate management and conversion, rounded to the decimal places of the target currency
+- **Asset Registry** (v7.0.0): every ISO 4217 currency, precious metal and accounting unit, crypto assets, and assets a bank issues (deposit tokens, stablecoins, bonds, fund shares), each with its own decimal places
 - **API Collections**: Group related endpoints into collections
-- **API Versioning**: Multiple concurrent API versions (v1.2.1 through v6.0.0+)
+- **API Versioning**: Multiple concurrent API versions (v1.2.1 through v7.0.0)
 - **Standard Adapters**: Pre-built integrations for common banking standards
 
 #### 1.2.12 Performance & Scalability
 
-- **Rate Limiting**: Consumer-based rate limits (Redis or in-memory)
+- **Rate Limiting**: Consumer-based rate limits (Redis or in-memory), per-IP limits for anonymous callers, and IP penalties an operator can set on one address
+- **Telemetry**: request, connector, cache, database pool and memory figures for Prometheus and Grafana
+- **Traffic Sources and Deployment Checks**: where traffic comes from, and whether the deployment is set up well
 - **Caching**: Multi-layer caching strategy with ETags
 - **Metrics & Monitoring**: API usage metrics, performance tracking
 - **Database Support**: PostgreSQL, Oracle, MySQL, MS SQL Server, H2
@@ -193,31 +209,35 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **Migration Tools**: Database migration and data transformation utilities
 - **Scheduler**: Background job processing
 - **AI Integration**: Opey II conversational banking assistant
-- **Blockchain Integration**: Cardano blockchain connector support
+- **Blockchain Integration**: Cardano and Ethereum connectors
 - **Metadata and Search**: Metadata and Full-text search across transactions and entities
 - **Social Media**: Social media handle management for accounts
 
 ### 1.2.15 Technical Capabilities
 
 - **Multi-Standard Support:** Open Bank Project, Berlin Group NextGenPSD2, UK Open Banking
-- **Authentication Methods:** OAuth 2.0, OpenID Connect (OIDC) with multiple concurrent providers, Direct Login, Gateway Login
+- **Authentication Methods:** OAuth 2.0, OpenID Connect (OIDC) with multiple concurrent providers, Direct Login, Gateway Login, Sign-In With Ethereum
 - **Extensibility:** Dynamic endpoints, dynamic entities, connector architecture, method routing
 - **Rate Limiting:** Built-in support with Redis or in-memory backends
 - **Multi-Database Support:** PostgreSQL, Oracle, MySQL, MS SQL Server, H2
 - **Internationalization:** Multi-language support
-- **API Versions:** Multiple concurrent versions (v1.2.1 through v6.0.0+)
+- **API Versions:** Multiple concurrent versions (v1.2.1 through v7.0.0)
 - **Deployment Options:** Standalone, Docker, Kubernetes, cloud-native
 - **Data Formats:** JSON, XML support
-- **Error Handling:** 400+ distinct error codes with detailed messages
+- **Error Handling:** 890+ distinct error codes with detailed messages
 
 ### 1.3 Key Components
 
-- **OBP-API:** Core RESTful API server (Scala/Lift framework, HTTP4S runtime)
+- **OBP-API:** Core RESTful API server (Scala, http4s and Cats Effect)
 - **API Explorer II:** Interactive API documentation and testing tool (Vue.js/TypeScript)
 - **API Manager II:** Administration interface for managing APIs and consumers (SvelteKit/TypeScript)
 - **Opey II:** AI-powered conversational banking assistant (Python/LangGraph)
 - **OBP-OIDC:** Development OpenID Connect provider for testing
 - **Keycloak Integration:** Production-grade OIDC provider support
+- **OBP Portal:** Developer portal where people sign up, register applications and try the API
+- **OBP-MCP:** Model Context Protocol server, so AI agents can find and call OBP endpoints
+- **OBP-Sentinel:** Watches running OBP instances and suggests the improvements that matter most
+- **OBP Bank Node:** Runs inside a bank's network and connects its core banking system to an OBP instance run by a platform operator
 
 ---
 
@@ -242,7 +262,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
                                        ▼
                    ┌───────────────────────────────────────┐
                    │         OBP-API Core                  │
-                   │   (Scala/Lift Framework, HTTP4S)      │
+                   │   (Scala, http4s, Cats Effect)        │
                    │                                       │
                    │  ┌─────────────────────────────────┐  │
                    │  │   Client Authentication         │  │
@@ -354,11 +374,12 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 
 **Backend (OBP-API):**
 
-- Language: Scala 2.12.21
+- Language: Scala 2.13
 - Framework: HTTP4S (API logic and runtime server); Lift survives only as the Mapper ORM
 - Build Tool: Maven 3
 - Server: HTTP4S (Ember) - standalone executable JAR, no application server required
-- Concurrency: Pekko (the renamed Akka fork; connector names and props keep the `akka` spelling)
+- Concurrency: Cats Effect IO for request handling; Pekko (the renamed Akka fork; connector names and props keep the `akka` spelling) for the Akka connector
+- Database access: Lift Mapper, and Doobie for queries that need plain SQL or row locking (for example atomic balance updates)
 - JDK: OpenJDK 25 (pinned; see `<java.version>` in `pom.xml`)
 - Modules: `obp-commons` + `obp-api` (2-module structure)
 
@@ -407,8 +428,8 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 
 **Key Features:**
 
-- Multi-version API support (v1.2.1 - v6.0.0+)
-- Pluggable connector architecture (Mapped, Kafka, RabbitMQ, Akka, gRPC, REST)
+- Multi-version API support (v1.2.1 - v7.0.0), all served natively by http4s
+- Pluggable connector architecture (Mapped, RabbitMQ, Akka, gRPC, REST, stored procedure, Cardano, Ethereum)
 - OAuth 2.0/OIDC authentication
 - Role-based access control (RBAC)
 - Dynamic endpoint creation
@@ -439,7 +460,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 server_mode=apis,portal  # Options: portal, apis, apis,portal
 
 # Connector
-connector=mapped  # Options: mapped, kafka, akka, rest, grpc_vFeb2026, etc.
+connector=mapped  # Options: mapped, rabbitmq_vOct2024, akka_vDec2018, rest_vMar2019, grpc_vFeb2026, stored_procedure_vDec2019, star, etc.
 
 # Database
 db.driver=org.postgresql.Driver
@@ -1086,19 +1107,13 @@ When gRPC is enabled, the adapter starts a gRPC server alongside the RabbitMQ co
 - No external system required
 - Configuration: `connector=mapped`
 
-**Kafka**
-
-- Message-based connector using Apache Kafka
-- Asynchronous communication with backend systems
-- Supports high-throughput scenarios
-- Configuration: `connector=kafka_vMar2017`
-
 **RabbitMQ**
 
 - Message queue-based connector
-- Alternative to Kafka for message-based integration
 - Supports reliable message delivery
-- Configuration: Configure via props with RabbitMQ connection details
+- Configuration: `connector=rabbitmq_vOct2024`, with the RabbitMQ connection details in props
+
+The Kafka connectors were removed in 2022 and 2025. Use RabbitMQ or gRPC for message-based integration.
 
 **Akka Remote**
 
@@ -1120,18 +1135,18 @@ When gRPC is enabled, the adapter starts a gRPC server alongside the RabbitMQ co
 - Blockchain connector for Cardano network
 - Enables blockchain-based banking operations
 - Supports smart contract integration
-- Configuration: `connector=cardano`
+- Configuration: `connector=cardano_vJun2025`
 
 **Ethereum**
 
 - Blockchain connector for Ethereum network
 - Smart contract integration for DeFi applications
 - Web3 compatibility
-- Configuration: `connector=ethereum`
+- Configuration: `connector=ethereum_vSept2025`
 
 **REST/Stored Procedure**
 
-- Direct REST API or stored procedure connectors
+- Direct REST API (`connector=rest_vMar2019`) or stored procedure (`connector=stored_procedure_vDec2019`) connectors
 - Custom integration with existing systems
 - Flexible adapter pattern
 
@@ -1150,7 +1165,7 @@ When gRPC is enabled, the adapter starts a gRPC server alongside the RabbitMQ co
 
 Adapters act as the bridge between OBP-API and core banking systems:
 
-- **Receive:** Accept messages from OBP-API via message queues (Kafka/RabbitMQ), remote calls (Akka), or gRPC
+- **Receive:** Accept messages from OBP-API via message queues (RabbitMQ), remote calls (Akka), or gRPC
 - **Process:** Interact with core banking systems, databases, or other backend services
 - **Respond:** Return data formatted according to Message Doc specifications
 
@@ -1231,7 +1246,7 @@ There is also a **Connector Traces** page in **API Manager** which provides a UI
 
 ---
 
-### 3.13 Message Docs
+### 3.12 Message Docs
 
 **Purpose:** Message Docs define the structure and schema of messages exchanged between OBP-API connectors and backend adapters.
 
@@ -1253,7 +1268,7 @@ Message Docs serve as API contracts for connector-adapter communication, specify
 
 **Available Message Docs:**
 
-Message Docs are available for various connectors including Kafka, RabbitMQ, and Akka. Each connector version has its own set of message definitions.
+Message Docs are available for the connectors that send messages to an adapter, including RabbitMQ, Akka, REST and gRPC. Each connector version has its own set of message definitions.
 
 **Example:** [RabbitMQ Message Docs](https://apiexplorer-ii-sandbox.openbankproject.com/message-docs/rabbitmq_vOct2024)
 
@@ -1305,7 +1320,7 @@ connector=rabbitmq_vOct2024
 
 ---
 
-### 3.14 OBP-MCP (Model Context Protocol Server)
+### 3.13 OBP-MCP (Model Context Protocol Server)
 
 **Purpose:** OBP-MCP is an MCP (Model Context Protocol) server that enables AI assistants (such as Claude, ChatGPT, and other LLM-based tools) to discover, explore, and interact with the 600+ OBP API endpoints and 800+ glossary terms.
 
@@ -1382,6 +1397,30 @@ The server starts at `http://localhost:9100` with the MCP endpoint at `/mcp`.
 
 **Repository:** https://github.com/OpenBankProject/OBP-MCP
 
+### 3.14 OBP-Sentinel
+
+**Purpose:** Watches running OBP-API instances, and the apps around them (API Explorer II, API Manager, the Portal, OBP-OIDC), works out what is actually going wrong or getting slower, and suggests the few improvements that matter most.
+
+**How it works:**
+
+- Every few minutes it reads each instance with its own application token, as a Platform App: the log cache, API Metrics, Telemetry and the status endpoints.
+- Watching is plain code. Only the analysis, the review of source code and the questions a person asks about a finding use an AI model, each with a spending limit.
+
+See the Glossary item OBP-Sentinel.
+
+### 3.15 OBP Bank Node
+
+**Purpose:** A standard component that runs inside a bank's own network and connects its core banking system to an OBP-API instance run by a platform operator, without the bank running any OBP infrastructure itself.
+
+**Key Features:**
+
+- One self-contained service, typically a Docker container
+- Every network connection is outbound from the bank's network; no inbound ports are opened to the internet
+- Presents a small local interface to the core banking system
+- Calls OBP-API as a client, acting as itself as a Platform App with its own token, unlike a South Side Adapter, which OBP calls
+
+See the Glossary items OBP Bank Node, Connector and Adapter.
+
 ---
 
 ## 4. Standards Compliance
@@ -1421,7 +1460,7 @@ GET /v1/funds-confirmations
 
 ### 4.2 UK Open Banking
 
-**Overview:** UK's Open Banking standard (Version 3.1)
+**Overview:** UK's Open Banking standard (Versions 3.1 and 4.0.1)
 
 **Supported Features:**
 
@@ -1431,7 +1470,7 @@ GET /v1/funds-confirmations
 - Event Notification API
 - Variable Recurring Payments (VRP) - See [use_cases.md](use_cases.md#1-variable-recurring-payments-vrp) for details
 
-**API Version:** UK 3.1
+**API Versions:** UK 3.1 and UK 4.0.1. Version 4.0.1 adds consent authorisation with SCA, re-authentication of a consent, and the `x-fapi-interaction-id` header on every response.
 
 **Security Profile:**
 
@@ -1453,11 +1492,11 @@ POST /open-banking/v3.1/cbpii/funds-confirmation-consents
 
 **Overview:** OBP's native API standard with extensive banking operations
 
-**Current Version:** v6.0.0
+**Current Version:** v7.0.0
 
 **Key Features:**
 
-- 600+ endpoints
+- 1000+ endpoints
 - Multi-bank support
 - Extended customer data
 - Consent management
@@ -1472,7 +1511,8 @@ POST /open-banking/v3.1/cbpii/funds-confirmation-consents
 - v3.0.0, v3.1.0 (STABLE)
 - v4.0.0 (STABLE)
 - v5.0.0, v5.1.0 (STABLE)
-- v6.0.0 (BLEEDING-EDGE) - Mandates, Endpoint Auth Modes, Maker/Checker, gRPC connector, new User endpoints
+- v6.0.0 (DRAFT) - Mandates, Maker/Checker, gRPC connector, new User endpoints
+- v7.0.0 (BLEEDING-EDGE) - Files, asset registry, Platform Apps, Consumer Account Access, Groups, Tenants, Domain APIs, Dynamic Entity webhooks, retention policies, Telemetry, utility payments and payment promises
 
 **Key Endpoint Categories:**
 
@@ -2580,8 +2620,23 @@ openid_connect_2.access_type_offline=true
 **JWT Token Validation:**
 
 ```properties
-oauth2.jwk_set.url=http://keycloak:7070/realms/obp/protocol/openid-connect/certs
+# One or more JWKS URLs, comma separated
+oauth2.jwk_set.url=http://keycloak:7070/realms/obp/protocol/openid-connect/certs,https://www.googleapis.com/oauth2/v3/certs
 ```
+
+**Public identity providers (Google, Yahoo, Microsoft):**
+
+`oauth2.oidc_provider` lists the providers advertised at `/well-known`, and it is also the list of public providers whose tokens OBP accepts. When it is set, an id_token from a public provider that is not listed is refused with OBP-20218, even if its JWKS URL is in `oauth2.jwk_set.url`. Providers the operator runs, such as Keycloak and OBP-OIDC, are not affected.
+
+Each public provider can also be limited to your own client ids, so that a token issued to someone else's application is refused:
+
+```properties
+oauth2.oidc_provider=obp-oidc,keycloak,google
+oauth2.google.allowed_audiences=explorer-client-id.apps.googleusercontent.com
+oauth2.microsoft.allowed_audiences=your-azure-application-id
+```
+
+Clients send the Google id_token as the Bearer value. Google access tokens are not JWTs, so OBP cannot check them.
 
 #### 7.1.3 Direct Login
 
@@ -2617,8 +2672,27 @@ Authorization: DirectLogin token="TOKEN"
 
 - Only use over HTTPS
 - Implement rate limiting
-- Use strong passwords
+- Use strong passwords, checked against the password policy (`GET /obp/v7.0.0/public/password-config`)
 - Token expiration and refresh
+
+#### 7.1.4 Sign-In With Ethereum (SIWE)
+
+**Overview:** a user signs in by proving they hold an Ethereum wallet (EIP-4361). Only externally owned accounts are supported, and the signature is checked locally, with no blockchain node needed.
+
+```bash
+# 1. Ask for a challenge (anonymous)
+POST /my/logins/siwe/challenge     # returns a nonce and the message to sign
+
+# 2. Send the signed message (anonymous)
+POST /my/logins/siwe               # returns a token
+```
+
+```properties
+allow_siwe=true
+siwe.domain=example.com              # expected domain in the message, against phishing
+siwe.allowed_chain_ids=1,11155111    # mainnet and Sepolia
+siwe.nonce.ttl=300
+```
 
 ### 7.2 JWT Token Structure
 
@@ -2645,6 +2719,60 @@ Authorization: DirectLogin token="TOKEN"
 4. Verify audience claim
 5. Extract user identifier
 
+**Troubleshooting:**
+
+- **OBP-20208 (Cannot match the issuer and JWKS URI):** `oauth2.jwk_set.url` has no JWKS URL for the token's issuer. Check the URL, and that the issuer is written the same way (HTTP or HTTPS, trailing slash).
+- **OBP-20218:** the token comes from a public provider that is not listed in `oauth2.oidc_provider`.
+- Turn on debug logging for `code.api.OAuth2` in `logback.xml` to see each step.
+
+### 7.3 Consumers and Platform Apps
+
+**Consumer:** every application that calls OBP-API is registered as a Consumer. A Consumer has a consumer_id, a key and secret (for OAuth2, the client id and secret), a name, redirect URLs, and optionally a client certificate and a `jwks_uri` for its own keys.
+
+```bash
+# Create a Consumer (Role CanCreateConsumer)
+POST /obp/v5.1.0/management/consumers
+
+# List Consumers (Role CanGetConsumers)
+GET /obp/v5.1.0/management/consumers
+```
+
+**Grant types:** a Consumer's grant types control how tokens can be obtained through it: whether people can log in through it, whether the application can get a token for itself (`client_credentials`), or both. A Consumer with no grant types set can be used in every way. Grant types do not decide what the application may do with a token.
+
+**Platform Apps:** a Platform App is an application the installation runs as part of its own deployment, such as the Portal, API Manager, Opey, Sentinel, Cohort or a Bank Node. Only a Platform App can act as itself on its Consumer's Scopes (see 8.7).
+
+1. An administrator marks the Consumer as a Platform App (Role CanCreatePlatformApp).
+2. The app declares the Scopes it needs, and what each one is for, every time it starts.
+3. An administrator with CanGetPlatformApps sees which declared Scopes are held and which are missing, and grants the missing ones.
+
+```bash
+POST /obp/v7.0.0/management/platform-apps            # mark a Consumer as a Platform App
+GET  /obp/v7.0.0/management/platform-apps            # list them, with each declared Scope held or not
+PUT  /obp/v7.0.0/consumers/current/platform-app      # the app declares its Scopes
+GET  /obp/v7.0.0/consumers/current/scopes            # the app reads the Scopes it holds
+POST /obp/v7.0.0/consumers/CONSUMER_ID/scopes        # grant a Scope
+```
+
+OPERATORS: mark every application that acts as itself as a Platform App. Without the mark, a Consumer's Scopes only work as a limit on people.
+
+See the Glossary items Platform Apps, Consumer Grant Types and API.Entitlements and Scopes.
+
+### 7.4 Mutual TLS and PSD2 Certificates
+
+In production, mTLS is ended at a reverse proxy, which forwards the verified client certificate to OBP-API in the `PSD2-CERT` header. OBP-API reads the certificate in a standard form, whichever way the proxy encoded it.
+
+```properties
+# Name the proxy, so that its own certificate is not mistaken for the caller's
+mtls.trusted_proxy.1.issuer=CN=Your Internal CA,O=Your Org,C=DE
+mtls.trusted_proxy.1.subject=CN=nginx-prod-1,O=Your Org,C=DE
+
+# Whether a forwarded PSD2-CERT is trusted when the sender presented no client certificate.
+# Set false once the proxy itself uses mTLS.
+mtls.trust_forwarded_header_without_tls=true
+```
+
+For development only (`run.mode=development`), the http4s server can end mTLS itself with `mtls.enabled=true`, or with `./flushall_fast_build_and_run.sh --mtls`.
+
 ---
 
 ## 8. Access Control and Security Mechanisms
@@ -2655,25 +2783,38 @@ Authorization: DirectLogin token="TOKEN"
 
 **Core Concepts:**
 
-- **Entitlement:** Permission to perform a specific action
-- **Role:** Collection of entitlements (used interchangeably)
-- **Scope:** Optional constraint on entitlement (bank-level, system-level)
+- **Role:** permission to call a set of endpoints, for example `CanCreateCustomer`.
+- **Entitlement:** a Role held by a User, at a bank id or at system level.
+- **Scope:** a Role held by a Consumer (an application). See 8.7 for when a Scope counts.
+- **Group:** a named list of Roles at one bank id. Adding a User to a Group grants them its Roles as ordinary Entitlements.
+
+**Role names** follow the pattern `Can[Action][Resource][AtOneBank]`, for example `CanGetCustomersAtOneBank`.
+
+- **Bank Roles** act on one bank and are granted at that bank's id, for example `CanCreateCustomer` or `CanCreateBranch`.
+- **System Roles** act on the instance itself and are granted with an empty bank_id, for example `CanCreateBank` or `CanReadMetrics`.
+- **Roles for a space** (Dynamic Entities, Files) are granted at the space's bank id, or at `SYS` for the system space.
+
+Roles that let a holder act at any bank (`...AtAnyBank`) are being retired in favour of Roles granted at each bank where they are needed. Since September 2026, seven Roles that were instance-wide are granted per bank.
 
 **Common Roles:**
 
-| Role                            | Description             | Scope  |
-| ------------------------------- | ----------------------- | ------ |
-| `CanCreateAccount`              | Create bank accounts    | Bank   |
-| `CanGetAnyUser`                 | View any user details   | System |
-| `CanCreateEntitlementAtAnyBank` | Grant roles at any bank | System |
-| `CanCreateBranch`               | Create branch records   | Bank   |
-| `CanReadMetrics`                | View API metrics        | System |
-| `CanCreateConsumer`             | Create OAuth consumers  | System |
+| Role                            | Description                    | Granted at |
+| ------------------------------- | ------------------------------ | ---------- |
+| `CanCreateAccount`              | Create bank accounts           | Bank       |
+| `CanCreateCustomer`             | Create customers               | Bank       |
+| `CanCreateBranch`               | Create branch records          | Bank       |
+| `CanCreateEntitlementAtOneBank` | Grant Roles at one bank        | Bank       |
+| `CanGetAnyUser`                 | View any user details          | System     |
+| `CanReadMetrics`                | View API metrics               | System     |
+| `CanCreateConsumer`             | Create Consumers               | System     |
+
+**Listing all Roles:** `GET /obp/v2.1.0/roles` lists every Role, with whether it needs a bank id. API Explorer shows the Roles each endpoint needs. The source is `obp-api/src/main/scala/code/api/util/ApiRole.scala`.
 
 **Granting Entitlements:**
 
 ```bash
-POST /obp/v5.1.0/users/USER_ID/entitlements
+# A bank Role
+POST /obp/v7.0.0/users/USER_ID/entitlements
 Authorization: DirectLogin token="ADMIN_TOKEN"
 Content-Type: application/json
 
@@ -2681,7 +2822,17 @@ Content-Type: application/json
   "bank_id": "gh.29.uk",
   "role_name": "CanCreateAccount"
 }
+
+# A system Role: empty bank_id
+{
+  "bank_id": "",
+  "role_name": "CanGetAnyUser"
+}
 ```
+
+v7.0.0 answers 404 when the bank does not exist. Each Entitlement records who granted it (`granted_by_user_id`) and how (`created_by_process`), and the User is emailed when they are granted a Role.
+
+**Checking a Role:** `GET /obp/v7.0.0/banks/BANK_ID/my/roles/ROLE_NAME` (use `SYS` for a system Role) tells the caller whether they hold it.
 
 **Super Admin Bootstrap:**
 
@@ -2693,13 +2844,15 @@ super_admin_user_ids=uuid-1,uuid-2
 # Then remove super_admin_user_ids from props
 ```
 
+A super admin can grant Roles, and also holds a few virtual Roles, such as CanGetEntitlementRequestsAtAnyBank, so that on a new instance they can see and accept requests for Roles. See the Glossary item Virtual Entitlements.
+
 **Bootstrap OIDC Operator Consumer:**
 
 OBP can bootstrap a Consumer (Application) for OBP-OIDC at startup. This allows OBP-OIDC to authenticate as an application (without a User) and manage consumers via the API, eliminating the need for direct database access.
 
 The bootstrap consumer is granted the following Scopes: `CanGetConsumers`, `CanCreateConsumer`, `CanVerifyOidcClient`, `CanGetOidcClient`, `CanGetOidcConsent`.
 
-These endpoints use `authMode = UserXORApplication`, meaning they can be accessed either by a logged-in User with Entitlements, or by the Application acting as itself (e.g. with a client-credentials token) with its Consumer's Scopes. A User calling through the Consumer does not get its Scopes.
+These endpoints can be called by a logged-in User with Entitlements, or by the Application acting as itself with its Consumer's Scopes (see 8.7). A User calling through the Consumer does not get its Scopes.
 
 ```properties
 # Bootstrap OIDC Operator Consumer
@@ -2789,6 +2942,13 @@ skip_consent_sca_for_consumer_id_pairs=[{
 
 The `getMyConsents` endpoint supports pagination via `offset` and `limit` query parameters for managing large numbers of consents.
 
+**Consent settings:**
+
+- With `consents.allowed=false` (the default), every endpoint that creates a consent refuses with 401 OBP-35007, before a challenge is sent or anything is stored.
+- An OBP consent left INITIATED, because its challenge was never answered, is rejected after `obp_unfinished_consents_time_in_seconds` (default 6 hours).
+- A PSU can refuse a consent they have not yet authorised, without SCA.
+- `GET /obp/v7.0.0/public/consent-config` tells an application the longest time a consent may last, so it can ask for the right one.
+
 ### 8.3 Views System
 
 **Overview:** Fine-grained control over what data is visible to different actors
@@ -2816,6 +2976,16 @@ POST /obp/v5.1.0/banks/BANK_ID/accounts/ACCOUNT_ID/views
     "can_see_transaction_currency"
   ]
 }
+```
+
+Besides these, OBP has system views used by the Berlin Group and UK Open Banking consents.
+
+**Consumer Account Access (v7.0.0):** a view of an account can also be granted to an application, so that a service can act on the account as itself, with its own client-credentials token, without a stand-in User. The Consumer must be a Platform App. The owner view and public views cannot be granted to a Consumer, so give it a custom view with only the permissions it needs, for example `can_add_transaction_request_to_any_account` to initiate payments.
+
+```bash
+POST   /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/consumer-account-access
+GET    /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/consumer-account-access
+DELETE /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/consumer-account-access/CONSUMER_ACCOUNT_ACCESS_ID
 ```
 
 ### 8.4 Rate Limiting
@@ -2908,6 +3078,16 @@ X-Rate-Limit-Reset: 45
 - **Aggregation**: Active limits are summed together (positive values only)
 - **Single Source of Truth**: `RateLimitingUtil.getActiveRateLimitsWithIds()` calculates all active limits consistently
 - **Unlimited**: A value of `-1` means unlimited for that time period
+
+**IP penalties:** an operator can put a temporary per-minute limit on one IP address, on every endpoint, checked before all other rate limits. A limit of 0 refuses every request from that address, with 429 OBP-10062. Penalties are kept in Redis, so every instance applies them, and they expire after at most a week.
+
+```bash
+POST   /obp/v7.0.0/management/ip-penalties               # Role CanCreateIpPenalty
+GET    /obp/v7.0.0/management/ip-penalties               # Role CanGetIpPenalties
+DELETE /obp/v7.0.0/management/ip-penalties/IP_ADDRESS    # Role CanDeleteIpPenalty
+```
+
+**Documentation reads:** public documentation (resource docs, message docs, the Glossary, tags and so on) has its own per-IP limit, the "documentation" scope: 60 a minute, 1,000 an hour and 10,000 a day. It only warns until `self_service.rate_limit.documentation.mode=enforce` is set.
 
 ### 8.5 Attribute-Based Access Control (ABAC)
 
@@ -3006,34 +3186,33 @@ DELETE /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID     # Delete
 | Available in ABAC | Yes | No (privacy) |
 | Use case | Access control | User preferences |
 
-### 8.7 Endpoint Auth Modes
+### 8.7 Entitlements and Scopes
 
-**Status:** New in v6.0.0
+**Purpose:** Decide where a Role comes from on each request: a person's Entitlement, or an application's Scope.
 
-**Purpose:** Per-endpoint control over whether authentication requires a user, an application (consumer), or both.
+**How it works:**
 
-**Overview:**
+Who is acting on the request decides, the same way on every endpoint:
 
-Previously, a global `allow_entitlements_or_scopes` config flag allowed consumer scopes as an alternative to user entitlements for all endpoints. This has been replaced by a per-endpoint `authMode` field on `ResourceDoc`, providing fine-grained control.
+| Who is acting | Where the Role must come from |
+|---------------|-------------------------------|
+| A person | An Entitlement held by the User |
+| The application acting as itself | A Scope held by its Consumer |
 
-**Auth Modes:**
+The application acts as itself only if both of these hold:
 
-| Mode | Description |
-|------|-------------|
-| `UserOnly` | (Default) Requires user authentication and user entitlements |
-| `ApplicationOnly` | Requires consumer scope only, no user authentication needed |
-| `UserXORApplication` | Consumer scope when the application acts as itself (no user, or its own client-credentials user, provider `obp-oidc#client`); user entitlement when a person acts. A person never uses the consumer's scopes. Formerly `UserOrApplication` (either was sufficient) |
-| `UserAndApplication` | Both consumer scope AND user entitlement are required |
+1. Its Consumer is a Platform App.
+2. It calls with no User, or as its own client-credentials User (provider `obp-oidc#client`, or `keycloak#client` for a Keycloak service account).
 
-**Migration from `allow_entitlements_or_scopes`:**
+A Consumer that is not a Platform App can still hold Scopes. They then work only as a limit on people, through `require_scopes_for_all_roles` and `require_scopes_for_listed_roles`. With those props, a person needs the Entitlement and the Consumer they call through needs the Scope.
 
-The global `allow_entitlements_or_scopes` config flag has been removed. Deployments that previously used `allow_entitlements_or_scopes=true` must now set `authMode = UserXORApplication` on individual endpoint `ResourceDoc` instances.
+**Who may call an endpoint at all** is read from its list of possible errors:
 
-The global overrides `require_scopes_for_all_roles` and `require_scopes_for_listed_roles` continue to work and force `UserAndApplication` behavior, except for an application acting as itself on an `ApplicationOnly` or `UserXORApplication` endpoint, which still needs only its scopes.
+- `OBP-20001` (User not logged in), or a Role: a User is required.
+- `OBP-20200` (The application cannot be identified) without `OBP-20001`: an identified application is required, and a User is optional. The Berlin Group and UK Open Banking consent and payment endpoints work like this.
+- Neither: anyone may call.
 
-**Example:**
-
-The `verifyUserCredentials` endpoint uses `UserXORApplication` mode, so it can be called either by a logged-in user with the appropriate entitlement, or by an application acting as itself with the appropriate consumer scope.
+**History:** v6.0.0 added a per-endpoint `authMode` (UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication). It was removed in November 2026, because who is acting is a fact about each request, not about the endpoint.
 
 ### 8.8 Maker/Checker for Transaction Requests
 
@@ -3325,6 +3504,25 @@ GET /obp/v5.1.0/rate-limiting
 }
 ```
 
+**Telemetry:** aggregated figures about each running instance: requests per endpoint, connector calls, Redis commands, cache hits and misses, the database pool, memory, garbage collection and threads. They are not API Metrics, and carry no identities.
+
+```properties
+# A separate port serving /telemetry in the Prometheus text format. It has no authentication:
+# never publish it outside the host or cluster.
+telemetry.port.enabled=true
+telemetry.port=9464
+```
+
+```bash
+GET /obp/v7.0.0/management/telemetry                          # the same figures as JSON, Role CanGetTelemetry
+```
+
+**Deployment checks:** `GET /obp/v7.0.0/management/system/diagnostics/deployment` (Role CanGetConfig) checks the set-up from props and the last 15 minutes of traffic: whether client addresses are passed on correctly through proxies, rate limits, the root log level, Telemetry, Redis and lost API Metrics. Set `trust.proxy.peers` to the addresses of your proxies, so that forwarded client addresses are believed only from them.
+
+**Traffic sources:** `GET /obp/v7.0.0/management/traffic/top-callers?window=1|5|15` (Role CanGetTrafficSources) shows the busiest Consumers, IP addresses and endpoints on the answering instance over the last 1, 5 or 15 minutes.
+
+**Log cache:** `GET /obp/v5.1.0/system/log-cache/LEVEL` returns the newest log lines of a level (trace, debug, info, warning, error, all). Monitoring services such as OBP-Sentinel read it as Platform Apps.
+
 ### 10.4 Common Issues and Troubleshooting
 
 #### 10.4.1 Authentication Issues
@@ -3512,11 +3710,11 @@ https://apiexplorer.yourdomain.com  # Production
 **Accessing Different Versions:**
 
 ```bash
-# v5.1.0 (latest)
-GET /obp/v5.1.0/banks
+# v7.0.0 (latest, BLEEDING-EDGE)
+GET /obp/v7.0.0/banks
 
-# v4.0.0 (stable)
-GET /obp/v4.0.0/banks
+# v5.1.0 (stable)
+GET /obp/v5.1.0/banks
 
 # Berlin Group
 GET /berlin-group/v1.3/accounts
@@ -3665,6 +3863,69 @@ PUT /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMIT
 # 4. Monitor usage
 GET /obp/v5.1.0/management/metrics?consumer_id=CONSUMER_ID
 ```
+
+#### Workflow 4: Storing and Sharing a File (v7.0.0)
+
+A File is a document or photograph stored in a space: a bank, or `SYS` for the system space. Its content never changes once stored, and OBP keeps its SHA-256. The media types allowed are at most JPEG, PNG, WebP and PDF, and the content must match its type.
+
+```bash
+# 1. Store it, base64 encoded in JSON (Role CanCreateFileAtOneBank at the space)
+POST /obp/v7.0.0/banks/BANK_ID/files
+{ "file_name": "id-card.png", "media_type": "image/png", "content_base64": "...", "is_public": false }
+
+# 2. Read it and its content (owner, a User given access, or Role CanGetFileAtOneBank)
+GET /obp/v7.0.0/banks/BANK_ID/files/FILE_ID
+GET /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/content?inline=true
+
+# 3. Attach it to a record, and give a User access
+POST /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/attachments  { "record_type": "Customer", "record_id": "CUSTOMER_ID" }
+POST /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/access
+
+# 4. Publish it (Role CanCreatePublicFileAtOneBank); public files are served without login
+PUT /obp/v7.0.0/banks/BANK_ID/files/FILE_ID/is-public
+GET /obp/v7.0.0/banks/BANK_ID/public-files/FILE_ID/content
+```
+
+A User can also store personal files without a Role (`POST /obp/v7.0.0/banks/BANK_ID/my/files`), where the space allows it. Every file has a scan status (pending, clean, rejected), and content is served to others only once it is clean.
+
+#### Workflow 5: Assets and Amounts (v7.0.0)
+
+The asset registry decides which currency codes OBP accepts and how many decimal places each one has. It is filled automatically with every currency, metal and accounting unit in ISO 4217, and with the crypto assets XBT, ADA and ETH.
+
+```bash
+# Look Assets up (no authentication)
+GET /obp/v7.0.0/assets
+GET /obp/v7.0.0/assets/OMR                 # 3 decimal places
+GET /obp/v7.0.0/assets/chain/CHAIN_SCHEME/CHAIN_ASSET_ID
+
+# A bank adds an Asset it issues, such as a deposit token or a bond (Role CanCreateAsset)
+POST /obp/v7.0.0/banks/BANK_ID/assets
+```
+
+- Currency codes are case-insensitive: `eur` is stored and compared as `EUR`.
+- An amount with more decimal places than its currency allows, such as 12.345 EUR, is refused with 400 OBP-10068. Trailing zeros do not count.
+- Currency conversion rounds to the decimal places of the currency converted into, so OMR, KWD and BHD keep three.
+
+#### Workflow 6: Payment Promises and Netting (v7.0.0)
+
+A payment between two banks can be held as a promise, then settled later together with the other promises between the same two banks, as one net transaction. Each promise carries the payer's originator information (FATF Recommendation 16). This needs `open_corridor_enabled=true`.
+
+```bash
+# 1. Create a promise: held at PENDING, no Transaction is posted yet
+POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/OPEN_CORRIDOR_PROMISE/transaction-requests
+
+# 2. Attach evidence to the promise
+POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/open-corridor/promise
+
+# 3. Settle: net the pending promises between a pair of banks and post one Transaction
+POST /obp/v7.0.0/banks/BANK_ID/open-corridor/settlements
+GET  /obp/v7.0.0/banks/BANK_ID/open-corridor/settlements/SETTLEMENT_ID
+
+# Fees are settled separately
+POST /obp/v7.0.0/banks/BANK_ID/open-corridor/fee-settlements
+```
+
+The caller is a User with access to the view, or an application acting as itself whose Consumer has been given access to the view (Consumer Account Access, section 8.3).
 
 ---
 
@@ -4124,16 +4385,20 @@ POST /obp/v6.0.0/management/dynamic-endpoints
 }
 ```
 
-**Define Dynamic Entity:**
+**Define a Dynamic Entity (v7.0.0):**
+
+A Dynamic Entity is defined in a space: a bank's id, or `SYS` for the system space.
 
 ```bash
-POST /obp/v6.0.0/management/dynamic-entities
-{
-  "dynamic_entity_id": "customer-preferences",
-  "entity_name": "CustomerPreferences",
-  "bank_id": "gh.29.uk"
-}
+# Role CanCreateDynamicEntityDefinition, granted at the space
+POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities
 ```
+
+OBP then creates the entity's endpoints, under `/obp/v7.0.0/banks/BANK_ID/dynamic-entities/ENTITY_NAME`, and Roles for its records: `CanCreateDynamicEntityRecord_ENTITY_NAME`, `CanGetDynamicEntityRecord_ENTITY_NAME`, `CanUpdateDynamicEntityRecord_ENTITY_NAME` and `CanDeleteDynamicEntityRecord_ENTITY_NAME`, granted at the space. Each record in v7.0.0 carries metadata saying when it was created and last changed, by whom, and on whose behalf.
+
+A Dynamic Resource Doc is also served under its space: `/obp/dynamic-endpoint/banks/BANK_ID/dynamic-resource-doc/REQUEST_URL`. Dynamic Resource Docs can be written in Scala or Java, and checked first with `POST /obp/v7.0.0/management/dynamic-resource-docs/compile`.
+
+To offer a space's entities and docs as an API of its own, publish them as a Domain API, with its own base path and OpenAPI document. To tell an outside system about changes, add a Dynamic Entity webhook. See the Glossary items Space, Domain APIs and Dynamic Entity Webhooks.
 
 ### 13.5 Code Style and Conventions
 
@@ -4210,17 +4475,17 @@ class AccountService {
 
 The Open Bank Project follows an agile roadmap that evolves based on feedback from banks, regulators, developers, and the community. This section outlines current and future developments across the OBP ecosystem.
 
-### 14.2 Version 7.0.0 APIs
+### 14.2 Version 7.0.0 APIs and the http4s Stack
 
-**Status:** In Development
+**Status:** Done for the server; v7.0.0 is BLEEDING-EDGE
 
-**Purpose:** Version 7.0.0 APIs are being surfaced through http4s and Cats IO rather than Liftweb. This transition moves the API layer to a modern, purely functional Scala stack, reducing dependencies (including Jetty) and improving composability, testability, and performance through lightweight, non-blocking I/O.
+Every API version, the Berlin Group and UK Open Banking APIs, and the login and OpenID Connect routes are now served natively by http4s and Cats Effect IO, on Scala 2.13. Lift remains only as the Mapper ORM, and Jetty is no longer used. New endpoints are added in v7.0.0.
 
-**Technology Stack:**
+**Next:**
 
-- **http4s** - Typelevel HTTP server/client library
-- **Cats IO** - Effect type for purely functional asynchronous programming
-- Scala 2.13/3.x (upgraded from 2.12)
+- Retire the Roles that act at any bank (`...AtAnyBank`) in favour of Roles granted at each bank
+- Banks naming their Tenant
+- More of the database access in Doobie
 
 ### 14.3 OBP-Dispatch (Request Router)
 
@@ -4232,7 +4497,7 @@ The Open Bank Project follows an agile roadmap that evolves based on feedback fr
 
 **Routing:**
 
-- Route traffic according to Resource Docs available on v7.0.0 (http4s), OBP-Trading or OBP-API (Liftweb)
+- Route traffic according to the Resource Docs each backend serves, for example between OBP-API instances in different regions, or to OBP-Trading
 
 **Use Cases:**
 
@@ -4267,11 +4532,10 @@ docker run -p 8080:8080 \
                              │
          ┌───────────────────┼───────────────────┐
          │                   │                   │
-    ┌────▼────┐         ┌────▼────┐        ┌────▼────┐
-    │ OBP-API │         │  v7.0.0  │       │ OBP-Trading │
-    │(Liftweb)│         │ (http4s) │       │ v5.1.0  │
-    │ (EU)    │         │ (US)    │        │ (APAC)  │
-    └─────────┘         └─────────┘        └─────────┘
+    ┌────▼────┐         ┌────▼────┐       ┌─────▼─────┐
+    │ OBP-API │         │ OBP-API │       │OBP-Trading│
+    │  (EU)   │         │  (US)   │       │  (APAC)   │
+    └─────────┘         └─────────┘       └───────────┘
 ```
 
 ## 15. Appendices
@@ -4282,7 +4546,7 @@ docker run -p 8080:8080 \
 
 **API Explorer II:** Interactive API documentation tool
 
-**Bank:** Financial institution entity in OBP (also called "Space")
+**Bank:** Financial institution entity in OBP (also called "Space"; `SYS` is the system space)
 
 **Connector:** Plugin that connects OBP-API to backend systems
 
@@ -4298,7 +4562,7 @@ docker run -p 8080:8080 \
 
 **Dynamic Endpoint:** User-defined API endpoint
 
-**Endpoint Auth Mode:** Per-endpoint setting controlling whether user authentication, application scope, or both are required (UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication)
+**Platform App:** An application the installation runs as part of its own deployment. Only a Platform App can act as itself on its Consumer's Scopes
 
 **Entitlement:** Permission to perform specific operation (same as Role)
 
@@ -4396,7 +4660,7 @@ db.driver=org.postgresql.Driver
 db.url=jdbc:postgresql://localhost:5432/obpdb?user=obp&password=xxx
 
 # Connector
-connector=mapped  # mapped | kafka | akka | rest | grpc_vFeb2026 | star
+connector=mapped  # mapped | rabbitmq_vOct2024 | akka_vDec2018 | rest_vMar2019 | grpc_vFeb2026 | star
 
 # Redis Cache
 cache.redis.url=127.0.0.1
@@ -4998,795 +5262,7 @@ GET  /obp/v5.1.0/users                         # List users
 ## Conclusion
 
 For the latest updates visit Open Bank Project GitHub or contact TESOBE.
-**This Document Version:** 0.2
-**Last Updated:** October 29 2025
+**This Document Version:** 0.7.0
+**Last Updated:** November 2026
 **Maintained By:** TESOBE GmbH
 **License:** AGPL V3
-
-## 6. Authentication and Security
-
-### 6.1 Authentication Methods
-
-#### 6.1.1 OAuth 2.0 / OpenID Connect
-
-**Overview:** Modern OAuth2 with OIDC for authentication
-
-**Supported Grant Types:**
-
-- Authorization Code (recommended)
-- Implicit (deprecated, for legacy clients)
-- Client Credentials
-- Resource Owner Password Credentials
-
-**Configuration:**
-
-```properties
-# Enable OAuth2
-allow_oauth2_login=true
-
-# JWKS URI for token validation (can be comma-separated list)
-oauth2.jwk_set.url=http://localhost:9000/obp-oidc/jwks,https://www.googleapis.com/oauth2/v3/certs
-
-# OIDC Provider Configuration
-openid_connect_1.client_id=obp-client
-openid_connect_1.client_secret=your-secret
-openid_connect_1.callback_url=http://localhost:8080/auth/openid-connect/callback
-openid_connect_1.endpoint.discovery=http://localhost:9000/.well-known/openid-configuration
-openid_connect_1.endpoint.authorization=http://localhost:9000/auth
-openid_connect_1.endpoint.token=http://localhost:9000/token
-openid_connect_1.endpoint.userinfo=http://localhost:9000/userinfo
-openid_connect_1.endpoint.jwks_uri=http://localhost:9000/jwks
-openid_connect_1.access_type_offline=true
-openid_connect_1.button_text=Login with OIDC
-```
-
-**Multiple OIDC Providers:**
-
-```properties
-# Google
-openid_connect_1.client_id=xxx.apps.googleusercontent.com
-openid_connect_1.client_secret=xxx
-openid_connect_1.endpoint.discovery=https://accounts.google.com/.well-known/openid-configuration
-openid_connect_1.button_text=Google
-
-# Keycloak
-openid_connect_2.client_id=obp-client
-openid_connect_2.client_secret=xxx
-openid_connect_2.endpoint.discovery=http://keycloak:8080/realms/obp/.well-known/openid-configuration
-openid_connect_2.button_text=Keycloak
-```
-
-**Authorization Code Flow:**
-
-```http
-1. Authorization Request:
-GET /auth?response_type=code
-    &client_id=xxx
-    &redirect_uri=http://localhost:8080/callback
-    &scope=openid profile email
-    &state=random-state
-
-2. Token Exchange:
-POST /token
-Content-Type: application/x-www-form-urlencoded
-
-grant_type=authorization_code
-&code=xxx
-&redirect_uri=http://localhost:8080/callback
-&client_id=xxx
-&client_secret=xxx
-
-3. API Request with Token:
-GET /obp/v4.0.0/users/current
-Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-#### 6.1.2 Direct Login
-
-**Overview:** Simplified authentication method for trusted applications
-
-**Characteristics:**
-
-- Username/password exchange for token
-- No OAuth redirect flow
-- Suitable for mobile apps and trusted clients
-- Time-limited tokens
-
-**Configuration:**
-
-```properties
-allow_direct_login=true
-direct_login_consumer_key=your-trusted-consumer-key
-```
-
-**Login Request:**
-
-```http
-POST /my/logins/direct
-Authorization: DirectLogin username="user@example.com",
-                          password="xxx",
-                          consumer_key="xxx"
-Content-Type: application/json
-```
-
-**Response:**
-
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "consumer_id": "xxx",
-  "user_id": "xxx"
-}
-```
-
-**API Request:**
-
-```http
-GET /obp/v4.0.0/users/current
-Authorization: DirectLogin token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-
-### 6.2 JWT Token Validation
-
-**Token Structure:**
-
-```json
-{
-  "header": {
-    "alg": "RS256",
-    "typ": "JWT",
-    "kid": "key-id"
-  },
-  "payload": {
-    "iss": "http://localhost:9000/obp-oidc",
-    "sub": "user-uuid",
-    "aud": "obp-api-client",
-    "exp": 1234567890,
-    "iat": 1234567890,
-    "email": "user@example.com",
-    "name": "John Doe",
-    "preferred_username": "johndoe"
-  },
-  "signature": "..."
-}
-```
-
-**Validation Process:**
-
-1. Extract JWT from Authorization header
-2. Decode header to get `kid` (key ID)
-3. Fetch public keys from JWKS endpoint
-4. Verify signature using public key
-5. Validate `iss` (issuer) matches configured issuers
-6. Validate `exp` (expiration) is in future
-7. Validate `aud` (audience) if required
-8. Extract user identity from claims
-
-**JWKS Endpoint Response:**
-
-```json
-{
-  "keys": [
-    {
-      "kty": "RSA",
-      "use": "sig",
-      "kid": "key-id-1",
-      "n": "modulus...",
-      "e": "AQAB"
-    }
-  ]
-}
-```
-
-**Troubleshooting JWT Issues:**
-
-**Error: OBP-20208: Cannot match the issuer and JWKS URI**
-
-- Verify `oauth2.jwk_set.url` contains the correct JWKS endpoint
-- Ensure issuer in JWT matches configured provider
-- Check URL format consistency (HTTP vs HTTPS, trailing slashes)
-
-**Error: OBP-20209: Invalid JWT signature**
-
-- Verify JWKS endpoint is accessible
-- Check that `kid` in JWT header matches available keys
-- Ensure system time is synchronized (NTP)
-
-**Debug Logging:**
-
-```xml
-<!-- In logback.xml -->
-<logger name="code.api.OAuth2" level="DEBUG"/>
-<logger name="code.api.util.JwtUtil" level="DEBUG"/>
-```
-
-### 6.3 Consumer Key Management
-
-**Creating a Consumer:**
-
-```http
-POST /management/consumers
-Authorization: DirectLogin token="xxx"
-Content-Type: application/json
-
-{
-  "app_name": "My Banking App",
-  "app_type": "Web",
-  "description": "Customer-facing web application",
-  "developer_email": "dev@example.com",
-  "redirect_url": "https://myapp.com/callback"
-}
-```
-
-**Response:**
-
-```json
-{
-  "consumer_id": "xxx",
-  "key": "consumer-key-xxx",
-  "secret": "consumer-secret-xxx",
-  "app_name": "My Banking App",
-  "app_type": "Web",
-  "description": "Customer-facing web application",
-  "developer_email": "dev@example.com",
-  "redirect_url": "https://myapp.com/callback",
-  "created_by_user_id": "user-uuid",
-  "created": "2024-01-01T00:00:00Z",
-  "enabled": true
-}
-```
-
-**Managing Consumers:**
-
-```http
-# Get all consumers (requires CanGetConsumers role)
-GET /management/consumers
-
-# Get consumer by ID
-GET /management/consumers/{CONSUMER_ID}
-
-# Enable/Disable consumer
-PUT /management/consumers/{CONSUMER_ID}
-{
-  "enabled": false
-}
-
-# Update consumer certificate (for MTLS)
-PUT /management/consumers/{CONSUMER_ID}/consumer/certificate
-```
-
-#### Role Naming Convention
-
-Roles follow a consistent naming pattern:
-
-- `Can[Action][Resource][Scope]`
-- **Action:** Create, Get, Update, Delete, Read, Add, Maintain, Search, Enable, Disable, etc.
-- **Resource:** Account, Customer, Bank, Transaction, Product, Card, Branch, ATM, etc.
-- **Scope:** AtOneBank, AtAnyBank, ForUser, etc.
-
-#### Common Role Patterns
-
-**System-Level Roles** (requiresBankId = false):
-
-- Apply across all banks
-- Examples: `CanGetAnyUser`, `CanCreateBank`, `CanReadMetrics`
-
-**Bank-Level Roles** (requiresBankId = true):
-
-- Scoped to a specific bank
-- Examples: `CanCreateCustomer`, `CanCreateBranch`, `CanGetMetricsAtOneBank`
-
-#### Key Role Categories
-
-**Account Management:**
-
-- CanCreateAccount
-- CanUpdateAccount
-- CanGetAccountsHeldAtOneBank
-- CanGetAccountsHeldAtAnyBank
-- CanCreateAccountAttributeAtOneBank
-- CanUpdateAccountAttribute
-- CanDeleteAccountCascade
-- CanCreateAccountAttributeDefinitionAtOneBank
-- CanDeleteAccountAttributeDefinitionAtOneBank
-- CanGetAccountAttributeDefinitionAtOneBank
-- CanUpdateAccountAttribute
-- CanGetAccountApplications
-- CanUpdateAccountApplications
-- CanGetAccountsMinimalForCustomerAtAnyBank
-- CanUseAccountFirehose
-- CanUseAccountFirehoseAtAnyBank
-- CanSeeAccountAccessForAnyUser
-
-**Customer Management:**
-
-- CanCreateCustomer
-- CanCreateCustomerAtAnyBank
-- CanGetCustomersAtOneBank
-- CanGetCustomersAtAllBanks
-- CanGetCustomersMinimalAtOneBank
-- CanGetCustomersMinimalAtAllBanks
-- CanGetCustomerOverview
-- CanGetCustomerOverviewFlat
-- CanUpdateCustomerEmail
-- CanUpdateCustomerNumber
-- CanUpdateCustomerMobilePhoneNumber
-- CanUpdateCustomerIdentity
-- CanUpdateCustomerBranch
-- CanUpdateCustomerData
-- CanUpdateCustomerCreditLimit
-- CanUpdateCustomerCreditRatingAndSource
-- CanUpdateCustomerCreditRatingAndSourceAtAnyBank
-- CanGetCorrelatedUsersInfo
-- CanGetCorrelatedUsersInfoAtAnyBank
-- CanCreateCustomerAccountLink
-- CanDeleteCustomerAccountLink
-- CanGetCustomerAccountLink
-- CanGetCustomerAccountLinks
-- CanUpdateCustomerAccountLink
-- CanCreateCustomerAttributeAtOneBank
-- CanCreateCustomerAttributeAtAnyBank
-- CanCreateCustomerAttributeDefinitionAtOneBank
-- CanGetCustomerAttributeAtOneBank
-- CanGetCustomerAttributeAtAnyBank
-- CanGetCustomerAttributesAtOneBank
-- CanGetCustomerAttributesAtAnyBank
-- CanGetCustomerAttributeDefinitionAtOneBank
-- CanUpdateCustomerAttributeAtOneBank
-- CanUpdateCustomerAttributeAtAnyBank
-- CanDeleteCustomerAttributeAtOneBank
-- CanDeleteCustomerAttributeAtAnyBank
-- CanDeleteCustomerAttributeDefinitionAtOneBank
-- CanCreateCustomerAddress
-- CanGetCustomerAddress
-- CanDeleteCustomerAddress
-- CanCreateCustomerMessage
-- CanGetCustomerMessages
-- CanDeleteCustomerCascade
-- CanUseCustomerFirehoseAtAnyBank
-
-**Transaction Management:**
-
-- CanCreateAnyTransactionRequest
-- CanGetTransactionRequestAtAnyBank
-- CanUpdateTransactionRequestStatusAtAnyBank
-- CanCreateTransactionAttributeAtOneBank
-- CanCreateTransactionAttributeDefinitionAtOneBank
-- CanGetTransactionAttributeAtOneBank
-- CanGetTransactionAttributesAtOneBank
-- CanGetTransactionAttributeDefinitionAtOneBank
-- CanUpdateTransactionAttributeAtOneBank
-- CanDeleteTransactionAttributeDefinitionAtOneBank
-- CanCreateTransactionRequestAttributeAtOneBank
-- CanCreateTransactionRequestAttributeDefinitionAtOneBank
-- CanGetTransactionRequestAttributeAtOneBank
-- CanGetTransactionRequestAttributesAtOneBank
-- CanGetTransactionRequestAttributeDefinitionAtOneBank
-- CanUpdateTransactionRequestAttributeAtOneBank
-- CanDeleteTransactionRequestAttributeDefinitionAtOneBank
-- CanCreateHistoricalTransaction
-- CanCreateHistoricalTransactionAtBank
-- CanDeleteTransactionCascade
-- CanCreateTransactionType
-- CanGetDoubleEntryTransactionAtOneBank
-- CanGetDoubleEntryTransactionAtAnyBank
-
-**Bank Resource Management:**
-
-- CanCreateBranch
-- CanCreateBranchAtAnyBank
-- CanUpdateBranch
-- CanDeleteBranch
-- CanDeleteBranchAtAnyBank
-- CanCreateAtm
-- CanCreateAtmAtAnyBank
-- CanUpdateAtm
-- CanUpdateAtmAtAnyBank
-- CanDeleteAtm
-- CanDeleteAtmAtAnyBank
-- CanCreateAtmAttribute
-- CanCreateAtmAttributeAtAnyBank
-- CanGetAtmAttribute
-- CanGetAtmAttributeAtAnyBank
-- CanUpdateAtmAttribute
-- CanUpdateAtmAttributeAtAnyBank
-- CanDeleteAtmAttribute
-- CanDeleteAtmAttributeAtAnyBank
-- CanCreateFxRate
-- CanCreateFxRateAtAnyBank
-- CanReadFx
-- CanDeleteBankCascade
-- CanCreateBankAttribute
-- CanGetBankAttribute
-- CanUpdateBankAttribute
-- CanDeleteBankAttribute
-- CanCreateBankAttributeDefinitionAtOneBank
-- CanCreateBankAccountBalance
-- CanGetBankAccountBalance
-- CanGetBankAccountBalances
-- CanUpdateBankAccountBalance
-- CanDeleteBankAccountBalance
-
-**User & Entitlement Management:**
-
-- CanCreateUserCustomerLink
-- CanCreateUserCustomerLinkAtAnyBank
-- CanGetUserCustomerLink
-- CanGetUserCustomerLinkAtAnyBank
-- CanDeleteUserCustomerLink
-- CanDeleteUserCustomerLinkAtAnyBank
-- CanCreateEntitlementAtOneBank
-- CanCreateEntitlementAtAnyBank
-- CanDeleteEntitlementAtOneBank
-- CanDeleteEntitlementAtAnyBank
-- CanGetEntitlementsForOneBank
-- CanGetEntitlementsForAnyBank
-- CanGetEntitlementsForAnyUserAtOneBank
-- CanGetEntitlementsForAnyUserAtAnyBank
-- CanGetEntitlementRequestsAtAnyBank
-- CanDeleteEntitlementRequestsAtAnyBank
-- CanCreateUserAuthContext
-- CanCreateUserAuthContextUpdate
-- CanGetUserAuthContext
-- CanDeleteUserAuthContext
-- CanCreateUserInvitation
-- CanGetUserInvitation
-- CanRefreshUser
-- CanSyncUser
-- CanReadUserLockedStatus
-- CanCreateResetPasswordUrl
-
-**Consumer & API Management:**
-
-- CanCreateConsumer
-- CanGetConsumers
-- CanEnableConsumers
-- CanDisableConsumers
-- CanUpdateConsumerName
-- CanUpdateConsumerRedirectUrl
-- CanUpdateConsumerLogoUrl
-- CanUpdateConsumerCertificate
-- CanSetCallLimits
-- CanReadCallLimits
-- CanDeleteRateLimiting
-- CanReadMetrics
-- CanGetMetricsAtOneBank
-- CanSearchMetrics
-- CanGetConfig
-- CanGetConnectorMetrics
-- CanGetAdapterInfo
-- CanGetAdapterInfoAtOneBank
-- CanGetDatabaseInfo
-- CanGetSystemIntegrity
-- CanGetCallContext
-
-**Dynamic Resources:**
-
-- CanCreateDynamicEndpoint
-- CanGetDynamicEndpoint
-- CanGetDynamicEndpoints
-- CanUpdateDynamicEndpoint
-- CanDeleteDynamicEndpoint
-- CanCreateBankLevelDynamicEndpoint
-- CanGetBankLevelDynamicEndpoint
-- CanGetBankLevelDynamicEndpoints
-- CanUpdateBankLevelDynamicEndpoint
-- CanDeleteBankLevelDynamicEndpoint
-- CanCreateDynamicEntityDefinition
-- CanGetDynamicEntityDefinitions
-- CanUpdateDynamicEntityDefinition
-- CanDeleteDynamicEntityDefinition
-- CanBackupDynamicEntityDefinition
-- CanDeleteCascadeDynamicEntityDefinition
-- CanCreateDynamicResourceDoc
-- CanGetDynamicResourceDoc
-- CanGetAllDynamicResourceDocs
-- CanUpdateDynamicResourceDoc
-- CanDeleteDynamicResourceDoc
-- CanReadDynamicResourceDocsAtOneBank
-- CanCreateBankLevelDynamicResourceDoc
-- CanGetBankLevelDynamicResourceDoc
-- CanGetAllBankLevelDynamicResourceDocs
-- CanUpdateBankLevelDynamicResourceDoc
-- CanDeleteBankLevelDynamicResourceDoc
-- CanCreateDynamicMessageDoc
-- CanGetDynamicMessageDoc
-- CanGetAllDynamicMessageDocs
-- CanUpdateDynamicMessageDoc
-- CanDeleteDynamicMessageDoc
-- CanCreateBankLevelDynamicMessageDoc
-- CanGetBankLevelDynamicMessageDoc
-- CanDeleteBankLevelDynamicMessageDoc
-- CanCreateEndpointMapping
-- CanGetEndpointMapping
-- CanGetAllEndpointMappings
-- CanUpdateEndpointMapping
-- CanDeleteEndpointMapping
-- CanCreateBankLevelEndpointMapping
-- CanGetBankLevelEndpointMapping
-- CanGetAllBankLevelEndpointMappings
-- CanUpdateBankLevelEndpointMapping
-- CanDeleteBankLevelEndpointMapping
-- CanCreateMethodRouting
-- CanGetMethodRoutings
-- CanUpdateMethodRouting
-- CanDeleteMethodRouting
-- CanCreateConnectorMethod
-- CanGetConnectorMethod
-- CanGetAllConnectorMethods
-- CanUpdateConnectorMethod
-- CanGetConnectorEndpoint
-- CanCreateSystemLevelEndpointTag
-- CanGetSystemLevelEndpointTag
-- CanUpdateSystemLevelEndpointTag
-- CanDeleteSystemLevelEndpointTag
-- CanCreateBankLevelEndpointTag
-- CanGetBankLevelEndpointTag
-- CanUpdateBankLevelEndpointTag
-- CanDeleteBankLevelEndpointTag
-- CanGetAllApiCollections
-- CanGetApiCollectionsForUser
-- CanReadResourceDoc
-- CanReadStaticResourceDoc
-- CanReadGlossary
-
-**Consent Management:**
-
-- CanGetConsentsAtOneBank
-- CanGetConsentsAtAnyBank
-- CanUpdateConsentStatusAtOneBank
-- CanUpdateConsentStatusAtAnyBank
-- CanUpdateConsentAccountAccessAtOneBank
-- CanUpdateConsentAccountAccessAtAnyBank
-- CanUpdateConsentUserAtOneBank
-- CanUpdateConsentUserAtAnyBank
-- CanRevokeConsentAtBank
-
-**Security & Compliance:**
-
-- CanAddKycCheck
-- CanGetAnyKycChecks
-- CanAddKycDocument
-- CanGetAnyKycDocuments
-- CanAddKycMedia
-- CanGetAnyKycMedia
-- CanAddKycStatus
-- CanGetAnyKycStatuses
-- CanCreateRegulatedEntity
-- CanDeleteRegulatedEntity
-- CanCreateRegulatedEntityAttribute
-- CanGetRegulatedEntityAttribute
-- CanGetRegulatedEntityAttributes
-- CanUpdateRegulatedEntityAttribute
-- CanDeleteRegulatedEntityAttribute
-- CanCreateAuthenticationTypeValidation
-- CanGetAuthenticationTypeValidation
-- CanUpdateAuthenticationTypeValidation
-- CanDeleteAuthenticationValidation
-- CanCreateJsonSchemaValidation
-- CanGetJsonSchemaValidation
-- CanUpdateJsonSchemaValidation
-- CanDeleteJsonSchemaValidation
-- CanCreateTaxResidence
-- CanGetTaxResidence
-- CanDeleteTaxResidence
-
-**Logging & Monitoring:**
-
-- CanGetTraceLevelLogsAtOneBank
-- CanGetTraceLevelLogsAtAllBanks
-- CanGetDebugLevelLogsAtOneBank
-- CanGetDebugLevelLogsAtAllBanks
-- CanGetInfoLevelLogsAtOneBank
-- CanGetInfoLevelLogsAtAllBanks
-- CanGetWarningLevelLogsAtOneBank
-- CanGetWarningLevelLogsAtAllBanks
-- CanGetErrorLevelLogsAtOneBank
-- CanGetErrorLevelLogsAtAllBanks
-- CanGetAllLevelLogsAtOneBank
-- CanGetAllLevelLogsAtAllBanks
-
-**Views & Permissions:**
-
-- CanCreateSystemView
-- CanGetSystemView
-- CanUpdateSystemView
-- CanDeleteSystemView
-- CanCreateSystemViewPermission
-- CanDeleteSystemViewPermission
-
-**Cards:**
-
-- CanCreateCardsForBank
-- CanGetCardsForBank
-- CanUpdateCardsForBank
-- CanDeleteCardsForBank
-- CanCreateCardAttributeDefinitionAtOneBank
-- CanGetCardAttributeDefinitionAtOneBank
-- CanDeleteCardAttributeDefinitionAtOneBank
-
-**Products & Fees:**
-
-- CanCreateProduct
-- CanCreateProductAtAnyBank
-- CanCreateProductAttribute
-- CanGetProductAttribute
-- CanUpdateProductAttribute
-- CanDeleteProductAttribute
-- CanCreateProductAttributeDefinitionAtOneBank
-- CanGetProductAttributeDefinitionAtOneBank
-- CanDeleteProductAttributeDefinitionAtOneBank
-- CanCreateProductFee
-- CanGetProductFee
-- CanUpdateProductFee
-- CanDeleteProductFee
-- CanDeleteProductCascade
-- CanMaintainProductCollection
-
-**Webhooks:**
-
-- CanCreateWebhook
-- CanGetWebhooks
-- CanUpdateWebhook
-- CanCreateSystemAccountNotificationWebhook
-- CanCreateAccountNotificationWebhookAtOneBank
-
-**Data Management:**
-
-- CanCreateSandbox
-- CanSearchWarehouse
-- CanSearchWarehouseStatistics
-- CanCreateDirectDebitAtOneBank
-- CanCreateStandingOrderAtOneBank
-- CanCreateCounterparty
-- CanCreateCounterpartyAtAnyBank
-- CanGetCounterparty
-- CanGetCounterpartyAtAnyBank
-- CanGetCounterparties
-- CanGetCounterpartiesAtAnyBank
-- CanDeleteCounterparty
-- CanDeleteCounterpartyAtAnyBank
-- CanAddSocialMediaHandle
-- CanGetSocialMediaHandles
-- CanUpdateAgentStatusAtOneBank
-- CanUpdateAgentStatusAtAnyBank
-
-````
-
-**Scopes:**
-
-- CanCreateScopeAtOneBank
-- CanCreateScopeAtAnyBank
-- CanDeleteScopeAtAnyBank
-
-**Web UI:**
-
-- CanCreateWebUiProps
-- CanGetWebUiProps
-- CanDeleteWebUiProps
-
-#### Viewing All Roles
-
-**Via API:**
-
-```bash
-GET /obp/v5.1.0/roles
-Authorization: DirectLogin token="TOKEN"
-````
-
-**Via Source Code:**
-The complete list of roles is defined in:
-
-- `obp-api/src/main/scala/code/api/util/ApiRole.scala`
-
-**Via API Explorer II:**
-
-- Navigate to the "Role" endpoints section
-- View role requirements for each endpoint in the documentation
-
-#### Granting Roles
-
-```bash
-# Grant role to user at specific bank
-POST /obp/v5.1.0/users/USER_ID/entitlements
-{
-  "bank_id": "gh.29.uk",
-  "role_name": "CanCreateAccount"
-}
-
-# Grant system-level role (bank_id = "")
-POST /obp/v5.1.0/users/USER_ID/entitlements
-{
-  "bank_id": "",
-  "role_name": "CanGetAnyUser"
-}
-```
-
-#### Special Roles
-
-**Super Admin Roles:**
-
-- `CanCreateEntitlementAtAnyBank` - Can grant any role at any bank
-- `CanDeleteEntitlementAtAnyBank` - Can revoke any role at any bank
-
-**Firehose Roles:**
-
-- `CanUseAccountFirehoseAtAnyBank` - Access to all account data
-- `CanUseCustomerFirehoseAtAnyBank` - Access to all customer data
-
-**Note:** The complete list of 334 roles provides fine-grained access control for every operation in the OBP ecosystem. Roles can be combined to create custom permission sets tailored to specific use cases.
-
-### 14.6 Roadmap and Future Development
-
-#### Version 7.0.0 APIs
-
-**Status:** In Active Development
-
-**Overview:**
-Version 7.0.0 APIs are being surfaced through http4s and Cats IO rather than Liftweb. This provides a leaner, purely functional tech stack with fewer dependencies.
-
-**Key Changes:**
-
-- **http4s** replaces Liftweb for HTTP request/response handling
-- **Cats IO** replaces Liftweb's threading model with purely functional, non-blocking I/O
-- Reduced dependency on Jetty
-
-**Development Focus:**
-
-- Usage of OBP Scala Library
-
-**Migration Path:**
-
-- Use OBP Dispatch to route between endpoints served by OBP-API (Liftweb) and v7.0.0 (http4s) instances (both stacks return Resource Docs so dispatch can discover and route)
-
-**Repository:**
-
-- GitHub: `OBP-API` (the v7.0.0 APIs are developed within the existing OBP-API repository)
-
-#### OBP-Dispatch (API Gateway/Proxy)
-
-**Status:** Experimental/Beta
-
-**Overview:**
-OBP-Dispatch is a lightweight proxy/gateway service designed to route requests
-to OBP-API (Liftweb) or v7.0.0 (http4s) or OBP-Trading instances.
-
-**Key Features:**
-
-- **Request Routing:** Routing based on Endpoint implementation.
-
-**Use Cases:**
-
-1. **API Version Management:**
-   - Routing to new OBP implementations.
-
-**Architecture:**
-
-```
-Client Request
-     │
-     ▼
-┌────────────────┐
-│  OBP-Dispatch  │
-│    (Proxy)     │
-└────────┬───────┘
-         │
-    ┌────┼────┬────────┐
-    │    │    │        │
-    ▼    ▼    ▼        ▼
-┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐
-│OBP-  │ │OBP-  │ │OBP-  │ │OBP-  │
-│API 1 │ │API 2 │ │Trading │API N │
-└──────┘ └──────┘ └──────┘ └──────┘
-```
-
-**Deployment:**
-
-```bash
-# Build
-cd OBP-API-Dispatch
-mvn clean package
-
-# Run
-java -jar target/OBP-API-Dispatch-1.0-SNAPSHOT-jar-with-dependencies.jar
-```

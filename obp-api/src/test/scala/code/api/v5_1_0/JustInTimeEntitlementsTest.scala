@@ -30,7 +30,6 @@ package code.api.v5_1_0
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
-import code.api.util.APIUtil.UserOnly
 import code.api.util.ApiRole
 import code.api.util.ApiRole.{CanCreateEntitlementAtAnyBank, CanCreateEntitlementAtOneBank, CanGetAnyUser, CanGetMetricsAtOneBank}
 import code.api.util.ErrorMessages.UserHasMissingRoles
@@ -144,8 +143,8 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
         DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, CanCreateEntitlementAtOneBank.toString)
 
       When("access control is asked about a Role in the system space")
-      val allowedInSystemSpace = APIUtil.handleAccessControlWithAuthMode(
-        DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "", List(wantedRole), UserOnly)
+      val allowedInSystemSpace = APIUtil.handleAccessControlRegardingEntitlementsAndScopes(
+        DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "", List(wantedRole))
 
       Then("it refuses")
       allowedInSystemSpace should equal(false)
@@ -163,8 +162,8 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
         bankId, resourceUser2.userId, CanCreateEntitlementAtOneBank.toString)
 
       When("access control is asked about the same Role at a real bank")
-      val allowedAtBank = APIUtil.handleAccessControlWithAuthMode(
-        bankId, resourceUser2.userId, "", List(wantedRole), UserOnly)
+      val allowedAtBank = APIUtil.handleAccessControlRegardingEntitlementsAndScopes(
+        bankId, resourceUser2.userId, "", List(wantedRole))
 
       Then("it allows, which is the behaviour the system space rule must not have broken")
       allowedAtBank should equal(true)
@@ -199,8 +198,8 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
       }
 
       When("access control is asked about a system scoped Role on an endpoint that carries that bank id")
-      val allowed = APIUtil.handleAccessControlWithAuthMode(
-        bankId, resourceUser3.userId, "", List(systemScopedRole), UserOnly)
+      val allowed = APIUtil.handleAccessControlRegardingEntitlementsAndScopes(
+        bankId, resourceUser3.userId, "", List(systemScopedRole))
 
       Then("it refuses, because Add Entitlement would have refused the same grant")
       allowed should equal(false)
@@ -222,8 +221,8 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
         "", resourceUser1.userId, CanCreateEntitlementAtAnyBank.toString)
 
       When("access control is asked about a system scoped Role on an endpoint that carries a bank id")
-      val allowed = APIUtil.handleAccessControlWithAuthMode(
-        bankId, resourceUser1.userId, "", List(systemScopedRole), UserOnly)
+      val allowed = APIUtil.handleAccessControlRegardingEntitlementsAndScopes(
+        bankId, resourceUser1.userId, "", List(systemScopedRole))
 
       Then("it allows")
       allowed should equal(true)
@@ -249,8 +248,8 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
       }
 
       When("access control is asked about the Role that grants Entitlements everywhere")
-      val allowed = APIUtil.handleAccessControlWithAuthMode(
-        bankId, resourceUser3.userId, "", List(ApiRole.canCreateEntitlementAtAnyBank), UserOnly)
+      val allowed = APIUtil.handleAccessControlRegardingEntitlementsAndScopes(
+        bankId, resourceUser3.userId, "", List(ApiRole.canCreateEntitlementAtAnyBank))
 
       Then("it refuses: the granting Roles are excluded from this automation, as the Glossary and the props template both say")
       allowed should equal(false)

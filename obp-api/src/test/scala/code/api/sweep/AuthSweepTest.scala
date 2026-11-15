@@ -151,7 +151,7 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers with Sweep
     "OBPv4.0.0-verifyRequestSignResponse" ->
       ("Refuses with OBP-20311 'The Request is not signed' -- JWS request signing, a third " +
        "authentication mechanism alongside user and application. ResourceDoc has no way to " +
-       "declare it: authMode covers user/application only, so neither the doc nor this sweep " +
+       "declare it: its error list covers user and application only, so neither the doc nor this sweep " +
        "can express the requirement. The 401 is correct; only the message differs.")
   )
 
@@ -198,8 +198,8 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers with Sweep
    *
    * So a 401 is only a violation when it is the USER one. An application-auth 401 is reported
    * as an observation instead of a failure -- named, not silently swallowed, because the doc
-   * still has no machine-readable way to say "needs an application" unless someone sets
-   * authMode, and a reader of resource-docs cannot tell.
+   * does not say "needs an application" unless its error list names ApplicationNotIdentified,
+   * and a reader of resource-docs cannot tell.
    */
   private def checkPublicIsNot401(doc: ResourceDoc): Option[String] = {
     val (code, json) = call(doc.requestVerb, EndpointCatalog.concretePath(doc), Map.empty)
@@ -207,8 +207,8 @@ class AuthSweepTest extends ServerSetupWithTestData with DefaultUsers with Sweep
     if (code != 401) None
     else if (msg.startsWith(ApplicationNotIdentified.take(9))) {
       info(s"${describe(doc)} -- declares no user authentication and requires an APPLICATION " +
-           s"instead ($msg). The doc is accurate about the user; consider authMode = " +
-           s"ApplicationOnly so resource-docs can say so too.")
+           s"instead ($msg). The doc is accurate about the user; consider listing " +
+           s"ApplicationNotIdentified in its error list so resource-docs can say so too.")
       None
     } else
       Some(s"${describe(doc)} -- declares no authentication requirement yet answered 401 " +

@@ -792,7 +792,6 @@ object Http4s510 {
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
       List(apiTagConsumer),
       Some(List(canCreateConsumer)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(createConsumer)
     )
 
@@ -856,7 +855,6 @@ object Http4s510 {
       ),
       List(apiTagConsumer),
       Some(List(canGetConsumers)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsumers)
     )
 
@@ -937,9 +935,9 @@ object Http4s510 {
           val bankId = BankId(bankIdStr)
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
-            (allowedAccounts, _) <- BalanceNewStyle.getAccountAccessAtBank(user, bankId, Some(cc))
-            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts, Some(cc))
-          } yield createBalancesJson(accountsBalances)
+            (allowedAccounts, _) <- BalanceNewStyle.getAccountsWithBalancePermission(user, bankId, None, Some(cc))
+            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts.map(_._1), Some(cc))
+          } yield createBalancesJson(BalanceNewStyle.moderateAccountsBalances(accountsBalances, allowedAccounts.toMap))
         }
     }
 
@@ -1234,7 +1232,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheTrace, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheTraceEndpoint)
     )
 
@@ -1261,7 +1258,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheDebug, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheDebugEndpoint)
     )
 
@@ -1288,7 +1284,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheInfo, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheInfoEndpoint)
     )
 
@@ -1315,7 +1310,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheWarning, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheWarningEndpoint)
     )
 
@@ -1342,7 +1336,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheError, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheErrorEndpoint)
     )
 
@@ -1369,7 +1362,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheAllEndpoint)
     )
 
@@ -3648,7 +3640,7 @@ object Http4s510 {
               view.allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_BALANCE)
             }
             (accountBalances, _) <- BalanceNewStyle.getBankAccountBalances(bankIdAccountId, Some(cc))
-          } yield createAccountBalancesJson(accountBalances)
+          } yield createAccountBalancesJson(BalanceNewStyle.moderateAccountBalances(accountBalances, view.allowed_actions.toSet))
         }
     }
     resourceDocs += ResourceDoc(
@@ -3673,9 +3665,9 @@ object Http4s510 {
           val bankId = BankId(bankIdStr); val viewId = ViewId(viewIdStr)
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
-            (allowedAccounts, _) <- BalanceNewStyle.getAccountAccessAtBankThroughView(user, bankId, viewId, Some(cc))
-            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts, Some(cc))
-          } yield createBalancesJson(accountsBalances)
+            (allowedAccounts, _) <- BalanceNewStyle.getAccountsWithBalancePermission(user, bankId, Some(viewId), Some(cc))
+            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts.map(_._1), Some(cc))
+          } yield createBalancesJson(BalanceNewStyle.moderateAccountsBalances(accountsBalances, allowedAccounts.toMap))
         }
     }
     resourceDocs += ResourceDoc(

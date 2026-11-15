@@ -167,4 +167,35 @@ object MigrationOfAccountAccessWithViewsView {
         isSuccessful
     }
   }
+
+  /**
+   * Drops v_account_access_with_views. DoobieAccountAccessViewQueries now holds the join itself,
+   * so nothing reads the view, and while it exists it stops migrations from changing the type of
+   * any column it uses.
+   *
+   * It is registered after the create migrations, as the firehose views were. On a new database the
+   * view is created and then dropped in the same boot. On an existing database the creates are
+   * already logged, so this only drops it.
+   *
+   * With several nodes, run this only once every node runs a version that no longer reads the view.
+   * A node on an older version would fail to read account access after the drop.
+   */
+  def dropAccountAccessWithViewsView(name: String): Boolean = {
+    val startDate = System.currentTimeMillis()
+    val commitId: String = APIUtil.gitCommit
+
+    // DROP VIEW IF EXISTS is the same on PostgreSQL, H2 and SQL Server
+    val executedSql =
+      DbFunction.maybeWrite(true, Schemifier.infoF _) {
+        () => "DROP VIEW IF EXISTS v_account_access_with_views;"
+      }
+
+    val endDate = System.currentTimeMillis()
+    val comment: String =
+      s"""Executed SQL:
+         |$executedSql
+         |""".stripMargin
+    saveLog(name, commitId, true, startDate, endDate, comment)
+    true
+  }
 }

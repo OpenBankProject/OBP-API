@@ -11,11 +11,10 @@ everyone touching migrations needs to know about.
 
 | View (SQL object) | Created by | Read by app code? |
 |---|---|---|
-| `v_account_access_with_views` | `MigrationOfAccountAccessWithViewsView` | **Yes** — `DoobieAccountAccessViewQueries` ← `MapperViews` (account access control) |
 | `v_consent` | `MigrationOfConsentView` | **Yes** — `DoobieConsentQueries` (consent lookups, v3.1/v4.0/v5.1) |
 | `v_metric` | `MigrationOfMetricView` | No — inspection/reporting only |
 
-The first two are load-bearing: dropping them breaks live request paths. `v_metric` is a convenience
+`v_consent` is load-bearing: dropping it breaks live request paths. `v_metric` is a convenience
 object for looking at the database and is not referenced by any code.
 
 ### Retired views (dropped)
@@ -24,6 +23,7 @@ object for looking at the database and is not referenced by any code.
 |---|---|---|
 | `v_fast_firehose_accounts` | `MigrationOfFastFireHoseView` | `MigrationOfDropFastFireHoseViews` |
 | `mv_fast_firehose_accounts` | `MigrationOfFastFireHoseMaterializedView` | `MigrationOfDropFastFireHoseViews` |
+| `v_account_access_with_views` | `MigrationOfAccountAccessWithViewsView` | `dropAccountAccessWithViewsView`, in the same file |
 
 The fast-firehose views have been retired (firehose → account directory + ABAC). The create
 migrations still run for historical/`runOnce`-ordering reasons, but `MigrationOfDropFastFireHoseViews`

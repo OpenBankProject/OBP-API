@@ -62,8 +62,8 @@ class GetUsersTest extends V600ServerSetup with DefaultUsers {
 
       Then("We should get a 401")
       response.code should equal(401)
-      And("The error message should indicate authentication is required")
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
+      And("The error message should say the user is not logged in")
+      response.body.extract[ErrorMessage].message should include("OBP-20001")
     }
 
     scenario("Authenticated user without CanGetAnyUser role should fail with 403", ApiEndpoint, VersionOfApi) {

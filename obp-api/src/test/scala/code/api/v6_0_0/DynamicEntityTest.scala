@@ -179,8 +179,8 @@ class DynamicEntityTest extends V600ServerSetup {
       val response = makePostRequest(request, write(rightEntityV600))
       Then("We should get a 401")
       response.code should equal(401)
-      And("error should be " + ApplicationNotIdentified)
-      response.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
+      And("error should be " + AuthenticatedUserIsRequired)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("Create System Dynamic Entity - without proper role", ApiEndpoint1, VersionOfApi) {
@@ -194,7 +194,7 @@ class DynamicEntityTest extends V600ServerSetup {
     }
 
     scenario("Create System Dynamic Entity with consumer scope (no user entitlement)", ApiEndpoint1, VersionOfApi) {
-      // Add scope to consumer instead of entitlement to user — UserXORApplication accepts it when the Consumer acts as itself
+      // Add scope to consumer instead of entitlement to user — it counts when the Consumer, a Platform App, acts as itself
       val addedScope = Scope.scope.vend.addScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer.id.get.toString, ApiRole.CanCreateDynamicEntityDefinition.toString)
 
       When("We create a dynamic entity using consumer with scope")
