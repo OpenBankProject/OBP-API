@@ -33,7 +33,9 @@ import com.openbankproject.commons.model.ErrorMessage
 import code.api.berlin.group.v1_3.{Http4sBGv13PIIS => APIMethods_ConfirmationOfFundsServicePIISApi}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.CustomJsonFormats
-import code.api.util.ErrorMessages.{BankAccountNotFound, BankAccountNotFoundByIban, InvalidJsonContent, InvalidJsonFormat}
+import code.api.Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID
+import code.api.util.ErrorMessages.{BankAccountNotFound, BankAccountNotFoundByIban, InvalidJsonContent, InvalidJsonFormat, NoViewReadAccountsBerlinGroup}
+import code.api.v4_0_0.PostViewJsonV400
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -59,7 +61,17 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
       case jvalue: JValue => jvalue
       case other => Extraction.decompose(other)(CustomJsonFormats.formats)
     }
-  
+
+  // Gives user1 the ReadBalancesBerlinGroup view on the account, which the endpoint requires
+  private def grantReadBalancesView(bankId: String, accountId: String): Unit = {
+    grantUserAccessToViewViaEndpoint(
+      bankId,
+      accountId,
+      resourceUser1.userId,
+      user1,
+      PostViewJsonV400(view_id = SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, is_system = true)
+    )
+  }
 
   feature(s"BG v1.3 - ${checkAvailabilityOfFunds.name}") {
     scenario("Failed Case, invalid Iban", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
@@ -81,10 +93,35 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(InvalidJsonFormat)
     }
     
+    scenario("Failed Case, no ReadBalancesBerlinGroup view on the account", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
+      // user2 is given no view on the account, so it may not learn anything about its balance
+      val accountsIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val iban = accountsIban.head.accountRouting.address
+      val body = json.parse(
+        s"""{
+          "instructedAmount" : {
+            "amount" : "123",
+            "currency" : "EUR"
+          },
+          "account" : {
+            "iban" : "$iban",
+          }
+         }""")
+
+      val requestPost = (V1_3_BG / "funds-confirmations").POST <@ (user2)
+      val response: APIResponse = makePostRequest(requestPost, write(body))
+
+      Then("We should get a 403 ")
+      response.code should equal(403)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(NoViewReadAccountsBerlinGroup)
+    }
+
     scenario("Success case - Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
       val accountsIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
       val iban = accountsIban.head.accountRouting.address
-      
+      // the caller needs the ReadBalancesBerlinGroup view on the account to have its funds confirmed
+      grantReadBalancesView(accountsIban.head.bankId.value, accountsIban.head.accountId.value)
+
       val checkAvailabilityOfFundsJsonBody = json.parse(
         s"""{
           "instructedAmount" : {
@@ -113,6 +150,8 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
         By(MappedBankAccount.theAccountId, accountsIban.head.accountId.value)).openOrThrowException("Can not be empty here")
       val balance = account.balance
       val laggerbalance = balance +1000
+      // the caller needs the ReadBalancesBerlinGroup view on the account to have its funds confirmed
+      grantReadBalancesView(accountsIban.head.bankId.value, accountsIban.head.accountId.value)
 
       val checkAvailabilityOfFundsJsonBody = json.parse(
         s"""{

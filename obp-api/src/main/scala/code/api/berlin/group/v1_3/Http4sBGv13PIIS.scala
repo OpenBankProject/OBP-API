@@ -30,6 +30,7 @@ package code.api.berlin.group.v1_3
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
+import code.api.Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID // view checked before funds are confirmed
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.util.APIUtil._
@@ -39,10 +40,12 @@ import code.api.util.CustomJsonFormats
 import code.api.util.{ApiTag, NewStyle}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.fx.fx
+import code.model.toUserExtended // gives User.hasViewAccess, used by the account access check
 import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.{BankIdAccountId, ViewId} // for the account access check
 import com.openbankproject.commons.util.json
 import org.json4s.Formats
 import org.http4s._
@@ -74,6 +77,8 @@ object Http4sBGv13PIIS extends MdcLoggable {
     case req @ POST -> `bgV13Prefix` / "funds-confirmations" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
+        // The caller, for the account access check below (middleware has already required a login).
+        val u = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
         for {
           _ <- passesPsd2Aisp(callContext)
           checkAvailabilityOfFundsJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CheckAvailabilityOfFundsJson ", 400, callContext) {
@@ -92,6 +97,11 @@ object Http4sBGv13PIIS extends MdcLoggable {
 
           requestAccountIban = checkAvailabilityOfFundsJson.account.iban
           (bankAccount, callContext) <- NewStyle.function.getBankAccountByIban(requestAccountIban, callContext)
+          // The caller must have the ReadBalancesBerlinGroup view on the account (granted directly or by a consent).
+            // TODO Note: here we are checking the view access by name of the ID (rather than checking the view has access to the fields)
+          _ <- Helper.booleanToFuture(s"$NoViewReadAccountsBerlinGroup ${SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID}. account : ${bankAccount.accountId}", 403, callContext) {
+            u.hasViewAccess(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), ViewId(SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID), callContext)
+          }
           currentAccountCurrency = bankAccount.currency
           currentAccountBalance = bankAccount.balance
 
@@ -139,7 +149,8 @@ in the header. This field is contained but commented out in this specification. 
       """{
        "fundsAvailable" : true
       }""")),
-    List(AuthenticatedUserIsRequired, UnknownError),
+    // 403 NoViewReadAccountsBerlinGroup when the caller has no ReadBalancesBerlinGroup view on the account
+    List(AuthenticatedUserIsRequired, NoViewReadAccountsBerlinGroup, UnknownError),
     ApiTag("Confirmation of Funds Service (PIIS)") :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(checkAvailabilityOfFunds)
   )
