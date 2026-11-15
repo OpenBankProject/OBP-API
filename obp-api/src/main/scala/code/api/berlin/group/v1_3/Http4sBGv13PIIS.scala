@@ -102,7 +102,7 @@ object Http4sBGv13PIIS extends MdcLoggable {
             rate.isDefined
           }
 
-          requestChangedCurrencyAmount = fx.convert(requestAccountAmount, rate)
+          requestChangedCurrencyAmount = fx.convert(requestAccountAmount, rate, currentAccountCurrency)
 
           fundsAvailable = (currentAccountBalance >= requestChangedCurrencyAmount)
 

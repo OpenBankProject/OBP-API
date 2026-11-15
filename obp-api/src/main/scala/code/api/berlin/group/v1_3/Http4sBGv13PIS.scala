@@ -416,7 +416,7 @@ object Http4sBGv13PIS extends MdcLoggable {
           _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion (${transactionRequestCurrency} to ${fromAccountCurrency}) is not supported.", cc = callContext) {
             rate.isDefined
           }
-          requestChangedCurrencyAmount = fx.convert(transactionRequestAmount, rate)
+          requestChangedCurrencyAmount = fx.convert(transactionRequestAmount, rate, fromAccountCurrency)
           fundsAvailable = (fromAccountBalance >= requestChangedCurrencyAmount)
           transactionRequestStatusCheckedFunds = if (fundsAvailable) transactionRequestStatus else TransactionStatus.RCVD.code
         } yield {

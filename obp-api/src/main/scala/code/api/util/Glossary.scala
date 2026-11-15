@@ -1443,7 +1443,7 @@ object Glossary extends MdcLoggable  {
 |
 |Both standard entities (e.g. financial products and bank accounts in the OBP standard) and dynamic entities and endpoints (created by you or your organisation) can exist at the Bank level.
 |
-|For example see [Bank/Space level Dynamic Entities](/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEntity) and [Bank/Space level Dynamic Endpoints](http://localhost:5174/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEndpoint)
+|For example see [Create Dynamic Entity Definition](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createDynamicEntityDefinition), which defines a Dynamic Entity in a bank or in the system space `SYS`, and [Bank/Space level Dynamic Endpoints](${apiExplorerUrl}/resource-docs/OBPv4.0.0?operationid=OBPv4.0.0-createBankLevelDynamicEndpoint)
 |
 |The Bank is important because many Roles can be granted at the Bank level. In this way, it's possible to create segregated or partitioned sets of endpoints and data structures in a single OBP instance.
 |
@@ -3705,6 +3705,8 @@ object Glossary extends MdcLoggable  {
 			s"""In OBP, if you have access to a "Space", you have access to a set of Dynamic Endpoints and Dynamic Entities that belong to that Space.
 |Internally, Spaces are defined as a "Banks" thus Spaces are synonymous with OBP Banks.
 |
+|There is also the system space, whose bank id is `SYS`. It belongs to no bank. Dynamic Entities, Dynamic Resource Docs, Files and retention policies can live in it, and Roles for it are granted at `SYS`.
+|
 |A user can have access to several spaces. The API Explorer shows these under the Spaces menu.
 |
 |In order to see the documentation for the Dynamic Endpoints and Dynamic Entities, a user may need to have access to the CanReadDynamicResourceDocsAtOneBank Role.
@@ -3741,7 +3743,7 @@ object Glossary extends MdcLoggable  {
 |In other words, if you create an Entity called X which has a field called A, you can force the values of X.A to match the values of Y.B where Y is another Dynamic Entity or Z.B where Z is a Static (OBP) Entity.
 |If you want to add data to an existing Entity, you can create a Dynamic Entity which has a reference field to the existing entity.
 |
-|Dynamic Entities can be created at the System level (bank_id is null) - or Bank / Space level (bank_id is not null). You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain.
+|Dynamic Entities can be created in the system space (bank_id `SYS`) or in a Bank / Space (the bank's id). You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain.
 |
 |When creating a Dynamic Entity, OBP automatically:
 |
@@ -7362,7 +7364,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |LEVEL is a log level (error, warning, info, debug, trace) or `all`. Each app lists these endpoints on its `/status` page.
 				 |
-				 |They are guarded by the same Roles as OBP-API's own endpoints: CanGetSystemLogCacheLEVEL (or CanGetSystemLogCacheAll; `all` needs CanGetSystemLogCacheAll) and CanGetTelemetry. The app does not decide this itself: it passes the caller's token to OBP-API (GET /obp/v7.0.0/banks/SYS/my/roles/ROLE) and answers only if OBP-API says the Role is held. A call with no token gets 401, and a call without the Role gets 403.
+				 |They are guarded by the same Roles as OBP-API's own endpoints: CanGetSystemLogCacheError, CanGetSystemLogCacheWarning and so on, one per level (`all` needs CanGetSystemLogCacheAll) and CanGetTelemetry. The app does not decide this itself: it passes the caller's token to OBP-API (GET /obp/v7.0.0/banks/SYS/my/roles/ROLE) and answers only if OBP-API says the Role is held. A call with no token gets 401, and a call without the Role gets 403.
 				 |
 				 |Sentinel finds the apps in OBP-API's app directory (GET /obp/v6.0.0/app-directory: public_obp_api_explorer_url, public_obp_api_manager_url, public_obp_portal_url, public_obp_oidc_url) and watches each like a small instance of its own, with its own findings, using its OBP-API instance's token. The analyst then reads the app's own source. An app has no aggregate metrics and no source review.
 				 |
@@ -7816,6 +7818,157 @@ object Glossary extends MdcLoggable  {
 				 |- [Get Public Files Attached to a Record](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPublicFilesAttachedToRecord): `GET /obp/v7.0.0/banks/BANK_ID/public-files?record_type=&record_id=`
 				 |- [Get Public File](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPublicFile): `GET /obp/v7.0.0/banks/BANK_ID/public-files/FILE_ID`
 				 |- [Get Public File Content](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPublicFileContent): `GET /obp/v7.0.0/banks/BANK_ID/public-files/FILE_ID/content`
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Tenant",
+		description =
+			s"""
+				 |# Tenant
+				 |
+				 |A **Tenant** is a customer of the operator of an OBP instance: an organisation that uses the instance. A Tenant belongs to no bank, and the Roles that manage Tenants are system Roles: CanCreateTenant, CanGetTenant, CanUpdateTenant and CanDeleteTenant.
+				 |
+				 |A Tenant has a `tenant_id`, which is unique, cannot change, and is 2 to 64 URL-safe characters. It also has a name, a status (`active`, `suspended` or `archived`), a visibility (`public`, `unlisted` or `private`), and optionally a website and a logo.
+				 |
+				 |Tenants were called Organisations until November 2026. The migration renameOrganisationsToTenants copied the Organisations and moved their Roles.
+				 |
+				 |This is not the same as the tenancy model of a deployment, which is about how separate installations are run for different customers. See ${getGlossaryItemLink("Tenancy-Model-Open-Bank-Project")}.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Create Tenant](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createTenant): `POST /obp/v7.0.0/tenants`
+				 |- [Get Tenants](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getTenants): `GET /obp/v7.0.0/tenants`
+				 |- [Get Tenant](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getTenant): `GET /obp/v7.0.0/tenants/TENANT_ID`
+				 |- [Update Tenant](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateTenant): `PUT /obp/v7.0.0/tenants/TENANT_ID`
+				 |- [Delete Tenant](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteTenant): `DELETE /obp/v7.0.0/tenants/TENANT_ID`
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Data Retention",
+		description =
+			s"""
+				 |# Data Retention
+				 |
+				 |A **retention policy** says how long one kind of record in a space stays live, and what happens to it then. The space is a bank, or `SYS` for the system space. Periods are set per space through the API, never in code.
+				 |
+				 |A policy covers one resource type: Dynamic Entity records (of one entity), files, chat messages, chat rooms, customers or consents. It says:
+				 |
+				 |- what the period is counted from, for example when the record was created, last updated, or a date held in one of its fields;
+				 |- optionally, a condition, so that only records with a given value in a field are covered, for example a status of CLOSED;
+				 |- how many days a record stays live: at least `retention.minimum_retain_days` (five years by default);
+				 |- what then happens: **archive** (moved out of the live tables into the retention archive, and deleted after a further period), **delete**, or, for customers only, **anonymise** (the personal fields are cleared, and the customer id is kept so that references stay valid);
+				 |- whether a second, different person must approve each run.
+				 |
+				 |A scheduler runs the enabled policies, and a run can also be started by hand. Preview a policy first to see what it would affect. Records on legal hold are skipped by every run, and every disposal is written to the disposal register. Nothing is restored from the archive. Archiving needs `retention.archive.enabled=true`, and deleting or anonymising needs `retention.delete.enabled=true`.
+				 |
+				 |The Roles are granted at the space: CanManageRetentionPolicy, CanGetRetentionPolicies, CanRunRetentionPolicy, CanApproveRetentionRun, CanGetRetentionRuns, CanManageRetentionHold and CanGetRetentionArchive.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Create Retention Policy](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createRetentionPolicy): `POST /obp/v7.0.0/management/banks/BANK_ID/retention-policies`
+				 |- [Get Retention Policies](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getRetentionPolicies): `GET /obp/v7.0.0/management/banks/BANK_ID/retention-policies`
+				 |- [Get Retention Policy Preview](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getRetentionPolicyPreview): `GET /obp/v7.0.0/management/banks/BANK_ID/retention-policies/RETENTION_POLICY_ID/preview`
+				 |- [Create Retention Run](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createRetentionRun): `POST /obp/v7.0.0/management/banks/BANK_ID/retention-policies/RETENTION_POLICY_ID/runs`
+				 |- [Update Retention Run Approval](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateRetentionRunApproval): `PUT /obp/v7.0.0/management/banks/BANK_ID/retention-runs/RETENTION_RUN_ID/approval`
+				 |- [Create Retention Hold](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createRetentionHold): `POST /obp/v7.0.0/management/banks/BANK_ID/retention-holds`
+				 |- [Get Retention Archive Entries](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getRetentionArchiveEntries): `GET /obp/v7.0.0/management/banks/BANK_ID/retention-archive`
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "IP Penalties",
+		description =
+			s"""
+				 |# IP Penalties
+				 |
+				 |An **IP penalty** is an operator's temporary per-minute limit on one IP address. It applies to every endpoint, and is checked before all other rate limits. A limit of 0 refuses every request from that address. A refused request gets 429 OBP-10062.
+				 |
+				 |Penalties are kept in Redis, so every instance applies them, and each one is removed when it expires, after at most one week. The penalty endpoints themselves are never refused, so a mistake can always be undone.
+				 |
+				 |The Roles are system Roles: CanCreateIpPenalty, CanGetIpPenalties and CanDeleteIpPenalty. To find which addresses to limit, see ${getGlossaryItemLink("Deployment Checks and Traffic Sources")}.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Create IP Penalty](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createIpPenalty): `POST /obp/v7.0.0/management/ip-penalties`
+				 |- [Get IP Penalties](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getIpPenalties): `GET /obp/v7.0.0/management/ip-penalties`
+				 |- [Delete IP Penalty](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteIpPenalty): `DELETE /obp/v7.0.0/management/ip-penalties/IP_ADDRESS`
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Deployment Checks and Traffic Sources",
+		description =
+			s"""
+				 |# Deployment Checks and Traffic Sources
+				 |
+				 |**Deployment checks** look at an instance's props and its last 15 minutes of traffic, and say whether it is set up well: whether client IP addresses are passed on by the proxies and believed only from them, whether applications pass on their users' addresses, how rate limiting is set up, the root log level, Telemetry, Redis, and whether API Metrics are being lost. They need the Role CanGetConfig.
+				 |
+				 |Set `trust.proxy.peers` to the addresses or CIDR ranges of your proxies, so that a forwarded client address is believed only from them. When it is not set, it is believed from anyone.
+				 |
+				 |**Traffic sources** show where the traffic on the answering instance comes from: the busiest Consumers, client IP addresses, and callers and endpoints, over the last 1, 5 or 15 minutes. The counts are estimates, kept in memory only. They need the Role CanGetTrafficSources.
+				 |
+				 |See also ${getGlossaryItemLink("Telemetry")} and ${getGlossaryItemLink("IP Penalties")}.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Get Deployment Checks](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getDeploymentChecks): `GET /obp/v7.0.0/management/system/diagnostics/deployment`
+				 |- [Get Top Callers](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getTrafficSources): `GET /obp/v7.0.0/management/traffic/top-callers?window=1|5|15`
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Sign-In With Ethereum",
+		description =
+			s"""
+				 |# Sign-In With Ethereum (SIWE)
+				 |
+				 |A User can log in by proving that they hold an Ethereum wallet, following EIP-4361. Only externally owned accounts are supported. The signature is checked locally, so no blockchain node is needed.
+				 |
+				 |1. The client asks for a challenge with `POST /my/logins/siwe/challenge`, without authentication. OBP returns a nonce and the message to sign.
+				 |2. The wallet signs the message, and the client sends it to `POST /my/logins/siwe`. OBP checks the signature, the domain, the chain and the nonce, and returns a token.
+				 |
+				 |It is off unless `allow_siwe=true`. `siwe.domain` is the domain the message must name, which protects against phishing. `siwe.allowed_chain_ids` lists the chains accepted, for example `1` for mainnet. `siwe.nonce.ttl` is how long a challenge lasts, 300 seconds by default.
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Utility Payments",
+		description =
+			s"""
+				 |# Utility Payments
+				 |
+				 |The **UTILITY** transaction request type pays a bill or buys a prepaid service, for example a prepaid electricity meter token. The biller is identified by a routing scheme of the category UTILITY or BILL, such as a meter number or a bill control number.
+				 |
+				 |1. Look the payee up first, to confirm who will be paid (Confirmation of Payee). The lookup returns a `lookup_id`.
+				 |2. Create the transaction request, passing the `lookup_id` as `verified_payee_lookup_id`, and optionally a `callback_url`.
+				 |3. The result, such as the electricity token, does not exist yet when the request is created. It arrives later from the payment rail and is recorded as the vend result. The registered callback is then called once.
+				 |
+				 |`data_fields` carries name and value pairs that adapters pass on to the payment rail unchanged.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Create Payee Lookup](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createPayeeLookup): `POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/payees/lookup`
+				 |- [Create Transaction Request (UTILITY)](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createTransactionRequestUtility): `POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/UTILITY/transaction-requests`
+				 |- [Create Utility Vend Result](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createUtilityVendResult): `POST /obp/v7.0.0/banks/BANK_ID/utility-payments/UTILITY_TRANSACTION_REQUEST_ID/vend-result`
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Payment Promises and Netting",
+		description =
+			s"""
+				 |# Payment Promises and Netting
+				 |
+				 |A payment between two banks can be held as a **promise**, then settled later together with the other promises between the same two banks, as one net transaction.
+				 |
+				 |A promise is a transaction request of the type OPEN_CORRIDOR_PROMISE. It carries the payer's originator information, as FATF Recommendation 16 requires. It is held at the status `PENDING`, and no Transaction is posted when it is created. Evidence can be attached to it.
+				 |
+				 |The **settle** step nets all the pending promises between a pair of banks and posts one net Transaction, which covers them. Fees are settled separately.
+				 |
+				 |It is off unless `open_corridor_enabled=true`. Whether it is on shows in the bank's transaction request types. The caller is a User with access to the view, or an application acting as itself whose Consumer has access to the view (see ${getGlossaryItemLink("Consumer Account Access")}).
+				 |
+				 |## Endpoints
+				 |
+				 |- [Create Transaction Request (OPEN_CORRIDOR_PROMISE)](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createTransactionRequestOpenCorridor): `POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/OPEN_CORRIDOR_PROMISE/transaction-requests`
+				 |- [Attach Promise Evidence](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-attachOpenCorridorPromise): `POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/open-corridor/promise`
+				 |- [Create Settlement](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createOpenCorridorSettlement): `POST /obp/v7.0.0/banks/BANK_ID/open-corridor/settlements`
+				 |- [Get Settlement](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getOpenCorridorSettlement): `GET /obp/v7.0.0/banks/BANK_ID/open-corridor/settlements/SETTLEMENT_ID`
+				 |- [Create Fee Settlement](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createOpenCorridorFeeSettlement): `POST /obp/v7.0.0/banks/BANK_ID/open-corridor/fee-settlements`
 				 |""".stripMargin)
 
 	///////////////////////////////////////////////////////////////////
