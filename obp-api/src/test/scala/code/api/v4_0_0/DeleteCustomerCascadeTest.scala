@@ -129,15 +129,17 @@ class DeleteCustomerCascadeTest extends V400ServerSetup {
       }
       addRows(pk)
       addRows(otherPk)
+      // Creating a customer through the endpoint already adds dependants, so count against what was there.
+      val otherDependantsBefore = MappedCustomerDependant.count(By(MappedCustomerDependant.mCustomer, otherPk))
       MappedCustomerMessage.count(By(MappedCustomerMessage.customer, pk)) should equal(1)
-      MappedCustomerDependant.count(By(MappedCustomerDependant.mCustomer, pk)) should equal(1)
+      MappedCustomerDependant.count(By(MappedCustomerDependant.mCustomer, pk)) should be >= 1L
 
       cascadeDelete(customerId).code should equal(200)
 
       MappedCustomerMessage.count(By(MappedCustomerMessage.customer, pk)) should equal(0)
       MappedCustomerDependant.count(By(MappedCustomerDependant.mCustomer, pk)) should equal(0)
       MappedCustomerMessage.count(By(MappedCustomerMessage.customer, otherPk)) should equal(1)
-      MappedCustomerDependant.count(By(MappedCustomerDependant.mCustomer, otherPk)) should equal(1)
+      MappedCustomerDependant.count(By(MappedCustomerDependant.mCustomer, otherPk)) should equal(otherDependantsBefore)
     }
   }
 
