@@ -29,7 +29,7 @@ package code.api.UKOpenBanking.v4_0_1
 
 import code.api.Constant
 import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, buildOperationId}
-import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser, ConsentExpiredIssue, ConsentIdClaimMissing, ConsentNotFound}
+import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotMatchStandard, ConsentDoesNotMatchUser, ConsentExpiredIssue, ConsentIdClaimMissing, ConsentNotFound}
 import code.api.util.{CallContext, CertificateUtil, Consent}
 import code.consent.{ConsentStatus, Consents}
 import code.model.UserExtended
@@ -552,6 +552,34 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     // ukReAuthableStatuses not containing those; it isn't asserted via a third HTTP scenario here
     // because a second same-user OAuth1 call within this block collides on the test harness's
     // nonce/timestamp replay check (a harness artifact -- production UK uses OAuth2 Bearer).
+  }
+
+  // An OBP consent revoked through the OBP revoke endpoints is REVOKED, a status the UK authorise
+  // endpoints accept for re-authentication. Both endpoints refuse it by its standard, so its owner
+  // cannot turn it back to AUTHORISED.
+  feature("UKOB v4.0.1 the authorise endpoints act on UK consents only") {
+    import code.api.util.Consent
+    // A revoked OBP consent bound to resourceUser1, so only the standard check stands in the way.
+    def revokedObpConsent(): String = {
+      val consentId = createConsentWithStandard(Some(Consent.ConsentStandardOBP))
+      Consents.consentProvider.vend.updateConsentUser(consentId, resourceUser1)
+      Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.REVOKED)
+      consentId
+    }
+    scenario("challenge-start on a revoked OBP consent of the caller -> 403 ConsentDoesNotMatchStandard", UKOpenBankingV401AccountInfo) {
+      val consentId = revokedObpConsent()
+      val response = makePostRequest(scaChallengeRequest(consentId) <@ (user1), "")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should include(ConsentDoesNotMatchStandard)
+    }
+    scenario("authorise on a revoked OBP consent of the caller -> 403 ConsentDoesNotMatchStandard, consent stays REVOKED", UKOpenBankingV401AccountInfo) {
+      val consentId = revokedObpConsent()
+      val response = makePostRequest(authoriseRequest(consentId) <@ (user1),
+        s"""{"account_ids":["$acc"],"challenge_id":"any","answer":"123"}""")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should include(ConsentDoesNotMatchStandard)
+      storedConsent(consentId).status should equal(ConsentStatus.REVOKED.toString)
+    }
   }
 
   // Gap 15: every UK v4.0.1 response carries x-fapi-interaction-id (FAPI tracing). Uses a stub
