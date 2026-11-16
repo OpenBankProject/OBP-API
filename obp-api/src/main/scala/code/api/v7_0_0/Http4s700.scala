@@ -4401,7 +4401,10 @@ object Http4s700 {
       List($AuthenticatedUserIsRequired, InvalidJsonFormat,
            PayeeLookupIdentifierTypeNotRegistered, MobileWalletInvalidMsisdn,
            PayeeLookupExpiredOrNotFound, PayeeLookupMismatch,
-           MobileWalletDestinationNotFound, MobileWalletPaymentError, UnknownError),
+           MobileWalletDestinationNotFound,
+           // NotPositiveAmount: the connector refuses an amount that is not above zero, so a payer cannot pull money from the wallet.
+           NotPositiveAmount,
+           MobileWalletPaymentError, UnknownError),
       apiTagTransactionRequest :: apiTagPayee :: Nil,
       None,
       http4sPartialFunction = Some(createTransactionRequestMobileWallet)
@@ -4574,7 +4577,10 @@ object Http4s700 {
       List($AuthenticatedUserIsRequired, InvalidJsonFormat,
            PayeeLookupIdentifierTypeNotRegistered, UtilityIdentifierTypeWrongCategory,
            UtilityInvalidIdentifier, PayeeLookupExpiredOrNotFound, PayeeLookupMismatch,
-           UtilityDestinationNotFound, UtilityPaymentError, UnknownError),
+           UtilityDestinationNotFound,
+           // NotPositiveAmount: the connector refuses an amount that is not above zero, so a payer cannot pull money from the biller.
+           NotPositiveAmount,
+           UtilityPaymentError, UnknownError),
       apiTagTransactionRequest :: apiTagPayee :: Nil,
       None,
       http4sPartialFunction = Some(createTransactionRequestUtility)
@@ -4796,7 +4802,10 @@ object Http4s700 {
       ),
       List($AuthenticatedUserIsRequired, OpenCorridorDisabled, InvalidJsonFormat, InvalidJsonValue,
            CounterpartyBeneficiaryPermit, InvalidChargePolicy,
-           InsufficientAuthorisationToCreateTransactionRequest, UnknownError),
+           InsufficientAuthorisationToCreateTransactionRequest,
+           // NotPositiveAmount: the connector refuses an amount that is not above zero, so a negative promise is never netted.
+           NotPositiveAmount,
+           UnknownError),
       apiTagTransactionRequest :: Nil,
       None,
       http4sPartialFunction = Some(createTransactionRequestOpenCorridor)
