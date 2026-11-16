@@ -40,6 +40,7 @@ import code.crm.MappedCrmEvent
 import code.customerlinks.CustomerLink
 import code.customerattribute.MappedCustomerAttribute
 import code.directdebit.DirectDebit
+import code.mandate.{Mandate, MandateProvision, SignatoryPanel}
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -51,7 +52,7 @@ import code.usercustomerlinks.MappedUserCustomerLink
 import com.openbankproject.commons.model.CustomerId
 import deletion.DeletionUtil.databaseAtomicTask
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper.{By, NotBy}
+import net.liftweb.mapper.{By, ByList, NotBy}
 
 object DeleteCustomerCascade {
 
@@ -74,6 +75,7 @@ object DeleteCustomerCascade {
           deleteCrmEvents(customerId) ::
           deleteStandingOrders(customerId) ::
           deleteDirectDebits(customerId) ::
+          deleteMandates(customerId) ::
           deleteCustomerIdMapping(customerId) ::
           deleteAccountApplication(customerId) ::
           deleteCustomerUserCustomerLinks(customerId) ::
@@ -137,6 +139,15 @@ object DeleteCustomerCascade {
   }
   private def deleteDirectDebits(customerId: CustomerId): Boolean = {
     DirectDebit.bulkDelete_!!(By(DirectDebit.CustomerId, customerId.value))
+  }
+  /** A mandate's provisions and signatory panels are found through the mandate id, so they go before the mandate. */
+  private def deleteMandates(customerId: CustomerId): Boolean = {
+    val mandateIds = Mandate.findAll(By(Mandate.CustomerId, customerId.value)).map(_.MandateId.get)
+    mandateIds.isEmpty || (
+      MandateProvision.bulkDelete_!!(ByList(MandateProvision.MandateId, mandateIds)) &&
+        SignatoryPanel.bulkDelete_!!(ByList(SignatoryPanel.MandateId, mandateIds)) &&
+        Mandate.bulkDelete_!!(By(Mandate.CustomerId, customerId.value))
+      )
   }
   private def deleteCustomerAccountLinks(customerId: CustomerId): Boolean = {
     CustomerAccountLink.bulkDelete_!!(
