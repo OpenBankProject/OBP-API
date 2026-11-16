@@ -717,6 +717,14 @@
     },
     {
       "version": "v2_2_0",
+      "endpoint": "createViewForBankAccount",
+      "field": "errorResponseBodies",
+      "reason": "Added SourceViewHasLessPermission: Create View refuses (403) a view whose allowed_actions are not all on one of the caller's views of the account, as Update View does",
+      "lift_digest": "63c2f1b01e07eb8a86158e5631bde4dd32465aa75c13ba61d369f0ad8cf952d7",
+      "http4s_digest": "0f50f78378cc09491986f9a9ee074ebd5d56b93debc411788c9c453db54b623d"
+    },
+    {
+      "version": "v2_2_0",
       "endpoint": "updateViewForBankAccount",
       "field": "requestUrl",
       "reason": "VIEW_ID -> UPD_VIEW_ID, documented bypass-variable convention for a view-update URL.",
