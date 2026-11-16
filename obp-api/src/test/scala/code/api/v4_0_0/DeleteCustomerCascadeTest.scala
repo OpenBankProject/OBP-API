@@ -35,6 +35,7 @@ import code.api.util.ApiRole.{CanDeleteCustomerCascade, CanDeleteTransactionCasc
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.customer.{MappedCustomer, MappedCustomerMessage}
+import code.customerlinks.{CustomerLink, MappedCustomerLinkProvider}
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -115,6 +116,28 @@ class DeleteCustomerCascadeTest extends V400ServerSetup {
       makeDeleteRequest(request400).code should equal(404)
     }
   }  
+
+  feature(s"test $ApiEndpoint1 - rows that name the customer by its id") {
+    scenario("A link between customers goes when either customer is deleted, links of others stay", ApiEndpoint1, VersionOfApi) {
+      val first = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      val second = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      val third = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      def link(from: String, to: String) =
+        MappedCustomerLinkProvider.createCustomerLink(bankId, from, bankId, to, "RELATED").openOrThrowException("expected the link")
+      link(first, second)  // the deleted customer is the first side
+      link(third, first)   // the deleted customer is the other side
+      link(second, third)  // unrelated to the deleted customer
+      def linksOf(id: String) =
+        CustomerLink.count(By(CustomerLink.CustomerId, id)) + CustomerLink.count(By(CustomerLink.OtherCustomerId, id))
+
+      linksOf(first) should equal(2)
+
+      cascadeDelete(first).code should equal(200)
+
+      linksOf(first) should equal(0)
+      CustomerLink.count(By(CustomerLink.CustomerId, second), By(CustomerLink.OtherCustomerId, third)) should equal(1)
+    }
+  }
 
   feature(s"test $ApiEndpoint1 - rows that point at the customer") {
     scenario("Messages and dependants of the deleted customer go, those of another customer stay", ApiEndpoint1, VersionOfApi) {

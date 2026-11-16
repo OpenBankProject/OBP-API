@@ -36,6 +36,7 @@ import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customeraccountlinks.CustomerAccountLink
 import code.customeraddress.MappedCustomerAddress
+import code.customerlinks.CustomerLink
 import code.customerattribute.MappedCustomerAttribute
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
@@ -64,6 +65,7 @@ object DeleteCustomerCascade {
           deleteCustomerAddress(customerId) ::
           deleteCustomerMessages(customerId) ::
           deleteCustomerDependants(customerId) ::
+          deleteCustomerLinks(customerId) ::
           deleteCustomerIdMapping(customerId) ::
           deleteAccountApplication(customerId) ::
           deleteCustomerUserCustomerLinks(customerId) ::
@@ -93,6 +95,11 @@ object DeleteCustomerCascade {
       MappedCustomerDependant.bulkDelete_!!(
         By(MappedCustomerDependant.mCustomer, c.id.get)
       ))
+  }
+  /** A link between two customers is held once, so the deleted customer can be on either side of it. */
+  private def deleteCustomerLinks(customerId: CustomerId): Boolean = {
+    CustomerLink.bulkDelete_!!(By(CustomerLink.CustomerId, customerId.value)) &&
+      CustomerLink.bulkDelete_!!(By(CustomerLink.OtherCustomerId, customerId.value))
   }
   private def deleteCustomerAccountLinks(customerId: CustomerId): Boolean = {
     CustomerAccountLink.bulkDelete_!!(
