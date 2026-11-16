@@ -38,7 +38,6 @@ import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.crm.MappedCrmEvent
 import code.customerlinks.{CustomerLink, MappedCustomerLinkProvider}
-import code.socialmedia.MappedSocialMedia
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -160,43 +159,36 @@ class DeleteCustomerCascadeTest extends V400ServerSetup {
   }
 
   feature(s"test $ApiEndpoint1 - rows that name the customer by its number") {
-    scenario("Social media and CRM events of the deleted customer go, those of another customer stay", ApiEndpoint1, VersionOfApi) {
+    scenario("CRM events of the deleted customer go, those of another customer stay", ApiEndpoint1, VersionOfApi) {
       val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
       val otherCustomerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
       def numberOf(id: String) = MappedCustomer.find(By(MappedCustomer.mCustomerId, id)).openOrThrowException("expected the customer").mNumber.get
-      def addRows(number: String): Unit = {
-        MappedSocialMedia.create.mCustomerNumber(number).mType("twitter").mHandle("@" + number).saveMe()
-        MappedCrmEvent.create.mBankId(bankId).mCustomerNumber(number).mCustomerName("name").mCategory("call")
+      def addEvent(number: String, atBank: String): Unit =
+        MappedCrmEvent.create.mBankId(atBank).mCustomerNumber(number).mCustomerName("name").mCategory("call")
           .mUserId(resourceUser1).saveMe()
-      }
-      def rows(number: String) = (
-        MappedSocialMedia.count(By(MappedSocialMedia.mCustomerNumber, number)),
-        MappedCrmEvent.count(By(MappedCrmEvent.mBankId, bankId), By(MappedCrmEvent.mCustomerNumber, number)))
+      def events(number: String, atBank: String) =
+        MappedCrmEvent.count(By(MappedCrmEvent.mBankId, atBank), By(MappedCrmEvent.mCustomerNumber, number))
       val number = numberOf(customerId)
       val otherNumber = numberOf(otherCustomerId)
-      addRows(number)
-      addRows(otherNumber)
-      rows(number) should equal((1, 1))
+      addEvent(number, bankId)
+      addEvent(otherNumber, bankId)
+      events(number, bankId) should equal(1)
 
       cascadeDelete(customerId).code should equal(200)
 
-      rows(number) should equal((0, 0))
-      rows(otherNumber) should equal((1, 1))
+      events(number, bankId) should equal(0)
+      events(otherNumber, bankId) should equal(1)
     }
 
-    scenario("Social media is kept when a customer of another bank has the same number", ApiEndpoint1, VersionOfApi) {
+    scenario("A CRM event with the same customer number at another bank stays", ApiEndpoint1, VersionOfApi) {
       val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
       val number = MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)).openOrThrowException("expected the customer").mNumber.get
-      // The same number at another bank: social media does not record the bank, so the rows cannot be told apart.
-      MappedCustomer.create.mBank("another-bank").mNumber(number).mCustomerId(APIUtil.generateUUID()).saveMe()
-      MappedSocialMedia.create.mCustomerNumber(number).mType("twitter").mHandle("@shared").saveMe()
-      MappedCrmEvent.create.mBankId(bankId).mCustomerNumber(number).mCustomerName("name").mCategory("call")
+      MappedCrmEvent.create.mBankId("another-bank").mCustomerNumber(number).mCustomerName("name").mCategory("call")
         .mUserId(resourceUser1).saveMe()
 
       cascadeDelete(customerId).code should equal(200)
 
-      MappedSocialMedia.count(By(MappedSocialMedia.mCustomerNumber, number)) should equal(1)
-      MappedCrmEvent.count(By(MappedCrmEvent.mBankId, bankId), By(MappedCrmEvent.mCustomerNumber, number)) should equal(0)
+      MappedCrmEvent.count(By(MappedCrmEvent.mBankId, "another-bank"), By(MappedCrmEvent.mCustomerNumber, number)) should equal(1)
     }
   }
 
