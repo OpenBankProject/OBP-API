@@ -32,7 +32,8 @@ import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole.{CanDeleteCustomerCascade, CanDeleteTransactionCascade}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
+import code.api.util.APIUtil.extractErrorMessageCode
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, CustomerNotFoundByCustomerId, UserHasMissingRoles}
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.crm.MappedCrmEvent
@@ -141,6 +142,23 @@ class DeleteCustomerCascadeTest extends V400ServerSetup {
 
       linksOf(first) should equal(0)
       CustomerLink.count(By(CustomerLink.CustomerId, second), By(CustomerLink.OtherCustomerId, third)) should equal(1)
+    }
+  }
+
+  feature(s"test $ApiEndpoint1 - the bank in the URL") {
+    scenario("A customer of another bank is not found and is kept", ApiEndpoint1, VersionOfApi) {
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      val otherBankId = createBank(APIUtil.generateUUID()).bankId.value
+      Entitlement.entitlement.vend.addEntitlement(otherBankId, resourceUser1.userId, ApiRole.canDeleteCustomerCascade.toString)
+
+      val wrongBank = makeDeleteRequest((v4_0_0_Request / "management" / "cascading" / "banks" / otherBankId / "customers" / customerId).DELETE <@(user1))
+
+      wrongBank.code should equal(404)
+      wrongBank.body.extract[ErrorMessage].message should include(extractErrorMessageCode(CustomerNotFoundByCustomerId))
+      MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)).isDefined should equal(true)
+
+      cascadeDelete(customerId).code should equal(200)
+      MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)).isDefined should equal(false)
     }
   }
 

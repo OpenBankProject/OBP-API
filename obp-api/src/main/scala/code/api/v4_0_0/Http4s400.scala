@@ -7680,9 +7680,13 @@ object Http4s400 {
 
     lazy val deleteCustomerCascade: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "cascading" / "banks" / _ / "customers" / customerIdStr =>
-        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The delete is addressed through a bank, so a customer of another bank is not found here.
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, cc = Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             _ <- Future(deletion.DeleteCustomerCascade.atomicDelete(CustomerId(customerIdStr)))
           } yield Full(true)
         }
