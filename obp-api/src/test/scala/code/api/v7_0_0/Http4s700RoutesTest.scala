@@ -3941,6 +3941,64 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
+    // A negative item amount would move money from the routed destination to the source account,
+    // so the batch is refused with 400 NotPositiveAmount before any payment runs.
+    scenario("Return 400 when an item amount is negative", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val acctCurrency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      val body =
+        s"""{
+           |  "batch_reference": "${freshBatchReference()}",
+           |  "payments": [{"end_to_end_id":"E1","to_account_routing":{"scheme":"TZ.BANK_ACCOUNT","address":"123"},"value":{"currency":"$acctCurrency","amount":"-100.00"},"description":"x"}],
+           |  "value": {"currency":"$acctCurrency","amount":"-100.00"},
+           |  "description": "negative amount"
+           |}""".stripMargin
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/BULK/transaction-requests", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(code.api.util.ErrorMessages.NotPositiveAmount)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    // A zero item amount is refused the same way, since only amounts above zero are payments.
+    scenario("Return 400 when an item amount is zero", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val acctCurrency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      val body =
+        s"""{
+           |  "batch_reference": "${freshBatchReference()}",
+           |  "payments": [
+           |    {"end_to_end_id":"E1","to_account_routing":{"scheme":"TZ.BANK_ACCOUNT","address":"123"},"value":{"currency":"$acctCurrency","amount":"1.00"},"description":"x"},
+           |    {"end_to_end_id":"E2","to_account_routing":{"scheme":"TZ.BANK_ACCOUNT","address":"124"},"value":{"currency":"$acctCurrency","amount":"0"},"description":"y"}
+           |  ],
+           |  "value": {"currency":"$acctCurrency","amount":"1.00"},
+           |  "description": "zero amount"
+           |}""".stripMargin
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/BULK/transaction-requests", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(code.api.util.ErrorMessages.NotPositiveAmount)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
     scenario("Return 409 when batch_reference is reused on the same source account", Http4s700RoutesTag) {
       val bankId = testBankId1.value
       val accountId = testAccountId0.value

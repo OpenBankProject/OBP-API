@@ -5715,6 +5715,9 @@ object Http4s700 {
       List($AuthenticatedUserIsRequired, InvalidJsonFormat,
            BulkPaymentsArrayEmpty, BulkPaymentsArrayTooLarge,
            BulkPaymentCurrencyMismatch, BulkDuplicateEndToEndId,
+           // NotPositiveAmount: an item amount that is not a number above zero refuses the batch.
+           // InvalidNumber: the declared total does not equal the sum of the items.
+           NotPositiveAmount, InvalidNumber,
            BulkBatchReferenceAlreadyUsed, BulkPaymentTransactionRequestError,
            UnknownError),
       apiTagTransactionRequest :: Nil,
