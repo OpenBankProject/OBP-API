@@ -39,11 +39,13 @@ import code.customeraddress.MappedCustomerAddress
 import code.crm.MappedCrmEvent
 import code.customerlinks.CustomerLink
 import code.customerattribute.MappedCustomerAttribute
+import code.directdebit.DirectDebit
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
 import code.socialmedia.MappedSocialMedia
+import code.standingorders.StandingOrder
 import code.taxresidence.MappedTaxResidence
 import code.usercustomerlinks.MappedUserCustomerLink
 import com.openbankproject.commons.model.CustomerId
@@ -70,6 +72,8 @@ object DeleteCustomerCascade {
           deleteCustomerLinks(customerId) ::
           deleteSocialMedia(customerId) ::
           deleteCrmEvents(customerId) ::
+          deleteStandingOrders(customerId) ::
+          deleteDirectDebits(customerId) ::
           deleteCustomerIdMapping(customerId) ::
           deleteAccountApplication(customerId) ::
           deleteCustomerUserCustomerLinks(customerId) ::
@@ -127,6 +131,12 @@ object DeleteCustomerCascade {
         By(MappedCrmEvent.mCustomerNumber, number)
       )
     }
+  }
+  private def deleteStandingOrders(customerId: CustomerId): Boolean = {
+    StandingOrder.bulkDelete_!!(By(StandingOrder.CustomerId, customerId.value))
+  }
+  private def deleteDirectDebits(customerId: CustomerId): Boolean = {
+    DirectDebit.bulkDelete_!!(By(DirectDebit.CustomerId, customerId.value))
   }
   private def deleteCustomerAccountLinks(customerId: CustomerId): Boolean = {
     CustomerAccountLink.bulkDelete_!!(
