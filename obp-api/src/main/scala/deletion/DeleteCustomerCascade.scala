@@ -36,18 +36,20 @@ import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customeraccountlinks.CustomerAccountLink
 import code.customeraddress.MappedCustomerAddress
+import code.crm.MappedCrmEvent
 import code.customerlinks.CustomerLink
 import code.customerattribute.MappedCustomerAttribute
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
+import code.socialmedia.MappedSocialMedia
 import code.taxresidence.MappedTaxResidence
 import code.usercustomerlinks.MappedUserCustomerLink
 import com.openbankproject.commons.model.CustomerId
 import deletion.DeletionUtil.databaseAtomicTask
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper.By
+import net.liftweb.mapper.{By, NotBy}
 
 object DeleteCustomerCascade {
 
@@ -66,6 +68,8 @@ object DeleteCustomerCascade {
           deleteCustomerMessages(customerId) ::
           deleteCustomerDependants(customerId) ::
           deleteCustomerLinks(customerId) ::
+          deleteSocialMedia(customerId) ::
+          deleteCrmEvents(customerId) ::
           deleteCustomerIdMapping(customerId) ::
           deleteAccountApplication(customerId) ::
           deleteCustomerUserCustomerLinks(customerId) ::
@@ -100,6 +104,29 @@ object DeleteCustomerCascade {
   private def deleteCustomerLinks(customerId: CustomerId): Boolean = {
     CustomerLink.bulkDelete_!!(By(CustomerLink.CustomerId, customerId.value)) &&
       CustomerLink.bulkDelete_!!(By(CustomerLink.OtherCustomerId, customerId.value))
+  }
+  /**
+   * Social media rows carry the customer number and no bank, and a customer number is only unique within a bank.
+   * They are deleted only when no customer of another bank has the same number, so one customer's cascade
+   * never removes another customer's handles.
+   */
+  private def deleteSocialMedia(customerId: CustomerId): Boolean = {
+    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall { c =>
+      val number = c.mNumber.get
+      val numberUsedByAnotherCustomer =
+        MappedCustomer.count(By(MappedCustomer.mNumber, number), NotBy(MappedCustomer.mCustomerId, customerId.value)) > 0
+      number.isEmpty || numberUsedByAnotherCustomer ||
+        MappedSocialMedia.bulkDelete_!!(By(MappedSocialMedia.mCustomerNumber, number))
+    }
+  }
+  private def deleteCrmEvents(customerId: CustomerId): Boolean = {
+    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall { c =>
+      val number = c.mNumber.get
+      number.isEmpty || MappedCrmEvent.bulkDelete_!!(
+        By(MappedCrmEvent.mBankId, c.mBank.get),
+        By(MappedCrmEvent.mCustomerNumber, number)
+      )
+    }
   }
   private def deleteCustomerAccountLinks(customerId: CustomerId): Boolean = {
     CustomerAccountLink.bulkDelete_!!(
