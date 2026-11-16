@@ -847,7 +847,8 @@ object Http4s600 {
             }
             (transactions: List[ModeratedTransaction], _) = transactionsResult
             moderatedTransactionsWithAttributes <- Future.sequence(transactions.map(transaction =>
-              NewStyle.function.getTransactionAttributes(bankAccount.bankId, transaction.id, Some(cc))
+              // only the attributes whose Attribute Definition lists this view, so a limited view does not see attributes meant for other views
+              NewStyle.function.getModeratedTransactionAttributes(bankAccount.bankId, transaction.id, view.viewId, Some(cc))
                 .map(attrs => code.api.v3_0_0.ModeratedTransactionWithAttributes(transaction, attrs._1))))
           } yield JSONFactory600.createTransactionsJsonV600(moderatedTransactionsWithAttributes)
         }
