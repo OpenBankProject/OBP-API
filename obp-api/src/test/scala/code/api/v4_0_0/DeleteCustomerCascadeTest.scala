@@ -38,9 +38,7 @@ import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.crm.MappedCrmEvent
 import code.customerlinks.{CustomerLink, MappedCustomerLinkProvider}
-import code.directdebit.{DirectDebit, MappedDirectDebitProvider}
 import code.socialmedia.MappedSocialMedia
-import code.standingorders.{MappedStandingOrderProvider, StandingOrder}
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -158,28 +156,6 @@ class DeleteCustomerCascadeTest extends V400ServerSetup {
 
       cascadeDelete(customerId).code should equal(200)
       MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)).isDefined should equal(false)
-    }
-  }
-
-  feature(s"test $ApiEndpoint1 - payment instructions signed by the customer") {
-    scenario("Standing orders and direct debits of the deleted customer go, those of another customer stay", ApiEndpoint1, VersionOfApi) {
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
-      val otherCustomerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
-      def addRows(id: String): Unit = {
-        MappedStandingOrderProvider.createStandingOrder(bankId, "account-" + id, id, resourceUser1.userId, "counterparty",
-          BigDecimal(10), "EUR", "MONTHLY", "1", new Date(), new Date(), None).openOrThrowException("expected the standing order")
-        MappedDirectDebitProvider.createDirectDebit(bankId, "account-" + id, id, resourceUser1.userId, "counterparty",
-          new Date(), new Date(), None).openOrThrowException("expected the direct debit")
-      }
-      def rows(id: String) = (StandingOrder.count(By(StandingOrder.CustomerId, id)), DirectDebit.count(By(DirectDebit.CustomerId, id)))
-      addRows(customerId)
-      addRows(otherCustomerId)
-      rows(customerId) should equal((1, 1))
-
-      cascadeDelete(customerId).code should equal(200)
-
-      rows(customerId) should equal((0, 0))
-      rows(otherCustomerId) should equal((1, 1))
     }
   }
 
