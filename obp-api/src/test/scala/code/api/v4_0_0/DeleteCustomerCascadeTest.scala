@@ -27,16 +27,22 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v4_0_0
 
+import code.CustomerDependants.MappedCustomerDependant
+import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole.{CanDeleteCustomerCascade, CanDeleteTransactionCascade}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
+import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.mapper.By
 import org.scalatest.Tag
+
+import java.util.Date
 
 class DeleteCustomerCascadeTest extends V400ServerSetup {
 
@@ -53,6 +59,18 @@ class DeleteCustomerCascadeTest extends V400ServerSetup {
 
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
+
+  private def customerPrimaryKey(customerId: String): Long =
+    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)).openOrThrowException("expected the customer").id.get
+
+  private def grantCascadeRole(): Unit =
+    if (!APIUtil.hasEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteCustomerCascade))
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteCustomerCascade.toString)
+
+  private def cascadeDelete(customerId: String) = {
+    grantCascadeRole()
+    makeDeleteRequest((v4_0_0_Request / "management" / "cascading" / "banks" / bankId / "customers" / customerId).DELETE <@(user1))
+  }
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
@@ -97,5 +115,30 @@ class DeleteCustomerCascadeTest extends V400ServerSetup {
       makeDeleteRequest(request400).code should equal(404)
     }
   }  
+
+  feature(s"test $ApiEndpoint1 - rows that point at the customer") {
+    scenario("Messages and dependants of the deleted customer go, those of another customer stay", ApiEndpoint1, VersionOfApi) {
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      val otherCustomerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      val pk = customerPrimaryKey(customerId)
+      val otherPk = customerPrimaryKey(otherCustomerId)
+      def addRows(customerPk: Long): Unit = {
+        MappedCustomerMessage.create.customer(customerPk).bank(bankId).mMessage("hello")
+          .mFromPerson("person").mFromDepartment("department").mTransport("sms").saveMe()
+        MappedCustomerDependant.create.mCustomer(customerPk).mDateOfBirth(new Date()).saveMe()
+      }
+      addRows(pk)
+      addRows(otherPk)
+      MappedCustomerMessage.count(By(MappedCustomerMessage.customer, pk)) should equal(1)
+      MappedCustomerDependant.count(By(MappedCustomerDependant.mCustomer, pk)) should equal(1)
+
+      cascadeDelete(customerId).code should equal(200)
+
+      MappedCustomerMessage.count(By(MappedCustomerMessage.customer, pk)) should equal(0)
+      MappedCustomerDependant.count(By(MappedCustomerDependant.mCustomer, pk)) should equal(0)
+      MappedCustomerMessage.count(By(MappedCustomerMessage.customer, otherPk)) should equal(1)
+      MappedCustomerDependant.count(By(MappedCustomerDependant.mCustomer, otherPk)) should equal(1)
+    }
+  }
 
 }

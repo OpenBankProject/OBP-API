@@ -31,7 +31,8 @@ import code.accountapplication.MappedAccountApplication
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
-import code.customer.MappedCustomer
+import code.CustomerDependants.MappedCustomerDependant
+import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customeraccountlinks.CustomerAccountLink
 import code.customeraddress.MappedCustomerAddress
@@ -50,6 +51,9 @@ import net.liftweb.mapper.By
 object DeleteCustomerCascade {
 
   def delete(customerId: CustomerId): Boolean = {
+    // The tasks run in list order. Rows that point at the customer go first and the customer row goes last,
+    // as the account cascade does with the account: some tasks read the customer row (its primary key, its
+    // bank and number) to find their rows, and a failure of the last task rolls back all the others.
     val doneTasks =
         deleteCustomerAttributes(customerId) ::
           deleteTaxResidence(customerId) ::
@@ -58,11 +62,13 @@ object DeleteCustomerCascade {
           deleteKycCheck(customerId) ::
           deleteKycDocument(customerId) ::
           deleteCustomerAddress(customerId) ::
+          deleteCustomerMessages(customerId) ::
+          deleteCustomerDependants(customerId) ::
           deleteCustomerIdMapping(customerId) ::
           deleteAccountApplication(customerId) ::
           deleteCustomerUserCustomerLinks(customerId) ::
-          deleteCustomer(customerId) ::
           deleteCustomerAccountLinks(customerId) ::
+          deleteCustomer(customerId) ::
         Nil
     doneTasks.forall(_ == true)
   }
@@ -75,6 +81,18 @@ object DeleteCustomerCascade {
         // Throws, so databaseAtomicTask restores what delete has removed.
         fullBoxOrException(Empty ~> APIFailureNewStyle(CouldNotDeleteCascade, 400))
     }
+  }
+  private def deleteCustomerMessages(customerId: CustomerId): Boolean = {
+    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall(c =>
+      MappedCustomerMessage.bulkDelete_!!(
+        By(MappedCustomerMessage.customer, c.id.get)
+      ))
+  }
+  private def deleteCustomerDependants(customerId: CustomerId): Boolean = {
+    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall(c =>
+      MappedCustomerDependant.bulkDelete_!!(
+        By(MappedCustomerDependant.mCustomer, c.id.get)
+      ))
   }
   private def deleteCustomerAccountLinks(customerId: CustomerId): Boolean = {
     CustomerAccountLink.bulkDelete_!!(
