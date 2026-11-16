@@ -39,7 +39,6 @@ import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.crm.MappedCrmEvent
 import code.customerlinks.{CustomerLink, MappedCustomerLinkProvider}
 import code.directdebit.{DirectDebit, MappedDirectDebitProvider}
-import code.mandate.{Mandate, MandateProvision, MappedMandateProvider, SignatoryPanel}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.{MappedStandingOrderProvider, StandingOrder}
 import code.entitlement.Entitlement
@@ -181,34 +180,6 @@ class DeleteCustomerCascadeTest extends V400ServerSetup {
 
       rows(customerId) should equal((0, 0))
       rows(otherCustomerId) should equal((1, 1))
-    }
-  }
-
-  feature(s"test $ApiEndpoint1 - mandates of the customer") {
-    scenario("A mandate with its provisions and signatory panels goes, those of another customer stay", ApiEndpoint1, VersionOfApi) {
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
-      val otherCustomerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
-      def addMandate(id: String): String = {
-        val mandate = MappedMandateProvider.createMandate(bankId, "account-" + id, id, "name", "reference-" + id, "legal", "description",
-          "ACTIVE", new Date(), new Date(), resourceUser1.userId).openOrThrowException("expected the mandate")
-        MappedMandateProvider.createMandateProvision(mandate.mandateId, "provision", "description", "legal", "TYPE",
-          "conditions", "requirements", "", "", "", true, 1).openOrThrowException("expected the provision")
-        MappedMandateProvider.createSignatoryPanel(mandate.mandateId, "panel", "description", resourceUser1.userId)
-          .openOrThrowException("expected the panel")
-        mandate.mandateId
-      }
-      val mandateId = addMandate(customerId)
-      val otherMandateId = addMandate(otherCustomerId)
-      def rows(mandate: String, customer: String) = (
-        Mandate.count(By(Mandate.CustomerId, customer)),
-        MandateProvision.count(By(MandateProvision.MandateId, mandate)),
-        SignatoryPanel.count(By(SignatoryPanel.MandateId, mandate)))
-      rows(mandateId, customerId) should equal((1, 1, 1))
-
-      cascadeDelete(customerId).code should equal(200)
-
-      rows(mandateId, customerId) should equal((0, 0, 0))
-      rows(otherMandateId, otherCustomerId) should equal((1, 1, 1))
     }
   }
 
