@@ -287,6 +287,14 @@ case class BankAccountExtended(val bankAccount: BankAccount) extends MdcLoggable
     if(canRevokeAccessToAllViews(bankId, accountId, user, callContext))
       for{
         otherUser <- UserX.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) ?~ UserNotFoundByProviderAndUsername
+        // the views the target user holds on this account are the ones this request removes
+        targetViewIds = Views.views.vend.permission(BankIdAccountId(bankId, accountId), otherUser)
+          .map(_.views.map(_.viewId)).getOrElse(Nil).distinct
+        // the caller must be able to revoke each of those views, else a caller with a custom view could remove the owner view
+        _ <- Helper.booleanToBox(
+          targetViewIds.forall(viewId => canRevokeAccessToView(bankId, accountId, viewId, user, callContext)),
+          UserLacksPermissionCanRevokeAccessToViewForTargetAccount + s"Current ViewIds(${targetViewIds.map(_.value).mkString(", ")}) and current UserId(${user.userId})"
+        )
         isRevoked <- Views.views.vend.revokeAllAccountAccess(bankId, accountId, otherUser)
       } yield isRevoked
     else

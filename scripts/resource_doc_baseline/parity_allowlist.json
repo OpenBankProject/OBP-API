@@ -255,9 +255,9 @@
       "version": "v1_2_1",
       "endpoint": "removePermissionForUserForBankAccountForAllViews",
       "field": "errorResponseBodies",
-      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to all views",
+      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to all views. Added UserLacksPermissionCanRevokeAccessToViewForTargetAccount (403): the caller must be able to revoke each view the target user holds",
       "lift_digest": "b72cefb915c6af0190e4543aed820722db264a43a54247247d9a1fdb25321703",
-      "http4s_digest": "1504d43b14defdedbab99f5784e36dbc7d3c6e1eca29fddc41d81f43d3ae0bcd"
+      "http4s_digest": "8fc3bece8cf4d5a977125fd6e97ca3feee5d8730a8fb0942e35c337591fc5ddd"
     },
     {
       "version": "v4_0_0",
