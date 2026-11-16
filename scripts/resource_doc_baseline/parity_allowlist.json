@@ -140,6 +140,14 @@
       "http4s_digest": "5a8117168f16e523c860e789cdfc5969a95c43e163cf170dbaae992f6e7bbb6b"
     },
     {
+      "version": "v6_0_0",
+      "endpoint": "getProductsV600",
+      "field": "errorResponseBodies",
+      "reason": "AuthenticatedUserIsRequired is added when apiOptions.getProductsIsPublic=false, so the middleware requires a login as the Lift code did with authenticatedAccess",
+      "lift_digest": "3bdcd0c958443de6b8a40314fb0e25bb976e6a734c73b4877302491756cb2ab9",
+      "http4s_digest": "ff19d358f83b960a52f9fbdd96a02ddd930feef41ad37737d3c812fe99f72c7b"
+    },
+    {
       "version": "v4_0_0",
       "endpoint": "getAtms",
       "field": "errorResponseBodies",

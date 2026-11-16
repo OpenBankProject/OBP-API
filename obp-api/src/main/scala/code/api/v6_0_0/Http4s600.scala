@@ -8233,10 +8233,9 @@ object Http4s600 {
         |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
         EmptyBody,
         productsJsonV600,
-        List(
-          BankNotFound,
-          UnknownError
-        ),
+        // with apiOptions.getProductsIsPublic=false the middleware requires a login, as Lift did, so the prop can hide the catalogue
+        if (getProductsIsPublic) List(BankNotFound, UnknownError)
+        else List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
         apiTagProduct :: Nil,
         None,
         http4sPartialFunction = Some(getProductsV600)
