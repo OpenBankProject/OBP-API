@@ -31,7 +31,7 @@ import code.api.Constant
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, userAuthenticationMessage}
 import code.api.util.ApiRole.getOrCreateDynamicApiRole
 import code.api.util.ApiTag._
-import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired, ConsentMyResourcesMissing}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired, ConsentMyResourcesMissing, InvalidRecordAccessEntry, RecordAccessOrganisationNotFound}
 import code.api.util._
 import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicEntityOperation}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
@@ -140,6 +140,18 @@ object EntityAccessName {
       //eg: /FooBar21/FOO_BAR21_ID/access/USER_ID (with or without the bank segment)
       case entityName :: id :: "access" :: userId :: Nil if DefinitionIn(space, entityName) =>
         Some((space, entityName, id, Some(userId)))
+      case _ => None
+    }
+    case _ => None
+  }
+}
+
+object EntityOrganisationAccessName {
+  def unapply(url: List[String]): Option[(Option[String], String, String, String)] = url match {
+    case SpaceSegments(space, rest) => rest match {
+      //eg: /FooBar21/FOO_BAR21_ID/access/organisations/ORGANISATION_ID (with or without the bank segment)
+      case entityName :: id :: "access" :: "organisations" :: organisationId :: Nil if DefinitionIn(space, entityName) =>
+        Some((space, entityName, id, organisationId))
       case _ => None
     }
     case _ => None
@@ -936,13 +948,21 @@ object DynamicEntityHelper {
         ("can_delete" -> false) ~
         ("can_grant" -> true)
       val accessGrantedByExample: JObject = ("granted_by" -> ExampleValue.userIdExample.value)
+      val organisationAccessEntryExample: JObject =
+        ("organisation_id" -> ExampleValue.organisationIdExample.value) ~
+        ("can_read" -> true) ~
+        ("can_update" -> true) ~
+        ("can_delete" -> false) ~
+        ("can_grant" -> false)
       val accessListExample: JObject =
-        ("access" -> JArray(List(accessEntryExample merge accessGrantedByExample)))
+        ("access" -> JArray(List(accessEntryExample merge accessGrantedByExample))) ~
+        ("organisation_access" -> JArray(List(organisationAccessEntryExample merge accessGrantedByExample)))
       val accessRoleNote =
         s"""This endpoint exists because $splitName is defined with `useRowLevelAccess`: a per-record access list decides
            |read, update, delete and grant in place of the entity's Get, Update and Delete roles.
            |
-           |The caller must hold `can_grant` on this record — the User who created it does — or the
+           |The caller must hold `can_grant` on this record — the User who created it does, and so do the members of an
+           |Organisation granted it — or the
            |`${dynamicEntityInfo.canGrantRowAccessRole.toString()}` role, which administers the access list of any record.
            |""".stripMargin
 
@@ -976,11 +996,18 @@ object DynamicEntityHelper {
         "PUT",
         s"$accessResourceDocUrl",
         s"Grant Access to a $splitName Record",
-        s"""Grant (or update) another User's access to one $splitName record.
+        s"""Grant (or update) another User's or an Organisation's access to one $splitName record.
            |
-           |The body is one entry or an array of entries. `user_id` is required; `can_read`, `can_update` and
-           |`can_delete` default to `false` and `can_grant` defaults to `true`, so a grantee may re-share by default.
-           |Sending an entry for a User who already holds access replaces their permissions.
+           |The body is one entry or an array of entries. Each entry names either a `user_id` or an `organisation_id`.
+           |`can_read`, `can_update` and `can_delete` default to `false`.
+           |
+           |For a User, `can_grant` defaults to `true`, so a grantee may share the record further by default.
+           |
+           |For an Organisation, `can_grant` defaults to `false`. The grant applies to every member of the Organisation
+           |while it is active. People who join the Organisation later get access, and people who leave lose it.
+           |A suspended Organisation grants nothing.
+           |
+           |Sending an entry for a User or Organisation that already holds access replaces their permissions.
            |
            |$accessRoleNote
            |
@@ -992,6 +1019,8 @@ object DynamicEntityHelper {
           AuthenticatedUserIsRequired,
           UserHasMissingRoles,
           InvalidJsonFormat,
+          InvalidRecordAccessEntry,
+          RecordAccessOrganisationNotFound,
           UnknownError
         ),
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
@@ -1025,6 +1054,33 @@ object DynamicEntityHelper {
         Some(List(dynamicEntityInfo.canGrantRowAccessRole)),
         createdByBankId= dynamicEntityInfo.bankId
       )
+
+      resourceDocs += (DynamicEntityOperation.DELETE, s"AccessOrganisation$splitNameWithBankId") -> ResourceDoc(
+        apiVersion,
+        buildRevokeOrganisationRowAccessFunctionName(bankId, entityName),
+        "DELETE",
+        s"$accessResourceDocUrl/organisations/ORGANISATION_ID",
+        s"Revoke an Organisation's Access to a $splitName Record",
+        s"""Revoke an Organisation's access to one $splitName record. Its members lose the access the grant gave them.
+           |
+           |Grants that members made to other Users stay. Each of those was made by one person, and revoking that
+           |person removes them.
+           |
+           |$accessRoleNote
+           |
+           |${userAuthenticationMessage(true)}
+           |""".stripMargin,
+        EmptyBody,
+        ("revoked_count" -> 1): JObject,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
+        List(apiTag, apiTagDynamicEntity, apiTagDynamic),
+        Some(List(dynamicEntityInfo.canGrantRowAccessRole)),
+        createdByBankId= dynamicEntityInfo.bankId
+      )
     }
 
     resourceDocs
@@ -1039,6 +1095,7 @@ object DynamicEntityHelper {
   private def buildGetRowAccessFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_get${entityName}RowAccess_${bankId.getOrElse("")}"
   private def buildGrantRowAccessFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_grant${entityName}RowAccess_${bankId.getOrElse("")}"
   private def buildRevokeRowAccessFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_revoke${entityName}RowAccess_${bankId.getOrElse("")}"
+  private def buildRevokeOrganisationRowAccessFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_revoke${entityName}OrganisationRowAccess_${bankId.getOrElse("")}"
 
   @inline
   private def buildOperationId(bankId:Option[String], entityName: String, fun: (Option[String], String) => String): String = {

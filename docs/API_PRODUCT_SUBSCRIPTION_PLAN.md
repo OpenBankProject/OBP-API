@@ -1,7 +1,7 @@
 # API Product Subscription — making API Products enforceable
 
 Written 2026-09-02, revised 2026-09-02 after checking every code reference against the repo.
-Track progress here by marking items done in place. **Status: Phases 0 to 3 coded and green on 2026-09-02 (`ApiProductSubscriptionTest` 9 scenarios, `RateLimitsTest` 12, `CacheKeyFormatTest` 5). Not yet committed. Phase 4 is other repos.**
+Track progress here by marking items done in place. **Status: Phases 0 to 3 coded and green on 2026-09-02 (`ApiProductSubscriptionTest` 9 scenarios, `RateLimitsTest` 12, `CacheKeyFormatTest` 5), committed as "Product Subscriptions". Phase 4 (other repos): OBP-Stripe, Portal and API Manager done on 2026-11-17, not yet tested against a real OBP-API and Stripe; Portal usage panel waits for owner-gated usage endpoints; OBP-Billing not started.**
 Background: `../../commands/NMB_legal_2026/FROM_CLAUDE_plans_evolution_OBP_Stripe_OBP_Billing.md`
 (relative to this repo; the `commands` directory sits next to `OBP-API-Simon` in `workspace_2024`).
 
@@ -245,7 +245,7 @@ Four actors. Ownership means `Consumer.createdByUserId == caller.userId`, exactl
 |---|---|---|
 | **developer** | owns the consumer; no role | subscribe own consumer; read own subscriptions and their attributes; set status `cancelled` on own subscription. Nothing else. |
 | **bank admin** | `…AtOneBank` roles at the product's bank | everything at that bank: subscribe any consumer, read all, any status transition, delete, write attributes. Typical use: approve `requested` → `active`, suspend, reinstate. |
-| **billing adapter** | service account with `…AtOneBank` roles at every bank it serves (one Stripe or Invoice Ninja instance may serve several) | status transitions and attribute writes at those banks. In practice only `active`, `past_due`, `cancelled`. |
+| **billing adapter** | a Platform App acting as itself (client credentials), with `…AtOneBank` Scopes at every bank it serves (one Stripe or Invoice Ninja instance may serve several) | status transitions and attribute writes at those banks. In practice only `active`, `past_due`, `cancelled`. |
 | **support / auditor** | `CanGetApiProductSubscriptionAtOneBank` | read only. |
 
 Roles:
@@ -365,14 +365,37 @@ Requires Phase 1.
 
 ## Phase 4 — Adapters (other repos, listed for completeness)
 
-- [ ] OBP-Stripe: read products with `BILLING_SYSTEM=stripe` from `GET /obp/v6.0.0/api-products`,
-  sync to Stripe Products/Prices (lookup_key = `bank_id:api_product_code`), create the OBP
-  subscription before checkout, put `api_product_subscription_id` in checkout and subscription
-  metadata, store `STRIPE_SUBSCRIPTION_ID` as a subscription attribute, and on webhooks PUT status
-  only. Delete the `CanCreateBank` and user-attribute provisioning code.
+- [x] OBP-Stripe (2026-11-17, rewritten; see its README): a Platform App, no DirectLogin. It
+  reads products with `BILLING_SYSTEM=stripe` (`GET /obp/v6.0.0/api-products`, then each product for
+  its attributes) and keeps a monthly Stripe Price per product under lookup_key
+  `bank_id:api_product_code` (a changed amount creates a new Price and archives the old one). The
+  Portal creates the subscription; for a `stripe` product it stays `requested` and the Portal sends
+  the developer to OBP-Stripe `/checkout?api_product_subscription_id=ID`, which checks ownership
+  through `GET /my/api-product-subscriptions/ID` and starts Stripe Checkout with the subscription's
+  ids in the Checkout and Stripe subscription metadata. Webhooks and a 5-minute sync apply the Stripe
+  subscription's state by PUT status only: `active`/`trialing` → `active` (from `requested` or
+  `past_due`), `past_due` → `past_due`, `unpaid` → `suspended`, `canceled` → `cancelled`. It never
+  reinstates `suspended` (an admin may have suspended it). A subscription cancelled or deleted in OBP
+  is cancelled in Stripe. It stores `STRIPE_SUBSCRIPTION_ID` as a subscription attribute and
+  `STRIPE_CUSTOMER_ID` as the payer's non-personal user attribute. Scopes it declares:
+  `CanGetNonPersonalUserAttributes`, `CanCreateNonPersonalUserAttribute` (system);
+  `CanGetApiProductSubscriptionAtOneBank`, `CanUpdateApiProductSubscriptionStatusAtOneBank`,
+  `CanCreateApiProductSubscriptionAttributeAtOneBank` at each bank with a Stripe product; optional
+  `CanGetApiProduct` at each bank with products. The `CanCreateBank` and user-attribute provisioning
+  code is gone. Dockerfile and `k8s/` manifests added.
 - [ ] OBP-Billing: invoice per active subscription with `BILLING_SYSTEM=invoice_ninja`
   (monthly amount + overage from aggregate metrics); add the overdue loop that PUTs `past_due` / `active`.
-- [ ] Portal: catalogue from `GET /api-products`, product detail page, usage panel from
+- [x] Portal and API Manager (2026-11-17): the Portal subscribes, and for a `stripe` product sends
+  the developer to `PUBLIC_SUBSCRIPTIONS_URL/checkout?api_product_subscription_id=ID` (OBP-Stripe);
+  `requested` Stripe subscriptions get Pay, `active`/`past_due` get Manage billing. The old
+  account-application checkout route and `STRIPE_CHECKOUT_URL` are gone. The API Manager product page
+  lists subscriptions with Approve / Suspend / Reinstate / Cancel / Delete and an Enrol form for
+  `SELF_SUBSCRIBE=false` products; the consumer page lists a consumer's subscriptions.
+- [ ] Portal usage panel: blocked. `call-counters` and `active-rate-limits` exist only as v6.0.0
+  `/management/consumers/CONSUMER_ID/...` with `CanGetRateLimits`, which a fintech must not need.
+  Needs owner-gated `GET /my/consumers/CONSUMER_ID/call-counters` and `.../active-rate-limits`
+  (v7.0.0, no Role, 404 for a consumer the caller does not own).
+- [x] Portal (the original item; catalogue and product pages exist, the usage panel is tracked above): catalogue from `GET /api-products`, product detail page, usage panel from
   `call-counters` and `active-rate-limits`. The fintech never needs a role; the product's
   attributes pick the button:
 

@@ -534,6 +534,44 @@ object Http4s700 {
       http4sPartialFunction = Some(deleteEntitlement)
     )
 
+    // Route: DELETE /obp/v7.0.0/banks/BANK_ID/entitlements/ENTITLEMENT_ID (204)
+    // The one place CanDeleteEntitlementAtOneBank is checked: someone who manages Roles at one bank can take
+    // them away there, without the power to delete Entitlements at every bank.
+    val deleteEntitlementAtOneBank: Http4sRoute = Http4sRoute {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "entitlements" / entitlementId =>
+        EndpointHelpers.withUserAndBankDelete(req) { (_, bank, cc) =>
+          for {
+            entitlement <- Future(Entitlement.entitlement.vend.getEntitlementById(entitlementId)
+              .filter(_.bankId == bank.bankId.value))
+              .map(unboxFullOrFail(_, Some(cc), s"$EntitlementNotFound Current ENTITLEMENT_ID($entitlementId) at BANK_ID(${bank.bankId.value}).", 404))
+            _ <- Future(Entitlement.entitlement.vend.deleteEntitlement(Some(entitlement)))
+          } yield ()
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deleteEntitlementAtOneBank),
+      "DELETE",
+      "/banks/BANK_ID/entitlements/ENTITLEMENT_ID",
+      "Delete Entitlement at One Bank",
+      s"""Delete an Entitlement held at the bank BANK_ID. The Entitlement must be at that bank: one at another
+        |bank, or a system Entitlement, answers 404 here.
+        |
+        |You need CanDeleteEntitlementAtOneBank at BANK_ID, or CanDeleteEntitlementAtAnyBank. So someone who
+        |manages the Roles at one bank can take them away there, without the power to delete Entitlements at
+        |every bank. To delete any Entitlement, use Delete Entitlement.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, BankNotFound, EntitlementNotFound, UnknownError),
+      apiTagEntitlement :: apiTagRole :: Nil,
+      Some(List(ApiRole.canDeleteEntitlementAtOneBank, canDeleteEntitlementAtAnyBank)),
+      http4sPartialFunction = Some(deleteEntitlementAtOneBank)
+    )
+
     // Category: withUserAndBodyCreated (user auth, body parsing, 201 Created)
     val addEntitlement: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "users" / userId / "entitlements" =>
@@ -6251,7 +6289,7 @@ object Http4s700 {
 
     // ─── API Product Subscriptions (see docs/API_PRODUCT_SUBSCRIPTION_PLAN.md) ──────────────────
     // Rule zero: a developer never needs a role for their own consumers; ownership
-    // (Consumer.createdByUserId == caller) is checked here. Roles are checked at the PRODUCT's
+    // (the Consumer's creator, or a member of its Organisation: ConsumerOwnership) is checked here. Roles are checked at the PRODUCT's
     // bank (…AtOneBank); a billing adapter serving several banks is granted the role at each.
     // Docs for the management endpoints declare their roles for the catalog but disable auto
     // validation, because the bank is the subscription's bank, not a BANK_ID in the path.
@@ -6260,8 +6298,9 @@ object Http4s700 {
     private def apiProductAttributeValue(attributes: List[code.apiproductattribute.ApiProductAttributeTrait], name: String): Option[String] =
       attributes.find(a => a.name.equalsIgnoreCase(name) && a.isActive.getOrElse(true)).map(_.value.trim.toLowerCase)
 
+    // The Consumer's creator, or a member of the Organisation it belongs to: see ConsumerOwnership.
     private def userOwnsConsumer(consumer: code.model.Consumer, userId: String): Boolean =
-      Option(consumer.createdByUserId.get).exists(_ == userId)
+      code.organisation.ConsumerOwnership.canActFor(consumer, userId)
 
     private def userOwnsSubscription(subscription: ApiProductSubscriptionTrait, userId: String): Future[Boolean] =
       code.consumer.Consumers.consumers.vend.getConsumerByConsumerIdFuture(subscription.consumerId)
@@ -6351,7 +6390,7 @@ object Http4s700 {
       case req @ GET -> `prefixPath` / "my" / "api-product-subscriptions" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
-            consumers <- code.consumer.Consumers.consumers.vend.getConsumersByUserIdFuture(user.userId)
+            consumers <- code.organisation.ConsumerOwnership.consumersFor(user.userId)
             (subscriptions, _) <- NewStyle.function.getApiProductSubscriptionsByConsumerIds(consumers.map(_.consumerId.get), Some(cc))
             json <- subscriptionsWithAttributesJson(subscriptions, cc)
           } yield json
@@ -7725,6 +7764,10 @@ object Http4s700 {
 
     // Tenants: the customers of the operator of this instance.
     resourceDocs ++= Http4s700Tenants.resourceDocs
+
+    // Organisations: a company or team that owns Consumers, and the /my/consumers endpoints its members and a
+    // Consumer's creator use.
+    resourceDocs ++= Http4s700Organisations.resourceDocs
 
     // What an OIDC provider reads from OBP-API to finish signing a User in for a Consumer.
     resourceDocs ++= Http4s700OpenIdConnect.resourceDocs

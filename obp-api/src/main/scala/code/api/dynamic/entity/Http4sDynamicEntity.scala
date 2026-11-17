@@ -29,7 +29,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.DynamicData.{DynamicData, DynamicDataProvider, DynamicDataAccessProvider, DynamicDataAccessPermission, DynamicDataT}
 import code.api.Constant.PARAM_LOCALE
-import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, DynamicEntitySpace, EntityAccessName, EntityName, PublicEntityName}
+import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, DynamicEntitySpace, EntityAccessName, EntityName, EntityOrganisationAccessName, PublicEntityName}
 import code.api.dynamic.entity.query.{FieldSpec, InMemoryQueryExecutor, JoinTargetInfo, QueryParamParser, QueryPlan, QueryPlanner}
 import code.api.dynamic.entity.projection.{IndexingCapabilities, PostgresProjectionBackend, ProjectionReadiness}
 import cats.effect.unsafe.implicits.{global => ioRuntime} // aliased: avoids clashing with the EC `global` imported below
@@ -595,8 +595,19 @@ object Http4sDynamicEntity extends MdcLoggable {
     ("can_grant" -> a.canGrant) ~
     ("granted_by" -> a.grantedBy)
 
+  private def organisationAccessRowJson(a: code.DynamicData.DynamicDataOrganisationAccessT): JObject =
+    ("organisation_id" -> a.organisationId) ~
+    ("can_read" -> a.canRead) ~
+    ("can_update" -> a.canUpdate) ~
+    ("can_delete" -> a.canDelete) ~
+    ("can_grant" -> a.canGrant) ~
+    ("granted_by" -> a.grantedBy)
+
+  // Grants to Users are listed under "access" and grants to Organisations under "organisation_access",
+  // so a client that reads user_id from every "access" entry keeps working.
   private def rowAccessListJson(bankId: Option[String], entityName: String, dataId: String): JObject =
-    ("access" -> JArray(aclVend.getAccessForRow(bankId, entityName, dataId).map(rowAccessRowJson)))
+    ("access" -> JArray(aclVend.getAccessForRow(bankId, entityName, dataId).map(rowAccessRowJson))) ~
+    ("organisation_access" -> JArray(aclVend.getOrganisationAccessForRow(bankId, entityName, dataId).map(organisationAccessRowJson)))
 
   // Shared preamble: before-intercept, auth, bank, flag-off (400), grant authorisation (403).
   private def rowAccessAuthorise(cc: CallContext, bankId: Option[String], entityName: String, id: String,
@@ -632,16 +643,34 @@ object Http4sDynamicEntity extends MdcLoggable {
           case o: JObject  => List(o)
           case _           => Nil
         }
-        _ <- Helper.booleanToFuture(s"$InvalidJsonFormat each access entry needs a non-empty user_id", 400, cc = callContext) {
-               entries.nonEmpty && entries.forall(o => strField(o, "user_id").isDefined)
+        _ <- Helper.booleanToFuture(InvalidRecordAccessEntry, 400, cc = callContext) {
+               entries.nonEmpty && entries.forall(o => strField(o, "user_id").isDefined != strField(o, "organisation_id").isDefined)
+             }
+        unknownOrganisationIds = entries.flatMap(o => strField(o, "organisation_id"))
+          .filterNot(organisationId => code.organisation.Organisations.getOrganisation(organisationId).isDefined)
+        _ <- Helper.booleanToFuture(s"$RecordAccessOrganisationNotFound Current value: ${unknownOrganisationIds.mkString(", ")}", 404, cc = callContext) {
+               unknownOrganisationIds.isEmpty
              }
         _ = entries.foreach { o =>
-              aclVend.grant(bankId, entityName, id, strField(o, "user_id").get,
-                canRead = boolField(o, "can_read", default = false),
-                canUpdate = boolField(o, "can_update", default = false),
-                canDelete = boolField(o, "can_delete", default = false),
-                canGrant = boolField(o, "can_grant", default = true), // §8.1: re-share by default
-                grantedBy = granter.userId)
+              (strField(o, "user_id"), strField(o, "organisation_id")) match {
+                case (Some(grantUserId), _) =>
+                  aclVend.grant(bankId, entityName, id, grantUserId,
+                    canRead = boolField(o, "can_read", default = false),
+                    canUpdate = boolField(o, "can_update", default = false),
+                    canDelete = boolField(o, "can_delete", default = false),
+                    canGrant = boolField(o, "can_grant", default = true), // §8.1: re-share by default
+                    grantedBy = granter.userId)
+                case (None, Some(grantOrganisationId)) =>
+                  // can_grant defaults to false here: with it, every member could change the access list,
+                  // including removing the person who shared the record.
+                  aclVend.grantToOrganisation(bankId, entityName, id, grantOrganisationId,
+                    canRead = boolField(o, "can_read", default = false),
+                    canUpdate = boolField(o, "can_update", default = false),
+                    canDelete = boolField(o, "can_delete", default = false),
+                    canGrant = boolField(o, "can_grant", default = false),
+                    grantedBy = granter.userId)
+                case _ =>
+              }
             }
       } yield rowAccessListJson(bankId, entityName, id)
     }
@@ -651,6 +680,14 @@ object Http4sDynamicEntity extends MdcLoggable {
       for {
         _ <- rowAccessAuthorise(cc, bankId, entityName, id, DELETE)
         removed = aclVend.revoke(bankId, entityName, id, grantUserId).getOrElse(0) // cascades to downstream grants (§7)
+      } yield (("revoked_count" -> removed): JObject)
+    }
+
+  private def revokeOrganisationRowAccess(req: Request[IO], bankId: Option[String], entityName: String, id: String, grantOrganisationId: String): IO[Response[IO]] =
+    EndpointHelpers.executeAndRespond(req) { cc =>
+      for {
+        _ <- rowAccessAuthorise(cc, bankId, entityName, id, DELETE)
+        removed = aclVend.revokeOrganisation(bankId, entityName, id, grantOrganisationId).getOrElse(0)
       } yield (("revoked_count" -> removed): JObject)
     }
 
@@ -917,6 +954,8 @@ object Http4sDynamicEntity extends MdcLoggable {
         Some(r => upsertRowAccess(r, bankId, entityName, id))
       case (Method.DELETE, EntityAccessName(bankId, entityName, id, Some(grantUserId))) =>
         Some(r => revokeRowAccess(r, bankId, entityName, id, grantUserId))
+      case (Method.DELETE, EntityOrganisationAccessName(bankId, entityName, id, grantOrganisationId)) =>
+        Some(r => revokeOrganisationRowAccess(r, bankId, entityName, id, grantOrganisationId))
       case (method, EntityName(bankId, entityName, id, isPersonalEntity)) =>
         method match {
           case Method.GET    => Some(r => genericGet(r, bankId, entityName, id, isPersonalEntity))

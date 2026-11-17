@@ -572,7 +572,7 @@ object ErrorMessages {
   val ApiProductSubscriptionAlreadyExists = "OBP-30561: ApiProductSubscription already exists. The Consumer already holds a non-cancelled subscription to this API Product."
   val InvalidApiProductSubscriptionStatus = "OBP-30562: Invalid ApiProductSubscription status. Allowed values are: requested, active, past_due, suspended, cancelled."
   val InvalidApiProductSubscriptionStatusTransition = "OBP-30563: Invalid ApiProductSubscription status transition."
-  val ConsumerNotOwnedByUser = "OBP-30564: The Consumer was not created by the current User. Please specify the CONSUMER_ID of one of your own Consumers."
+  val ConsumerNotOwnedByUser = "OBP-30564: The Consumer is not yours. Please specify the CONSUMER_ID of a Consumer you created, or of one that belongs to your Organisation."
   val CreateApiProductSubscriptionError = "OBP-30565: Could not create ApiProductSubscription."
   val UpdateApiProductSubscriptionError = "OBP-30566: Could not update ApiProductSubscription."
   val DeleteApiProductSubscriptionError = "OBP-30567: Could not delete ApiProductSubscription."
@@ -635,6 +635,27 @@ object ErrorMessages {
   val CreateTenantError = "OBP-30511: Could not create Tenant."
   val UpdateTenantError = "OBP-30512: Could not update Tenant."
   val DeleteTenantError = "OBP-30513: Could not delete Tenant."
+
+  // Organisations: a group of people that owns Consumers (OBP-30630 .. OBP-30645)
+  val OrganisationNotFound = "OBP-30630: Organisation not found. Please specify the ORGANISATION_ID of an Organisation you belong to."
+  val OrganisationAdminRequired = "OBP-30631: Only an admin of the Organisation can do this."
+  val InvalidOrganisationMemberRole = "OBP-30632: Invalid member_role. Allowed values are: admin, member."
+  val OrganisationMemberAlreadyExists = "OBP-30633: The User is already a member of this Organisation."
+  val OrganisationMemberNotFound = "OBP-30634: The User is not a member of this Organisation."
+  val OrganisationNeedsAnAdmin = "OBP-30635: An Organisation must keep at least one admin. Make another member an admin first."
+  val OrganisationHasConsumers = "OBP-30636: The Organisation still has Consumers. Move them out of it first."
+  val InvalidOrganisationStatus = "OBP-30637: Invalid Organisation status. Allowed values are: active, suspended."
+  val InvalidOrganisationName = "OBP-30638: The name of an Organisation must be 1 to 255 characters."
+  val CreateOrganisationError = "OBP-30639: Could not create the Organisation."
+  val UpdateOrganisationError = "OBP-30640: Could not update the Organisation."
+  val DeleteOrganisationError = "OBP-30641: Could not delete the Organisation."
+  val UpdateOrganisationMemberError = "OBP-30642: Could not change the members of the Organisation."
+  val MyConsumerNotFound = "OBP-30643: Consumer not found. Please specify the CONSUMER_ID of a Consumer you created or one that belongs to your Organisation."
+  val UpdateConsumerOrganisationError = "OBP-30644: Could not change the Organisation of the Consumer."
+  val InvalidOrganisationBankId = "OBP-30645: Invalid bank_id for an Organisation. Use SYS, or the BANK_ID of a bank that exists."
+  val RecordAccessOrganisationNotFound = "OBP-30646: Organisation not found. Please specify the ORGANISATION_ID of an Organisation that exists."
+  val MyOrganisationBankIdNotAllowed = "OBP-30648: An Organisation you create for yourself is always at SYS, so leave out bank_id. To create an Organisation at a bank, use POST /management/organisations with CanCreateOrganisationAtOneBank at that bank."
+  val InvalidRecordAccessEntry = "OBP-30647: Invalid access entry. Each entry needs either a user_id or an organisation_id, not both."
 
   // Data retention (OBP-30582 .. OBP-30596)
   val RetentionPolicyNotFound = "OBP-30609: Retention policy not found in this space. Please specify a valid value for RETENTION_POLICY_ID."
@@ -1372,12 +1393,14 @@ object ErrorMessages {
     import scala.meta._
     val source: Source = new java.io.File("src/main/scala/code/api/util/ErrorMessages.scala").parse[Source].get
 
+    // A message may be a plain string ("OBP-..."), an interpolated one (s"OBP-...") or a triple-quoted one
+    // ("""OBP-..."""). All three are checked; the number is the OBP-NNNNN at the start, without its quotes.
+    val messageNumberAtStart = """^s?(?:"{3}|")(OBP-[0-9]+)""".r
     val listOfMessaegeNumbers = source.collect {
       case obj: Defn.Object if obj.name.value == "ErrorMessages" =>
         obj.collect {
-          case v: Defn.Val if v.rhs.syntax.startsWith(""""OBP-""") =>
-            val messageNumber = v.rhs.syntax.split(":")
-            messageNumber(0)
+          case v: Defn.Val if messageNumberAtStart.findFirstMatchIn(v.rhs.syntax).isDefined =>
+            "\"" + messageNumberAtStart.findFirstMatchIn(v.rhs.syntax).get.group(1)
         }
     }
     val list = listOfMessaegeNumbers.flatten

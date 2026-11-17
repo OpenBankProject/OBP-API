@@ -552,10 +552,12 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       flagFields.forall(f => knownFlagFields.contains(f.name)),
       s"$DynamicEntityInstanceValidateFail Unknown flag fields. Allowed flags: ${knownFlagFields.mkString(", ")}. Current root objects: ${fields.map(_.name).mkString(",  ")}"
     )
-    // §8.3: useRowLevelAccess is a master switch — mutually exclusive with public/community access.
+    // §8.3: public access would show every record to anyone, so it cannot be combined with row-level access.
+    // Community access can: it needs the entity's Get Role, so it is how staff read every record while
+    // everyone else reads only the records shared with them.
     checkFormat(
-      !(useRowLevelAccessValue && (hasPublicAccessValue || hasCommunityAccessValue)),
-      s"$DynamicEntityInstanceValidateFail useRowLevelAccess cannot be combined with hasPublicAccess or hasCommunityAccess."
+      !(useRowLevelAccessValue && hasPublicAccessValue),
+      s"$DynamicEntityInstanceValidateFail useRowLevelAccess cannot be combined with hasPublicAccess."
     )
 
     val JField(entityName, metadataJson) = entityFields.head

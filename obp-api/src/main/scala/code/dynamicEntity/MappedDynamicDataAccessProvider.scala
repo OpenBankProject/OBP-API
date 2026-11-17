@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.DynamicData
 
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
+import code.organisation.Organisations
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -118,34 +119,103 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
   override def getAccessForRow(bankId: Option[String], entityName: String, dynamicDataId: String): List[DynamicDataAccessT] =
     DynamicDataAccess.findAll(whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId): _*)
 
-  override def getReadableDynamicDataIds(bankId: Option[String], entityName: String, userId: String): List[String] =
-    DynamicDataAccess.findAll(
+  override def getReadableDynamicDataIds(bankId: Option[String], entityName: String, userId: String): List[String] = {
+    val grantedToUser = DynamicDataAccess.findAll(
       By(DynamicDataAccess.BankId, storedBankId(bankId)),
       By(DynamicDataAccess.EntityName, entityName),
       By(DynamicDataAccess.UserId, userId),
       By(DynamicDataAccess.CanRead, true)
     ).map(_.DynamicDataId.get)
+    val organisationIds = activeOrganisationIdsOf(userId)
+    val grantedToOrganisations =
+      if (organisationIds.isEmpty) Nil
+      else DynamicDataOrganisationAccess.findAll(
+        By(DynamicDataOrganisationAccess.BankId, storedBankId(bankId)),
+        By(DynamicDataOrganisationAccess.EntityName, entityName),
+        ByList(DynamicDataOrganisationAccess.OrganisationId, organisationIds),
+        By(DynamicDataOrganisationAccess.CanRead, true)
+      ).map(_.DynamicDataId.get)
+    (grantedToUser ++ grantedToOrganisations).distinct
+  }
+
+  /** The Organisations the User is a member of that are active. A suspended Organisation grants nothing. */
+  private def activeOrganisationIdsOf(userId: String): List[String] =
+    Organisations.getOrganisationsOfUser(userId)
+      .collect { case (organisation, _) if organisation.status == Organisations.StatusActive => organisation.organisationId }
 
   override def allows(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String,
                       permission: DynamicDataAccessPermission): Boolean = {
     import DynamicDataAccessPermission._
-    DynamicDataAccess.find(
-      (whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId) :+ By(DynamicDataAccess.UserId, userId)): _*
-    ).map { row =>
+    def holds(canRead: Boolean, canUpdate: Boolean, canDelete: Boolean, canGrant: Boolean): Boolean =
       permission match {
-        case Read   => row.CanRead.get
-        case Update => row.CanUpdate.get
-        case Delete => row.CanDelete.get
-        case Grant  => row.CanGrant.get
+        case Read   => canRead
+        case Update => canUpdate
+        case Delete => canDelete
+        case Grant  => canGrant
       }
-    }.getOrElse(false)
+    val allowedByUserGrant = DynamicDataAccess.find(
+      (whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId) :+ By(DynamicDataAccess.UserId, userId)): _*
+    ).exists(row => holds(row.canRead, row.canUpdate, row.canDelete, row.canGrant))
+    allowedByUserGrant || {
+      val organisationGrants = getOrganisationAccessForRow(bankId, entityName, dynamicDataId)
+        .filter(grant => holds(grant.canRead, grant.canUpdate, grant.canDelete, grant.canGrant))
+      organisationGrants.nonEmpty && {
+        val organisationIds = activeOrganisationIdsOf(userId).toSet
+        organisationGrants.exists(grant => organisationIds.contains(grant.organisationId))
+      }
+    }
+  }
+
+  private def whereClauseOrganisationGrantsOfRecord(bankId: Option[String], entityName: String, dynamicDataId: String): List[QueryParam[DynamicDataOrganisationAccess]] =
+    List(
+      By(DynamicDataOrganisationAccess.BankId, storedBankId(bankId)),
+      By(DynamicDataOrganisationAccess.EntityName, entityName),
+      By(DynamicDataOrganisationAccess.DynamicDataId, dynamicDataId)
+    )
+
+  override def grantToOrganisation(bankId: Option[String], entityName: String, dynamicDataId: String, organisationId: String,
+                                   canRead: Boolean, canUpdate: Boolean, canDelete: Boolean, canGrant: Boolean,
+                                   grantedBy: String): Box[DynamicDataOrganisationAccessT] = tryo {
+    val row = DynamicDataOrganisationAccess.find(
+      (whereClauseOrganisationGrantsOfRecord(bankId, entityName, dynamicDataId) :+ By(DynamicDataOrganisationAccess.OrganisationId, organisationId)): _*
+    ).getOrElse(
+      DynamicDataOrganisationAccess.create
+        .BankId(storedBankId(bankId))
+        .EntityName(entityName)
+        .DynamicDataId(dynamicDataId)
+        .OrganisationId(organisationId)
+    )
+    row.CanRead(canRead)
+      .CanUpdate(canUpdate)
+      .CanDelete(canDelete)
+      .CanGrant(canGrant)
+      .GrantedBy(grantedBy)
+      .saveMe()
+  }
+
+  override def revokeOrganisation(bankId: Option[String], entityName: String, dynamicDataId: String, organisationId: String): Box[Int] = tryo {
+    DynamicDataOrganisationAccess.findAll(
+      (whereClauseOrganisationGrantsOfRecord(bankId, entityName, dynamicDataId) :+ By(DynamicDataOrganisationAccess.OrganisationId, organisationId)): _*
+    ).map(_.delete_!).count(identity)
+  }
+
+  override def getOrganisationAccessForRow(bankId: Option[String], entityName: String, dynamicDataId: String): List[DynamicDataOrganisationAccessT] =
+    DynamicDataOrganisationAccess.findAll(whereClauseOrganisationGrantsOfRecord(bankId, entityName, dynamicDataId): _*)
+
+  override def deleteAllForOrganisation(organisationId: String): Box[Boolean] = tryo {
+    DynamicDataOrganisationAccess.bulkDelete_!!(By(DynamicDataOrganisationAccess.OrganisationId, organisationId))
   }
 
   override def deleteAllForRow(bankId: Option[String], entityName: String, dynamicDataId: String): Box[Boolean] = tryo {
+    DynamicDataOrganisationAccess.findAll(whereClauseOrganisationGrantsOfRecord(bankId, entityName, dynamicDataId): _*).foreach(_.delete_!)
     DynamicDataAccess.findAll(whereClauseBankOrSystemAndEntityAndDataId(bankId, entityName, dynamicDataId): _*).forall(_.delete_!)
   }
 
   override def deleteAllForEntity(bankId: Option[String], entityName: String): Box[Boolean] = tryo {
+    DynamicDataOrganisationAccess.bulkDelete_!!(
+      By(DynamicDataOrganisationAccess.BankId, storedBankId(bankId)),
+      By(DynamicDataOrganisationAccess.EntityName, entityName)
+    )
     DynamicDataAccess.findAll(
       By(DynamicDataAccess.BankId, storedBankId(bankId)),
       By(DynamicDataAccess.EntityName, entityName)
@@ -188,5 +258,42 @@ object DynamicDataAccess extends DynamicDataAccess with LongKeyedMetaMapper[Dyna
     UniqueIndex(BankId, EntityName, DynamicDataId, UserId) ::
     Index(UserId, EntityName, BankId) ::
     Index(DynamicDataId, GrantedBy) ::
+    super.dbIndexes
+}
+
+/**
+ * A grant on one record to an Organisation. Kept in its own table rather than as a DynamicDataAccess row
+ * with an empty user id, so that the unique index of each table names exactly who the grant is for.
+ */
+class DynamicDataOrganisationAccess extends DynamicDataOrganisationAccessT with LongKeyedMapper[DynamicDataOrganisationAccess] with IdPK {
+
+  override def getSingleton = DynamicDataOrganisationAccess
+
+  object DynamicDataId extends MappedString(this, 255)
+  object OrganisationId extends MappedString(this, 36)
+  object CanRead extends MappedBoolean(this)
+  object CanUpdate extends MappedBoolean(this)
+  object CanDelete extends MappedBoolean(this)
+  object CanGrant extends MappedBoolean(this)
+  object GrantedBy extends MappedString(this, 255)
+  object EntityName extends MappedString(this, 255)
+  object BankId extends MappedString(this, 255)
+
+  override def dynamicDataId: String = DynamicDataId.get
+  override def organisationId: String = OrganisationId.get
+  override def canRead: Boolean = CanRead.get
+  override def canUpdate: Boolean = CanUpdate.get
+  override def canDelete: Boolean = CanDelete.get
+  override def canGrant: Boolean = CanGrant.get
+  override def grantedBy: String = GrantedBy.get
+  override def entityName: String = EntityName.get
+  override def bankId: Option[String] = Option(BankId.get).filterNot(_ == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+}
+
+object DynamicDataOrganisationAccess extends DynamicDataOrganisationAccess with LongKeyedMetaMapper[DynamicDataOrganisationAccess] {
+  override def dbIndexes =
+    // One grant per (space, entity, record, Organisation), in the same order as DynamicDataAccess's index.
+    UniqueIndex(BankId, EntityName, DynamicDataId, OrganisationId) ::
+    Index(OrganisationId, EntityName, BankId) ::
     super.dbIndexes
 }
