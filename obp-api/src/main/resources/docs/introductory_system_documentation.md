@@ -33,6 +33,7 @@ For more detailed information or the sources of truths, please refer to the indi
    - 3.15 [OBP Bank Node](#315-obp-bank-node)
    - 3.16 [OBP Cohort](#316-obp-cohort)
    - 3.17 [Conformator](#317-conformator)
+   - 3.18 [OBP-Stripe](#318-obp-stripe)
 4. [Standards Compliance](#standards-compliance)
 5. [Installation and Configuration](#installation-and-configuration)
 6. [Migration Scripts and Migration Script Logs](#migration-scripts-and-migration-script-logs)
@@ -124,6 +125,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **Product Collections**: Group products into collections
 - **Fee Management**: Product fees, charges, pricing information
 - **Product Catalog**: Searchable product offerings
+- **API Products and Subscriptions** (v7.0.0): an API Product is a plan for applications: its endpoints, rate limits and monthly price. A Consumer subscribes to it, and the subscription's status grants or removes access. Payment is left to a billing system, such as OBP-Stripe
 
 #### 1.2.6 Branch & ATM Services
 
@@ -135,7 +137,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 #### 1.2.7 Authentication & Authorization
 
 - **Multiple Auth Methods**: OAuth 2.0, OpenID Connect (OIDC) with multiple concurrent providers, Direct Login, Gateway Login, Sign-In With Ethereum
-- **Consumer Management**: API consumer registration and key management, grant types, and Platform Apps (applications that act as themselves)
+- **Consumer Management**: API consumer registration and key management, grant types, and Platform Apps (applications that act as themselves). Developers read their own Consumers, usage and subscriptions under `/my/consumers` without a Role
 - **Token Management**: Access token lifecycle management
 - **Consent Management**: PSD2-compliant consent workflows (AIS, PIS, PIIS)
 - **User Locks**: Account security with failed login attempt tracking
@@ -150,6 +152,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **Consumer Account Access** (v7.0.0): a view of an account granted to an application, so a service can act on the account as itself
 - **Entitlements and Scopes**: a person needs a Role as an Entitlement; a Platform App acting as itself needs it as a Scope
 - **Tenants** (v7.0.0): the customers of the operator of an OBP instance
+- **Organisations** (v7.0.0): a team, such as a fintech, that owns Consumers together, so they stay with the team when someone leaves. Dynamic Entity records can be shared with an Organisation's members
 - **Mandates**: Corporate account governance with provisions, signatory panels, and multi-signature approval
 
 #### 1.2.9 Extensibility & Customization
@@ -157,6 +160,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **Spaces**: Dynamic Entities, Dynamic Resource Docs and Files live in a space: a bank, or `SYS` for the system space
 - **Dynamic Endpoints**: Create custom API endpoints without code deployment
 - **Dynamic Entities**: Define custom data models dynamically, with field-level read and write Roles, and a record of who created and last changed each record
+- **Row-Level Access**: share single Dynamic Entity records with Users or with an Organisation's members, while holders of the entity's Get Role can still read every record
 - **Dynamic Entity Webhooks**: notify an outside system when records are created, updated or deleted
 - **Domain APIs**: publish a space's Dynamic Entities and Dynamic Resource Docs under a base path of their own, with their own OpenAPI document
 - **Dynamic Resource Documentation**: Custom endpoint documentation
@@ -242,6 +246,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **OBP Bank Node:** Runs inside a bank's network and connects its core banking system to an OBP instance run by a platform operator
 - **OBP Cohort:** Runs startup programmes, from the call for applications to graduation
 - **Conformator:** Tests open banking APIs against the agreed standard and issues signed conformance reports
+- **OBP-Stripe:** Takes card payments for API Product Subscriptions through Stripe
 
 ---
 
@@ -1436,6 +1441,7 @@ See the Glossary items OBP Bank Node, Connector and Adapter.
 - Public calls with application forms, saved drafts and eligibility checks
 - Reviews against a weighted rubric, with conflicts of interest declared first, and a ranked shortlist
 - Milestones, sessions, attendance and surveys for each startup, and stage gates before graduation
+- Each startup is a team, an OBP Organisation, so every member sees the programme and the team answers each survey once
 - A Platform App in the OBP-Frontend repository (`apps/cohort`), keeping its records in OBP-API as Dynamic Entities
 
 See https://cohort.tesobe.com and the Glossary item OBP Cohort.
@@ -1448,11 +1454,25 @@ See https://cohort.tesobe.com and the Glossary item OBP Cohort.
 
 - Requirements, and the tests that check them, kept in versioned suites; a suite can come from a standard OBP implements or from an OpenAPI document
 - Each participant has a space of its own and runs the suites against its own non-production systems
+- Each participant has an OBP Organisation; its admins manage their own people, and Conformator keeps their Roles in the participant's space in line with its members
 - Participants submit results with evidence; reviewers assess them, and a separate approver decides
 - Approval issues a report signed with Ed25519, which anyone can check by its reference
 - Two Platform Apps in the OBP-Frontend repository: the web app (`apps/conformator`) and the runner that carries out the tests (`apps/conformator-runner`)
 
 See the Glossary item Conformator.
+
+### 3.18 OBP-Stripe
+
+**Purpose:** Takes card payments for API Product Subscriptions through Stripe, and keeps each subscription's status in OBP-API in step with Stripe.
+
+**Key Features:**
+
+- OBP-API is the source of truth for prices: OBP-Stripe keeps a monthly Stripe Price for each API Product whose `BILLING_SYSTEM` attribute is `stripe`
+- The Portal sends a developer to OBP-Stripe to pay. It checks that they may act for the Consumer, then starts a Stripe Checkout
+- Stripe webhooks, and a check every 5 minutes, set the subscription to `active`, `past_due`, `suspended` or `cancelled`. OBP-API grants and removes access on each status; OBP-Stripe never grants a Role itself
+- A Platform App written in Go, with its own token, ready for Docker and Kubernetes
+
+See the Glossary items OBP-Stripe and API Product Subscription.
 
 ---
 
@@ -1545,7 +1565,7 @@ POST /open-banking/v3.1/cbpii/funds-confirmation-consents
 - v4.0.0 (STABLE)
 - v5.0.0, v5.1.0 (STABLE)
 - v6.0.0 (DRAFT) - Mandates, Maker/Checker, gRPC connector, new User endpoints
-- v7.0.0 (BLEEDING-EDGE) - Files, asset registry, Platform Apps, Consumer Account Access, Groups, Tenants, Domain APIs, Dynamic Entity webhooks, retention policies, Telemetry, utility payments and payment promises
+- v7.0.0 (BLEEDING-EDGE) - Files, asset registry, Platform Apps, Consumer Account Access, Groups, Tenants, Organisations, API Product Subscriptions, Domain APIs, Dynamic Entity webhooks, retention policies, Telemetry, utility payments and payment promises
 
 **Key Endpoint Categories:**
 
@@ -2770,6 +2790,15 @@ POST /obp/v5.1.0/management/consumers
 GET /obp/v5.1.0/management/consumers
 ```
 
+**Owners:** a Consumer is owned by the User who created it, or, once it is moved into an Organisation, by the Organisation's members together. Owners need no Role to read their Consumers, their usage, Scopes and API Product Subscriptions:
+
+```bash
+GET /obp/v7.0.0/my/consumers                                    # the Consumers you own, yours and your Organisations'
+GET /obp/v7.0.0/my/consumers/CONSUMER_ID/usage
+PUT /obp/v7.0.0/my/consumers/CONSUMER_ID/organisation           # move it into an Organisation you are an admin of
+POST /obp/v7.0.0/my/organisations                               # create an Organisation; you become its admin
+```
+
 **Grant types:** a Consumer's grant types control how tokens can be obtained through it: whether people can log in through it, whether the application can get a token for itself (`client_credentials`), or both. A Consumer with no grant types set can be used in every way. Grant types do not decide what the application may do with a token.
 
 **Platform Apps:** a Platform App is an application the installation runs as part of its own deployment, such as the Portal, API Manager, Opey, Sentinel, Cohort, Conformator or a Bank Node. Only a Platform App can act as itself on its Consumer's Scopes (see 8.7).
@@ -2788,7 +2817,7 @@ POST /obp/v7.0.0/consumers/CONSUMER_ID/scopes        # grant a Scope
 
 OPERATORS: mark every application that acts as itself as a Platform App. Without the mark, a Consumer's Scopes only work as a limit on people.
 
-See the Glossary items Platform Apps, Consumer Grant Types and API.Entitlements and Scopes.
+See the Glossary items Consumer, Organisation, Platform Apps, Consumer Grant Types and API.Entitlements and Scopes.
 
 ### 7.4 Mutual TLS and PSD2 Certificates
 
@@ -2837,6 +2866,7 @@ Roles that let a holder act at any bank (`...AtAnyBank`) are being retired in fa
 | `CanCreateCustomer`             | Create customers               | Bank       |
 | `CanCreateBranch`               | Create branch records          | Bank       |
 | `CanCreateEntitlementAtOneBank` | Grant Roles at one bank        | Bank       |
+| `CanDeleteEntitlementAtOneBank` | Remove Roles at one bank       | Bank       |
 | `CanGetAnyUser`                 | View any user details          | System     |
 | `CanReadMetrics`                | View API metrics               | System     |
 | `CanCreateConsumer`             | Create Consumers               | System     |
@@ -3959,6 +3989,33 @@ POST /obp/v7.0.0/banks/BANK_ID/open-corridor/fee-settlements
 ```
 
 The caller is a User with access to the view, or an application acting as itself whose Consumer has been given access to the view (Consumer Account Access, section 8.3).
+
+#### Workflow 7: A Team Subscribes to an API Product (v7.0.0)
+
+A fintech's developers work as a team. They put their application in an Organisation, then subscribe it to an API Product. No Role is needed for any of these calls.
+
+```bash
+# 1. Create the team; the caller becomes its admin
+POST /obp/v7.0.0/my/organisations
+{ "name": "Example Pay" }
+
+# 2. Add a colleague by their user_id
+POST /obp/v7.0.0/my/organisations/ORGANISATION_ID/members
+{ "user_id": "USER_ID", "member_role": "member" }
+
+# 3. Move the application into the team
+PUT /obp/v7.0.0/my/consumers/CONSUMER_ID/organisation
+{ "organisation_id": "ORGANISATION_ID" }
+
+# 4. Subscribe it to an API Product
+POST /obp/v7.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/subscriptions
+{ "consumer_id": "CONSUMER_ID" }
+
+# 5. Any member reads the team's subscriptions
+GET /obp/v7.0.0/my/api-product-subscriptions
+```
+
+The subscription starts as `requested`, unless the product's `BILLING_SYSTEM` attribute is `none`, which activates it at once. When it becomes `active`, OBP-API gives the Consumer the product's rate limits and Scopes. If the product is paid for by card, the Portal sends the developer to OBP-Stripe to pay. See the Glossary items Organisation and API Product Subscription.
 
 ---
 
