@@ -4299,9 +4299,18 @@ object Http4s400 {
               postJson.bank_id.map(BankId(_)),
               postJson.account_routing.scheme,
               Some(cc))
+            // The accounts the caller can see through the owner view. Only these are matched, so the
+            // regex never runs against, and the response never tells anything about, other users' accounts.
+            ownerViewAccounts <- Views.views.vend.getPrivateBankAccountsFuture(
+              user, List(ViewId(Constant.SYSTEM_OWNER_VIEW_ID)))
+            ownerViewAccountSet = ownerViewAccounts.toSet
             accountRoutingAddressRegex = postJson.account_routing.address.r
-            filteredAccountRoutings = accountRoutings.filter(accountRouting =>
-              accountRoutingAddressRegex.findFirstIn(accountRouting.accountRouting.address).isDefined)
+            // Other users' accounts are skipped silently before the regex runs, as if they did not exist.
+            filteredAccountRoutings = accountRoutings
+              .filter(accountRouting => ownerViewAccountSet.contains(
+                BankIdAccountId(accountRouting.bankId, accountRouting.accountId)))
+              .filter(accountRouting =>
+                accountRoutingAddressRegex.findFirstIn(accountRouting.accountRouting.address).isDefined)
             accountsJson <- Future.sequence(
               filteredAccountRoutings.map(accountRouting =>
                 for {
