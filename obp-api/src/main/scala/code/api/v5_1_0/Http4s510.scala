@@ -4453,6 +4453,11 @@ object Http4s510 {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
+            // Only a UK Open Banking consent may be (re-)authorised here. REVOKED is also the status
+            // an OBP consent gets when it is revoked, so without this its owner could bring it back.
+            _ <- Helper.booleanToFuture(s"$ConsentDoesNotMatchStandard Required: ${Consent.ConsentStandardUK}.", 403, Some(cc)) {
+              Consent.assertConsentStandard(consent, Consent.ConsentStandardUK).isEmpty
+            }
             _ <- Helper.booleanToFuture(s"$ConsentStatusIssue one of ${ukReAuthableStatuses.mkString(", ")} to start SCA (current: ${consent.status}).", 400, Some(cc)) {
               ukReAuthableStatuses.contains(consent.status.toUpperCase)
             }
@@ -4504,7 +4509,8 @@ object Http4s510 {
       |""",
       EmptyBody,
       UKConsentScaChallengeJsonV510("74a8ebda-9e5a-4c3f-9b0b-1a2b3c4d5e6f", "received", "SMS"),
-      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, ConsentExpiredIssue, ConsentDoesNotMatchUser, InvalidConnectorResponse, UnknownError),
+      // ConsentDoesNotMatchStandard: only a UK Open Banking consent may start SCA here.
+      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentDoesNotMatchStandard, ConsentStatusIssue, ConsentExpiredIssue, ConsentDoesNotMatchUser, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: Nil,
       None,
       http4sPartialFunction = Some(authoriseUKConsentChallenge)
@@ -4528,9 +4534,14 @@ object Http4s510 {
               .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
             // The initial authorisation (AWAITINGAUTHORISATION) and re-authentication of an
             // already-authorised or dashboard-revoked (wire: CANC) consent are both allowed --
-            // see ukReAuthableStatuses. EXPIRED/REJECTED are terminal. These statuses are
-            // UK-specific (Berlin Group uses "received", OBP uses INITIATED), so the guard also
-            // effectively scopes this endpoint to the UK flow.
+            // see ukReAuthableStatuses. EXPIRED/REJECTED are terminal.
+            //
+            // Only a UK Open Banking consent may be authorised here. An OBP consent revoked through
+            // the OBP revoke endpoints is REVOKED too, so the status guard alone would let its owner
+            // turn it back to AUTHORISED for its original consumer, without the bank.
+            _ <- Helper.booleanToFuture(s"$ConsentDoesNotMatchStandard Required: ${Consent.ConsentStandardUK}.", 403, Some(cc)) {
+              Consent.assertConsentStandard(consent, Consent.ConsentStandardUK).isEmpty
+            }
             _ <- Helper.booleanToFuture(s"$ConsentStatusIssue one of ${ukReAuthableStatuses.mkString(", ")} to be authorised (current: ${consent.status}).", 400, Some(cc)) {
               ukReAuthableStatuses.contains(consent.status.toUpperCase)
             }
@@ -4667,7 +4678,8 @@ object Http4s510 {
         "eyJhbGciOiJIUzI1NiJ9.eyJ2aWV3cyI6W119.signature",
         "AUTHORISED"
       ),
-      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, ConsentExpiredIssue, ConsentDoesNotMatchUser, InvalidJsonFormat, InvalidChallengeAnswer, $BankAccountNotFound, InvalidConnectorResponse, UnknownError),
+      // ConsentDoesNotMatchStandard: only a UK Open Banking consent may be authorised here.
+      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentDoesNotMatchStandard, ConsentStatusIssue, ConsentExpiredIssue, ConsentDoesNotMatchUser, InvalidJsonFormat, InvalidChallengeAnswer, $BankAccountNotFound, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: Nil,
       None,
       http4sPartialFunction = Some(authoriseUKConsent)

@@ -91,7 +91,12 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
     viewsIdsToGrant
   }
 
-  def randomView(isPublic: Boolean, alias: String) = createViewJsonV300.toCreateViewJson
+  // only the actions of the owner view user1 holds, as Create View refuses actions none of the caller's views has
+  def randomView(isPublic: Boolean, alias: String) = {
+    val view = createViewJsonV300.toCreateViewJson
+    val ownerActions = (SYSTEM_OWNER_VIEW_PERMISSION_ADMIN ++ SYSTEM_VIEW_PERMISSION_COMMON).toSet
+    view.copy(allowed_actions = view.allowed_actions.filter(ownerActions.contains))
+  }
 
 
   def getBanksInfo : APIResponse  = {
@@ -274,7 +279,21 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
-  
+
+    // the new view may only get actions the caller already has on one of their views of the account
+    scenario("We will not create a view with an action that none of the caller's views has", API2_2, ApiEndpoint2) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccountId = randomPrivateAccountId(bankId)
+      val view = randomView(true, "")
+      When("we ask for an action that no view of the caller has")
+      val reply = postView(bankId, bankAccountId,
+        view.copy(allowed_actions = view.allowed_actions :+ "can_do_what_no_view_of_the_caller_can"), user1)
+      Then("we should get a 403 and the SourceViewHasLessPermission message")
+      reply.code should equal (403)
+      reply.body.extract[ErrorMessage].message should startWith (code.api.util.ErrorMessages.SourceViewHasLessPermission)
+    }
+
     scenario("can not create the System View") {
       Given("The BANK_ID, ACCOUNT_ID, Login user, views")
       val bankId = randomBankId

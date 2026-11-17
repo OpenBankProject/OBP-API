@@ -82,6 +82,17 @@ object BulkPaymentHandler {
       _ <- Helper.booleanToFuture(BulkDuplicateEndToEndId, 400, callContext) {
         body.payments.map(_.end_to_end_id).distinct.size == body.payments.size
       }
+      // Every item amount must be a number above zero, as on the other transaction request endpoints.
+      // Each item debits the source and credits an account found by routing, so a negative amount
+      // would take money from an account the caller has no view on. The whole batch is refused before any payment runs.
+      _ <- {
+        val notPositive = body.payments.find(p => !scala.util.Try(BigDecimal(p.value.amount)).toOption.exists(_ > BigDecimal("0")))
+        Helper.booleanToFuture(
+          s"$NotPositiveAmount Current input is: '${notPositive.map(_.value.amount).getOrElse("")}'", 400, callContext
+        ) {
+          notPositive.isEmpty
+        }
+      }
       // Total = sum of items (server-validated against caller's declared total)
       _ <- {
         val declared = BigDecimal(body.value.amount)

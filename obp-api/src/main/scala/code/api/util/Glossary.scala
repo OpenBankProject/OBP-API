@@ -7334,9 +7334,11 @@ object Glossary extends MdcLoggable  {
 			s"""
 				 |# OBP-Sentinel
 				 |
-				 |**OBP-Sentinel** watches running OBP-API instances, and the apps around them (API Explorer II, the API Manager, the Portal, OBP-OIDC), for hours. It works out what is actually going wrong or getting slower, and suggests the few improvements that matter most. Fewer, better suggestions is the point.
+				 |**OBP-Sentinel**, or Senti for short, watches running OBP-API instances, and the apps around them (API Explorer II, the API Manager, the Portal, OBP-OIDC), for hours. It works out what is actually going wrong or getting slower, and suggests the few improvements that matter most. Fewer, better suggestions is the point.
 				 |
-				 |Watching is plain code and costs nothing. Only the analyst, the source review and the questions a person asks on a finding (Trace history, Look again) use Claude, each with a spending limit.
+				 |It is sold as OBP Senti, and as TESOBE Senti for systems that do not use OBP. See https://senti.tesobe.com.
+				 |
+				 |Watching is plain code and costs nothing. Only three things use Claude: the analyst, the source review, and the questions a person asks on a finding (Trace history, Look again). Each has a spending limit.
 				 |
 				 |## 1. Watching
 				 |
@@ -7364,13 +7366,13 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |LEVEL is a log level (error, warning, info, debug, trace) or `all`. Each app lists these endpoints on its `/status` page.
 				 |
-				 |They are guarded by the same Roles as OBP-API's own endpoints: CanGetSystemLogCacheError, CanGetSystemLogCacheWarning and so on, one per level (`all` needs CanGetSystemLogCacheAll) and CanGetTelemetry. The app does not decide this itself: it passes the caller's token to OBP-API (GET /obp/v7.0.0/banks/SYS/my/roles/ROLE) and answers only if OBP-API says the Role is held. A call with no token gets 401, and a call without the Role gets 403.
+				 |They are guarded by the same Roles as OBP-API's own endpoints: CanGetSystemLogCacheError, CanGetSystemLogCacheWarning and so on, one per level (`all` needs CanGetSystemLogCacheAll) and CanGetTelemetry. The app does not decide this itself. It passes the caller's token to OBP-API (GET /obp/v7.0.0/banks/SYS/my/roles/ROLE), and answers only if OBP-API says the Role is held. A call with no token gets 401, and a call without the Role gets 403.
 				 |
-				 |Sentinel finds the apps in OBP-API's app directory (GET /obp/v6.0.0/app-directory: public_obp_api_explorer_url, public_obp_api_manager_url, public_obp_portal_url, public_obp_oidc_url) and watches each like a small instance of its own, with its own findings, using its OBP-API instance's token. The analyst then reads the app's own source. An app has no aggregate metrics and no source review.
+				 |Sentinel finds the apps in OBP-API's app directory (GET /obp/v6.0.0/app-directory: public_obp_api_explorer_url, public_obp_api_manager_url, public_obp_portal_url, public_obp_oidc_url). It watches each like a small instance of its own, with its own findings, using its OBP-API instance's token. The analyst then reads the app's own source. An app has no aggregate metrics and no source review.
 				 |
 				 |## 2. The analyst
 				 |
-				 |Every few hours, once Sentinel has watched for long enough, Claude reads a summary of what was collected (the last hours compared with the hours before) and reads the source code to find the cause of what stands out. Each problem it is confident about becomes a **finding**, scored by:
+				 |Once Sentinel has watched for long enough, Claude reads a summary every few hours. It compares the last hours with the hours before. It then reads the source code to find the cause of what stands out. Each problem it is confident about becomes a **finding**, scored by:
 				 |
 				 |- **Impact**: how much it hurts users or the service;
 				 |- **Confidence**: how sure the analyst is about the cause;
@@ -7380,11 +7382,18 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |## 3. Source review
 				 |
-				 |Besides following the logs, Sentinel can read the code of the endpoints each instance serves, looking for security problems such as SQL injection or missing authorisation checks. Go and Stop turn it on and off. It starts with the endpoints anyone can call without a login, then those that need a login, then those whose Role someone holds. It remembers what it read: an endpoint is read again only when its code changes.
+				 |Sentinel can also read the code of the endpoints each instance serves. It looks for security problems such as SQL injection or missing authorisation checks. Go and Stop turn it on and off. It starts with the endpoints anyone can call without a login, then those that need a login, then those whose Role someone holds. It remembers what it read: an endpoint is read again only when its code changes.
 				 |
 				 |## 4. Suggestions
 				 |
-				 |A finding is suggested only if Sentinel has watched for long enough (4 hours by default), its priority is high enough, it was seen in more than one 15-minute period, and it was not already suggested, acted on, dismissed or fixed. At most 3 suggestions are made at a time, and at most 10 a week. When nothing qualifies, Sentinel says so rather than inventing work.
+				 |A finding is suggested only when all of these are true:
+				 |
+				 |- Sentinel has watched for long enough (4 hours by default).
+				 |- Its priority is high enough.
+				 |- It was seen in more than one 15-minute period.
+				 |- It was not already suggested, acted on, dismissed or fixed.
+				 |
+				 |At most 3 suggestions are made at a time, and at most 10 a week. When nothing qualifies, Sentinel says so rather than inventing work.
 				 |
 				 |## Using the page
 				 |
@@ -7393,7 +7402,7 @@ object Glossary extends MdcLoggable  {
 				 |Each finding shows its evidence, why it happens, where in the code, and the suggested change. The copy button next to its title copies it all as text, ready to give to a coding agent.
 				 |
 				 |- **Trace history** lists the commits that changed the lines the finding names, and Claude says which commit introduced the problem (at most $$0.30).
-				 |- **Look again: still an issue?** has Claude read the code the instance runs now, the commits since the finding was made, and whether its log messages are still seen. It answers in one line: still an issue, fixed (and by which commit), or could not tell. It takes a few minutes and costs at most $$0.50. While it works, the page shows how long it has been going and the command it is running. It does not change the finding's status.
+				 |- **Look again: still an issue?** has Claude read the code the instance runs now and the commits since the finding was made. It also checks whether the finding's log messages are still seen. It answers in one line: still an issue, fixed (and by which commit), or could not tell. It takes a few minutes and costs at most $$0.50. While it works, the page shows how long it has been going and the command it is running. It does not change the finding's status.
 				 |- **Look again at the security findings to review**, above the list, does the same for each security finding in To review, one at a time. Those Claude finds fixed are marked fixed and move to Done, with Claude's answer as the comment.
 				 |
 				 |Then answer, with a comment for the analyst if you like:
@@ -7408,7 +7417,11 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |## The Secured check
 				 |
-				 |Once an hour Sentinel calls the endpoints it reads (log cache, Telemetry and, for OBP-API, aggregate metrics) without a token. They must refuse. The header shows **Secured** when every one refused (401 or 403), **Open** when at least one answered with data (fix this first: anyone can read those logs), and **Could not tell** when some gave no answer or an unexpected one, such as 404.
+				 |Once an hour Sentinel calls the endpoints it reads (log cache, Telemetry and, for OBP-API, aggregate metrics) without a token. They must refuse. The header shows one of these:
+				 |
+				 |- **Secured:** every one refused (401 or 403).
+				 |- **Open:** at least one answered with data. Fix this first, because anyone can read those logs.
+				 |- **Could not tell:** some gave no answer, or an unexpected one such as 404.
 				 |
 				 |## What Sentinel needs
 				 |
@@ -7420,6 +7433,52 @@ object Glossary extends MdcLoggable  {
 				 |- It reads source code with git only, and never changes the checkout.
 				 |- Log text is treated as data: instructions inside a log line are never followed.
 				 |- Its page has no login: keep it on 127.0.0.1, or behind a proxy that asks for one.
+				 |""".stripMargin)
+
+
+	glossaryItems += GlossaryItem(
+		title = "OBP Cohort",
+		description =
+			s"""
+				 |# OBP Cohort
+				 |
+				 |**OBP Cohort** runs startup programmes for incubators, accelerators, banks, regulators and innovation hubs, from the call for applications to graduation, in English and Arabic.
+				 |
+				 |- **Call:** a call is published on a public site, and anyone can apply.
+				 |- **Apply:** forms with attachments, saved drafts, and eligibility checked when the form is sent.
+				 |- **Evaluate:** reviewers declare any conflict of interest, then score each application against the call's weighted rubric. Staff see a ranked shortlist and record each decision.
+				 |- **Deliver:** milestones, sessions, attendance, surveys and discussions for each startup.
+				 |- **Graduate:** stage gates are checked before a startup moves on, and it gets a certificate.
+				 |
+				 |## How it uses OBP-API
+				 |
+				 |OBP-API is Cohort's only backend. Its records are Dynamic Entities in a space of its own, and it uses OBP's Users, login, Roles, Customers, Files and messages. Cohort is a Platform App: it declares the Scopes it needs, and an administrator grants them.
+				 |
+				 |It is part of the OBP-Frontend repository (`apps/cohort`). See https://cohort.tesobe.com.
+				 |""".stripMargin)
+
+
+	glossaryItems += GlossaryItem(
+		title = "Conformator",
+		description =
+			s"""
+				 |# Conformator
+				 |
+				 |**Conformator** lets a regulator test the open banking APIs of the banks, payment service providers and third-party providers it supervises against the agreed standard. The regulator reviews the results and issues conformance reports.
+				 |
+				 |The name is the Latin *conformator*, "one who shapes": the regulator sets the shape, and Conformator checks each participant's API against it.
+				 |
+				 |## From the rules to a signed report
+				 |
+				 |1. **Define:** the rules are recorded as requirements, and the tests that check each one are grouped into versioned suites. A suite's endpoints come from a standard OBP implements, or from an OpenAPI document.
+				 |2. **Admit:** each participant is registered and given a space of its own, kept apart from everyone else's.
+				 |3. **Test:** participants run the suites against their own non-production systems, as often as they need.
+				 |4. **Review:** participants submit their results with evidence. Reviewers assess them, and an approver who did not assess makes the decision. Participants can ask for waivers and appeal.
+				 |5. **Report:** approval issues a report signed with Ed25519. Anyone can check a report by its reference, without trusting the site that shows it.
+				 |
+				 |## How it uses OBP-API
+				 |
+				 |Conformator is two Platform Apps in the OBP-Frontend repository: the web app (`apps/conformator`) and the runner (`apps/conformator-runner`). The runner carries out the tests and records each result. Both keep their records in OBP-API as Dynamic Entities, in a central space and in each participant's space, and each declares the Scopes it needs.
 				 |""".stripMargin)
 
 

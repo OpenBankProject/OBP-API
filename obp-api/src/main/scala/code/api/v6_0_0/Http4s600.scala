@@ -847,7 +847,8 @@ object Http4s600 {
             }
             (transactions: List[ModeratedTransaction], _) = transactionsResult
             moderatedTransactionsWithAttributes <- Future.sequence(transactions.map(transaction =>
-              NewStyle.function.getTransactionAttributes(bankAccount.bankId, transaction.id, Some(cc))
+              // only the attributes whose Attribute Definition lists this view, so a limited view does not see attributes meant for other views
+              NewStyle.function.getModeratedTransactionAttributes(bankAccount.bankId, transaction.id, view.viewId, Some(cc))
                 .map(attrs => code.api.v3_0_0.ModeratedTransactionWithAttributes(transaction, attrs._1))))
           } yield JSONFactory600.createTransactionsJsonV600(moderatedTransactionsWithAttributes)
         }
@@ -8232,10 +8233,9 @@ object Http4s600 {
         |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
         EmptyBody,
         productsJsonV600,
-        List(
-          BankNotFound,
-          UnknownError
-        ),
+        // with apiOptions.getProductsIsPublic=false the middleware requires a login, as Lift did, so the prop can hide the catalogue
+        if (getProductsIsPublic) List(BankNotFound, UnknownError)
+        else List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
         apiTagProduct :: Nil,
         None,
         http4sPartialFunction = Some(getProductsV600)

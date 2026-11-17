@@ -140,6 +140,14 @@
       "http4s_digest": "5a8117168f16e523c860e789cdfc5969a95c43e163cf170dbaae992f6e7bbb6b"
     },
     {
+      "version": "v6_0_0",
+      "endpoint": "getProductsV600",
+      "field": "errorResponseBodies",
+      "reason": "AuthenticatedUserIsRequired is added when apiOptions.getProductsIsPublic=false, so the middleware requires a login as the Lift code did with authenticatedAccess",
+      "lift_digest": "3bdcd0c958443de6b8a40314fb0e25bb976e6a734c73b4877302491756cb2ab9",
+      "http4s_digest": "ff19d358f83b960a52f9fbdd96a02ddd930feef41ad37737d3c812fe99f72c7b"
+    },
+    {
       "version": "v4_0_0",
       "endpoint": "getAtms",
       "field": "errorResponseBodies",
@@ -255,9 +263,9 @@
       "version": "v1_2_1",
       "endpoint": "removePermissionForUserForBankAccountForAllViews",
       "field": "errorResponseBodies",
-      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to all views",
+      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to all views. Added UserLacksPermissionCanRevokeAccessToViewForTargetAccount (403): the caller must be able to revoke each view the target user holds",
       "lift_digest": "b72cefb915c6af0190e4543aed820722db264a43a54247247d9a1fdb25321703",
-      "http4s_digest": "1504d43b14defdedbab99f5784e36dbc7d3c6e1eca29fddc41d81f43d3ae0bcd"
+      "http4s_digest": "8fc3bece8cf4d5a977125fd6e97ca3feee5d8730a8fb0942e35c337591fc5ddd"
     },
     {
       "version": "v4_0_0",
@@ -714,6 +722,14 @@
       "reason": "Template variable renamed for clarity; same URL path shape, same route.",
       "lift_digest": "91d541e4991471ff3b872dabd9b68fe6bc29b979fc91df495643a3bd361c0d60",
       "http4s_digest": "69ccaef44e7ddda887462c6431f0ffe7b0f0a4a91f4e12bb5f207dffb3d3dc20"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createViewForBankAccount",
+      "field": "errorResponseBodies",
+      "reason": "Added SourceViewHasLessPermission: Create View refuses (403) a view whose allowed_actions are not all on one of the caller's views of the account, as Update View does",
+      "lift_digest": "63c2f1b01e07eb8a86158e5631bde4dd32465aa75c13ba61d369f0ad8cf952d7",
+      "http4s_digest": "0f50f78378cc09491986f9a9ee074ebd5d56b93debc411788c9c453db54b623d"
     },
     {
       "version": "v2_2_0",

@@ -98,7 +98,10 @@ object DirectLoginRoutes {
       triple <- DirectLogin.validatorFutureWithParams("authorizationToken", "POST", params)
       (httpCode, message, dlParams) = triple
       tokenTriple = DirectLogin.createTokenCommonPart(httpCode, message, dlParams)
-      _ <- Future(DirectLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(tokenTriple._3))
+      // The post-login grant runs only when a token was issued. On a refused login the third value is a state code
+      // (0, locked, email not validated, rate limited), not a user id, so the grant would find no user and log an ERROR.
+      _ <- if (tokenTriple._1 == 200) Future(DirectLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(tokenTriple._3))
+           else Future.unit
     } yield {
       if (tokenTriple._1 == 200) JSONFactory600.createTokenJSON(tokenTriple._2)
       else code.api.util.APIUtil.unboxFullOrFail(Empty, None, tokenTriple._2, tokenTriple._1)

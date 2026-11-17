@@ -5122,7 +5122,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       transactionRequestCommonBodyAmount <- NewStyle.function.tryons(s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number", 400, callContext) {
         BigDecimal(transactionRequestCommonBody.value.amount)
       }
-      
+
+      // The amount must be above zero for every caller (MOBILE_WALLET, UTILITY, OPEN_CORRIDOR_PROMISE, the v4 pipeline, ...).
+      // A negative amount would pass the payment limit and challenge threshold checks and then move money from the destination to the caller.
+      isPositiveAmount = transactionRequestCommonBodyAmount > BigDecimal("0")
+      _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${transactionRequestCommonBodyAmount}'", 400, callContext) {
+        isPositiveAmount
+      }
+
       (paymentLimit, callContext) <- Connector.connector.vend.getPaymentLimit(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetPaymentLimit ", 400), i._2)
       }

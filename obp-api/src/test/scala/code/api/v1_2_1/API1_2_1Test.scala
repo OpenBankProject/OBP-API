@@ -2218,6 +2218,31 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       viewsAfter should equal(viewsBefore)
     }
 
+    // a caller whose only view can revoke custom views must not be able to remove another user's owner view through revoke-all
+    scenario("a user cannot revoke all the views of another user if one of them is a view the caller cannot revoke", API1_2_1, DeletePermissions){
+      Given("The caller holds only a custom view that can revoke custom views, and another user holds the owner view")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val callerView = createCustomRandomView(BankId(bankId), AccountId(bankAccount.id))
+      code.views.system.ViewPermission.resetViewPermissions(callerView, List(CAN_REVOKE_ACCESS_TO_CUSTOM_VIEWS))
+      grantUserAccessToView(bankId, bankAccount.id, resourceUser3.idGivenByProvider, callerView.viewId.value, user1).code should equal (201)
+      grantUserAccessToView(bankId, bankAccount.id, resourceUser2.idGivenByProvider, SYSTEM_OWNER_VIEW_ID, user1).code should equal (201)
+
+      When("The caller tries to revoke all the views of the other user")
+      val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, resourceUser2.idGivenByProvider, user3)
+
+      Then("we should get a 403 code")
+      reply.code should equal (403)
+      reply.body.extract[ErrorMessage].message should include (UserLacksPermissionCanRevokeAccessToViewForTargetAccount)
+
+      And("The other user should still have access to the owner view")
+      AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(BankId(bankId), AccountId(bankAccount.id), ViewId(SYSTEM_OWNER_VIEW_ID), resourceUser2.userPrimaryKey).isDefined should equal (true)
+
+      //clean up: the later tests expect user2 and user3 to have no access to the test accounts
+      revokeUserAccessToAllViews(bankId, bankAccount.id, resourceUser2.idGivenByProvider, user1).code should equal (204)
+      revokeUserAccessToAllViews(bankId, bankAccount.id, resourceUser3.idGivenByProvider, user1).code should equal (204)
+    }
+
     scenario("a user cannot revoke their own access to all the views on a bank account", API1_2_1, DeletePermissions){
       Given("A user with access to the owner view of an account")
       val bankId = randomBank
