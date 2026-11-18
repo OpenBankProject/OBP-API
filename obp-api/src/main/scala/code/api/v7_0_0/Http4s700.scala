@@ -123,13 +123,12 @@ object Http4s700 {
    *
    * Pattern: Add nameOf(Implementations{version}.endpointName) :: with a comment explaining why
    *
-   * NOTE: Currently empty - no v7-specific exclusions have been identified yet.
-   * As v7.0.0 introduces endpoints with different URL patterns than previous versions,
-   * add those old endpoint names here with explanatory comments.
+   * An excluded endpoint is also not served at v7.0.0: the bridge to v6.0.0 does not pass on a request that one
+   * of them would serve (see excludedRouteIndex), so it gets a 404.
    */
   lazy val excludeEndpoints: List[String] =
-    // Add exclusions here when v7.0.0 replaces old endpoints with different URLs
-    // Example: nameOf(Implementations3_0_0.getUserByUsername) :: // v7.0.0 uses /providers/:provider/users/:username
+    // v7.0.0 has POST /my/accounts/account-routing-regex-query instead: it searches only the caller's own accounts
+    nameOf(code.api.v4_0_0.Http4s400.Implementations4_0_0.getAccountsByAccountRoutingRegex) ::
     Nil
 
   /**
@@ -7781,6 +7780,9 @@ object Http4s700 {
     // Customers at a bank, each with its Customer Attributes, filtered by Customer Attributes.
     resourceDocs ++= Http4s700Customers.resourceDocs
 
+    // The caller's own accounts whose account routing matches a pattern.
+    resourceDocs ++= Http4s700MyAccounts.resourceDocs
+
     // The order in which the routes are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given this same list: the doc that validates a request
     // is the doc of the route that runs it.
@@ -7814,10 +7816,25 @@ object Http4s700 {
   private lazy val v7RouteIndex: ResourceDocMatcher.RouteIndex =
     ResourceDocMatcher.buildRouteIndex(Implementations7_0_0.orderedResourceDocs)
 
+  // The older endpoints v7.0.0 does not serve (excludeEndpoints), each under its own version.
+  private lazy val excludedDocs: List[ResourceDoc] = {
+    val names = excludeEndpoints.toSet
+    code.api.util.http4s.Http4sResourceDocAggregation.v600.filter(doc => names.contains(doc.partialFunctionName)).toList
+  }
+  private lazy val excludedRouteIndex: ResourceDocMatcher.RouteIndex = ResourceDocMatcher.buildRouteIndex(excludedDocs)
+  private lazy val excludedVersions: List[String] = excludedDocs.map(_.implementedInApiVersion.apiShortVersion).distinct
+
+  // True when the request, sent to an excluded endpoint's own version, would be served by that endpoint
+  private def isExcluded(req: Request[IO], rawPath: String): Boolean =
+    excludedVersions.exists { version =>
+      val there = rawPath.replaceFirst("/obp/v7\\.0\\.0/", s"/obp/$version/")
+      ResourceDocMatcher.selectByRoute(req.withUri(req.uri.withPath(Uri.Path.unsafeFromString(there))), excludedRouteIndex).nonEmpty
+    }
+
   private val v700ToV600Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
     val rawPath = req.uri.path.renderString
     if (rawPath.startsWith("/obp/v7.0.0/") &&
-        ResourceDocMatcher.selectByRoute(req, v7RouteIndex).isEmpty) {
+        ResourceDocMatcher.selectByRoute(req, v7RouteIndex).isEmpty && !isExcluded(req, rawPath)) {
       val rewritten = rawPath.replaceFirst("/obp/v7\\.0\\.0/", "/obp/v6.0.0/")
       val newUri = req.uri.withPath(Uri.Path.unsafeFromString(rewritten))
       code.api.v6_0_0.Http4s600.wrappedRoutesV600Services.run(req.withUri(newUri))

@@ -3925,7 +3925,8 @@ object Http4s600 {
     }
 
     lazy val editBankChatMessage: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
+      // bankIdStr is read so the room can be checked against the bank in the path
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "chat-rooms" / chatRoomId / "messages" / chatMessageId =>
         EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
           for {
@@ -3942,10 +3943,13 @@ object Http4s600 {
               s"$ChatMessageLinkHostNotAllowed Disallowed host(s): ${badLinkHosts.mkString(", ")}",
               cc = Some(cc)) { badLinkHosts.isEmpty }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
-            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            // the room must belong to the bank in the path, else it is treated as not found
+            _ <- Helper.booleanToFuture(ChatRoomNotFound, 404, cc = Some(cc)) { room.bankId == bankIdStr }
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else being a participant of one room lets a user edit their messages in any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             msg <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
             _ <- Helper.booleanToFuture(CannotEditOthersMessage, cc = Some(cc)) {
               msg.senderUserId == user.userId
@@ -3981,7 +3985,8 @@ object Http4s600 {
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
-            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
+            // the message must be in the room in the path, else being a participant of one room lets a user edit their messages in any room
+            msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId).filter(_.chatRoomId == chatRoomId))
             msg <- Future(unboxFullOrFail(msgBox, Some(cc), ChatMessageNotFound, 404))
             _ <- Helper.booleanToFuture(CannotEditOthersMessage, cc = Some(cc)) {
               msg.senderUserId == user.userId
