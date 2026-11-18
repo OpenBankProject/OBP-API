@@ -222,7 +222,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case true =>
         fx.exchangeRate(thresholdCurrency, currency, Some(bankId), callContext) match {
           case rate@Some(_) =>
-            val convertedThreshold = fx.convert(threshold, rate)
+            val convertedThreshold = fx.convert(threshold, rate, currency)
             logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
             (Full(AmountOfMoney(currency, convertedThreshold.toString())), callContext)
           case _ =>
@@ -903,7 +903,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           transferCurrency = transactionRequest.mBody_Value_Currency.get //eg: if the payment json body currency is GBP.
           transferAmount= BigDecimal(transactionRequest.mBody_Value_Amount.get) //eg: if the payment json body amount is 1.
           debitRate = fx.exchangeRate(transferCurrency, fromAccountCurrency, Some(fromBankId.value), callContext) //eg: the rate here is 1.16278.
-          transactionAmount = fx.convert(transferAmount, debitRate) // 1.16278 Euro
+          transactionAmount = fx.convert(transferAmount, debitRate, fromAccountCurrency) // 1.16278 Euro
         }yield{
           transactionAmount // 1.16278 Euro
         }
@@ -1121,7 +1121,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         requestAccountAmount = BigDecimal(accountBalance.balance.amount)
         //From change from requestAccount Currency to mostCommon Currency
         rate <- fx.exchangeRate(requestAccountCurrency, mostCommonCurrency, None, callContext)
-        requestChangedCurrencyAmount = fx.convert(requestAccountAmount, Some(rate))
+        requestChangedCurrencyAmount = fx.convert(requestAccountAmount, Some(rate), mostCommonCurrency)
       } yield {
         requestChangedCurrencyAmount
       }
@@ -2366,8 +2366,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       creditRate <- Future (fx.exchangeRate(currency, toAccount.currency, Some(bankIdExchangeRate.bankId.value), callContext))
       _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($currency to ${toAccount.currency}) is not supported.", cc=callContext){creditRate.isDefined}
 
-      fromTransAmt = -fx.convert(amount, debitRate) //from fromAccount balance should decrease
-      toTransAmt = fx.convert(amount, creditRate)
+      fromTransAmt = -fx.convert(amount, debitRate, fromAccount.currency) //from fromAccount balance should decrease
+      toTransAmt = fx.convert(amount, creditRate, toAccount.currency)
 
       debitTransactionBox <- Future(
         saveHistoricalTransaction(fromAccount, toAccount, posted, completed, fromTransAmt, description, transactionRequestType, chargePolicy, callContext)
@@ -2387,7 +2387,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               // In the case we selected the default settlement account INCOMING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
                 if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, fromAccount.currency)) {
                   val rate = fx.exchangeRate(currency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
-                  Try(-fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
+                  Try(-fx.convert(amount, rate, settlementAccount._1.currency)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
                 } else fromTransAmt
               }
               saveHistoricalTransaction(settlementAccount._1, toAccount, posted, completed, fromTransAmtSettlementAccount, description, transactionRequestType, chargePolicy, callContext)
@@ -2412,7 +2412,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 // In the case we selected the default settlement account OUTGOING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
                 if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, toAccount.currency)) {
                   val rate = fx.exchangeRate(currency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
-                  Try(fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
+                  Try(fx.convert(amount, rate, settlementAccount._1.currency)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
                 } else toTransAmt
               }
               saveHistoricalTransaction(settlementAccount._1, fromAccount, posted, completed, toTransAmtSettlementAccount, description, transactionRequestType, chargePolicy, callContext)
@@ -2524,8 +2524,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       creditRate <- Future (fx.exchangeRate(transactionCurrency, toAccount.currency, Some(bankIdExchangeRate.bankId.value), callContext))
       _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${toAccount.currency}) is not supported.", cc=callContext){creditRate.isDefined}
 
-      fromTransAmt = -fx.convert(amount, debitRate) //from fromAccount balance should decrease
-      toTransAmt = fx.convert(amount, creditRate)
+      fromTransAmt = -fx.convert(amount, debitRate, fromAccount.currency) //from fromAccount balance should decrease
+      toTransAmt = fx.convert(amount, creditRate, toAccount.currency)
 
       debitTransactionBox <- Future {
         LocalMappedConnectorInternal.saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
@@ -2544,7 +2544,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 // In the case we selected the default settlement account INCOMING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
                 if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, fromAccount.currency)) {
                   val rate = fx.exchangeRate(transactionCurrency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
-                  Try(-fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
+                  Try(-fx.convert(amount, rate, settlementAccount._1.currency)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
                 } else fromTransAmt
               }
               LocalMappedConnectorInternal.saveTransaction(settlementAccount._1, toAccount, transactionRequestCommonBody, fromTransAmtSettlementAccount, description, transactionRequestType, chargePolicy)
@@ -2569,7 +2569,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 // In the case we selected the default settlement account OUTGOING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
                 if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, toAccount.currency)) {
                   val rate = fx.exchangeRate(transactionCurrency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
-                  Try(fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
+                  Try(fx.convert(amount, rate, settlementAccount._1.currency)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
                 } else toTransAmt
               }
               LocalMappedConnectorInternal.saveTransaction(settlementAccount._1, fromAccount, transactionRequestCommonBody, toTransAmtSettlementAccount, description, transactionRequestType, chargePolicy)
@@ -5122,7 +5122,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       transactionRequestCommonBodyAmount <- NewStyle.function.tryons(s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number", 400, callContext) {
         BigDecimal(transactionRequestCommonBody.value.amount)
       }
-      
+
+      // The amount must be above zero for every caller (MOBILE_WALLET, UTILITY, OPEN_CORRIDOR_PROMISE, the v4 pipeline, ...).
+      // A negative amount would pass the payment limit and challenge threshold checks and then move money from the destination to the caller.
+      isPositiveAmount = transactionRequestCommonBodyAmount > BigDecimal("0")
+      _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${transactionRequestCommonBodyAmount}'", 400, callContext) {
+        isPositiveAmount
+      }
+
       (paymentLimit, callContext) <- Connector.connector.vend.getPaymentLimit(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetPaymentLimit ", 400), i._2)
       }

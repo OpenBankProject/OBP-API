@@ -31,7 +31,7 @@ import cats.effect.IO
 import code.api.util.APIUtil
 import org.http4s._
 import org.http4s.dsl.io._
-import org.http4s.headers.{Accept, `Content-Type`}
+import org.http4s.headers.{Accept, Location, `Content-Type`}
 import org.http4s.Charset
 
 object AppsPage {
@@ -95,9 +95,22 @@ object AppsPage {
       }
     }
 
+  // Where a browser opening the root of the API is sent: the Portal, when public_obp_portal_url
+  // is set. People who type the API's address expect to land on the Portal. The App Directory
+  // stays at /apps, and a request for JSON at the root still gets the JSON App Directory.
+  private def portalUri: Option[Uri] =
+    APIUtil.getPropsValue("public_obp_portal_url").toOption
+      .map(_.trim)
+      .filter(_.nonEmpty)
+      .flatMap(url => Uri.fromString(url).toOption)
+
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> Root =>
-      if (prefersJson(req)) jsonResponse else htmlResponse
+      if (prefersJson(req)) jsonResponse
+      else portalUri match {
+        case Some(portal) => Found(Location(portal))
+        case None => htmlResponse
+      }
     case req @ GET -> Root / "apps" =>
       if (prefersJson(req)) jsonResponse else htmlResponse
   }

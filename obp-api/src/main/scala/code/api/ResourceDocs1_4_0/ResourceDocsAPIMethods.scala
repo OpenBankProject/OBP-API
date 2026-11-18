@@ -1238,18 +1238,24 @@ trait ResourceDocsAPIMethods extends MdcLoggable {
       // build swagger and remove not used definitions
       def buildSwagger(resourceDoc: SwaggerJSONFactory.SwaggerResourceDoc, definitions: json.JValue) = {
         val jValue = Extraction.decompose(resourceDoc)
-        val JObject(pathsRef) = definitions \\ "$ref"
-        val JObject(definitionsRef) = jValue \\ "$ref"
         val RefRegx = "#/definitions/([^/]+)".r
 
-        val allRefTypeName: Set[String] = Set(pathsRef, definitionsRef).flatMap { fields =>
-          fields.collect {
-            case JField(_, JString(RefRegx(v))) => v
+        // Walk every field rather than use `\\ "$ref"`: json4s returns a JObject only when there are
+        // several matches, a bare JString for exactly one and JNothing for none, so a pattern match on
+        // its result fails when the selected docs hold a single reference.
+        def referencedTypeNames(value: JValue): Set[String] =
+          value.foldField(Set.empty[String]) {
+            case (typeNames, JField("$ref", JString(RefRegx(typeName)))) => typeNames + typeName
+            case (typeNames, _) => typeNames
           }
-        }
+
+        val allRefTypeName: Set[String] = referencedTypeNames(definitions) ++ referencedTypeNames(jValue)
         // filter out all not used definitions
         val usedDefinitions = {
-          val JObject(fields) = definitions \ "definitions"
+          val fields = definitions \ "definitions" match {
+            case JObject(definitionFields) => definitionFields
+            case _ => Nil
+          }
            JObject(
               JField("definitions",
                 JObject(

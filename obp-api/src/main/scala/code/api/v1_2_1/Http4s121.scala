@@ -967,7 +967,8 @@ object Http4s121 {
       |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, CannotRevokeOwnAccountAccess, UnknownError, "user does not have access to owner view on account"),
+      // UserLacksPermissionCanRevokeAccessToViewForTargetAccount: the caller cannot revoke one of the views the target user holds
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, CannotRevokeOwnAccountAccess, UserLacksPermissionCanRevokeAccessToViewForTargetAccount, UnknownError, "user does not have access to owner view on account"),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
       http4sPartialFunction = Some(removePermissionForUserForBankAccountForAllViews)
     )

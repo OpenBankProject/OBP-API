@@ -105,7 +105,7 @@ following in mind:
 
 | ID | Result | Description | Hazard Shape | Source Location |
 |---|---|---|---|---|
-| **C** | 🟢 PASSED | 8 concurrent entitlement grants: exactly 1 row created (UniqueIndex + tryo + re-fetch) | check-then-insert | `MappedEntitlementsProvider.addEntitlement` |
+| **C** | 🟢 PASSED | 8 concurrent entitlement grants: exactly 1 row created (look first, then UniqueIndex + tryo; a losing request gets a logged Failure, because on PostgreSQL its aborted transaction can't re-fetch the row) | check-then-insert | `MappedEntitlementsProvider.addEntitlement` |
 | **D** | 🟢 PASSED | 8 concurrent `getOrCreateAccountHolder` calls: exactly 1 row created (UniqueIndex + tryo + re-fetch) | check-then-insert | `MapperAccountHolders.getOrCreateAccountHolder` |
 | **F** | 🟢 PASSED | 8 concurrent `getOrCreateMetadata` calls: no exceptions, exactly 1 row (tryo + re-fetch on constraint violation) | unique-constraint-unhandled | `MappedCounterpartyMetadata.getOrCreateMetadata` |
 | **I** | 🟢 PASSED | 2 concurrent first-time OAuth logins: both succeed (Try + re-fetch by provider/providerId) | unique-constraint-unhandled | `LiftUsers.getOrCreateUserByProviderId` |

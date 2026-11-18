@@ -119,6 +119,23 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       }
     }
 
+    scenario(s"We will test ${ApiEndpoint1.name} Api - one function whose docs hold exactly one schema reference", ApiEndpoint1, VersionOfApi) {
+      // The response of getOAuth2ServerJWKsURIs has one nested object, so the document holds a single $ref
+      val requestGetSwagger = (ResourceDocsV5_1Request / "resource-docs" / "v3.1.0" / "swagger")
+        .GET <<? List("functions" -> "getOAuth2ServerJWKsURIs")
+      val responseGetSwagger = makeGetRequest(requestGetSwagger)
+      withClue(responseGetSwagger.body.toString) {
+        responseGetSwagger.code should equal(200)
+      }
+      val definitionNames = (responseGetSwagger.body \ "definitions") match {
+        case JObject(definitionFields) => definitionFields.map(_._1)
+        case _ => Nil
+      }
+      definitionNames should contain("OAuth2ServerJWKURIJson")
+      val errors = ValidateSwaggerString(json.compactRender(responseGetSwagger.body))._1
+      errors.isEmpty should be (true)
+    }
+
     scenario(s"We will test ${ApiEndpoint1.name} Api - v4.0.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v4.0.0" / "swagger").GET
       val responseGetObp = makeGetRequest(requestGetObp)

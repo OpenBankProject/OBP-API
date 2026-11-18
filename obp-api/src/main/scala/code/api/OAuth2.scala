@@ -433,7 +433,10 @@ object OAuth2Login extends MdcLoggable {
       * @return an existing or a new user
       */
     def getOrCreateResourceUser(jwtToken: String): Box[User] = {
-      val uniqueIdGivenByProvider = JwtUtil.getSubject(jwtToken).getOrElse("")
+      // A Keycloak service account's sub is a random id; its own user is named after the client id instead.
+      val uniqueIdGivenByProvider =
+        if (Keycloak.isServiceAccountToken(jwtToken)) getClaim(name = "azp", jwtToken = jwtToken).getOrElse("")
+        else JwtUtil.getSubject(jwtToken).getOrElse("")
       val provider = resolveProvider(jwtToken)
       // Only Keycloak issues the federated form. From any other issuer it would name an arbitrary user_id.
       val federatedRef =
@@ -468,7 +471,8 @@ object OAuth2Login extends MdcLoggable {
       val providerFromToken = JwtUtil.getProvider(jwtToken)
         .filter(_ => OBPOIDC.isIssuer(jwtToken) || Keycloak.isIssuer(jwtToken))
 
-      providerFromToken.filter(_.trim.nonEmpty) match {
+      if (Keycloak.isServiceAccountToken(jwtToken)) Keycloak.clientCredentialsProvider
+      else providerFromToken.filter(_.trim.nonEmpty) match {
         case Some(provider) =>
           logger.debug(s"resolveProvider says: using provider from token claim: $provider")
           provider
@@ -746,6 +750,14 @@ object OAuth2Login extends MdcLoggable {
 
   object Keycloak extends OAuth2Util {
     val keycloakHost = APIUtil.getPropsValue(nameOfProperty = "oauth2.keycloak.host", "http://localhost:7070")
+    // The provider of the users that Keycloak's service-account (client-credentials) tokens resolve to: one no
+    // person can sign up under. Like OBP-OIDC's, each is named after its client id.
+    val clientCredentialsProvider = "keycloak#client"
+    /** A token Keycloak issued to a client's service account: preferred_username is "service-account-" + the client id. */
+    def isServiceAccountToken(jwtToken: String): Boolean = isIssuer(jwtToken) && {
+      val clientId = getClaim(name = "azp", jwtToken = jwtToken).orElse(getClaim(name = "client_id", jwtToken = jwtToken))
+      clientId.exists(id => id.nonEmpty && getClaim(name = "preferred_username", jwtToken = jwtToken).contains(s"service-account-$id"))
+    }
     /**
       * OpenID Connect Discovery.
       * Yahoo exposes OpenID Connect discovery documents ( https://YOUR_DOMAIN/.well-known/openid-configuration ).

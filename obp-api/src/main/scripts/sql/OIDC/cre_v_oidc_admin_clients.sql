@@ -29,6 +29,7 @@ name
 ,userauthenticationurl
 ,clientcertificate
 ,jwksuri
+,granttypes
 ,company
 ,key_c
 ,isactive

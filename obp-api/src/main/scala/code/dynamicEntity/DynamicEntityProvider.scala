@@ -71,13 +71,6 @@ trait DynamicEntityT {
   def useRowLevelAccess: Boolean
 
   /**
-   * Who may hold the roles guarding this entity's data endpoints (see [[DynamicEntityAuthMode]]):
-   * the User's Entitlements, the Consumer's Scopes, either, or both. Personal ("my") endpoints
-   * always require a User regardless of this value.
-   */
-  def authMode: String
-
-  /**
    * Add Option(bank_id) to Dynamic Entity.
    * Then we should treat the two cases very separately.
    *
@@ -480,28 +473,6 @@ object ReferenceType extends MdcLoggable {
   }
 }
 
-/**
- * Auth mode of a Dynamic Entity's data endpoints, stored as its name. Mirrors
- * [[code.api.util.APIUtil.EndpointAuthMode]] without dragging APIUtil into the model.
- */
-object DynamicEntityAuthMode {
-  val UserOnly = "UserOnly"
-  val ApplicationOnly = "ApplicationOnly"
-  val UserXORApplication = "UserXORApplication"
-  val UserAndApplication = "UserAndApplication"
-  /** The former name of UserXORApplication, still accepted on input and in stored rows. */
-  val LegacyUserOrApplication = "UserOrApplication"
-  val all: List[String] = List(UserOnly, ApplicationOnly, UserXORApplication, UserAndApplication)
-  val default: String = UserOnly
-  def isValid(value: String): Boolean = all.contains(value)
-  /** null / empty (rows created before the column existed) read as the default; the legacy name reads as UserXORApplication. */
-  def normalise(value: String): String = Option(value).map(_.trim).filter(_.nonEmpty) match {
-    case Some(LegacyUserOrApplication) => UserXORApplication
-    case Some(v) => v
-    case None => default
-  }
-}
-
 case class DynamicEntityCommons(entityName: String,
                                 metadataJson: String,
                                 dynamicEntityId: Option[String] = None,
@@ -511,8 +482,7 @@ case class DynamicEntityCommons(entityName: String,
                                 hasPublicAccess: Boolean = false,
                                 hasCommunityAccess: Boolean = false,
                                 personalRequiresRole: Boolean = false,
-                                useRowLevelAccess: Boolean = false,
-                                authMode: String = DynamicEntityAuthMode.default
+                                useRowLevelAccess: Boolean = false
                                ) extends DynamicEntityT with JsonFieldReName
 
 object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommons] {
@@ -556,7 +526,8 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
 
     val fields = jsonObject.obj
 
-    // Known flag field names at the root level (not the entity definition itself)
+    // Known flag field names at the root level (not the entity definition itself). authMode is accepted so that
+    // clients written before endpoint auth modes were removed are not refused, but it is ignored.
     val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole", "useRowLevelAccess", "authMode")
 
     // validate root object fields
@@ -574,27 +545,12 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
     val personalRequiresRoleValue: Boolean = fields.filter(_.name == "personalRequiresRole").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(false)
     // Determine the value of useRowLevelAccess; use the field's boolean value if provided, otherwise default to false
     val useRowLevelAccessValue: Boolean = fields.filter(_.name == "useRowLevelAccess").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(false)
-    // Determine the value of authMode; a string naming an EndpointAuthMode, default UserOnly
-    val authModeValue: String = fields.filter(_.name == "authMode").map(_.value).headOption match {
-      case Some(JString(v)) => DynamicEntityAuthMode.normalise(v)
-      case Some(JNull) | Some(JNothing) | None => DynamicEntityAuthMode.default
-      case Some(_) => "" // wrong JSON type: fails the validity check below
-    }
 
     checkFormat(fields.nonEmpty, s"$DynamicEntityInstanceValidateFail The Json root object should have a single entity, but current have none.")
     checkFormat(entityFields.size == 1, s"$DynamicEntityInstanceValidateFail The Json root object should have exactly one entity field (plus optional flags: ${knownFlagFields.mkString(", ")}), but current root objects: ${fields.map(_.name).mkString(",  ")}")
     checkFormat(
       flagFields.forall(f => knownFlagFields.contains(f.name)),
       s"$DynamicEntityInstanceValidateFail Unknown flag fields. Allowed flags: ${knownFlagFields.mkString(", ")}. Current root objects: ${fields.map(_.name).mkString(",  ")}"
-    )
-    checkFormat(
-      DynamicEntityAuthMode.isValid(authModeValue),
-      s"$DynamicEntityInstanceValidateFail authMode must be one of ${DynamicEntityAuthMode.all.mkString(", ")}."
-    )
-    // An application-only call has no User, so an entity whose rows are personal ("my") cannot be ApplicationOnly.
-    checkFormat(
-      !(hasPersonalEntityValue && authModeValue == DynamicEntityAuthMode.ApplicationOnly),
-      s"$DynamicEntityInstanceValidateFail authMode ${DynamicEntityAuthMode.ApplicationOnly} cannot be combined with hasPersonalEntity."
     )
     // §8.3: useRowLevelAccess is a master switch — mutually exclusive with public/community access.
     checkFormat(
@@ -756,7 +712,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       }
     })
 
-    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntityValue, hasPublicAccessValue, hasCommunityAccessValue, personalRequiresRoleValue, useRowLevelAccessValue, authModeValue)
+    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntityValue, hasPublicAccessValue, hasCommunityAccessValue, personalRequiresRoleValue, useRowLevelAccessValue)
   }
 
   // `reference` is an internal query-layer type (see DynamicEntityFieldType.reference), never declared

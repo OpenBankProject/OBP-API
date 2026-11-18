@@ -261,7 +261,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
         val toAccount = getToAccount
         val fromAccount = getFromAccount
         val rate = fx.exchangeRate(fromAccount.currency, toAccount.currency, Some(fromAccount.bankId.value), None)
-        val convertedAmount = fx.convert(amt, rate)
+        val convertedAmount = fx.convert(amt, rate, toAccount.currency)
         val fromAccountBalance = fromAccount.balance
         val toAccountBalance = toAccount.balance
 

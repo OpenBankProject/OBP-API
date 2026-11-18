@@ -88,9 +88,8 @@ class ConsumerTest extends V510ServerSetup {
       responseApiEndpoint3.code should equal(401)
       responseApiEndpoint4.code should equal(401)
       responseApiEndpoint6.code should equal(401)
-      // createConsumer and getConsumers use authMode=UserXORApplication, so unauthenticated requests get ApplicationNotIdentified
-      responseApiEndpoint1.body.toString contains(s"$ApplicationNotIdentified") should be (true)
-      responseApiEndpoint2.body.toString contains(s"$ApplicationNotIdentified") should be (true)
+      responseApiEndpoint1.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
+      responseApiEndpoint2.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
       responseApiEndpoint3.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
       responseApiEndpoint4.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
       responseApiEndpoint6.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)

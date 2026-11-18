@@ -1321,9 +1321,9 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "banks" / _ / "balances" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
-            (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountAccessAtBank(user, bank.bankId, Some(cc))
-            (accountsBalances, _) <- code.api.util.newstyle.BalanceNewStyle.getBankAccountsBalances(allowedAccounts, Some(cc))
-          } yield createBalancesJson(accountsBalances)
+            (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountsWithBalancePermission(user, bank.bankId, None, Some(cc))
+            (accountsBalances, _) <- code.api.util.newstyle.BalanceNewStyle.getBankAccountsBalances(allowedAccounts.map(_._1), Some(cc))
+          } yield createBalancesJson(code.api.util.newstyle.BalanceNewStyle.moderateAccountsBalances(accountsBalances, allowedAccounts.toMap))
         }
     }
 
@@ -1568,7 +1568,6 @@ object Http4s400 {
       ),
       List(apiTagCustomer, apiTagUser),
       Some(List(canCreateUserCustomerLinkAtAnyBank, canCreateUserCustomerLink)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(createUserCustomerLinks))
 
     // ─── getSystemDynamicEntities ─────────────────────────────────────────────
@@ -4252,15 +4251,16 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "balances" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
-            (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountAccessAtBank(
-              user, bank.bankId, Some(cc))
+            (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountsWithBalancePermission(
+              user, bank.bankId, None, Some(cc))
             msg = s"$CannotFindAccountAccess AccountId(${accountIdStr})"
-            bankIdAccountId <- NewStyle.function.tryons(msg, 400, Some(cc)) {
-              allowedAccounts.find(_.accountId == AccountId(accountIdStr)).get
+            (bankIdAccountId, permissions) <- NewStyle.function.tryons(msg, 400, Some(cc)) {
+              allowedAccounts.find(_._1.accountId == AccountId(accountIdStr)).get
             }
             (accountBalances, _) <- code.api.util.newstyle.BalanceNewStyle.getBankAccountBalances(
               bankIdAccountId, Some(cc))
-          } yield JSONFactory400.createAccountBalancesJson(accountBalances)
+          } yield JSONFactory400.createAccountBalancesJson(
+            code.api.util.newstyle.BalanceNewStyle.moderateAccountBalances(accountBalances, permissions))
         }
     }
 

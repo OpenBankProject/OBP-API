@@ -1152,7 +1152,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
                   val transferCurrency = transactionRequestBodyCounterparty.value.currency //eg: if the payment json body currency is GBP.
                   val transferAmount = BigDecimal(transactionRequestBodyCounterparty.value.amount) //eg: if the payment json body amount is 1.
                   val debitRate = fx.exchangeRate(transferCurrency, fromAccountCurrency, Some(fromAccount.bankId.value), callContext) //eg: the rate here is 1.16278.
-                  fx.convert(transferAmount, debitRate) // 1.16278 Euro
+                  fx.convert(transferAmount, debitRate, fromAccountCurrency) // 1.16278 Euro
                 }
 
                 _ <- Helper.booleanToFuture(s"$CounterpartyLimitValidationError max_single_amount is $maxSingleAmount ${fromAccount.currency}, " +

@@ -832,7 +832,6 @@ object Http4s700 {
       List(ApplicationNotIdentified, UnknownError),
       apiTagConsumer :: apiTagApi :: Nil,
       None,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getCurrentConsumerIdentity)
     )
 
@@ -870,7 +869,6 @@ object Http4s700 {
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       apiTagConsumer :: Nil,
       Some(List(ApiRole.canGetConsumers)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsumers)
     )
 
@@ -1101,7 +1099,6 @@ object Http4s700 {
       List(ApplicationNotIdentified, UnknownError),
       apiTagConsumer :: apiTagScope :: apiTagApi :: Nil,
       None,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getCurrentConsumerScopes)
     )
 
@@ -4404,7 +4401,10 @@ object Http4s700 {
       List($AuthenticatedUserIsRequired, InvalidJsonFormat,
            PayeeLookupIdentifierTypeNotRegistered, MobileWalletInvalidMsisdn,
            PayeeLookupExpiredOrNotFound, PayeeLookupMismatch,
-           MobileWalletDestinationNotFound, MobileWalletPaymentError, UnknownError),
+           MobileWalletDestinationNotFound,
+           // NotPositiveAmount: the connector refuses an amount that is not above zero, so a payer cannot pull money from the wallet.
+           NotPositiveAmount,
+           MobileWalletPaymentError, UnknownError),
       apiTagTransactionRequest :: apiTagPayee :: Nil,
       None,
       http4sPartialFunction = Some(createTransactionRequestMobileWallet)
@@ -4577,7 +4577,10 @@ object Http4s700 {
       List($AuthenticatedUserIsRequired, InvalidJsonFormat,
            PayeeLookupIdentifierTypeNotRegistered, UtilityIdentifierTypeWrongCategory,
            UtilityInvalidIdentifier, PayeeLookupExpiredOrNotFound, PayeeLookupMismatch,
-           UtilityDestinationNotFound, UtilityPaymentError, UnknownError),
+           UtilityDestinationNotFound,
+           // NotPositiveAmount: the connector refuses an amount that is not above zero, so a payer cannot pull money from the biller.
+           NotPositiveAmount,
+           UtilityPaymentError, UnknownError),
       apiTagTransactionRequest :: apiTagPayee :: Nil,
       None,
       http4sPartialFunction = Some(createTransactionRequestUtility)
@@ -4799,10 +4802,12 @@ object Http4s700 {
       ),
       List($AuthenticatedUserIsRequired, OpenCorridorDisabled, InvalidJsonFormat, InvalidJsonValue,
            CounterpartyBeneficiaryPermit, InvalidChargePolicy,
-           InsufficientAuthorisationToCreateTransactionRequest, UnknownError),
+           InsufficientAuthorisationToCreateTransactionRequest,
+           // NotPositiveAmount: the connector refuses an amount that is not above zero, so a negative promise is never netted.
+           NotPositiveAmount,
+           UnknownError),
       apiTagTransactionRequest :: Nil,
       None,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(createTransactionRequestOpenCorridor)
     )
 
@@ -4851,7 +4856,7 @@ object Http4s700 {
         |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
         |Such a token gives the application a User of its own (provider obp-oidc#client), so `reported_by_user_id` is
         |the application's own User when it acted, or the person's when a person did.
-        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement.
         |
         |Authentication is Required.""".stripMargin,
       openCorridorPromiseBodyExample,
@@ -4872,7 +4877,6 @@ object Http4s700 {
            OpenCorridorPromiseEvidenceConflict, TransactionRequestLockFailed, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canAttachOpenCorridorPromise)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(attachOpenCorridorPromise)
     )
 
@@ -5390,7 +5394,7 @@ object Http4s700 {
         |
         |**Who may call it.** A person with the Role CanSettleOpenCorridor at BANK_ID, or an application whose Consumer holds it
         |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
-        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement.
         |
         |Authentication is Required.""".stripMargin,
       JSONFactory700.PostOpenCorridorSettlementJsonV700(other_bank_id = "ke.01.kcs", currency = "KES"),
@@ -5411,7 +5415,6 @@ object Http4s700 {
            $BankNotFound, AmqpBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(createOpenCorridorSettlement)
     )
 
@@ -5452,7 +5455,7 @@ object Http4s700 {
         |
         |**Who may call it.** A person with the Role CanSettleOpenCorridor at BANK_ID, or an application whose Consumer holds it
         |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
-        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement.
         |
         |Authentication is Required.""".stripMargin,
       JSONFactory700.PostOpenCorridorFeeSettlementJsonV700(currency = "KES"),
@@ -5469,7 +5472,6 @@ object Http4s700 {
            $BankNotFound, AmqpBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(createOpenCorridorFeeSettlement)
     )
 
@@ -5508,7 +5510,7 @@ object Http4s700 {
         |
         |**Who may call it.** A person with the Role CanSettleOpenCorridor at BANK_ID, or an application whose Consumer holds it
         |as a Scope at BANK_ID and calls as itself, such as the bank's Bank Node with an OAuth2 client-credentials token.
-        |A person calling through a Consumer that holds the Scope still needs their own Entitlement (authMode UserXORApplication).
+        |A person calling through a Consumer that holds the Scope still needs their own Entitlement.
         |
         |Authentication is Required.""".stripMargin,
       EmptyBody,
@@ -5538,7 +5540,6 @@ object Http4s700 {
            OpenCorridorSettlementNotFound, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getOpenCorridorSettlement)
     )
 
@@ -5725,6 +5726,9 @@ object Http4s700 {
       List($AuthenticatedUserIsRequired, InvalidJsonFormat,
            BulkPaymentsArrayEmpty, BulkPaymentsArrayTooLarge,
            BulkPaymentCurrencyMismatch, BulkDuplicateEndToEndId,
+           // NotPositiveAmount: an item amount that is not a number above zero refuses the batch.
+           // InvalidNumber: the declared total does not equal the sum of the items.
+           NotPositiveAmount, InvalidNumber,
            BulkBatchReferenceAlreadyUsed, BulkPaymentTransactionRequestError,
            UnknownError),
       apiTagTransactionRequest :: Nil,
@@ -7694,6 +7698,9 @@ object Http4s700 {
     // Platform Apps: the Consumers this installation runs as part of its own deployment, and the Scopes they need.
     resourceDocs ++= Http4s700PlatformApps.resourceDocs
 
+    // Consumer grant types: how people and the application itself may call through a Consumer.
+    resourceDocs ++= Http4s700ConsumerGrantTypes.resourceDocs
+
     // Domain APIs: a space's Dynamic Entities and Dynamic Resource Docs published under a base path of its own.
     resourceDocs ++= Http4s700DomainApis.resourceDocs
 
@@ -7729,6 +7736,9 @@ object Http4s700 {
 
     // Consumer account access: a view of an account granted to a Consumer, for an application acting as itself.
     resourceDocs ++= Http4s700ConsumerAccountAccess.resourceDocs
+
+    // Customers at a bank, each with its Customer Attributes, filtered by Customer Attributes.
+    resourceDocs ++= Http4s700Customers.resourceDocs
 
     // The order in which the routes are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given this same list: the doc that validates a request
