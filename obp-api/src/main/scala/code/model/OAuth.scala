@@ -634,6 +634,11 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def validations = validUri(this) _ :: super.validations
   }
   object createdByUserId extends MappedString(this, 36)
+  // The Organisation that owns this Consumer, or empty for a personal Consumer owned by its creator alone.
+  // See code.organisation.ConsumerOwnership.
+  object organisationId extends MappedString(this, 36) {
+    override def defaultValue = ""
+  }
 
   object perSecondCallLimit extends MappedLong(this) {
     override def defaultValue: Long = APIUtil.getPropsAsLongValue("rate_limiting_per_second", -1)

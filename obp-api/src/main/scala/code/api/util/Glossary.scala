@@ -1579,7 +1579,11 @@ object Glossary extends MdcLoggable  {
 			|
 			|A Scope lets an application call an endpoint. A Platform App that acts on an account as itself also needs access to a view of that account. An example is initiating payments from the account. See ${getGlossaryItemLink("Consumer Account Access")}.
 			|
-			|## Switching a Consumer off
+			|## Who owns a Consumer
+|
+|A Consumer is owned by the User who created it. It can be moved into an ${getGlossaryItemLink("Organisation")}, and then its members own it together, so it stays with the team when someone leaves. Owners need no Role to read their Consumers, their usage, Scopes and API Product Subscriptions under `/my/consumers`, or to subscribe them to API Products. See ${getGlossaryItemLink("API Product Subscription")}.
+|
+|## Switching a Consumer off
 			|
 			|An administrator can disable a Consumer. Every call through it is then refused, by people and by the application itself. It can be enabled again later.
 			|
@@ -1592,6 +1596,7 @@ object Glossary extends MdcLoggable  {
 			|- [Update Consumer Certificate](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateConsumerCertificate): `PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/certificate`
 			|- [Update Consumer RedirectURL](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateConsumerRedirectURL): `PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/redirect_url`
 			|- [Get Current Consumer](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getCurrentConsumer): `GET /obp/v6.0.0/consumers/current`, for an application to read its own Consumer.
+|- [Get My Consumers](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyConsumers): `GET /obp/v7.0.0/my/consumers`, for owners to read their Consumers.
 			|
 			|The endpoints for grant types, Scopes, Platform Apps and account access are listed in their own items.
 			|""".stripMargin)
@@ -3693,9 +3698,19 @@ object Glossary extends MdcLoggable  {
 |
 |Only the rate limit record and the Scopes created by the subscription are touched. Limits and Scopes granted by hand are never removed. Overlapping rate limit records are summed, so a Consumer holding two products gets both allowances.
 |
-|A developer never needs a Role to subscribe their own Consumer, read their own subscriptions or cancel them. Roles exist for bank staff (enrol a partner's Consumer, approve, suspend, reinstate) and for billing systems (move the status on payment events). Two attributes on the API Product decide the flow: `SELF_SUBSCRIBE` (may developers subscribe their own Consumers; default `true`) and `BILLING_SYSTEM` (`none` activates at once; `manual` waits for a bank admin; `stripe` or `invoice_ninja` waits for that billing system).
+|Anyone who may act for a Consumer needs no Role to subscribe it, read its subscriptions or cancel them. That is the User who created it, or, once it belongs to an ${getGlossaryItemLink("Organisation")}, every member of that Organisation. Roles exist for bank staff (enrol a partner's Consumer, approve, suspend, reinstate) and for billing systems (move the status on payment events). Two attributes on the API Product decide the flow: `SELF_SUBSCRIBE` (may developers subscribe their own Consumers; default `true`) and `BILLING_SYSTEM` (`none` activates at once; `manual` waits for a bank admin; `stripe` or `invoice_ninja` waits for that billing system).
 |
-|OBP-API core carries no billing vocabulary: payments, invoices and refunds live in the billing system, which only ever changes the subscription status.
+|OBP-API core carries no billing vocabulary: payments, invoices and refunds live in the billing system, which only ever changes the subscription status. For `stripe`, that billing system is ${getGlossaryItemLink("OBP-Stripe")}.
+|
+|## Endpoints
+|
+|- [Create Api Product Subscription](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createApiProductSubscription): `POST /obp/v7.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/subscriptions`
+|- [Get My Api Product Subscriptions](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyApiProductSubscriptions): `GET /obp/v7.0.0/my/api-product-subscriptions`
+|- [Cancel My Api Product Subscription](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateMyApiProductSubscriptionStatus): `PUT /obp/v7.0.0/my/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/status`
+|- [Get My Consumer Api Product Subscriptions](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyConsumerApiProductSubscriptions): `GET /obp/v7.0.0/my/consumers/CONSUMER_ID/api-product-subscriptions`
+|- [Get Api Product Subscriptions by Product](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getApiProductSubscriptionsByProduct): `GET /obp/v7.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/subscriptions`
+|- [Update Api Product Subscription Status](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateApiProductSubscriptionStatus): `PUT /obp/v7.0.0/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/status`
+|- [Delete Api Product Subscription](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteApiProductSubscription): `DELETE /obp/v7.0.0/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID`
 |
  """)
 
@@ -3878,7 +3893,7 @@ object Glossary extends MdcLoggable  {
 |
 |* UserId may be stored for audit purposes but is **ignored in queries**
 |* All authorized users see the same shared data
-|* Role-based authorization is **required** (e.g., CanGetDynamicEntity_FooBar)
+|* Role-based authorization is **required** (e.g., CanGetDynamicEntityRecord_FooBar)
 |* Cascade delete **is allowed** - you can delete the entity definition and all its records in one operation
 |
 |**Summary table:**
@@ -3900,10 +3915,10 @@ object Glossary extends MdcLoggable  {
 |
 |When you create a Dynamic Entity named 'FooBar', OBP automatically creates these roles:
 |
-|* CanCreateDynamicEntity_FooBar
-|* CanUpdateDynamicEntity_FooBar
-|* CanGetDynamicEntity_FooBar
-|* CanDeleteDynamicEntity_FooBar
+|* CanCreateDynamicEntityRecord_FooBar
+|* CanUpdateDynamicEntityRecord_FooBar
+|* CanGetDynamicEntityRecord_FooBar
+|* CanDeleteDynamicEntityRecord_FooBar
 |* CanGrantDynamicEntityRowAccess_FooBar (only meaningful when the entity uses row-level access, see below)
 |
 |**Field-level write/read permissions (per property):**
@@ -3927,12 +3942,15 @@ object Glossary extends MdcLoggable  {
 |
 |Set `useRowLevelAccess` on the definition (`use_row_level_access` in the v6.0.0 snake_case request) to decide access **per record** instead of by the entity's roles. The entity's Get, Update and Delete roles then stop gating the shared routes and an access list on each record decides, carrying four permissions per User: `can_read`, `can_update`, `can_delete` and `can_grant`.
 |
-|* The User who creates a record holds all four on it, so they share their own records without holding any role. Creating a record still needs CanCreateDynamicEntity_FooBar.
+|* The User who creates a record holds all four on it, so they share their own records without holding any role. Creating a record still needs CanCreateDynamicEntityRecord_FooBar.
 |* Records the caller may not read are omitted from list responses and return 404 individually, so a record's existence is not disclosed.
-|* `GET /obp/dynamic-entity/FooBar/FOO_BAR_ID/access` lists the access list; `POST` to the same URL grants or updates one entry (or an array of them) — `user_id` is required, `can_read`/`can_update`/`can_delete` default to `false` and `can_grant` defaults to `true`, so a grantee may re-share; `DELETE /obp/dynamic-entity/FooBar/FOO_BAR_ID/access/USER_ID` revokes, cascading to the grants that User passed on. Bank level entities take the same paths under `/banks/BANK_ID/`.
+|* `GET /obp/dynamic-entity/FooBar/FOO_BAR_ID/access` lists the access list. `PUT` to the same URL grants or updates one entry, or an array of them. Each entry names a `user_id` or an `organisation_id`. `can_read`, `can_update` and `can_delete` default to `false`. `can_grant` defaults to `true` for a User, so a grantee may share further, and to `false` for an Organisation.
+|* `DELETE /obp/dynamic-entity/FooBar/FOO_BAR_ID/access/USER_ID` revokes a User, and also removes the grants that User passed on. `DELETE .../access/organisations/ORGANISATION_ID` revokes an Organisation. Bank level entities take the same paths under `/banks/BANK_ID/`.
+|* A grant to an Organisation gives its permissions to every member while the Organisation is active. Access follows membership: people who join get it and people who leave lose it, with no change to the grant. This is how a team shares records, for example one survey answer per team.
 |* CanGrantDynamicEntityRowAccess_FooBar (CanGrantDynamicEntityRowAccess_SystemFooBar at system level) administers the access list of any record.
 |* Field-level read and write roles still apply on top of the access list.
-|* `useRowLevelAccess` cannot be combined with `hasPublicAccess` or `hasCommunityAccess`, and is only supported for locally-backed entities (an entity routed to an external connector for `dynamicEntityProcess` cannot enforce the access list).
+|* `useRowLevelAccess` cannot be combined with `hasPublicAccess`. It can be combined with `hasCommunityAccess`: a holder of CanGetDynamicEntityRecord_FooBar then reads every record through `/obp/dynamic-entity/community/FooBar`, read-only, while everyone else reads only the records shared with them. This is how staff read everything in a programme where each team sees only its own records.
+|* `useRowLevelAccess` is only supported for locally-backed entities. An entity routed to an external connector for `dynamicEntityProcess` cannot enforce the access list.
 |
 |See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")} for how this sits alongside the other routes.
 |
@@ -4102,9 +4120,9 @@ object Glossary extends MdcLoggable  {
 || Personal: `/obp/dynamic-entity/my/ENTITY` | `hasPersonalEntity` | any authenticated User; a role only if `personalRequiresRole`; a consent user in addition only if its Consent lists the entity in `my_resources` | same rule | the caller's own rows only, keyed by the on-behalf-of user |
 || Community: `/obp/dynamic-entity/community/ENTITY` | `hasCommunityAccess` | authenticated holders of the Get role | nobody (read only) | every row, personal rows included |
 || Public: `/obp/dynamic-entity/public/ENTITY` | `hasPublicAccess` | anyone, no login | nobody (read only) | the shared pool only |
-|| Row level: the System routes with `useRowLevelAccess` | `useRowLevelAccess` | per row, whoever the access list marks readable; lists are filtered | per row, access list Update and Delete; the creator is granted read, update, delete and grant on their own row | whatever the access list says |
+|| Row level: the System routes with `useRowLevelAccess` | `useRowLevelAccess` | per row, whoever the access list marks readable, directly or as a member of an active Organisation on the list; lists are filtered | per row, access list Update and Delete; the creator is granted read, update, delete and grant on their own row | whatever the access list says |
 |
-|The entity roles are named after the entity: `CanCreateDynamicEntity_SystemENTITY`, `CanGetDynamicEntity_SystemENTITY`, `CanUpdateDynamicEntity_SystemENTITY`, `CanDeleteDynamicEntity_SystemENTITY` (without `System` for bank level entities, held at the bank).
+|The entity roles are named after the entity: `CanCreateDynamicEntityRecord_ENTITY`, `CanGetDynamicEntityRecord_ENTITY`, `CanUpdateDynamicEntityRecord_ENTITY` and `CanDeleteDynamicEntityRecord_ENTITY`. The name carries no space: each Role is held at the entity's space, `SYS` for a system entity or the bank's id for a bank level one.
 |
 |Two settings apply on top of the routes:
 |
@@ -4116,10 +4134,11 @@ object Glossary extends MdcLoggable  {
 || Call | Does |
 ||---|---|
 || `GET /obp/dynamic-entity/ENTITY/RECORD_ID/access` | lists who may read, update, delete and grant this record, and who granted them |
-|| `PUT /obp/dynamic-entity/ENTITY/RECORD_ID/access` | grants or replaces one entry, or an array of them: `user_id` is required, `can_read`, `can_update` and `can_delete` default to `false`, `can_grant` defaults to `true` |
-|| `DELETE /obp/dynamic-entity/ENTITY/RECORD_ID/access/USER_ID` | revokes that User, cascading to every grant they passed on |
+|| `PUT /obp/dynamic-entity/ENTITY/RECORD_ID/access` | grants or replaces one entry, or an array of them. Each entry names a `user_id` or an `organisation_id`. `can_read`, `can_update` and `can_delete` default to `false`. `can_grant` defaults to `true` for a User and `false` for an Organisation |
+|| `DELETE /obp/dynamic-entity/ENTITY/RECORD_ID/access/USER_ID` | revokes that User, and every grant they passed on |
+|| `DELETE /obp/dynamic-entity/ENTITY/RECORD_ID/access/organisations/ORGANISATION_ID` | revokes that Organisation; its members lose the access it gave them |
 |
-|Bank level entities take the same paths under `/banks/BANK_ID/`. The caller needs `can_grant` on the record — the User who created it has it — or `CanGrantDynamicEntityRowAccess_SystemENTITY` (`CanGrantDynamicEntityRowAccess_ENTITY` at a bank), which administers any record. The calls return 400 on an entity that is not row level. Creating a record still takes the entity's Create role, and `useRowLevelAccess` is only supported for locally-backed entities.
+|Bank level entities take the same paths under `/banks/BANK_ID/`. The caller needs `can_grant` on the record, which the User who created it has. Members of an Organisation have it too if the Organisation was granted it. Otherwise the caller needs `CanGrantDynamicEntityRowAccess_ENTITY`, held at the entity's space, which administers any record. The calls return 400 on an entity that is not row level. Creating a record still takes the entity's Create role, and `useRowLevelAccess` is only supported for locally-backed entities.
 |
 |**Authorship and editing by actor**
 |
@@ -4141,6 +4160,7 @@ object Glossary extends MdcLoggable  {
 || Team space | personal on, `personalRequiresRole` on, community on | members write their own rows, the whole team reads everything; the entity roles define the team |
 || User owned records | personal on, `personalRequiresRole` off, community off, public off | each User has their own rows; an agent reaches them only through a Consent whose `my_resources` lists the entity |
 || Shared records with per row sharing | `useRowLevelAccess` on | the creator owns the row and grants others read, update, delete or grant |
+|| Records per team, read in full by staff | `useRowLevelAccess` on, community on | each record is shared with one team's Organisation, so each team sees only its own; staff with the Get role read every record through `community` |
 |
 |One combination deserves care: personal on, `personalRequiresRole` off, community on. It shows every User's personal rows to any holder of the Get role, which is rarely intended.
 |
@@ -7453,6 +7473,8 @@ object Glossary extends MdcLoggable  {
 				 |## How it uses OBP-API
 				 |
 				 |OBP-API is Cohort's only backend. Its records are Dynamic Entities in a space of its own, and it uses OBP's Users, login, Roles, Customers, Files and messages. Cohort is a Platform App: it declares the Scopes it needs, and an administrator grants them.
+|
+|Each startup is a team: an ${getGlossaryItemLink("Organisation")} its founder creates, at `SYS`, and Cohort records its `organisation_id`. Every member of the team sees the programme. A survey is answered once per team: the answers are a row-level record shared with the team's Organisation, so every member can read and edit them, and staff read all the answers through community access. See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}.
 				 |
 				 |It is part of the OBP-Frontend repository (`apps/cohort`). See https://cohort.tesobe.com.
 				 |""".stripMargin)
@@ -7479,6 +7501,25 @@ object Glossary extends MdcLoggable  {
 				 |## How it uses OBP-API
 				 |
 				 |Conformator is two Platform Apps in the OBP-Frontend repository: the web app (`apps/conformator`) and the runner (`apps/conformator-runner`). The runner carries out the tests and records each result. Both keep their records in OBP-API as Dynamic Entities, in a central space and in each participant's space, and each declares the Scopes it needs.
+|
+|Each participant has an ${getGlossaryItemLink("Organisation")}, which regulator staff create when they register it, naming its first admin. From then on the participant's admins add and remove their own people. Conformator gives the Organisation's members the participant Roles in the participant's space, and takes them away from people who leave, with `DELETE /obp/v7.0.0/banks/BANK_ID/entitlements/ENTITLEMENT_ID`.
+				 |""".stripMargin)
+
+
+	glossaryItems += GlossaryItem(
+		title = "OBP-Stripe",
+		description =
+			s"""
+				 |# OBP-Stripe
+				 |
+				 |**OBP-Stripe** takes card payments for API Products through Stripe, and keeps each ${getGlossaryItemLink("API Product Subscription")} in step with Stripe.
+				 |
+				 |- **Prices:** OBP-API is the source of truth. OBP-Stripe reads the API Products whose `BILLING_SYSTEM` attribute is `stripe`, and keeps a monthly Stripe Price for each one, from `monthly_subscription_amount` and `monthly_subscription_currency`.
+				 |- **Checkout:** a developer subscribes a Consumer in the Portal, and the subscription starts as `requested`. The Portal sends them to OBP-Stripe, which checks that they may act for the Consumer, then starts a Stripe Checkout. Members of an ${getGlossaryItemLink("Organisation")} can pay for its Consumers' subscriptions.
+				 |- **Status:** Stripe's webhooks, and a check every 5 minutes, set the subscription to `active`, `past_due`, `suspended` or `cancelled`. OBP-API grants and removes access on each status, so OBP-Stripe never grants a Role or Scope itself. A subscription cancelled in OBP is cancelled in Stripe.
+				 |- **Billing:** each person's Stripe customer is kept in their non-personal user attribute `STRIPE_CUSTOMER_ID`, and they change their card or download invoices on Stripe's billing page.
+				 |
+				 |OBP-Stripe is a Platform App: it calls OBP-API with its own token, and declares the Scopes it needs. See ${getGlossaryItemLink("Platform Apps")}.
 				 |""".stripMargin)
 
 
@@ -7900,6 +7941,56 @@ object Glossary extends MdcLoggable  {
 				 |- [Get Tenant](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getTenant): `GET /obp/v7.0.0/tenants/TENANT_ID`
 				 |- [Update Tenant](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateTenant): `PUT /obp/v7.0.0/tenants/TENANT_ID`
 				 |- [Delete Tenant](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteTenant): `DELETE /obp/v7.0.0/tenants/TENANT_ID`
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Organisation",
+		description =
+			s"""
+				 |# Organisation
+				 |
+				 |An **Organisation** is a group of people that uses the APIs and owns Consumers. It is most likely a fintech or another external group, or an informal group within a bank. It has members.
+				 |
+				 |An Organisation has no direct legal relationship with a bank. That is what a Customer is: a legal person or entity with a formal relationship with a bank on this instance. Where an Organisation does have such a relationship, it comes through a link to the Customer the bank keeps for it. That link is not built yet.
+				 |
+				 |An Organisation is not a ${getGlossaryItemLink("Tenant")} either. A Tenant is a customer of the operator of this OBP instance. The fintechs building on a bank's APIs are one level down.
+				 |
+				 |Anyone who is logged in can create an Organisation, and becomes its first admin. Each member is an `admin` or a `member`. An Organisation always keeps at least one admin.
+				 |
+				 |## Who may act for a Consumer
+				 |
+				 |No Role is needed to act for your own Consumers:
+				 |
+				 |* A Consumer that belongs to no Organisation is owned by the User who created it.
+				 |* A Consumer that belongs to an active Organisation is owned by the Organisation's members. Its creator no longer owns it on their own, so it stays with the team when someone leaves.
+				 |
+				 |Owners read their Consumers, their usage, Scopes and API Product Subscriptions under `/my/consumers`, and subscribe them to API Products. Admins also change the Organisation and its members, and move Consumers into or out of it.
+				 |
+				 |## Sharing Dynamic Entity records
+				 |
+				 |A record of a Dynamic Entity with row-level access can be shared with an Organisation as well as with single Users: `PUT .../RECORD_ID/access` with an `organisation_id`. Every member of the active Organisation then holds the permissions given, and access follows membership. See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}.
+				 |
+				 |## bank_id
+				 |
+				 |Every Organisation has a `bank_id`: the space that administers it. It says where staff Roles for the Organisation are held, and it never changes. It is not a legal relationship with that bank.
+				 |
+				 |An Organisation you create for yourself is always at SYS. Only staff with CanCreateOrganisationAtOneBank at a bank can create an Organisation there, so each bank decides which Organisations it administers. An application that only needs to know which Organisation is which, such as a programme recording its startups' teams, keeps the `organisation_id` in its own records.
+				 |
+				 |## Staff
+				 |
+				 |Staff Roles are held at the Organisation's `bank_id`. With CanCreateOrganisationAtOneBank, staff create an Organisation for someone else and name its first admin, for example when a regulator registers a participant. With CanGetOrganisationAtOneBank they read Organisations and their members. With CanUpdateOrganisationStatusAtOneBank they suspend one: its members still see it, but cannot act for its Consumers.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Create My Organisation](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createMyOrganisation): `POST /obp/v7.0.0/my/organisations`
+				 |- [Get My Organisations](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyOrganisations): `GET /obp/v7.0.0/my/organisations`
+				 |- [Add My Organisation Member](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-addMyOrganisationMember): `POST /obp/v7.0.0/my/organisations/ORGANISATION_ID/members`
+				 |- [Update My Consumer Organisation](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateMyConsumerOrganisation): `PUT /obp/v7.0.0/my/consumers/CONSUMER_ID/organisation`
+				 |- [Get My Consumers](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyConsumers): `GET /obp/v7.0.0/my/consumers`
+				 |- [Get My Consumer Usage](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyConsumerUsage): `GET /obp/v7.0.0/my/consumers/CONSUMER_ID/usage`
+				 |- [Create Organisation](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createOrganisation): `POST /obp/v7.0.0/management/organisations`
+				 |- [Get Organisations](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getOrganisations): `GET /obp/v7.0.0/management/organisations`
+				 |- [Get Organisation Members](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getOrganisationMembers): `GET /obp/v7.0.0/management/organisations/ORGANISATION_ID/members`
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(

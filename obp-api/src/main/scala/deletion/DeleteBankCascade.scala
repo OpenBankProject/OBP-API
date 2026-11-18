@@ -103,6 +103,7 @@ object DeleteBankCascade {
   private def deleteRecordsWithoutDefinition(bankId: BankId): Boolean = {
     DynamicData.bulkDelete_!!(By(DynamicData.BankId, bankId.value))
     DynamicDataAccess.bulkDelete_!!(By(DynamicDataAccess.BankId, bankId.value))
+    code.DynamicData.DynamicDataOrganisationAccess.bulkDelete_!!(By(code.DynamicData.DynamicDataOrganisationAccess.BankId, bankId.value))
     true
   }
 

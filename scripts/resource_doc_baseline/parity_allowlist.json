@@ -1367,41 +1367,41 @@
       "version": "v6_0_0",
       "endpoint": "createBankLevelDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints. Digest refresh 2026-11-17: the row-level access paragraph now says an access entry can name an organisation_id as well as a user_id, and that use_row_level_access can be combined with has_community_access (not with has_public_access).",
       "lift_digest": "2e7c649041362776f7eec66ccbb9f025f3edfead992108d0fd5864af76e93961",
-      "http4s_digest": "b77a6503d0ca6497361d121f49b8eae398409cfe1ad49b59ce6cdc092fe1dcfd"
+      "http4s_digest": "c14aa9b9535499b763e2eb902edb1774b65cf105352e59e5df71c0c9bf34a149"
     },
     {
       "version": "v6_0_0",
       "endpoint": "createSystemDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints. Digest refresh 2026-11-17: the row-level access paragraph now says an access entry can name an organisation_id as well as a user_id, and that use_row_level_access can be combined with has_community_access (not with has_public_access).",
       "lift_digest": "81310cdd2be1c2b33d465cabd1604cedee38bfa1ecccae4b016d0f99aa443ab6",
-      "http4s_digest": "138cb03ffecb8f5ba4e90ed66a2873e23863d31a86bdcddc353621380746561d"
+      "http4s_digest": "3ac0f64ec4e482e4890abc20926259c6dfe57dfd649be1e5880a38a76e941099"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateBankLevelDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints. Digest refresh 2026-11-17: the row-level access paragraph now says an access entry can name an organisation_id as well as a user_id, and that use_row_level_access can be combined with has_community_access (not with has_public_access).",
       "lift_digest": "2d18665f9db52506a1b043ad7575b16ac52cedf0d11f036afd4a96b353eb8ddd",
-      "http4s_digest": "f0fc539d1a6058fe378ce8fd001f7f5f60ffb6c28dbf0ef44f02d22f7db55cea"
+      "http4s_digest": "c4f9df3991dc36e7215f3f749a654eed6d96eaf23d16e865fc269fdb0eba11a3"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateMyDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints. Digest refresh 2026-11-17: the row-level access paragraph now says an access entry can name an organisation_id as well as a user_id, and that use_row_level_access can be combined with has_community_access (not with has_public_access).",
       "lift_digest": "97f0c97cc592f89f4dba8a6641ad4b41f6ffa6f4f6e78bf3d3cc34a6a11f76e7",
-      "http4s_digest": "8f05614b7cb370ede150f2ef09c424303f23a1ba556c3531e60c74a161fcdfb2"
+      "http4s_digest": "1cf13771496c2d0673a405c3a150296b0a7e243dc6c502af56039d47d8a30237"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateSystemDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints. Digest refresh 2026-11-17: the row-level access paragraph now says an access entry can name an organisation_id as well as a user_id, and that use_row_level_access can be combined with has_community_access (not with has_public_access).",
       "lift_digest": "e28c2996f3fd54842534fd54d45d7ba49df8b346e65f541353be4fb5311b550c",
-      "http4s_digest": "ce26f4656c8c69376358260477e9ab0bb4051a1c043f83288a10519058b51f1c"
+      "http4s_digest": "0b69022e06f93f0e7e2ee843fedd886555828e90d4fc0bee6bb2a678b03015bc"
     },
     {
       "version": "v3_0_0",
