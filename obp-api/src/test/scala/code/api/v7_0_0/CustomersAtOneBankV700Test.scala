@@ -114,6 +114,15 @@ class CustomersAtOneBankV700Test extends V600ServerSetup {
         "sort_by" -> "name", "obp_limit" -> "10", "_" -> "123") should equal(List(matching))
     }
 
+    scenario("A misspelt parameter name is taken for an attribute name, so it matches no Customer instead of failing", CustomersAtOneBank, VersionOfApi) {
+      val tag = generateUUID().take(6)
+      val matching = customer("organisation_kind" -> s"bank-$tag")
+      ids("organisation_kind" -> s"bank-$tag") should equal(List(matching))
+      // limt is not limit: it is a filter on an attribute named limt, which no Customer has.
+      ids("organisation_kind" -> s"bank-$tag", "limt" -> "10") should equal(Nil)
+      ids("limt" -> "10") should equal(Nil)
+    }
+
     scenario("sort_direction orders the matching Customers by customer_id, DESC by default, and pages follow that order", CustomersAtOneBank, VersionOfApi) {
       val tag = generateUUID().take(6)
       val created = (1 to 3).map(_ => customer("cohort" -> s"s-$tag")).toList.sorted
