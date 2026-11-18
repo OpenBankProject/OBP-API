@@ -173,6 +173,17 @@ object OpenCorridorSettlement extends MdcLoggable {
     val netAbs = net.abs
 
     for {
+      // A net the rail cannot pay in one transfer (Cardano refuses an output under
+      // its min-UTxO) is not netted at all: the promises stay PENDING and are
+      // covered by a later settle once the pair's net has grown. A net of zero
+      // moves nothing on the rail, so it always discharges.
+      _ <- minimumSettlementAmount(currency) match {
+        case Some(minimum) if netAbs > 0 && netAbs < minimum =>
+          Helper.booleanToFuture(
+            s"$OpenCorridorNetBelowMinimum Net: ${netAbs.bigDecimal.toPlainString} $currency, minimum: ${minimum.bigDecimal.toPlainString} $currency.",
+            cc = callContext)(false)
+        case _ => Future.successful(Full(()))
+      }
       // Fail fast BEFORE mutating anything: both banks need a broker registration
       // (credit notifications go to each beneficiary's vhost), and a non-zero net
       // needs the creditor's settlement address for the instruction.
@@ -347,6 +358,13 @@ object OpenCorridorSettlement extends MdcLoggable {
 
   /** True once the promise's on-chain evidence was attached (report-back done) —
     * the precondition for the beneficiary having been notified and paid out. */
+  /** The smallest net worth settling in this currency, from
+    * `open_corridor.min_settlement_amount.<CURRENCY>`; None when unset or not a number. */
+  def minimumSettlementAmount(currency: String): Option[BigDecimal] =
+    code.api.util.APIUtil.getPropsValue(s"open_corridor.min_settlement_amount.${currency.trim.toUpperCase}")
+      .flatMap(v => scala.util.Try(BigDecimal(v.trim)).toOption)
+      .filter(_ > 0)
+
   private def hasPromiseEvidence(trId: String): Boolean =
     TransactionRequestAttribute.find(
       By(TransactionRequestAttribute.Name, OpenCorridorProcessor.PromiseAttributeCommitment),
