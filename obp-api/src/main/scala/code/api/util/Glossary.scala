@@ -7851,6 +7851,68 @@ object Glossary extends MdcLoggable  {
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
+		title = "Product",
+		description =
+			s"""
+				 |# Product
+				 |
+				 |A **Product** is a kind of financial product a bank offers, such as a current account, a savings account, a loan or a fund. Each Product belongs to one bank and is known by its `product_code`, which is unique in that bank.
+				 |
+				 |An ${getGlossaryItemLink("Account")} is opened on a Product: the account's `product_code` names it. When an account is created with the `product_code` of a Product, the account gets attributes that match the Product's attributes.
+				 |
+				 |## What a Product holds
+				 |
+				 |- **Name and description**, and links to its terms and conditions and its more information page.
+				 |- **Attributes**: named values, such as an interest rate or a minimum balance.
+				 |- **Fees**: what the Product costs, each with an amount in an ${getGlossaryItemLink("Asset")}, such as EUR, and how often it is charged.
+				 |- **Parent Product**: a Product can name a `parent_product_code`. It then inherits the attributes of its parent, so a family of Products can share what they have in common.
+				 |- **Tags**: free labels, such as `featured`, used to find and show Products.
+				 |
+				 |A **Product Collection** (also called a basket or a bucket) groups Products together, for example the Products sold as one package. It is separate from the parent and child hierarchy.
+				 |
+				 |## Endpoints
+				 |
+				 |Creating or changing a Product needs the Role CanCreateProduct at the bank, or CanCreateProductAtAnyBank.
+				 |
+				 |- [Create Product]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.0.0-createProduct): `PUT /obp/v5.1.0/banks/BANK_ID/products/PRODUCT_CODE`, which also updates a Product that already has this code.
+				 |- [Get Products]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.0.0-getProducts): `GET /obp/v5.1.0/banks/BANK_ID/products`
+				 |- [Get Bank Product]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.0.0-getProduct): `GET /obp/v5.1.0/banks/BANK_ID/products/PRODUCT_CODE`
+				 |- [Create Product Attribute]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv4.0.0-createProductAttribute): `POST /obp/v5.1.0/banks/BANK_ID/products/PRODUCT_CODE/attribute`
+				 |- [Create Product Fee]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv4.0.0-createProductFee): `POST /obp/v5.1.0/banks/BANK_ID/products/PRODUCT_CODE/fee`
+				 |- [Get Product Fees]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv4.0.0-getProductFees): `GET /obp/v5.1.0/banks/BANK_ID/products/PRODUCT_CODE/fees`
+				 |- [Update Product Tags]($${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-updateProductTagsV600): `PUT /obp/v6.0.0/banks/BANK_ID/products/PRODUCT_CODE/tags`
+				 |- [Create Product Collection]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv3.1.0-createProductCollection): `PUT /obp/v5.1.0/banks/BANK_ID/product-collections/COLLECTION_CODE`
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Glossary",
+		description =
+			s"""
+				 |# Glossary
+				 |
+				 |The **Glossary** explains the terms used in OBP: what a ${getGlossaryItemLink("Consumer")} or a ${getGlossaryItemLink("Space")} is, how a feature works and how to set it up. Each entry is a **Glossary Item**, with a title and a description written in markdown. Titles are unique, ignoring letter case.
+				 |
+				 |There are two kinds of Glossary Item:
+				 |
+				 |- **Static Glossary Items** are part of the API's source code, so they change only when the API is deployed again. This Item is one of them.
+				 |- **Dynamic Glossary Items** are kept in the database, and are added and changed through the API while it is running, for example to explain the records of one space. They apply to the whole OBP instance.
+				 |
+				 |A Dynamic Glossary Item can replace a static one with the same title, but only if it says so when it is created (`overrides_static_item: true`). Deleting it brings back the static text.
+				 |
+				 |Endpoint descriptions link to Glossary Items, and API Explorer II shows the Glossary, with a link to each Item by its title. AI agents can read it too, for example through the OBP-MCP server.
+				 |
+				 |## Endpoints
+				 |
+				 |Reading the Glossary needs no Role. Read one Item at a time where you can: the whole Glossary is about a megabyte.
+				 |
+				 |- [Get Glossary of the API]($${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getGlossary): `GET /obp/v7.0.0/api/glossary`, which can search and page the Items. `GET /obp/v5.1.0/api/glossary` returns the same Glossary without those options.
+				 |- [Get Glossary Item]($${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getGlossaryItem): `GET /obp/v7.0.0/api/glossary/TITLE`
+				 |- [Create Glossary Item]($${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createGlossaryItem): `POST /obp/v7.0.0/api/glossary`, with the Role CanCreateGlossaryItem.
+				 |- [Update Glossary Item]($${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateGlossaryItem): `PUT /obp/v7.0.0/api/glossary/TITLE`, with the Role CanUpdateGlossaryItem.
+				 |- [Delete Glossary Item]($${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteGlossaryItem): `DELETE /obp/v7.0.0/api/glossary/TITLE`, with the Role CanDeleteGlossaryItem.
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
 		title = "Files",
 		description =
 			s"""
