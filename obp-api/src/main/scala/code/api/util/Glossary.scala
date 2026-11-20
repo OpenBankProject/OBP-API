@@ -1398,9 +1398,9 @@ object Glossary extends MdcLoggable  {
 		  |
 		  |### A note on the "OBP" scheme name
 		  |
-		  |The implicit self-routing is currently emitted with `scheme: "OBP"`. Read in context — inside an `account_routings` array — this unambiguously means "the address is the OBP `account_id`". Read out of context (a flat routing table, a federation message, a log line), the name `"OBP"` alone does not say whether the address is an account_id or a bank_id.
+		  |The implicit self-routing is currently emitted with `scheme: "OBP"`. Read in context — inside an `account_routings` array — this unambiguously means "the address is the OBP `account_id`". Read out of context, the name `"OBP"` alone does not say whether the address is an account_id or a bank_id. Examples of such contexts are a flat routing table, a federation message and a log line.
 		  |
-		  |The explicit alias `"OBP_ACCOUNT_ID"` is also recognised on input (when storing a routing via the `Create or Update Account Routing` endpoint, or when resolving a counterparty). It is not emitted in responses today, but robust clients should treat `"OBP"` and `"OBP_ACCOUNT_ID"` as equivalent — e.g. by matching case-insensitively against the set `{"OBP", "OBP_ACCOUNT_ID"}` rather than equality with the literal `"OBP"`.
+		  |The explicit alias `"OBP_ACCOUNT_ID"` is also recognised on input (when storing a routing via the `Create or Update Account Routing` endpoint, or when resolving a counterparty). It is not emitted in responses today. Robust clients should still treat `"OBP"` and `"OBP_ACCOUNT_ID"` as equivalent. For example, match case-insensitively against the set `{"OBP", "OBP_ACCOUNT_ID"}`, rather than comparing with the literal `"OBP"`.
 		  |
 		  |See also: `Bank.bank_routings` for the analogous bank-level alias `"OBP_BANK_ID"`.
 		  |
@@ -1411,7 +1411,33 @@ object Glossary extends MdcLoggable  {
 		  |1. **Exactly one canonical OBP self-routing** as the first element: `{ "scheme": "OBP", "address": "<account_id>" }`. This means a client can always address the account by its `account_id` without first probing for which routing schemes the bank has configured.
 		  |2. **Zero or more stored routings** from the `bankaccountrouting` table — whatever the bank or admin has configured (IBAN, BIC, AccountNumber, country-qualified MSISDN, etc.).
 		  |
-		  |If a bank has stored an `OBP`-scheme routing whose address diverges from the `account_id`, the response prefers the canonical form (`address = account_id`) — the stored value is dropped to guarantee a single, consistent OBP entry.
+		  |If a bank has stored an `OBP`-scheme routing whose address diverges from the `account_id`, the response uses the canonical form (`address = account_id`). The stored value is dropped, so there is always a single, consistent OBP entry.
+		  |
+		  |### The account number
+		  |
+		  |An account's number belongs in an account routing with the scheme `ACCOUNT_NUMBER`. The scheme can also be written `AccountNumber`, `ACCOUNT_NO` or `NUMBER`, in any letter case. Responses always write `ACCOUNT_NUMBER` and show at most one such entry.
+		  |
+		  |Accounts also have an older account number field. It is deprecated. It is used only when none of the account's routings holds a number. A number held only there is shown as an `ACCOUNT_NUMBER` entry, if the view lets the caller see the account number.
+		  |
+		  |If an account holds the same number in both places, that is fine. If it holds two different numbers, looking the account up by its number fails with `OBP-31078`, whichever of the two is used. Responses still show the account, with the number from its account routings.
+		  |
+		  |An account number is looked up at one bank when a bank is given. If more than one account has the number, the lookup fails with `OBP-31075`.
+		  |
+		  |Versions before v6.0.0 show an account's routings as they were stored, with the scheme spelled as it was given. They do not add an `ACCOUNT_NUMBER` entry for a number held only in the account number field.
+		  |
+		  |### Who assigns the account number
+		  |
+		  |The bank assigns account numbers. To create an account, give the account routing scheme `ACCOUNT_NUMBER` with an empty address, or leave the account number out. The bank then assigns the number. With the local database connector, OBP assigns a ten-digit number that no other account at the bank has. With another connector, the core banking system assigns it.
+		  |
+		  |A number can be given only on a sandbox (`allow_sandbox_account_creation=true`) or by a user with the role `CanCreateAccountWithAccountNumber`. A given number must match the address pattern of the `ACCOUNT_NUMBER` routing scheme, if it has one. It must not belong to another account at the bank (409, `OBP-31081`). Otherwise the request is refused with 400 (`OBP-31080`).
+		  |
+		  |### NUBAN (Nigeria)
+		  |
+		  |To give an account a Nigeria Uniform Bank Account Number (NUBAN), give the account routing scheme `NG.NUBAN` with an empty address. `NUBAN` is accepted as another spelling. OBP works out the NUBAN by the Central Bank of Nigeria's revised NUBAN standard. It is a random nine-digit serial number, then a check digit. The check digit comes from the bank's CBN code and the serial number.
+		  |
+		  |The bank's CBN code is kept in a bank routing with scheme `NG.BANK_CODE`. It can be the three-digit code of a deposit money bank, the five-digit code of another financial institution, or the six-digit institution code. A bank with no `NG.BANK_CODE` routing, or with two different ones, cannot assign NUBANs (400, `OBP-31085`).
+		  |
+		  |A NUBAN is the account's number. It is stored as an `NG.NUBAN` routing and as the account number, so versions from v6.0.0 also show it as `ACCOUNT_NUMBER`. The account can be found by either scheme. A NUBAN can be given under the same rules as any account number. A given NUBAN must have the right check digit for the bank (400, `OBP-31086`).
 		  |
 		  |### Example
 		  |
@@ -1509,23 +1535,43 @@ object Glossary extends MdcLoggable  {
 		  |
 		  |### A note on the "OBP" scheme name
 		  |
-		  |The implicit self-routing is currently emitted with `scheme: "OBP"`. Read in context — inside a `bank_routings` array — this unambiguously means "the address is the OBP `bank_id`". Read out of context (a flat routing table, a federation message, a log line), the name `"OBP"` alone does not say whether the address is a bank_id or an account_id.
+		  |The implicit self-routing is currently emitted with `scheme: "OBP"`. Read in context — inside a `bank_routings` array — this unambiguously means "the address is the OBP `bank_id`". Read out of context, the name `"OBP"` alone does not say whether the address is a bank_id or an account_id. Examples of such contexts are a flat routing table, a federation message and a log line.
 		  |
-		  |The explicit alias `"OBP_BANK_ID"` is also recognised on input. It is not emitted in responses today, but robust clients should treat `"OBP"` and `"OBP_BANK_ID"` as equivalent — e.g. by matching case-insensitively against the set `{"OBP", "OBP_BANK_ID"}` rather than equality with the literal `"OBP"`.
+		  |The explicit alias `"OBP_BANK_ID"` is also recognised on input. It is not emitted in responses today. Robust clients should still treat `"OBP"` and `"OBP_BANK_ID"` as equivalent. For example, match case-insensitively against the set `{"OBP", "OBP_BANK_ID"}`, rather than comparing with the literal `"OBP"`.
 		  |
 		  |See also: `Account.account_routings` for the analogous account-level alias `"OBP_ACCOUNT_ID"`.
 		  |
 		  |### Response shape (v6.0.0 onwards)
 		  |
-		  |For every endpoint that returns `bank_routings` (e.g. `getBank`, `getBanks`, `createBank`), the response is guaranteed to contain:
+		  |For every endpoint that returns `bank_routings` (e.g. `getBank`, `getBanks`, `createBank`, `updateBank`), the response contains:
 		  |
 		  |1. **Exactly one canonical OBP self-routing** as the first element: `{ "scheme": "OBP", "address": "<bank_id>" }`. This means a client can always address the bank by its `bank_id` regardless of which other schemes have been registered.
-		  |2. **A BIC entry**, derived from the bank's dedicated SWIFT/BIC column (`swiftBic`), if non-empty. If the explicit stored routing is itself a BIC, only one BIC entry appears — duplicates are removed.
-		  |3. **The explicit stored routing** (the legacy single `(bankRoutingScheme, bankRoutingAddress)` column pair), unless it is an `OBP` or `BIC` entry already covered above.
+		  |2. **At most one BIC entry**, with the scheme `BIC`.
+		  |3. **The bank's other routings**, in the order they were stored.
 		  |
-		  |If a bank has stored an `OBP`-scheme routing whose address diverges from the `bank_id`, the response prefers the canonical form (`address = bank_id`) — the stored value is dropped to guarantee a single, consistent OBP entry.
+		  |If a bank has stored an `OBP`-scheme routing whose address diverges from the `bank_id`, the response uses the canonical form (`address = bank_id`). The stored value is dropped, so there is always a single, consistent OBP entry.
 		  |
-		  |Entries with an empty/null address are filtered out (e.g. if a bank has no BIC, the implicit BIC entry is dropped rather than emitted as a null).
+		  |An entry with an empty address is never shown. For example, a bank with no BIC has no BIC entry.
+		  |
+		  |The same applies to the v5.0.0 and v5.1.0 bank responses. Their JSON shape is unchanged.
+		  |
+		  |### A bank can have several routings
+		  |
+		  |A bank can have any number of routings, such as a BIC and a national bank code side by side. Create Bank and Update Bank (v5.0.0 onwards) store every entry of `bank_routings`. Update Bank replaces the bank's routings with the ones in the request.
+		  |
+		  |A routing belongs to one bank only. Creating or updating a bank with a routing that another bank already has is refused with 409 (`OBP-31079`). A request with two different BICs is refused with 400.
+		  |
+		  |### Where the BIC is kept
+		  |
+		  |A bank's BIC belongs in a bank routing with the scheme `BIC`. The scheme can also be written `SWIFT_BIC`, in any letter case. Responses always write `BIC`.
+		  |
+		  |Banks also have an older `swift_bic` field. It is deprecated. It is used only when none of the bank's routings holds a BIC.
+		  |
+		  |If a bank holds the same BIC in both places, that is fine. If it holds two different BICs, looking the bank up by its BIC fails with `OBP-31076`, whichever of the two is used. Responses still show the bank, with the BIC from its bank routings.
+		  |
+		  |If more than one bank has the routing being looked up, the lookup fails with `OBP-31077`.
+		  |
+		  |These rules apply to banks from every connector. A connector sends a bank's routings in the `bankRoutings` list of the bank it returns, or in its `bankRoutingScheme` and `bankRoutingAddress` pair.
 		  |
 		  |### Example
 		  |
@@ -7910,6 +7956,37 @@ object Glossary extends MdcLoggable  {
 				 |- [Create Glossary Item]($${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createGlossaryItem): `POST /obp/v7.0.0/api/glossary`, with the Role CanCreateGlossaryItem.
 				 |- [Update Glossary Item]($${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateGlossaryItem): `PUT /obp/v7.0.0/api/glossary/TITLE`, with the Role CanUpdateGlossaryItem.
 				 |- [Delete Glossary Item]($${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteGlossaryItem): `DELETE /obp/v7.0.0/api/glossary/TITLE`, with the Role CanDeleteGlossaryItem.
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "View",
+		description =
+			s"""
+				 |# View
+				 |
+				 |A **View** says what a User may see and do on a bank ${getGlossaryItemLink("Account")}: which fields of the account and its transactions they can see, and which actions they can take, such as making payments. Every call that reads or changes an account goes through a View, so its path contains `/views/VIEW_ID`.
+				 |
+				 |A User gets a View on an account through an ${getGlossaryItemLink("Account Access")} record. Without one, they cannot use the account at all. One User can have several Views on the same account.
+				 |
+				 |## System Views and custom Views
+				 |
+				 |- **System Views**, such as `owner`, `accountant` and `auditor`, are defined once and can be used on every account. Creating or changing one needs a Role, such as CanCreateSystemView.
+				 |- **Custom Views** belong to one account. Their names start with an underscore, such as `_family`, because other names are kept for system Views. Someone with the right View on the account creates them, and no Role is needed.
+				 |
+				 |## Permissions
+				 |
+				 |A View's `allowed_actions` lists what it allows, for example `can_see_bank_account_balance`, `can_see_transaction_amount` or `can_add_transaction_request_to_any_account`. Anything not on the list is not allowed.
+				 |
+				 |A View can also let its holder give Views to other Users. For a system View, the View the holder uses must list the target View in `can_grant_access_to_views`. For a custom View, it needs the action `can_grant_access_to_custom_views`.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Get Views for Account](${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.0.0-getViewsForBankAccount): `GET /obp/v5.1.0/banks/BANK_ID/accounts/ACCOUNT_ID/views`
+				 |- [Create Custom View](${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.1.0-createCustomView): `POST /obp/v5.1.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views`
+				 |- [Grant User access to View](${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.1.0-grantUserAccessToViewById): `POST /obp/v5.1.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/grant`
+				 |- [Revoke User access to View](${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.1.0-revokeUserAccessToViewById): `POST /obp/v5.1.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/revoke`
+				 |- [Create System View](${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.0.0-createSystemView): `POST /obp/v5.1.0/system-views`, with the Role CanCreateSystemView.
+				 |- [Get System Views]($${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getSystemViews): `GET /obp/v6.0.0/management/system-views`
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(

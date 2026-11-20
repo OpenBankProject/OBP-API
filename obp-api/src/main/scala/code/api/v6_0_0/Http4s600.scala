@@ -921,17 +921,19 @@ object Http4s600 {
             _ <- Helper.booleanToFuture(bankIdAlreadyExists, failCode = 409, cc = Some(cc)) {
               !banks.exists(_.bankId.value == postJson.bank_id)
             }
+            bankRoutings <- NewStyle.function.bankRoutingsToStore(postJson.bank_id, postJson.bank_routings.getOrElse(Nil), Some(cc))
             (success, _) <- NewStyle.function.createOrUpdateBank(
               postJson.bank_id,
               postJson.full_name.getOrElse(""),
               postJson.bank_code,
               postJson.logo.getOrElse(""),
               postJson.website.getOrElse(""),
-              postJson.bank_routings.getOrElse(Nil).find(_.scheme == "BIC").map(_.address).getOrElse(""),
               "",
-              postJson.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
-              postJson.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
-              Some(cc)
+              "",
+              "",
+              "",
+              Some(cc),
+              Some(bankRoutings)
             )
             // Creator grant goes to the HUMAN, not the authenticated principal: under a
             // Consent the principal is a per-consent shadow user, and a role granted to it

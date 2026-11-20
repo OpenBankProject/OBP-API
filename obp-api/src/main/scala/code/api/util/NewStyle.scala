@@ -353,7 +353,8 @@ object NewStyle extends MdcLoggable{
                            national_identifier: String,
                            bankRoutingScheme: String,
                            bankRoutingAddress: String,
-                           callContext: Option[CallContext]): OBPReturnType[Bank] = {
+                           callContext: Option[CallContext],
+                           bankRoutings: Option[List[BankRoutingJson]] = None): OBPReturnType[Bank] = {
       validateBankId(bankId, callContext)
       Future {
         Connector.connector.vend.createOrUpdateBank(
@@ -366,11 +367,33 @@ object NewStyle extends MdcLoggable{
           national_identifier,
           bankRoutingScheme,
           bankRoutingAddress,
-          callContext
+          callContext,
+          bankRoutings
         ) map {
           i =>  (i, callContext)
         }
       } map { unboxFull(_) }
+    }
+
+    /**
+     * The bank routings of a create or update bank request, ready to store (see
+     * RoutingRules.bankRoutingsToStore). Fails with 400 when they hold two different BICs, and with
+     * 409 when another bank already has one of them.
+     */
+    def bankRoutingsToStore(bankId: String, requested: List[code.api.v1_2_1.BankRoutingJsonV121], callContext: Option[CallContext]): Future[List[BankRoutingJson]] = {
+      for {
+        routings <- Future(unboxFullOrFail(RoutingRules.bankRoutingsToStore(requested), callContext, InvalidJsonValue, 400))
+        (banks, _) <- getBanks(callContext)
+        otherBanks = banks.filterNot(_.bankId.value == bankId)
+        taken = routings.filter(r => RoutingRules.findBank(otherBanks, r.scheme, r.address) match {
+          case Empty => false
+          case _ => true // Found, or found more than once: either way another bank has it.
+        })
+        _ <- Helper.booleanToFuture(
+          s"$BankRoutingAlreadyExists ${taken.map(r => s"${r.scheme} ${r.address}").mkString("; ")}", 409, callContext) {
+          taken.isEmpty
+        }
+      } yield routings
     }
     def getBankAccount(bankId : BankId, accountId : AccountId, callContext: Option[CallContext]): OBPReturnType[BankAccount] = {
       Connector.connector.vend.checkBankAccountExists(bankId, accountId, callContext) map { i =>
@@ -2368,22 +2391,81 @@ object NewStyle extends MdcLoggable{
       branchId: String,
       accountRoutings: List[AccountRouting],
       callContext: Option[CallContext]
-    ): OBPReturnType[BankAccount] = 
-      Connector.connector.vend.createBankAccount(
-        bankId: BankId,
-        accountId: AccountId,
-        accountType: String,
-        accountLabel: String,
-        currency: String,
-        initialBalance: BigDecimal,
-        accountHolderName: String,
-        branchId: String,
-        accountRoutings: List[AccountRouting],
-        callContext
-      ) map {
-        i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
-      }
-    
+    ): OBPReturnType[BankAccount] = {
+      // The bank assigns account numbers. The request names the scheme; an ACCOUNT_NUMBER routing
+      // with an empty address (or no account number routing at all) asks for one. An NG.NUBAN
+      // routing with an empty address asks for a NUBAN, worked out from the bank's NG.BANK_CODE
+      // routing. A number may be given only on a sandbox or with CanCreateAccountWithAccountNumber,
+      // and is checked first. A NUBAN is the account's number, so a request has at most one number,
+      // whether it is given as an account number, as a NUBAN, or as both with the same value.
+      val routings = Option(accountRoutings).getOrElse(Nil).filter(_ != null)
+        .map(r => AccountRouting(Option(r.scheme).getOrElse("").trim, Option(r.address).getOrElse("").trim))
+        .filter(r => r.scheme.nonEmpty || r.address.nonEmpty)
+      val (numberRoutings, notNumberRoutings) = routings.partition(r => RoutingRules.isAccountNumberScheme(r.scheme))
+      val (nubanRoutings, otherRoutings) = notNumberRoutings.partition(r => Nuban.isNubanScheme(r.scheme))
+      val wantsNuban = nubanRoutings.nonEmpty
+      val suppliedNumbers = (numberRoutings ++ nubanRoutings).map(_.address).filter(_.nonEmpty).distinct
+      val suppliedNumber = suppliedNumbers.headOption
+      def mayGiveNumber: Boolean =
+        APIUtil.getPropsAsBoolValue("allow_sandbox_account_creation", false) ||
+          callContext.flatMap(_.user.toOption).exists(user =>
+            APIUtil.hasEntitlement(bankId.value, user.userId, ApiRole.canCreateAccountWithAccountNumber))
+      def numberIsTaken(number: String): Future[Boolean] =
+        Connector.connector.vend.getBankAccountByRouting(Some(bankId), RoutingRules.AccountNumberScheme, number, callContext)
+          .map(_._1 match {
+            case Empty => false
+            case _ => true // Found, or held more than once: either way it is taken.
+          })
+      def matchesScheme(number: String): Boolean =
+        code.routingscheme.RoutingSchemes.routingScheme.vend.getRoutingScheme(RoutingRules.AccountNumberScheme)
+          .map(_.addressPattern).filter(p => p != null && p.trim.nonEmpty)
+          .map(pattern => scala.util.Try(number.matches(pattern)).getOrElse(true))
+          .openOr(true)
+      // The bank's CBN code, needed only when a NUBAN is asked for or given.
+      def nubanBankCode: Future[Either[String, String]] =
+        if (!wantsNuban) Future.successful(Right(""))
+        else getBank(bankId, callContext).map { case (bank, _) => Nuban.bankCodeOf(bank) }
+      for {
+        _ <- Helper.booleanToFuture(TooManyAccountNumbers, 400, callContext) { suppliedNumbers.size <= 1 }
+        _ <- Helper.booleanToFuture(
+          s"$AccountRoutingAddressNotAssigned Schemes without an address: ${otherRoutings.filter(_.address.isEmpty).map(_.scheme).mkString(", ")}", 400, callContext) {
+          otherRoutings.forall(_.address.nonEmpty)
+        }
+        _ <- Helper.booleanToFuture(AccountNumberAssignedByBank, 400, callContext) { suppliedNumber.isEmpty || mayGiveNumber }
+        bankCode <- nubanBankCode
+        _ <- Helper.booleanToFuture(s"$NubanBankCodeNotUsable ${bankCode.left.getOrElse("")}", 400, callContext) { bankCode.isRight }
+        _ <- Helper.booleanToFuture(NubanCheckDigitInvalid, 400, callContext) {
+          !wantsNuban || suppliedNumber.forall(number => Nuban.isValid(bankCode.getOrElse(""), number))
+        }
+        _ <- Helper.booleanToFuture(AccountNumberDoesNotMatchScheme, 400, callContext) { suppliedNumber.forall(matchesScheme) }
+        taken <- suppliedNumber.map(numberIsTaken).getOrElse(Future.successful(false))
+        _ <- Helper.booleanToFuture(s"$AccountNumberAlreadyExists (${suppliedNumber.getOrElse("")})", 409, callContext) { !taken }
+        // Exactly one account number routing goes to the connector. A given number keeps the
+        // caller's spelling of the scheme, so versions before v6.0.0 show it as they always did.
+        // Otherwise an ACCOUNT_NUMBER routing with an empty address asks the connector to assign one.
+        // When a NUBAN is asked for, one NG.NUBAN routing goes too: with the given number, or with an
+        // empty address to ask the connector to work one out.
+        givenNumberRouting = numberRoutings.find(_.address.nonEmpty)
+        routingsForConnector =
+          if (wantsNuban) otherRoutings ++ givenNumberRouting.toList :+ AccountRouting(Nuban.NubanScheme, suppliedNumber.getOrElse(""))
+          else otherRoutings :+ givenNumberRouting.getOrElse(AccountRouting(RoutingRules.AccountNumberScheme, ""))
+        result <- Connector.connector.vend.createBankAccount(
+          bankId: BankId,
+          accountId: AccountId,
+          accountType: String,
+          accountLabel: String,
+          currency: String,
+          initialBalance: BigDecimal,
+          accountHolderName: String,
+          branchId: String,
+          routingsForConnector,
+          callContext
+        ) map {
+          i => (unboxFullOrFail(i._1, callContext, UnknownError, 400), i._2)
+        }
+      } yield result
+    }
+
     def updateBankAccount(
                            bankId: BankId,
                            accountId: AccountId,

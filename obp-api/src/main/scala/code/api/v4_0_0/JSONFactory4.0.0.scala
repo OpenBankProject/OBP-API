@@ -1219,6 +1219,12 @@ object JSONFactory400 {
     BanksJson400(l.map(i => createBankJSON400(i, Nil)))
   }
 
+  // The same shape as createBanksJson, with each bank's routings as RoutingRules gives them: one OBP
+  // entry, at most one BIC, then the bank's other routings. Used from v5.0.0 on; v4.0.0 is unchanged.
+  def createBanksJsonWithRoutingRules(l: List[Bank]): BanksJson400 = {
+    BanksJson400(l.map(i => createBankJSON400(i, Nil).copy(bank_routings = code.api.util.RoutingRules.bankRoutingsOf(i))))
+  }
+
   def createUserIdInfoJson(user : User) : UserIdJsonV400 = {
     UserIdJsonV400(user_id = user.userId)
   }

@@ -166,7 +166,7 @@ object Http4s500 {
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
             (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
-          } yield JSONFactory400.createBanksJson(banks)
+          } yield JSONFactory400.createBanksJsonWithRoutingRules(banks)
         }
     }
 
@@ -479,17 +479,20 @@ object Http4s500 {
             _ <- Helper.booleanToFuture(bankIdAlreadyExists, cc = Some(cc)) {
               !banks.exists(b => Some(b.bankId.value) == postJson.id)
             }
+            bankIdToCreate = postJson.id.getOrElse(APIUtil.generateUUID())
+            bankRoutings <- NewStyle.function.bankRoutingsToStore(bankIdToCreate, postJson.bank_routings.getOrElse(Nil), Some(cc))
             (success, _) <- NewStyle.function.createOrUpdateBank(
-              postJson.id.getOrElse(APIUtil.generateUUID()),
+              bankIdToCreate,
               postJson.full_name.getOrElse(""),
               postJson.bank_code,
               postJson.logo.getOrElse(""),
               postJson.website.getOrElse(""),
-              postJson.bank_routings.getOrElse(Nil).find(_.scheme == "BIC").map(_.address).getOrElse(""),
               "",
-              postJson.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
-              postJson.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
-              Some(cc)
+              "",
+              "",
+              "",
+              Some(cc),
+              Some(bankRoutings)
             )
             // Creator grants target the HUMAN (see v6.0.0 createBank): under a Consent the
             // authenticated user is a per-consent shadow, and roles granted to it are stranded.
@@ -563,17 +566,19 @@ object Http4s500 {
               bank.id.get
             }
             (_, _) <- NewStyle.function.getBank(BankId(bankId), Some(cc))
+            bankRoutings <- NewStyle.function.bankRoutingsToStore(bankId, bank.bank_routings.getOrElse(Nil), Some(cc))
             (success, _) <- NewStyle.function.createOrUpdateBank(
               bankId,
               bank.full_name.getOrElse(""),
               bank.bank_code,
               bank.logo.getOrElse(""),
               bank.website.getOrElse(""),
-              bank.bank_routings.getOrElse(Nil).find(_.scheme == "BIC").map(_.address).getOrElse(""),
               "",
-              bank.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
-              bank.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
-              Some(cc)
+              "",
+              "",
+              "",
+              Some(cc),
+              Some(bankRoutings)
             )
           } yield JSONFactory500.createBankJSON500(success)
         }

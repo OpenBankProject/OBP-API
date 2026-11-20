@@ -605,13 +605,8 @@ object JSONFactory500 {
   }
 
   def createBankJSON500(bank: Bank, attributes: List[BankAttributeTrait] = Nil): BankJson500 = {
-    val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
-    val bic = BankRoutingJsonV121("BIC", bank.swiftBic)
-    val routings = bank.bankRoutingScheme match {
-      case "OBP" => bic :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
-      case "BIC" => obp :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
-      case _ => obp :: bic :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
-    }
+    // One OBP entry, at most one BIC, then the bank's other routings: see RoutingRules.
+    val routings = code.api.util.RoutingRules.bankRoutingsOf(bank)
     new BankJson500(
       stringOrNull(bank.bankId.value),
       stringOrNull(bank.shortName),

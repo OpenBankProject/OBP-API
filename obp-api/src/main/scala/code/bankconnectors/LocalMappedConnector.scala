@@ -955,6 +955,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
 
     def byRoutingTable: Box[(MappedBankAccount, Option[CallContext])] = {
+      // NUBAN routings are stored as NG.NUBAN, so NUBAN (in any letter case) finds them too.
+      val storedScheme = if (code.api.util.Nuban.isNubanScheme(scheme)) code.api.util.Nuban.NubanScheme else scheme
       def handleRouting(routing: List[BankAccountRouting]): Box[(MappedBankAccount, Option[CallContext])] = {
         if (routing.size > 1) { // Handle more than 1 occurrence
           // Routing MUST be unique
@@ -968,12 +970,39 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       bankId match {
         case Some(bankId) => // Bank specific routing
           val routing = BankAccountRouting
-            .findAll(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+            .findAll(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, storedScheme), By(BankAccountRouting.AccountRoutingAddress, address))
           handleRouting(routing)
         case None => // World wide specific routing (IBAN etc.)
           val routing = BankAccountRouting
-            .findAll(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+            .findAll(By(BankAccountRouting.AccountRoutingScheme, storedScheme), By(BankAccountRouting.AccountRoutingAddress, address))
           handleRouting(routing)
+      }
+    }
+
+    // An account number can be in an account routing (scheme ACCOUNT_NUMBER, or another spelling of
+    // it such as AccountNumber) or in the deprecated account number field. Both are searched. An
+    // account that holds two different numbers is an error, whichever of them is looked up, and so
+    // is a number that more than one account holds.
+    def byAccountNumber: Box[(MappedBankAccount, Option[CallContext])] = {
+      val number = address.trim
+      val numberRoutings = (bankId match {
+        case Some(bankId) => BankAccountRouting.findAll(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingAddress, number))
+        case None => BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingAddress, number))
+      }).filter(routing => code.api.util.RoutingRules.isAccountNumberScheme(routing.accountRouting.scheme))
+      val fromRoutings = numberRoutings.flatMap(routing => getBankAccountCommon(routing.bankId, routing.accountId, callContext).map(_._1).toList)
+      val fromNumberField = bankId match {
+        case Some(bankId) => MappedBankAccount.findAll(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.accountNumber, number))
+        case None => MappedBankAccount.findAll(By(MappedBankAccount.accountNumber, number))
+      }
+      val accounts = (fromRoutings ++ fromNumberField)
+        .groupBy(account => (account.bankId.value, account.accountId.value)).values.map(_.head).toList
+      accounts.map(code.api.util.RoutingRules.accountNumberOf).collectFirst { case failure: Failure => failure } match {
+        case Some(failure) => failure
+        case None => accounts match {
+          case account :: Nil => Full((account, callContext))
+          case Nil => Empty
+          case _ => Failure(s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)")
+        }
       }
     }
 
@@ -1010,6 +1039,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         // several accounts" into a bare "not found". Keep what the implicit reading concluded.
         case decided => decided
       }
+    } else if (code.api.util.RoutingRules.isAccountNumberScheme(scheme)) {
+      byAccountNumber
     } else {
       byRoutingTable
     }
@@ -1253,6 +1284,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  // The OBP bank id of the bank named by a bank routing. None when no bank is named (an empty
+  // address). Fails when no bank, or more than one bank, has the routing.
+  private def bankIdOfBankRouting(scheme: String, address: String, callContext: Option[CallContext]): Option[BankId] = {
+    if (address == null || address.trim.isEmpty) None
+    else if (Constant.isImplicitOBPBankScheme(scheme)) Some(BankId(address.trim))
+    else {
+      val banks = getBanksLegacy(callContext).map(_._1).openOr(Nil)
+      val bank = code.api.util.RoutingRules.findBank(banks, scheme, address)
+      Some(unboxFullOrFail(bank, callContext, s"$BankNotFound bank_routing: $scheme $address", 404).bankId)
+    }
+  }
+
   override def getBankAccountByRoutings(
     bankAccountRoutings: BankAccountRoutings,
     callContext: Option[CallContext]
@@ -1277,11 +1320,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         } yield {
           (account, callContext)
         }
-      } else if (bankAccountRoutings.account.scheme.equalsIgnoreCase("ACCOUNT_NUMBER")|| bankAccountRoutings.account.scheme.equalsIgnoreCase("ACCOUNT_NO")){
+      } else if (code.api.util.RoutingRules.isAccountNumberScheme(bankAccountRoutings.account.scheme)){
+        // The bank can be named by any of its bank routings (its BIC, a national bank code or its
+        // OBP bank id), and the account number is looked up at that bank only.
         for{
-          bankIdOption <- Future.successful(if (bankAccountRoutings.bank.address.isEmpty) None else Some(bankAccountRoutings.bank.address))
-          (account, callContext) <- NewStyle.function.getBankAccountByNumber(
-            bankIdOption.map(BankId(_)),
+          bankIdOption <- Future {
+            bankIdOfBankRouting(bankAccountRoutings.bank.scheme, bankAccountRoutings.bank.address, callContext)
+          }
+          (account, callContext) <- NewStyle.function.getBankAccountByRouting(
+            bankIdOption,
+            bankAccountRoutings.account.scheme,
             bankAccountRoutings.account.address,
             callContext)
         } yield {
@@ -2689,15 +2737,47 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                   accountRoutings: List[AccountRouting],
                                   callContext: Option[CallContext]
                                 ): OBPReturnType[Box[BankAccount]] = Future {
-    (LocalMappedConnectorInternal.createBankAccountLegacy(bankId: BankId,
-      accountId: AccountId,
-      accountType: String,
-      accountLabel: String,
-      currency: String,
-      initialBalance: BigDecimal,
-      accountHolderName: String,
-      branchId: String,
-      accountRoutings: List[AccountRouting]), callContext)
+    // With this connector OBP is the bank, so it assigns the account number. An account number
+    // routing with an empty address (or none at all) asks for one. A given number was checked by
+    // NewStyle.function.createBankAccount, and is stored as the caller gave it, as a routing and in
+    // the deprecated account number field. An assigned number is stored in that field only, so
+    // versions before v6.0.0 show the same routings as before. From v6.0.0, responses show the
+    // number as an ACCOUNT_NUMBER routing either way (RoutingRules.accountRoutingsOf).
+    //
+    // An NG.NUBAN routing asks for a NUBAN (Nigeria Uniform Bank Account Number). A NUBAN is the
+    // account's number, so it is stored in the account number field and as an NG.NUBAN routing. With
+    // an empty address, the NUBAN is worked out from the bank's NG.BANK_CODE routing. A given NUBAN
+    // was checked by NewStyle.function.createBankAccount.
+    val (numberRoutings, notNumberRoutings) = accountRoutings.partition(r => code.api.util.RoutingRules.isAccountNumberScheme(r.scheme))
+    val (nubanRoutings, otherRoutings) = notNumberRoutings.partition(r => code.api.util.Nuban.isNubanScheme(r.scheme))
+    val givenNumberRouting = numberRoutings.find(r => Option(r.address).exists(_.trim.nonEmpty))
+    val givenNuban = nubanRoutings.map(r => Option(r.address).map(_.trim).getOrElse("")).find(_.nonEmpty)
+    val accountNumber: Box[String] =
+      givenNumberRouting.map(_.address.trim).orElse(givenNuban) match {
+        case Some(number) => Full(number)
+        case None if nubanRoutings.nonEmpty =>
+          MappedBank.find(By(MappedBank.permalink, bankId.value)) match {
+            case Full(bank) => code.api.util.Nuban.bankCodeOf(bank) match {
+              case Right(bankCode) => Full(LocalMappedConnectorInternal.newNuban(bankId, bankCode))
+              case Left(reason) => Failure(s"$NubanBankCodeNotUsable $reason")
+            }
+            case _ => Failure(s"$BankNotFound Current BANK_ID = ${bankId.value}")
+          }
+        case None => Full(LocalMappedConnectorInternal.newAccountNumber(bankId))
+      }
+    val nubanRouting = if (nubanRoutings.nonEmpty) accountNumber.toList.map(number => AccountRouting(code.api.util.Nuban.NubanScheme, number)) else Nil
+    (accountNumber.flatMap { accountNumber => LocalMappedConnectorInternal.createSandboxBankAccount(
+      bankId,
+      accountId,
+      accountNumber,
+      accountType,
+      accountLabel,
+      currency,
+      initialBalance,
+      accountHolderName,
+      branchId,
+      otherRoutings ++ givenNumberRouting.map(r => AccountRouting(r.scheme, accountNumber)).toList ++ nubanRouting
+    ) }, callContext)
   }
 
 
@@ -3525,10 +3605,23 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                    national_identifier: String,
                                    bankRoutingScheme: String,
                                    bankRoutingAddress: String,
-                                   callContext: Option[CallContext]
+                                   callContext: Option[CallContext],
+                                   bankRoutings: Option[List[BankRoutingJson]] = None
                                  ): Box[Bank] = {
+    // The bank's routings are stored in the bank routing table, all of them. When the caller gives
+    // only the older single routing pair and a BIC, those become the list.
+    val requestedRoutings: List[code.api.v1_2_1.BankRoutingJsonV121] = bankRoutings
+      .map(_.map(r => code.api.v1_2_1.BankRoutingJsonV121(r.scheme, r.address)))
+      .getOrElse(List(code.api.v1_2_1.BankRoutingJsonV121("BIC", swiftBIC), code.api.v1_2_1.BankRoutingJsonV121(bankRoutingScheme, bankRoutingAddress)))
+    val routingsBox = code.api.util.RoutingRules.bankRoutingsToStore(requestedRoutings)
+    val routings = routingsBox.openOr(Nil)
+    // The older columns are kept in step with the list, for code that still reads them: the routing
+    // pair holds the BIC if there is one, otherwise the first routing, and swift_bic holds the BIC.
+    val bic = routings.find(_.scheme == code.api.util.RoutingRules.BicScheme).map(_.address).getOrElse("")
+    val pair = routings.find(_.scheme == code.api.util.RoutingRules.BicScheme).orElse(routings.headOption)
+      .getOrElse(BankRoutingJson("", ""))
   //check the bank existence and update or insert data
-    val bank = getBankLegacy(BankId(bankId), None).map(_._1.asInstanceOf[MappedBank]) match {
+    val bank: Box[MappedBank] = routingsBox.flatMap(_ => getBankLegacy(BankId(bankId), None).map(_._1.asInstanceOf[MappedBank]) match {
       case Full(mappedBank) =>
         tryo {
           mappedBank
@@ -3537,12 +3630,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .shortBankName(shortBankName)
             .logoURL(logoURL)
             .websiteURL(websiteURL)
-            .swiftBIC(swiftBIC)
+            .swiftBIC(bic)
             .national_identifier(national_identifier)
-            .mBankRoutingScheme(bankRoutingScheme)
-            .mBankRoutingAddress(bankRoutingAddress)
+            .mBankRoutingScheme(pair.scheme)
+            .mBankRoutingAddress(pair.address)
             .saveMe()
-        } ?~! ErrorMessages.CreateBankError
+        } ?~! ErrorMessages.UpdateBankError
       case _ =>
         tryo {
           MappedBank.create
@@ -3551,14 +3644,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .shortBankName(shortBankName)
             .logoURL(logoURL)
             .websiteURL(websiteURL)
-            .swiftBIC(swiftBIC)
+            .swiftBIC(bic)
             .national_identifier(national_identifier)
-            .mBankRoutingScheme(bankRoutingScheme)
-            .mBankRoutingAddress(bankRoutingAddress)
+            .mBankRoutingScheme(pair.scheme)
+            .mBankRoutingAddress(pair.address)
             .CreatedByUserId(bankCreatorUserId(callContext))
             .saveMe()
-        } ?~! ErrorMessages.UpdateBankError
-    }
+        } ?~! ErrorMessages.CreateBankError
+    })
+    // A routing another bank already has is refused by the table's unique index.
+    val saved = bank.flatMap(savedBank =>
+      tryo(MappedBankRouting.replaceRoutingsOf(bankId, routings)).map(_ => savedBank) ?~! ErrorMessages.BankRoutingAlreadyExists)
 
     // Insert the default settlement accounts if they doesn't exist
     MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, INCOMING_SETTLEMENT_ACCOUNT_ID)) match {
@@ -3593,7 +3689,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         logger.debug(s"creating BankAccount(${bankId}, $OUTGOING_SETTLEMENT_ACCOUNT_ID).")
     }
 
-    bank
+    saved
   }
 
   override def createCounterparty(

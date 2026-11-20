@@ -1740,9 +1740,10 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         account.currency.getOrElse(""),
         account.balance.getOrElse("").toString
       ),
-      account_routings = Constant.accountRoutingsWithImplicitOBP(
+      account_routings = code.api.util.RoutingRules.accountRoutingsOf(
         account.accountId.value,
-        account.accountRoutings.map(r => AccountRoutingJsonV121(scheme = r.scheme, address = r.address))
+        account.accountRoutings.map(r => AccountRoutingJsonV121(scheme = r.scheme, address = r.address)),
+        account.number.orNull
       ),
       views_basic = availableViews.map(_.viewId.value)
     )
@@ -1820,25 +1821,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       bank: Bank,
       attributes: List[BankAttributeTrait] = Nil
   ): BankJson600 = {
-    val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
-    val bic = BankRoutingJsonV121("BIC", bank.swiftBic)
-    val routings = bank.bankRoutingScheme match {
-      case "OBP" =>
-        bic :: BankRoutingJsonV121(
-          bank.bankRoutingScheme,
-          bank.bankRoutingAddress
-        ) :: Nil
-      case "BIC" =>
-        obp :: BankRoutingJsonV121(
-          bank.bankRoutingScheme,
-          bank.bankRoutingAddress
-        ) :: Nil
-      case _ =>
-        obp :: bic :: BankRoutingJsonV121(
-          bank.bankRoutingScheme,
-          bank.bankRoutingAddress
-        ) :: Nil
-    }
+    // One OBP entry, at most one BIC, then the bank's other routings: see RoutingRules.
+    val routings = code.api.util.RoutingRules.bankRoutingsOf(bank)
     new BankJson600(
       stringOrNull(bank.bankId.value),
       stringOrNull(bank.shortName),
@@ -2573,19 +2557,15 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   }
 
   def createBankJsonV600(bank: Bank, attributes: List[BankAttributeTrait] = Nil): BankJsonV600 = {
-    val bic = BankRoutingJsonV121("BIC", bank.swiftBic)
-    val stored = BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress)
-    val nonObpRoutings =
-      if (bank.bankRoutingScheme == "BIC") List(stored)
-      else List(bic, stored)
-    val routings = Constant.bankRoutingsWithImplicitOBP(bank.bankId.value, nonObpRoutings)
+    // One OBP entry, at most one BIC, then the bank's other routings: see RoutingRules.
+    val routings = code.api.util.RoutingRules.bankRoutingsOf(bank)
     BankJsonV600(
       bank_id = stringOrNull(bank.bankId.value),
       bank_code = stringOrNull(bank.shortName),
       full_name = stringOrNull(bank.fullName),
       logo = stringOrNull(bank.logoUrl),
       website = stringOrNull(bank.websiteUrl),
-      bank_routings = routings.filter(a => stringOrNull(a.address) != null),
+      bank_routings = routings,
       attributes = Option(
         attributes.filter(_.isActive == Some(true)).map(a => BankAttributeBankResponseJsonV400(
           name = a.name,
@@ -3068,9 +3048,10 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           account_number = a.number,
           account_type = a.productCode,
           branch_id = a.branchId,
-          account_routings = Constant.accountRoutingsWithImplicitOBP(
+          account_routings = code.api.util.RoutingRules.accountRoutingsOf(
             a.id,
-            a.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address))
+            a.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address)),
+            a.number
           ),
           account_attributes = a.accountAttributes,
           view_ids = viewsPerAccount.getOrElse(BankIdAccountId(BankId(a.bankId), AccountId(a.id)), Nil)
@@ -3131,9 +3112,10 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       balance = createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       views_available = viewsAvailable,
       bank_id = stringOrNull(account.bankId.value),
-      account_routings = Constant.accountRoutingsWithImplicitOBP(
+      account_routings = code.api.util.RoutingRules.accountRoutingsOf(
         account.accountId.value,
-        createAccountRoutingsJSON(account.accountRoutings)
+        createAccountRoutingsJSON(account.accountRoutings),
+        account.number.orNull
       ),
       account_attributes = accountAttributes.map(createAccountAttributeJson),
       tags = tags.map(createAccountTagJSON)

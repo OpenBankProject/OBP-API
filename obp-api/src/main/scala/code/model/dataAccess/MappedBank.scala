@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.model.dataAccess
 
-import com.openbankproject.commons.model.{Bank, BankId}
+import com.openbankproject.commons.model.{Bank, BankId, BankRoutingJson}
 import net.liftweb.mapper._
 
 class MappedBank extends Bank with LongKeyedMapper[MappedBank] with IdPK with CreatedUpdated {
@@ -58,6 +58,8 @@ class MappedBank extends Bank with LongKeyedMapper[MappedBank] with IdPK with Cr
   override def nationalIdentifier: String = national_identifier.get
   override def bankRoutingScheme = mBankRoutingScheme.get
   override def bankRoutingAddress = mBankRoutingAddress.get
+  // All of the bank's routings, from the bank routing table.
+  override def bankRoutings: List[BankRoutingJson] = MappedBankRouting.routingsOf(permalink.get)
 }
 
 object MappedBank extends MappedBank with LongKeyedMetaMapper[MappedBank] {

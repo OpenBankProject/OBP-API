@@ -346,7 +346,7 @@ object Http4s510 {
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
             (banks, _) <- NewStyle.function.getBanks(Some(cc))
-          } yield JSONFactory400.createBanksJson(banks)
+          } yield JSONFactory400.createBanksJsonWithRoutingRules(banks)
         }
     }
 
@@ -355,7 +355,7 @@ object Http4s510 {
       "/banks", "Get Banks",
       """Get banks on this API instance
         |Returns a list of banks supported on this server.""",
-      EmptyBody, banksJSON,
+      EmptyBody, banksJSON400,
       List(UnknownError),
       List(apiTagBank),
       None,

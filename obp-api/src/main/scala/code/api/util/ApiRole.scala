@@ -224,6 +224,12 @@ object ApiRole extends MdcLoggable{
   case class CanCreateAccount(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAccount = CanCreateAccount()
 
+  // Lets the caller give an account number when creating an account, for loading accounts that
+  // already have numbers. Without it the bank assigns the number, except on a sandbox instance
+  // (allow_sandbox_account_creation=true).
+  case class CanCreateAccountWithAccountNumber(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateAccountWithAccountNumber = CanCreateAccountWithAccountNumber()
+
   case class CanUpdateAccount(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateAccount = CanUpdateAccount()
 

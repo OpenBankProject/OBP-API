@@ -45,14 +45,22 @@ trait Bank {
 
   def websiteUrl: String
 
+  // The bank's first bank routing. A bank can have more than one: see bankRoutings.
   def bankRoutingScheme: String
 
   def bankRoutingAddress: String
 
+  // All of the bank's bank routings, such as a BIC (scheme "BIC") and national schemes like BLZ, side
+  // by side. Banks from a connector that does not send them have none here, and their routing is the
+  // bankRoutingScheme / bankRoutingAddress pair. Read a bank's routings and its BIC through
+  // code.api.util.RoutingRules in OBP-API, which combines this list, that pair and swiftBic.
+  def bankRoutings: List[BankRoutingJson] = Nil
+
   // TODO Add Group ?
 
-  //SWIFT BIC banking code (globally unique)
-  @deprecated("Please use bankRoutingScheme and bankRoutingAddress instead")
+  // Deprecated. A bank's BIC belongs in a bank routing with scheme "BIC". This field is read only when
+  // no bank routing holds a BIC. If both hold one and they differ, looking the bank up is an error.
+  @deprecated("Please put the BIC in a bank routing with scheme BIC (bankRoutings or bankRoutingScheme / bankRoutingAddress) instead")
   def swiftBic: String
 
   //it's not entirely clear what this is/represents (BLZ in Germany?)

@@ -2534,7 +2534,7 @@ object ExampleValue {
   lazy val bankFullNameExample = ConnectorField("bank fullName string", "fix me")
   lazy val bankLogoUrlExample = ConnectorField("bank logoUrl string", "fix me")
   lazy val bankWebsiteUrlExample = ConnectorField("bank websiteUrl string", "fix me")
-  lazy val bankSwiftBicExample = ConnectorField("bank swiftBic string", "fix me")
+  lazy val bankSwiftBicExample = ConnectorField("GENODEM1GLS", "Deprecated. Put the BIC in a bank routing with scheme BIC instead (bankRoutings, or bankRoutingScheme and bankRoutingAddress). This field is read only when no bank routing holds a BIC. If both hold one, they must be the same, or looking the bank up is an error.")
   lazy val bankNationalIdentifierExample = ConnectorField("bank nationalIdentifier string", "fix me")
 
   lazy val bankAccountExample = ConnectorField("bankAccount nationalIdentifier string", "fix me")
