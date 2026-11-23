@@ -471,7 +471,10 @@ object Http4s700 {
               val creatorUserIds = humanAndAgentUserIds(cc.onBehalfOfUserId)
               MappedBank.findAll(ByList(MappedBank.CreatedByUserId, creatorUserIds))
             }
-          } yield JSONFactory600.createBanksJsonV600(banksCreatedByUser)
+            // Each bank's attributes, as Get Bank returns them (only active ones are shown).
+            banksWithAttributes <- Future.sequence(banksCreatedByUser.map(bank =>
+              NewStyle.function.getBankAttributesByBank(bank.bankId, Some(cc)).map(result => (bank, result._1))))
+          } yield JSONFactory600.createBanksJsonV600(banksWithAttributes)
         }
     }
 
@@ -489,6 +492,8 @@ object Http4s700 {
       |the User, the list includes banks created by any of their consent-based agents.
       |Nothing is accepted from the caller to influence this resolution.
       |
+      |Each bank is shown with its bank routings and its active bank attributes, as in Get Banks.
+      |
       |${userAuthenticationMessage(true)}
       |""",
       EmptyBody,
@@ -499,7 +504,7 @@ object Http4s700 {
         logo = "",
         website = "",
         bank_routings = Nil,
-        attributes = None
+        attributes = Some(List(code.api.v4_0_0.BankAttributeBankResponseJsonV400(name = "OPEN_CORRIDOR_PARTICIPANT", value = "true")))
       ))),
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagBank :: Nil,

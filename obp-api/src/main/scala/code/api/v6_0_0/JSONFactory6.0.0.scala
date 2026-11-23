@@ -2575,8 +2575,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     )
   }
 
-  def createBanksJsonV600(banks: List[Bank]): BanksJsonV600 = {
-    BanksJsonV600(banks.map(bank => createBankJsonV600(bank, Nil)))
+  // Each bank with its active attributes, as Get Bank shows them, so a caller can pick banks by attribute from one list.
+  def createBanksJsonV600(banksWithAttributes: List[(Bank, List[BankAttributeTrait])]): BanksJsonV600 = {
+    BanksJsonV600(banksWithAttributes.map { case (bank, attributes) => createBankJsonV600(bank, attributes) })
   }
 
   /**

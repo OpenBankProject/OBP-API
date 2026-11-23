@@ -264,7 +264,10 @@ object Http4s600 {
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
             (banks, _) <- NewStyle.function.getBanks(Some(cc))
-          } yield JSONFactory600.createBanksJsonV600(banks)
+            // Each bank's attributes, as Get Bank returns them (only active ones are shown).
+            banksWithAttributes <- Future.sequence(banks.map(bank =>
+              NewStyle.function.getBankAttributesByBank(bank.bankId, Some(cc)).map(result => (bank, result._1))))
+          } yield JSONFactory600.createBanksJsonV600(banksWithAttributes)
         }
     }
 
@@ -6898,6 +6901,10 @@ object Http4s600 {
         |- Short and full name of bank
         |- Logo URL
         |- Website
+        |- Bank routings
+        |- Active bank attributes
+        |
+        |A caller can use the attributes to pick banks from the list. For example, an Open Corridor bank carries the attribute OPEN_CORRIDOR_PARTICIPANT with the value true.
         |
         |User Authentication is Optional. The User need not be logged in.
         |""",
