@@ -3205,12 +3205,13 @@ object Http4s700 {
                   case Full(user) if user.email.get != null
                                   && user.email.get.toLowerCase == emailLower
                                   && !user.validated.get =>
-                    val portalUrlBox = APIUtil.getPropsValue("portal_external_url")
+                    // same portal URL as the signup email, so both links match
+                    val portalUrlBox = APIUtil.getPortalUrl
                     val senderAddress = AuthUser.emailFrom
-                    val portalMissing = portalUrlBox.isEmpty || portalUrlBox.exists(_.trim.isEmpty)
+                    val portalMissing = portalUrlBox.isEmpty
                     val senderIsDefault = senderAddress == "noreply@example.com"
                     if (portalMissing) {
-                      logger.warn("createValidationEmail says: skipped — portal_external_url not set; cannot build validation link")
+                      logger.warn("createValidationEmail says: skipped — public_obp_portal_url (or legacy portal_external_url) not set; cannot build validation link")
                     } else if (senderIsDefault) {
                       logger.warn("createValidationEmail says: skipped — mail.users.userinfo.sender.address is still the default 'noreply@example.com' (most SMTP servers will reject this From address)")
                     } else {
@@ -3286,7 +3287,8 @@ object Http4s700 {
         |`AuthUser.uniqueId`). Multiple resends produce the same link, not
         |competing tokens — clicking any of the delivered emails works.
         |
-        |Email configuration (portal_external_url, SMTP, sender address) must be
+        |Email configuration (public_obp_portal_url or legacy portal_external_url,
+        |SMTP, sender address) must be
         |set up correctly for delivery to succeed. See /status (Email section) and
         |POST /obp/v7.0.0/management/self-test-emails for diagnostics.
         |""".stripMargin,
