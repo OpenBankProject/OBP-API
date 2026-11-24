@@ -292,6 +292,14 @@
       "http4s_digest": "e6807a06ff3025c039b0402f9b51e6a08c093f831943f023172632f7289fdb4f"
     },
     {
+      "version": "v4_0_0",
+      "endpoint": "updateProductAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added ProductAttributeNotFound: the attribute must belong to the bank and product in the path",
+      "lift_digest": "f0e3fc093d8749570c7520dabdb672bbb7a6f84d2f03fa9c138762e8c976981a",
+      "http4s_digest": "cbff97326a2c683036eca4d241b6bcc82b9a45d7cee49516184d63fc450c50b7"
+    },
+    {
       "version": "v5_1_0",
       "endpoint": "revokeMyConsent",
       "field": "requestVerb",

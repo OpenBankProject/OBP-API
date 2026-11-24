@@ -997,7 +997,12 @@ object Http4s400 {
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
                 AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
-            (_, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            (existingAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // only an attribute of the bank and product in the path
+            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              existingAttribute.bankId.value == bankIdStr &&
+                existingAttribute.productCode.value == productCodeStr
+            }
             (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankIdStr), ProductCode(productCodeStr), Some(productAttributeIdStr),
               postedData.name, productAttributeType, postedData.value, postedData.is_active, Some(cc))
@@ -1023,7 +1028,7 @@ object Http4s400 {
       |""",
       productAttributeJsonV400,
       productAttributeResponseJsonV400,
-      List(UserHasMissingRoles, UnknownError),
+      List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canUpdateProductAttribute)),
       http4sPartialFunction = Some(updateProductAttribute)
