@@ -498,17 +498,19 @@ object Http4s500 {
             // authenticated user is a per-consent shadow, and roles granted to it are stranded.
             humanUserId = cc.onBehalfOfUserId
             entitlements <- NewStyle.function.getEntitlementsByUserId(humanUserId, Some(cc))
-            entitlementsByBank = entitlements.filter(_.bankId == postJson.id.getOrElse(""))
+            // grant the creator's Roles at the id the bank was created with
+            createdBankId = success.bankId.value
+            entitlementsByBank = entitlements.filter(_.bankId == createdBankId)
             _ <- entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString()) match {
               case true  => Future.successful(())
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                postJson.id.getOrElse(""), humanUserId, CanCreateEntitlementAtOneBank.toString(),
+                createdBankId, humanUserId, CanCreateEntitlementAtOneBank.toString(),
                 grantedByUserId = Some(cc.userId)))
             }
             _ <- entitlementsByBank.exists(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()) match {
               case true  => Future.successful(())
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                postJson.id.getOrElse(""), humanUserId, CanReadDynamicResourceDocsAtOneBank.toString(),
+                createdBankId, humanUserId, CanReadDynamicResourceDocsAtOneBank.toString(),
                 grantedByUserId = Some(cc.userId)))
             }
           } yield JSONFactory500.createBankJSON500(success)

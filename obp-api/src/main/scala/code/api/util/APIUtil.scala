@@ -2214,6 +2214,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def hasEntitlement(bankId: String, userId: String, apiRole: ApiRole): Boolean = apiRole match {
     case RoleCombination(roles) => roles.forall(hasEntitlement(bankId, userId, _))
+    // a bank Role only counts when it is held at a real bank id
+    case role if role.requiresBankId && bankId.isEmpty => false
     case role =>
       Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId) bankId else "", userId, role.toString).isDefined
   }

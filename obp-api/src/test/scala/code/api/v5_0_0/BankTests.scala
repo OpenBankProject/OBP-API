@@ -133,6 +133,27 @@ class BankTests extends V500ServerSetup with DefaultUsers {
       secondPutResponse.code should equal(200)
       secondPutResponse.body.extract[BankJson500].full_name should equal(secondFullName)
     }
+
+    scenario("We create a bank without an id - creator Roles are held at the new bank id", ApiEndpoint1, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
+      When("We POST a bank with no id")
+      val request = (v5_0_0_Request / "banks").POST <@ (user1)
+      val response = makePostRequest(request, write(postBankJson500.copy(id = None, bank_routings = None)))
+      Then("We should get a 201 and the Roles at the generated bank id, none at the empty one")
+      response.code should equal(201)
+      val createdBankId = response.body.extract[BankJson500].id
+      createdBankId should not be empty
+      val entitlements = Await.result(
+        NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None), 10.seconds)
+      entitlements.exists(e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == createdBankId) should equal(true)
+      entitlements.exists(e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == "") should equal(false)
+      entitlements.exists(e => e.roleName == ApiRole.CanReadDynamicResourceDocsAtOneBank.toString && e.bankId == "") should equal(false)
+    }
+
+    scenario("A bank Role held at the empty bank id does not count", ApiEndpoint1, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, ApiRole.CanCreateEntitlementAtOneBank.toString)
+      APIUtil.hasEntitlement("", resourceUser2.userId, ApiRole.canCreateEntitlementAtOneBank) should equal(false)
+    }
   }
 
  }
