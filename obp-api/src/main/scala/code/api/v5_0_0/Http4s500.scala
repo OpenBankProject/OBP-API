@@ -2028,7 +2028,9 @@ object Http4s500 {
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
-            metrics <- Future(APIMetrics.apiMetrics.vend.getAllMetrics(obpQueryParams ::: List(OBPBankId(bankIdStr))))
+            // only the bank in the path, whatever bank_id the query asks for
+            bankParams = obpQueryParams.filterNot(_.isInstanceOf[OBPBankId]) :+ OBPBankId(bankIdStr)
+            metrics <- Future(APIMetrics.apiMetrics.vend.getAllMetrics(bankParams))
           } yield JSONFactory210.createMetricsJson(metrics)
         }
     }
