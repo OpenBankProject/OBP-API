@@ -431,6 +431,7 @@ public_obp_api_explorer_url=http://localhost:5173
 public_obp_api_manager_url=http://localhost:3003
 public_obp_cohort_url=http://localhost:5183
 public_obp_sandbox_populator_url=http://localhost:5178
+public_obp_conformator_url=http://localhost:5185
 public_obp_oidc_url=http://localhost:9000
 public_keycloak_url=http://localhost:7787
 # OBP-Hola: port differs between run modes.
