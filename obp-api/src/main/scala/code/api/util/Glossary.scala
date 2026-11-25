@@ -7447,7 +7447,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |# Senti configured for OBP
 				 |
-				 |**Senti** watches running services and their source code for hours, and suggests the few improvements that matter most. Configured for OBP, it watches OBP-API instances and the apps around them: API Explorer II, the API Manager, the Portal, Cohort, OBP-OIDC and the Sandbox Populator. It works out what is actually going wrong or getting slower. Fewer, better suggestions is the point.
+				 |**Senti** watches running services and their source code for hours, and suggests the few improvements that matter most. Configured for OBP, it watches OBP-API instances and the apps around them: API Explorer II, the API Manager, the Portal, Cohort, OBP-OIDC, the Sandbox Populator and Conformator. It works out what is actually going wrong or getting slower. Fewer, better suggestions is the point.
 				 |
 				 |Senti is made by TESOBE, and can be set up for other systems too: see https://senti.tesobe.com. Its code is at https://github.com/TESOBE/Senti.
 				 |
@@ -7468,7 +7468,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |## The apps' monitoring endpoints
 				 |
-				 |API Explorer II, the API Manager, the Portal, Cohort, OBP-OIDC and the Sandbox Populator each serve their own log cache and Telemetry, in the same shape as OBP-API's:
+				 |API Explorer II, the API Manager, the Portal, Cohort, OBP-OIDC, the Sandbox Populator and Conformator each serve their own log cache and Telemetry, in the same shape as OBP-API's:
 				 |
 				 || App | Log cache | Telemetry |
 				 ||---|---|---|
@@ -7478,12 +7478,13 @@ object Glossary extends MdcLoggable  {
 				 || Cohort | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
 				 || OBP-OIDC | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
 				 || Sandbox Populator | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
+				 || Conformator | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
 				 |
 				 |LEVEL is a log level (error, warning, info, debug, trace) or `all`. Each app lists these endpoints on its `/status` page.
 				 |
 				 |They are guarded by the same Roles as OBP-API's own endpoints: CanGetSystemLogCacheError, CanGetSystemLogCacheWarning and so on, one per level (`all` needs CanGetSystemLogCacheAll) and CanGetTelemetry. The app does not decide this itself. It passes the caller's token to OBP-API (GET /obp/v7.0.0/banks/SYS/my/roles/ROLE), and answers only if OBP-API says the Role is held. A call with no token gets 401, and a call without the Role gets 403.
 				 |
-				 |Senti finds the apps in OBP-API's app directory (GET /obp/v6.0.0/app-directory: public_obp_api_explorer_url, public_obp_api_manager_url, public_obp_portal_url, public_obp_cohort_url, public_obp_oidc_url, public_obp_sandbox_populator_url). It watches each like a small instance of its own, with its own findings, using its OBP-API instance's token. The analyst then reads the app's own source. An app has no aggregate metrics and no source review.
+				 |Senti finds the apps in OBP-API's app directory (GET /obp/v6.0.0/app-directory: public_obp_api_explorer_url, public_obp_api_manager_url, public_obp_portal_url, public_obp_cohort_url, public_obp_oidc_url, public_obp_sandbox_populator_url, public_obp_conformator_url). It watches each like a small instance of its own, with its own findings, using its OBP-API instance's token. The analyst then reads the app's own source. An app has no aggregate metrics and no source review.
 				 |
 				 |## 2. The analyst
 				 |
