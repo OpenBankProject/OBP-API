@@ -2794,6 +2794,38 @@
       "reason": "Explains that the list comes from the transactionRequests_supported_types prop and when OPEN_CORRIDOR_PROMISE is included. Additive, nothing removed.",
       "lift_digest": "dea1479859f8f2e4eead46eb86caef95b294ee947771d5d0ef71df39d288cdae",
       "http4s_digest": "77a01355ab52e9743c1d2a10bb40273ad237df04d45fdea42a23828437bb729d"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getBank",
+      "field": "description",
+      "reason": "Get Bank v6.0.0 now also lists bank routings, active bank attributes and onward routes, with a Glossary link for Onward Routes.",
+      "lift_digest": "3cef2f2e891c8ebbb0405a57f1ec4ac8c10d36505a238450d6b941d966a7d781",
+      "http4s_digest": "0b0461b2089f0fc25bd657886ff3ea3268acf60bf9818ccbbdd9eb1731867946"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getBank",
+      "field": "successResponseBody",
+      "reason": "Get Bank v6.0.0 now returns onward_routes; the example shows one.",
+      "lift_digest": "8aa031962e0d821f2653f792063d5b17fb0b6ec2b0bf65667c192010bb817600",
+      "http4s_digest": "bd2ce07b4e6bf95852dab43d4ef60b24f88ed5ce973340f5a3b5d7a9e853b421"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getBanks",
+      "field": "description",
+      "reason": "Get Banks v6.0.0 now returns each bank's routings, active attributes and onward routes, and says that only member banks of this OBP instance are listed.",
+      "lift_digest": "f8eed91b6c942fd390530df286b17be59bf953f7d4a0fccf87e1850aa8df298a",
+      "http4s_digest": "279a74d1fa3cf536dd2b643ba77fdae7c54cee66870e18b88db8e7e5958920c5"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getBanks",
+      "field": "successResponseBody",
+      "reason": "Get Banks v6.0.0 now returns onward_routes for each bank; the example shows one.",
+      "lift_digest": "054b03eb782e03e7bb9aa689ef74e5b9b72149100d57f7856b02fb536dfa5771",
+      "http4s_digest": "eb30507ed15d7be3e19b461d62c2a53d9b8a38db27f934cb2aff8840e619327c"
     }
   ]
 }
