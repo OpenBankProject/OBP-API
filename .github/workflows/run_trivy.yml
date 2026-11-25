@@ -25,7 +25,7 @@ jobs:
     if: ${{ vars.ENABLE_CONTAINER_BUILDING == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - id: trivy-db
         name: Check trivy db sha
         env:
