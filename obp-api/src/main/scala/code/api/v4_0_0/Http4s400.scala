@@ -4883,7 +4883,12 @@ object Http4s400 {
         EndpointHelpers.withUserAndBodyCreated[ProductFeeJsonV400, Any](req) { (_, postedData, cc) =>
           for {
             (_, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCode), Some(cc))
-            (_, _) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+            (existingFee, _) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+            // only a fee of the bank and product in the path
+            _ <- code.util.Helper.booleanToFuture(ProductFeeNotFoundById + " {" + productFeeId + "}", 404, Some(cc)) {
+              existingFee.bankId.value == bankIdStr &&
+                existingFee.productCode.value == productCode
+            }
             (productFee, _) <- NewStyle.function.createOrUpdateProductFee(
               BankId(bankIdStr), ProductCode(productCode), Some(productFeeId),
               postedData.name, postedData.is_active, postedData.more_info,
@@ -5155,7 +5160,7 @@ object Http4s400 {
         |""",
         productFeeJsonV400.copy(product_fee_id = None),
         productFeeResponseJsonV400,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, ProductFeeNotFoundById, UnknownError),
         List(apiTagProduct),
         Some(List(canUpdateProductFee)),
         http4sPartialFunction = Some(updateProductFee)

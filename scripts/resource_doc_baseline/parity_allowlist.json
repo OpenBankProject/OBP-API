@@ -300,6 +300,14 @@
       "http4s_digest": "cbff97326a2c683036eca4d241b6bcc82b9a45d7cee49516184d63fc450c50b7"
     },
     {
+      "version": "v4_0_0",
+      "endpoint": "updateProductFee",
+      "field": "errorResponseBodies",
+      "reason": "Added ProductFeeNotFoundById: the fee must belong to the bank and product in the path",
+      "lift_digest": "539a3f33f0d6ea0276b6e3f0171b796a54a6fa2ac67753776dc74c63f7599b3d",
+      "http4s_digest": "fd8cf080eb4161518ab82177e082ad82f77bfe2c83895f754fceb5f5f6e1968a"
+    },
+    {
       "version": "v5_1_0",
       "endpoint": "revokeMyConsent",
       "field": "requestVerb",
