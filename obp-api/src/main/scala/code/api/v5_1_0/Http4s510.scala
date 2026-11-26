@@ -4754,7 +4754,8 @@ object Http4s510 {
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
             (consents, totalPages) <- Future(Consents.consentProvider.vend.getConsents(obpQueryParams))
           } yield {
-            val consentsOfBank = Consent.filterByBankId(consents, bankId)
+            // only consents with a view or a role at this bank
+            val consentsOfBank = Consent.filterStrictlyByBank(consents, bankId.value)
             createConsentsJsonV510(consentsOfBank, totalPages)
           }
         }
