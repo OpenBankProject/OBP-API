@@ -172,7 +172,8 @@ class ConsentReferenceIdUpgradeTest extends ServerSetup {
         referenceIds.values.flatten.toSet.size shouldBe rowIds.size
 
         And("the unique index on the reference id exists")
-        DbFunction.indexExistsByName(consentTable, referenceIndex) shouldBe true
+        // H2 keeps unquoted table names in upper case, and the metadata lookup takes the name as given.
+        List(consentTable, consentTable.toUpperCase).exists(DbFunction.indexExistsByName(_, referenceIndex)) shouldBe true
 
         And("the consents as they were before the upgrade are kept in the backup table")
         DbFunction.tableExistsByName(consentBackup) shouldBe true
