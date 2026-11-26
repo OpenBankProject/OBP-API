@@ -2639,73 +2639,74 @@ object Http4s700 {
 //    )
 
     // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/withdrawals
-    val requestWithdrawal: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "withdrawals" =>
-        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.RequestWithdrawalJson, JSONFactory700.WithdrawalJson](req) { (user, withdrawalJson, cc) =>
-          for {
-            // Validate bank and account
-            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
-
-            // Validate amount
-            _ <- Helper.booleanToFuture(
-              failMsg = InvalidTradingAmount,
-              failCode = 400,
-              cc = callContext
-            )(withdrawalJson.amount > 0)
-
-            // Invoke connector
-            (withdrawal, callContext2) <- NewStyle.function.requestWithdrawal(
-              BankId(bankId),
-              AccountId(accountId),
-              withdrawalJson.settlement_account_id,
-              withdrawalJson.amount,
-              withdrawalJson.address,
-              12,  // Ethereum mainnet standard: 12 confirmations required
-              callContext
-            )
-          } yield JSONFactory700.createWithdrawalJson(withdrawal)
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(requestWithdrawal),
-      "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/withdrawals",
-      "Request Withdrawal",
-      """**WORK IN PROGRESS**
-        |
-        |Request a withdrawal to a blockchain address.
-        |
-        |The withdrawal_id is automatically generated as a UUID.
-        |Each request creates a new withdrawal with a unique withdrawal_id.
-        |
-        |Authentication is required.""",
-      JSONFactory700.RequestWithdrawalJson(
-        settlement_account_id = "account-123",
-        amount = BigDecimal("50.0"),
-        address = "0xdestination"
-      ),
-      JSONFactory700.WithdrawalJson(
-        withdrawal_id = "withdrawal-303",
-        account_id = "account-123",
-        amount = BigDecimal("50.0"),
-        address = "0xdestination",
-        status = "pending",
-        tx_hash = None,
-        confirmations = None,
-        required_confirmations = 12,
-        nonce = None,
-        gas_used = None,
-        error_message = None,
-        user_id = "user-abc-123",
-        consent_id = None,
-        created_at = "2026-04-16T00:55:00Z"
-      ),
-      List(InvalidJsonFormat, InvalidTradingAmount, WithdrawalFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagTrading :: apiTagMarket :: Nil,
-      http4sPartialFunction = Some(requestWithdrawal)
-    )
+    // Off: moving funds out should go through transaction requests instead
+//    val requestWithdrawal: Http4sRoute = Http4sRoute {
+//      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "withdrawals" =>
+//        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.RequestWithdrawalJson, JSONFactory700.WithdrawalJson](req) { (user, withdrawalJson, cc) =>
+//          for {
+//            // Validate bank and account
+//            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+//
+//            // Validate amount
+//            _ <- Helper.booleanToFuture(
+//              failMsg = InvalidTradingAmount,
+//              failCode = 400,
+//              cc = callContext
+//            )(withdrawalJson.amount > 0)
+//
+//            // Invoke connector
+//            (withdrawal, callContext2) <- NewStyle.function.requestWithdrawal(
+//              BankId(bankId),
+//              AccountId(accountId),
+//              withdrawalJson.settlement_account_id,
+//              withdrawalJson.amount,
+//              withdrawalJson.address,
+//              12,  // Ethereum mainnet standard: 12 confirmations required
+//              callContext
+//            )
+//          } yield JSONFactory700.createWithdrawalJson(withdrawal)
+//        }
+//    }
+//
+//    resourceDocs += ResourceDoc(
+//      implementedInApiVersion,
+//      nameOf(requestWithdrawal),
+//      "POST",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/withdrawals",
+//      "Request Withdrawal",
+//      """**WORK IN PROGRESS**
+//        |
+//        |Request a withdrawal to a blockchain address.
+//        |
+//        |The withdrawal_id is automatically generated as a UUID.
+//        |Each request creates a new withdrawal with a unique withdrawal_id.
+//        |
+//        |Authentication is required.""",
+//      JSONFactory700.RequestWithdrawalJson(
+//        settlement_account_id = "account-123",
+//        amount = BigDecimal("50.0"),
+//        address = "0xdestination"
+//      ),
+//      JSONFactory700.WithdrawalJson(
+//        withdrawal_id = "withdrawal-303",
+//        account_id = "account-123",
+//        amount = BigDecimal("50.0"),
+//        address = "0xdestination",
+//        status = "pending",
+//        tx_hash = None,
+//        confirmations = None,
+//        required_confirmations = 12,
+//        nonce = None,
+//        gas_used = None,
+//        error_message = None,
+//        user_id = "user-abc-123",
+//        consent_id = None,
+//        created_at = "2026-04-16T00:55:00Z"
+//      ),
+//      List(InvalidJsonFormat, InvalidTradingAmount, WithdrawalFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+//      apiTagTrading :: apiTagMarket :: Nil,
+//      http4sPartialFunction = Some(requestWithdrawal)
+//    )
 
 //    // ── TCC Payment Authorization Endpoints (Phase 3 - P3) ─────────────────
 //
