@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.util.migration
 
+import code.accountholders.MapperAccountHolders
 import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
 import code.api.util.{APIUtil, ApiPropsWithAlias}
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
@@ -34,6 +35,7 @@ import code.api.v4_0_0.DatabaseInfoJson
 import code.consumer.Consumers
 import code.context.MappedUserAuthContextUpdate
 import code.customer.CustomerX
+import code.entitlement.MappedEntitlement
 import code.migration.MigrationScriptLogProvider
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
@@ -369,7 +371,7 @@ object Migration extends MdcLoggable {
 
     /**
      * Remove natural-key duplicate rows so Schemifier's CREATE UNIQUE INDEX on
-     * `mapperaccountholder` (user_, bank, account) and `mappedentitlement` (bank, user, role)
+     * `mapperaccountholders` (user_c, bank, account) and `mappedentitlement` (bank, user, role)
      * cannot abort boot on an existing DB that still holds duplicates.
      *
      * Deliberately invoked directly from `Boot` BEFORE `schemifyAll()` and NOT routed through
@@ -380,15 +382,24 @@ object Migration extends MdcLoggable {
      * needs no `MigrationScriptLog` entry. See the call site in `Boot.scala` for the full rationale.
      */
     def deduplicateBeforeUniqueIndexSchemify(): Unit = {
+      // The table and column names come from the models, so they are the names Schemifier uses for
+      // the table and its index. A name written by hand can miss: the account holder table is
+      // mapperaccountholders, and its user column is user_c because user is a reserved word.
       deduplicateNaturalKeyDups(
-        tableName = "mapperaccountholder",
-        idCol     = "id",
-        groupCols = List("user_", "accountbankpermalink", "accountpermalink")
+        tableName = MapperAccountHolders._dbTableNameLC,
+        idCol     = MapperAccountHolders.id.dbColumnName,
+        groupCols = List(
+          MapperAccountHolders.user.dbColumnName,
+          MapperAccountHolders.accountBankPermalink.dbColumnName,
+          MapperAccountHolders.accountPermalink.dbColumnName)
       )
       deduplicateNaturalKeyDups(
-        tableName = "mappedentitlement",
-        idCol     = "id",
-        groupCols = List("mbankid", "muserid", "mrolename")
+        tableName = MappedEntitlement._dbTableNameLC,
+        idCol     = MappedEntitlement.id.dbColumnName,
+        groupCols = List(
+          MappedEntitlement.mBankId.dbColumnName,
+          MappedEntitlement.mUserId.dbColumnName,
+          MappedEntitlement.mRoleName.dbColumnName)
       )
     }
 
@@ -404,7 +415,7 @@ object Migration extends MdcLoggable {
      *    Removing a duplicate invalidates any stale reference to *that* row's UUID. This is
      *    acceptable: the surviving row encodes the identical (bank, user, role) grant, so
      *    authorization is unaffected — only dead handles to the removed copies break.
-     *  - `mapperaccountholder`: duplicates may differ in `source` (provenance metadata). The
+     *  - `mapperaccountholders`: duplicates may differ in `source` (provenance metadata). The
      *    surviving row encodes the same (user, account) ownership link.
      *
      * Safe to run on every boot and under concurrent multi-node boot: the survivor set is a

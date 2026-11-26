@@ -276,7 +276,7 @@ class Boot extends MdcLoggable {
      */
     MapperRules.createForeignKeys_? = (_) => APIUtil.getPropsAsBoolValue("mapper_rules.create_foreign_keys", false)
 
-    // Pre-Schemifier dedup: drop natural-key duplicate rows in mapperaccountholder /
+    // Pre-Schemifier dedup: drop natural-key duplicate rows in mapperaccountholders /
     // mappedentitlement BEFORE schemifyAll() issues their CREATE UNIQUE INDEX (declared in
     // MapperAccountHolders / MappedEntitlement dbIndexes). On a long-lived DB that still holds
     // duplicates the index DDL would otherwise abort boot.
