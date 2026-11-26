@@ -226,13 +226,12 @@ object MigrationOfConsentReferenceIdUuid extends MdcLoggable {
           }
           sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => addColumn)).append("\n")
 
-          // 4. Backfill every existing consent row with a fresh UUID.
-          val backfillConsents = if (isMssql) {
-            "UPDATE mappedconsent SET consent_reference_id = LOWER(CONVERT(varchar(36), NEWID())) WHERE consent_reference_id IS NULL;"
-          } else {
-            // gen_random_uuid() requires pgcrypto on older Postgres; built-in on PG13+.
-            "UPDATE mappedconsent SET consent_reference_id = gen_random_uuid()::text WHERE consent_reference_id IS NULL;"
-          }
+          // 4. Backfill every existing consent row with a fresh UUID. This uses the same statement as
+          //    prepareBeforeSchemifier, so on Postgres it does not need gen_random_uuid(). That
+          //    function exists only from Postgres 13, or with the pgcrypto extension. Postgres looks
+          //    it up when it plans the statement, so it would fail even with no rows to fill.
+          val backfillConsents = referenceIdSql(dbDriver).map(_.fillNulls).getOrElse(
+            "UPDATE mappedconsent SET consent_reference_id = gen_random_uuid()::text WHERE consent_reference_id IS NULL;")
           sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => backfillConsents)).append("\n")
 
           // 5. Enforce NOT NULL + UNIQUE.
