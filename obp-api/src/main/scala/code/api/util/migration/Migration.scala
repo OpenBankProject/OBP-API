@@ -201,6 +201,22 @@ object Migration extends MdcLoggable {
     }
 
     /**
+     * Every step Boot runs before schemifyAll(), in order.
+     *
+     * Each step reshapes existing data so that a unique index Schemifier is about to create can be
+     * built over it. They run ungated and on every boot, so each one guards itself and is a cheap
+     * no-op on a fresh or already clean database. See the call site in Boot for why none of them
+     * may move into executeScripts.
+     */
+    def prepareSchemaBeforeSchemifier(): Unit = {
+      deduplicateBeforeUniqueIndexSchemify()
+      // Same reasoning, for the Dynamic Entity tables: their unique indexes are becoming
+      // space-scoped, which needs the system level rows off SQL NULL and the superseded
+      // single-column indexes dropped, both before Schemifier issues the new index DDL.
+      prepareDynamicEntitySpaceScopedIndexes()
+    }
+
+    /**
      * What one step of prepareDynamicEntitySpaceScopedIndexes actually did.
      *
      * The description is written for whoever later reads the migration log asking what an upgrade
