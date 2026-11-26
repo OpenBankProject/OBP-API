@@ -3867,6 +3867,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     "public_obp_api_manager_url" -> getPropsValue("public_obp_api_manager_url").openOr("http://localhost:3003"),
     "public_obp_cohort_url" -> getPropsValue("public_obp_cohort_url").openOr("http://localhost:5183"),
     "public_obp_sandbox_populator_url" -> getPropsValue("public_obp_sandbox_populator_url").openOr("http://localhost:5178"),
+    "public_obp_conformator_url" -> getPropsValue("public_obp_conformator_url").openOr("http://localhost:5185"),
     "public_obp_oidc_url" -> getPropsValue("public_obp_oidc_url").openOr("http://localhost:9000"),
     "public_keycloak_url" -> getPropsValue("public_keycloak_url").openOr("http://localhost:7787"),
     "public_obp_hola_url" -> getPropsValue("public_obp_hola_url").openOr("http://localhost:48123"),
