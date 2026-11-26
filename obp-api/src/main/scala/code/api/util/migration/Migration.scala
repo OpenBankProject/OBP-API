@@ -214,6 +214,10 @@ object Migration extends MdcLoggable {
       // space-scoped, which needs the system level rows off SQL NULL and the superseded
       // single-column indexes dropped, both before Schemifier issues the new index DDL.
       prepareDynamicEntitySpaceScopedIndexes()
+      // A consent table from before consents had their own reference id: every row needs one
+      // before the unique index on consent_reference_id is created, which SQL Server refuses
+      // over more than one NULL.
+      MigrationOfConsentReferenceIdUuid.prepareBeforeSchemifier()
     }
 
     /**
@@ -1267,6 +1271,27 @@ object Migration extends MdcLoggable {
               case _ => check()
             }
           check()
+        }
+      }
+    }
+
+    /**
+      * Whether `tableName` has a column called `columnName`, ignoring case. Asks for the columns
+      * of that one table, under the name as given and in upper case, since H2 and Oracle store
+      * unquoted names in upper case.
+      */
+    def columnExistsByName(tableName: String, columnName: String): Boolean = {
+      DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
+        val md = conn.getMetaData
+        val schema = getDefaultSchemaName(conn)
+        List(tableName, tableName.toUpperCase).distinct.exists { name =>
+          using(md.getColumns(null, schema, name, null)) { rs =>
+            def check(): Boolean =
+              if (!rs.next) false
+              else if (rs.getString(4).equalsIgnoreCase(columnName)) true
+              else check()
+            check()
+          }
         }
       }
     }

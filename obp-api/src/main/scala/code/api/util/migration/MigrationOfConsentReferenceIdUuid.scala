@@ -30,7 +30,12 @@ package code.api.util.migration
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.consent.MappedConsent
+import code.util.Helper.MdcLoggable
+import net.liftweb.db.DB
 import net.liftweb.mapper.Schemifier
+import net.liftweb.util.DefaultConnectionIdentifier
+
+import java.sql.SQLException
 
 /**
  * Migration: switch consent_reference_id from a stringified row PK (Long) to a UUID.
@@ -48,11 +53,133 @@ import net.liftweb.mapper.Schemifier
  * v_consent gets recreated by `MigrationOfConsentView.addConsentView` (already in the registry
  * with this migration's updated projection), wrapped here so it's part of the same logical step.
  *
+ * On a database written before the column existed, prepareBeforeSchemifier has already done
+ * steps 1, 3 and 4 before Schemifier ran, so here they find nothing left to do.
+ *
  * On FRESH deploys, Schemifier creates everything with the correct shape directly from the
  * Scala model. The `tableExists` guards make most steps no-ops; backup CREATEs against an
  * empty table produce empty backup tables, which is harmless.
  */
-object MigrationOfConsentReferenceIdUuid {
+object MigrationOfConsentReferenceIdUuid extends MdcLoggable {
+
+  private val consentTable = "mappedconsent"
+  private val consentItemTable = "consent_item"
+  private val referenceColumn = "consent_reference_id"
+  private val consentBackup = "backup_2026_05_mappedconsent"
+  private val consentItemBackup = "backup_2026_05_consent_item"
+
+  private def isMssqlDriver(dbDriver: String): Boolean = dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver")
+
+  /**
+   * Copy `source` into `backup`, unless an earlier step has already done so. The backup is taken
+   * by whichever step changes the consent tables first, and that first copy is the one kept.
+   */
+  private def backupOnce(source: String, backup: String, isMssql: Boolean): String =
+    if (isMssql) s"IF OBJECT_ID('$backup', 'U') IS NULL SELECT * INTO $backup FROM $source;"
+    else s"CREATE TABLE IF NOT EXISTS $backup AS SELECT * FROM $source;"
+
+  /** The SQL that adds the column and fills it, for the databases this step supports. */
+  private case class ReferenceIdSql(addColumn: String, fillNulls: String)
+
+  private def referenceIdSql(dbDriver: String): Option[ReferenceIdSql] =
+    if (isMssqlDriver(dbDriver)) Some(ReferenceIdSql(
+      s"ALTER TABLE $consentTable ADD $referenceColumn VARCHAR(36) NULL",
+      s"UPDATE $consentTable SET $referenceColumn = LOWER(CONVERT(varchar(36), NEWID())) WHERE $referenceColumn IS NULL"))
+    else if (dbDriver.contains("org.postgresql.Driver")) Some(ReferenceIdSql(
+      s"ALTER TABLE $consentTable ADD COLUMN $referenceColumn VARCHAR(36)",
+      // md5 over random input, cast to uuid, works on every Postgres version. gen_random_uuid() needs
+      // Postgres 13 or the pgcrypto extension. The row id in the input keeps two rows apart even if
+      // random() and the clock were to repeat.
+      s"UPDATE $consentTable SET $referenceColumn = CAST(CAST(md5(random()::text || clock_timestamp()::text || id::text) AS uuid) AS VARCHAR(36)) WHERE $referenceColumn IS NULL"))
+    else if (dbDriver.contains("org.h2.Driver")) Some(ReferenceIdSql(
+      s"ALTER TABLE $consentTable ADD COLUMN $referenceColumn VARCHAR(36)",
+      s"UPDATE $consentTable SET $referenceColumn = LOWER(CAST(RANDOM_UUID() AS VARCHAR(36))) WHERE $referenceColumn IS NULL"))
+    else None
+
+  private def hasConsentWithoutReferenceId(): Boolean =
+    DB.use(DefaultConnectionIdentifier) { conn =>
+      val st = conn.createStatement()
+      try {
+        st.setMaxRows(1)
+        val rs = st.executeQuery(s"SELECT id FROM $consentTable WHERE $referenceColumn IS NULL")
+        try rs.next() finally rs.close()
+      } finally st.close()
+    }
+
+  private def execute(sql: String): Int =
+    DB.use(DefaultConnectionIdentifier) { conn =>
+      val st = conn.createStatement()
+      try {
+        st.execute(sql)
+        st.getUpdateCount
+      } finally st.close()
+    }
+
+  /**
+   * Give every existing consent a reference id before Schemifier creates the unique index on it.
+   *
+   * A build from before May 2026 had no consent_reference_id column: a consent's reference was its
+   * row id. The current model declares the column with a unique index, so on the first boot of a
+   * current build Schemifier adds the column, NULL in every existing row, and then creates the
+   * index. SQL Server allows only one NULL in a unique index, so with two or more consents that
+   * boot stopped with a duplicate key error. Postgres, H2, MySQL and Oracle accept many NULLs, so
+   * they booted, and migrate below filled the column later, if migration scripts were enabled.
+   *
+   * This step runs before Schemifier on every boot, ungated, for the reasons given on
+   * Migration.database.prepareSchemaBeforeSchemifier. On a database with no consent table, or one
+   * whose consents all have a reference id, it does one or two cheap checks and nothing else.
+   * Otherwise it backs up the consent tables under the names migrate uses, adds the column if it
+   * is missing and gives each consent without a reference id a new UUID. The backups are then
+   * taken before anything changes, and migrate keeps them rather than copying again. migrate
+   * still does the rest: it makes the column NOT NULL, widens consent_item.consent_reference_id
+   * and points each consent item at its consent's new reference id, which it can do because the
+   * row ids it joins on are unchanged.
+   *
+   * A failure is logged and does not stop the boot here. On SQL Server, Schemifier then stops it
+   * with the error this step exists to prevent, which an operator can act on.
+   */
+  def prepareBeforeSchemifier(): Unit = {
+    val name = "prepareConsentReferenceIdBeforeSchemifier"
+    if (DbFunction.tableExistsByName(consentTable)) {
+      val dbDriver = APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
+      val hasColumn = DbFunction.columnExistsByName(consentTable, referenceColumn)
+      if (!hasColumn || hasConsentWithoutReferenceId()) {
+        referenceIdSql(dbDriver) match {
+          case None =>
+            logger.info(s"$name: no SQL for driver $dbDriver; this database accepts more than one NULL in a unique index, so Schemifier can create the index and migrate fills the column")
+          case Some(sql) =>
+            val isMssql = isMssqlDriver(dbDriver)
+            val startDate = System.currentTimeMillis()
+            val done = new StringBuilder()
+            val isSuccessful =
+              try {
+                execute(backupOnce(consentTable, consentBackup, isMssql))
+                done.append(s"Backed up $consentTable to $consentBackup (if not already backed up). ")
+                if (DbFunction.tableExistsByName(consentItemTable)) {
+                  execute(backupOnce(consentItemTable, consentItemBackup, isMssql))
+                  done.append(s"Backed up $consentItemTable to $consentItemBackup (if not already backed up). ")
+                }
+                if (!hasColumn) {
+                  execute(sql.addColumn)
+                  done.append(s"Added $consentTable.$referenceColumn. ")
+                }
+                val filled = execute(sql.fillNulls)
+                done.append(s"Gave $filled consent(s) a new reference id.")
+                logger.warn(s"$name: ${done.toString}")
+                true
+              } catch {
+                case e: SQLException =>
+                  logger.error(s"$name failed after: ${done.toString}", e)
+                  done.append(s" FAILED: ${e.getMessage}")
+                  false
+              }
+            if (DbFunction.tableExistsByName("migrationscriptlog")) {
+              saveLog(name, APIUtil.gitCommit, isSuccessful, startDate, System.currentTimeMillis(), done.toString)
+            }
+        }
+      }
+    }
+  }
 
   def migrate(name: String): Boolean = {
     val dbDriver = APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
@@ -74,22 +201,16 @@ object MigrationOfConsentReferenceIdUuid {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
-        val isMssql = dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver")
+        val isMssql = isMssqlDriver(dbDriver)
         var isSuccessful = false
         val sqlLog = new StringBuilder()
 
         try {
-          // 1. Backups — table-snapshot copies so we can recover from any later failure.
-          val backupMappedConsent = if (isMssql) {
-            "IF OBJECT_ID('backup_2026_05_mappedconsent', 'U') IS NULL SELECT * INTO backup_2026_05_mappedconsent FROM mappedconsent;"
-          } else {
-            "CREATE TABLE backup_2026_05_mappedconsent AS SELECT * FROM mappedconsent;"
-          }
-          val backupConsentItem = if (isMssql) {
-            "IF OBJECT_ID('backup_2026_05_consent_item', 'U') IS NULL SELECT * INTO backup_2026_05_consent_item FROM consent_item;"
-          } else {
-            "CREATE TABLE backup_2026_05_consent_item AS SELECT * FROM consent_item;"
-          }
+          // 1. Backups — table-snapshot copies so we can recover from any later failure. When
+          //    prepareBeforeSchemifier has already changed the consent table, it took these copies
+          //    first, before its change, and they are kept.
+          val backupMappedConsent = backupOnce(consentTable, consentBackup, isMssql)
+          val backupConsentItem = backupOnce(consentItemTable, consentItemBackup, isMssql)
           sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => backupMappedConsent)).append("\n")
           sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => backupConsentItem)).append("\n")
 
