@@ -130,7 +130,8 @@ class ConnectorMethodTest extends V400ServerSetup {
 
 
       val responseGetBank = makeGetRequest(requestGetBank)
-      (responseGetBank.body \ "id").extractOpt[String] equals(Some("Hello bank id"))
+      responseGetBank.code should equal(200)
+      (responseGetBank.body \ "id").extractOpt[String] shouldBe Some("Hello bank id")
       
       Then(s"we test the $ApiEndpoint3")
       val requestGetAll = (v4_0_0_Request / "management" / "connector-methods").GET <@ (user1)
@@ -172,7 +173,8 @@ class ConnectorMethodTest extends V400ServerSetup {
       //try the getBanks, now it return the js response
       {
         val responseGetBank = makeGetRequest(requestGetBank)
-        (responseGetBank.body \ "full_name").extractOpt[String] equals(Some("The Js Bank of Scotland"))
+        responseGetBank.code should equal(200)
+        (responseGetBank.body \ "full_name").extractOpt[String] shouldBe Some("The Js Bank of Scotland")
       }
 
       {
@@ -185,7 +187,9 @@ class ConnectorMethodTest extends V400ServerSetup {
         //try the getBanks, now it return the js response
         {
           val responseGetBank = makeGetRequest(requestGetBank)
-          (responseGetBank.body \ "short_name").extractOpt[String] equals(Some("The Java Bank of Scotland"))
+          responseGetBank.code should equal(200)
+          // The v5.0.0 response names the bank's short name bank_code.
+          (responseGetBank.body \ "bank_code").extractOpt[String] shouldBe Some("The Java Bank of Scotland")
         }
         
       }
