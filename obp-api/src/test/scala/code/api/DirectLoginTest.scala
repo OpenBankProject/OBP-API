@@ -60,7 +60,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
     */
   object VersionOfApi200 extends Tag(ApiVersion.v2_0_0.toString)
   object VersionOfApi300 extends Tag(ApiVersion.v3_0_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations2_0_0.getCurrentUser))
+  object ApiEndpoint1 extends Tag("getCurrentUser")
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_0_0.getCurrentUser))
 
   val KEY = randomString(40).toLowerCase

@@ -60,7 +60,7 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.createAccount))
   //We need this endpoint to test the result 
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.corePrivateAccountsAllBanks))
-  object ApiEndpoint5 extends Tag(nameOf(Implementations2_0_0.getPrivateAccountsAtOneBank))
+  object ApiEndpoint5 extends Tag("getPrivateAccountsAtOneBank")
   object ApiEndpoint6 extends Tag("getPrivateAccountById")
 
   lazy val testBankId = testBankId1

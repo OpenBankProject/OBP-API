@@ -86,39 +86,41 @@ object Http4s200 {
   // restored `s"""..."""` doc interpolations for createUserCustomerLinks.
   private val createUserCustomerLinksEntitlementsRequiredForSpecificBank = canCreateUserCustomerLink :: Nil
   private val createUserCustomerLinksEntitlementsRequiredForAnyBank = canCreateUserCustomerLinkAtAnyBank :: Nil
-  private val createUserCustomerLinksrequiredEntitlementsText =
-    createUserCustomerLinksEntitlementsRequiredForSpecificBank.mkString(" and ") +
-      " OR " +
-      createUserCustomerLinksEntitlementsRequiredForAnyBank.mkString(" and ") +
-      " entitlements are required."
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // private val createUserCustomerLinksrequiredEntitlementsText =
+    // createUserCustomerLinksEntitlementsRequiredForSpecificBank.mkString(" and ") +
+      // " OR " +
+      // createUserCustomerLinksEntitlementsRequiredForAnyBank.mkString(" and ") +
+      // " entitlements are required."
 
   object Implementations2_0_0 {
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
     // ─── root ─────────────────────────────────────────────────────────────────
 
-    val root: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory121.getApiInfoJSON(ApiVersion.v2_0_0, versionStatus))
-        }
-      case req @ GET -> `prefixPath` / "root" =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory121.getApiInfoJSON(ApiVersion.v2_0_0, versionStatus))
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val root: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory121.getApiInfoJSON(ApiVersion.v2_0_0, versionStatus))
+        // }
+      // case req @ GET -> `prefixPath` / "root" =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory121.getApiInfoJSON(ApiVersion.v2_0_0, versionStatus))
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(root), "GET", "/root",
-      "Get API Info (root)",
-      """Returns information about:
-        |
-        |* API version
-        |* Hosted by information
-        |* Git Commit""",
-      EmptyBody, apiInfoJSON,
-      List(UnknownError, MandatoryPropertyIsNotSet), apiTagApi :: Nil, None,
-      http4sPartialFunction = Some(root))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(root), "GET", "/root",
+      // "Get API Info (root)",
+      // """Returns information about:
+        // |
+        // |* API version
+        // |* Hosted by information
+        // |* Git Commit""",
+      // EmptyBody, apiInfoJSON,
+      // List(UnknownError, MandatoryPropertyIsNotSet), apiTagApi :: Nil, None,
+      // http4sPartialFunction = Some(root))
 
     // ─── getPrivateAccountsAllBanks ───────────────────────────────────────────
 
@@ -148,31 +150,32 @@ object Http4s200 {
 
     // ─── corePrivateAccountsAllBanks ──────────────────────────────────────────
 
-    val corePrivateAccountsAllBanks: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "my" / "accounts" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          Future {
-            val (privateViewsUserCanAccess, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccess(user)
-            val privateAccounts = BankAccountX.privateAccounts(privateAccountAccess)
-            privateAccounts.map { account =>
-              createCoreAccountJSON(account, org.json4s.JObject(Nil))
-            }
-          }
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val corePrivateAccountsAllBanks: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "my" / "accounts" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // Future {
+            // val (privateViewsUserCanAccess, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccess(user)
+            // val privateAccounts = BankAccountX.privateAccounts(privateAccountAccess)
+            // privateAccounts.map { account =>
+              // createCoreAccountJSON(account, org.json4s.JObject(Nil))
+            // }
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(corePrivateAccountsAllBanks), "GET", "/my/accounts",
-      "Get Accounts at all Banks (Private)",
-      s"""Get private accounts at all banks (Authenticated access)
-         |Returns the list of accounts containing private views for the user at all banks.
-         |For each account the API returns the ID and the available views.
-         |
-         |${userAuthenticationMessage(true)}""".stripMargin,
-      EmptyBody, coreAccountsJSON,
-      List(UnknownError),
-      List(apiTagAccount, apiTagPrivateData, apiTagPsd2, apiTagOldStyle), None,
-      http4sPartialFunction = Some(corePrivateAccountsAllBanks))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(corePrivateAccountsAllBanks), "GET", "/my/accounts",
+      // "Get Accounts at all Banks (Private)",
+      // s"""Get private accounts at all banks (Authenticated access)
+         // |Returns the list of accounts containing private views for the user at all banks.
+         // |For each account the API returns the ID and the available views.
+         // |
+         // |${userAuthenticationMessage(true)}""".stripMargin,
+      // EmptyBody, coreAccountsJSON,
+      // List(UnknownError),
+      // List(apiTagAccount, apiTagPrivateData, apiTagPsd2, apiTagOldStyle), None,
+      // http4sPartialFunction = Some(corePrivateAccountsAllBanks))
 
     // ─── publicAccountsAllBanks ───────────────────────────────────────────────
 
@@ -222,43 +225,44 @@ object Http4s200 {
 
     // ─── getPrivateAccountsAtOneBank ──────────────────────────────────────────
 
-    val getPrivateAccountsAtOneBank: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" =>
-        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
-          for {
-            (privateViewsUserCanAccessAtOneBank, privateAccountAccess) <- Future {
-              Views.views.vend.privateViewsUserCanAccessAtBank(user, bank.bankId)
-            }
-            (availablePrivateAccounts, _) <- BankExtended(bank).privateAccountsFuture(privateAccountAccess, Some(cc))
-          } yield {
-            // Lift returns a raw List[BasicAccountJSON] here (JArray), not BasicAccountsJSON
-            // (JObject). v3_1_0/AccountTest extracts `List[BasicAccountJSON]` directly, so we
-            // must NOT wrap; the sibling /banks/BANK_ID/accounts/private endpoint does wrap.
-            availablePrivateAccounts.map { account =>
-              val viewsAvailable = privateViewsUserCanAccessAtOneBank
-                .filter(v => v.bankId == account.bankId && v.accountId == account.accountId && v.isPrivate)
-                .map(createBasicViewJSON)
-                .distinct
-              createBasicAccountJSON(account, viewsAvailable)
-            }
-          }
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getPrivateAccountsAtOneBank: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" =>
+        // EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
+          // for {
+            // (privateViewsUserCanAccessAtOneBank, privateAccountAccess) <- Future {
+              // Views.views.vend.privateViewsUserCanAccessAtBank(user, bank.bankId)
+            // }
+            // (availablePrivateAccounts, _) <- BankExtended(bank).privateAccountsFuture(privateAccountAccess, Some(cc))
+          // } yield {
+            // // Lift returns a raw List[BasicAccountJSON] here (JArray), not BasicAccountsJSON
+            // // (JObject). v3_1_0/AccountTest extracts `List[BasicAccountJSON]` directly, so we
+            // // must NOT wrap; the sibling /banks/BANK_ID/accounts/private endpoint does wrap.
+            // availablePrivateAccounts.map { account =>
+              // val viewsAvailable = privateViewsUserCanAccessAtOneBank
+                // .filter(v => v.bankId == account.bankId && v.accountId == account.accountId && v.isPrivate)
+                // .map(createBasicViewJSON)
+                // .distinct
+              // createBasicAccountJSON(account, viewsAvailable)
+            // }
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getPrivateAccountsAtOneBank), "GET", "/banks/BANK_ID/accounts",
-      "Get Accounts at Bank",
-      s"""
-         |Returns the list of accounts at BANK_ID that the user has access to.
-         |For each account the API returns the account ID and the views available to the user..
-         |Each account must have at least one private View.
-         |
-         |${userAuthenticationMessage(true)}
-      """.stripMargin,
-      EmptyBody, basicAccountsJSON,
-      List(BankNotFound, UnknownError),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData), None,
-      http4sPartialFunction = Some(getPrivateAccountsAtOneBank))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getPrivateAccountsAtOneBank), "GET", "/banks/BANK_ID/accounts",
+      // "Get Accounts at Bank",
+      // s"""
+         // |Returns the list of accounts at BANK_ID that the user has access to.
+         // |For each account the API returns the account ID and the views available to the user..
+         // |Each account must have at least one private View.
+         // |
+         // |${userAuthenticationMessage(true)}
+      // """.stripMargin,
+      // EmptyBody, basicAccountsJSON,
+      // List(BankNotFound, UnknownError),
+      // List(apiTagAccount, apiTagPrivateData, apiTagPublicData), None,
+      // http4sPartialFunction = Some(getPrivateAccountsAtOneBank))
 
     // ─── corePrivateAccountsAtOneBank ─────────────────────────────────────────
 
@@ -316,35 +320,36 @@ object Http4s200 {
 
     // ─── privateAccountsAtOneBank ─────────────────────────────────────────────
 
-    val privateAccountsAtOneBank: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / "private" =>
-        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
-          for {
-            (privateViewsUserCanAccessAtOneBank, privateAccountAccess) <- Future {
-              Views.views.vend.privateViewsUserCanAccessAtBank(user, bank.bankId)
-            }
-            (availablePrivateAccounts, _) <- BankExtended(bank).privateAccountsFuture(privateAccountAccess, Some(cc))
-          } yield privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val privateAccountsAtOneBank: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / "private" =>
+        // EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
+          // for {
+            // (privateViewsUserCanAccessAtOneBank, privateAccountAccess) <- Future {
+              // Views.views.vend.privateViewsUserCanAccessAtBank(user, bank.bankId)
+            // }
+            // (availablePrivateAccounts, _) <- BankExtended(bank).privateAccountsFuture(privateAccountAccess, Some(cc))
+          // } yield privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(privateAccountsAtOneBank), "GET", "/banks/BANK_ID/accounts/private",
-      "Get private accounts at one bank",
-      s"""Returns the list of private accounts at BANK_ID that the user has access to.
-      |For each account the API returns the ID and the available views.
-      |
-      |If you want to see more information on the Views, use the Account Detail call.
-      |If you want less information about the account, use the /my accounts call
-      |
-      |
-      |${userAuthenticationMessage(true)}
-      |
-      |""".stripMargin,
-      EmptyBody, basicAccountsJSON,
-      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
-      List(apiTagAccount, apiTagPsd2), None,
-      http4sPartialFunction = Some(privateAccountsAtOneBank))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(privateAccountsAtOneBank), "GET", "/banks/BANK_ID/accounts/private",
+      // "Get private accounts at one bank",
+      // s"""Returns the list of private accounts at BANK_ID that the user has access to.
+      // |For each account the API returns the ID and the available views.
+      // |
+      // |If you want to see more information on the Views, use the Account Detail call.
+      // |If you want less information about the account, use the /my accounts call
+      // |
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |""".stripMargin,
+      // EmptyBody, basicAccountsJSON,
+      // List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      // List(apiTagAccount, apiTagPsd2), None,
+      // http4sPartialFunction = Some(privateAccountsAtOneBank))
 
     // ─── publicAccountsAtOneBank ──────────────────────────────────────────────
 
@@ -676,119 +681,122 @@ object Http4s200 {
 
     // ─── getCoreAccountById ───────────────────────────────────────────────────
 
-    val getCoreAccountById: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "my" / "banks" / _ / "accounts" / _ / "account" =>
-        EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
-          for {
-            view              <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(account.bankId, account.accountId), Some(cc))
-            moderatedAccount  <- Future {
-              unboxFullOrFail(
-                account.moderatedBankAccount(view, BankIdAccountId(account.bankId, account.accountId), Full(user), Some(cc)),
-                Some(cc), UnknownError)
-            }
-          } yield createCoreBankAccountJSON(moderatedAccount)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getCoreAccountById: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "my" / "banks" / _ / "accounts" / _ / "account" =>
+        // EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
+          // for {
+            // view              <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(account.bankId, account.accountId), Some(cc))
+            // moderatedAccount  <- Future {
+              // unboxFullOrFail(
+                // account.moderatedBankAccount(view, BankIdAccountId(account.bankId, account.accountId), Full(user), Some(cc)),
+                // Some(cc), UnknownError)
+            // }
+          // } yield createCoreBankAccountJSON(moderatedAccount)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getCoreAccountById), "GET",
-      "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
-      "Get Account by Id (Core)",
-      s"""Information returned about the account specified by ACCOUNT_ID:
-         |
-         |* Number
-         |* Owners
-         |* Type
-         |* Balance
-         |* IBAN
-         |
-         |This call returns the owner view and requires access to that view.
-         |
-         |${userAuthenticationMessage(true)}""".stripMargin,
-      EmptyBody, moderatedCoreAccountJSON,
-      List(BankAccountNotFound, UnknownError),
-      List(apiTagAccount, apiTagPsd2, apiTagOldStyle), None,
-      http4sPartialFunction = Some(getCoreAccountById))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getCoreAccountById), "GET",
+      // "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
+      // "Get Account by Id (Core)",
+      // s"""Information returned about the account specified by ACCOUNT_ID:
+         // |
+         // |* Number
+         // |* Owners
+         // |* Type
+         // |* Balance
+         // |* IBAN
+         // |
+         // |This call returns the owner view and requires access to that view.
+         // |
+         // |${userAuthenticationMessage(true)}""".stripMargin,
+      // EmptyBody, moderatedCoreAccountJSON,
+      // List(BankAccountNotFound, UnknownError),
+      // List(apiTagAccount, apiTagPsd2, apiTagOldStyle), None,
+      // http4sPartialFunction = Some(getCoreAccountById))
 
     // ─── getCoreTransactionsForBankAccount ────────────────────────────────────
 
-    val getCoreTransactionsForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "my" / "banks" / _ / "accounts" / _ / "transactions" =>
-        EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
-          for {
-            view               <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(account.bankId, account.accountId), Some(cc))
-            (bank, _)          <- NewStyle.function.getBank(account.bankId, Some(cc))
-            httpParams         <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
-            (transactions, _)  <- Future {
-              unboxFullOrFail(
-                account.getModeratedTransactions(bank, Full(user), view, BankIdAccountId(account.bankId, account.accountId), Some(cc), obpQueryParams),
-                Some(cc), UnknownError)
-            }
-          } yield createCoreTransactionsJSON(transactions)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getCoreTransactionsForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "my" / "banks" / _ / "accounts" / _ / "transactions" =>
+        // EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
+          // for {
+            // view               <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(account.bankId, account.accountId), Some(cc))
+            // (bank, _)          <- NewStyle.function.getBank(account.bankId, Some(cc))
+            // httpParams         <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            // (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            // (transactions, _)  <- Future {
+              // unboxFullOrFail(
+                // account.getModeratedTransactions(bank, Full(user), view, BankIdAccountId(account.bankId, account.accountId), Some(cc), obpQueryParams),
+                // Some(cc), UnknownError)
+            // }
+          // } yield createCoreTransactionsJSON(transactions)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getCoreTransactionsForBankAccount), "GET",
-      "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",
-      "Get Transactions for Account (Core)",
-      s"""Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
-         |
-         |Authentication is required.
-         |
-         |${urlParametersDocument(true, true)}""",
-      EmptyBody, coreTransactionsJSON,
-      List(BankAccountNotFound, UnknownError),
-      List(apiTagTransaction, apiTagAccount, apiTagPsd2, apiTagOldStyle), None,
-      http4sPartialFunction = Some(getCoreTransactionsForBankAccount))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getCoreTransactionsForBankAccount), "GET",
+      // "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",
+      // "Get Transactions for Account (Core)",
+      // s"""Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
+         // |
+         // |Authentication is required.
+         // |
+         // |${urlParametersDocument(true, true)}""",
+      // EmptyBody, coreTransactionsJSON,
+      // List(BankAccountNotFound, UnknownError),
+      // List(apiTagTransaction, apiTagAccount, apiTagPsd2, apiTagOldStyle), None,
+      // http4sPartialFunction = Some(getCoreTransactionsForBankAccount))
 
     // ─── accountById ──────────────────────────────────────────────────────────
 
-    val accountById: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "account" =>
-        EndpointHelpers.withView(req) { (user, account, view, cc) =>
-          for {
-            availableViews <- Future {
-              Views.views.vend.privateViewsUserCanAccessForAccount(user, BankIdAccountId(account.bankId, account.accountId))
-            }
-            moderatedAccount <- Future {
-              unboxFullOrFail(
-                account.moderatedBankAccount(view, BankIdAccountId(account.bankId, account.accountId), Full(user), Some(cc)),
-                Some(cc), UnknownError)
-            }
-          } yield {
-            val viewsAvailable = availableViews.map(JSONFactory121.createViewJSON).sortBy(_.short_name)
-            JSONFactory121.createBankAccountJSON(moderatedAccount, viewsAvailable)
-          }
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val accountById: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "account" =>
+        // EndpointHelpers.withView(req) { (user, account, view, cc) =>
+          // for {
+            // availableViews <- Future {
+              // Views.views.vend.privateViewsUserCanAccessForAccount(user, BankIdAccountId(account.bankId, account.accountId))
+            // }
+            // moderatedAccount <- Future {
+              // unboxFullOrFail(
+                // account.moderatedBankAccount(view, BankIdAccountId(account.bankId, account.accountId), Full(user), Some(cc)),
+                // Some(cc), UnknownError)
+            // }
+          // } yield {
+            // val viewsAvailable = availableViews.map(JSONFactory121.createViewJSON).sortBy(_.short_name)
+            // JSONFactory121.createBankAccountJSON(moderatedAccount, viewsAvailable)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(accountById), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
-      "Get Account by Id (Full)",
-      s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
-      |
-      |* Number
-      |* Owners
-      |* Type
-      |* Balance
-      |* IBAN
-      |* Available views (sorted by short_name)
-      |
-      |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
-      |
-      |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
-      |This call provides balance and other account information via delegated authentication using OAuth.
-      |
-      |${userAuthenticationMessage(true)} if the 'is_public' field in view (VIEW_ID) is not set to `true`.
-      |
-      |""".stripMargin,
-      EmptyBody, moderatedAccountJSON,
-      List(BankNotFound, AccountNotFound, ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      List(apiTagAccount, apiTagOldStyle), None,
-      http4sPartialFunction = Some(accountById))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(accountById), "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+      // "Get Account by Id (Full)",
+      // s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+      // |
+      // |* Number
+      // |* Owners
+      // |* Type
+      // |* Balance
+      // |* IBAN
+      // |* Available views (sorted by short_name)
+      // |
+      // |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+      // |
+      // |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
+      // |This call provides balance and other account information via delegated authentication using OAuth.
+      // |
+      // |${userAuthenticationMessage(true)} if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+      // |
+      // |""".stripMargin,
+      // EmptyBody, moderatedAccountJSON,
+      // List(BankNotFound, AccountNotFound, ViewNotFound, UserNoPermissionAccessView, UnknownError),
+      // List(apiTagAccount, apiTagOldStyle), None,
+      // http4sPartialFunction = Some(accountById))
 
     // ─── getPermissionsForBankAccount ─────────────────────────────────────────
 
@@ -826,123 +834,125 @@ object Http4s200 {
 
     // ─── getPermissionForUserForBankAccount ───────────────────────────────────
 
-    val getPermissionForUserForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "permissions" / provider / providerId =>
-        EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
-          val bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
-          for {
-            hasPermission <- Future {
-              Views.views.vend.permission(bankIdAccountId, user)
-                .map(_.views.map(_.allowed_actions.exists(_ == CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ONE_USER)))
-                .getOrElse(Nil).find(_ == true).getOrElse(false)
-            }
-            _ <- code.util.Helper.booleanToFuture(
-              s"${CreateCustomViewError} You need the `$CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ONE_USER` permission on any your views",
-              cc = Some(cc)
-            ) { hasPermission }
-            userFromURL <- Future {
-              unboxFullOrFail(
-                UserX.findByProviderId(provider, providerId),
-                Some(cc), UserNotFoundByProviderAndProvideId)
-            }
-            permission  <- Future {
-              unboxFullOrFail(
-                Views.views.vend.permission(bankIdAccountId, userFromURL),
-                Some(cc), UserNotFoundByProviderAndProvideId)
-            }
-          } yield JSONFactory121.createViewsJSON(permission.views.sortBy(_.viewId.value))
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getPermissionForUserForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "permissions" / provider / providerId =>
+        // EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
+          // val bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
+          // for {
+            // hasPermission <- Future {
+              // Views.views.vend.permission(bankIdAccountId, user)
+                // .map(_.views.map(_.allowed_actions.exists(_ == CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ONE_USER)))
+                // .getOrElse(Nil).find(_ == true).getOrElse(false)
+            // }
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"${CreateCustomViewError} You need the `$CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ONE_USER` permission on any your views",
+              // cc = Some(cc)
+            // ) { hasPermission }
+            // userFromURL <- Future {
+              // unboxFullOrFail(
+                // UserX.findByProviderId(provider, providerId),
+                // Some(cc), UserNotFoundByProviderAndProvideId)
+            // }
+            // permission  <- Future {
+              // unboxFullOrFail(
+                // Views.views.vend.permission(bankIdAccountId, userFromURL),
+                // Some(cc), UserNotFoundByProviderAndProvideId)
+            // }
+          // } yield JSONFactory121.createViewsJSON(permission.views.sortBy(_.viewId.value))
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getPermissionForUserForBankAccount), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID",
-      "Get Account access for User",
-      s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a user identified by PROVIDER_ID at their provider PROVIDER has access to.
-      |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER.
-      |
-      |${userAuthenticationMessage(true)}
-      |
-      |The user needs to have access to the owner view.""",
-      EmptyBody, viewsJSONV121,
-      List(AuthenticatedUserIsRequired, BankNotFound, AccountNotFound, UnknownError),
-      List(apiTagView, apiTagAccount, apiTagUser, apiTagOldStyle), None,
-      http4sPartialFunction = Some(getPermissionForUserForBankAccount))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getPermissionForUserForBankAccount), "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID",
+      // "Get Account access for User",
+      // s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a user identified by PROVIDER_ID at their provider PROVIDER has access to.
+      // |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER.
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |The user needs to have access to the owner view.""",
+      // EmptyBody, viewsJSONV121,
+      // List(AuthenticatedUserIsRequired, BankNotFound, AccountNotFound, UnknownError),
+      // List(apiTagView, apiTagAccount, apiTagUser, apiTagOldStyle), None,
+      // http4sPartialFunction = Some(getPermissionForUserForBankAccount))
 
     // ─── createAccount ────────────────────────────────────────────────────────
 
-    val createAccount: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ =>
-        EndpointHelpers.withUserAndBankAndBody[CreateAccountJSON, CoreAccountJSON](req) { (user, bank, body, cc) =>
-          val accountId = cc.bankAccount.map(_.accountId).getOrElse(
-            AccountId(req.uri.path.segments.lastOption.map(_.encoded).getOrElse("")))
-          for {
-            _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) {
-              isValidID(accountId.value)
-            }
-            _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) {
-              isValidID(bank.bankId.value)
-            }
-            // An existing ACCOUNT_ID must be refused: creating it again would return the existing account
-            // and make the caller one of its holders.
-            (existingAccount, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, accountId, Some(cc))
-            _ <- code.util.Helper.booleanToFuture(AccountIdAlreadyExists, failCode = 409, cc = Some(cc)) { existingAccount.isEmpty }
-            loggedInUserId   = user.userId
-            // Implicit owner resolves to the HUMAN: under a Consent the caller is the
-            // per-consent shadow, and an account held by it strands when the consent dies.
-            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.onBehalfOfUserId
-            (postedOrLoggedInUser, cc2) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
-            // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
-            _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
-              failCode = 400, cc = cc2)(!postedOrLoggedInUser.isConsentUser)
-            _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
-                 else code.util.Helper.booleanToFuture(
-                   s"${UserHasMissingRoles} $canCreateAccount or create account for self", failCode = 403, cc = Some(cc)) {
-                   APIUtil.hasEntitlement(bank.bankId.value, loggedInUserId, canCreateAccount)
-                 }
-            initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, cc2) {
-              BigDecimal(body.balance.amount)
-            }
-            _ <- code.util.Helper.booleanToFuture(InitialBalanceMustBeZero, cc = cc2) {
-              initialBalanceAsNumber == 0
-            }
-            _ <- code.util.Helper.booleanToFuture(InvalidISOCurrencyCode, cc = cc2) {
-              isValidCurrencyISOCode(body.balance.currency)
-            }
-            (bankAccount, cc3) <- NewStyle.function.createBankAccount(
-              bank.bankId, accountId, body.`type`, body.label, body.balance.currency,
-              initialBalanceAsNumber, postedOrLoggedInUser.name, "", List.empty, cc2)
-            _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(
-              bank.bankId, accountId, postedOrLoggedInUser, cc3)
-          } yield createCoreAccountJSON(bankAccount, org.json4s.JObject(Nil))
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createAccount: Http4sRoute = Http4sRoute {
+      // case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ =>
+        // EndpointHelpers.withUserAndBankAndBody[CreateAccountJSON, CoreAccountJSON](req) { (user, bank, body, cc) =>
+          // val accountId = cc.bankAccount.map(_.accountId).getOrElse(
+            // AccountId(req.uri.path.segments.lastOption.map(_.encoded).getOrElse("")))
+          // for {
+            // _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) {
+              // isValidID(accountId.value)
+            // }
+            // _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) {
+              // isValidID(bank.bankId.value)
+            // }
+            // // An existing ACCOUNT_ID must be refused: creating it again would return the existing account
+            // // and make the caller one of its holders.
+            // (existingAccount, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, accountId, Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(AccountIdAlreadyExists, failCode = 409, cc = Some(cc)) { existingAccount.isEmpty }
+            // loggedInUserId   = user.userId
+            // // Implicit owner resolves to the HUMAN: under a Consent the caller is the
+            // // per-consent shadow, and an account held by it strands when the consent dies.
+            // userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.onBehalfOfUserId
+            // (postedOrLoggedInUser, cc2) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
+            // // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+              // failCode = 400, cc = cc2)(!postedOrLoggedInUser.isConsentUser)
+            // _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
+                 // else code.util.Helper.booleanToFuture(
+                   // s"${UserHasMissingRoles} $canCreateAccount or create account for self", failCode = 403, cc = Some(cc)) {
+                   // APIUtil.hasEntitlement(bank.bankId.value, loggedInUserId, canCreateAccount)
+                 // }
+            // initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, cc2) {
+              // BigDecimal(body.balance.amount)
+            // }
+            // _ <- code.util.Helper.booleanToFuture(InitialBalanceMustBeZero, cc = cc2) {
+              // initialBalanceAsNumber == 0
+            // }
+            // _ <- code.util.Helper.booleanToFuture(InvalidISOCurrencyCode, cc = cc2) {
+              // isValidCurrencyISOCode(body.balance.currency)
+            // }
+            // (bankAccount, cc3) <- NewStyle.function.createBankAccount(
+              // bank.bankId, accountId, body.`type`, body.label, body.balance.currency,
+              // initialBalanceAsNumber, postedOrLoggedInUser.name, "", List.empty, cc2)
+            // _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(
+              // bank.bankId, accountId, postedOrLoggedInUser, cc3)
+          // } yield createCoreAccountJSON(bankAccount, org.json4s.JObject(Nil))
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(createAccount), "PUT",
-      "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
-      "Create Account",
-      """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
-      |
-      |
-      |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.
-      |
-      |If USER_ID is not specified the account will be owned by the logged in User.
-      |
-      |ACCOUNT_ID SHOULD be a UUID. ACCOUNT_ID MUST NOT be the ACCOUNT_NUMBER.
-      |
-      |TYPE SHOULD be the PRODUCT_CODE from Product.
-      |
-      |Note: The Amount must be zero.""".stripMargin,
-      CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0")),
-      coreAccountJSON,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidUserId, InvalidAccountIdFormat, InvalidBankIdFormat,
-        UserNotFoundById, InvalidAccountBalanceAmount, InvalidAccountType, InvalidAccountInitialBalance,
-        InvalidAccountBalanceCurrency, AccountIdAlreadyExists, UnknownError),
-      List(apiTagAccount, apiTagOldStyle),
-      None,
-      http4sPartialFunction = Some(createAccount))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(createAccount), "PUT",
+      // "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
+      // "Create Account",
+      // """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
+      // |
+      // |
+      // |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.
+      // |
+      // |If USER_ID is not specified the account will be owned by the logged in User.
+      // |
+      // |ACCOUNT_ID SHOULD be a UUID. ACCOUNT_ID MUST NOT be the ACCOUNT_NUMBER.
+      // |
+      // |TYPE SHOULD be the PRODUCT_CODE from Product.
+      // |
+      // |Note: The Amount must be zero.""".stripMargin,
+      // CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0")),
+      // coreAccountJSON,
+      // List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidUserId, InvalidAccountIdFormat, InvalidBankIdFormat,
+        // UserNotFoundById, InvalidAccountBalanceAmount, InvalidAccountType, InvalidAccountInitialBalance,
+        // InvalidAccountBalanceCurrency, AccountIdAlreadyExists, UnknownError),
+      // List(apiTagAccount, apiTagOldStyle),
+      // None,
+      // http4sPartialFunction = Some(createAccount))
 
     // ─── getTransactionTypes ──────────────────────────────────────────────────
 
@@ -1069,95 +1079,97 @@ object Http4s200 {
 
     // ─── createCustomer ───────────────────────────────────────────────────────
 
-    val createCustomer: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / _ / "customers" =>
-        EndpointHelpers.withUserAndBankAndBodyCreated[CreateCustomerJson, JSONFactory1_4_0.CustomerJsonV140](req) { (user, bank, body, cc) =>
-          for {
-            _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) {
-              isValidID(bank.bankId.value)
-            }
-            _ <- code.util.Helper.booleanToFuture(
-              s"${InvalidJsonFormat} customer_number can not contain `::::` characters", cc = Some(cc)) {
-              !`checkIfContains::::` (body.customer_number)
-            }
-            _ <- code.util.Helper.booleanToFuture(
-              s"${UserHasMissingRoles}${canCreateCustomer} and ${canCreateUserCustomerLink} entitlements are required for BankId(${bank.bankId.value}).",
-              failCode = 403, cc = Some(cc)
-            ) {
-              APIUtil.hasAllEntitlements(bank.bankId.value, user.userId, canCreateCustomer :: canCreateUserCustomerLink :: Nil)
-            }
-            _ <- code.util.Helper.booleanToFuture(CustomerNumberAlreadyExists, cc = Some(cc)) {
-              CustomerX.customerProvider.vend.checkCustomerNumberAvailable(bank.bankId, body.customer_number)
-            }
-            userId = if (body.user_id.nonEmpty) body.user_id else user.userId
-            (customerUser, _) <- NewStyle.function.findByUserId(userId, Some(cc))
-            // An explicit user_id must name an original user: a Customer is linked to a human,
-            // and a link on an agent identity dies with its Consent. An omitted user_id means
-            // the caller, which the provider redirects. ON_BEHALF_OF_USER_ID_PLAN.md, Phase 3.
-            _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Customers are linked to humans - use the granting user's USER_ID.",
-              failCode = 400, cc = Some(cc)) {
-              body.user_id.isEmpty || !customerUser.isConsentUser
-            }
-            customer <- Future {
-              CustomerX.customerProvider.vend.addCustomer(
-                bank.bankId, body.customer_number, body.legal_name, body.mobile_phone_number, body.email,
-                CustomerFaceImage(body.face_image.date, body.face_image.url),
-                body.date_of_birth, body.relationship_status, body.dependants, body.dob_of_dependants,
-                body.highest_education_attained, body.employment_status, body.kyc_status, body.last_ok_date,
-                None, None, "", "", ""
-              ).getOrElse(throw new RuntimeException(CreateConsumerError))
-            }
-            _ <- code.util.Helper.booleanToFuture(CustomerAlreadyExistsForUser, cc = Some(cc)) {
-              UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(userId, customer.customerId).isEmpty
-            }
-            _ <- Future {
-              UserCustomerLink.userCustomerLink.vend
-                .createUserCustomerLink(userId, customer.customerId, new Date(), true)
-                .getOrElse(throw new RuntimeException(CreateUserCustomerLinksError))
-            }
-          } yield JSONFactory1_4_0.createCustomerJson(customer)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createCustomer: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / _ / "customers" =>
+        // EndpointHelpers.withUserAndBankAndBodyCreated[CreateCustomerJson, JSONFactory1_4_0.CustomerJsonV140](req) { (user, bank, body, cc) =>
+          // for {
+            // _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) {
+              // isValidID(bank.bankId.value)
+            // }
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"${InvalidJsonFormat} customer_number can not contain `::::` characters", cc = Some(cc)) {
+              // !`checkIfContains::::` (body.customer_number)
+            // }
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"${UserHasMissingRoles}${canCreateCustomer} and ${canCreateUserCustomerLink} entitlements are required for BankId(${bank.bankId.value}).",
+              // failCode = 403, cc = Some(cc)
+            // ) {
+              // APIUtil.hasAllEntitlements(bank.bankId.value, user.userId, canCreateCustomer :: canCreateUserCustomerLink :: Nil)
+            // }
+            // _ <- code.util.Helper.booleanToFuture(CustomerNumberAlreadyExists, cc = Some(cc)) {
+              // CustomerX.customerProvider.vend.checkCustomerNumberAvailable(bank.bankId, body.customer_number)
+            // }
+            // userId = if (body.user_id.nonEmpty) body.user_id else user.userId
+            // (customerUser, _) <- NewStyle.function.findByUserId(userId, Some(cc))
+            // // An explicit user_id must name an original user: a Customer is linked to a human,
+            // // and a link on an agent identity dies with its Consent. An omitted user_id means
+            // // the caller, which the provider redirects. ON_BEHALF_OF_USER_ID_PLAN.md, Phase 3.
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Customers are linked to humans - use the granting user's USER_ID.",
+              // failCode = 400, cc = Some(cc)) {
+              // body.user_id.isEmpty || !customerUser.isConsentUser
+            // }
+            // customer <- Future {
+              // CustomerX.customerProvider.vend.addCustomer(
+                // bank.bankId, body.customer_number, body.legal_name, body.mobile_phone_number, body.email,
+                // CustomerFaceImage(body.face_image.date, body.face_image.url),
+                // body.date_of_birth, body.relationship_status, body.dependants, body.dob_of_dependants,
+                // body.highest_education_attained, body.employment_status, body.kyc_status, body.last_ok_date,
+                // None, None, "", "", ""
+              // ).getOrElse(throw new RuntimeException(CreateConsumerError))
+            // }
+            // _ <- code.util.Helper.booleanToFuture(CustomerAlreadyExistsForUser, cc = Some(cc)) {
+              // UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(userId, customer.customerId).isEmpty
+            // }
+            // _ <- Future {
+              // UserCustomerLink.userCustomerLink.vend
+                // .createUserCustomerLink(userId, customer.customerId, new Date(), true)
+                // .getOrElse(throw new RuntimeException(CreateUserCustomerLinksError))
+            // }
+          // } yield JSONFactory1_4_0.createCustomerJson(customer)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(createCustomer), "POST",
-      "/banks/BANK_ID/customers",
-      "Create Customer",
-      s"""Add a customer linked to the user specified by user_id
-      |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
-      |This call may require additional permissions/role in the future.
-      |For now the authenticated user can create at most one linked customer.
-      |Dates need to be in the format 2013-01-21T23:08:00Z
-      |${userAuthenticationMessage(true)}
-      |""",
-      createCustomerJson, customerJsonV140,
-      List(InvalidBankIdFormat, AuthenticatedUserIsRequired, BankNotFound, CustomerNumberAlreadyExists,
-        UserHasMissingRoles, UserNotFoundById, InvalidUserId, CreateConsumerError, CustomerAlreadyExistsForUser,
-        CreateUserCustomerLinksError, UnknownError),
-      List(apiTagCustomer, apiTagPerson, apiTagOldStyle),
-      Some(List(canCreateCustomer, canCreateUserCustomerLink)),
-      http4sPartialFunction = Some(createCustomer))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(createCustomer), "POST",
+      // "/banks/BANK_ID/customers",
+      // "Create Customer",
+      // s"""Add a customer linked to the user specified by user_id
+      // |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+      // |This call may require additional permissions/role in the future.
+      // |For now the authenticated user can create at most one linked customer.
+      // |Dates need to be in the format 2013-01-21T23:08:00Z
+      // |${userAuthenticationMessage(true)}
+      // |""",
+      // createCustomerJson, customerJsonV140,
+      // List(InvalidBankIdFormat, AuthenticatedUserIsRequired, BankNotFound, CustomerNumberAlreadyExists,
+        // UserHasMissingRoles, UserNotFoundById, InvalidUserId, CreateConsumerError, CustomerAlreadyExistsForUser,
+        // CreateUserCustomerLinksError, UnknownError),
+      // List(apiTagCustomer, apiTagPerson, apiTagOldStyle),
+      // Some(List(canCreateCustomer, canCreateUserCustomerLink)),
+      // http4sPartialFunction = Some(createCustomer))
 
     // ─── getCurrentUser ───────────────────────────────────────────────────────
 
-    val getCurrentUser: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "users" / "current" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          Future.successful(createUserJSON(user))
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getCurrentUser: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "users" / "current" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // Future.successful(createUserJSON(user))
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getCurrentUser), "GET", "/users/current",
-      "Get User (Current)",
-      """Get the logged in user
-        |
-        |Login is required.""".stripMargin,
-      EmptyBody, userJsonV200,
-      List(AuthenticatedUserIsRequired, UnknownError),
-      List(apiTagUser, apiTagOldStyle), None,
-      http4sPartialFunction = Some(getCurrentUser))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getCurrentUser), "GET", "/users/current",
+      // "Get User (Current)",
+      // """Get the logged in user
+        // |
+        // |Login is required.""".stripMargin,
+      // EmptyBody, userJsonV200,
+      // List(AuthenticatedUserIsRequired, UnknownError),
+      // List(apiTagUser, apiTagOldStyle), None,
+      // http4sPartialFunction = Some(getCurrentUser))
 
     // ─── getUser ──────────────────────────────────────────────────────────────
 
@@ -1192,62 +1204,63 @@ object Http4s200 {
 
     // ─── createUserCustomerLinks ──────────────────────────────────────────────
 
-    val createUserCustomerLinks: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / _ / "user_customer_links" =>
-        EndpointHelpers.withUserAndBankAndBody[CreateUserCustomerLinkJson, UserCustomerLinkJson](req) { (_, bank, body, cc) =>
-          for {
-            _ <- code.util.Helper.booleanToFuture(s"$InvalidBankIdFormat", cc = Some(cc)) {
-              isValidID(bank.bankId.value)
-            }
-            _ <- code.util.Helper.booleanToFuture("Field customer_id is not defined in the posted json!", cc = Some(cc)) {
-              body.customer_id.nonEmpty
-            }
-            targetUser <- Users.users.vend.getUserByUserIdFuture(body.user_id) map {
-              x => unboxFullOrFail(x, Some(cc), UserNotFoundByUserId, 404)
-            }
-            // The link target is explicit here, so it must name an original user: a link on an
-            // agent identity dies with its Consent. ON_BEHALF_OF_USER_ID_PLAN.md, Phase 3.
-            _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Customers are linked to humans - use the granting user's USER_ID.",
-              failCode = 400, cc = Some(cc)) {
-              !targetUser.isConsentUser
-            }
-            (customer, cc2) <- NewStyle.function.getCustomerByCustomerId(body.customer_id, Some(cc))
-            _ <- code.util.Helper.booleanToFuture(
-              s"Bank of the customer specified by the CUSTOMER_ID(${customer.bankId}) has to matches BANK_ID(${bank.bankId.value}) in URL",
-              cc = cc2) {
-              customer.bankId == bank.bankId.value
-            }
-            _ <- code.util.Helper.booleanToFuture(CustomerAlreadyExistsForUser, cc = cc2) {
-              UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(body.user_id, body.customer_id).isEmpty
-            }
-            userCustomerLink <- Future {
-              unboxFullOrFail(
-                UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(body.user_id, body.customer_id, new Date(), true),
-                cc2, CreateUserCustomerLinksError, 400)
-            }
-            _ <- AuthUser.refreshUser(targetUser, cc2)
-          } yield createUserCustomerLinkJSON(userCustomerLink)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createUserCustomerLinks: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / _ / "user_customer_links" =>
+        // EndpointHelpers.withUserAndBankAndBody[CreateUserCustomerLinkJson, UserCustomerLinkJson](req) { (_, bank, body, cc) =>
+          // for {
+            // _ <- code.util.Helper.booleanToFuture(s"$InvalidBankIdFormat", cc = Some(cc)) {
+              // isValidID(bank.bankId.value)
+            // }
+            // _ <- code.util.Helper.booleanToFuture("Field customer_id is not defined in the posted json!", cc = Some(cc)) {
+              // body.customer_id.nonEmpty
+            // }
+            // targetUser <- Users.users.vend.getUserByUserIdFuture(body.user_id) map {
+              // x => unboxFullOrFail(x, Some(cc), UserNotFoundByUserId, 404)
+            // }
+            // // The link target is explicit here, so it must name an original user: a link on an
+            // // agent identity dies with its Consent. ON_BEHALF_OF_USER_ID_PLAN.md, Phase 3.
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Customers are linked to humans - use the granting user's USER_ID.",
+              // failCode = 400, cc = Some(cc)) {
+              // !targetUser.isConsentUser
+            // }
+            // (customer, cc2) <- NewStyle.function.getCustomerByCustomerId(body.customer_id, Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"Bank of the customer specified by the CUSTOMER_ID(${customer.bankId}) has to matches BANK_ID(${bank.bankId.value}) in URL",
+              // cc = cc2) {
+              // customer.bankId == bank.bankId.value
+            // }
+            // _ <- code.util.Helper.booleanToFuture(CustomerAlreadyExistsForUser, cc = cc2) {
+              // UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(body.user_id, body.customer_id).isEmpty
+            // }
+            // userCustomerLink <- Future {
+              // unboxFullOrFail(
+                // UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(body.user_id, body.customer_id, new Date(), true),
+                // cc2, CreateUserCustomerLinksError, 400)
+            // }
+            // _ <- AuthUser.refreshUser(targetUser, cc2)
+          // } yield createUserCustomerLinkJSON(userCustomerLink)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(createUserCustomerLinks), "POST",
-      "/banks/BANK_ID/user_customer_links",
-      "Create User Customer Link",
-      s"""Link a User to a Customer
-      |
-      |${userAuthenticationMessage(true)}
-      |
-      |$createUserCustomerLinksrequiredEntitlementsText
-      |""",
-      createUserCustomerLinkJson, userCustomerLinkJson,
-      List(AuthenticatedUserIsRequired, InvalidBankIdFormat, BankNotFound, InvalidJsonFormat,
-        InvalidUserId, CustomerNotFoundByCustomerId, UserHasMissingRoles, CustomerAlreadyExistsForUser,
-        CreateUserCustomerLinksError, UnknownError),
-      List(apiTagCustomer, apiTagUser, apiTagOldStyle),
-      Some(List(canCreateUserCustomerLink, canCreateUserCustomerLinkAtAnyBank)),
-      http4sPartialFunction = Some(createUserCustomerLinks))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(createUserCustomerLinks), "POST",
+      // "/banks/BANK_ID/user_customer_links",
+      // "Create User Customer Link",
+      // s"""Link a User to a Customer
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |$createUserCustomerLinksrequiredEntitlementsText
+      // |""",
+      // createUserCustomerLinkJson, userCustomerLinkJson,
+      // List(AuthenticatedUserIsRequired, InvalidBankIdFormat, BankNotFound, InvalidJsonFormat,
+        // InvalidUserId, CustomerNotFoundByCustomerId, UserHasMissingRoles, CustomerAlreadyExistsForUser,
+        // CreateUserCustomerLinksError, UnknownError),
+      // List(apiTagCustomer, apiTagUser, apiTagOldStyle),
+      // Some(List(canCreateUserCustomerLink, canCreateUserCustomerLinkAtAnyBank)),
+      // http4sPartialFunction = Some(createUserCustomerLinks))
 
     // ─── addEntitlement ───────────────────────────────────────────────────────
 
@@ -1317,34 +1330,35 @@ object Http4s200 {
 
     // ─── getEntitlements ──────────────────────────────────────────────────────
 
-    val getEntitlements: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "users" / userId / "entitlements" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- code.util.Helper.booleanToFuture(UserHasMissingRoles + canGetEntitlementsForAnyUserAtAnyBank, failCode = 403, cc = Some(cc)) {
-              APIUtil.hasEntitlement("", user.userId, canGetEntitlementsForAnyUserAtAnyBank)
-            }
-            entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(userId) map {
-              connectorEmptyResponse(_, Some(cc))
-            }
-          } yield {
-            if (isSuperAdmin(userId)) JSONFactory200.withVirtualEntitlements(entitlements, APIUtil.superAdminVirtualRoles)
-            else if (isOidcOperator(userId)) JSONFactory200.withVirtualEntitlements(entitlements, APIUtil.oidcOperatorVirtualRoles)
-            else JSONFactory200.createEntitlementJSONs(entitlements)
-          }
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getEntitlements: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "users" / userId / "entitlements" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- code.util.Helper.booleanToFuture(UserHasMissingRoles + canGetEntitlementsForAnyUserAtAnyBank, failCode = 403, cc = Some(cc)) {
+              // APIUtil.hasEntitlement("", user.userId, canGetEntitlementsForAnyUserAtAnyBank)
+            // }
+            // entitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(userId) map {
+              // connectorEmptyResponse(_, Some(cc))
+            // }
+          // } yield {
+            // if (isSuperAdmin(userId)) JSONFactory200.withVirtualEntitlements(entitlements, APIUtil.superAdminVirtualRoles)
+            // else if (isOidcOperator(userId)) JSONFactory200.withVirtualEntitlements(entitlements, APIUtil.oidcOperatorVirtualRoles)
+            // else JSONFactory200.createEntitlementJSONs(entitlements)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getEntitlements), "GET",
-      "/users/USER_ID/entitlements",
-      "Get Entitlements for User",
-      s"""${userAuthenticationMessage(true)}""",
-      EmptyBody, entitlementJSONs,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagOldStyle),
-      Some(List(canGetEntitlementsForAnyUserAtAnyBank)),
-      http4sPartialFunction = Some(getEntitlements))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getEntitlements), "GET",
+      // "/users/USER_ID/entitlements",
+      // "Get Entitlements for User",
+      // s"""${userAuthenticationMessage(true)}""",
+      // EmptyBody, entitlementJSONs,
+      // List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagOldStyle),
+      // Some(List(canGetEntitlementsForAnyUserAtAnyBank)),
+      // http4sPartialFunction = Some(getEntitlements))
 
     // ─── deleteEntitlement ────────────────────────────────────────────────────
 
@@ -1391,29 +1405,30 @@ object Http4s200 {
 
     // ─── getAllEntitlements ────────────────────────────────────────────────────
 
-    val getAllEntitlements: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "entitlements" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- code.util.Helper.booleanToFuture(UserHasMissingRoles + canGetEntitlementsForAnyUserAtAnyBank, failCode = 403, cc = Some(cc)) {
-              APIUtil.hasEntitlement("", user.userId, canGetEntitlementsForAnyUserAtAnyBank)
-            }
-            entitlements <- Entitlement.entitlement.vend.getEntitlementsFuture() map {
-              connectorEmptyResponse(_, Some(cc))
-            }
-          } yield JSONFactory200.createEntitlementJSONs(entitlements)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getAllEntitlements: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "entitlements" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- code.util.Helper.booleanToFuture(UserHasMissingRoles + canGetEntitlementsForAnyUserAtAnyBank, failCode = 403, cc = Some(cc)) {
+              // APIUtil.hasEntitlement("", user.userId, canGetEntitlementsForAnyUserAtAnyBank)
+            // }
+            // entitlements <- Entitlement.entitlement.vend.getEntitlementsFuture() map {
+              // connectorEmptyResponse(_, Some(cc))
+            // }
+          // } yield JSONFactory200.createEntitlementJSONs(entitlements)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getAllEntitlements), "GET", "/entitlements",
-      "Get all Entitlements",
-      """Login is required.""",
-      EmptyBody, entitlementJSONs,
-      List(AuthenticatedUserIsRequired, UnknownError),
-      List(apiTagRole, apiTagEntitlement),
-      Some(List(canGetEntitlementsForAnyUserAtAnyBank)),
-      http4sPartialFunction = Some(getAllEntitlements))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getAllEntitlements), "GET", "/entitlements",
+      // "Get all Entitlements",
+      // """Login is required.""",
+      // EmptyBody, entitlementJSONs,
+      // List(AuthenticatedUserIsRequired, UnknownError),
+      // List(apiTagRole, apiTagEntitlement),
+      // Some(List(canGetEntitlementsForAnyUserAtAnyBank)),
+      // http4sPartialFunction = Some(getAllEntitlements))
 
     // ─── elasticSearchWarehouse ───────────────────────────────────────────────
 
@@ -1595,40 +1610,41 @@ object Http4s200 {
 
     // ─── getCustomers ─────────────────────────────────────────────────────────
 
-    val getCustomers: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "users" / "current" / "customers" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          Future {
-            val customers = CustomerX.customerProvider.vend.getCustomersByUserId(user.userId)
-            JSONFactory1_4_0.createCustomersJson(customers)
-          }
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getCustomers: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "users" / "current" / "customers" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // Future {
+            // val customers = CustomerX.customerProvider.vend.getCustomersByUserId(user.userId)
+            // JSONFactory1_4_0.createCustomersJson(customers)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getCustomers), "GET",
-      "/users/current/customers",
-      "Get all customers for logged in user",
-      """Information about the currently authenticated user.
-        |
-        |Authentication via OAuth is required.""",
-      EmptyBody, customersJsonV140,
-      List(AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
-      List(apiTagPerson, apiTagCustomer, apiTagOldStyle), None,
-      http4sPartialFunction = Some(getCustomers))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getCustomers), "GET",
+      // "/users/current/customers",
+      // "Get all customers for logged in user",
+      // """Information about the currently authenticated user.
+        // |
+        // |Authentication via OAuth is required.""",
+      // EmptyBody, customersJsonV140,
+      // List(AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
+      // List(apiTagPerson, apiTagCustomer, apiTagOldStyle), None,
+      // http4sPartialFunction = Some(getCustomers))
 
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
     // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given the docs in this same order.
     lazy val routesInOrder: List[Http4sHandler] = List(
-      root,
+      // root,
       getPrivateAccountsAllBanks,
-      corePrivateAccountsAllBanks,
+      // corePrivateAccountsAllBanks,
       publicAccountsAllBanks,
-      getPrivateAccountsAtOneBank,
+      // getPrivateAccountsAtOneBank,
       corePrivateAccountsAtOneBank,
-      privateAccountsAtOneBank,
+      // privateAccountsAtOneBank,
       publicAccountsAtOneBank,
       getKycDocuments,
       getKycMedia,
@@ -1640,23 +1656,23 @@ object Http4s200 {
       addKycCheck,
       addKycStatus,
       addSocialMediaHandle,
-      getCoreAccountById,
-      getCoreTransactionsForBankAccount,
-      accountById,
+      // getCoreAccountById,
+      // getCoreTransactionsForBankAccount,
+      // accountById,
       getPermissionsForBankAccount,
-      getPermissionForUserForBankAccount,
-      createAccount,
+      // getPermissionForUserForBankAccount,
+      // createAccount,
       getTransactionTypes,
       createUser,
-      createCustomer,
-      getCustomers,
-      getCurrentUser,
+      // createCustomer,
+      // getCustomers,
+      // getCurrentUser,
       getUser,
-      createUserCustomerLinks,
+      // createUserCustomerLinks,
       addEntitlement,
-      getEntitlements,
+      // getEntitlements,
       deleteEntitlement,
-      getAllEntitlements,
+      // getAllEntitlements,
       elasticSearchWarehouse,
       elasticSearchMetrics
     )
