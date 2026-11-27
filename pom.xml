@@ -124,11 +124,14 @@
     <dependencies>
       <!-- Jackson BOM: forces all com.fasterxml.jackson.* 2.x artifacts to one
            version. Mixing minor versions (databind 2.12 + core 2.14 + ...) is
-           unsupported and causes subtle runtime failures. -->
+           unsupported and causes subtle runtime failures. 2.18.11 fixes the
+           jackson-core and jackson-databind advisories published up to 2026-10
+           (GHSA-7hhh-6rmp-j9qf, GHSA-p6pp-m3f8-5c89, GHSA-cxp5-3px4-pw24,
+           GHSA-wv8q-qhhj-9h54 and the earlier 2.18.8 - 2.18.10 fixes). -->
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
-        <version>2.18.7</version>
+        <version>2.18.11</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
