@@ -3270,6 +3270,14 @@
       "reason": "The description says that each action in allowed_actions must be one the caller already has on one of their views of the account, else 403 SourceViewHasLessPermission",
       "lift_digest": "a6319a10ad9882d5dafcadbb279d13e7ac872ed36cd827883fd74eb5f63cb5fe",
       "http4s_digest": "fe5463f3aa72ec511a2533928e6768bdc8e75fc325b9a8a3d3f6bbef9d069694"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "createCustomViewManagement",
+      "field": "exampleRequestBody",
+      "reason": "The example is createViewJsonV300WithAllActions: this endpoint is authorised by a Role, so it shows every action, including the four the custom view example leaves out",
+      "lift_digest": "3160673a74ea993e6b3fa4687da440d0e08708261c9d41950d3977de84606a12",
+      "http4s_digest": "adc0446783cab7bffe95f4719398b789c7ee7b19a42a9febc970551e318716ff"
     }
   ]
 }

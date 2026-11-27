@@ -245,6 +245,10 @@ object SwaggerDefinitionsJSON {
   private lazy val actionsTheOwnerViewDoesNotHave =
     List(CAN_QUERY_AVAILABLE_FUNDS, CAN_SEE_BANK_ACCOUNT_CREDIT_LIMIT, CAN_CREATE_DIRECT_DEBIT, CAN_CREATE_STANDING_ORDER)
 
+  // Create Custom View (Management) is authorised by a Role, not by the caller's views, so its example shows every action.
+  lazy val createViewJsonV300WithAllActions = createViewJsonV300.copy(
+    allowed_actions = createViewJsonV300.allowed_actions ++ actionsTheOwnerViewDoesNotHave)
+
   lazy val createSystemViewJsonV300 = createViewJsonV300.copy(name = "test", metadata_view = "test", is_public = false,
     allowed_actions = createViewJsonV300.allowed_actions ++ actionsTheOwnerViewDoesNotHave)
 
