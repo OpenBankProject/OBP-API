@@ -20,37 +20,823 @@
   ],
   "only_in_lift": [
     {
+      "version": "v1_2_1",
+      "endpoint": "accountById",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account is served by v4.0.0:getPrivateAccountByIdFull. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "484c83e9dc8c0ad06a2a601cf64d7b2f6d6a228d21aa0f33c67889708649b598"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "bankById",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID is served by v5.0.0:getBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "48ab67713a000be95ee59192f63b49ee82ed5783f31d75a6b719bf0d5a26b9e1"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "createViewForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/accounts/ACCOUNT_ID/views is served by v3.0.0:createViewForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "958db25572885c5f31840b4e6bac9ea2f6380c859e4422297db945239723c810"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getBanks",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks is served by v5.1.0:getBanks. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "0c0073bfd65b757d2c2cbe055d6114e000aa34d0c62d58a4e3dce61e374ecad2"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getOtherAccountByIdForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID is served by v3.0.0:getOtherAccountByIdForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "609e051ca84cb9796e5a6b42a1e4e5f1ce63cc62c7304d24b4b929db621b4d31"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getOtherAccountsForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts is served by v3.0.0:getOtherAccountsForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "d8e7b330d5fd52a8802c3bf1aec8a90c5ac0c90917e10e246087c613fa1038dd"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getPermissionForUserForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID is served by v3.0.0:getPermissionForUserForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "38f8c08280db4b263612fd71d226a62bee031b4b35c7476dc3b4ab2cce8da46b"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getPermissionsForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/permissions is served by v2.0.0:getPermissionsForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "94e0c4ee97b274aa7bb928c128231718c6a71266ca2dc0217d5a1699b0f38469"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getPrivateAccountsAllBanks",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /accounts is served by v2.0.0:getPrivateAccountsAllBanks. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "0473dba8aa0e1a4ed43f451e652a2b5ef7dedf426582619fa65a53888fad77ab"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getPrivateAccountsAtOneBank",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts is served by v4.0.0:getPrivateAccountsAtOneBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "f1be2ad55a61d9743abd135ecc82dc5668eb2cc59640e55f48b059cd0e8144a9"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getTransactionByIdForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction is served by v3.1.0:getTransactionByIdForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "41081a5447757a559b3c2bb1f6f81680dd9aee5b3002378df172332c6be71d08"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getTransactionsForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions is served by v3.0.0:getTransactionsForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "446024ec184ae047fb452886a10b8b2f6992dd8eddc1c404f21d11e922a3e9eb"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "getViewsForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/views is served by v5.0.0:getViewsForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "f4592cf9617dcc6cbfe792162b60e89fa60493d53b880036f5c571d972de5515"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "privateAccountsAtOneBank",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/private is served by v3.0.0:privateAccountsAtOneBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "8052de41e6bb62a74b1017f43e69b1ffbac9d011e5c21cc9d6596534d5a83037"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "publicAccountsAllBanks",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /accounts/public is served by v2.0.0:publicAccountsAllBanks. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "779e93c19a19638a489da39e34d74c3853b4d6a9900e33d2e63a9b516fe5907f"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "publicAccountsAtOneBank",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/public is served by v2.0.0:publicAccountsAtOneBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "a09032a33e9f7d3be899baab975cc4246de326ab7b1c6c84b35013abbad78aa5"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "root",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /root is served by v5.1.0:root. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "093ce34f95e5751ae02a37b0af0f4bcdf719a2ba5b6695f0ec58fda3fd136bc9"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "updateAccountLabel",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/accounts/ACCOUNT_ID is served by v4.0.0:updateAccountLabel. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "efccdf2c20e0c041a2c2cc7657b19594ee2803923b0fe4b170cbe0e56e625776"
+    },
+    {
+      "version": "v1_2_1",
+      "endpoint": "updateViewForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID is served by v3.0.0:updateViewForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "35c8e4145e851d6b9b286f2f8d009548746ef77910f9c0c85e61e25daa66c521"
+    },
+    {
+      "version": "v1_3_0",
+      "endpoint": "root",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /root is served by v5.1.0:root. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "093ce34f95e5751ae02a37b0af0f4bcdf719a2ba5b6695f0ec58fda3fd136bc9"
+    },
+    {
+      "version": "v1_4_0",
+      "endpoint": "getAtms",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/atms is served by v5.1.0:getAtms. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "d393ef07fc0067c60f576ca1b8d616884817711e54fb081d9b05811e7ac39ddd"
+    },
+    {
+      "version": "v1_4_0",
+      "endpoint": "getBranches",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/branches is served by v3.0.0:getBranches. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "eba32bf07fdf823289c71e0fb5c1d49e32e730e0c93d385c1f2dc8c374a16816"
+    },
+    {
+      "version": "v1_4_0",
+      "endpoint": "getProducts",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/products is served by v5.0.0:getProducts. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "44688378313bff70cacf4fc60468cb8dc3c4194bfe65953dc30aa45389a5f902"
+    },
+    {
+      "version": "v1_4_0",
+      "endpoint": "root",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /root is served by v5.1.0:root. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "093ce34f95e5751ae02a37b0af0f4bcdf719a2ba5b6695f0ec58fda3fd136bc9"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "accountById",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account is served by v4.0.0:getPrivateAccountByIdFull. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "484c83e9dc8c0ad06a2a601cf64d7b2f6d6a228d21aa0f33c67889708649b598"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "corePrivateAccountsAllBanks",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /my/accounts is served by v3.0.0:corePrivateAccountsAllBanks. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "4e1c8b4c0c486c1a8b00c938736230a4ffbc9e46dc01f1653a5bc6d42f4d23a8"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "createAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /banks/BANK_ID/accounts/ACCOUNT_ID is served by v5.0.0:createAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "4e86d6991fa695589a0f1dad3c8eea5e11f5b3ee89e49350b7c817c5b09bf90b"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "createCustomer",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/customers is served by v5.0.0:createCustomer. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "af6af33cc7e781c09d063be9409489109e26886cf2cadce94c596ca1f0b4bbdd"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "createUserCustomerLinks",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/user_customer_links is served by v4.0.0:createUserCustomerLinks. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "05d54a10844f51dce797343912784d1a5b2f6f74ebbb31b62ca14e0c73fa2885"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "getAllEntitlements",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /entitlements is served by v3.1.0:getAllEntitlements. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "e608b1626492061db2738dffa7e8b377b6c17ac30c1b907b47500e63d356b335"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "getCoreAccountById",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /my/banks/BANK_ID/accounts/ACCOUNT_ID/account is served by v4.0.0:getCoreAccountById. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "742a3ea56f496ee157b5f5cc6022b4e8b00e133c8fec680c1b354d65803ec0f1"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "getCoreTransactionsForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions is served by v3.0.0:getCoreTransactionsForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "4c4b0919aec61aef14e22eb2eafa08b9dfe0b49c49911cbfedd1f25b5699942e"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "getCurrentUser",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /users/current is served by v3.0.0:getCurrentUser. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "250dfdb471116b5ede12767661a0116d26c87c6adae364b2d0ed92abb8aff989"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "getCustomers",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /users/current/customers is served by v3.0.0:getCustomersForUser. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "b36c0667a4a4f049fdf629752eb46460701a68e5b019d277a60b4dbbc3f8b2f2"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "getEntitlements",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /users/USER_ID/entitlements is served by v4.0.0:getEntitlements. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "19198f21a2bc5fa5b3c5fa0906e9b96c464cb2b518f372d74b1864b970ce498b"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "getPermissionForUserForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID is served by v3.0.0:getPermissionForUserForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "ae768128c7d386a500d8366d73616a16c37880529a1f9ea60aafb1d2c5befd25"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "getPrivateAccountsAtOneBank",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts is served by v4.0.0:getPrivateAccountsAtOneBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "f1be2ad55a61d9743abd135ecc82dc5668eb2cc59640e55f48b059cd0e8144a9"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "privateAccountsAtOneBank",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/private is served by v3.0.0:privateAccountsAtOneBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "8052de41e6bb62a74b1017f43e69b1ffbac9d011e5c21cc9d6596534d5a83037"
+    },
+    {
+      "version": "v2_0_0",
+      "endpoint": "root",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /root is served by v5.1.0:root. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "093ce34f95e5751ae02a37b0af0f4bcdf719a2ba5b6695f0ec58fda3fd136bc9"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "answerTransactionRequestChallenge",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge is served by v4.0.0:answerTransactionRequestChallenge. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "f2d85edae829737bdf7986ab28088c910fc5215b1e4562ad8630795618c6e62f"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "createBranch",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/branches is served by v3.0.0:createBranch. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "8e9e1aade841981a006c8e0f81e6db919a0febb6c30b09d2139ed2d8f00a1bb4"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "createCustomer",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/customers is served by v5.0.0:createCustomer. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "af6af33cc7e781c09d063be9409489109e26886cf2cadce94c596ca1f0b4bbdd"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "enableDisableConsumers",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /management/consumers/CONSUMER_ID is served by v3.1.0:enableDisableConsumers. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "ecf5960b43978341a177bf92ee8bb4511ba489760b1c024844e16c89312614b0"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "getAtm",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/atms/ATM_ID is served by v5.1.0:getAtm. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "6192939cce65bb604884cc3bb0303526a9c7cd14f31a834870e4715cf4af6b08"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "getBranch",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/branches/BRANCH_ID is served by v3.0.0:getBranch. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "cda69e846fdf7628748863d3e1d1fe9f64292bb9db7c21990d493da2c9bc3dc0"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "getConsumer",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /management/consumers/CONSUMER_ID is served by v5.1.0:getConsumer. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "508e1607b1c15b770653c0a663dcc99f01d2b06e0e8c35dc9de27eea2e3c140c"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "getConsumers",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /management/consumers is served by v5.1.0:getConsumers. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "a579211715874cffbbd1832d51e72826aa270df0765690adbb8bf1c1e0657d0a"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "getCustomersForCurrentUserAtBank",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/customers is served by v5.0.0:getCustomersAtOneBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "ea7e6024a9f9910e107d9e85cd90d62fd513eb9a09017344259980c3f0486d76"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "getCustomersForUser",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /users/current/customers is served by v3.0.0:getCustomersForUser. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "b36c0667a4a4f049fdf629752eb46460701a68e5b019d277a60b4dbbc3f8b2f2"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "getMetrics",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /management/metrics is served by v5.1.0:getMetrics. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "887d7d93d4c9763aa9e060a6564d493bda2ca680011e1b915b52ac1ff0af599e"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "getProduct",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/products/PRODUCT_CODE is served by v5.0.0:getProduct. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "ce968619327cdde42204fcf1b4a2848955b330e5604f4ff51fcc3f62e4fce033"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "getProducts",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/products is served by v5.0.0:getProducts. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "44688378313bff70cacf4fc60468cb8dc3c4194bfe65953dc30aa45389a5f902"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "getTransactionRequests",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests is served by v5.1.0:getTransactionRequests. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "59f86a6d9967712062863f8d5807b9bf422630824a9896a66760f7406bc33dc6"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "getUsers",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /users is served by v4.0.0:getUsers. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "3f9eff2e995fa7e0e6d013b65da0555c38637f89e5833461b01009c8e3a37496"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "root",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /root is served by v5.1.0:root. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "093ce34f95e5751ae02a37b0af0f4bcdf719a2ba5b6695f0ec58fda3fd136bc9"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "updateBranch",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /banks/BANK_ID/branches/BRANCH_ID is served by v3.0.0:updateBranch. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "3ad043bd05c406b4bb2749186d6e1107f3f2c52e47d53c5c85a1cee353ebc084"
+    },
+    {
+      "version": "v2_1_0",
+      "endpoint": "updateConsumerRedirectUrl",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /management/consumers/CONSUMER_ID/consumer/redirect_url is served by v5.1.0:updateConsumerRedirectURL. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "fe5cfe499db05b5fc087169223dd191bb4889ca062ed4d22db401f0f678c7cc3"
+    },
+    {
       "version": "v2_1_0",
       "endpoint": "createTransactionRequestCounterparty",
-      "reason": "COUNTERPARTY transaction-request type variant retired from the v2.1.0 http4s surface; superseded by newer-version transaction-request endpoints",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests is served by v4.0.0:createTransactionRequestCounterparty. See docs/OLD_VERSION_ONLY_CODE.md.",
       "identity_digest": "c59853d817f9e8334eca95f295d4fc803c908a0d9261e713d822c2b1314d3985"
     },
     {
       "version": "v2_1_0",
       "endpoint": "createTransactionRequestFreeForm",
-      "reason": "FREE_FORM transaction-request type variant retired from the v2.1.0 http4s surface",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/FREE_FORM/transaction-requests is served by v4.0.0:createTransactionRequestFreeForm. See docs/OLD_VERSION_ONLY_CODE.md.",
       "identity_digest": "15442f69a71f79960fd182727b90bfc44e2ca1364884489fe275c9a0807c4937"
     },
     {
       "version": "v2_1_0",
       "endpoint": "createTransactionRequestSandboxTan",
-      "reason": "SANDBOX_TAN transaction-request type variant retired from the v2.1.0 http4s surface; http4s v2.1.0 keeps a generic createTransactionRequest instead",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SANDBOX_TAN/transaction-requests is served by v4.0.0:createTransactionRequestAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
       "identity_digest": "5a22860803dd4b940ef818f59b59d563398e92bf62540b431624426e039d75a1"
     },
     {
       "version": "v2_1_0",
       "endpoint": "createTransactionRequestSepa",
-      "reason": "SEPA transaction-request type variant retired from the v2.1.0 http4s surface",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests is served by v4.0.0:createTransactionRequestSepa. See docs/OLD_VERSION_ONLY_CODE.md.",
       "identity_digest": "6997d91d6b25fdd28a7b6b73ab81c07fdfd297095da796fd4fd8832e54366a11"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "config",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /config is served by v3.1.0:config. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "ef521b1b29b1531f1e9805adbb84254dc2ba49ca0b84a3de0f4b686838575009"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /banks/BANK_ID/accounts/ACCOUNT_ID is served by v5.0.0:createAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "4e86d6991fa695589a0f1dad3c8eea5e11f5b3ee89e49350b7c817c5b09bf90b"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createAtm",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/atms is served by v5.1.0:createAtm. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "fd751f004f6f89842853228c6752ab8650fb2ab94b38e27f515fd9d0f4836be8"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createBank",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks is served by v5.0.0:createBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "4e0e35751c7497839f68e32b716acb0ff87bf30cb19b9256aedc6b17a1890e62"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createBranch",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/branches is served by v3.0.0:createBranch. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "8e9e1aade841981a006c8e0f81e6db919a0febb6c30b09d2139ed2d8f00a1bb4"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createConsumer",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /management/consumers is served by v5.1.0:createConsumer. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "acd592aa52a38e8f1d9ce0948b3fc0dfb583be234adba3a8158f8ba8056f0cd5"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createCounterparty",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties is served by v4.0.0:createCounterparty. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "331f491443e2eb5045edd9517558df71620e6b000be1076354ea74915d916932"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createViewForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/accounts/ACCOUNT_ID/views is served by v3.0.0:createViewForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "958db25572885c5f31840b4e6bac9ea2f6380c859e4422297db945239723c810"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "getExplicitCounterpartiesForAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties is served by v4.0.0:getExplicitCounterpartiesForAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "584fd9defa3594f74a33a18edaec5f905b5ef57229e24f799aba431b38c4bfc0"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "getExplicitCounterpartyById",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID is served by v4.0.0:getExplicitCounterpartyById. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "147dfb75cf0c1a4e55e114dd22e02aff4428d217cb6338e28626a142c515ea4b"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "getViewsForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/views is served by v5.0.0:getViewsForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "f4592cf9617dcc6cbfe792162b60e89fa60493d53b880036f5c571d972de5515"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "root",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /root is served by v5.1.0:root. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "093ce34f95e5751ae02a37b0af0f4bcdf719a2ba5b6695f0ec58fda3fd136bc9"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "updateViewForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID is served by v3.0.0:updateViewForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "35c8e4145e851d6b9b286f2f8d009548746ef77910f9c0c85e61e25daa66c521"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "addScope",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /consumers/CONSUMER_ID/scopes is served by v4.0.0:addScope. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "2d49d7f59831dec7678818c0c0b458499fa1b0c967deba7eaa24cfba643fd178"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "bankById",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID is served by v5.0.0:getBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "48ab67713a000be95ee59192f63b49ee82ed5783f31d75a6b719bf0d5a26b9e1"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "createAtm",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/atms is served by v5.1.0:createAtm. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "fd751f004f6f89842853228c6752ab8650fb2ab94b38e27f515fd9d0f4836be8"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getAggregateMetrics",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /management/aggregate-metrics is served by v5.1.0:getAggregateMetrics. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "c04c1044f926ef3a09abf9b62afb04677d6deb95edebbbb85668f69b74bd274c"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getAtm",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/atms/ATM_ID is served by v5.1.0:getAtm. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "6192939cce65bb604884cc3bb0303526a9c7cd14f31a834870e4715cf4af6b08"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getAtms",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/atms is served by v5.1.0:getAtms. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "d393ef07fc0067c60f576ca1b8d616884817711e54fb081d9b05811e7ac39ddd"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getBanks",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks is served by v5.1.0:getBanks. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "0c0073bfd65b757d2c2cbe055d6114e000aa34d0c62d58a4e3dce61e374ecad2"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getCoreAccountById",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /my/banks/BANK_ID/accounts/ACCOUNT_ID/account is served by v4.0.0:getCoreAccountById. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "742a3ea56f496ee157b5f5cc6022b4e8b00e133c8fec680c1b354d65803ec0f1"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getFirehoseAccountsAtOneBank",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/firehose/accounts/views/VIEW_ID is served by v4.0.0:getFirehoseAccountsAtOneBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "9a612725e8af1feb3c3b5ee04c0aa4c1cae1ae5790b3d4017dda1f8c7dd405e4"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getPrivateAccountById",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account is served by v4.0.0:getPrivateAccountByIdFull. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "484c83e9dc8c0ad06a2a601cf64d7b2f6d6a228d21aa0f33c67889708649b598"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getScopes",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /consumers/CONSUMER_ID/scopes is served by v4.0.0:getScopes. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "c81ae83d64395b31c55eb8af3e3926c7649840d8ac2ac106b2dac82614125c25"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getUser",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /users/email/USER_EMAIL/terminator is served by v4.0.0:getUsersByEmail. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "48cfeeb9ba8160f57793675f5229aa6d7a862e59f7e43e26382073c988022b12"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getUserByUserId",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /users/user_id/USER_ID is served by v4.0.0:getUserByUserId. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "d9468eaf45b7967a21f9e331b37ee8a5b1c72808da4a71864a58bf2483315b52"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getUserByUsername",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /users/username/USERNAME is served by v4.0.0:getUserByUsername. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "1fb04b078d77cf789517304a24858143ae693aa478c73e0d799cf78338c7336c"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getUsers",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /users is served by v4.0.0:getUsers. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "3f9eff2e995fa7e0e6d013b65da0555c38637f89e5833461b01009c8e3a37496"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "getViewsForBankAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/views is served by v5.0.0:getViewsForBankAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "f4592cf9617dcc6cbfe792162b60e89fa60493d53b880036f5c571d972de5515"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "root",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /root is served by v5.1.0:root. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "093ce34f95e5751ae02a37b0af0f4bcdf719a2ba5b6695f0ec58fda3fd136bc9"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "addCardForBank",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /management/banks/BANK_ID/cards is served by v5.0.0:addCardForBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "750d4a80424bb52a26c72b113ed8b48bd0ee4fedd6350b51fb144f1976a11559"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "answerUserAuthContextUpdateChallenge",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge is served by v5.0.0:answerUserAuthContextUpdateChallenge. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "508cb7b9151713f5c36802d26e64356dca3188a9b0013404e8e24a87d7ee9bd4"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "callsLimit",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /management/consumers/CONSUMER_ID/consumer/call-limits is served by v4.0.0:callsLimit. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "3dca702ce01a84b814d81f3ec44643a9957edaec110616e0ecedf72a5439ed52"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createAccount",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /banks/BANK_ID/accounts/ACCOUNT_ID is served by v5.0.0:createAccount. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "4e86d6991fa695589a0f1dad3c8eea5e11f5b3ee89e49350b7c817c5b09bf90b"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createCustomer",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/customers is served by v5.0.0:createCustomer. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "af6af33cc7e781c09d063be9409489109e26886cf2cadce94c596ca1f0b4bbdd"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createProduct",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /banks/BANK_ID/products/PRODUCT_CODE is served by v5.0.0:createProduct. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "f5e6faa62e946377b93a0562d5ab89c52e5433bd057234cd5f962da60fb7a711"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createProductAttribute",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/products/PRODUCT_CODE/attribute is served by v4.0.0:createProductAttribute. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "c3a47a73154b9642cd260d9bf3a841eb70b12d8ccc4a6f0d3aa411f908ee13c1"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createSystemView",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /system-views is served by v5.0.0:createSystemView. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "2b447f8aef4056fdf2207e545bdaa592f0c3a2f01526e217f89efa9cc8ed9f98"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createUserAuthContext",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /users/USER_ID/auth-context is served by v5.0.0:createUserAuthContext. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "189845a975924e3e3b300cdc651dadfbc92e3207e012435b2ece435f11b37d11"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "createUserAuthContextUpdateRequest",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/users/current/auth-context-updates/SCA_METHOD is served by v5.0.0:createUserAuthContextUpdateRequest. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "579210508fcd1d54e9927ef7c40f16ee6fd6152be6b92cadbcfd5d74732675a6"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "deleteSystemView",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions DELETE /system-views/VIEW_ID is served by v5.0.0:deleteSystemView. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "3f656003908fc3c92d6de31cea43aca60a63e88e22ca40647f2d06a4ac7be762"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getAdapterInfo",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /adapter is served by v5.0.0:getAdapterInfo. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "7d75e5d95f90a21ede4377eef2871ef16e543d7a5772e2609f52e05942eaca38"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getBankAccountsBalances",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/balances is served by v5.1.0:getBankAccountsBalances. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "30519387d1ffafe99255c50a1e927ad3ff52de7779cf70e020f35f6109267db6"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getConsents",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/my/consents is served by v5.1.0:getMyConsentsByBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "b8a676c7c8aa6a44fd8fb31c58d109b50f0f2853a5eda050f15b25b7302ca6a9"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getConsumer",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /management/consumers/CONSUMER_ID is served by v5.1.0:getConsumer. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "508e1607b1c15b770653c0a663dcc99f01d2b06e0e8c35dc9de27eea2e3c140c"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getConsumers",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /management/consumers is served by v5.1.0:getConsumers. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "a579211715874cffbbd1832d51e72826aa270df0765690adbb8bf1c1e0657d0a"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getPrivateAccountByIdFull",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account is served by v4.0.0:getPrivateAccountByIdFull. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "484c83e9dc8c0ad06a2a601cf64d7b2f6d6a228d21aa0f33c67889708649b598"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getProduct",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/products/PRODUCT_CODE is served by v5.0.0:getProduct. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "ce968619327cdde42204fcf1b4a2848955b330e5604f4ff51fcc3f62e4fce033"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getProductAttribute",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID is served by v4.0.0:getProductAttribute. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "2b19679549e3addc1d80c6bc779fb9af5006462d68ebaad8cdf98ea97f952a52"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getProducts",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/products is served by v5.0.0:getProducts. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "44688378313bff70cacf4fc60468cb8dc3c4194bfe65953dc30aa45389a5f902"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getSystemView",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /system-views/VIEW_ID is served by v5.0.0:getSystemView. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "698c79232741bfa8a21f4470f3519e9b1a572a185b1b3946fa6b1fe6b6eabb19"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getTransactionRequests",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests is served by v5.1.0:getTransactionRequests. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "59f86a6d9967712062863f8d5807b9bf422630824a9896a66760f7406bc33dc6"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "getUserAuthContexts",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /users/USER_ID/auth-context is served by v5.0.0:getUserAuthContexts. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "3477427b14ca313ad874a1ddec4612346204e263b6a495953cd9d60c8c1a7490"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "root",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /root is served by v5.1.0:root. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "093ce34f95e5751ae02a37b0af0f4bcdf719a2ba5b6695f0ec58fda3fd136bc9"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "updateProductAttribute",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID is served by v4.0.0:updateProductAttribute. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "14acbad9edd5e2af0a5991b0b66fea975ca6dbc0d0c65e8c311ad508ec06f065"
+    },
+    {
+      "version": "v3_1_0",
+      "endpoint": "updateSystemView",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /system-views/VIEW_ID is served by v5.0.0:updateSystemView. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "ba98ca8015de80b252e00638eb5f68b5a018efbf44a75d93c4f4bd7c85881c61"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createAtm",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/atms is served by v5.1.0:createAtm. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "fd751f004f6f89842853228c6752ab8650fb2ab94b38e27f515fd9d0f4836be8"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createBank",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks is served by v5.0.0:createBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "4e0e35751c7497839f68e32b716acb0ff87bf30cb19b9256aedc6b17a1890e62"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createConsumer",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /management/consumers is served by v5.1.0:createConsumer. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "acd592aa52a38e8f1d9ce0948b3fc0dfb583be234adba3a8158f8ba8056f0cd5"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createCustomer",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions POST /banks/BANK_ID/customers is served by v5.0.0:createCustomer. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "af6af33cc7e781c09d063be9409489109e26886cf2cadce94c596ca1f0b4bbdd"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "createProduct",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /banks/BANK_ID/products/PRODUCT_CODE is served by v5.0.0:createProduct. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "f5e6faa62e946377b93a0562d5ab89c52e5433bd057234cd5f962da60fb7a711"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "deleteAtm",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions DELETE /banks/BANK_ID/atms/ATM_ID is served by v5.1.0:deleteAtm. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "0095c0beffe83a10b53c17cb91e440a02fea25b639fee42e77dcff64a5c205c6"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getAtm",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/atms/ATM_ID is served by v5.1.0:getAtm. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "6192939cce65bb604884cc3bb0303526a9c7cd14f31a834870e4715cf4af6b08"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getAtms",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/atms is served by v5.1.0:getAtms. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "d393ef07fc0067c60f576ca1b8d616884817711e54fb081d9b05811e7ac39ddd"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getBank",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID is served by v5.0.0:getBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "48ab67713a000be95ee59192f63b49ee82ed5783f31d75a6b719bf0d5a26b9e1"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getBankAccountBalancesForCurrentUser",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/accounts/ACCOUNT_ID/balances is served by v5.1.0:getAllBankAccountBalances. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "e4c6bb293102ebeed40c4d10420566c361342b0b40a5c4f58a6d1e2c07b1f741"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getBankAccountsBalancesForCurrentUser",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/balances is served by v5.1.0:getBankAccountsBalances. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "30519387d1ffafe99255c50a1e927ad3ff52de7779cf70e020f35f6109267db6"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getBanks",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks is served by v5.1.0:getBanks. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "0c0073bfd65b757d2c2cbe055d6114e000aa34d0c62d58a4e3dce61e374ecad2"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getConsents",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/my/consents is served by v5.1.0:getMyConsentsByBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "b8a676c7c8aa6a44fd8fb31c58d109b50f0f2853a5eda050f15b25b7302ca6a9"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getCustomersByAttributes",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/customers is served by v5.0.0:getCustomersAtOneBank. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "ea7e6024a9f9910e107d9e85cd90d62fd513eb9a09017344259980c3f0486d76"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getProduct",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/products/PRODUCT_CODE is served by v5.0.0:getProduct. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "ce968619327cdde42204fcf1b4a2848955b330e5604f4ff51fcc3f62e4fce033"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getProducts",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /banks/BANK_ID/products is served by v5.0.0:getProducts. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "44688378313bff70cacf4fc60468cb8dc3c4194bfe65953dc30aa45389a5f902"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "root",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /root is served by v5.1.0:root. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "093ce34f95e5751ae02a37b0af0f4bcdf719a2ba5b6695f0ec58fda3fd136bc9"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateAtm",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions PUT /banks/BANK_ID/atms/ATM_ID is served by v5.1.0:updateAtm. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "245dc2579366e2b92ae9a9b0c4fd17e4542167b62f827383c7b839370a360c3b"
+    },
+    {
+      "version": "v5_0_0",
+      "endpoint": "root",
+      "reason": "Commented out: only OBP versions below v5.1.0 could reach it. Under the kept versions GET /root is served by v5.1.0:root. See docs/OLD_VERSION_ONLY_CODE.md.",
+      "identity_digest": "093ce34f95e5751ae02a37b0af0f4bcdf719a2ba5b6695f0ec58fda3fd136bc9"
     }
   ],
   "only_in_http4s": [
-    {
-      "version": "v2_1_0",
-      "endpoint": "createTransactionRequest",
-      "reason": "Generic http4s v2.1.0 createTransactionRequest replaces the per-type Lift variants (COUNTERPARTY/FREE_FORM/SANDBOX_TAN/SEPA) with one endpoint keyed by a GRANT_VIEW_ID template variable",
-      "identity_digest": "25a8fbc231f1c00856a8ecd8b208b154489fff97595fafd5b9c37a70f39efb0a"
-    },
     {
       "version": "v4_0_0",
       "endpoint": "createBankLevelDynamicEntity",
@@ -80,12 +866,6 @@
       "endpoint": "updateSystemDynamicEntity",
       "reason": "New in http4s v4.0.0, no Lift predecessor: system-level dynamic entity update",
       "identity_digest": "1a063aacee0d3755f92c5eecf639307106d7cbda22f18e5db539845ec145cc69"
-    },
-    {
-      "version": "v5_0_0",
-      "endpoint": "getBanks",
-      "reason": "New in http4s v5.0.0, no Lift predecessor",
-      "identity_digest": "0c0073bfd65b757d2c2cbe055d6114e000aa34d0c62d58a4e3dce61e374ecad2"
     },
     {
       "version": "v5_0_0",
@@ -146,14 +926,6 @@
       "reason": "AuthenticatedUserIsRequired is added when apiOptions.getProductsIsPublic=false, so the middleware requires a login as the Lift code did with authenticatedAccess",
       "lift_digest": "3bdcd0c958443de6b8a40314fb0e25bb976e6a734c73b4877302491756cb2ab9",
       "http4s_digest": "ff19d358f83b960a52f9fbdd96a02ddd930feef41ad37737d3c812fe99f72c7b"
-    },
-    {
-      "version": "v4_0_0",
-      "endpoint": "getAtms",
-      "field": "errorResponseBodies",
-      "reason": "Adds $AuthenticatedUserIsRequired: with apiOptions.getAtmsIsPublic=false the ATM list needs a logged-in user (401), as Lift's inline authenticatedAccess did",
-      "lift_digest": "ad61d5a742fbbdb23c6f9c1b5a094c268b229b3489f9a36a5d38c24a42e7b39d",
-      "http4s_digest": "8ffb72b0f6f2bd94179e19b1bd970a051ad05b0f6bf0050671b0e87026f74da4"
     },
     {
       "version": "v4_0_0",
@@ -485,14 +1257,6 @@
     },
     {
       "version": "v1_2_1",
-      "endpoint": "createViewForBankAccount",
-      "field": "requestUrl",
-      "reason": "Template variable renamed for clarity; same URL path shape, same route. (ACCOUNT_ID -> BANK_ACCOUNT_ID)",
-      "lift_digest": "91d541e4991471ff3b872dabd9b68fe6bc29b979fc91df495643a3bd361c0d60",
-      "http4s_digest": "48eb6cec7bca0cd448d5a206ac9bfc211f62c75db93235032dd09a9ead719de9"
-    },
-    {
-      "version": "v1_2_1",
       "endpoint": "deleteCounterpartyImageUrl",
       "field": "errorResponseBodies",
       "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
@@ -541,22 +1305,6 @@
     },
     {
       "version": "v1_2_1",
-      "endpoint": "getOtherAccountByIdForBankAccount",
-      "field": "description",
-      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
-      "lift_digest": "09d35c2ef09c2f3f6b1265b5f135d2a12bfc2a253ff0dbad6523d5cf907f33f4",
-      "http4s_digest": "5eed1fbc7ad89a78c45028f625e0c98ba971b85d3fc422fa982b3b740b117715"
-    },
-    {
-      "version": "v1_2_1",
-      "endpoint": "getOtherAccountByIdForBankAccount",
-      "field": "errorResponseBodies",
-      "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
-      "lift_digest": "edd1d3001f6969196bfdb42134be81735f1d78b74fdab9e47a7821061bdd6b4e",
-      "http4s_digest": "c2bd6aa796b42db71e8632b789921f9a43e424e5c0d63adda61cc65a62665205"
-    },
-    {
-      "version": "v1_2_1",
       "endpoint": "getOtherAccountForTransaction",
       "field": "errorResponseBodies",
       "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
@@ -581,14 +1329,6 @@
     },
     {
       "version": "v1_2_1",
-      "endpoint": "getTransactionByIdForBankAccount",
-      "field": "requestUrl",
-      "reason": "Template variable renamed for clarity; same URL path shape, same route.",
-      "lift_digest": "ecabd6bfbde5f98c5da6e0413ffde0dcd617fdcc166fecd2803ee3b554f960cb",
-      "http4s_digest": "2e20911e48ab9772e4e13bc1f2d29ff32970bed6e724ac92d4e6c18284a57284"
-    },
-    {
-      "version": "v1_2_1",
       "endpoint": "getTransactionNarrative",
       "field": "errorResponseBodies",
       "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
@@ -597,27 +1337,11 @@
     },
     {
       "version": "v1_2_1",
-      "endpoint": "getTransactionsForBankAccount",
-      "field": "requestUrl",
-      "reason": "Template variable renamed for clarity; same URL path shape, same route.",
-      "lift_digest": "73dc537489a60231085b37593010bc93359c2ad4b06e6a5ac7173a27142290bf",
-      "http4s_digest": "d7baff984c5e02a1f06124418933c95ad8fb2e530a3ca654751fbcf80a57d4da"
-    },
-    {
-      "version": "v1_2_1",
       "endpoint": "getWhereTagForViewOnTransaction",
       "field": "errorResponseBodies",
       "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
       "lift_digest": "311bd8e8d58266a4a4a00b4edc9c9f42c138113e78ff9a5f151ea3c46862f7df",
       "http4s_digest": "126a2f01634ce256a1898464f617b6dc4a644740000fb5ddfb00c69e8acf2f38"
-    },
-    {
-      "version": "v1_2_1",
-      "endpoint": "publicAccountsAtOneBank",
-      "field": "errorResponseBodies",
-      "reason": "Lift's own doc self-contradicted (titled \"Anonymous access\", text said \"OAuth not required\", yet still listed AuthenticatedUserIsRequired); http4s removed the contradictory entry to match the documented anonymous behavior.",
-      "lift_digest": "61ff620adb6336c3a7c4c28f758678ddeba477e465318974705a3930e399ce08",
-      "http4s_digest": "2a5c6f70f7dfd24677ad2bfb3c3a69512f12336f6f7cb9084fce8d681f8b8fea"
     },
     {
       "version": "v1_2_1",
@@ -660,36 +1384,12 @@
       "http4s_digest": "a12683aa13bafb349a69332a382fa3b613f67592c7eea2cef9424053a0deade3"
     },
     {
-      "version": "v1_2_1",
-      "endpoint": "updateViewForBankAccount",
-      "field": "requestUrl",
-      "reason": "Template variable renamed for clarity; same URL path shape, same route.",
-      "lift_digest": "7ff8ab9d5f5380b422cd7e8e46bc1a4beaa86e5eec2aea467285384a2593404a",
-      "http4s_digest": "04e78c3b02fef79fb86ea5555090669801dc4b0dec7ea8fdb1d95de1553d472b"
-    },
-    {
-      "version": "v1_2_1",
-      "endpoint": "updateViewForBankAccount",
-      "field": "errorResponseBodies",
-      "reason": "Added SourceViewHasLessPermission (403): the updated view may only get actions the caller already has on one of their views of the account, as v5.1.0 does",
-      "lift_digest": "4e76cff480673ec28f47a65e0c4b12813faf2f4908ed9db4289b69d82cd415a8",
-      "http4s_digest": "d9336c4032a9807b5124b916d49a67e156cac3705b15d8e9406af542570ed2d1"
-    },
-    {
       "version": "v1_4_0",
       "endpoint": "getTransactionRequestTypes",
       "field": "errorResponseBodies",
       "reason": "Dropped error strings (\"account not found at bank\" / \"user does not have access to owner view\") are never thrown by any code path in the repo -- dead text carried over in the Lift doc, not a real error the endpoint could return.",
       "lift_digest": "8c5828c463304c3fcb69cda98086bcff545babae1545868b54b20af7803a5990",
       "http4s_digest": "e1f18afff1272cce9d549efeea6fbea5784789c38d46bee6c54168f4a4a5ac15"
-    },
-    {
-      "version": "v2_0_0",
-      "endpoint": "createAccount",
-      "field": "requestUrl",
-      "reason": "ACCOUNT_ID -> NEW_ACCOUNT_ID: this repo's documented convention for a PUT-creates-account URL (see CLAUDE.md's \"Use NEW_ACCOUNT_ID for PUT-creates-account URLs\" gotcha).",
-      "lift_digest": "1c0ca8143e3e026ebd7129941384db521bac7e280dc0bcf11399e89a1575a6e5",
-      "http4s_digest": "996f7a532a9fd29d5a20500f888ca982522856316442612d4ce4087702ae1c3b"
     },
     {
       "version": "v2_0_0",
@@ -700,76 +1400,12 @@
       "http4s_digest": "f2a1b24fe00e6ab31696e04709874f481a2b92117e4ba0d8e34e09571b1368f7"
     },
     {
-      "version": "v2_1_0",
-      "endpoint": "answerTransactionRequestChallenge",
-      "field": "requestUrl",
-      "reason": "Lift generates one ResourceDoc per known transaction-request type via a .foreach loop over a literal-typed list (SANDBOX_TAN/COUNTERPARTY/SEPA/FREE_FORM, all in the recognized ALL_CAPS literal set) -- the parity tool's string-only parser can't evaluate that interpolation; the actual generated URL matches http4s.",
-      "lift_digest": "93db47095d4c55c632da47a706d21a79de188a6ad808f2c570b54b1a131747b2",
-      "http4s_digest": "20c01ec634b06a02892080510d3a07026e5a2d029cdff45006a723b53aa6fa5a"
-    },
-    {
-      "version": "v2_2_0",
-      "endpoint": "createAccount",
-      "field": "requestUrl",
-      "reason": "ACCOUNT_ID -> NEW_ACCOUNT_ID, same PUT-creates-account convention as v2.0.0.",
-      "lift_digest": "1c0ca8143e3e026ebd7129941384db521bac7e280dc0bcf11399e89a1575a6e5",
-      "http4s_digest": "996f7a532a9fd29d5a20500f888ca982522856316442612d4ce4087702ae1c3b"
-    },
-    {
-      "version": "v2_2_0",
-      "endpoint": "createViewForBankAccount",
-      "field": "requestUrl",
-      "reason": "Template variable renamed for clarity; same URL path shape, same route.",
-      "lift_digest": "91d541e4991471ff3b872dabd9b68fe6bc29b979fc91df495643a3bd361c0d60",
-      "http4s_digest": "69ccaef44e7ddda887462c6431f0ffe7b0f0a4a91f4e12bb5f207dffb3d3dc20"
-    },
-    {
-      "version": "v2_2_0",
-      "endpoint": "createViewForBankAccount",
-      "field": "errorResponseBodies",
-      "reason": "Added SourceViewHasLessPermission: Create View refuses (403) a view whose allowed_actions are not all on one of the caller's views of the account, as Update View does",
-      "lift_digest": "63c2f1b01e07eb8a86158e5631bde4dd32465aa75c13ba61d369f0ad8cf952d7",
-      "http4s_digest": "0f50f78378cc09491986f9a9ee074ebd5d56b93debc411788c9c453db54b623d"
-    },
-    {
-      "version": "v2_2_0",
-      "endpoint": "updateViewForBankAccount",
-      "field": "requestUrl",
-      "reason": "VIEW_ID -> UPD_VIEW_ID, documented bypass-variable convention for a view-update URL.",
-      "lift_digest": "7ff8ab9d5f5380b422cd7e8e46bc1a4beaa86e5eec2aea467285384a2593404a",
-      "http4s_digest": "cf5294172b6fea51500e1502a5dcb8efc1818f5c5216d0eb022e2fce18149f92"
-    },
-    {
-      "version": "v2_2_0",
-      "endpoint": "updateViewForBankAccount",
-      "field": "errorResponseBodies",
-      "reason": "Added SourceViewHasLessPermission (403): the updated view may only get actions the caller already has on one of their views of the account, as v5.1.0 does",
-      "lift_digest": "6c121e45a137edd8e68f1b7446a0482718dea19bcf5889f42dcff4bf01b7dd91",
-      "http4s_digest": "d146b526eaa03066229214dbe23bdc7e4e751f3c4029839962006f09d68d9ea7"
-    },
-    {
       "version": "v3_0_0",
       "endpoint": "createViewForBankAccount",
       "field": "requestUrl",
       "reason": "Template variable renamed for clarity; same URL path shape, same route.",
       "lift_digest": "91d541e4991471ff3b872dabd9b68fe6bc29b979fc91df495643a3bd361c0d60",
       "http4s_digest": "69ccaef44e7ddda887462c6431f0ffe7b0f0a4a91f4e12bb5f207dffb3d3dc20"
-    },
-    {
-      "version": "v3_0_0",
-      "endpoint": "getAtms",
-      "field": "errorResponseBodies",
-      "reason": "Dropped \"No ATMs available. License may not be set.\" -- verified even Lift's own handler only ever throws the plain atmsNotFound message, never this license-specific variant; the string was already dead in Lift.",
-      "lift_digest": "099baa28c79568b066fdbbd51ef7e3772365d9b427445e03d0e4f89b8be168c6",
-      "http4s_digest": "266858573788363b20c268a76fb993e29a82e884667ec1a8f2ec8d27a9b88700"
-    },
-    {
-      "version": "v3_0_0",
-      "endpoint": "getFirehoseAccountsAtOneBank",
-      "field": "requestUrl",
-      "reason": "BANK_ID/VIEW_ID -> FIREHOSE_BANK_ID/FIREHOSE_VIEW_ID, this repo's documented firehose-pattern bypass convention (prop check before role check before bank lookup).",
-      "lift_digest": "3cb31cd0d359a4d9cd387dcf9d99ed93d806828aaaf55a1daf682ea58fbe9d11",
-      "http4s_digest": "cff4cca2eb8ca403c84fbcd0e70a60c30e68d9d5c4499be8c75f6b3036a72166"
     },
     {
       "version": "v3_0_0",
@@ -805,14 +1441,6 @@
     },
     {
       "version": "v3_1_0",
-      "endpoint": "createAccount",
-      "field": "requestUrl",
-      "reason": "ACCOUNT_ID -> NEW_ACCOUNT_ID, PUT-creates-account convention.",
-      "lift_digest": "1c0ca8143e3e026ebd7129941384db521bac7e280dc0bcf11399e89a1575a6e5",
-      "http4s_digest": "996f7a532a9fd29d5a20500f888ca982522856316442612d4ce4087702ae1c3b"
-    },
-    {
-      "version": "v3_1_0",
       "endpoint": "createCardAttribute",
       "field": "errorResponseBodies",
       "reason": "Added UserHasMissingRoles: canCreateCardsForBank is now required at BANK_ID so only bank staff can write card attributes",
@@ -826,14 +1454,6 @@
       "reason": "Added UserHasMissingRoles: canUpdateCardsForBank is now required at BANK_ID so only bank staff can overwrite card attributes",
       "lift_digest": "ab6b9a504c9dafbcc134976d9f0b976cbe222c9054b9c811c5570adfb79ae6ce",
       "http4s_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5"
-    },
-    {
-      "version": "v3_1_0",
-      "endpoint": "deleteSystemView",
-      "field": "requestUrl",
-      "reason": "VIEW_ID -> SYS_VIEW_ID rename, same shape (system views have no per-account scoping).",
-      "lift_digest": "0b18308242af8b26c8ed51c3dda373102a35ddc0fc88a0512f972788cc1c410c",
-      "http4s_digest": "9a09487c0a48159914955edf656a8c22cd1b959f54216841b08dcc5bb7f56130"
     },
     {
       "version": "v3_1_0",
@@ -861,27 +1481,11 @@
     },
     {
       "version": "v3_1_0",
-      "endpoint": "getSystemView",
-      "field": "requestUrl",
-      "reason": "VIEW_ID -> SYS_VIEW_ID rename.",
-      "lift_digest": "0b18308242af8b26c8ed51c3dda373102a35ddc0fc88a0512f972788cc1c410c",
-      "http4s_digest": "9a09487c0a48159914955edf656a8c22cd1b959f54216841b08dcc5bb7f56130"
-    },
-    {
-      "version": "v3_1_0",
       "endpoint": "getTransactionByIdForBankAccount",
       "field": "description",
       "reason": "Lift's \"optional auth\" doc wording was already inaccurate: the handler unconditionally calls authenticatedAccess (verified in the commented-out Lift source), so http4s's \"Required\" wording/error-list entry corrects a pre-existing Lift doc bug rather than changing behavior.",
       "lift_digest": "1cd8e44d4596ded79ce9f0c90015ed4effc3893d297a0645a3c781663a607db7",
       "http4s_digest": "af12e5dc10c9e841ac07aab24f7289abef384fa807f286eb0b2860d4c1868a94"
-    },
-    {
-      "version": "v3_1_0",
-      "endpoint": "updateSystemView",
-      "field": "requestUrl",
-      "reason": "VIEW_ID -> SYS_VIEW_ID rename.",
-      "lift_digest": "0b18308242af8b26c8ed51c3dda373102a35ddc0fc88a0512f972788cc1c410c",
-      "http4s_digest": "9a09487c0a48159914955edf656a8c22cd1b959f54216841b08dcc5bb7f56130"
     },
     {
       "version": "v4_0_0",
@@ -1189,22 +1793,6 @@
     },
     {
       "version": "v6_0_0",
-      "endpoint": "getAggregateMetrics",
-      "field": "errorResponseBodies",
-      "reason": "AggregateMetricsDateRangeTooLong (400) is returned by APIMetrics.limitAggregateMetricsWindow when from_date and to_date are further apart than aggregate_metrics_max_days.",
-      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
-      "http4s_digest": "8f16b7299b9d91cda6127a8a1b18fd8ef7bda1ef93177f22d159fcad017a4428"
-    },
-    {
-      "version": "v3_0_0",
-      "endpoint": "getAggregateMetrics",
-      "field": "description",
-      "reason": "Documents the per-call date range limit enforced by APIMetrics.limitAggregateMetricsWindow, and corrects the from_date default: it was 1 January 1970, not the day before, and is now aggregate_metrics_max_days before to_date.",
-      "lift_digest": "2407b22d7271118a65e34d3400d7af72580aeb8a6cb9521103a991fa464cf3f1",
-      "http4s_digest": "e19a45086f2e479d8cf6744f950678ab224c0460ecad0de8847645450ff4c6ef"
-    },
-    {
-      "version": "v3_0_0",
       "endpoint": "getAggregateMetrics",
       "field": "errorResponseBodies",
       "reason": "AggregateMetricsDateRangeTooLong (400) is returned by APIMetrics.limitAggregateMetricsWindow when from_date and to_date are further apart than aggregate_metrics_max_days.",
@@ -1522,30 +2110,6 @@
       "reason": "Phase 3 on-behalf-of guard: an explicit user_id naming a consent user is refused with 400 InvalidUserId, so the error list gains InvalidUserId. See ON_BEHALF_OF_USER_ID_PLAN.md.",
       "lift_digest": "72059bd5869c989ac1938f0fea5f0786be4b62838f2e655d63143b9db5c93128",
       "http4s_digest": "9aee037dd06754a8d6c32b3adae1e6ea1e6f931c3dce43c4cfddada2871b8670"
-    },
-    {
-      "version": "v2_0_0",
-      "endpoint": "createCustomer",
-      "field": "errorResponseBodies",
-      "reason": "Phase 3 on-behalf-of guard: an explicit user_id naming a consent user is refused with 400 InvalidUserId, so the error list gains InvalidUserId. See ON_BEHALF_OF_USER_ID_PLAN.md.",
-      "lift_digest": "33c5b895d707447b256bd25741116c561dd656130715153950cb5ca81a80d667",
-      "http4s_digest": "31e6e04059b80406f66eac9f597fc94d78f6ce526309eb5e661824aa471e6e18"
-    },
-    {
-      "version": "v2_0_0",
-      "endpoint": "createUserCustomerLinks",
-      "field": "errorResponseBodies",
-      "reason": "Phase 3 on-behalf-of guard: an explicit user_id naming a consent user is refused with 400 InvalidUserId, so the error list gains InvalidUserId. See ON_BEHALF_OF_USER_ID_PLAN.md.",
-      "lift_digest": "ed173d824d2b639bd21d940e7c846183ce6ee629e842fd5e0580e9a9ca2836ef",
-      "http4s_digest": "c223322e602a5021ec8bf87ca939fc313f6349f7b9e56938da812580bb4175f2"
-    },
-    {
-      "version": "v2_1_0",
-      "endpoint": "createCustomer",
-      "field": "errorResponseBodies",
-      "reason": "Phase 3 on-behalf-of guard: an explicit user_id naming a consent user is refused with 400 InvalidUserId, so the error list gains InvalidUserId. See ON_BEHALF_OF_USER_ID_PLAN.md.",
-      "lift_digest": "07b620b7cc671aa6e30bd44d00a53e33cce60f103d9df4eaa97a627adf2c67a3",
-      "http4s_digest": "79776bfa4a20aacc5bc855837260797e17aa7b468b4f4ced2487ba83b6ac2bb8"
     },
     {
       "version": "v4_0_0",
@@ -2020,14 +2584,6 @@
       "http4s_digest": "8649a7fcca672819b3f712bd7387ac3cc25270e89cca5aecf19d68f87e6c3306"
     },
     {
-      "version": "v3_1_0",
-      "endpoint": "createProductAttribute",
-      "field": "description",
-      "reason": "Lists the accepted attribute types from AttributeTypeDocs.typeFieldDescription, which adds DECIMAL and BOOLEAN (new enum values) to the four the Lift text listed and says when to use DECIMAL.",
-      "lift_digest": "33f42a59104c9bdbf82e51517cd01b20979d532ff0e577fd6cd4d6b8822bf905",
-      "http4s_digest": "bd886174a46b8ca2c7da5cb67491f74a51a135b983b072e27dbabf16686ed7b8"
-    },
-    {
       "version": "v4_0_0",
       "endpoint": "createBankAttribute",
       "field": "description",
@@ -2138,70 +2694,6 @@
       "reason": "The Lift doc named /search/metrics but the route serves /search/metrics/{query}: the query is a path segment, so the documented URL could not be called. The URL now includes it.",
       "lift_digest": "1132e0dd343990bc0b4b0258f46e9b13bcda43939f6cb99d6b4dc6b34f5080e2",
       "http4s_digest": "b79574c091ae746fdd0985366c387504e1a0fc0403438f4be6f64de9d7739585"
-    },
-    {
-      "version": "v2_1_0",
-      "endpoint": "updateConsumerRedirectUrl",
-      "field": "errorResponseBodies",
-      "reason": "Adds RedirectUrlHostNotAllowed (OBP-20109) for instances that set redirect_url_allowed_hosts, alongside InvalidRedirectUrl (OBP-20108): the redirect URL is checked against the redirect URL rules before it is stored.",
-      "lift_digest": "f06cd9a2114625e9b6a37b8e57fa91e7bdb6586b9899fcd9265713aed3e873a4",
-      "http4s_digest": "b1e42b699ef095f7b2a523062366197eee3538c96068563f1bd25f0197559e33"
-    },
-    {
-      "version": "v2_2_0",
-      "endpoint": "createConsumer",
-      "field": "errorResponseBodies",
-      "reason": "Adds RedirectUrlHostNotAllowed (OBP-20109) for instances that set redirect_url_allowed_hosts, alongside InvalidRedirectUrl (OBP-20108): the redirect URL is checked against the redirect URL rules before it is stored.",
-      "lift_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5",
-      "http4s_digest": "f1a3eab881d039a14b768fca036adc44759cc99d416fc176c8eea09829037ccf"
-    },
-    {
-      "version": "v2_2_0",
-      "endpoint": "createConsumer",
-      "field": "exampleRequestBody",
-      "reason": "The example redirect URL is now a valid https callback; the old placeholder would be rejected by the redirect URL rules.",
-      "lift_digest": "7b5796ab8e816b80f886a5d44a8414394170d7e2d61ab2ed6edb6ae4a58841e0",
-      "http4s_digest": "28fbe0a0ed9a7eb4e229b285c1715bc32b77a0485d6db6c9a3661ea037859a8b"
-    },
-    {
-      "version": "v2_2_0",
-      "endpoint": "createConsumer",
-      "field": "successResponseBody",
-      "reason": "The example redirect URL is now a valid https callback; the old placeholder would be rejected by the redirect URL rules.",
-      "lift_digest": "4cb0d642b4a86b86be87cad67a311c77f1d68aacafb957b2e4e83d23ae9695fb",
-      "http4s_digest": "5914176f0c140e0e56de59f39988dd4bd8312a0c873aa816729a12d5037ae936"
-    },
-    {
-      "version": "v2_2_0",
-      "endpoint": "createBank",
-      "field": "errorResponseBodies",
-      "reason": "Added bankIdAlreadyExists: createBank now refuses an existing BANK_ID instead of overwriting that bank and granting the caller CanCreateEntitlementAtOneBank there",
-      "lift_digest": "d9be7cb75e5f529810a1ba5852fa29f17b2137bc77c4dc7cd0c794b22fbd16bd",
-      "http4s_digest": "d21fc395f1489dfb4bf5b8cea84e210a92b642752e5dbaaa88791e4e5e709022"
-    },
-    {
-      "version": "v4_0_0",
-      "endpoint": "createBank",
-      "field": "errorResponseBodies",
-      "reason": "Added bankIdAlreadyExists: createBank now refuses an existing BANK_ID instead of overwriting that bank and granting the caller CanCreateEntitlementAtOneBank there",
-      "lift_digest": "52de8e9110317d5430e3f54a267aa69b391f6dcddce3b99c8d40a7fee9ef0bc6",
-      "http4s_digest": "5d830c45b454632969c46172008000d36ffeb4e87afc980126f4d9d6e7955486"
-    },
-    {
-      "version": "v4_0_0",
-      "endpoint": "createConsumer",
-      "field": "errorResponseBodies",
-      "reason": "Adds RedirectUrlHostNotAllowed (OBP-20109) for instances that set redirect_url_allowed_hosts, alongside InvalidRedirectUrl (OBP-20108): the redirect URL is checked against the redirect URL rules before it is stored.",
-      "lift_digest": "647479a642a49ee3a80a4bfc28ab2ae3413796d26a3eecbc48411d6e05620ad5",
-      "http4s_digest": "f1a3eab881d039a14b768fca036adc44759cc99d416fc176c8eea09829037ccf"
-    },
-    {
-      "version": "v4_0_0",
-      "endpoint": "createConsumer",
-      "field": "exampleRequestBody",
-      "reason": "The example redirect URL is now a valid https callback; the old placeholder would be rejected by the redirect URL rules.",
-      "lift_digest": "bedf35738b2bdbadfd0cf52925b59047394f1479aaf041401e689921a15d5da5",
-      "http4s_digest": "64bb412d6630509cccfda9d1cba36da072ace8e189a6798811648b1c2267aaa7"
     },
     {
       "version": "v5_1_0",
@@ -2412,38 +2904,6 @@
       "http4s_digest": "cae4be89c9ce78670b474a1cd141ae716a3156064734b11af0c5d223cb8f1043"
     },
     {
-      "version": "v2_1_0",
-      "endpoint": "answerTransactionRequestChallenge",
-      "field": "errorResponseBodies",
-      "reason": "Added InvalidTransactionRequestId (404 when the request does not pay from the account in the URL) and MakerCheckerSameUser/MakerCheckerUnknownMaker (maker-checker enforced as in v4.0.0)",
-      "lift_digest": "27cca89e482e0af6a8c21c03bf4729087cead31ee344683dcdcb803e51daf83f",
-      "http4s_digest": "b682cd279b9bc04570517e2e32fcb9b85b73ce9d89452454f5daddc48730a99a"
-    },
-    {
-      "version": "v2_0_0",
-      "endpoint": "createAccount",
-      "field": "errorResponseBodies",
-      "reason": "Adds AccountIdAlreadyExists: an existing ACCOUNT_ID is now refused, where it used to return the existing account and make the caller one of its holders.",
-      "lift_digest": "30b24bdbcdb523f00b5e4655fbdb91d8648ab84ee92f1f2292008816b8e31012",
-      "http4s_digest": "c48cc1204d4ea66a5f131c599ace7f8d502c91ce16a36bf0e507e06b915b8055"
-    },
-    {
-      "version": "v3_1_0",
-      "endpoint": "answerUserAuthContextUpdateChallenge",
-      "field": "description",
-      "reason": "States that only the User who requested the update can answer it, only at the bank it was requested at, and that only a right answer adds the User Auth Context and the Customer link.",
-      "lift_digest": "c2bb04751b64677723b0a5bfedfa0f92999b6277d60ff9172272ca4f454d39d1",
-      "http4s_digest": "45e6b2ef5bb600b2781f7f9e7392a0c952844ff67e6d893ab2aad2c028228d6f"
-    },
-    {
-      "version": "v3_1_0",
-      "endpoint": "answerUserAuthContextUpdateChallenge",
-      "field": "errorResponseBodies",
-      "reason": "Adds UserAuthContextUpdateNotFound, returned for an update that does not exist or belongs to another User or another bank.",
-      "lift_digest": "837babe0c6517335a32569673d5cdf0bdfb1cc40c06f8035e8e2f6099d3a6ab8",
-      "http4s_digest": "f1806abaa2f1ffebc6bcc48875179391170d2545566cc10d54b38f82172aa9e0"
-    },
-    {
       "version": "v5_0_0",
       "endpoint": "answerUserAuthContextUpdateChallenge",
       "field": "description",
@@ -2458,22 +2918,6 @@
       "reason": "Adds UserAuthContextUpdateNotFound, returned for an update that does not exist or belongs to another User or another bank.",
       "lift_digest": "84013a06c4127d2ad932f7813a03432776c5a05651afca08dea52dcac780b8fb",
       "http4s_digest": "3f2fa1dc012d5dcc93e4542e85d0ef5a5a03de2c3fa750aca33af628ee6c3073"
-    },
-    {
-      "version": "v3_1_0",
-      "endpoint": "createUserAuthContextUpdateRequest",
-      "field": "description",
-      "reason": "Says the challenge goes to the Customer's own contact details (not the User), and that the request needs the App Scope or the User Role CanCreateUserAuthContextUpdate at BANK_ID, which is now always checked.",
-      "lift_digest": "2bcfb3fcfe68cfeada6614a6a2bf57b289e488b3a4f029a733145e5c55e2c2f2",
-      "http4s_digest": "150d6804f8ea2eaba8edb3c8a11072ab626d87b38a200aba0a11d80d28cf6bd9"
-    },
-    {
-      "version": "v3_1_0",
-      "endpoint": "createUserAuthContextUpdateRequest",
-      "field": "errorResponseBodies",
-      "reason": "Adds ConsumerHasMissingRoles, returned when neither the App has the Scope nor the User the Role CanCreateUserAuthContextUpdate at BANK_ID.",
-      "lift_digest": "6a0652dbac6383372df2418f0456676eb1ab4ea8d7e3d5e10efa2e2bb81ff510",
-      "http4s_digest": "1769e014d63887938573f77828aaa7669b69c23f8c4de3bb286767aad5185754"
     },
     {
       "version": "v3_1_0",
@@ -2525,27 +2969,11 @@
     },
     {
       "version": "v3_1_0",
-      "endpoint": "updateProductAttribute",
-      "field": "errorResponseBodies",
-      "reason": "Added ProductAttributeNotFound (404): the attribute must belong to the BANK_ID and PRODUCT_CODE in the path, else a role at one bank could overwrite and move another bank's product attribute",
-      "lift_digest": "f0e3fc093d8749570c7520dabdb672bbb7a6f84d2f03fa9c138762e8c976981a",
-      "http4s_digest": "cbff97326a2c683036eca4d241b6bcc82b9a45d7cee49516184d63fc450c50b7"
-    },
-    {
-      "version": "v3_1_0",
       "endpoint": "deleteProductAttribute",
       "field": "errorResponseBodies",
       "reason": "Added ProductAttributeNotFound (404): the attribute to delete must belong to the bank and product in the path, else a role at one bank deleted any bank's attribute",
       "lift_digest": "e411ab351074a0055e9e38d197a6c0e27be6eddcc2158d1026e23c6735b9fbd9",
       "http4s_digest": "f32444f850ad7c50c97d8f9fa4e9aac93757d7b16e708393903ee64f4e0e7a76"
-    },
-    {
-      "version": "v3_1_0",
-      "endpoint": "getProductAttribute",
-      "field": "errorResponseBodies",
-      "reason": "Added ProductAttributeNotFound (404): the attribute must belong to the BANK_ID and PRODUCT_CODE in the path, else a role at one bank reads any bank's product attribute",
-      "lift_digest": "f0e3fc093d8749570c7520dabdb672bbb7a6f84d2f03fa9c138762e8c976981a",
-      "http4s_digest": "cbff97326a2c683036eca4d241b6bcc82b9a45d7cee49516184d63fc450c50b7"
     },
     {
       "version": "v3_1_0",
@@ -2706,22 +3134,6 @@
       "reason": "Added ApiCollectionNotFound: 404 when the collection does not exist or belongs to another user, so only its owner can update it",
       "lift_digest": "ea8061d2189d61d4f84552f70fa4482c88aa1fb6d5f7692b7c3c6eae0b24f4e6",
       "http4s_digest": "181a990959c91843d2617852d9247a24ae916364b5b3afa58fab87ddd6692130"
-    },
-    {
-      "version": "v3_1_0",
-      "endpoint": "callsLimit",
-      "field": "description",
-      "reason": "Says the PUT changes or creates the consumer's one rate limit and refuses a consumer with several.",
-      "lift_digest": "c6539601da7002deff895c829197c1bf0b63f01af2fdae358505b2f545fbf249",
-      "http4s_digest": "19d2267453f1279b12e47e32cfe970976329d5b1182f641f3e25ece5cf00bd79"
-    },
-    {
-      "version": "v3_1_0",
-      "endpoint": "callsLimit",
-      "field": "errorResponseBodies",
-      "reason": "Lists RateLimitNotUnique, the 400 for a consumer with several rate limits.",
-      "lift_digest": "73a6aab6d272e734f76807465010e55db340ee57091b9590ee564de48566a42a",
-      "http4s_digest": "f7222b11944092a114e928a045581b96e554836df8fa3f398b63dc089f4ef76a"
     },
     {
       "version": "v4_0_0",
