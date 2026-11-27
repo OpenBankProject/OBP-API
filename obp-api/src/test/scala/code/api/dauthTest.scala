@@ -61,7 +61,7 @@ class dauthTest extends ServerSetup with BeforeAndAfter with DefaultUsers with P
   val invalidJwt = ("DAuth", ("%s").format(wrongPublicKeyJwt))
   val validJwt = ("DAuth", ("%s").format(jwt))
 
-  def dauthRequest = baseRequest / "obp" / "v2.0.0" / "users" /"current" 
+  // def dauthRequest = baseRequest / "obp" / "v2.0.0" / "users" /"current"
   def dauthNonBlockingRequest = baseRequest / "obp" / "v3.0.0" / "users" / "current"
 
   feature("DAuth Testing") {
@@ -69,21 +69,23 @@ class dauthTest extends ServerSetup with BeforeAndAfter with DefaultUsers with P
     scenario("Missing parameter token in a blocking way") {
       When("We try to login without parameter token in a Header")
 
-        When("We try to login with an invalid JWT")
-        val responseInvalid = makeGetRequest(dauthRequest, List(invalidJwt))
-        Then("We should get a 400 - Bad Request")
-        logger.debug("-----------------------------------------")
-        logger.debug("responseInvalid response: "+ responseInvalid)
-        logger.debug("-----------------------------------------")
-        responseInvalid.code should equal(400)
-        responseInvalid.toString contains (ErrorMessages.DAuthJwtTokenIsNotValid) should be (true)
+        // v2.0.0 getCurrentUser is commented out (see docs/OLD_VERSION_ONLY_CODE.md), so the requests
+        // through the v2.0.0 prefix are too. The v3.0.0 requests below still cover DAuth.
+        // When("We try to login with an invalid JWT")
+        // val responseInvalid = makeGetRequest(dauthRequest, List(invalidJwt))
+        // Then("We should get a 400 - Bad Request")
+        // logger.debug("-----------------------------------------")
+        // logger.debug("responseInvalid response: "+ responseInvalid)
+        // logger.debug("-----------------------------------------")
+        // responseInvalid.code should equal(400)
+        // responseInvalid.toString contains (ErrorMessages.DAuthJwtTokenIsNotValid) should be (true)
 
-        When("We try to login with an valid JWT")
-        val responseValidJwt = makeGetRequest(dauthRequest, List(validJwt))
-        logger.debug("-----------------------------------------")
-        logger.debug("responseValidJwt response: " + responseValidJwt)
-        logger.debug("-----------------------------------------")
-        responseValidJwt.code should equal(200)
+        // When("We try to login with an valid JWT")
+        // val responseValidJwt = makeGetRequest(dauthRequest, List(validJwt))
+        // logger.debug("-----------------------------------------")
+        // logger.debug("responseValidJwt response: " + responseValidJwt)
+        // logger.debug("-----------------------------------------")
+        // responseValidJwt.code should equal(200)
 
         When("We try to login with an invalid JWT")
         val responseNonBlockingInvalid = makeGetRequest(dauthNonBlockingRequest, List(invalidJwt))
@@ -99,7 +101,7 @@ class dauthTest extends ServerSetup with BeforeAndAfter with DefaultUsers with P
         logger.debug("-----------------------------------------")
         logger.debug("responseNonBlockingValidJwt responseNonBlocking: " + responseNonBlockingValidJwt)
         logger.debug("-----------------------------------------")
-        responseValidJwt.code should equal(200)
+        responseNonBlockingValidJwt.code should equal(200)
       }
       
   }

@@ -318,15 +318,14 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       When("when we use the token it should work")
       val headerWithToken = ("Authorization", "DirectLogin token=%s".format(token))
       val validHeadersWithToken = List(accessControlOriginHeader, headerWithToken)
-      val request2 = baseRequest / "obp" / "v2.0.0" / "my" / "accounts"
+      // v2.0.0 corePrivateAccountsAllBanks is commented out; v5.1.0 serves the path with the v3.0.0 handler.
+      val request2 = baseRequest / "obp" / "v5.1.0" / "my" / "accounts"
       val response2 = makeGetRequest(request2, validHeadersWithToken)
 
       Then("We should get a 200 - OK and an empty list of accounts")
       response2.code should equal(200)
-      response2.body match {
-        case JArray(List()) =>
-        case _ => fail("Expected empty list of accounts")
-      }
+      // v5.1.0 answers {"accounts": [...]}, where v2.0.0 answered a bare list.
+      (response2.body \ "accounts").children shouldBe empty
 
       When("when we use the token to get current user and it should work - New Style")
       val requestCurrentUserNewStyle = baseRequest / "obp" / "v3.0.0" / "users" / "current"
@@ -336,15 +335,16 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
       currentUserNewStyle.username shouldBe USERNAME
       
-      When("when we use the token to get current user and it should work - Old Style")
-      val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
-      val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
-      And("We should get a 200")
-      responseCurrentUserOldStyle.code should equal(200)
-      val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
-      currentUserOldStyle.username shouldBe USERNAME
+      // v2.0.0 getCurrentUser is commented out (see docs/OLD_VERSION_ONLY_CODE.md), so the Old Style check is too.
+      // When("when we use the token to get current user and it should work - Old Style")
+      // val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
+      // val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
+      // And("We should get a 200")
+      // responseCurrentUserOldStyle.code should equal(200)
+      // val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
+      // currentUserOldStyle.username shouldBe USERNAME
 
-      currentUserNewStyle.username shouldBe currentUserOldStyle.username
+      // currentUserNewStyle.username shouldBe currentUserOldStyle.username
     }
     
     scenario("Login with correct everything!", ApiEndpoint1, ApiEndpoint2) {
@@ -373,15 +373,14 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       When("when we use the token it should work")
       val headerWithToken = ("Authorization", "DirectLogin token=%s".format(token))
       val validHeadersWithToken = List(accessControlOriginHeader, headerWithToken)
-      val request2 = baseRequest / "obp" / "v2.0.0" / "my" / "accounts"
+      // v2.0.0 corePrivateAccountsAllBanks is commented out; v5.1.0 serves the path with the v3.0.0 handler.
+      val request2 = baseRequest / "obp" / "v5.1.0" / "my" / "accounts"
       val response2 = makeGetRequest(request2, validHeadersWithToken)
 
       Then("We should get a 200 - OK and an empty list of accounts")
       response2.code should equal(200)
-      response2.body match {
-        case JArray(List()) =>
-        case _ => fail("Expected empty list of accounts")
-      }
+      // v5.1.0 answers {"accounts": [...]}, where v2.0.0 answered a bare list.
+      (response2.body \ "accounts").children shouldBe empty
 
       When("when we use the token to get current user and it should work - New Style")
       val requestCurrentUserNewStyle = baseRequest / "obp" / "v3.0.0" / "users" / "current"
@@ -391,15 +390,16 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
       currentUserNewStyle.username shouldBe USERNAME
       
-      When("when we use the token to get current user and it should work - Old Style")
-      val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
-      val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
-      And("We should get a 200")
-      responseCurrentUserOldStyle.code should equal(200)
-      val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
-      currentUserOldStyle.username shouldBe USERNAME
+      // v2.0.0 getCurrentUser is commented out (see docs/OLD_VERSION_ONLY_CODE.md), so the Old Style check is too.
+      // When("when we use the token to get current user and it should work - Old Style")
+      // val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
+      // val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
+      // And("We should get a 200")
+      // responseCurrentUserOldStyle.code should equal(200)
+      // val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
+      // currentUserOldStyle.username shouldBe USERNAME
 
-      currentUserNewStyle.username shouldBe currentUserOldStyle.username
+      // currentUserNewStyle.username shouldBe currentUserOldStyle.username
     } 
     
     scenario("Login with correct everything and use props local_identity_provider", ApiEndpoint1, ApiEndpoint2) {
@@ -428,15 +428,14 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       When("when we use the token it should work")
       val headerWithToken = ("Authorization", "DirectLogin token=%s".format(token))
       val validHeadersWithToken = List(accessControlOriginHeader, headerWithToken)
-      val request2 = baseRequest / "obp" / "v2.0.0" / "my" / "accounts"
+      // v2.0.0 corePrivateAccountsAllBanks is commented out; v5.1.0 serves the path with the v3.0.0 handler.
+      val request2 = baseRequest / "obp" / "v5.1.0" / "my" / "accounts"
       val response2 = makeGetRequest(request2, validHeadersWithToken)
 
       Then("We should get a 200 - OK and an empty list of accounts")
       response2.code should equal(200)
-      response2.body match {
-        case JArray(List()) =>
-        case _ => fail("Expected empty list of accounts")
-      }
+      // v5.1.0 answers {"accounts": [...]}, where v2.0.0 answered a bare list.
+      (response2.body \ "accounts").children shouldBe empty
 
       When("when we use the token to get current user and it should work - New Style")
       val requestCurrentUserNewStyle = baseRequest / "obp" / "v3.0.0" / "users" / "current"
@@ -446,15 +445,16 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
       currentUserNewStyle.username shouldBe USERNAME
       
-      When("when we use the token to get current user and it should work - Old Style")
-      val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
-      val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
-      And("We should get a 200")
-      responseCurrentUserOldStyle.code should equal(200)
-      val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
-      currentUserOldStyle.username shouldBe USERNAME
+      // v2.0.0 getCurrentUser is commented out (see docs/OLD_VERSION_ONLY_CODE.md), so the Old Style check is too.
+      // When("when we use the token to get current user and it should work - Old Style")
+      // val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
+      // val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
+      // And("We should get a 200")
+      // responseCurrentUserOldStyle.code should equal(200)
+      // val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
+      // currentUserOldStyle.username shouldBe USERNAME
 
-      currentUserNewStyle.username shouldBe currentUserOldStyle.username
+      // currentUserNewStyle.username shouldBe currentUserOldStyle.username
     }
 
     scenario("Login with correct everything but the user is locked", ApiEndpoint1, ApiEndpoint2) {

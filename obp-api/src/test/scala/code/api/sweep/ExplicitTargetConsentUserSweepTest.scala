@@ -202,17 +202,19 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
         dependants = 0, dob_of_dependants = Nil, highest_education_attained = "Bachelor",
         employment_status = "employed", kyc_status = true, last_ok_date = new Date())
       sweep(List(
-        Probe("OBPv1.4.0-addCustomer", "POST", s"/obp/v1.4.0/banks/$bankId/customer", v200Body),
-        Probe("OBPv2.0.0-createCustomer", "POST", s"/obp/v2.0.0/banks/$bankId/customers", v200Body),
-        Probe("OBPv2.1.0-createCustomer", "POST", s"/obp/v2.1.0/banks/$bankId/customers",
-          PostCustomerJsonV210(
-            user_id = agentId, customer_number = freshCustomerNumber,
-            legal_name = "Explicit Target Sweep", mobile_phone_number = "+49 123 456",
-            email = "explicit-target-sweep@example.com", face_image = faceImage,
-            date_of_birth = new Date(), relationship_status = "single", dependants = 0,
-            dob_of_dependants = Nil, credit_rating = CustomerCreditRatingJSON("OBP", "OBP"),
-            credit_limit = money, highest_education_attained = "Bachelor",
-            employment_status = "employed", kyc_status = true, last_ok_date = new Date()))
+        Probe("OBPv1.4.0-addCustomer", "POST", s"/obp/v1.4.0/banks/$bankId/customer", v200Body)
+        // Commented out: only OBP versions below v5.1.0 could reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+        // Probe("OBPv2.0.0-createCustomer", "POST", s"/obp/v2.0.0/banks/$bankId/customers", v200Body),
+        // Commented out: only OBP versions below v5.1.0 could reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+        // Probe("OBPv2.1.0-createCustomer", "POST", s"/obp/v2.1.0/banks/$bankId/customers",
+        //   PostCustomerJsonV210(
+        //     user_id = agentId, customer_number = freshCustomerNumber,
+        //     legal_name = "Explicit Target Sweep", mobile_phone_number = "+49 123 456",
+        //     email = "explicit-target-sweep@example.com", face_image = faceImage,
+        //     date_of_birth = new Date(), relationship_status = "single", dependants = 0,
+        //     dob_of_dependants = Nil, credit_rating = CustomerCreditRatingJSON("OBP", "OBP"),
+        //     credit_limit = money, highest_education_attained = "Bachelor",
+        //     employment_status = "employed", kyc_status = true, last_ok_date = new Date()))
       ))
     }
 
@@ -222,7 +224,8 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
       // which is what makes a link to an agent identity impossible to create even by accident.
       val body = CreateUserCustomerLinkJson(user_id = agentId, customer_id = generateUUID())
       sweep(List(
-        Probe("OBPv2.0.0-createUserCustomerLinks", "POST", s"/obp/v2.0.0/banks/$bankId/user_customer_links", body),
+        // Commented out: only OBP versions below v5.1.0 could reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+        // Probe("OBPv2.0.0-createUserCustomerLinks", "POST", s"/obp/v2.0.0/banks/$bankId/user_customer_links", body),
         Probe("OBPv4.0.0-createUserCustomerLinks", "POST", s"/obp/v4.0.0/banks/$bankId/user_customer_links", body)
       ))
     }
@@ -246,13 +249,16 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
         user_id = agentId, label = "explicit target sweep", product_code = "1234BW",
         balance = money, branch_id = "", account_routings = Nil)
       sweep(List(
-        Probe("OBPv2.0.0-createAccount", "PUT", s"/obp/v2.0.0/banks/$bankId/accounts/${generateUUID()}",
-          CreateAccountJSON(user_id = agentId, label = "explicit target sweep", `type` = "CURRENT", balance = money)),
-        Probe("OBPv2.2.0-createAccount", "PUT", s"/obp/v2.2.0/banks/$bankId/accounts/${generateUUID()}",
-          CreateAccountJSONV220(
-            user_id = agentId, label = "explicit target sweep", `type` = "CURRENT", balance = money,
-            branch_id = "", account_routing = AccountRoutingJsonV121(scheme = "OBP", address = generateUUID()))),
-        Probe("OBPv3.1.0-createAccount", "PUT", s"/obp/v3.1.0/banks/$bankId/accounts/${generateUUID()}", v310Body),
+        // Commented out: only OBP versions below v5.1.0 could reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+        // Probe("OBPv2.0.0-createAccount", "PUT", s"/obp/v2.0.0/banks/$bankId/accounts/${generateUUID()}",
+        //   CreateAccountJSON(user_id = agentId, label = "explicit target sweep", `type` = "CURRENT", balance = money)),
+        // Commented out: only OBP versions below v5.1.0 could reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+        // Probe("OBPv2.2.0-createAccount", "PUT", s"/obp/v2.2.0/banks/$bankId/accounts/${generateUUID()}",
+        //   CreateAccountJSONV220(
+        //     user_id = agentId, label = "explicit target sweep", `type` = "CURRENT", balance = money,
+        //     branch_id = "", account_routing = AccountRoutingJsonV121(scheme = "OBP", address = generateUUID()))),
+        // Commented out: only OBP versions below v5.1.0 could reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+        // Probe("OBPv3.1.0-createAccount", "PUT", s"/obp/v3.1.0/banks/$bankId/accounts/${generateUUID()}", v310Body),
         Probe("OBPv4.0.0-addAccount", "POST", s"/obp/v4.0.0/banks/$bankId/accounts", v310Body),
         Probe("OBPv4.0.0-createSettlementAccount", "POST", s"/obp/v4.0.0/banks/$bankId/settlement-accounts",
           SettlementAccountRequestJson(
