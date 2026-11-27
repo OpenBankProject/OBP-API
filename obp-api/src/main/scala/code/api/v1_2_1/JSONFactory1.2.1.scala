@@ -505,9 +505,10 @@ object JSONFactory{
     )
   }
 
-  def createTransactionsJSON(transactions: List[ModeratedTransaction]) : TransactionsJSON = {
-    new TransactionsJSON(transactions.map(createTransactionJSON))
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def createTransactionsJSON(transactions: List[ModeratedTransaction]) : TransactionsJSON = {
+    // new TransactionsJSON(transactions.map(createTransactionJSON))
+  // }
 
   def createTransactionJSON(transaction : ModeratedTransaction) : TransactionJSON = {
     new TransactionJSON(
@@ -672,10 +673,11 @@ object JSONFactory{
     )
   }
 
-  def createOtherBankAccountsJSON(otherBankAccounts : List[ModeratedOtherBankAccount]) : OtherAccountsJSON =  {
-    val otherAccountsJSON : List[OtherAccountJSON] = otherBankAccounts.map(createOtherBankAccount)
-    OtherAccountsJSON(otherAccountsJSON)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def createOtherBankAccountsJSON(otherBankAccounts : List[ModeratedOtherBankAccount]) : OtherAccountsJSON =  {
+    // val otherAccountsJSON : List[OtherAccountJSON] = otherBankAccounts.map(createOtherBankAccount)
+    // OtherAccountsJSON(otherAccountsJSON)
+  // }
 
   def createUserJSON(user : User) : UserJSONV121 = {
     new UserJSONV121(

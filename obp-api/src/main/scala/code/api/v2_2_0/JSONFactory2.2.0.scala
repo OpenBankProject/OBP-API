@@ -521,10 +521,11 @@ object JSONFactory220 {
       )
   }
 
-  def createCounterpartiesJSON(counterparties : List[CounterpartyTrait]) : CounterpartiesJsonV220 = {
-    val list : List[CounterpartyJsonV220] = counterparties.map(createCounterpartyJSON)
-    new CounterpartiesJsonV220(list)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def createCounterpartiesJSON(counterparties : List[CounterpartyTrait]) : CounterpartiesJsonV220 = {
+    // val list : List[CounterpartyJsonV220] = counterparties.map(createCounterpartyJSON)
+    // new CounterpartiesJsonV220(list)
+  // }
 
   def createBankJSON(bank: Bank): BankJSONV220 = {
     BankJSONV220(
@@ -713,72 +714,74 @@ object JSONFactory220 {
 
 
 
-  def transformV220ToBranch(branchJsonV220: BranchJsonV220): Box[Branch] = {
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def transformV220ToBranch(branchJsonV220: BranchJsonV220): Box[Branch] = {
 
-    val address : Address = transformToAddressFromV140(branchJsonV220.address) // Note the address in V220 is V140
-    val location: Location =  transformToLocationFromV140(branchJsonV220.location)  // Note the location in V220 is V140
-    val meta: Meta =  transformToMetaFromV140(branchJsonV220.meta)  // Note the meta in V220 is V140
+    // val address : Address = transformToAddressFromV140(branchJsonV220.address) // Note the address in V220 is V140
+    // val location: Location =  transformToLocationFromV140(branchJsonV220.location)  // Note the location in V220 is V140
+    // val meta: Meta =  transformToMetaFromV140(branchJsonV220.meta)  // Note the meta in V220 is V140
 
-    Full(Branch(
-      BranchId(branchJsonV220.id),
-      BankId(branchJsonV220.bank_id),
-      branchJsonV220.name,
-      address = address,
-      location = location,
-      lobbyString = Some(LobbyString(branchJsonV220.lobby.hours)),
-      driveUpString = Some(DriveUpString(branchJsonV220.drive_up.hours)),
-      meta = meta,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None))
-  }
+    // Full(Branch(
+      // BranchId(branchJsonV220.id),
+      // BankId(branchJsonV220.bank_id),
+      // branchJsonV220.name,
+      // address = address,
+      // location = location,
+      // lobbyString = Some(LobbyString(branchJsonV220.lobby.hours)),
+      // driveUpString = Some(DriveUpString(branchJsonV220.drive_up.hours)),
+      // meta = meta,
+      // None,
+      // None,
+      // None,
+      // None,
+      // None,
+      // None,
+      // None,
+      // None,
+      // None))
+  // }
 
-  def transformToAtmFromV220(atmJsonV220: AtmJsonV220): Box[Atm] = {
-    val address : Address = transformToAddressFromV140(atmJsonV220.address) // Note the address in V220 is V140
-    val location: Location =  transformToLocationFromV140(atmJsonV220.location)  // Note the location in V220 is V140
-    val meta: Meta =  transformToMetaFromV140(atmJsonV220.meta)  // Note the meta in V220 is V140
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def transformToAtmFromV220(atmJsonV220: AtmJsonV220): Box[Atm] = {
+    // val address : Address = transformToAddressFromV140(atmJsonV220.address) // Note the address in V220 is V140
+    // val location: Location =  transformToLocationFromV140(atmJsonV220.location)  // Note the location in V220 is V140
+    // val meta: Meta =  transformToMetaFromV140(atmJsonV220.meta)  // Note the meta in V220 is V140
 
-    val atm = Atm(
-      atmId = AtmId(atmJsonV220.id),
-      bankId = BankId(atmJsonV220.bank_id),
-      name = atmJsonV220.name,
-      address = address,
-      location = location,
-      meta = meta,
-      OpeningTimeOnMonday = None,
-      ClosingTimeOnMonday = None,
+    // val atm = Atm(
+      // atmId = AtmId(atmJsonV220.id),
+      // bankId = BankId(atmJsonV220.bank_id),
+      // name = atmJsonV220.name,
+      // address = address,
+      // location = location,
+      // meta = meta,
+      // OpeningTimeOnMonday = None,
+      // ClosingTimeOnMonday = None,
 
-      OpeningTimeOnTuesday = None,
-      ClosingTimeOnTuesday = None,
+      // OpeningTimeOnTuesday = None,
+      // ClosingTimeOnTuesday = None,
 
-      OpeningTimeOnWednesday = None,
-      ClosingTimeOnWednesday = None,
+      // OpeningTimeOnWednesday = None,
+      // ClosingTimeOnWednesday = None,
 
-      OpeningTimeOnThursday = None,
-      ClosingTimeOnThursday = None,
+      // OpeningTimeOnThursday = None,
+      // ClosingTimeOnThursday = None,
 
-      OpeningTimeOnFriday = None,
-      ClosingTimeOnFriday = None,
+      // OpeningTimeOnFriday = None,
+      // ClosingTimeOnFriday = None,
 
-      OpeningTimeOnSaturday = None,
-      ClosingTimeOnSaturday = None,
+      // OpeningTimeOnSaturday = None,
+      // ClosingTimeOnSaturday = None,
 
-      OpeningTimeOnSunday = None,
-      ClosingTimeOnSunday = None,
-      // Easy access for people who use wheelchairs etc. true or false ""=Unknown
-      isAccessible = None,
-      locatedAt = None,
-      moreInfo = None,
-      hasDepositCapability = None
-    )
-    Full(atm)
-  }
+      // OpeningTimeOnSunday = None,
+      // ClosingTimeOnSunday = None,
+      // // Easy access for people who use wheelchairs etc. true or false ""=Unknown
+      // isAccessible = None,
+      // locatedAt = None,
+      // moreInfo = None,
+      // hasDepositCapability = None
+    // )
+    // Full(atm)
+  // }
 
   def getConfigInfoJSON(): ConfigurationJSON = {
 
