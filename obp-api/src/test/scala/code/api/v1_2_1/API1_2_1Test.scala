@@ -259,11 +259,12 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     bank.id
   }
 
-  def randomPublicAccount(bankId : String) : AccountJSON = {
-    val accountsJson = getPublicAccounts(bankId).body.extract[AccountsJSON].accounts
-    val randomPosition = nextInt(accountsJson.size)
-    accountsJson(randomPosition)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def randomPublicAccount(bankId : String) : AccountJSON = {
+    // val accountsJson = getPublicAccounts(bankId).body.extract[AccountsJSON].accounts
+    // val randomPosition = nextInt(accountsJson.size)
+    // accountsJson(randomPosition)
+  // }
 
   def randomPrivateAccount(bankId : String) : AccountJSON = {
     val accountsJson = makeGetRequest(baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / "private" <@(user1)).body.extract[AccountsJSON].accounts
@@ -327,91 +328,105 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     )
   }
 
-  def getAPIInfo : APIResponse = {
-    val request = v1_2_1Request / "root"
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getAPIInfo : APIResponse = {
+    // val request = v1_2_1Request / "root"
+    // makeGetRequest(request)
+  // }
 
-  def getBanksInfo : APIResponse  = {
-    val request = v1_2_1Request / "banks"
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getBanksInfo : APIResponse  = {
+    // val request = v1_2_1Request / "banks"
+    // makeGetRequest(request)
+  // }
 
   def getBankInfo(bankId : String) : APIResponse  = {
     val request = v1_2_1Request / "banks" / bankId
     makeGetRequest(request)
   }
 
-  def getPublicAccounts(bankId : String) : APIResponse= {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / "public"
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getPublicAccounts(bankId : String) : APIResponse= {
+    // val request = v1_2_1Request / "banks" / bankId / "accounts" / "public"
+    // makeGetRequest(request)
+  // }
 
-  def getPrivateAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken)
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getPrivateAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    // val request = v1_2_1Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
 
-  def getBankAccountsForAllBanks(consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2_1Request / "accounts" <@(consumerAndToken)
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getBankAccountsForAllBanks(consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    // val request = v1_2_1Request / "accounts" <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
 
-  def getPublicAccountsForAllBanks() : APIResponse= {
-    val request = v1_2_1Request / "accounts" / "public"
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getPublicAccountsForAllBanks() : APIResponse= {
+    // val request = v1_2_1Request / "accounts" / "public"
+    // makeGetRequest(request)
+  // }
 
   def getPrivateAccountsForAllBanks(consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     val request = v1_2_1Request / "accounts" / "private" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
-  def getBankAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" <@(consumerAndToken)
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getBankAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    // val request = v1_2_1Request / "banks" / bankId / "accounts" <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
 
-  def getPublicBankAccountDetails(bankId : String, accountId : String, viewId : String) : APIResponse = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "account"
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getPublicBankAccountDetails(bankId : String, accountId : String, viewId : String) : APIResponse = {
+    // val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "account"
+    // makeGetRequest(request)
+  // }
 
-  //get one bank account
-  def getPrivateBankAccountDetails(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "account" <@(consumerAndToken)
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // //get one bank account
+  // def getPrivateBankAccountDetails(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    // val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "account" <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
 
-  def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    // val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
 
-  def postView(bankId: String, accountId: String, view: CreateViewJsonV121, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
-    makePostRequest(request, write(view))
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def postView(bankId: String, accountId: String, view: CreateViewJsonV121, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    // val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
+    // makePostRequest(request, write(view))
+  // }
 
-  def putView(bankId: String, accountId: String, viewId : String, view: UpdateViewJsonV121, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
-    makePutRequest(request, write(view))
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def putView(bankId: String, accountId: String, viewId : String, view: UpdateViewJsonV121, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    // val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
+    // makePutRequest(request, write(view))
+  // }
 
   def deleteView(bankId: String, accountId: String, viewId: String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
-  def getAccountPermissions(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions" <@(consumerAndToken)
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getAccountPermissions(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    // val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions" <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
 
-  def getUserAccountPermission(bankId : String, accountId : String, providerId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions" / defaultProvider / providerId <@(consumerAndToken)
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getUserAccountPermission(bankId : String, accountId : String, providerId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    // val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions" / defaultProvider / providerId <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
 
   def grantUserAccessToView(bankId : String, accountId : String, providerId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
     val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / providerId / "views" / viewId).POST <@(consumerAndToken)
@@ -434,15 +449,17 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     makeDeleteRequest(request)
   }
 
-  def getTheCounterparties(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" <@(consumerAndToken)
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getTheCounterparties(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    // val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
 
-  def getTheCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId <@(consumerAndToken)
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getTheCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    // val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
 
   def getMetadataOfOneCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" <@(consumerAndToken)
@@ -620,12 +637,14 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
   }
 
   def getTransactions(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)], params: List[(String, String)] = Nil): APIResponse = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@(consumerAndToken)
+    // Only the payment scenario uses this; the v1.2.1 handler is commented out, so it reads through v5.1.0.
+    val request = baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@(consumerAndToken)
     makeGetRequest(request, params)
   }
 
   def getTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "transaction" <@(consumerAndToken)
+    // Only the payment scenario uses this; the v1.2.1 handler is commented out, so it reads through v5.1.0.
+    val request = baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "transaction" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
@@ -651,11 +670,12 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     makePutRequest(request, write(narrativeJson))
   }
   
-  def updateAccountLabel(bankId : String, accountId : String, label: String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId).POST <@(consumerAndToken)
-    val json = SwaggerDefinitionsJSON.updateAccountJSON.copy(label = label)
-    makePostRequest(request, write(json))
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def updateAccountLabel(bankId : String, accountId : String, label: String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    // val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId).POST <@(consumerAndToken)
+    // val json = SwaggerDefinitionsJSON.updateAccountJSON.copy(label = label)
+    // makePostRequest(request, write(json))
+  // }
 
   def deleteNarrativeForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "narrative").DELETE <@(consumerAndToken)
@@ -794,9 +814,11 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
         Then("we should get a 200 ok code")
         reply.code should equal(200)
-        val transJson = reply.body.extract[TransactionJSON]
+        // The transaction is read through v5.1.0 (v3.1.0 getTransactionByIdForBankAccount), whose
+        // answer keeps details.value and details.new_balance but differs elsewhere.
+        val transJson = reply.body
 
-        val fromAccountTransAmt = transJson.details.value.amount
+        val fromAccountTransAmt = (transJson \ "details" \ "value" \ "amount").extract[String]
         //the from account transaction should have a negative value
         //since money left the account
         And("the json we receive back should have a transaction amount equal to the amount specified to pay")
@@ -804,20 +826,19 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
         val expectedNewFromBalance = beforeFromBalance - amt
         And("the account sending the payment should have a new_balance amount equal to the previous balance minus the amount paid")
-        transJson.details.new_balance.amount should equal(expectedNewFromBalance.toString)
+        (transJson \ "details" \ "new_balance" \ "amount").extract[String] should equal(expectedNewFromBalance.toString)
         getFromAccount.balance should equal(expectedNewFromBalance)
         val toAccountTransactionsReq = getTransactions(toAccount.bankId.value, toAccount.accountId.value, view, user1)
         toAccountTransactionsReq.code should equal(200)
-        val toAccountTransactions = toAccountTransactionsReq.body.extract[TransactionsJSON]
-        val newestToAccountTransaction = toAccountTransactions.transactions(0)
+        val newestToAccountTransaction = (toAccountTransactionsReq.body \ "transactions").children.head
 
         //here amt should be positive (unlike in the transaction in the "from" account")
         And("the newest transaction for the account receiving the payment should have the proper amount")
-        newestToAccountTransaction.details.value.amount should equal(amt.toString)
+        (newestToAccountTransaction \ "details" \ "value" \ "amount").extract[String] should equal(amt.toString)
 
         And("the account receiving the payment should have the proper balance")
         val expectedNewToBalance = beforeToBalance + amt
-        newestToAccountTransaction.details.new_balance.amount should equal(expectedNewToBalance.toString)
+        (newestToAccountTransaction \ "details" \ "new_balance" \ "amount").extract[String] should equal(expectedNewToBalance.toString)
         getToAccount.balance should equal(expectedNewToBalance)
 
         And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
