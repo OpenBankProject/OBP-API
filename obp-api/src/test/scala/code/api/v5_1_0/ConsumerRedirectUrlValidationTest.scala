@@ -93,15 +93,17 @@ class ConsumerRedirectUrlValidationTest extends V510ServerSetup {
       shouldBeRejected(makePostRequest((v5_1_0_Request / "my" / "consumers").POST <@ (user1), write(createConsumerRequestJson(badRedirectUrl))))
     }
 
-    scenario("v4.0.0 createConsumer") {
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateConsumer.toString)
-      shouldBeRejected(makePostRequest((v4_0_0 / "management" / "consumers").POST <@ (user1), write(consumerPostJson(badRedirectUrl))))
-    }
+    // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+    // scenario("v4.0.0 createConsumer") {
+      // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateConsumer.toString)
+      // shouldBeRejected(makePostRequest((v4_0_0 / "management" / "consumers").POST <@ (user1), write(consumerPostJson(badRedirectUrl))))
+    // }
 
-    scenario("v2.2.0 createConsumer") {
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateConsumer.toString)
-      shouldBeRejected(makePostRequest((v2_2_0 / "management" / "consumers").POST <@ (user1), write(consumerPostJson(badRedirectUrl))))
-    }
+    // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+    // scenario("v2.2.0 createConsumer") {
+      // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateConsumer.toString)
+      // shouldBeRejected(makePostRequest((v2_2_0 / "management" / "consumers").POST <@ (user1), write(consumerPostJson(badRedirectUrl))))
+    // }
 
     scenario("an allowed redirect URL is still accepted") {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateConsumer.toString)
@@ -144,13 +146,14 @@ class ConsumerRedirectUrlValidationTest extends V510ServerSetup {
         write(ConsumerRedirectUrlJSON(badRedirectUrl))))
     }
 
-    scenario("v2.1.0 updateConsumerRedirectUrl") {
-      val consumerId = createConsumerOwnedByUser1("https://app.example.com/cb")
-      val primaryId = Consumers.consumers.vend.getConsumerByConsumerId(consumerId).map(_.id.get).openOrThrowException("consumer just created")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateConsumerRedirectUrl.toString)
-      shouldBeRejected(makePutRequest((v2_1_0 / "management" / "consumers" / primaryId.toString / "consumer" / "redirect_url").PUT <@ (user1),
-        write(ConsumerRedirectUrlJSON(badRedirectUrl))))
-    }
+    // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+    // scenario("v2.1.0 updateConsumerRedirectUrl") {
+      // val consumerId = createConsumerOwnedByUser1("https://app.example.com/cb")
+      // val primaryId = Consumers.consumers.vend.getConsumerByConsumerId(consumerId).map(_.id.get).openOrThrowException("consumer just created")
+      // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateConsumerRedirectUrl.toString)
+      // shouldBeRejected(makePutRequest((v2_1_0 / "management" / "consumers" / primaryId.toString / "consumer" / "redirect_url").PUT <@ (user1),
+        // write(ConsumerRedirectUrlJSON(badRedirectUrl))))
+    // }
   }
 
   feature("The OIDC client endpoints leave out stored entries that break the rules") {
