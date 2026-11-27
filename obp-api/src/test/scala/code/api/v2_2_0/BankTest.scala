@@ -45,7 +45,7 @@ import scala.concurrent.duration._
 class BankTest extends V220ServerSetup with DefaultUsers {
 
   object VersionOfApi extends Tag(ApiVersion.v2_2_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations2_2_0.createBank))
+  object ApiEndpoint1 extends Tag("createBank")
 
   feature("Assuring that endpoint createBank works as expected - v2.2.0") {
 

@@ -60,9 +60,9 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
   object GetHostedBanks extends Tag("hostedBanks")
   object GetHostedBank extends Tag("getHostedBank")
   
-  object ApiEndpoint1 extends Tag(nameOf(Implementations2_2_0.getViewsForBankAccount))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations2_2_0.createViewForBankAccount))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations2_2_0.updateViewForBankAccount))
+  object ApiEndpoint1 extends Tag("getViewsForBankAccount")
+  object ApiEndpoint2 extends Tag("createViewForBankAccount")
+  object ApiEndpoint3 extends Tag("updateViewForBankAccount")
 
 
   /********************* API test methods ********************/

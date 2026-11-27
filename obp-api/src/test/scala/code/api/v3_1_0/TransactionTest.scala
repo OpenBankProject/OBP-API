@@ -70,7 +70,7 @@ class TransactionTest extends V310ServerSetup {
   object ApiEndpoint3 extends Tag("getCoreAccountById")
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.getTransactionByIdForBankAccount))
   //Use this endpoint to prepare the data.
-  object ApiEndpoint5 extends Tag(nameOf(Implementations2_2_0.createCounterparty))
+  object ApiEndpoint5 extends Tag("createCounterparty")
 
   val bankId1 = testBankId1.value
   val bankId2 = testBankId2.value
