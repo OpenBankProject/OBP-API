@@ -129,6 +129,11 @@ object ErrorMessages {
   val InvalidDynamicEntityWebhookDescription = "OBP-09039: Invalid description. description must be at most 2000 characters."
   val DynamicEntityWebhookDeliveryNotFound = "OBP-09040: Dynamic Entity webhook delivery not found for this webhook. Please specify a valid value for EVENT_ID."
   val DynamicEntityWebhookDeliveryNotSticky = "OBP-09041: Only a STICKY delivery can be retried. A PENDING delivery is retried automatically, and a DELIVERED one is done. "
+  // Dynamic Entity audit chains: tamper-evident records of every change to the records of a Dynamic Entity.
+  val DynamicEntityAuditChainAlreadyStarted = "OBP-09042: This Dynamic Entity's audit chain has already been started. An entity has one audit chain, and it cannot be started again."
+  val DynamicEntityAuditChainNotStarted = "OBP-09043: This Dynamic Entity has no audit chain. Start one first."
+  val DynamicEntityHasAuditChain = "OBP-09044: This Dynamic Entity has an audit chain, so it cannot be deleted or renamed. An audit chain cannot be stopped, so that it always covers every change to the entity's records. "
+  val DynamicEntityAuditRootChainNotStarted = "OBP-09045: There is no root audit chain yet. It is created when the first Dynamic Entity audit chain is started, or by sealing."
 
 
   // General messages (OBP-10XXX)
@@ -547,6 +552,17 @@ object ErrorMessages {
   val AccountRoutingNotFound = "OBP-30075: Account routing not found, Please specify valid values for account routing scheme and address"
   val InvalidAccountRoutingAddressRegex = "OBP-30649: Invalid account_routing.address. It must be a valid regular expression."
   val AccountRoutingNotUnique = "OBP-31075: Routing is not unique at this instance"
+  val BankBicConflict = "OBP-31076: The bank has two different BICs. The BIC in its bank routing and the BIC in its deprecated swift_bic field must be the same."
+  val BankRoutingNotUnique = "OBP-31077: More than one bank has this bank routing."
+  val BankRoutingAlreadyExists = "OBP-31079: Another bank already has this bank routing."
+  val AccountNumberAssignedByBank = "OBP-31080: The bank assigns account numbers. Give the account routing scheme ACCOUNT_NUMBER with an empty address, and the bank will assign the number. A number can be given only on a sandbox, or by a user with the role CanCreateAccountWithAccountNumber."
+  val AccountNumberAlreadyExists = "OBP-31081: Another account at this bank already has this account number."
+  val AccountRoutingAddressNotAssigned = "OBP-31082: OBP cannot assign an address for this account routing scheme. Give the address, or use the scheme ACCOUNT_NUMBER."
+  val AccountNumberDoesNotMatchScheme = "OBP-31083: The account number does not match the address pattern of its account routing scheme."
+  val TooManyAccountNumbers = "OBP-31084: An account can have only one account number."
+  val NubanBankCodeNotUsable = "OBP-31085: OBP cannot work out a NUBAN at this bank. To use the account routing scheme NG.NUBAN, the bank needs one bank routing with scheme NG.BANK_CODE. It holds the bank's CBN code of 3, 5 or 6 digits."
+  val NubanCheckDigitInvalid = "OBP-31086: The NUBAN is not valid at this bank. A NUBAN has ten digits. The last digit must be the check digit worked out from the bank's CBN code and the first nine digits."
+  val AccountNumberConflict = "OBP-31078:The account has two different account numbers. The account number in its account routing and the one in its account number field must be the same."
   val BankAccountNotFoundByAccountId = "OBP-30076: Bank Account not found. Please specify a valid value for ACCOUNT_ID."
 
   val TransactionRequestAttributeNotFound = "OBP-30078: Transaction Request Attribute not found. Please specify a valid value for TRANSACTION_REQUEST_ATTRIBUTE_ID."
@@ -1130,7 +1146,9 @@ object ErrorMessages {
   val OpenCorridorSettlementAddressMissing = "OBP-40056: The creditor bank has no settlement address registered in its Open Corridor broker registration, so the settlement instruction cannot be addressed."
   val OpenCorridorDisabled = "OBP-40057: Open Corridor is not enabled on this API instance. Set open_corridor_enabled=true in the props."
   val OpenCorridorSettlementNotFound = "OBP-40058: No Open Corridor settlement with this SETTLEMENT_ID exists for this bank."
+  val OpenCorridorOnwardRouteNamesMember = "OBP-40069: An onward route names a bank that is a member of this OBP instance. Pay a member directly: it needs no onward route."
   val OpenCorridorSameBankNotAllowed = "OBP-40061: OPEN_CORRIDOR is inter-bank: the beneficiary bank must differ from the sending bank. Use an ordinary payment for intra-bank transfers."
+  val OpenCorridorNetBelowMinimum = "OBP-40068: The net of this Open Corridor pair is below the minimum settlement amount for its currency (open_corridor.min_settlement_amount.<CURRENCY>). Nothing was netted: the promises stay PENDING and are settled together once their net reaches the minimum."
   val MessageOutboxRowNotFound = "OBP-40059: No message outbox row with this OUTBOX_ID exists."
   val MessageOutboxRowNotSticky = "OBP-40060: The message outbox row is not STICKY. Only STICKY rows can be re-queued; PENDING rows retry automatically."
   // Renumbered from OBP-40058 on merge: develop had meanwhile taken 40058 through 40061 for Open

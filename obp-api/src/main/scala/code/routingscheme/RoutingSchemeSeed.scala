@@ -129,13 +129,25 @@ object RoutingSchemeSeed {
       Nil)
   )
 
+  // Nigeria. See code.api.util.Nuban for how a NUBAN is worked out from the bank code.
+  val ngSeeds: List[Entry] = List(
+    Entry("NG.NUBAN",     "NG", "ACCOUNT",
+      "^[0-9]{10}$", "0000014579",
+      "Nigeria Uniform Bank Account Number (CBN): a nine digit serial number and a check digit worked out from the bank's CBN code.",
+      List("NIP")),
+    Entry("NG.BANK_CODE", "NG", "BANK",
+      "^([0-9]{3}|[0-9]{5}|[0-9]{6})$", "011",
+      "CBN bank code: 3 digits for a deposit money bank, 5 digits for another financial institution, or the 6 digit institution code.",
+      List("NIP"))
+  )
+
   def runIfEnabled(): Unit = {
     if (!APIUtil.getPropsAsBoolValue("routing_schemes.seed_defaults_at_boot", defaultValue = true)) {
       logger.info("[RoutingSchemeSeed] disabled via routing_schemes.seed_defaults_at_boot=false")
       return
     }
     val provider = MappedRoutingSchemeProvider
-    val allSeeds = globalSeeds ++ tzSeeds
+    val allSeeds = globalSeeds ++ tzSeeds ++ ngSeeds
     val (inserted, skipped, failed) = allSeeds.foldLeft((0, 0, 0)) {
       case ((ins, skp, fld), entry) =>
         provider.getRoutingScheme(entry.scheme) match {

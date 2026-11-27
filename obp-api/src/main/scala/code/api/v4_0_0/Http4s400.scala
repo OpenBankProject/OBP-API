@@ -1018,9 +1018,10 @@ object Http4s400 {
                 AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
             (existingAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
-            // The attribute must belong to the bank and product in the path, else a role at one bank overwrites and moves any bank's attribute.
+            // only an attribute of the bank and product in the path
             _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
-              existingAttribute.bankId.value == bankIdStr && existingAttribute.productCode.value == productCodeStr
+              existingAttribute.bankId.value == bankIdStr &&
+                existingAttribute.productCode.value == productCodeStr
             }
             (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankIdStr), ProductCode(productCodeStr), Some(productAttributeIdStr),
@@ -4918,7 +4919,12 @@ object Http4s400 {
         EndpointHelpers.withUserAndBodyCreated[ProductFeeJsonV400, Any](req) { (_, postedData, cc) =>
           for {
             (_, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCode), Some(cc))
-            (_, _) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+            (existingFee, _) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+            // only a fee of the bank and product in the path
+            _ <- code.util.Helper.booleanToFuture(ProductFeeNotFoundById + " {" + productFeeId + "}", 404, Some(cc)) {
+              existingFee.bankId.value == bankIdStr &&
+                existingFee.productCode.value == productCode
+            }
             (productFee, _) <- NewStyle.function.createOrUpdateProductFee(
               BankId(bankIdStr), ProductCode(productCode), Some(productFeeId),
               postedData.name, postedData.is_active, postedData.more_info,
@@ -5190,7 +5196,7 @@ object Http4s400 {
         |""",
         productFeeJsonV400.copy(product_fee_id = None),
         productFeeResponseJsonV400,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, ProductFeeNotFoundById, UnknownError),
         List(apiTagProduct),
         Some(List(canUpdateProductFee)),
         http4sPartialFunction = Some(updateProductFee)
@@ -7733,9 +7739,13 @@ object Http4s400 {
 
     lazy val deleteCustomerCascade: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "cascading" / "banks" / _ / "customers" / customerIdStr =>
-        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The delete is addressed through a bank, so a customer of another bank is not found here.
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, cc = Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             _ <- Future(deletion.DeleteCustomerCascade.atomicDelete(CustomerId(customerIdStr)))
           } yield Full(true)
         }

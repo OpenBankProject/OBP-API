@@ -124,7 +124,13 @@ class SuccessSweepTest extends ServerSetupWithTestData with DefaultUsers with Sw
     "OBPv7.0.0-getGlossaryItem"             -> "404 OBP-30571: no Glossary Item titled TITLE",
     "OBPv7.0.0-getDynamicGlossaryItem"      -> ("404 OBP-30571: no Dynamic Glossary Item titled TITLE. " +
       "Like SCHEME above, TITLE is a placeholder the catalog does not substitute, so the literal " +
-      "path is called")
+      "path is called"),
+
+    // ── the thing asked for exists only after something else has happened ──
+    // a fresh database has no root audit chain until the first chain is started or sealed
+    "OBPv7.0.0-getDynamicEntityAuditRootChain"        -> "404 OBP-09045: no root audit chain yet",
+    "OBPv7.0.0-getDynamicEntityAuditRootChainEntries" -> "404 OBP-09045: no root audit chain yet",
+    "OBPv7.0.0-checkDynamicEntityAuditRootChain"      -> "404 OBP-09045: no root audit chain yet"
   )
 
   private def get(path: String, headers: Map[String, String]): (Int, JValue) = {

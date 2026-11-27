@@ -903,7 +903,10 @@ trait Connector extends MdcLoggable {
                           national_identifier: String,
                           bankRoutingScheme: String,
                           bankRoutingAddress: String,
-                          callContext: Option[CallContext]
+                          callContext: Option[CallContext],
+                          // All of the bank's bank routings, replacing the ones it has. None: use the
+                          // swiftBIC and bankRoutingScheme / bankRoutingAddress above instead.
+                          bankRoutings: Option[List[BankRoutingJson]] = None
                         ): Box[Bank] = Failure(setUnimplementedError(nameOf(createOrUpdateBank _)))
   
   def createOrUpdateAtm(atm: AtmT,  callContext: Option[CallContext]): OBPReturnType[Box[AtmT]] = Future{Failure(setUnimplementedError(nameOf(createOrUpdateAtm _)))}

@@ -64,6 +64,7 @@ object AppsPage {
     "public_obp_portal_url"       -> Set("status", "health"),
     "public_obp_api_manager_url"  -> Set("status", "health"),
     "public_obp_cohort_url"       -> Set("health"),
+    "public_obp_conformator_url"  -> Set("status", "health"),
     "public_obp_oidc_url"         -> Set("status"),
     "public_obp_api_url"          -> Set("status", "health"),
     "public_obp_opey_url"         -> Set("status", "health"),

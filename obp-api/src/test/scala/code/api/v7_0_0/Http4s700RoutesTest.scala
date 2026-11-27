@@ -35,7 +35,7 @@ import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
 import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateTenant, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteAccountNotificationWebhookAtOneBank, canDeleteEntitlementAtAnyBank, canDeleteTenant, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canDeleteSystemAccountNotificationWebhook, canUpdateSystemView, canGetAccountAccessTrace, canGetAccountDirectoryAtOneBank, canGetTenant, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateTenant, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{NotPositiveAmount, AccountIdAlreadyExists,AuthenticatedUserIsRequired, BankNotFound, DuplicateUsername, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidTenantIdFormat, InvalidPhoneNumber, InvalidRoutingSchemeName, UserFilterParametersNotSupported, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, NotificationWebhookNotFound, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, TenantAlreadyExists, TenantNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
+import code.api.util.ErrorMessages.{NotPositiveAmount, AccountIdAlreadyExists,AuthenticatedUserIsRequired, BankNotFound, DuplicateUsername, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidTenantIdFormat, InvalidPhoneNumber, InvalidRoutingSchemeName, UserFilterParametersNotSupported, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, NotificationWebhookNotFound, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, TenantAlreadyExists, TenantNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound, OpenCorridorNetBelowMinimum}
 import code.utilitypayment.{UtilityCallbackStatus, UtilityPaymentCallbacks}
 import code.scheduler.JobScheduler
 import net.liftweb.mapper.By
@@ -3878,6 +3878,66 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case _ => fail("Expected JSON object")
       }
     }
+
+    scenario("A net below the currency's minimum settlement amount is not settled; its promises carry over to a later settle", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
+      addEntitlement(testBankId1.value, resourceUser1.userId, canSettleOpenCorridor.toString)
+      addEntitlement(testBankId1.value, resourceUser1.userId, canAttachOpenCorridorPromise.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val currency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      ensureSettlementAccounts(testBankId1.value, currency)
+      ensureSettlementAccounts(testBankId2.value, currency)
+      registerBrokers()
+      setPropsValues("open_corridor_enabled" -> "true", s"open_corridor.min_settlement_amount.$currency" -> "10.00")
+
+      def evidencedPromise(amount: String): String = {
+        val promiseId = createPendingPromise(amount = amount)
+        val (evidenceCode, _, _) = makeHttpRequestWithBody("POST",
+          promiseEvidencePath(testBankId1.value, testAccountId0.value, promiseId), promiseEvidenceBody(), headers)
+        evidenceCode shouldBe 201
+        promiseId
+      }
+
+      Given("Two evidenced promises A→B netting to 7.00, under a minimum of 10.00")
+      val small1 = evidencedPromise("4.00")
+      val small2 = evidencedPromise("3.00")
+
+      When("Settle is triggered")
+      val (belowCode, belowJson, _) = makeHttpRequestWithBody("POST",
+        settlementsPath(testBankId1.value), settleBody(currency), headers)
+
+      Then("It is refused, and nothing is netted: the promises stay PENDING and no message is queued")
+      belowCode shouldBe 400
+      messageOf(belowJson) should include(OpenCorridorNetBelowMinimum)
+      messageOf(belowJson) should include(s"7.00 $currency")
+      messageOf(belowJson) should include(s"10.00 $currency")
+      List(small1, small2).foreach { promiseId =>
+        promiseStatus(promiseId) shouldBe "PENDING"
+        promiseAttributes(promiseId).get(
+          code.bankconnectors.opencorridor.OpenCorridorSettlement.AttrSettledByTransactionRequestId) shouldBe None
+      }
+
+      When("A further promise brings the net to 12.00 and settle is triggered again")
+      val more = evidencedPromise("5.00")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        settlementsPath(testBankId1.value), settleBody(currency), headers)
+
+      Then("All three are settled together")
+      statusCode shouldBe 201
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("net_amount") shouldBe Some(JString("12.00"))
+          map.get("covered_transaction_request_ids") match {
+            case Some(JArray(ids)) => ids.collect { case JString(id) => id }.toSet shouldBe Set(small1, small2, more)
+            case _ => fail("covered_transaction_request_ids should be an array")
+          }
+        case _ => fail("Expected JSON object")
+      }
+      List(small1, small2, more).foreach(promiseStatus(_) shouldBe "COMPLETED")
+    }
   }
 
   // ─── BULK transaction request ─────────────────────────────────────────────
@@ -4848,6 +4908,23 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case _             => fail("Expected banks array")
       }
       listedBankIds should contain(bankId)
+
+      And("GET /my/banks shows the bank's active attributes, as Get Banks does")
+      scala.concurrent.Await.result(
+        code.bankattribute.BankAttributeX.bankAttributeProvider.vend.createOrUpdateBankAttribute(
+          CommBankId(bankId), None, "OPEN_CORRIDOR_PARTICIPANT", com.openbankproject.commons.model.enums.BankAttributeType.BOOLEAN, "true", Some(true)),
+        scala.concurrent.duration.Duration(10, "seconds"))
+      val (attributesStatus, attributesJson, _) = makeHttpRequest("/obp/v7.0.0/my/banks", headers)
+      attributesStatus shouldBe 200
+      val listedBank = attributesJson \ "banks" match {
+        case JArray(banks) => banks.find(bank => (bank \ "bank_id") == JString(bankId)).getOrElse(fail("Expected the created bank"))
+        case _             => fail("Expected banks array")
+      }
+      val listedAttributes = listedBank \ "attributes" match {
+        case JArray(attributes) => attributes.map(attribute => ((attribute \ "name"), (attribute \ "value")))
+        case _                  => fail("Expected attributes array")
+      }
+      listedAttributes should contain((JString("OPEN_CORRIDOR_PARTICIPANT"), JString("true")))
 
       And("a second POST returns 403 — the quota is exhausted")
       val (secondStatus, secondJson, _) = makeHttpRequestWithMethod("POST", "/obp/v7.0.0/my/banks", headers)

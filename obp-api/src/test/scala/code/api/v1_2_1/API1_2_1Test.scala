@@ -1606,6 +1606,20 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     // }
 
+    // // a new view may only get actions the caller has on one of their views
+    // scenario("We will not create a view with an action that none of the caller's views has", API1_2_1, PostView){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val baseView = randomView(true, "")
+      // val view = baseView.copy(allowed_actions = baseView.allowed_actions :+ "can_do_what_no_view_of_the_caller_can")
+      // When("the request is sent")
+      // val reply = postView(bankId, bankAccount.id, view, user1)
+      // Then("we should get a 403 and the SourceViewHasLessPermission message")
+      // reply.code should equal (403)
+      // reply.body.extract[ErrorMessage].message should startWith (code.api.util.ErrorMessages.SourceViewHasLessPermission)
+    // }
+
     // scenario("we are not allowed to create a view with an empty name") {
       // Given("We will use an access token")
       // val bankId = randomBank

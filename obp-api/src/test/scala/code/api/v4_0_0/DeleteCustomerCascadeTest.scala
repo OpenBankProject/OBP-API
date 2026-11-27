@@ -27,16 +27,25 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v4_0_0
 
+import code.CustomerDependants.MappedCustomerDependant
+import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole.{CanDeleteCustomerCascade, CanDeleteTransactionCascade}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
+import code.api.util.APIUtil.extractErrorMessageCode
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, CustomerNotFoundByCustomerId, UserHasMissingRoles}
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
+import code.customer.{MappedCustomer, MappedCustomerMessage}
+import code.crm.MappedCrmEvent
+import code.customerlinks.{CustomerLink, MappedCustomerLinkProvider}
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.mapper.By
 import org.scalatest.Tag
+
+import java.util.Date
 
 class DeleteCustomerCascadeTest extends V400ServerSetup {
 
@@ -53,6 +62,18 @@ class DeleteCustomerCascadeTest extends V400ServerSetup {
 
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
+
+  private def customerPrimaryKey(customerId: String): Long =
+    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)).openOrThrowException("expected the customer").id.get
+
+  private def grantCascadeRole(): Unit =
+    if (!APIUtil.hasEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteCustomerCascade))
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteCustomerCascade.toString)
+
+  private def cascadeDelete(customerId: String) = {
+    grantCascadeRole()
+    makeDeleteRequest((v4_0_0_Request / "management" / "cascading" / "banks" / bankId / "customers" / customerId).DELETE <@(user1))
+  }
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
@@ -97,5 +118,105 @@ class DeleteCustomerCascadeTest extends V400ServerSetup {
       makeDeleteRequest(request400).code should equal(404)
     }
   }  
+
+  feature(s"test $ApiEndpoint1 - rows that name the customer by its id") {
+    scenario("A link between customers goes when either customer is deleted, links of others stay", ApiEndpoint1, VersionOfApi) {
+      val first = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      val second = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      val third = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      def link(from: String, to: String) =
+        MappedCustomerLinkProvider.createCustomerLink(bankId, from, bankId, to, "RELATED").openOrThrowException("expected the link")
+      link(first, second)  // the deleted customer is the first side
+      link(third, first)   // the deleted customer is the other side
+      link(second, third)  // unrelated to the deleted customer
+      def linksOf(id: String) =
+        CustomerLink.count(By(CustomerLink.CustomerId, id)) + CustomerLink.count(By(CustomerLink.OtherCustomerId, id))
+
+      linksOf(first) should equal(2)
+
+      cascadeDelete(first).code should equal(200)
+
+      linksOf(first) should equal(0)
+      CustomerLink.count(By(CustomerLink.CustomerId, second), By(CustomerLink.OtherCustomerId, third)) should equal(1)
+    }
+  }
+
+  feature(s"test $ApiEndpoint1 - the bank in the URL") {
+    scenario("A customer of another bank is not found and is kept", ApiEndpoint1, VersionOfApi) {
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      val otherBankId = createBank(APIUtil.generateUUID()).bankId.value
+      Entitlement.entitlement.vend.addEntitlement(otherBankId, resourceUser1.userId, ApiRole.canDeleteCustomerCascade.toString)
+
+      val wrongBank = makeDeleteRequest((v4_0_0_Request / "management" / "cascading" / "banks" / otherBankId / "customers" / customerId).DELETE <@(user1))
+
+      wrongBank.code should equal(404)
+      wrongBank.body.extract[ErrorMessage].message should include(extractErrorMessageCode(CustomerNotFoundByCustomerId))
+      MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)).isDefined should equal(true)
+
+      cascadeDelete(customerId).code should equal(200)
+      MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)).isDefined should equal(false)
+    }
+  }
+
+  feature(s"test $ApiEndpoint1 - rows that name the customer by its number") {
+    scenario("CRM events of the deleted customer go, those of another customer stay", ApiEndpoint1, VersionOfApi) {
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      val otherCustomerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      def numberOf(id: String) = MappedCustomer.find(By(MappedCustomer.mCustomerId, id)).openOrThrowException("expected the customer").mNumber.get
+      def addEvent(number: String, atBank: String): Unit =
+        MappedCrmEvent.create.mBankId(atBank).mCustomerNumber(number).mCustomerName("name").mCategory("call")
+          .mUserId(resourceUser1).saveMe()
+      def events(number: String, atBank: String) =
+        MappedCrmEvent.count(By(MappedCrmEvent.mBankId, atBank), By(MappedCrmEvent.mCustomerNumber, number))
+      val number = numberOf(customerId)
+      val otherNumber = numberOf(otherCustomerId)
+      addEvent(number, bankId)
+      addEvent(otherNumber, bankId)
+      events(number, bankId) should equal(1)
+
+      cascadeDelete(customerId).code should equal(200)
+
+      events(number, bankId) should equal(0)
+      events(otherNumber, bankId) should equal(1)
+    }
+
+    scenario("A CRM event with the same customer number at another bank stays", ApiEndpoint1, VersionOfApi) {
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      val number = MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)).openOrThrowException("expected the customer").mNumber.get
+      MappedCrmEvent.create.mBankId("another-bank").mCustomerNumber(number).mCustomerName("name").mCategory("call")
+        .mUserId(resourceUser1).saveMe()
+
+      cascadeDelete(customerId).code should equal(200)
+
+      MappedCrmEvent.count(By(MappedCrmEvent.mBankId, "another-bank"), By(MappedCrmEvent.mCustomerNumber, number)) should equal(1)
+    }
+  }
+
+  feature(s"test $ApiEndpoint1 - rows that point at the customer") {
+    scenario("Messages and dependants of the deleted customer go, those of another customer stay", ApiEndpoint1, VersionOfApi) {
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      val otherCustomerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      val pk = customerPrimaryKey(customerId)
+      val otherPk = customerPrimaryKey(otherCustomerId)
+      def addRows(customerPk: Long): Unit = {
+        MappedCustomerMessage.create.customer(customerPk).bank(bankId).mMessage("hello")
+          .mFromPerson("person").mFromDepartment("department").mTransport("sms").saveMe()
+        MappedCustomerDependant.create.mCustomer(customerPk).mDateOfBirth(new Date()).saveMe()
+      }
+      addRows(pk)
+      addRows(otherPk)
+      // Creating a customer through the endpoint already adds dependants, so count against what was there.
+      val otherDependantsBefore = MappedCustomerDependant.count(By(MappedCustomerDependant.mCustomer, otherPk))
+      MappedCustomerMessage.count(By(MappedCustomerMessage.customer, pk)) should equal(1)
+      MappedCustomerDependant.count(By(MappedCustomerDependant.mCustomer, pk)) should be >= 1L
+
+      cascadeDelete(customerId).code should equal(200)
+
+      MappedCustomerMessage.count(By(MappedCustomerMessage.customer, pk)) should equal(0)
+      MappedCustomerDependant.count(By(MappedCustomerDependant.mCustomer, pk)) should equal(0)
+      MappedCustomerMessage.count(By(MappedCustomerMessage.customer, otherPk)) should equal(1)
+      MappedCustomerDependant.count(By(MappedCustomerDependant.mCustomer, otherPk)) should equal(otherDependantsBefore)
+    }
+  }
 
 }

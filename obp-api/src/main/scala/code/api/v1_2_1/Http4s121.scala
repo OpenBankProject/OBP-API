@@ -635,6 +635,13 @@ object Http4s121 {
               // s"${CreateCustomViewError} You need the `${CAN_CREATE_CUSTOM_VIEW}` permission on any your views",
               // cc = Some(cc)
             // )(anyViewContainsPermission)
+            // // the new view may only get actions the caller has on one of their views
+            // callerActions = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)
+              // .map(_.views.flatMap(_.allowed_actions)).getOrElse(Nil).toSet
+            // _ <- Helper.booleanToFuture(
+              // s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${createViewJsonV121.allowed_actions})",
+              // failCode = 403, cc = Some(cc)
+            // )(createViewJsonV121.allowed_actions.toSet.subsetOf(callerActions))
             // view <- Future(Views.views.vend.createCustomView(BankIdAccountId(account.bankId, account.accountId), createViewJson)) map {
               // unboxFullOrFail(_, Some(cc), CreateCustomViewError)
             // }
@@ -663,7 +670,7 @@ object Http4s121 {
       // | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
       // createViewJsonV121,
       // viewJSONV121,
-      // List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, UnknownError, "user does not have owner access"),
+      // List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, SourceViewHasLessPermission, UnknownError, "user does not have owner access"),
       // List(apiTagAccount, apiTagView, apiTagOldStyle),
       // http4sPartialFunction = Some(createViewForBankAccount)
     // )

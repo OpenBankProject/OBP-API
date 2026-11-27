@@ -88,7 +88,12 @@ object DeleteBankCascade {
    */
   private def deleteDynamicEntities(bankId: BankId): Boolean = {
     val space = Some(bankId.value)
-    DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(space, returnBothBankAndSystemLevel = false).forall { entity =>
+    val entities = DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(space, returnBothBankAndSystemLevel = false)
+    // A bank with an audited Dynamic Entity cannot be deleted, because the entity cannot be. Refuse before anything is removed.
+    entities.find(_.dynamicEntityId.exists(code.dynamicentityauditchain.DynamicEntityAuditChains.hasChain)).foreach { audited =>
+      fullBoxOrException(Empty ~> APIFailureNewStyle(s"${code.api.util.ErrorMessages.DynamicEntityHasAuditChain}Entity name: ${audited.entityName}.", 400))
+    }
+    entities.forall { entity =>
       val recordsDeleted = DynamicDataProvider.connectorMethodProvider.vend.getAllCommunity(space, entity.entityName).forall { record =>
         record.dynamicDataId.exists(id => DynamicDataProvider.connectorMethodProvider.vend.deleteCommunity(space, entity.entityName, id).openOr(false))
       }

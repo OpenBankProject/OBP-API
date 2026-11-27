@@ -1526,9 +1526,10 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       product_code = account.accountType,
       balance = AmountOfMoneyJsonV121(account.currency, account.balance.toString()),
       branch_id = account.branchId,
-      account_routings = Constant.accountRoutingsWithImplicitOBP(
+      account_routings = code.api.util.RoutingRules.accountRoutingsOf(
         account.accountId.value,
-        account.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address))
+        account.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address)),
+        account.number
       ),
       account_attributes = accountAttributes.map(JSONFactory310.createAccountAttributeJson),
       metadata = accountMetadataJsonV700(creation)
@@ -1564,9 +1565,10 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         account_number = account.number,
         account_type = account.productCode,
         branch_id = account.branchId,
-        account_routings = Constant.accountRoutingsWithImplicitOBP(
+        account_routings = code.api.util.RoutingRules.accountRoutingsOf(
           account.id,
-          account.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address))
+          account.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address)),
+          account.number
         ),
         account_attributes = account.accountAttributes,
         view_ids = viewsPerAccount.getOrElse(BankIdAccountId(BankId(account.bankId), AccountId(account.id)), Nil),
