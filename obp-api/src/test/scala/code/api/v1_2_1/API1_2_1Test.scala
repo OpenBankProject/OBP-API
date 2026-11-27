@@ -207,10 +207,29 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
   object MeataViewWhere extends Tag("meataViewWhere")
   
   /********************* API test methods ********************/
+  /********************* Setup through the kept versions ********************/
+  // The v1.2.1 handlers for the account list, the views, the permissions, the other accounts and
+  // the transactions are commented out (see docs/OLD_VERSION_ONLY_CODE.md), so these helpers read
+  // their test data through v5.1.0, which serves the same paths with newer handlers. Only the
+  // fields the scenarios use are read, because the newer handlers answer in newer shapes.
+  case class IdJSON(id: String)
+  private case class ViewIdJSON(id: String, is_public: Boolean)
+
+  private def accountViewsViaKeptVersion(bankId: String, accountId: String, consumerAndToken: Option[(Consumer, Token)]): List[ViewIdJSON] = {
+    val reply = makeGetRequest(baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken))
+    (reply.body \ "views").children.map(v =>
+      ViewIdJSON((v \ "id").extract[String], (v \ "is_public").extractOpt[Boolean].getOrElse(false)))
+  }
+
+  // How many views a user holds on an account, read through v5.1.0 (served by v3.0.0
+  // getPermissionForUserForBankAccount); the v1.2.1 handler for this path is commented out.
+  private def userViewCountViaKeptVersion(bankId: String, accountId: String, providerId: String, consumerAndToken: Option[(Consumer, Token)]): Int = {
+    val reply = makeGetRequest(baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / accountId / "permissions" / defaultProvider / providerId <@(consumerAndToken))
+    (reply.body \ "views").children.size
+  }
+
   def randomCustomViewPermalink(bankId: String, account: AccountJSON) : String = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
-    val reply = makeGetRequest(request)
-    val possibleViewsPermalinks = reply.body.extract[ViewsJSONV121].views
+    val possibleViewsPermalinks = accountViewsViaKeptVersion(bankId, account.id, user1)
       .filterNot(_.is_public==true)
       .filterNot(view=> isValidSystemViewId(view.id))
     val randomPosition = nextInt(possibleViewsPermalinks.size)
@@ -221,9 +240,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
   //also see `@def createRandomView(bankId: BankId, accountId: AccountId)`. we prepare the metadataView_(SYSTEM_OWNER_VIEW_ID) there.
   //this  metadataView_(SYSTEM_OWNER_VIEW_ID) is used for some tests.
   def getTheRandomView(bankId: String, account: AccountJSON) : String = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
-    val reply = makeGetRequest(request)
-    val possibleViewsPermalinksWithoutOwner = reply.body.extract[ViewsJSONV121].views
+    val possibleViewsPermalinksWithoutOwner = accountViewsViaKeptVersion(bankId, account.id, user1)
       .filterNot(_.is_public==true)
       .filterNot(_.id.contains(SYSTEM_OWNER_VIEW_ID)) 
       .filterNot(_.id.contains(SYSTEM_AUDITOR_VIEW_ID))
@@ -235,7 +252,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
   }
 
   def randomBank : String = {
-    val banksJson = getBanksInfo.body.extract[BanksJSON]
+    // getBanks of v5.0.0 and below is commented out, so the bank list comes from v5.1.0.
+    val banksJson = makeGetRequest(baseRequest / "obp" / "v5.1.0" / "banks").body.extract[code.api.v4_0_0.BanksJson400]
     val randomPosition = nextInt(banksJson.banks.size)
     val bank = banksJson.banks(randomPosition)
     bank.id
@@ -248,24 +266,25 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
   }
 
   def randomPrivateAccount(bankId : String) : AccountJSON = {
-    val accountsJson = getPrivateAccounts(bankId, user1).body.extract[AccountsJSON].accounts
+    val accountsJson = makeGetRequest(baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / "private" <@(user1)).body.extract[AccountsJSON].accounts
     val randomPosition = nextInt(accountsJson.size)
     accountsJson(randomPosition)
   }
 
   def privateAccountThatsNot(bankId: String, accId : String) : AccountJSON = {
-    val accountsJson = getPrivateAccounts(bankId, user1).body.extract[AccountsJSON].accounts
+    val accountsJson = makeGetRequest(baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / "private" <@(user1)).body.extract[AccountsJSON].accounts
     accountsJson.find(acc => acc.id != accId).getOrElse(fail(s"no private account that's not $accId"))
   }
 
   def randomAccountPermission(bankId : String, accountId : String) : PermissionJSON = {
-    val persmissionsInfo = getAccountPermissions(bankId, accountId, user1).body.extract[PermissionsJSON]
+    val persmissionsInfo = makeGetRequest(baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / accountId / "permissions" <@(user1)).body.extract[PermissionsJSON]
     val randomPermission = nextInt(persmissionsInfo.permissions.size)
     persmissionsInfo.permissions(randomPermission)
   }
 
-  def randomCounterparty(bankId : String, accountId : String, viewId : String): OtherAccountJSON = {
-    val otherAccounts = getTheCounterparties(bankId, accountId, viewId, user1).body.extract[OtherAccountsJSON].other_accounts
+  def randomCounterparty(bankId : String, accountId : String, viewId : String): IdJSON = {
+    val reply = makeGetRequest(baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" <@(user1))
+    val otherAccounts = (reply.body \ "other_accounts").children.map(o => IdJSON((o \ "id").extract[String]))
     otherAccounts(nextInt(otherAccounts.size))
   }
 
@@ -280,15 +299,16 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     JSONFactory.createLocationPlainJSON(latitude, longitude)
   }
 
-  def randomTransaction(bankId : String, accountId : String, viewId: String) : TransactionJSON = {
-    val transactionsJson = getTransactions(bankId, accountId, viewId, user1).body.extract[TransactionsJSON].transactions
+  def randomTransaction(bankId : String, accountId : String, viewId: String) : IdJSON = {
+    val reply = makeGetRequest(baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@(user1))
+    val transactionsJson = (reply.body \ "transactions").children.map(o => IdJSON((o \ "id").extract[String]))
     val randomPosition = nextInt(transactionsJson.size)
     transactionsJson(randomPosition)
   }
 
   def randomCustomViewsIdsToGrant(bankId : String, accountId : String) : List[String]= {
     //get the view ids of the available views on the bank accounts
-    val viewsIds = getAccountViews(bankId, accountId, user1).body.extract[ViewsJSONV121].views
+    val viewsIds = accountViewsViaKeptVersion(bankId, accountId, user1)
       .filterNot(_.is_public)
       .map(_.id)
     //choose randomly some view ids to grant
@@ -1053,54 +1073,57 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
 
 /************************ the tests ************************/
-  feature("base line URL works"){
-    scenario("we get the api information", API1_2_1, APIInfo){
-      Given("We will not use an access token")
-      When("the request is sent")
-      val reply = getAPIInfo
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val apiInfo = reply.body.extract[APIInfoJSON]
-      apiInfo.version should equal ("v1.2.1")
-/*      apiInfo.git_commit.nonEmpty should equal (true)*/
-    }
-  }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("base line URL works"){
+    // scenario("we get the api information", API1_2_1, APIInfo){
+      // Given("We will not use an access token")
+      // When("the request is sent")
+      // val reply = getAPIInfo
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val apiInfo = reply.body.extract[APIInfoJSON]
+      // apiInfo.version should equal ("v1.2.1")
+// /*      apiInfo.git_commit.nonEmpty should equal (true)*/
+    // }
+  // }
 
-  feature("Information about the hosted banks"){
-    scenario("we get the hosted banks information", API1_2_1, GetHostedBanks){
-      Given("We will not use an access token")
-      When("the request is sent")
-      val reply = getBanksInfo
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val banksInfo = reply.body.extract[BanksJSON]
-      banksInfo.banks.foreach(b => {
-        b.id.nonEmpty should equal (true)
-      })
-    }
-  }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Information about the hosted banks"){
+    // scenario("we get the hosted banks information", API1_2_1, GetHostedBanks){
+      // Given("We will not use an access token")
+      // When("the request is sent")
+      // val reply = getBanksInfo
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val banksInfo = reply.body.extract[BanksJSON]
+      // banksInfo.banks.foreach(b => {
+        // b.id.nonEmpty should equal (true)
+      // })
+    // }
+  // }
 
-  feature("Information about one hosted bank"){
-    scenario("we get the hosted bank information", API1_2_1, GetHostedBank){
-      Given("We will not use an access token")
-      When("the request is sent")
-      val reply = getBankInfo(randomBank)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val bankInfo = reply.body.extract[BankJSON]
-      bankInfo.id.nonEmpty should equal (true)
-    }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Information about one hosted bank"){
+    // scenario("we get the hosted bank information", API1_2_1, GetHostedBank){
+      // Given("We will not use an access token")
+      // When("the request is sent")
+      // val reply = getBankInfo(randomBank)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val bankInfo = reply.body.extract[BankJSON]
+      // bankInfo.id.nonEmpty should equal (true)
+    // }
 
-    scenario("we don't get the hosted bank information", API1_2_1, GetHostedBank){
-      Given("We will not use an access token and request a random bankId")
-      When("the request is sent")
-      val reply = getBankInfo(randomString(10))
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
-  }
+    // scenario("we don't get the hosted bank information", API1_2_1, GetHostedBank){
+      // Given("We will not use an access token and request a random bankId")
+      // When("the request is sent")
+      // val reply = getBankInfo(randomString(10))
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
+  // }
 
   def assertViewExistsWithCondition(accJson: AccountsJSON, cond: ViewJSONV121 => Boolean): Unit = {
     val exists = accJson.accounts.exists(acc => acc.views_available.exists(cond))
@@ -1147,85 +1170,87 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     accJson.accounts.size should equal(accountIdentifiers.size)
   }
 
-  feature("Information about all the bank accounts for all banks"){
-//    scenario("we get only the public bank accounts", API1_2, GetBankAccountsForAllBanks) {
-//      accountTestsSpecificDBSetup()
-//      Given("We will not use an access token")
-//      When("the request is sent")
-//      val reply = getBankAccountsForAllBanks(None)
-//      Then("we should get a 200 ok code")
-//      reply.code should equal (200)
-//      val publicAccountsInfo = reply.body.extract[AccountsJSON]
-//      And("some fields should not be empty")
-//      publicAccountsInfo.accounts.foreach(a => {
-//        a.id.nonEmpty should equal (true)
-//        a.views_available.nonEmpty should equal (true)
-//        a.views_available.foreach(
-//          //check that all the views are public
-//          v => v.is_public should equal (true)
-//        )
-//      })
-//
-//      And("There are accounts from more than one bank")
-//      assertAccountsFromMoreThanOneBank(publicAccountsInfo)
-//
-//      And("There are no duplicate accounts")
-//      assertNoDuplicateAccounts(publicAccountsInfo)
-//    }
-    scenario("we get the bank accounts the user has access to", API1_2_1, GetBankAccountsForAllBanks){
-      accountTestsSpecificDBSetup()
-      Given("We will use an access token")
-      When("the request is sent")
-      val reply = getBankAccountsForAllBanks(user1)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val accountsInfo = reply.body.extract[AccountsJSON]
-      And("some fields should not be empty")
-      accountsInfo.accounts.foreach(a => {
-        a.id.nonEmpty should equal (true)
-        a.views_available.nonEmpty should equal (true)
-      })
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Information about all the bank accounts for all banks"){
+// //    scenario("we get only the public bank accounts", API1_2, GetBankAccountsForAllBanks) {
+// //      accountTestsSpecificDBSetup()
+// //      Given("We will not use an access token")
+// //      When("the request is sent")
+// //      val reply = getBankAccountsForAllBanks(None)
+// //      Then("we should get a 200 ok code")
+// //      reply.code should equal (200)
+// //      val publicAccountsInfo = reply.body.extract[AccountsJSON]
+// //      And("some fields should not be empty")
+// //      publicAccountsInfo.accounts.foreach(a => {
+// //        a.id.nonEmpty should equal (true)
+// //        a.views_available.nonEmpty should equal (true)
+// //        a.views_available.foreach(
+// //          //check that all the views are public
+// //          v => v.is_public should equal (true)
+// //        )
+// //      })
+// //
+// //      And("There are accounts from more than one bank")
+// //      assertAccountsFromMoreThanOneBank(publicAccountsInfo)
+// //
+// //      And("There are no duplicate accounts")
+// //      assertNoDuplicateAccounts(publicAccountsInfo)
+// //    }
+    // scenario("we get the bank accounts the user has access to", API1_2_1, GetBankAccountsForAllBanks){
+      // accountTestsSpecificDBSetup()
+      // Given("We will use an access token")
+      // When("the request is sent")
+      // val reply = getBankAccountsForAllBanks(user1)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val accountsInfo = reply.body.extract[AccountsJSON]
+      // And("some fields should not be empty")
+      // accountsInfo.accounts.foreach(a => {
+        // a.id.nonEmpty should equal (true)
+        // a.views_available.nonEmpty should equal (true)
+      // })
 
-      //test that this call is a combination of accounts with more than public access, and accounts with public access
-//      And("Some accounts should have only public views")
-//      assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, _.is_public)
-      And("Some accounts should have only private views")
-      assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, !_.is_public)
+      // //test that this call is a combination of accounts with more than public access, and accounts with public access
+// //      And("Some accounts should have only public views")
+// //      assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, _.is_public)
+      // And("Some accounts should have only private views")
+      // assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, !_.is_public)
 
-      And("There are accounts from more than one bank")
-      assertAccountsFromMoreThanOneBank(accountsInfo)
+      // And("There are accounts from more than one bank")
+      // assertAccountsFromMoreThanOneBank(accountsInfo)
 
-      And("There are no duplicate accounts")
-      assertNoDuplicateAccounts(accountsInfo)
-    }
-  }
+      // And("There are no duplicate accounts")
+      // assertNoDuplicateAccounts(accountsInfo)
+    // }
+  // }
 
-  feature("Information about the public bank accounts for all banks"){
-    scenario("we get the public bank accounts", API1_2_1, GetPublicBankAccountsForAllBanks){
-      accountTestsSpecificDBSetup()
-      Given("We will not use an access token")
-      When("the request is sent")
-      val reply = getPublicAccountsForAllBanks()
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val publicAccountsInfo = reply.body.extract[AccountsJSON]
-      And("some fields should not be empty")
-      publicAccountsInfo.accounts.foreach(a => {
-        a.id.nonEmpty should equal (true)
-        a.views_available.nonEmpty should equal (true)
-        a.views_available.foreach(
-          //check that all the views are public
-          v => v.is_public should equal (true)
-        )
-      })
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Information about the public bank accounts for all banks"){
+    // scenario("we get the public bank accounts", API1_2_1, GetPublicBankAccountsForAllBanks){
+      // accountTestsSpecificDBSetup()
+      // Given("We will not use an access token")
+      // When("the request is sent")
+      // val reply = getPublicAccountsForAllBanks()
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val publicAccountsInfo = reply.body.extract[AccountsJSON]
+      // And("some fields should not be empty")
+      // publicAccountsInfo.accounts.foreach(a => {
+        // a.id.nonEmpty should equal (true)
+        // a.views_available.nonEmpty should equal (true)
+        // a.views_available.foreach(
+          // //check that all the views are public
+          // v => v.is_public should equal (true)
+        // )
+      // })
 
-      And("There are accounts from more than one bank")
-      assertAccountsFromMoreThanOneBank(publicAccountsInfo)
+      // And("There are accounts from more than one bank")
+      // assertAccountsFromMoreThanOneBank(publicAccountsInfo)
 
-      And("There are no duplicate accounts")
-      assertNoDuplicateAccounts(publicAccountsInfo)
-    }
-  }
+      // And("There are no duplicate accounts")
+      // assertNoDuplicateAccounts(publicAccountsInfo)
+    // }
+  // }
 
   feature("Information about the private bank accounts for all banks"){
     scenario("we get the private bank accounts", API1_2_1, GetPrivateBankAccountsForAllBanks){
@@ -1263,471 +1288,479 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     }
   }
 
-  feature("Information about all the bank accounts for a single bank"){
-//    scenario("we get only the public bank accounts", API1_2, GetBankAccounts) {
-//      accountTestsSpecificDBSetup()
-//      Given("We will not use an access token")
-//      When("the request is sent")
-//      val reply = getBankAccounts(randomBank, None)
-//      Then("we should get a 200 ok code")
-//      reply.code should equal (200)
-//      val publicAccountsInfo = reply.body.extract[AccountsJSON]
-//      And("some fields should not be empty")
-//      publicAccountsInfo.accounts.foreach(a => {
-//        a.id.nonEmpty should equal (true)
-//        a.views_available.nonEmpty should equal (true)
-//        a.views_available.foreach(
-//          //check that all the views are public
-//          v => v.is_public should equal (true)
-//        )
-//      })
-//
-//      And("The accounts are only from one bank")
-//      assertAccountsFromOneBank(publicAccountsInfo)
-//
-//      And("There are no duplicate accounts")
-//      assertNoDuplicateAccounts(publicAccountsInfo)
-//    }
-    scenario("we get the bank accounts the user have access to", API1_2_1, GetBankAccounts){
-      accountTestsSpecificDBSetup()
-      Given("We will use an access token")
-      When("the request is sent")
-      val reply = getBankAccounts(randomBank, user1)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val accountsInfo = reply.body.extract[AccountsJSON]
-      And("some fields should not be empty")
-      accountsInfo.accounts.foreach(a => {
-        a.id.nonEmpty should equal (true)
-        a.views_available.nonEmpty should equal (true)
-      })
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Information about all the bank accounts for a single bank"){
+// //    scenario("we get only the public bank accounts", API1_2, GetBankAccounts) {
+// //      accountTestsSpecificDBSetup()
+// //      Given("We will not use an access token")
+// //      When("the request is sent")
+// //      val reply = getBankAccounts(randomBank, None)
+// //      Then("we should get a 200 ok code")
+// //      reply.code should equal (200)
+// //      val publicAccountsInfo = reply.body.extract[AccountsJSON]
+// //      And("some fields should not be empty")
+// //      publicAccountsInfo.accounts.foreach(a => {
+// //        a.id.nonEmpty should equal (true)
+// //        a.views_available.nonEmpty should equal (true)
+// //        a.views_available.foreach(
+// //          //check that all the views are public
+// //          v => v.is_public should equal (true)
+// //        )
+// //      })
+// //
+// //      And("The accounts are only from one bank")
+// //      assertAccountsFromOneBank(publicAccountsInfo)
+// //
+// //      And("There are no duplicate accounts")
+// //      assertNoDuplicateAccounts(publicAccountsInfo)
+// //    }
+    // scenario("we get the bank accounts the user have access to", API1_2_1, GetBankAccounts){
+      // accountTestsSpecificDBSetup()
+      // Given("We will use an access token")
+      // When("the request is sent")
+      // val reply = getBankAccounts(randomBank, user1)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val accountsInfo = reply.body.extract[AccountsJSON]
+      // And("some fields should not be empty")
+      // accountsInfo.accounts.foreach(a => {
+        // a.id.nonEmpty should equal (true)
+        // a.views_available.nonEmpty should equal (true)
+      // })
 
-      //test that this call is a combination of accounts with more than public access, and accounts with public access
-      And("Some accounts should have only public views")
+      // //test that this call is a combination of accounts with more than public access, and accounts with public access
+      // And("Some accounts should have only public views")
 
-//      assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, _.is_public)
-//      And("Some accounts should have only private views")
-      assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, !_.is_public)
+// //      assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, _.is_public)
+// //      And("Some accounts should have only private views")
+      // assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, !_.is_public)
 
-      And("The accounts are only from one bank")
-      assertAccountsFromOneBank(accountsInfo)
+      // And("The accounts are only from one bank")
+      // assertAccountsFromOneBank(accountsInfo)
 
-      And("There are no duplicate accounts")
-      assertNoDuplicateAccounts(accountsInfo)
-    }
-  }
+      // And("There are no duplicate accounts")
+      // assertNoDuplicateAccounts(accountsInfo)
+    // }
+  // }
 
-  feature("Information about the public bank accounts for a single bank"){
-    scenario("we get the public bank accounts", API1_2_1, GetPublicBankAccounts){
-      accountTestsSpecificDBSetup()
-      Given("We will not use an access token")
-      When("the request is sent")
-      val reply = getPublicAccounts(randomBank)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val publicAccountsInfo = reply.body.extract[AccountsJSON]
-      And("some fields should not be empty")
-      publicAccountsInfo.accounts.foreach(a => {
-        a.id.nonEmpty should equal (true)
-        a.views_available.nonEmpty should equal (true)
-        a.views_available.foreach(
-          //check that all the views are public
-          v => v.is_public should equal (true)
-        )
-      })
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Information about the public bank accounts for a single bank"){
+    // scenario("we get the public bank accounts", API1_2_1, GetPublicBankAccounts){
+      // accountTestsSpecificDBSetup()
+      // Given("We will not use an access token")
+      // When("the request is sent")
+      // val reply = getPublicAccounts(randomBank)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val publicAccountsInfo = reply.body.extract[AccountsJSON]
+      // And("some fields should not be empty")
+      // publicAccountsInfo.accounts.foreach(a => {
+        // a.id.nonEmpty should equal (true)
+        // a.views_available.nonEmpty should equal (true)
+        // a.views_available.foreach(
+          // //check that all the views are public
+          // v => v.is_public should equal (true)
+        // )
+      // })
 
-      And("The accounts are only from one bank")
-      assertAccountsFromOneBank(publicAccountsInfo)
+      // And("The accounts are only from one bank")
+      // assertAccountsFromOneBank(publicAccountsInfo)
 
-      And("There are no duplicate accounts")
-      assertNoDuplicateAccounts(publicAccountsInfo)
-    }
-  }
+      // And("There are no duplicate accounts")
+      // assertNoDuplicateAccounts(publicAccountsInfo)
+    // }
+  // }
 
-  feature("Information about the private bank accounts for a single bank"){
-    scenario("we get the private bank accounts", API1_2_1, GetPrivateBankAccounts){
-      accountTestsSpecificDBSetup()
-      Given("We will use an access token")
-      When("the request is sent")
-      val reply = getPrivateAccounts(randomBank, user1)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      And("some fields should not be empty")
-      val privateAccountsInfo = reply.body.extract[AccountsJSON]
-      privateAccountsInfo.accounts.foreach(a => {
-        a.id.nonEmpty should equal (true)
-        a.views_available.nonEmpty should equal (true)
-      })
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Information about the private bank accounts for a single bank"){
+    // scenario("we get the private bank accounts", API1_2_1, GetPrivateBankAccounts){
+      // accountTestsSpecificDBSetup()
+      // Given("We will use an access token")
+      // When("the request is sent")
+      // val reply = getPrivateAccounts(randomBank, user1)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // And("some fields should not be empty")
+      // val privateAccountsInfo = reply.body.extract[AccountsJSON]
+      // privateAccountsInfo.accounts.foreach(a => {
+        // a.id.nonEmpty should equal (true)
+        // a.views_available.nonEmpty should equal (true)
+      // })
 
-      And("All accounts should have at least one private view")
-      assertAllAccountsHaveAViewWithCondition(privateAccountsInfo, !_.is_public)
+      // And("All accounts should have at least one private view")
+      // assertAllAccountsHaveAViewWithCondition(privateAccountsInfo, !_.is_public)
 
-      And("The accounts are only from one bank")
-      assertAccountsFromOneBank(privateAccountsInfo)
+      // And("The accounts are only from one bank")
+      // assertAccountsFromOneBank(privateAccountsInfo)
 
-      And("There are no duplicate accounts")
-      assertNoDuplicateAccounts(privateAccountsInfo)
-    }
-    scenario("we don't get the private bank accounts", API1_2_1, GetPrivateBankAccounts){
-      accountTestsSpecificDBSetup()
-      Given("We will not use an access token")
-      When("the request is sent")
-      val reply = getPrivateAccounts(randomBank, None)
-      Then("we should get a 401 code")
-      reply.code should equal (401)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
-  }
+      // And("There are no duplicate accounts")
+      // assertNoDuplicateAccounts(privateAccountsInfo)
+    // }
+    // scenario("we don't get the private bank accounts", API1_2_1, GetPrivateBankAccounts){
+      // accountTestsSpecificDBSetup()
+      // Given("We will not use an access token")
+      // When("the request is sent")
+      // val reply = getPrivateAccounts(randomBank, None)
+      // Then("we should get a 401 code")
+      // reply.code should equal (401)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
+  // }
 
-  feature("Information about a bank account"){
-    //For now, can not get the public accounts from this endpoint: accountById - v121
-//    scenario("we get data without using an access token", API1_2, GetBankAccount) {
-//      Given("We will not use an access token")
-//      val bankId = randomBank
-//      val bankAccount : AccountJSON = randomPublicAccount(bankId)
-//      val randomPosition = nextInt(bankAccount.views_available.size)
-//      val view = bankAccount.views_available.toList(randomPosition)
-//      When("the request is sent")
-//      val reply = getPublicBankAccountDetails(bankId, bankAccount.id, view.id)
-//      Then("we should get a 200 ok code")
-//      reply.code should equal (200)
-//      And("some fields should not be empty")
-//      val publicAccountDetails = reply.body.extract[ModeratedAccountJSON]
-//      publicAccountDetails.id.nonEmpty should equal (true)
-//      publicAccountDetails.bank_id.nonEmpty should equal (true)
-//      publicAccountDetails.views_available.nonEmpty should equal (true)
-//    }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Information about a bank account"){
+    // //For now, can not get the public accounts from this endpoint: accountById - v121
+// //    scenario("we get data without using an access token", API1_2, GetBankAccount) {
+// //      Given("We will not use an access token")
+// //      val bankId = randomBank
+// //      val bankAccount : AccountJSON = randomPublicAccount(bankId)
+// //      val randomPosition = nextInt(bankAccount.views_available.size)
+// //      val view = bankAccount.views_available.toList(randomPosition)
+// //      When("the request is sent")
+// //      val reply = getPublicBankAccountDetails(bankId, bankAccount.id, view.id)
+// //      Then("we should get a 200 ok code")
+// //      reply.code should equal (200)
+// //      And("some fields should not be empty")
+// //      val publicAccountDetails = reply.body.extract[ModeratedAccountJSON]
+// //      publicAccountDetails.id.nonEmpty should equal (true)
+// //      publicAccountDetails.bank_id.nonEmpty should equal (true)
+// //      publicAccountDetails.views_available.nonEmpty should equal (true)
+// //    }
 
-    scenario("we get data by using an access token", API1_2_1, GetBankAccount){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val randomPosition = nextInt(bankAccount.views_available.size)
-      val view = bankAccount.views_available.toList(randomPosition)
-      When("the request is sent")
-      val reply = getPrivateBankAccountDetails(bankId, bankAccount.id, view.id, user1)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val privateAccountDetails = reply.body.extract[ModeratedAccountJSON]
-      And("some fields should not be empty")
-      privateAccountDetails.id.nonEmpty should equal (true)
-      privateAccountDetails.bank_id.nonEmpty should equal (true)
-      privateAccountDetails.views_available.nonEmpty should equal (true)
-    }
-  }
+    // scenario("we get data by using an access token", API1_2_1, GetBankAccount){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val randomPosition = nextInt(bankAccount.views_available.size)
+      // val view = bankAccount.views_available.toList(randomPosition)
+      // When("the request is sent")
+      // val reply = getPrivateBankAccountDetails(bankId, bankAccount.id, view.id, user1)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val privateAccountDetails = reply.body.extract[ModeratedAccountJSON]
+      // And("some fields should not be empty")
+      // privateAccountDetails.id.nonEmpty should equal (true)
+      // privateAccountDetails.bank_id.nonEmpty should equal (true)
+      // privateAccountDetails.views_available.nonEmpty should equal (true)
+    // }
+  // }
 
-  feature("List of the views of specific bank account"){
-    scenario("We will get the list of the available views on a bank account", API1_2_1, GetViews){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      When("the request is sent")
-      val reply = getAccountViews(bankId, bankAccount.id, user1)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      reply.body.extract[ViewsJSONV121]
-    }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("List of the views of specific bank account"){
+    // scenario("We will get the list of the available views on a bank account", API1_2_1, GetViews){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // When("the request is sent")
+      // val reply = getAccountViews(bankId, bankAccount.id, user1)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // reply.body.extract[ViewsJSONV121]
+    // }
 
-    scenario("We will not get the list of the available views on a bank account due to missing token", API1_2_1, GetViews){
-      Given("We will not use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      When("the request is sent")
-      val reply = getAccountViews(bankId, bankAccount.id, None)
-      Then("we should get a 401 code")
-      reply.code should equal (401)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
+    // scenario("We will not get the list of the available views on a bank account due to missing token", API1_2_1, GetViews){
+      // Given("We will not use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // When("the request is sent")
+      // val reply = getAccountViews(bankId, bankAccount.id, None)
+      // Then("we should get a 401 code")
+      // reply.code should equal (401)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
 
-    scenario("We will not get the list of the available views on a bank account due to insufficient privileges", API1_2_1, GetViews){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      When("the request is sent")
-      val reply = getAccountViews(bankId, bankAccount.id, user3)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
-  }
-  feature("Create a view on a bank account"){
-    scenario("we will create a view on a bank account", API1_2_1, PostView){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
-      val view = randomView(true, "")
-      When("the request is sent")
-      val reply = postView(bankId, bankAccount.id, view, user1)
-      Then("we should get a 201 code")
-      reply.code should equal (201)
-      reply.body.extract[ViewJSONV121]
-      And("we should get a new view")
-      val viewsAfter = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
-      viewsBefore.size should equal (viewsAfter.size -1)
-    }
+    // scenario("We will not get the list of the available views on a bank account due to insufficient privileges", API1_2_1, GetViews){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // When("the request is sent")
+      // val reply = getAccountViews(bankId, bankAccount.id, user3)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
+  // }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Create a view on a bank account"){
+    // scenario("we will create a view on a bank account", API1_2_1, PostView){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
+      // val view = randomView(true, "")
+      // When("the request is sent")
+      // val reply = postView(bankId, bankAccount.id, view, user1)
+      // Then("we should get a 201 code")
+      // reply.code should equal (201)
+      // reply.body.extract[ViewJSONV121]
+      // And("we should get a new view")
+      // val viewsAfter = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
+      // viewsBefore.size should equal (viewsAfter.size -1)
+    // }
 
-    scenario("We will not create a view on a bank account due to missing token", API1_2_1, PostView){
-      Given("We will not use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomView(true, "")
-      When("the request is sent")
-      val reply = postView(bankId, bankAccount.id, view, None)
-      Then("we should get a 401 code")
-      reply.code should equal (401)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
+    // scenario("We will not create a view on a bank account due to missing token", API1_2_1, PostView){
+      // Given("We will not use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomView(true, "")
+      // When("the request is sent")
+      // val reply = postView(bankId, bankAccount.id, view, None)
+      // Then("we should get a 401 code")
+      // reply.code should equal (401)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
 
-    scenario("We will not create a view on a bank account due to insufficient privileges", API1_2_1, PostView){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomView(true, "")
-      When("the request is sent")
-      val reply = postView(bankId, bankAccount.id, view, user3)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
+    // scenario("We will not create a view on a bank account due to insufficient privileges", API1_2_1, PostView){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomView(true, "")
+      // When("the request is sent")
+      // val reply = postView(bankId, bankAccount.id, view, user3)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
 
-    scenario("We will not create a view because the bank account does not exist", API1_2_1, PostView){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val view = randomView(true, "")
-      When("the request is sent")
-      val reply = postView(bankId, randomString(10), view, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
+    // scenario("We will not create a view because the bank account does not exist", API1_2_1, PostView){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val view = randomView(true, "")
+      // When("the request is sent")
+      // val reply = postView(bankId, randomString(10), view, user1)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
 
-    scenario("We will not create a view because the view already exists", API1_2_1, PostView){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomView(true, "")
-      postView(bankId, bankAccount.id, view, user1)
-      When("the request is sent")
-      val reply = postView(bankId, bankAccount.id, view, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
+    // scenario("We will not create a view because the view already exists", API1_2_1, PostView){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomView(true, "")
+      // postView(bankId, bankAccount.id, view, user1)
+      // When("the request is sent")
+      // val reply = postView(bankId, bankAccount.id, view, user1)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
 
-    scenario("we are not allowed to create a view with an empty name") {
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
-      val viewWithEmptyName = CreateViewJsonV121(
-        name = "",
-        description = randomString(10),
-        is_public = true,
-        which_alias_to_use="alias",
-        hide_metadata_if_alias_used = false,
-        allowed_actions = viewFields
-      )
+    // scenario("we are not allowed to create a view with an empty name") {
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
+      // val viewWithEmptyName = CreateViewJsonV121(
+        // name = "",
+        // description = randomString(10),
+        // is_public = true,
+        // which_alias_to_use="alias",
+        // hide_metadata_if_alias_used = false,
+        // allowed_actions = viewFields
+      // )
 
-      When("the request is sent")
-      val reply = postView(bankId, bankAccount.id, viewWithEmptyName, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
+      // When("the request is sent")
+      // val reply = postView(bankId, bankAccount.id, viewWithEmptyName, user1)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
   
-    scenario("can not create the System View") {
-      Given("The BANK_ID, ACCOUNT_ID, Login user, views")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val viewWithSystemName = CreateViewJsonV121(
-        name = SYSTEM_OWNER_VIEW_ID,
-        description = randomString(10),
-        is_public = true,
-        which_alias_to_use="alias",
-        hide_metadata_if_alias_used = false,
-        allowed_actions = viewFields
-      )
-      When("the request is sent")
-      val reply = postView(bankId, bankAccount.id, viewWithSystemName, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
-  }
+    // scenario("can not create the System View") {
+      // Given("The BANK_ID, ACCOUNT_ID, Login user, views")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val viewWithSystemName = CreateViewJsonV121(
+        // name = SYSTEM_OWNER_VIEW_ID,
+        // description = randomString(10),
+        // is_public = true,
+        // which_alias_to_use="alias",
+        // hide_metadata_if_alias_used = false,
+        // allowed_actions = viewFields
+      // )
+      // When("the request is sent")
+      // val reply = postView(bankId, bankAccount.id, viewWithSystemName, user1)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
+  // }
 
-  feature("Update a view on a bank account") {
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Update a view on a bank account") {
 
-    val updatedViewDescription = "aloha"
-    val updatedAliasToUse = "public"
-    val allowedActions = List("can_see_images", "can_delete_comment")
+    // val updatedViewDescription = "aloha"
+    // val updatedAliasToUse = "public"
+    // val allowedActions = List("can_see_images", "can_delete_comment")
 
-    def viewUpdateJson(originalView : ViewJSONV121) = {
-      //it's not perfect, assumes too much about originalView (i.e. randomView(true, ""))
-      new UpdateViewJsonV121(
-        description = updatedViewDescription,
-        is_public = !originalView.is_public,
-        which_alias_to_use = updatedAliasToUse,
-        hide_metadata_if_alias_used = !originalView.hide_metadata_if_alias_used,
-        allowed_actions = allowedActions
-      )
-    }
+    // def viewUpdateJson(originalView : ViewJSONV121) = {
+      // //it's not perfect, assumes too much about originalView (i.e. randomView(true, ""))
+      // new UpdateViewJsonV121(
+        // description = updatedViewDescription,
+        // is_public = !originalView.is_public,
+        // which_alias_to_use = updatedAliasToUse,
+        // hide_metadata_if_alias_used = !originalView.hide_metadata_if_alias_used,
+        // allowed_actions = allowedActions
+      // )
+    // }
 
-    def someViewUpdateJson() = {
-      new UpdateViewJsonV121(
-        description = updatedViewDescription,
-        is_public = true,
-        which_alias_to_use = updatedAliasToUse,
-        hide_metadata_if_alias_used = true,
-        allowed_actions = allowedActions
-      )
-    }
+    // def someViewUpdateJson() = {
+      // new UpdateViewJsonV121(
+        // description = updatedViewDescription,
+        // is_public = true,
+        // which_alias_to_use = updatedAliasToUse,
+        // hide_metadata_if_alias_used = true,
+        // allowed_actions = allowedActions
+      // )
+    // }
 
-    scenario("we will update a view on a bank account", API1_2_1, PutView){
-      Given("A view exists")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomView(true, "")
-      val creationReply = postView(bankId, bankAccount.id, view, user1)
-      creationReply.code should equal (201)
-      val createdView : ViewJSONV121 = creationReply.body.extract[ViewJSONV121]
-      createdView.can_see_images should equal(true)
-      createdView.can_delete_comment should equal(true)
-      createdView.can_delete_physical_location should equal(true)
-      createdView.can_edit_owner_comment should equal(true)
-      createdView.description should not equal(updatedViewDescription)
-      createdView.is_public should equal(true)
-      createdView.hide_metadata_if_alias_used should equal(false)
+    // scenario("we will update a view on a bank account", API1_2_1, PutView){
+      // Given("A view exists")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomView(true, "")
+      // val creationReply = postView(bankId, bankAccount.id, view, user1)
+      // creationReply.code should equal (201)
+      // val createdView : ViewJSONV121 = creationReply.body.extract[ViewJSONV121]
+      // createdView.can_see_images should equal(true)
+      // createdView.can_delete_comment should equal(true)
+      // createdView.can_delete_physical_location should equal(true)
+      // createdView.can_edit_owner_comment should equal(true)
+      // createdView.description should not equal(updatedViewDescription)
+      // createdView.is_public should equal(true)
+      // createdView.hide_metadata_if_alias_used should equal(false)
 
-      When("We use a valid access token and valid put json")
-      val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), user1)
-      Then("We should get back the updated view")
-      reply.code should equal (200)
-      val updatedView = reply.body.extract[ViewJSONV121]
-      updatedView.can_see_images should equal(true)
-      updatedView.can_delete_comment should equal(true)
-      updatedView.can_delete_physical_location should equal(false)
-      updatedView.can_edit_owner_comment should equal(false)
-      updatedView.description should equal(updatedViewDescription)
-      updatedView.is_public should equal(false)
-      updatedView.hide_metadata_if_alias_used should equal(true)
-    }
+      // When("We use a valid access token and valid put json")
+      // val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), user1)
+      // Then("We should get back the updated view")
+      // reply.code should equal (200)
+      // val updatedView = reply.body.extract[ViewJSONV121]
+      // updatedView.can_see_images should equal(true)
+      // updatedView.can_delete_comment should equal(true)
+      // updatedView.can_delete_physical_location should equal(false)
+      // updatedView.can_edit_owner_comment should equal(false)
+      // updatedView.description should equal(updatedViewDescription)
+      // updatedView.is_public should equal(false)
+      // updatedView.hide_metadata_if_alias_used should equal(true)
+    // }
 
-    scenario("we will not update a view that doesn't exist", API1_2_1, PutView){
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+    // scenario("we will not update a view that doesn't exist", API1_2_1, PutView){
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
 
-      Given("a view does not exist")
-      val nonExistantViewId = "_asdfasdfasdfasdfasdf"
-      val getReply = getAccountViews(bankId, bankAccount.id, user1)
-      getReply.code should equal (200)
-      val views : ViewsJSONV121 = getReply.body.extract[ViewsJSONV121]
-      views.views.foreach(v => v.id should not equal(nonExistantViewId))
+      // Given("a view does not exist")
+      // val nonExistantViewId = "_asdfasdfasdfasdfasdf"
+      // val getReply = getAccountViews(bankId, bankAccount.id, user1)
+      // getReply.code should equal (200)
+      // val views : ViewsJSONV121 = getReply.body.extract[ViewsJSONV121]
+      // views.views.foreach(v => v.id should not equal(nonExistantViewId))
 
-      When("we try to update that view")
-      val reply = putView(bankId, bankAccount.id, nonExistantViewId, someViewUpdateJson(), user1)
-      Then("We should get a 400")
-      reply.code should equal(400)
-      reply.body.extract[ErrorMessage].message should equal (ViewNotFound)
-    }
+      // When("we try to update that view")
+      // val reply = putView(bankId, bankAccount.id, nonExistantViewId, someViewUpdateJson(), user1)
+      // Then("We should get a 400")
+      // reply.code should equal(400)
+      // reply.body.extract[ErrorMessage].message should equal (ViewNotFound)
+    // }
 
-    scenario("We will not update a view on a bank account due to missing token", API1_2_1, PutView){
-      Given("A view exists")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomView(true, "")
-      val creationReply = postView(bankId, bankAccount.id, view, user1)
-      creationReply.code should equal (201)
-      val createdView : ViewJSONV121 = creationReply.body.extract[ViewJSONV121]
+    // scenario("We will not update a view on a bank account due to missing token", API1_2_1, PutView){
+      // Given("A view exists")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomView(true, "")
+      // val creationReply = postView(bankId, bankAccount.id, view, user1)
+      // creationReply.code should equal (201)
+      // val createdView : ViewJSONV121 = creationReply.body.extract[ViewJSONV121]
 
-      When("we don't use an access token")
-      val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), None)
-      Then("we should get a 401")
-      reply.code should equal(401)
+      // When("we don't use an access token")
+      // val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), None)
+      // Then("we should get a 401")
+      // reply.code should equal(401)
 
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
 
-    scenario("we will not update a view on a bank account due to insufficient privileges", API1_2_1, PutView){
-      Given("A view exists")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomView(true, "")
-      val creationReply = postView(bankId, bankAccount.id, view, user1)
-      creationReply.code should equal (201)
-      val createdView : ViewJSONV121 = creationReply.body.extract[ViewJSONV121]
+    // scenario("we will not update a view on a bank account due to insufficient privileges", API1_2_1, PutView){
+      // Given("A view exists")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomView(true, "")
+      // val creationReply = postView(bankId, bankAccount.id, view, user1)
+      // creationReply.code should equal (201)
+      // val createdView : ViewJSONV121 = creationReply.body.extract[ViewJSONV121]
 
-      When("we try to update a view without having sufficient privileges to do so")
-      val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), user3)
-      Then("we should get a 400")
-      reply.code should equal(400)
+      // When("we try to update a view without having sufficient privileges to do so")
+      // val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), user3)
+      // Then("we should get a 400")
+      // reply.code should equal(400)
 
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
 
-    // the view may only get actions the caller already has on one of their views of the account
-    scenario("we will not give a view an action that none of the caller's views has", API1_2_1, PutView){
-      Given("A view exists")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomView(true, "")
-      val creationReply = postView(bankId, bankAccount.id, view, user1)
-      creationReply.code should equal (201)
-      val createdView : ViewJSONV121 = creationReply.body.extract[ViewJSONV121]
+    // // the view may only get actions the caller already has on one of their views of the account
+    // scenario("we will not give a view an action that none of the caller's views has", API1_2_1, PutView){
+      // Given("A view exists")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomView(true, "")
+      // val creationReply = postView(bankId, bankAccount.id, view, user1)
+      // creationReply.code should equal (201)
+      // val createdView : ViewJSONV121 = creationReply.body.extract[ViewJSONV121]
 
-      When("we ask for an action that no view of the caller has")
-      val reply = putView(bankId, bankAccount.id, createdView.id,
-        viewUpdateJson(createdView).copy(allowed_actions = allowedActions :+ "can_do_what_no_view_of_the_caller_can"), user1)
-      Then("we should get a 403 and the SourceViewHasLessPermission message")
-      reply.code should equal (403)
-      reply.body.extract[ErrorMessage].message should startWith (code.api.util.ErrorMessages.SourceViewHasLessPermission)
-    }
+      // When("we ask for an action that no view of the caller has")
+      // val reply = putView(bankId, bankAccount.id, createdView.id,
+        // viewUpdateJson(createdView).copy(allowed_actions = allowedActions :+ "can_do_what_no_view_of_the_caller_can"), user1)
+      // Then("we should get a 403 and the SourceViewHasLessPermission message")
+      // reply.code should equal (403)
+      // reply.body.extract[ErrorMessage].message should startWith (code.api.util.ErrorMessages.SourceViewHasLessPermission)
+    // }
 
-    scenario("we can not update a System view on a bank account") {
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+    // scenario("we can not update a System view on a bank account") {
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
     
-      val updateViewJSON = UpdateViewJsonV121(
-        description = "good",
-        is_public =false,
-        which_alias_to_use ="",
-        hide_metadata_if_alias_used= false,
-        allowed_actions= Nil
-      )
+      // val updateViewJSON = UpdateViewJsonV121(
+        // description = "good",
+        // is_public =false,
+        // which_alias_to_use ="",
+        // hide_metadata_if_alias_used= false,
+        // allowed_actions= Nil
+      // )
     
-      When("We use a valid access token and valid put json")
-      val reply = putView(bankId, bankAccount.id, SYSTEM_OWNER_VIEW_ID, updateViewJSON, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
-  }
+      // When("We use a valid access token and valid put json")
+      // val reply = putView(bankId, bankAccount.id, SYSTEM_OWNER_VIEW_ID, updateViewJSON, user1)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
+  // }
 
   feature("Delete a view on a bank account"){
     scenario("we will delete a view on a bank account", API1_2_1, DeleteView){
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = postView(bankId, bankAccount.id, randomView(true, ""), user1).body.extract[ViewJSONV121]
-      val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
+      // The v1.2.1 create-view handler is commented out, so the view is created through the provider.
+      val view = createCustomRandomView(BankId(bankId), AccountId(bankAccount.id))
+      val viewsBefore = accountViewsViaKeptVersion(bankId, bankAccount.id, user1)
       When("the request is sent")
-      val reply = deleteView(bankId, bankAccount.id, view.id, user1)
+      val reply = deleteView(bankId, bankAccount.id, view.viewId.value, user1)
       Then("we should get a 204 code")
       reply.code should equal (204)
       And("the views should be updated")
-      val viewsAfter = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
+      val viewsAfter = accountViewsViaKeptVersion(bankId, bankAccount.id, user1)
       viewsBefore.size should equal (viewsAfter.size +1)
     }
 
@@ -1736,7 +1769,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       def getOwnerView() = {
-        val views = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSONV121].views
+        val views = accountViewsViaKeptVersion(bankId, bankAccount.id, user1)
         views.find(v => v.id == SYSTEM_OWNER_VIEW_ID)
       }
 
@@ -1804,107 +1837,109 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     }
   }
 
-  feature("Information about the permissions of a specific bank account"){
-    scenario("we will get one bank account permissions by using an access token", API1_2_1, GetPermissions){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      When("the request is sent")
-      val reply = getAccountPermissions(bankId, bankAccount.id, user1)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val permissions = reply.body.extract[PermissionsJSON]
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Information about the permissions of a specific bank account"){
+    // scenario("we will get one bank account permissions by using an access token", API1_2_1, GetPermissions){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // When("the request is sent")
+      // val reply = getAccountPermissions(bankId, bankAccount.id, user1)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val permissions = reply.body.extract[PermissionsJSON]
 
-      def stringNotEmpty(s : String): Unit = {
-        s should not equal null
-        s should not equal ""
-      }
+      // def stringNotEmpty(s : String): Unit = {
+        // s should not equal null
+        // s should not equal ""
+      // }
 
-      for {
-        permission <- permissions.permissions
-      } {
-        val user = permission.user
+      // for {
+        // permission <- permissions.permissions
+      // } {
+        // val user = permission.user
 
-        //TODO: Need to come up with a better way to check that information is not missing
-        // idea: reflection on all the json case classes, marking "required" information with annotations
-        stringNotEmpty(user.id)
-        stringNotEmpty(user.provider)
+        // //TODO: Need to come up with a better way to check that information is not missing
+        // // idea: reflection on all the json case classes, marking "required" information with annotations
+        // stringNotEmpty(user.id)
+        // stringNotEmpty(user.provider)
 
-        for {
-          view <- permission.views
-        } {
-           stringNotEmpty(view.id)
-        }
-      }
-    }
+        // for {
+          // view <- permission.views
+        // } {
+           // stringNotEmpty(view.id)
+        // }
+      // }
+    // }
 
-    scenario("we will not get one bank account permissions", API1_2_1, GetPermissions){
-      Given("We will not use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      When("the request is sent")
-      val reply = getAccountPermissions(bankId, bankAccount.id, None)
-      Then("we should get a 401 code")
-      reply.code should equal (401)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
+    // scenario("we will not get one bank account permissions", API1_2_1, GetPermissions){
+      // Given("We will not use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // When("the request is sent")
+      // val reply = getAccountPermissions(bankId, bankAccount.id, None)
+      // Then("we should get a 401 code")
+      // reply.code should equal (401)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
 
-    scenario("we will not get one bank account permissions by using an other access token", API1_2_1, GetPermissions){
-      Given("We will use an access token, but that does not grant owner view")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      When("the request is sent")
-      val reply = getAccountPermissions(bankId, bankAccount.id, user3)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
-  }
+    // scenario("we will not get one bank account permissions by using an other access token", API1_2_1, GetPermissions){
+      // Given("We will use an access token, but that does not grant owner view")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // When("the request is sent")
+      // val reply = getAccountPermissions(bankId, bankAccount.id, user3)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
+  // }
 
-  feature("Information about the permissions of a specific user on a specific bank account"){
-    scenario("we will get the permissions by using an access token", API1_2_1, GetPermission){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val permission = randomAccountPermission(bankId, bankAccount.id)
-      val userID = permission.user.id
-      When("the request is sent")
-      val reply = getUserAccountPermission(bankId, bankAccount.id, userID, user1)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val viewsInfo = reply.body.extract[ViewsJSONV121]
-      And("some fields should not be empty")
-      viewsInfo.views.foreach(v => v.id.nonEmpty should equal (true))
-    }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Information about the permissions of a specific user on a specific bank account"){
+    // scenario("we will get the permissions by using an access token", API1_2_1, GetPermission){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val permission = randomAccountPermission(bankId, bankAccount.id)
+      // val userID = permission.user.id
+      // When("the request is sent")
+      // val reply = getUserAccountPermission(bankId, bankAccount.id, userID, user1)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val viewsInfo = reply.body.extract[ViewsJSONV121]
+      // And("some fields should not be empty")
+      // viewsInfo.views.foreach(v => v.id.nonEmpty should equal (true))
+    // }
 
-    scenario("we will not get the permissions of a specific user", API1_2_1, GetPermission){
-      Given("We will not use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val permission = randomAccountPermission(bankId, bankAccount.id)
-      val userID = permission.user.id
-      When("the request is sent")
-      val reply = getUserAccountPermission(bankId, bankAccount.id, userID, None)
-      Then("we should get a 401 code")
-      reply.code should equal (401)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
+    // scenario("we will not get the permissions of a specific user", API1_2_1, GetPermission){
+      // Given("We will not use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val permission = randomAccountPermission(bankId, bankAccount.id)
+      // val userID = permission.user.id
+      // When("the request is sent")
+      // val reply = getUserAccountPermission(bankId, bankAccount.id, userID, None)
+      // Then("we should get a 401 code")
+      // reply.code should equal (401)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
 
-    scenario("we will not get the permissions of a random user", API1_2_1, GetPermission){
-      Given("We will use an access token with random user id")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      When("the request is sent")
-      val reply = getUserAccountPermission(bankId, bankAccount.id, randomString(10), user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
-  }
+    // scenario("we will not get the permissions of a random user", API1_2_1, GetPermission){
+      // Given("We will use an access token with random user id")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // When("the request is sent")
+      // val reply = getUserAccountPermission(bankId, bankAccount.id, randomString(10), user1)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
+  // }
 
   feature("Grant a user access to a view on a bank account"){
     scenario("we will grant a user access to a view on an bank account", API1_2_1, PostPermission){
@@ -1912,7 +1947,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = resourceUser2.idGivenByProvider
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsBefore = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomCustomViewPermalink(bankId, bankAccount), user1)
       Then("we should get a 201 ok code")
@@ -1920,7 +1955,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val viewInfo = reply.body.extract[ViewJSONV121]
       And("some fields should not be empty")
       viewInfo.id.nonEmpty should equal (true)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsAfter = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       viewsAfter should equal(viewsBefore + 1)
     }
 
@@ -1941,14 +1976,14 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = resourceUser2.idGivenByProvider
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsBefore = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomString(10), user1)
       Then("we should get a 403 code")
       reply.code should equal (403)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message contains(UserLacksPermissionCanGrantAccessToViewForTargetAccount) shouldBe(true)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsAfter = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       viewsAfter should equal(viewsBefore)
     }
 
@@ -1957,14 +1992,14 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = resourceUser2.idGivenByProvider
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsBefore = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomCustomViewPermalink(bankId, bankAccount), user3)
       Then("we should get a 403 ok code")
       reply.code should equal (403)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsAfter = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       viewsAfter should equal(viewsBefore)
     }
   }
@@ -1976,7 +2011,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = resourceUser3.idGivenByProvider
       val viewsIdsToGrant = randomCustomViewsIdsToGrant(bankId, bankAccount.id)
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsBefore = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
       Then("we should get a 201 ok code")
@@ -1986,8 +2021,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       viewsInfo.views.foreach(v => v.id.nonEmpty should equal (true))
       And("the granted views should be the same")
       viewsIdsToGrant.toSet should equal(viewsInfo.views.map(_.id).toSet)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views
-      viewsAfter.length should equal(viewsBefore + viewsIdsToGrant.length)
+      val viewsAfter = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
+      viewsAfter should equal(viewsBefore + viewsIdsToGrant.length)
       //we revoke access to the granted views for the next tests
       revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
     }
@@ -2026,14 +2061,14 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = resourceUser3.idGivenByProvider
       val viewsIdsToGrant= randomCustomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(10),randomString(10))
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsBefore = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
       Then("we should get a 403 code")
       reply.code should equal (403)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message contains(UserLacksPermissionCanGrantAccessToViewForTargetAccount) shouldBe(true)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsAfter = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       viewsAfter should equal(viewsBefore)
     }
 
@@ -2043,14 +2078,14 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = resourceUser3.idGivenByProvider
       val viewsIdsToGrant= randomCustomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(10),randomString(10))
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsBefore = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user3)
       Then("we should get a 403 ok code")
       reply.code should equal (403)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsAfter = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       viewsAfter should equal(viewsBefore)
     }
   }
@@ -2066,12 +2101,12 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val replyGranted = grantUserAccessToViews(bankId, bankAccount.id, userId2, viewsIdsToGrant, user1)
       Then("we should get a 201")
       replyGranted.code should equal(201)
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId2, user1).body.extract[ViewsJSONV121].views.length
+      val viewsBefore = userViewCountViaKeptVersion(bankId, bankAccount.id, userId2, user1)
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId2, viewId, user1)
       Then("we should get a 204 no content code")
       reply.code should equal (204)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId2, user1).body.extract[ViewsJSONV121].views.length
+      val viewsAfter = userViewCountViaKeptVersion(bankId, bankAccount.id, userId2, user1)
       viewsAfter should equal(viewsBefore -1)
     }
 
@@ -2086,12 +2121,12 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       replyGrant1.code should equal (201)
       val replyGrant2 = grantUserAccessToView(bankId, bankAccount.id, userId2, viewId, user1)
       replyGrant2.code should equal (201)
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId1, user1).body.extract[ViewsJSONV121].views.length
+      val viewsBefore = userViewCountViaKeptVersion(bankId, bankAccount.id, userId1, user1)
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId1, viewId, user1)
       Then("we should get a 204 no content code")
       reply.code should equal (204)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId1, user1).body.extract[ViewsJSONV121].views.length
+      val viewsAfter = userViewCountViaKeptVersion(bankId, bankAccount.id, userId1, user1)
       viewsAfter should equal(viewsBefore -1)
     }
 
@@ -2151,12 +2186,12 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId =resourceUser2.idGivenByProvider
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsBefore = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomString(10), user1)
       Then("we should get a 403 code")
       reply.code should equal (403)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsAfter = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       viewsAfter should equal(viewsBefore)
     }
 
@@ -2165,12 +2200,12 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = resourceUser2.idGivenByProvider
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsBefore = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomCustomViewPermalink(bankId, bankAccount), user3)
       Then("we should get a 403 ok code")
       reply.code should equal (403)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsAfter = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       viewsAfter should equal(viewsBefore)
     }
   }
@@ -2182,12 +2217,12 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val userId = resourceUser2.idGivenByProvider
       val viewsIdsToGrant = randomCustomViewPermalink(bankId, bankAccount) :: SYSTEM_AUDITOR_VIEW_ID :: SYSTEM_OWNER_VIEW_ID :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1).code should equal (201)
-      getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length should be >= 3
+      userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1) should be >= 3
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
       Then("we should get a 204 no content code")
       reply.code should equal (204)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsAfter = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       viewsAfter should equal(0)
     }
 
@@ -2209,12 +2244,12 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val viewId = randomCustomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsBefore = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user3)
       Then("we should get a 403 ok code")
       reply.code should equal (403)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsAfter = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
       viewsAfter should equal(viewsBefore)
     }
 
@@ -2250,7 +2285,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       val userId = resourceUser1.idGivenByProvider
       val ownerViewUsersBefore = AccountAccess.findAllByBankIdAccountIdViewId(BankId(bankId), AccountId(bankAccount.id), ViewId(SYSTEM_OWNER_VIEW_ID)).flatMap(_.user_fk.obj.toList).map(_.userId).distinct
       ownerViewUsersBefore should equal (List(resourceUser1.userId))
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length
+      val viewsBefore = userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1)
 
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
@@ -2260,7 +2295,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
       And("None of the user's access to the account should have been revoked")
       AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(BankId(bankId), AccountId(bankAccount.id), ViewId(SYSTEM_OWNER_VIEW_ID), resourceUser1.userPrimaryKey).isDefined should equal (true)
-      getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSONV121].views.length should equal (viewsBefore)
+      userViewCountViaKeptVersion(bankId, bankAccount.id, userId, user1) should equal (viewsBefore)
     }
 
     scenario("we can revoke the access of an account holder to the owner view on a bank account via a revoke all views call",
@@ -2288,129 +2323,131 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     }
   }
 
-  feature("We get the list of the other bank accounts linked with a bank account"){
-    scenario("we will get the other bank accounts of a bank account", API1_2_1, GetCounterparties){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      When("the request is sent")
-      val reply = getTheCounterparties(bankId, bankAccount.id, randomCustomViewPermalink(bankId, bankAccount), user1)
-      Then("we should get a 200 code")
-      reply.code should equal (200)
-      val accountsJson = reply.body.extract[OtherAccountsJSON]
-      And("some fields should not be empty")
-      accountsJson.other_accounts.foreach( a =>
-        a.id.nonEmpty should equal (true)
-      )
-    }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("We get the list of the other bank accounts linked with a bank account"){
+    // scenario("we will get the other bank accounts of a bank account", API1_2_1, GetCounterparties){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // When("the request is sent")
+      // val reply = getTheCounterparties(bankId, bankAccount.id, randomCustomViewPermalink(bankId, bankAccount), user1)
+      // Then("we should get a 200 code")
+      // reply.code should equal (200)
+      // val accountsJson = reply.body.extract[OtherAccountsJSON]
+      // And("some fields should not be empty")
+      // accountsJson.other_accounts.foreach( a =>
+        // a.id.nonEmpty should equal (true)
+      // )
+    // }
 
-    scenario("we will not get the other bank accounts of a bank account due to missing view access ", API1_2_1, GetCounterparties){
-      Given("We will not use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      When("the request is sent")
-      val reply = getTheCounterparties(bankId, bankAccount.id, randomCustomViewPermalink(bankId, bankAccount), None)
-      Then("we should get a 403 code")
-      reply.code should equal (403)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message contains ("OBP-20017") shouldBe (true)
-    }
+    // scenario("we will not get the other bank accounts of a bank account due to missing view access ", API1_2_1, GetCounterparties){
+      // Given("We will not use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // When("the request is sent")
+      // val reply = getTheCounterparties(bankId, bankAccount.id, randomCustomViewPermalink(bankId, bankAccount), None)
+      // Then("we should get a 403 code")
+      // reply.code should equal (403)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message contains ("OBP-20017") shouldBe (true)
+    // }
 
-    scenario("we will not get the other bank accounts of a bank account because the user does not have enough privileges", API1_2_1, GetCounterparties){
-      Given("We will use an access token ")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      When("the request is sent")
-      val reply = getTheCounterparties(bankId, bankAccount.id, randomCustomViewPermalink(bankId, bankAccount), user3)
-      Then("we should get a 403 code")
-      reply.code should equal (403)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message contains ("OBP-20017") shouldBe (true)
-    }
+    // scenario("we will not get the other bank accounts of a bank account because the user does not have enough privileges", API1_2_1, GetCounterparties){
+      // Given("We will use an access token ")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // When("the request is sent")
+      // val reply = getTheCounterparties(bankId, bankAccount.id, randomCustomViewPermalink(bankId, bankAccount), user3)
+      // Then("we should get a 403 code")
+      // reply.code should equal (403)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message contains ("OBP-20017") shouldBe (true)
+    // }
 
-    scenario("we will not get the other bank accounts of a bank account because the view does not exist", API1_2_1, GetCounterparties){
-      Given("We will use an access token ")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      When("the request is sent")
-      val reply = getTheCounterparties(bankId, bankAccount.id, randomString(10), user1)
-      Then("we should get a 403 code")
-      reply.code should equal (403)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message contains ("OBP-20017") shouldBe (true)
-    }
-  }
+    // scenario("we will not get the other bank accounts of a bank account because the view does not exist", API1_2_1, GetCounterparties){
+      // Given("We will use an access token ")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // When("the request is sent")
+      // val reply = getTheCounterparties(bankId, bankAccount.id, randomString(10), user1)
+      // Then("we should get a 403 code")
+      // reply.code should equal (403)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message contains ("OBP-20017") shouldBe (true)
+    // }
+  // }
 
-  feature("We get one specific other bank account among the other accounts "){
-    scenario("we will get one random other bank account of a bank account", API1_2_1, GetCounterparty){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      val otherBankAccount = randomCounterparty(bankId, bankAccount.id, view)
-      When("the request is sent")
-      val reply = getTheCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
-      Then("we should get a 200 code")
-      reply.code should equal (200)
-      val accountJson = reply.body.extract[OtherAccountJSON]
-      And("some fields should not be empty")
-      accountJson.id.nonEmpty should equal (true)
-    }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("We get one specific other bank account among the other accounts "){
+    // scenario("we will get one random other bank account of a bank account", API1_2_1, GetCounterparty){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // val otherBankAccount = randomCounterparty(bankId, bankAccount.id, view)
+      // When("the request is sent")
+      // val reply = getTheCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user1)
+      // Then("we should get a 200 code")
+      // reply.code should equal (200)
+      // val accountJson = reply.body.extract[OtherAccountJSON]
+      // And("some fields should not be empty")
+      // accountJson.id.nonEmpty should equal (true)
+    // }
 
-    scenario("we will not get one random other bank account of a bank account due to a missing token", API1_2_1, GetCounterparty){
-      Given("We will not use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      val otherBankAccount = randomCounterparty(bankId, bankAccount.id, view)
-      When("the request is sent")
-      val reply = getTheCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, None)
-      Then("we should get a 401 code")
-      reply.code should equal (401)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message contains ("OBP-20001") shouldBe (true)
-    }
+    // scenario("we will not get one random other bank account of a bank account due to a missing token", API1_2_1, GetCounterparty){
+      // Given("We will not use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // val otherBankAccount = randomCounterparty(bankId, bankAccount.id, view)
+      // When("the request is sent")
+      // val reply = getTheCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, None)
+      // Then("we should get a 401 code")
+      // reply.code should equal (401)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message contains ("OBP-20001") shouldBe (true)
+    // }
 
-    scenario("we will not get one random other bank account of a bank account because the user does not have enough privileges", API1_2_1, GetCounterparty){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      val otherBankAccount = randomCounterparty(bankId, bankAccount.id, view)
-      When("the request is sent")
-      val reply = getTheCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user3)
-      Then("we should get a 403 code")
-      reply.code should equal (403)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message contains ("OBP-20017") shouldBe (true)
-    }
+    // scenario("we will not get one random other bank account of a bank account because the user does not have enough privileges", API1_2_1, GetCounterparty){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // val otherBankAccount = randomCounterparty(bankId, bankAccount.id, view)
+      // When("the request is sent")
+      // val reply = getTheCounterparty(bankId, bankAccount.id, view, otherBankAccount.id, user3)
+      // Then("we should get a 403 code")
+      // reply.code should equal (403)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message contains ("OBP-20017") shouldBe (true)
+    // }
 
-    scenario("we will not get one random other bank account of a bank account because the view does not exist", API1_2_1, GetCounterparty){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val otherBankAccount = randomCounterparty(bankId, bankAccount.id, randomCustomViewPermalink(bankId, bankAccount))
-      When("the request is sent")
-      val reply = getTheCounterparty(bankId, bankAccount.id, randomString(10), otherBankAccount.id, user1)
-      Then("we should get a 403 code")
-      reply.code should equal (403)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message contains ("OBP-20017") shouldBe (true)
-    }
+    // scenario("we will not get one random other bank account of a bank account because the view does not exist", API1_2_1, GetCounterparty){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val otherBankAccount = randomCounterparty(bankId, bankAccount.id, randomCustomViewPermalink(bankId, bankAccount))
+      // When("the request is sent")
+      // val reply = getTheCounterparty(bankId, bankAccount.id, randomString(10), otherBankAccount.id, user1)
+      // Then("we should get a 403 code")
+      // reply.code should equal (403)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message contains ("OBP-20017") shouldBe (true)
+    // }
 
-    scenario("we will not get one random other bank account of a bank account because the account does not exist", API1_2_1, GetCounterparty){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent")
-      val reply = getTheCounterparty(bankId, bankAccount.id, view, randomString(10), user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
-  }
+    // scenario("we will not get one random other bank account of a bank account because the account does not exist", API1_2_1, GetCounterparty){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent")
+      // val reply = getTheCounterparty(bankId, bankAccount.id, view, randomString(10), user1)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
+  // }
 
   feature("We get the metadata of one specific other bank account among the other accounts"){
     scenario("we will get the metadata of one random other bank account", API1_2_1, GetCounterpartyMetadata){
@@ -4421,432 +4458,435 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     }
   }
 
-  feature("Information about all the transaction"){
-    scenario("we get all the transactions of one random (private) bank account", API1_2_1, GetTransactions){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent")
-      val reply = getTransactions(bankId,bankAccount.id,view, user1)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val transactions = reply.body.extract[TransactionsJSON]
-    }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Information about all the transaction"){
+    // scenario("we get all the transactions of one random (private) bank account", API1_2_1, GetTransactions){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent")
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val transactions = reply.body.extract[TransactionsJSON]
+    // }
 
-    scenario("we do not get transactions of one random bank account, because the account doesn't exist", API1_2_1, GetTransactions){
-      Given("We will use an access token")
-      When("the request is sent")
-      val bankId = randomBank
-      val reply = getTransactions(bankId,randomString(5),randomString(5), user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
+    // scenario("we do not get transactions of one random bank account, because the account doesn't exist", API1_2_1, GetTransactions){
+      // Given("We will use an access token")
+      // When("the request is sent")
+      // val bankId = randomBank
+      // val reply = getTransactions(bankId,randomString(5),randomString(5), user1)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
 
-    scenario("we do not get transactions of one random bank account, because the view doesn't exist", API1_2_1, GetTransactions){
-      Given("We will use an access token")
-      When("the request is sent")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val reply = getTransactions(bankId,bankAccount.id,randomString(5), user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
-  }
+    // scenario("we do not get transactions of one random bank account, because the view doesn't exist", API1_2_1, GetTransactions){
+      // Given("We will use an access token")
+      // When("the request is sent")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val reply = getTransactions(bankId,bankAccount.id,randomString(5), user1)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
+  // }
 
-  feature("transactions with params"){
-    import java.util.{Calendar, Date}
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("transactions with params"){
+    // import java.util.{Calendar, Date}
 
-    val defaultFormat = APIUtil.DateWithMsFormat
-    val rollbackFormat = APIUtil.DateWithMsRollbackFormat
+    // val defaultFormat = APIUtil.DateWithMsFormat
+    // val rollbackFormat = APIUtil.DateWithMsRollbackFormat
 
-    scenario("we don't get transactions due to wrong value for obp_sort_direction parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with a wrong value for param obp_sort_direction")
-      val params = ("obp_sort_direction", "foo") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
-    scenario("we get all the transactions sorted by ASC", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with the value ASC for param obp_sort_by")
-      val params = ("obp_sort_direction", "ASC") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val transactions = reply.body.extract[TransactionsJSON]
-      And("transactions array should not be empty")
-      transactions.transactions.size should not equal (0)
-      val transaction1 = transactions.transactions(0)
-      val transaction2 = transactions.transactions(1)
-      transaction1.details.completed.before(transaction2.details.completed) should equal(true)
-    }
-    scenario("we get all the transactions sorted by asc", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with the value asc for param obp_sort_by")
-      val params = ("obp_sort_direction", "asc") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val transactions = reply.body.extract[TransactionsJSON]
-      And("transactions array should not be empty")
-      transactions.transactions.size should not equal (0)
-      val transaction1 = transactions.transactions(0)
-      val transaction2 = transactions.transactions(1)
-      transaction1.details.completed.before(transaction2.details.completed) should equal(true)
-    }
-    scenario("we get all the transactions sorted by DESC", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with the value DESC for param obp_sort_by")
-      val params = ("obp_sort_direction", "DESC") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val transactions = reply.body.extract[TransactionsJSON]
-      And("transactions array should not be empty")
-      transactions.transactions.size should not equal (0)
-      val transaction1 = transactions.transactions(0)
-      val transaction2 = transactions.transactions(1)
-      transaction1.details.completed.before(transaction2.details.completed) should equal(false)
-    }
-    scenario("we get all the transactions sorted by desc", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with the value desc for param obp_sort_by")
-      val params = ("obp_sort_direction", "desc") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val transactions = reply.body.extract[TransactionsJSON]
-      And("transactions array should not be empty")
-      transactions.transactions.size should not equal (0)
-      val transaction1 = transactions.transactions(0)
-      val transaction2 = transactions.transactions(1)
-      transaction1.details.completed.before(transaction2.details.completed) should equal(false)
+    // scenario("we don't get transactions due to wrong value for obp_sort_direction parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with a wrong value for param obp_sort_direction")
+      // val params = ("obp_sort_direction", "foo") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
+    // scenario("we get all the transactions sorted by ASC", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with the value ASC for param obp_sort_by")
+      // val params = ("obp_sort_direction", "ASC") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val transactions = reply.body.extract[TransactionsJSON]
+      // And("transactions array should not be empty")
+      // transactions.transactions.size should not equal (0)
+      // val transaction1 = transactions.transactions(0)
+      // val transaction2 = transactions.transactions(1)
+      // transaction1.details.completed.before(transaction2.details.completed) should equal(true)
+    // }
+    // scenario("we get all the transactions sorted by asc", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with the value asc for param obp_sort_by")
+      // val params = ("obp_sort_direction", "asc") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val transactions = reply.body.extract[TransactionsJSON]
+      // And("transactions array should not be empty")
+      // transactions.transactions.size should not equal (0)
+      // val transaction1 = transactions.transactions(0)
+      // val transaction2 = transactions.transactions(1)
+      // transaction1.details.completed.before(transaction2.details.completed) should equal(true)
+    // }
+    // scenario("we get all the transactions sorted by DESC", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with the value DESC for param obp_sort_by")
+      // val params = ("obp_sort_direction", "DESC") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val transactions = reply.body.extract[TransactionsJSON]
+      // And("transactions array should not be empty")
+      // transactions.transactions.size should not equal (0)
+      // val transaction1 = transactions.transactions(0)
+      // val transaction2 = transactions.transactions(1)
+      // transaction1.details.completed.before(transaction2.details.completed) should equal(false)
+    // }
+    // scenario("we get all the transactions sorted by desc", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with the value desc for param obp_sort_by")
+      // val params = ("obp_sort_direction", "desc") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val transactions = reply.body.extract[TransactionsJSON]
+      // And("transactions array should not be empty")
+      // transactions.transactions.size should not equal (0)
+      // val transaction1 = transactions.transactions(0)
+      // val transaction2 = transactions.transactions(1)
+      // transaction1.details.completed.before(transaction2.details.completed) should equal(false)
 
-    }
-    scenario("we don't get transactions due to wrong value (not a number) for obp_limit parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with a wrong value for param obp_limit")
-      val params = ("obp_limit", "foo") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
-    scenario("we don't get transactions due to wrong value (0) for obp_limit parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with a wrong value for param obp_limit")
-      val params = ("obp_limit", "0") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
-    scenario("we don't get transactions due to wrong value (-100) for obp_limit parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with a wrong value for param obp_limit")
-      val params = ("obp_limit", "-100") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
-    scenario("we get only 5 transactions due to the obp_limit parameter value", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with the value ASC for parameter obp_limit")
-      val params = ("obp_limit", "5") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val transactions = reply.body.extract[TransactionsJSON]
-      And("transactions size should be equal to 5")
-      transactions.transactions.size should equal (5)
-    }
-    scenario("we don't get transactions due to wrong value for obp_from_date parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with a wrong value for param obp_from_date")
-      val params = ("obp_from_date", "foo") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
-    scenario("we get transactions from a previous date with the right format", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with obp_from_date into a proper format")
-      val currentDate = new Date()
-      val calendar = Calendar.getInstance
-      calendar.setTime(currentDate)
-      calendar.add(Calendar.YEAR, -1)
-      val pastDate = calendar.getTime
-      val formatedPastDate = defaultFormat.format(pastDate)
-      val params = ("obp_from_date", formatedPastDate) :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 200 code")
-      reply.code should equal (200)
-      And("transactions size should not be empty")
-      val transactions = reply.body.extract[TransactionsJSON]
-      transactions.transactions.size should not equal (0)
-    }
-    scenario("we get transactions from a previous date (obp_from_date) with the fallback format", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with obp_from_date into an accepted format")
-      val currentDate = new Date()
-      val calendar = Calendar.getInstance
-      calendar.setTime(currentDate)
-      calendar.add(Calendar.YEAR, -1)
-      val pastDate = calendar.getTime
-      val formatedPastDate = rollbackFormat.format(pastDate)
-      val params = ("obp_from_date", formatedPastDate) :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 200 code")
-      reply.code should equal (200)
-      And("transactions size should not be empty")
-      val transactions = reply.body.extract[TransactionsJSON]
-      transactions.transactions.size should not equal (0)
-    }
-    scenario("we don't get transactions from a date in the future", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with obp_from_date into a proper format")
-      val currentDate = new Date()
-      val calendar = Calendar.getInstance
-      calendar.setTime(currentDate)
-      calendar.add(Calendar.YEAR, 1)
-      val futureDate = calendar.getTime
-      val formatedFutureDate = defaultFormat.format(futureDate)
-      val params = ("obp_from_date", formatedFutureDate) :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 200 code")
-      reply.code should equal (200)
-      And("transactions size should not be empty")
-      val transactions = reply.body.extract[TransactionsJSON]
-      transactions.transactions.size should equal (0)
-    }
-    scenario("we don't get transactions due to wrong value for obp_to_date parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with a wrong value for param obp_to_date")
-      val params = ("obp_to_date", "foo") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
-    scenario("we get transactions from a previous (obp_to_date) date with the right format", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with obp_to_date into a proper format")
-      val currentDate = new Date()
-      val formatedCurrentDate = defaultFormat.format(currentDate)
-      val params = ("obp_to_date", formatedCurrentDate) :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 200 code")
-      reply.code should equal (200)
-      And("transactions size should not be empty")
-      val transactions = reply.body.extract[TransactionsJSON]
-      transactions.transactions.size should not equal (0)
-    }
-    scenario("we get transactions from a previous date with the fallback format", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with obp_to_date into an accepted format")
-      val currentDate = new Date()
-      val formatedCurrentDate = defaultFormat.format(currentDate)
-      val params = ("obp_to_date", formatedCurrentDate) :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 200 code")
-      reply.code should equal (200)
-      And("transactions size should not be empty")
-      val transactions = reply.body.extract[TransactionsJSON]
-      transactions.transactions.size should not equal (0)
-    }
-    scenario("we don't get transactions from a date in the past", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with obp_to_date into a proper format")
-      val currentDate = new Date()
-      val calendar = Calendar.getInstance
-      calendar.setTime(currentDate)
-      calendar.add(Calendar.YEAR, -1)
-      val pastDate = calendar.getTime
-      val formatedPastDate = defaultFormat.format(pastDate)
-      val params = ("obp_to_date", formatedPastDate) :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 200 code")
-      reply.code should equal (200)
-      And("transactions size should be empty")
-      val transactions = reply.body.extract[TransactionsJSON]
-      transactions.transactions.size should equal (0)
-    }
-    scenario("we don't get transactions due to wrong value (not a number) for obp_offset parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with a wrong value for param obp_offset")
-      val params = ("obp_offset", "foo") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
-    scenario("we don't get transactions due to the (2000) for obp_offset parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with a wrong value for param obp_offset")
-      val params = ("obp_offset", "2000") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 200 code")
-      reply.code should equal (200)
-      And("transactions size should be empty")
-      val transactions = reply.body.extract[TransactionsJSON]
-      transactions.transactions.size should equal (0)
-    }
-    scenario("we don't get transactions due to wrong value (-100) for obp_offset parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with a wrong value for param obp_offset")
-      val params = ("obp_offset", "-100") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
-    scenario("we get only 5 transactions due to the obp_offset parameter value", API1_2_1, GetTransactions, GetTransactionsWithParams){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent with the value ASC for parameter obp_offset")
-      val params = ("obp_offset", "5") :: Nil
-      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val transactions = reply.body.extract[TransactionsJSON]
-      And("transactions size should be equal to 5")
-      transactions.transactions.size should equal (5)
-    }
-  }
+    // }
+    // scenario("we don't get transactions due to wrong value (not a number) for obp_limit parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with a wrong value for param obp_limit")
+      // val params = ("obp_limit", "foo") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
+    // scenario("we don't get transactions due to wrong value (0) for obp_limit parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with a wrong value for param obp_limit")
+      // val params = ("obp_limit", "0") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
+    // scenario("we don't get transactions due to wrong value (-100) for obp_limit parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with a wrong value for param obp_limit")
+      // val params = ("obp_limit", "-100") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
+    // scenario("we get only 5 transactions due to the obp_limit parameter value", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with the value ASC for parameter obp_limit")
+      // val params = ("obp_limit", "5") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val transactions = reply.body.extract[TransactionsJSON]
+      // And("transactions size should be equal to 5")
+      // transactions.transactions.size should equal (5)
+    // }
+    // scenario("we don't get transactions due to wrong value for obp_from_date parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with a wrong value for param obp_from_date")
+      // val params = ("obp_from_date", "foo") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
+    // scenario("we get transactions from a previous date with the right format", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with obp_from_date into a proper format")
+      // val currentDate = new Date()
+      // val calendar = Calendar.getInstance
+      // calendar.setTime(currentDate)
+      // calendar.add(Calendar.YEAR, -1)
+      // val pastDate = calendar.getTime
+      // val formatedPastDate = defaultFormat.format(pastDate)
+      // val params = ("obp_from_date", formatedPastDate) :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 200 code")
+      // reply.code should equal (200)
+      // And("transactions size should not be empty")
+      // val transactions = reply.body.extract[TransactionsJSON]
+      // transactions.transactions.size should not equal (0)
+    // }
+    // scenario("we get transactions from a previous date (obp_from_date) with the fallback format", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with obp_from_date into an accepted format")
+      // val currentDate = new Date()
+      // val calendar = Calendar.getInstance
+      // calendar.setTime(currentDate)
+      // calendar.add(Calendar.YEAR, -1)
+      // val pastDate = calendar.getTime
+      // val formatedPastDate = rollbackFormat.format(pastDate)
+      // val params = ("obp_from_date", formatedPastDate) :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 200 code")
+      // reply.code should equal (200)
+      // And("transactions size should not be empty")
+      // val transactions = reply.body.extract[TransactionsJSON]
+      // transactions.transactions.size should not equal (0)
+    // }
+    // scenario("we don't get transactions from a date in the future", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with obp_from_date into a proper format")
+      // val currentDate = new Date()
+      // val calendar = Calendar.getInstance
+      // calendar.setTime(currentDate)
+      // calendar.add(Calendar.YEAR, 1)
+      // val futureDate = calendar.getTime
+      // val formatedFutureDate = defaultFormat.format(futureDate)
+      // val params = ("obp_from_date", formatedFutureDate) :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 200 code")
+      // reply.code should equal (200)
+      // And("transactions size should not be empty")
+      // val transactions = reply.body.extract[TransactionsJSON]
+      // transactions.transactions.size should equal (0)
+    // }
+    // scenario("we don't get transactions due to wrong value for obp_to_date parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with a wrong value for param obp_to_date")
+      // val params = ("obp_to_date", "foo") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
+    // scenario("we get transactions from a previous (obp_to_date) date with the right format", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with obp_to_date into a proper format")
+      // val currentDate = new Date()
+      // val formatedCurrentDate = defaultFormat.format(currentDate)
+      // val params = ("obp_to_date", formatedCurrentDate) :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 200 code")
+      // reply.code should equal (200)
+      // And("transactions size should not be empty")
+      // val transactions = reply.body.extract[TransactionsJSON]
+      // transactions.transactions.size should not equal (0)
+    // }
+    // scenario("we get transactions from a previous date with the fallback format", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with obp_to_date into an accepted format")
+      // val currentDate = new Date()
+      // val formatedCurrentDate = defaultFormat.format(currentDate)
+      // val params = ("obp_to_date", formatedCurrentDate) :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 200 code")
+      // reply.code should equal (200)
+      // And("transactions size should not be empty")
+      // val transactions = reply.body.extract[TransactionsJSON]
+      // transactions.transactions.size should not equal (0)
+    // }
+    // scenario("we don't get transactions from a date in the past", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with obp_to_date into a proper format")
+      // val currentDate = new Date()
+      // val calendar = Calendar.getInstance
+      // calendar.setTime(currentDate)
+      // calendar.add(Calendar.YEAR, -1)
+      // val pastDate = calendar.getTime
+      // val formatedPastDate = defaultFormat.format(pastDate)
+      // val params = ("obp_to_date", formatedPastDate) :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 200 code")
+      // reply.code should equal (200)
+      // And("transactions size should be empty")
+      // val transactions = reply.body.extract[TransactionsJSON]
+      // transactions.transactions.size should equal (0)
+    // }
+    // scenario("we don't get transactions due to wrong value (not a number) for obp_offset parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with a wrong value for param obp_offset")
+      // val params = ("obp_offset", "foo") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
+    // scenario("we don't get transactions due to the (2000) for obp_offset parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with a wrong value for param obp_offset")
+      // val params = ("obp_offset", "2000") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 200 code")
+      // reply.code should equal (200)
+      // And("transactions size should be empty")
+      // val transactions = reply.body.extract[TransactionsJSON]
+      // transactions.transactions.size should equal (0)
+    // }
+    // scenario("we don't get transactions due to wrong value (-100) for obp_offset parameter", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with a wrong value for param obp_offset")
+      // val params = ("obp_offset", "-100") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
+    // scenario("we get only 5 transactions due to the obp_offset parameter value", API1_2_1, GetTransactions, GetTransactionsWithParams){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent with the value ASC for parameter obp_offset")
+      // val params = ("obp_offset", "5") :: Nil
+      // val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val transactions = reply.body.extract[TransactionsJSON]
+      // And("transactions size should be equal to 5")
+      // transactions.transactions.size should equal (5)
+    // }
+  // }
 
-  feature("Information about a transaction"){
-    scenario("we get transaction data by using an access token", API1_2_1, GetTransaction){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      val transaction = randomTransaction(bankId, bankAccount.id, view)
-      When("the request is sent")
-      val reply = getTransaction(bankId, bankAccount.id, view, transaction.id, user1)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      reply.body.extract[TransactionJSON]
-    }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Information about a transaction"){
+    // scenario("we get transaction data by using an access token", API1_2_1, GetTransaction){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // val transaction = randomTransaction(bankId, bankAccount.id, view)
+      // When("the request is sent")
+      // val reply = getTransaction(bankId, bankAccount.id, view, transaction.id, user1)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // reply.body.extract[TransactionJSON]
+    // }
 
-    scenario("we will not get transaction data due to a missing token", API1_2_1, GetTransaction){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      val transaction = randomTransaction(bankId, bankAccount.id, view)
-      When("the request is sent")
-      val reply = getTransaction(bankId, bankAccount.id, view, transaction.id, None)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
+    // scenario("we will not get transaction data due to a missing token", API1_2_1, GetTransaction){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // val transaction = randomTransaction(bankId, bankAccount.id, view)
+      // When("the request is sent")
+      // val reply = getTransaction(bankId, bankAccount.id, view, transaction.id, None)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
 
-    scenario("we will not get transaction data because user does not have enough privileges", API1_2_1, GetTransaction){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      val transaction = randomTransaction(bankId, bankAccount.id, view)
-      When("the request is sent")
-      val reply = getTransaction(bankId, bankAccount.id, view, transaction.id, user3)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
+    // scenario("we will not get transaction data because user does not have enough privileges", API1_2_1, GetTransaction){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // val transaction = randomTransaction(bankId, bankAccount.id, view)
+      // When("the request is sent")
+      // val reply = getTransaction(bankId, bankAccount.id, view, transaction.id, user3)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
 
-    scenario("we will not get transaction data because the account does not exist", API1_2_1, GetTransaction){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      val transaction = randomTransaction(bankId, bankAccount.id, view)
-      When("the request is sent")
-      val reply = getTransaction(bankId, randomString(5), view, transaction.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
+    // scenario("we will not get transaction data because the account does not exist", API1_2_1, GetTransaction){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // val transaction = randomTransaction(bankId, bankAccount.id, view)
+      // When("the request is sent")
+      // val reply = getTransaction(bankId, randomString(5), view, transaction.id, user1)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
 
-    scenario("we will not get transaction data because the view does not exist", API1_2_1, GetTransaction){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      val transaction = randomTransaction(bankId, bankAccount.id, view)
-      When("the request is sent")
-      val reply = getTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
+    // scenario("we will not get transaction data because the view does not exist", API1_2_1, GetTransaction){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // val transaction = randomTransaction(bankId, bankAccount.id, view)
+      // When("the request is sent")
+      // val reply = getTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
 
-    scenario("we will not get transaction data because the transaction does not exist", API1_2_1, GetTransaction){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent")
-      val reply = getTransaction(bankId, bankAccount.id, view, randomString(5), user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-    }
+    // scenario("we will not get transaction data because the transaction does not exist", API1_2_1, GetTransaction){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent")
+      // val reply = getTransaction(bankId, bankAccount.id, view, randomString(5), user1)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+    // }
 
-  }
+  // }
 
   feature("We get the narrative of one random transaction"){
     scenario("we will get the narrative of one random transaction", API1_2_1, GetNarrative){
@@ -6652,55 +6692,57 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       reply.body.extract[ErrorMessage].message contains (UserNoPermissionAccessView) shouldBe (true)
     }
 
-    scenario("we will not get get the other bank account of a random transaction because the transaction does not exist", API1_2_1, GetTransactionAccount){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomCustomViewPermalink(bankId, bankAccount)
-      When("the request is sent")
-      val reply = getTheCounterparty(bankId, bankAccount.id, view, randomString(5), user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
+    // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+    // scenario("we will not get get the other bank account of a random transaction because the transaction does not exist", API1_2_1, GetTransactionAccount){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = randomCustomViewPermalink(bankId, bankAccount)
+      // When("the request is sent")
+      // val reply = getTheCounterparty(bankId, bankAccount.id, view, randomString(5), user1)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
   }
 
-  feature("We Update Account Label"){
-    scenario("we will the update label for one random account", API1_2_1, UpdateAccountLabel){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = SYSTEM_OWNER_VIEW_ID
-      When("the request is sent")
-      val randomLabel = randomString(20)
-      val postReply = updateAccountLabel(bankId, bankAccount.id, randomLabel, user1)
-      Then("we should get a 200 code")
-      postReply.code should equal (200)
-      postReply.body.extract[SuccessMessage]
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("We Update Account Label"){
+    // scenario("we will the update label for one random account", API1_2_1, UpdateAccountLabel){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = SYSTEM_OWNER_VIEW_ID
+      // When("the request is sent")
+      // val randomLabel = randomString(20)
+      // val postReply = updateAccountLabel(bankId, bankAccount.id, randomLabel, user1)
+      // Then("we should get a 200 code")
+      // postReply.code should equal (200)
+      // postReply.body.extract[SuccessMessage]
       
-      When("the request is sent")
-      val reply = getPrivateBankAccountDetails(bankId, bankAccount.id, view, user1)
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val privateAccountDetails = reply.body.extract[ModeratedAccountJSON]
-      And("some fields should not be empty")
-      privateAccountDetails.label should equal (randomLabel)
-    }
-    scenario("we will not the update label for one random account due to a missing token", API1_2_1, UpdateAccountLabel){
-      Given("We will use an access token")
-      val bankId = randomBank
-      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = SYSTEM_OWNER_VIEW_ID
-      When("the request is sent")
-      val randomLabel = randomString(20)
-      val postReply = updateAccountLabel(bankId, bankAccount.id, randomLabel, None)
-      Then("we should get a 401 code")
-      postReply.code should equal (401)
-      And("we should get an error message")
-      postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
-  }
+      // When("the request is sent")
+      // val reply = getPrivateBankAccountDetails(bankId, bankAccount.id, view, user1)
+      // Then("we should get a 200 ok code")
+      // reply.code should equal (200)
+      // val privateAccountDetails = reply.body.extract[ModeratedAccountJSON]
+      // And("some fields should not be empty")
+      // privateAccountDetails.label should equal (randomLabel)
+    // }
+    // scenario("we will not the update label for one random account due to a missing token", API1_2_1, UpdateAccountLabel){
+      // Given("We will use an access token")
+      // val bankId = randomBank
+      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      // val view = SYSTEM_OWNER_VIEW_ID
+      // When("the request is sent")
+      // val randomLabel = randomString(20)
+      // val postReply = updateAccountLabel(bankId, bankAccount.id, randomLabel, None)
+      // Then("we should get a 401 code")
+      // postReply.code should equal (401)
+      // And("we should get an error message")
+      // postReply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
+  // }
 
 
 }
