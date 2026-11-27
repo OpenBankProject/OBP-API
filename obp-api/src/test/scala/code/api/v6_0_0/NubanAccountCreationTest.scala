@@ -34,7 +34,7 @@ import code.api.util.{ApiRole, Nuban}
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
-import code.model.dataAccess.{MappedBankAccount, MappedBankRouting}
+import code.model.dataAccess.{BankRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJson, ErrorMessage}
 import net.liftweb.common.Full
@@ -57,7 +57,7 @@ class NubanAccountCreationTest extends V600ServerSetup with DefaultUsers {
   private val bankCode = "011"
 
   private def giveBankCode(code: String): Unit =
-    MappedBankRouting.replaceRoutingsOf(testBankId1.value, List(BankRoutingJson(Nuban.BankCodeScheme, code)))
+    BankRouting.replaceRoutingsOf(testBankId1.value, List(BankRoutingJson(Nuban.BankCodeScheme, code)))
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -65,7 +65,7 @@ class NubanAccountCreationTest extends V600ServerSetup with DefaultUsers {
   }
 
   override def afterEach(): Unit = {
-    MappedBankRouting.replaceRoutingsOf(testBankId1.value, Nil)
+    BankRouting.replaceRoutingsOf(testBankId1.value, Nil)
     super.afterEach()
   }
 
@@ -150,14 +150,14 @@ class NubanAccountCreationTest extends V600ServerSetup with DefaultUsers {
     }
 
     scenario("A bank with no NG.BANK_CODE routing cannot assign a NUBAN: 400", NubanAccounts) {
-      MappedBankRouting.replaceRoutingsOf(testBankId1.value, Nil)
+      BankRouting.replaceRoutingsOf(testBankId1.value, Nil)
       val response = create(List(AccountRoutingJsonV121("NG.NUBAN", "")))
       response.code should equal(400)
       errorOf(response) should startWith(NubanBankCodeNotUsable.split(":").head)
     }
 
     scenario("A bank with two different NG.BANK_CODE routings cannot assign a NUBAN: 400", NubanAccounts) {
-      MappedBankRouting.replaceRoutingsOf(testBankId1.value, List(BankRoutingJson("NG.BANK_CODE", "011"), BankRoutingJson("NG.BANK_CODE", "058")))
+      BankRouting.replaceRoutingsOf(testBankId1.value, List(BankRoutingJson("NG.BANK_CODE", "011"), BankRoutingJson("NG.BANK_CODE", "058")))
       val response = create(List(AccountRoutingJsonV121("NG.NUBAN", "")))
       response.code should equal(400)
       errorOf(response) should startWith(NubanBankCodeNotUsable.split(":").head)

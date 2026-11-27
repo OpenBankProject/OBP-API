@@ -38,8 +38,8 @@ import net.liftweb.mapper._
  *
  * A routing belongs to one bank only: the same scheme and address cannot be stored for two banks.
  */
-class MappedBankRouting extends LongKeyedMapper[MappedBankRouting] with IdPK with CreatedUpdated {
-  def getSingleton: MappedBankRouting.type = MappedBankRouting
+class BankRouting extends LongKeyedMapper[BankRouting] with IdPK with CreatedUpdated {
+  def getSingleton: BankRouting.type = BankRouting
 
   // The OBP bank id (MappedBank.permalink).
   object BankId extends MappedString(this, 255)
@@ -52,9 +52,12 @@ class MappedBankRouting extends LongKeyedMapper[MappedBankRouting] with IdPK wit
   def bankRouting: BankRoutingJson = BankRoutingJson(Scheme.get, Address.get)
 }
 
-object MappedBankRouting extends MappedBankRouting with LongKeyedMetaMapper[MappedBankRouting] {
+object BankRouting extends BankRouting with LongKeyedMetaMapper[BankRouting] {
 
-  override def dbIndexes: List[BaseIndex[MappedBankRouting]] =
+  // keeps the table the routings were first stored in
+  override def dbTableName = "mappedbankrouting"
+
+  override def dbIndexes: List[BaseIndex[BankRouting]] =
     Index(BankId) :: UniqueIndex(Scheme, Address) :: super.dbIndexes
 
   /** The bank's routings, in the order they were stored. */

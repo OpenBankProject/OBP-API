@@ -3654,7 +3654,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     })
     // A routing another bank already has is refused by the table's unique index.
     val saved = bank.flatMap(savedBank =>
-      tryo(MappedBankRouting.replaceRoutingsOf(bankId, routings)).map(_ => savedBank) ?~! ErrorMessages.BankRoutingAlreadyExists)
+      tryo(BankRouting.replaceRoutingsOf(bankId, routings)).map(_ => savedBank) ?~! ErrorMessages.BankRoutingAlreadyExists)
 
     // Insert the default settlement accounts if they doesn't exist
     MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, INCOMING_SETTLEMENT_ACCOUNT_ID)) match {

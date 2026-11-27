@@ -59,7 +59,7 @@ class MappedBank extends Bank with LongKeyedMapper[MappedBank] with IdPK with Cr
   override def bankRoutingScheme = mBankRoutingScheme.get
   override def bankRoutingAddress = mBankRoutingAddress.get
   // All of the bank's routings, from the bank routing table.
-  override def bankRoutings: List[BankRoutingJson] = MappedBankRouting.routingsOf(permalink.get)
+  override def bankRoutings: List[BankRoutingJson] = BankRouting.routingsOf(permalink.get)
 }
 
 object MappedBank extends MappedBank with LongKeyedMetaMapper[MappedBank] {
