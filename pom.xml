@@ -21,7 +21,7 @@
          default `sbt clean publishM2`, which publishes only the default Scala version, so
          lift-persistence_2.13 did not exist however the tag was numbered. -->
     <lift.version>v1.0.5</lift.version>
-    <http4s.version>0.23.35</http4s.version>
+    <http4s.version>0.23.37</http4s.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -149,11 +149,12 @@
         <artifactId>accessors-smart</artifactId>
         <version>2.6.0</version>
       </dependency>
-      <!-- Pin org.json to 20250107. Fixes CVE-2022-45688 and CVE-2023-5072. -->
+      <!-- Pin org.json to 20260719. Fixes CVE-2022-45688, CVE-2023-5072 and
+           GHSA-ghc9-756g-vrcv (unbounded numeric strings in JSONTokener). -->
       <dependency>
         <groupId>org.json</groupId>
         <artifactId>json</artifactId>
-        <version>20250107</version>
+        <version>20260719</version>
       </dependency>
       <!-- Pin commons-validator to 1.9.0. Fixes CVE-2020-13956 (ReDoS in URL validation). -->
       <dependency>
@@ -206,7 +207,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>32.0.0-jre</version>
+        <version>33.7.2-jre</version>
       </dependency>
       <dependency>
         <groupId>org.scalatest</groupId>
