@@ -123,10 +123,11 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
       responseApiEndpoint5.body.extract[List[BasicAccountJSON]].toList.toString() contains(account.account_id) should be (true)
 
 
-      val requestGetApiEndpoint3 = (v5_0_0_Request / "banks" / testBankId.value / "balances").GET <@ (user1)
+      // getBankAccountsBalances of v5.0.0 and below is commented out, so the balances are read through v5.1.0.
+      val requestGetApiEndpoint3 = (baseRequest / "obp" / "v5.1.0" / "banks" / testBankId.value / "balances").GET <@ (user1)
       val responseGetApiEndpoint3 = makeGetRequest(requestGetApiEndpoint3)
       responseGetApiEndpoint3.code should equal(200)
-      responseGetApiEndpoint3.body.extract[AccountsBalancesJsonV400].accounts.map(_.account_id) contains(account.account_id) should be (true)
+      (responseGetApiEndpoint3.body \\ "account_id").toString contains(account.account_id) should be (true)
       
       
       Then(s"We make a request $VersionOfApi but with other user")
