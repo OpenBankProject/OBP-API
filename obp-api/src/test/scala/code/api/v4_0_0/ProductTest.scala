@@ -64,22 +64,23 @@ class ProductTest extends V400ServerSetup {
 
   lazy val testBankId = randomBankId
   lazy val parentPutProductJsonV400: PutProductJsonV400 = SwaggerDefinitionsJSON.putProductJsonV400.copy(parent_product_code ="")
-  def createProduct(code: String, json: PutProductJsonV400) = {
-    When("We try to create a product v4.0.0")
-    val request400 = (v4_0_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
-    val response400 = makePutRequest(request400, write(json))
-    Then("We should get a 201")
-    response400.code should equal(201)
-    val product = response400.body.extract[ProductJsonV400]
-    product.product_code shouldBe code
-    product.parent_product_code shouldBe json.parent_product_code
-    product.bank_id shouldBe testBankId
-    product.name shouldBe json.name
-    product.more_info_url shouldBe json.more_info_url
-    product.terms_and_conditions_url shouldBe json.terms_and_conditions_url
-    product.description shouldBe json.description
-    product
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def createProduct(code: String, json: PutProductJsonV400) = {
+    // When("We try to create a product v4.0.0")
+    // val request400 = (v4_0_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
+    // val response400 = makePutRequest(request400, write(json))
+    // Then("We should get a 201")
+    // response400.code should equal(201)
+    // val product = response400.body.extract[ProductJsonV400]
+    // product.product_code shouldBe code
+    // product.parent_product_code shouldBe json.parent_product_code
+    // product.bank_id shouldBe testBankId
+    // product.name shouldBe json.name
+    // product.more_info_url shouldBe json.more_info_url
+    // product.terms_and_conditions_url shouldBe json.terms_and_conditions_url
+    // product.description shouldBe json.description
+    // product
+  // }
   
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Create Product v4.0.0") {
