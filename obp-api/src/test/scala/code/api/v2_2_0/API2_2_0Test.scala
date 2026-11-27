@@ -78,19 +78,21 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
     bank.id
   }
 
-  def randomPrivateAccount(bankId : String) : code.api.v1_2.AccountJSON = {
-    val accountsJson = getPrivateAccounts(bankId, user1).body.extract[code.api.v1_2.AccountsJSON].accounts
-    val randomPosition = nextInt(accountsJson.size)
-    accountsJson(randomPosition)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def randomPrivateAccount(bankId : String) : code.api.v1_2.AccountJSON = {
+    // val accountsJson = getPrivateAccounts(bankId, user1).body.extract[code.api.v1_2.AccountsJSON].accounts
+    // val randomPosition = nextInt(accountsJson.size)
+    // accountsJson(randomPosition)
+  // }
 
-  def randomViewsIdsToGrant(bankId : String, accountId : String) : List[String]= {
-    //get the view ids of the available views on the bank accounts
-    val viewsIds = getAccountViews(bankId, accountId, user1).body.extract[ViewsJSONV220].views.map(_.id)
-    //choose randomly some view ids to grant
-    val (viewsIdsToGrant, _) = viewsIds.splitAt(nextInt(viewsIds.size) + 1)
-    viewsIdsToGrant
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def randomViewsIdsToGrant(bankId : String, accountId : String) : List[String]= {
+    // //get the view ids of the available views on the bank accounts
+    // val viewsIds = getAccountViews(bankId, accountId, user1).body.extract[ViewsJSONV220].views.map(_.id)
+    // //choose randomly some view ids to grant
+    // val (viewsIdsToGrant, _) = viewsIds.splitAt(nextInt(viewsIds.size) + 1)
+    // viewsIdsToGrant
+  // }
 
   // only the actions of the owner view user1 holds, as Create View refuses actions none of the caller's views has
   def randomView(isPublic: Boolean, alias: String) = {
@@ -100,35 +102,40 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
   }
 
 
-  def getBanksInfo : APIResponse  = {
-    val request = v2_2Request / "banks"
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getBanksInfo : APIResponse  = {
+    // val request = v2_2Request / "banks"
+    // makeGetRequest(request)
+  // }
 
   def getBankInfo(bankId : String) : APIResponse  = {
     val request = v2_2Request / "banks" / bankId
     makeGetRequest(request)
   }
 
-  def getPrivateAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2_1Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken)
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getPrivateAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    // val request = v1_2_1Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
 
-  def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = v2_2Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    // val request = v2_2Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
 
-  def postView(bankId: String, accountId: String, view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = (v2_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
-    makePostRequest(request, write(view))
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def postView(bankId: String, accountId: String, view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    // val request = (v2_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
+    // makePostRequest(request, write(view))
+  // }
 
-  def putView(bankId: String, accountId: String, viewId : String, view: UpdateViewJsonV121, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = (v2_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
-    makePutRequest(request, write(view))
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def putView(bankId: String, accountId: String, viewId : String, view: UpdateViewJsonV121, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    // val request = (v2_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
+    // makePutRequest(request, write(view))
+  // }
 
 
 
