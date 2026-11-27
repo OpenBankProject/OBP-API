@@ -113,7 +113,8 @@ trait DynamicDataProvider {
   // userId / isPersonalEntity so its provenance is unchanged. callerUserId is the user making the
   // call, recorded as the record's last writer.
   def updateCommunity(bankId: Option[String], entityName: String, requestBody: JObject, id: String, callerUserId: Option[String]): Box[DynamicDataT]
-  def deleteCommunity(bankId: Option[String], entityName: String, id: String): Box[Boolean]
+  /** callerUserId is the user making the call, recorded in the entity's audit chain when it has one. */
+  def deleteCommunity(bankId: Option[String], entityName: String, id: String, callerUserId: Option[String] = None): Box[Boolean]
 }
 
 

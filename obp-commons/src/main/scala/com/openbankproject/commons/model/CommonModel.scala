@@ -302,14 +302,29 @@ case class BankCommons(
                         @optional
                         swiftBic :String,
                         @optional
-                        nationalIdentifier :String) extends Bank {
+                        nationalIdentifier :String,
+                        // All of the bank's bank routings. Optional, so an adapter that sends only
+                        // bankRoutingScheme / bankRoutingAddress keeps working.
+                        @optional
+                        override val bankRoutings: List[BankRoutingJson] = Nil) extends Bank {
   def this(bankId :BankId,
     shortName :String,
     fullName :String,
     logoUrl :String,
     websiteUrl :String,
     bankRoutingScheme :String,
-    bankRoutingAddress :String) = this(bankId, shortName, fullName, logoUrl, websiteUrl, bankRoutingScheme, bankRoutingAddress, null, null)
+    bankRoutingAddress :String) = this(bankId, shortName, fullName, logoUrl, websiteUrl, bankRoutingScheme, bankRoutingAddress, null, null, Nil)
+  // Without bankRoutings, for Java and JavaScript code (such as dynamic connectors), which cannot
+  // leave out a parameter that has a default value.
+  def this(bankId :BankId,
+    shortName :String,
+    fullName :String,
+    logoUrl :String,
+    websiteUrl :String,
+    bankRoutingScheme :String,
+    bankRoutingAddress :String,
+    swiftBic :String,
+    nationalIdentifier :String) = this(bankId, shortName, fullName, logoUrl, websiteUrl, bankRoutingScheme, bankRoutingAddress, swiftBic, nationalIdentifier, Nil)
 }
 
 

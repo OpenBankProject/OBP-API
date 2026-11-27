@@ -59,5 +59,9 @@ test-results
 untracked_files/
 dependency-reduced-pom.xml
 _DO_NOT_COMMIT_/
+DO_NOT_COMMIT/
 __pycache__/
 *.pyc
+
+# Backups of .env, which hold secrets
+.env.bak*

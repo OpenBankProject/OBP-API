@@ -264,7 +264,12 @@ object Http4s600 {
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
             (banks, _) <- NewStyle.function.getBanks(Some(cc))
-          } yield JSONFactory600.createBanksJsonV600(banks)
+            // Each bank's attributes, as Get Bank returns them (only active ones are shown).
+            banksWithAttributes <- Future.sequence(banks.map(bank =>
+              NewStyle.function.getBankAttributesByBank(bank.bankId, Some(cc)).map(result => (bank, result._1))))
+            // Each bank's still-valid onward routes, read for all the banks at once.
+            onwardRoutesByBankId <- Future(code.opencorridorroutes.OnwardRoutes.validForBanks(banks.map(_.bankId.value)))
+          } yield JSONFactory600.createBanksJsonV600(banksWithAttributes, onwardRoutesByBankId)
         }
     }
 
@@ -275,7 +280,8 @@ object Http4s600 {
         EndpointHelpers.withBank(req) { (bank, cc) =>
           for {
             (attributes, _) <- NewStyle.function.getBankAttributesByBank(bank.bankId, Some(cc))
-          } yield JSONFactory600.createBankJsonV600(bank, attributes)
+            onwardRoutes <- Future(code.opencorridorroutes.OnwardRoutes.validForBank(bank.bankId.value))
+          } yield JSONFactory600.createBankJsonV600(bank, attributes, onwardRoutes)
         }
     }
 
@@ -921,17 +927,19 @@ object Http4s600 {
             _ <- Helper.booleanToFuture(bankIdAlreadyExists, failCode = 409, cc = Some(cc)) {
               !banks.exists(_.bankId.value == postJson.bank_id)
             }
+            bankRoutings <- NewStyle.function.bankRoutingsToStore(postJson.bank_id, postJson.bank_routings.getOrElse(Nil), Some(cc))
             (success, _) <- NewStyle.function.createOrUpdateBank(
               postJson.bank_id,
               postJson.full_name.getOrElse(""),
               postJson.bank_code,
               postJson.logo.getOrElse(""),
               postJson.website.getOrElse(""),
-              postJson.bank_routings.getOrElse(Nil).find(_.scheme == "BIC").map(_.address).getOrElse(""),
               "",
-              postJson.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
-              postJson.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
-              Some(cc)
+              "",
+              "",
+              "",
+              Some(cc),
+              Some(bankRoutings)
             )
             // Creator grant goes to the HUMAN, not the authenticated principal: under a
             // Consent the principal is a per-consent shadow user, and a role granted to it
@@ -5490,6 +5498,10 @@ object Http4s600 {
         _ <- Helper.booleanToFuture(CannotDeleteCascadePersonalEntity, cc = Some(cc)) {
           !entity.hasPersonalEntity
         }
+        // Refused before any record is deleted: an entity with an audit chain is never deleted.
+        _ <- Helper.booleanToFuture(DynamicEntityHasAuditChain, cc = Some(cc)) {
+          !code.dynamicentityauditchain.DynamicEntityAuditChains.hasChain(dynamicEntityId)
+        }
         // The records are read from the table so that each one comes with the id of its row. The stored JSON
         // of a record written by an earlier version may lack `<entity>_id`; its row id is put back, because
         // the backup and the delete below both go by that id.
@@ -6889,13 +6901,20 @@ object Http4s600 {
         "GET",
         "/banks",
         "Get Banks",
-        """Get banks on this API instance
+        s"""Get banks on this API instance
         |Returns a list of banks supported on this server:
         |
         |- bank_id used as parameter in URLs
         |- Short and full name of bank
         |- Logo URL
         |- Website
+        |- Bank routings
+        |- Active bank attributes
+        |- Onward routes: the banks on other OBP instances that can be reached through this bank
+        |
+        |A caller can use the attributes to pick banks from the list. For example, an Open Corridor bank carries the attribute OPEN_CORRIDOR_PARTICIPANT with the value true.
+        |
+        |Only banks that are members of this OBP instance are listed. A bank on another OBP instance is never listed here. It appears only inside the onward routes of a member that can reach it, and only while that member's Bank Node keeps confirming the route. A bank that does not carry payments on has an empty list. See ${Glossary.getGlossaryItemLink("Onward Routes")}.
         |
         |User Authentication is Optional. The User need not be logged in.
         |""",
@@ -6907,7 +6926,8 @@ object Http4s600 {
           logo = "logo",
           website = "www.openbankproject.com",
           bank_routings = List(BankRoutingJsonV121("OBP", "gh.29.uk")),
-          attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000")))
+          attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000"))),
+          onward_routes = List(JSONFactory600.onwardRouteJsonV600Example)
         ))),
         List(UnknownError),
         apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
@@ -6920,13 +6940,16 @@ object Http4s600 {
         "GET",
         "/banks/BANK_ID",
         "Get Bank",
-        """Get the bank specified by BANK_ID
+        s"""Get the bank specified by BANK_ID
         |Returns information about a single bank specified by BANK_ID including:
         |
         |- bank_id: The unique identifier of this bank
         |- Short and full name of bank
         |- Logo URL
         |- Website
+        |- Bank routings
+        |- Active bank attributes
+        |- Onward routes: the banks on other OBP instances that can be reached through this bank (see ${Glossary.getGlossaryItemLink("Onward Routes")})
         |""",
         EmptyBody,
         BankJsonV600(
@@ -6936,7 +6959,8 @@ object Http4s600 {
           logo = "logo",
           website = "www.openbankproject.com",
           bank_routings = List(BankRoutingJsonV121("OBP", "gh.29.uk")),
-          attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000")))
+          attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000"))),
+          onward_routes = List(JSONFactory600.onwardRouteJsonV600Example)
         ),
         List(UnknownError, BankNotFound),
         apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,

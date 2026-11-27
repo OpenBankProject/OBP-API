@@ -471,7 +471,12 @@ object Http4s700 {
               val creatorUserIds = humanAndAgentUserIds(cc.onBehalfOfUserId)
               MappedBank.findAll(ByList(MappedBank.CreatedByUserId, creatorUserIds))
             }
-          } yield JSONFactory600.createBanksJsonV600(banksCreatedByUser)
+            // Each bank's attributes, as Get Bank returns them (only active ones are shown).
+            banksWithAttributes <- Future.sequence(banksCreatedByUser.map(bank =>
+              NewStyle.function.getBankAttributesByBank(bank.bankId, Some(cc)).map(result => (bank, result._1))))
+            // Each bank's still-valid onward routes, as in Get Banks.
+            onwardRoutesByBankId <- Future(code.opencorridorroutes.OnwardRoutes.validForBanks(banksCreatedByUser.map(_.bankId.value)))
+          } yield JSONFactory600.createBanksJsonV600(banksWithAttributes, onwardRoutesByBankId)
         }
     }
 
@@ -481,13 +486,11 @@ object Http4s700 {
       "GET",
       "/my/banks",
       "Get My Banks",
-      s"""Returns the banks belonging to the current User — created directly by the User,
-      |or created by an agent acting for the User under a Consent.
+      s"""Returns the banks belonging to the current User. These are the banks the User created, and the banks an agent created while acting for the User under a Consent.
       |
-      |Delegation is resolved server-side from the Consent records: when the caller is a
-      |consent-based agent, the list shows the granting User's banks; when the caller is
-      |the User, the list includes banks created by any of their consent-based agents.
-      |Nothing is accepted from the caller to influence this resolution.
+      |Delegation is resolved on the server from the Consent records. When the caller is a consent-based agent, the list shows the granting User's banks. When the caller is the User, the list includes the banks created by any of their consent-based agents. Nothing is accepted from the caller to influence this resolution.
+      |
+      |Each bank is shown with its bank routings, its active bank attributes and its onward routes, as in Get Banks.
       |
       |${userAuthenticationMessage(true)}
       |""",
@@ -499,7 +502,7 @@ object Http4s700 {
         logo = "",
         website = "",
         bank_routings = Nil,
-        attributes = None
+        attributes = Some(List(code.api.v4_0_0.BankAttributeBankResponseJsonV400(name = "OPEN_CORRIDOR_PARTICIPANT", value = "true")))
       ))),
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagBank :: Nil,
@@ -2636,73 +2639,74 @@ object Http4s700 {
 //    )
 
     // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/withdrawals
-    val requestWithdrawal: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "withdrawals" =>
-        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.RequestWithdrawalJson, JSONFactory700.WithdrawalJson](req) { (user, withdrawalJson, cc) =>
-          for {
-            // Validate bank and account
-            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
-
-            // Validate amount
-            _ <- Helper.booleanToFuture(
-              failMsg = InvalidTradingAmount,
-              failCode = 400,
-              cc = callContext
-            )(withdrawalJson.amount > 0)
-
-            // Invoke connector
-            (withdrawal, callContext2) <- NewStyle.function.requestWithdrawal(
-              BankId(bankId),
-              AccountId(accountId),
-              withdrawalJson.settlement_account_id,
-              withdrawalJson.amount,
-              withdrawalJson.address,
-              12,  // Ethereum mainnet standard: 12 confirmations required
-              callContext
-            )
-          } yield JSONFactory700.createWithdrawalJson(withdrawal)
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(requestWithdrawal),
-      "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/withdrawals",
-      "Request Withdrawal",
-      """**WORK IN PROGRESS**
-        |
-        |Request a withdrawal to a blockchain address.
-        |
-        |The withdrawal_id is automatically generated as a UUID.
-        |Each request creates a new withdrawal with a unique withdrawal_id.
-        |
-        |Authentication is required.""",
-      JSONFactory700.RequestWithdrawalJson(
-        settlement_account_id = "account-123",
-        amount = BigDecimal("50.0"),
-        address = "0xdestination"
-      ),
-      JSONFactory700.WithdrawalJson(
-        withdrawal_id = "withdrawal-303",
-        account_id = "account-123",
-        amount = BigDecimal("50.0"),
-        address = "0xdestination",
-        status = "pending",
-        tx_hash = None,
-        confirmations = None,
-        required_confirmations = 12,
-        nonce = None,
-        gas_used = None,
-        error_message = None,
-        user_id = "user-abc-123",
-        consent_id = None,
-        created_at = "2026-04-16T00:55:00Z"
-      ),
-      List(InvalidJsonFormat, InvalidTradingAmount, WithdrawalFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagTrading :: apiTagMarket :: Nil,
-      http4sPartialFunction = Some(requestWithdrawal)
-    )
+    // Off: moving funds out should go through transaction requests instead
+//    val requestWithdrawal: Http4sRoute = Http4sRoute {
+//      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "withdrawals" =>
+//        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.RequestWithdrawalJson, JSONFactory700.WithdrawalJson](req) { (user, withdrawalJson, cc) =>
+//          for {
+//            // Validate bank and account
+//            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+//
+//            // Validate amount
+//            _ <- Helper.booleanToFuture(
+//              failMsg = InvalidTradingAmount,
+//              failCode = 400,
+//              cc = callContext
+//            )(withdrawalJson.amount > 0)
+//
+//            // Invoke connector
+//            (withdrawal, callContext2) <- NewStyle.function.requestWithdrawal(
+//              BankId(bankId),
+//              AccountId(accountId),
+//              withdrawalJson.settlement_account_id,
+//              withdrawalJson.amount,
+//              withdrawalJson.address,
+//              12,  // Ethereum mainnet standard: 12 confirmations required
+//              callContext
+//            )
+//          } yield JSONFactory700.createWithdrawalJson(withdrawal)
+//        }
+//    }
+//
+//    resourceDocs += ResourceDoc(
+//      implementedInApiVersion,
+//      nameOf(requestWithdrawal),
+//      "POST",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/withdrawals",
+//      "Request Withdrawal",
+//      """**WORK IN PROGRESS**
+//        |
+//        |Request a withdrawal to a blockchain address.
+//        |
+//        |The withdrawal_id is automatically generated as a UUID.
+//        |Each request creates a new withdrawal with a unique withdrawal_id.
+//        |
+//        |Authentication is required.""",
+//      JSONFactory700.RequestWithdrawalJson(
+//        settlement_account_id = "account-123",
+//        amount = BigDecimal("50.0"),
+//        address = "0xdestination"
+//      ),
+//      JSONFactory700.WithdrawalJson(
+//        withdrawal_id = "withdrawal-303",
+//        account_id = "account-123",
+//        amount = BigDecimal("50.0"),
+//        address = "0xdestination",
+//        status = "pending",
+//        tx_hash = None,
+//        confirmations = None,
+//        required_confirmations = 12,
+//        nonce = None,
+//        gas_used = None,
+//        error_message = None,
+//        user_id = "user-abc-123",
+//        consent_id = None,
+//        created_at = "2026-04-16T00:55:00Z"
+//      ),
+//      List(InvalidJsonFormat, InvalidTradingAmount, WithdrawalFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+//      apiTagTrading :: apiTagMarket :: Nil,
+//      http4sPartialFunction = Some(requestWithdrawal)
+//    )
 
 //    // ── TCC Payment Authorization Endpoints (Phase 3 - P3) ─────────────────
 //
@@ -3202,12 +3206,13 @@ object Http4s700 {
                   case Full(user) if user.email.get != null
                                   && user.email.get.toLowerCase == emailLower
                                   && !user.validated.get =>
-                    val portalUrlBox = APIUtil.getPropsValue("portal_external_url")
+                    // same portal URL as the signup email, so both links match
+                    val portalUrlBox = APIUtil.getPortalUrl
                     val senderAddress = AuthUser.emailFrom
-                    val portalMissing = portalUrlBox.isEmpty || portalUrlBox.exists(_.trim.isEmpty)
+                    val portalMissing = portalUrlBox.isEmpty
                     val senderIsDefault = senderAddress == "noreply@example.com"
                     if (portalMissing) {
-                      logger.warn("createValidationEmail says: skipped — portal_external_url not set; cannot build validation link")
+                      logger.warn("createValidationEmail says: skipped — public_obp_portal_url (or legacy portal_external_url) not set; cannot build validation link")
                     } else if (senderIsDefault) {
                       logger.warn("createValidationEmail says: skipped — mail.users.userinfo.sender.address is still the default 'noreply@example.com' (most SMTP servers will reject this From address)")
                     } else {
@@ -3283,7 +3288,8 @@ object Http4s700 {
         |`AuthUser.uniqueId`). Multiple resends produce the same link, not
         |competing tokens — clicking any of the delivered emails works.
         |
-        |Email configuration (portal_external_url, SMTP, sender address) must be
+        |Email configuration (public_obp_portal_url or legacy portal_external_url,
+        |SMTP, sender address) must be
         |set up correctly for delivery to succeed. See /status (Email section) and
         |POST /obp/v7.0.0/management/self-test-emails for diagnostics.
         |""".stripMargin,
@@ -7745,6 +7751,9 @@ object Http4s700 {
     // Dynamic Entity webhooks: URLs OBP sends a request to when records of a Dynamic Entity change.
     resourceDocs ++= Http4s700DynamicEntityWebhooks.resourceDocs
 
+    // Dynamic Entity audit chains: tamper-evident records of every change to the records of a Dynamic Entity.
+    resourceDocs ++= Http4s700DynamicEntityAuditChains.resourceDocs
+
     // Groups: bring the members of a Group in line with its current Roles.
     resourceDocs ++= Http4s700Groups.resourceDocs
 
@@ -7784,6 +7793,9 @@ object Http4s700 {
 
     // The caller's own accounts whose account routing matches a pattern.
     resourceDocs ++= Http4s700MyAccounts.resourceDocs
+
+    // Onward routes: the banks on other OBP instances that can be reached through a member of this one.
+    resourceDocs ++= Http4s700OnwardRoutes.resourceDocs
 
     // The order in which the routes are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given this same list: the doc that validates a request

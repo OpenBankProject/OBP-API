@@ -1440,6 +1440,15 @@ featured_apis=elasticSearchWarehouseV300
 # move. Unset means no minimum.
 # open_corridor.min_settlement_amount.KES=50
 
+# How long a bank's onward route stays valid after its Bank Node last confirmed it, in seconds. An onward route
+# says that a bank on another OBP instance can be reached through this member. The node confirms its routes well
+# within this time, so a member whose node stops confirming drops out of routing by itself.
+# open_corridor.onward_route_validity_seconds=3600
+
+# How long an exchange rate on an onward route stays valid after the node last confirmed it, in seconds. Rates
+# move faster than reach, so this is shorter than the route's validity.
+# open_corridor.onward_route_rate_validity_seconds=300
+
 
 # -- Scopes -----------------------------------------------------
 # A Scope is a Role held by a Consumer (an application).

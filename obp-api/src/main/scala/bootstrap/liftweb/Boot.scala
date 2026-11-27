@@ -745,7 +745,12 @@ class Boot extends MdcLoggable {
     if(isPropsNotSetProperly) {
       //Nothing happens, props is not set
     }else if(existingAuthUser.isDefined) {
-      logger.error(s"createBootstrapSuperUser- Errors:  Existing AuthUser with username ${superAdminUsername} detected in data import where no ResourceUser was found")
+      // made on an earlier start; only an error if its linked user is missing
+      val resourceUser = existingAuthUser.flatMap(u => Users.users.vend.getUserByProviderAndUsername(u.getProvider(), u.username.get))
+      if (resourceUser.isDefined)
+        logger.info(s"createBootstrapSuperUser- Super admin user ${superAdminUsername} already exists, not creating it")
+      else
+        logger.error(s"createBootstrapSuperUser- Errors: Existing AuthUser with username ${superAdminUsername} has no linked ResourceUser")
     } else {
       val authUser = AuthUser.create
         .email(superAdminEmail)
@@ -888,7 +893,11 @@ class Boot extends MdcLoggable {
     if (isPropsNotSetProperly) {
       //Nothing happens, props is not set
     } else if (existingAuthUser.isDefined) {
-      logger.error(s"createBootstrapOidcOperatorUser- Errors: Existing AuthUser with username ${oidcOperatorUsername} detected in data import where no ResourceUser was found")
+      val resourceUser = existingAuthUser.flatMap(u => Users.users.vend.getUserByProviderAndUsername(u.getProvider(), u.username.get))
+      if (resourceUser.isDefined)
+        logger.info(s"createBootstrapOidcOperatorUser- OIDC operator user ${oidcOperatorUsername} already exists, not creating it")
+      else
+        logger.error(s"createBootstrapOidcOperatorUser- Errors: Existing AuthUser with username ${oidcOperatorUsername} has no linked ResourceUser")
     } else {
       val authUser = AuthUser.create
         .email(oidcOperatorEmail)
@@ -1017,6 +1026,7 @@ object ToSchemify extends MdcLoggable {
     code.mandate.MandateProvision,
     code.mandate.SignatoryPanel,
     MappedBank,
+    code.model.dataAccess.BankRouting,
     MappedBankAccount,
     BankAccountRouting,
     MappedTransaction,
@@ -1140,6 +1150,7 @@ object ToSchemify extends MdcLoggable {
     MappedTransactionAttribute,
     MappedCardAttribute,
     BankAttribute,
+    code.opencorridorroutes.OnwardRoute,
     RateLimiting,
     MappedCustomerDependant,
     AttributeDefinition,
@@ -1164,6 +1175,8 @@ object ToSchemify extends MdcLoggable {
     code.consumeraccountaccess.ConsumerAccountAccess,
     code.domainapi.DomainApi,
     code.dynamicentitywebhook.DynamicEntityWebhook,
+    code.dynamicentityauditchain.DynamicEntityAuditChain,
+    code.dynamicentityauditchain.DynamicEntityAuditEntry,
     code.accountcreation.AccountCreation,
     code.retention.RetentionPolicy,
     code.retention.RetentionArchive,

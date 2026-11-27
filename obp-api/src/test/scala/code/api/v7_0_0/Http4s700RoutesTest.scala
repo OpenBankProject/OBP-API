@@ -4909,6 +4909,23 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
       listedBankIds should contain(bankId)
 
+      And("GET /my/banks shows the bank's active attributes, as Get Banks does")
+      scala.concurrent.Await.result(
+        code.bankattribute.BankAttributeX.bankAttributeProvider.vend.createOrUpdateBankAttribute(
+          CommBankId(bankId), None, "OPEN_CORRIDOR_PARTICIPANT", com.openbankproject.commons.model.enums.BankAttributeType.BOOLEAN, "true", Some(true)),
+        scala.concurrent.duration.Duration(10, "seconds"))
+      val (attributesStatus, attributesJson, _) = makeHttpRequest("/obp/v7.0.0/my/banks", headers)
+      attributesStatus shouldBe 200
+      val listedBank = attributesJson \ "banks" match {
+        case JArray(banks) => banks.find(bank => (bank \ "bank_id") == JString(bankId)).getOrElse(fail("Expected the created bank"))
+        case _             => fail("Expected banks array")
+      }
+      val listedAttributes = listedBank \ "attributes" match {
+        case JArray(attributes) => attributes.map(attribute => ((attribute \ "name"), (attribute \ "value")))
+        case _                  => fail("Expected attributes array")
+      }
+      listedAttributes should contain((JString("OPEN_CORRIDOR_PARTICIPANT"), JString("true")))
+
       And("a second POST returns 403 — the quota is exhausted")
       val (secondStatus, secondJson, _) = makeHttpRequestWithMethod("POST", "/obp/v7.0.0/my/banks", headers)
       secondStatus shouldBe 403

@@ -997,7 +997,12 @@ object Http4s400 {
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
                 AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
-            (_, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            (existingAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // only an attribute of the bank and product in the path
+            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              existingAttribute.bankId.value == bankIdStr &&
+                existingAttribute.productCode.value == productCodeStr
+            }
             (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankIdStr), ProductCode(productCodeStr), Some(productAttributeIdStr),
               postedData.name, productAttributeType, postedData.value, postedData.is_active, Some(cc))
@@ -1023,7 +1028,7 @@ object Http4s400 {
       |""",
       productAttributeJsonV400,
       productAttributeResponseJsonV400,
-      List(UserHasMissingRoles, UnknownError),
+      List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canUpdateProductAttribute)),
       http4sPartialFunction = Some(updateProductAttribute)
@@ -4878,7 +4883,12 @@ object Http4s400 {
         EndpointHelpers.withUserAndBodyCreated[ProductFeeJsonV400, Any](req) { (_, postedData, cc) =>
           for {
             (_, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCode), Some(cc))
-            (_, _) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+            (existingFee, _) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+            // only a fee of the bank and product in the path
+            _ <- code.util.Helper.booleanToFuture(ProductFeeNotFoundById + " {" + productFeeId + "}", 404, Some(cc)) {
+              existingFee.bankId.value == bankIdStr &&
+                existingFee.productCode.value == productCode
+            }
             (productFee, _) <- NewStyle.function.createOrUpdateProductFee(
               BankId(bankIdStr), ProductCode(productCode), Some(productFeeId),
               postedData.name, postedData.is_active, postedData.more_info,
@@ -5150,7 +5160,7 @@ object Http4s400 {
         |""",
         productFeeJsonV400.copy(product_fee_id = None),
         productFeeResponseJsonV400,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, ProductFeeNotFoundById, UnknownError),
         List(apiTagProduct),
         Some(List(canUpdateProductFee)),
         http4sPartialFunction = Some(updateProductFee)

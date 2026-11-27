@@ -34,12 +34,12 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.APIFailureNewStyle
 import code.api.Constant
-import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, HTTPParam, EmptyBody, ResourceDoc, createQueriesByHttpParams, defaultBankId, fullBoxOrException, mockedDataText, passesPsd2Aisp, unboxFull}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, HTTPParam, EmptyBody, ResourceDoc, createQueriesByHttpParams, fullBoxOrException, mockedDataText, passesPsd2Aisp, unboxFull}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, UnknownError}
 import code.api.util.NewStyle
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
 import code.api.util.newstyle.ViewNewStyle
@@ -47,9 +47,9 @@ import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, TransactionAttribute, ViewId}
+import com.openbankproject.commons.model.{AccountId, BankIdAccountId, TransactionAttribute, ViewId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Full}
 import code.model.{BankAccountExtended, UserExtended}
 import com.openbankproject.commons.util.json
 import org.json4s.Formats
@@ -589,9 +589,12 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
         for {
           _ <- NewStyle.function.checkUKConsent(u, Some(cc))
           _ <- passesPsd2Aisp(Some(cc))
-          (bank, _) <- NewStyle.function.getBank(BankId(defaultBankId), Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
+          // each bank is looked up once, as several accounts can share it
+          banksById <- Future.sequence(accounts.map(_.bankId).distinct.map { bankId =>
+            NewStyle.function.getBank(bankId, Some(cc)).map { case (b, _) => bankId -> b }
+          }).map(_.toMap)
           allTxns <- Future {
             val detailViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID)
             val basicViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID)
@@ -604,9 +607,17 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
                 // per-account endpoint above does.
                 view <- code.api.util.APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Full(u), Some(cc))
                   .or(code.api.util.APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Full(u), Some(cc)))
+                // the account's own bank, as moderation drops rows of any other bank
+                accountBank <- Box(banksById.get(bankAccount.bankId)) ?~! s"$BankNotFound ${bankAccount.bankId.value}"
                 params = createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value)))).getOrElse(Nil)
-                (transactions, _) <- BankAccountExtended(bankAccount).getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc), params)
-              } yield transactions).getOrElse(Nil)
+                // only the directions (credits, debits) the consent grants on this account
+                grantsCredits = UKAmounts.grantsView(Constant.SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID, bankAccount.bankId, bankAccount.accountId, u, cc)
+                grantsDebits = UKAmounts.grantsView(Constant.SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID, bankAccount.bankId, bankAccount.accountId, u, cc)
+                directedParams = params ++ UKAmounts.directionQueryParam(grantsCredits, grantsDebits)
+                (transactions, _) <- BankAccountExtended(bankAccount).getModeratedTransactions(accountBank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc), directedParams)
+                directed = UKAmounts.filterByGrantedDirections(transactions, grantsCredits, grantsDebits)
+                _ = UKTransactionsQuery.warnIfPageWasTrimmed(transactions, directed, directedParams, cc)
+              } yield directed).getOrElse(Nil)
             }
           }
         } yield JSONFactory_UKOpenBanking_310.createTransactionsJson(allTxns, Nil)

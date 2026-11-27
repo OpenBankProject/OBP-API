@@ -406,47 +406,32 @@ object LocalMappedConnectorInternal extends MdcLoggable {
 
   }
 
-  //generates an unused account number and then creates the sandbox account using that number
-  @deprecated("This return Box, not a future, try to use @createBankAccount instead. ", "10-05-2019")
-  def createBankAccountLegacy(
-    bankId: BankId,
-    accountId: AccountId,
-    accountType: String,
-    accountLabel: String,
-    currency: String,
-    initialBalance: BigDecimal,
-    accountHolderName: String,
-    branchId: String,
-    accountRoutings: List[AccountRouting]
-  ): Box[BankAccount] = {
-    val uniqueAccountNumber = {
-      def exists(number: String) = LocalMappedConnectorInternal.accountExists(bankId, number).openOrThrowException(attemptedToOpenAnEmptyBox)
-
-      def appendUntilOkay(number: String): String = {
-        val newNumber = number + Random.nextInt(10)
-        if (!exists(newNumber)) newNumber
-        else appendUntilOkay(newNumber)
-      }
-
-      //generates a random 8 digit account number
-      val firstTry = (Random.nextDouble() * 10E8).toInt.toString
-      appendUntilOkay(firstTry)
-    }
-
-    LocalMappedConnectorInternal.createSandboxBankAccount(
-      bankId,
-      accountId,
-      uniqueAccountNumber,
-      accountType,
-      accountLabel,
-      currency,
-      initialBalance,
-      accountHolderName,
-      branchId: String, //added field in V220
-      accountRoutings
-    )
-
+  /**
+   * A new account number for an account at this bank, for the ACCOUNT_NUMBER scheme: ten random
+   * digits that no account at the bank has yet, either in an account number routing or in the
+   * deprecated account number field.
+   */
+  def newAccountNumber(bankId: BankId): String = {
+    def tenRandomDigits: String = (1 to 10).map(_ => Random.nextInt(10)).mkString
+    Iterator.continually(tenRandomDigits).find(number => !accountNumberIsTaken(bankId, number)).get
   }
+
+  /**
+   * A NUBAN that no account at the bank has yet, worked out from the bank's CBN bank code (3, 5 or 6
+   * digits) and a random nine digit serial number. See code.api.util.Nuban.
+   */
+  def newNuban(bankId: BankId, bankCode: String): String = {
+    val institutionCode = code.api.util.Nuban.institutionCodeOf(bankCode)
+      .getOrElse(throw new IllegalArgumentException(s"A CBN bank code has 3, 5 or 6 digits, not '$bankCode'."))
+    Iterator.continually(code.api.util.Nuban.randomNuban(institutionCode)).find(number => !accountNumberIsTaken(bankId, number)).get
+  }
+
+  // True when an account at the bank has this number, in the account number field, in an account
+  // number routing, or in an NG.NUBAN routing.
+  private def accountNumberIsTaken(bankId: BankId, number: String): Boolean =
+    accountExists(bankId, number).openOr(true) ||
+      BankAccountRouting.findAll(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingAddress, number))
+        .exists(routing => code.api.util.RoutingRules.isAccountNumberScheme(routing.accountRouting.scheme) || code.api.util.Nuban.isNubanScheme(routing.accountRouting.scheme))
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
   def accountExists(bankId : BankId, accountNumber : String) : Box[Boolean] = {

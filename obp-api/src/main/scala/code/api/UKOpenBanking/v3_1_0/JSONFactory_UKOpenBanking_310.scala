@@ -351,7 +351,8 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
     val accountId = transactions.headOption.map(_.bankAccount.get.accountId.value).orNull
     val transactionsInnerJson = transactions.map(
       transaction=>TransactionInnerJson(
-        accountId,
+        // each row's own account, as the list can span accounts and banks
+        transaction.bankAccount.map(_.accountId.value).orNull,
         transaction.id.value,
         TransactionReference = transaction.description.getOrElse(""),
         // UK keeps the sign out of Amount and in CreditDebitIndicator; OBP holds one signed number.

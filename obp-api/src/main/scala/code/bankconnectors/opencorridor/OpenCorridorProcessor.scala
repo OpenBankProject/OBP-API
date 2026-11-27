@@ -182,20 +182,20 @@ object OpenCorridorProcessor {
   }
 
   // The far bank must exist in the corridor registry. OBP-scheme routing names
-  // the bank id directly; any other scheme (BIC, ...) is matched against the
-  // registered banks' bank routing.
+  // the bank id directly. Any other scheme, such as BIC, is looked up among the
+  // banks' bank routings by RoutingRules, which also reports a bank that holds
+  // two different BICs and a routing that more than one bank has.
   private def resolveFarBank(
     scheme: String,
     address: String,
     callContext: Option[CallContext]
   ): Future[(Bank, Option[CallContext])] = {
-    if (scheme == "OBP" || scheme == "OBP_BANK_ID")
+    if (code.api.Constant.isImplicitOBPBankScheme(scheme))
       NewStyle.function.getBank(BankId(address), callContext)
     else
       NewStyle.function.getBanks(callContext).map { case (banks, cc) =>
-        val bank = banks.find(b =>
-          b.bankRoutingScheme.equalsIgnoreCase(scheme) && b.bankRoutingAddress == address)
-        (APIUtil.unboxFullOrFail(Box(bank), cc, s"$BankNotFound bank_routing: $scheme $address", 404), cc)
+        val bank = code.api.util.RoutingRules.findBank(banks, scheme, address)
+        (APIUtil.unboxFullOrFail(bank, cc, s"$BankNotFound bank_routing: $scheme $address", 404), cc)
       }
   }
 

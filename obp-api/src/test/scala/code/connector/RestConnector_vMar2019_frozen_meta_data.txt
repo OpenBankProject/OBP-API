@@ -1398,6 +1398,7 @@ field	com.openbankproject.commons.model.BankAccountCommons	number	String
 field	com.openbankproject.commons.model.BankCommons	bankId	com.openbankproject.commons.model.BankId
 field	com.openbankproject.commons.model.BankCommons	bankRoutingAddress	String
 field	com.openbankproject.commons.model.BankCommons	bankRoutingScheme	String
+field	com.openbankproject.commons.model.BankCommons	bankRoutings	List[com.openbankproject.commons.model.BankRoutingJson]
 field	com.openbankproject.commons.model.BankCommons	fullName	String
 field	com.openbankproject.commons.model.BankCommons	logoUrl	String
 field	com.openbankproject.commons.model.BankCommons	nationalIdentifier	String
@@ -1407,6 +1408,8 @@ field	com.openbankproject.commons.model.BankCommons	websiteUrl	String
 field	com.openbankproject.commons.model.BankId	value	String
 field	com.openbankproject.commons.model.BankIdAccountId	accountId	com.openbankproject.commons.model.AccountId
 field	com.openbankproject.commons.model.BankIdAccountId	bankId	com.openbankproject.commons.model.BankId
+field	com.openbankproject.commons.model.BankRoutingJson	address	String
+field	com.openbankproject.commons.model.BankRoutingJson	scheme	String
 field	com.openbankproject.commons.model.BasicGeneralContext	key	String
 field	com.openbankproject.commons.model.BasicGeneralContext	value	String
 field	com.openbankproject.commons.model.BasicLinkedCustomer	customerId	String

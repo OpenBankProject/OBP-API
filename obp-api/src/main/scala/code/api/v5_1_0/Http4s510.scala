@@ -346,7 +346,7 @@ object Http4s510 {
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
             (banks, _) <- NewStyle.function.getBanks(Some(cc))
-          } yield JSONFactory400.createBanksJson(banks)
+          } yield JSONFactory400.createBanksJsonWithRoutingRules(banks)
         }
     }
 
@@ -355,7 +355,7 @@ object Http4s510 {
       "/banks", "Get Banks",
       """Get banks on this API instance
         |Returns a list of banks supported on this server.""",
-      EmptyBody, banksJSON,
+      EmptyBody, banksJSON400,
       List(UnknownError),
       List(apiTagBank),
       None,
@@ -1649,16 +1649,21 @@ object Http4s510 {
     )
 
     val updateAgentStatus: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "banks" / _ / "agents" / agentId =>
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "agents" / agentId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostAgentJsonV510 ", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PutAgentJsonV510]
             }
-            (_, _) <- NewStyle.function.getAgentByAgentId(agentId, Some(cc))
+            (existingAgent, _) <- NewStyle.function.getAgentByAgentId(agentId, Some(cc))
+            // only an agent of the bank in the path
+            _ <- Helper.booleanToFuture(s"$AgentNotFound. Current AGENT_ID($agentId)", 404, Some(cc)) {
+              existingAgent.bankId == bankIdStr
+            }
             (links, _) <- NewStyle.function.getAgentAccountLinksByAgentId(agentId, Some(cc))
-            link <- NewStyle.function.tryons(AgentAccountLinkNotFound, 400, Some(cc)) { links.head }
+            // only show an account held at this bank
+            link <- NewStyle.function.tryons(AgentAccountLinkNotFound, 400, Some(cc)) { links.filter(_.bankId == bankIdStr).head }
             (bankAccount, _) <- NewStyle.function.getBankAccount(BankId(link.bankId), AccountId(link.accountId), Some(cc))
             (agent, _) <- NewStyle.function.updateAgentStatus(agentId, postedData.is_pending_agent, postedData.is_confirmed_agent, Some(cc))
           } yield JSONFactory510.createAgentJson(agent, bankAccount)
@@ -4749,7 +4754,8 @@ object Http4s510 {
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
             (consents, totalPages) <- Future(Consents.consentProvider.vend.getConsents(obpQueryParams))
           } yield {
-            val consentsOfBank = Consent.filterByBankId(consents, bankId)
+            // only consents with a view or a role at this bank
+            val consentsOfBank = Consent.filterStrictlyByBank(consents, bankId.value)
             createConsentsJsonV510(consentsOfBank, totalPages)
           }
         }

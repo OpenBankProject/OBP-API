@@ -2214,6 +2214,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def hasEntitlement(bankId: String, userId: String, apiRole: ApiRole): Boolean = apiRole match {
     case RoleCombination(roles) => roles.forall(hasEntitlement(bankId, userId, _))
+    // a bank Role only counts when it is held at a real bank id
+    case role if role.requiresBankId && bankId.isEmpty => false
     case role =>
       Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId) bankId else "", userId, role.toString).isDefined
   }
@@ -4185,19 +4187,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
-   * This endpoint returns BIC on an bank according to next rules:
-   * 1st try - Inspect bank routing
-   * 2nd ry - get deprecated field "swiftBic"
+   * The BIC of the bank, as RoutingRules.bicOf finds it: from its bank routings, or else from the
+   * deprecated swift_bic field. Empty when the bank is not found, has no BIC, or holds two
+   * different BICs.
    * @param bankId The BANK_ID specified at an endpoint's path
    * @return BIC of the Bank
    */
   def getBicFromBankId(bankId: String)= {
     Connector.connector.vend.getBankLegacy(BankId(bankId), None) match {
-      case Full((bank, _)) =>
-        bank.bankRoutingScheme match {
-          case "BIC" => bank.bankRoutingAddress
-          case _ => bank.swiftBic
-        }
+      case Full((bank, _)) => RoutingRules.bicOf(bank).toOption.flatten.getOrElse("")
       case _ => ""
     }
   }

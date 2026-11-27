@@ -34,6 +34,11 @@ import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
+import code.productattribute.ProductAttributeX
+import com.openbankproject.commons.model.{BankId, ProductCode}
+import com.openbankproject.commons.model.enums.ProductAttributeType
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
@@ -61,6 +66,7 @@ class ProductTest extends V400ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createProduct))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getProduct))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getProducts))
+  object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.updateProductAttribute))
 
   lazy val testBankId = randomBankId
   lazy val parentPutProductJsonV400: PutProductJsonV400 = SwaggerDefinitionsJSON.putProductJsonV400.copy(parent_product_code ="")
@@ -214,6 +220,42 @@ class ProductTest extends V400ServerSetup {
       response400.code should equal(200)
       val products = response400.body.extract[ProductsJsonV400].products
       products.map(product => (product.bank_id, product.product_code)) should equal(List((testBankId, sharedCode)))
+    }
+  }
+
+  feature("Update Product Attribute v4.0.0") {
+    scenario("We will call the Update endpoint with an attribute of another bank or another product", ApiEndpoint4, VersionOfApi) {
+      // attributes created directly, so no role at the other bank is needed
+      val otherBankAttribute = Await.result(
+        ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
+          BankId("other-bank-for-product-attribute-v400"), ProductCode("PRODUCT_CODE"), None,
+          "other bank attribute", ProductAttributeType.STRING, "12345678", None),
+        Duration.Inf).openOrThrowException("could not create the test attribute")
+      val otherProductAttribute = Await.result(
+        ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
+          BankId(testBankId), ProductCode("OTHER_PRODUCT_CODE"), None,
+          "other product attribute", ProductAttributeType.STRING, "12345678", None),
+        Duration.Inf).openOrThrowException("could not create the test attribute")
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanUpdateProductAttribute.toString)
+      val putJson = SwaggerDefinitionsJSON.productAttributeJsonV400.copy(name = "updated product")
+      When("We update the other bank's attribute through the bank in the path")
+      val requestOtherBank = (v4_0_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherBankAttribute.productAttributeId).PUT <@(user1)
+      val responseOtherBank = makePutRequest(requestOtherBank, write(putJson))
+      Then("We should get a 404")
+      responseOtherBank.code should equal(404)
+      responseOtherBank.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
+      And("The attribute stays at its own bank, unchanged")
+      val stored = Await.result(
+        ProductAttributeX.productAttributeProvider.vend.getProductAttributeById(otherBankAttribute.productAttributeId),
+        Duration.Inf).openOrThrowException("the test attribute is gone")
+      stored.bankId.value should equal ("other-bank-for-product-attribute-v400")
+      stored.name should equal ("other bank attribute")
+      When("We update an attribute of another product through the product in the path")
+      val requestOtherProduct = (v4_0_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherProductAttribute.productAttributeId).PUT <@(user1)
+      val responseOtherProduct = makePutRequest(requestOtherProduct, write(putJson))
+      Then("We should get a 404")
+      responseOtherProduct.code should equal(404)
+      responseOtherProduct.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
     }
   }
 
