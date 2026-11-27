@@ -3262,6 +3262,14 @@
       "reason": "Added SourceViewHasLessPermission (403): the new view may only get actions the caller already has on one of their views of the account, as v3.0.0 Update Custom View does",
       "lift_digest": "63c2f1b01e07eb8a86158e5631bde4dd32465aa75c13ba61d369f0ad8cf952d7",
       "http4s_digest": "0f50f78378cc09491986f9a9ee074ebd5d56b93debc411788c9c453db54b623d"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "createViewForBankAccount",
+      "field": "description",
+      "reason": "The description says that each action in allowed_actions must be one the caller already has on one of their views of the account, else 403 SourceViewHasLessPermission",
+      "lift_digest": "a6319a10ad9882d5dafcadbb279d13e7ac872ed36cd827883fd74eb5f63cb5fe",
+      "http4s_digest": "fe5463f3aa72ec511a2533928e6768bdc8e75fc325b9a8a3d3f6bbef9d069694"
     }
   ]
 }
