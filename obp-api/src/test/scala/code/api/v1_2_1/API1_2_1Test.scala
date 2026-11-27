@@ -217,6 +217,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
   private def accountViewsViaKeptVersion(bankId: String, accountId: String, consumerAndToken: Option[(Consumer, Token)]): List[ViewIdJSON] = {
     val reply = makeGetRequest(baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken))
+    reply.code should equal(200)
     (reply.body \ "views").children.map(v =>
       ViewIdJSON((v \ "id").extract[String], (v \ "is_public").extractOpt[Boolean].getOrElse(false)))
   }
@@ -225,6 +226,8 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
   // getPermissionForUserForBankAccount); the v1.2.1 handler for this path is commented out.
   private def userViewCountViaKeptVersion(bankId: String, accountId: String, providerId: String, consumerAndToken: Option[(Consumer, Token)]): Int = {
     val reply = makeGetRequest(baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / accountId / "permissions" / defaultProvider / providerId <@(consumerAndToken))
+    // A failed lookup must not read as zero views, or the "nothing changed" checks pass without testing anything.
+    reply.code should equal(200)
     (reply.body \ "views").children.size
   }
 
