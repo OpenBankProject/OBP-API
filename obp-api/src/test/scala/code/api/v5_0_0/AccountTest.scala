@@ -61,7 +61,7 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
   //We need this endpoint to test the result 
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.corePrivateAccountsAllBanks))
   object ApiEndpoint5 extends Tag(nameOf(Implementations2_0_0.getPrivateAccountsAtOneBank))
-  object ApiEndpoint6 extends Tag(nameOf(Implementations3_0_0.getPrivateAccountById))
+  object ApiEndpoint6 extends Tag("getPrivateAccountById")
 
   lazy val testBankId = testBankId1
   lazy val putCreateAccountJSONV310 = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))

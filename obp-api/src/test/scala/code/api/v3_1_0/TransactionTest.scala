@@ -67,7 +67,7 @@ class TransactionTest extends V310ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag("getTransactionRequests")
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.saveHistoricalTransaction))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations3_0_0.getCoreAccountById))
+  object ApiEndpoint3 extends Tag("getCoreAccountById")
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.getTransactionByIdForBankAccount))
   //Use this endpoint to prepare the data.
   object ApiEndpoint5 extends Tag(nameOf(Implementations2_2_0.createCounterparty))

@@ -48,7 +48,7 @@ class FirehoseTest extends V300ServerSetup with PropsReset{
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
-  object ApiEndpoint2 extends Tag(nameOf(Implementations3_0_0.getFirehoseAccountsAtOneBank))
+  object ApiEndpoint2 extends Tag("getFirehoseAccountsAtOneBank")
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.getFirehoseTransactionsForBankAccount))
   
 

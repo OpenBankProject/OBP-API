@@ -47,8 +47,8 @@ class AccountTest extends V300ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_0_0.corePrivateAccountsAllBanks))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations3_0_0.getFirehoseAccountsAtOneBank))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations3_0_0.getCoreAccountById))
+  object ApiEndpoint2 extends Tag("getFirehoseAccountsAtOneBank")
+  object ApiEndpoint3 extends Tag("getCoreAccountById")
   
   // Need test endpoints -- /my/accounts - corePrivateAccountsAllBanks - V300
   def getCorePrivateAccountsAllBanksV300(consumerAndToken: Option[(Consumer, Token)]): APIResponse = {

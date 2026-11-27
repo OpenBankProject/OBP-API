@@ -48,7 +48,7 @@ class ViewsTests extends V300ServerSetup {
 
   object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_0_0.getPermissionForUserForBankAccount))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations3_0_0.getViewsForBankAccount))
+  object ApiEndpoint2 extends Tag("getViewsForBankAccount")
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_0_0.createViewForBankAccount))
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.updateViewForBankAccount))
   

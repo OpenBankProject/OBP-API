@@ -90,91 +90,93 @@ object Http4s300 {
 
     // ─── root ─────────────────────────────────────────────────────────────────
 
-    val root: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v3_0_0, versionStatus))
-        }
-      case req @ GET -> `prefixPath` / "root" =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v3_0_0, versionStatus))
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val root: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v3_0_0, versionStatus))
+        // }
+      // case req @ GET -> `prefixPath` / "root" =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v3_0_0, versionStatus))
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(root),
-      "GET",
-      "/root",
-      "Get API Info (root)",
-      """Returns information about:
-      |
-      |* API version
-      |* Hosted by information
-      |* Git Commit""",
-      EmptyBody,
-      apiInfoJSON,
-      List(UnknownError, MandatoryPropertyIsNotSet),
-      apiTagApi :: Nil,
-      None,
-      http4sPartialFunction = Some(root)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(root),
+      // "GET",
+      // "/root",
+      // "Get API Info (root)",
+      // """Returns information about:
+      // |
+      // |* API version
+      // |* Hosted by information
+      // |* Git Commit""",
+      // EmptyBody,
+      // apiInfoJSON,
+      // List(UnknownError, MandatoryPropertyIsNotSet),
+      // apiTagApi :: Nil,
+      // None,
+      // http4sPartialFunction = Some(root)
+    // )
 
     // ─── getViewsForBankAccount ───────────────────────────────────────────────
 
-    val getViewsForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" =>
-        EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
-          for {
-            permission <- NewStyle.function.permission(account.bankId, account.accountId, user, Some(cc))
-            anyCanSee = permission.views
-              .map(_.allowed_actions.exists(_ == CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT))
-              .contains(true)
-            _ <- code.util.Helper.booleanToFuture(
-              s"${ViewDoesNotPermitAccess} You need the `${CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT}` permission on any your views",
-              cc = Some(cc)) { anyCanSee }
-            views <- Future(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
-          } yield JSONFactory300.createViewsJSON(views)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getViewsForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" =>
+        // EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
+          // for {
+            // permission <- NewStyle.function.permission(account.bankId, account.accountId, user, Some(cc))
+            // anyCanSee = permission.views
+              // .map(_.allowed_actions.exists(_ == CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT))
+              // .contains(true)
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"${ViewDoesNotPermitAccess} You need the `${CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT}` permission on any your views",
+              // cc = Some(cc)) { anyCanSee }
+            // views <- Future(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
+          // } yield JSONFactory300.createViewsJSON(views)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getViewsForBankAccount),
-      "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Get Views for Account",
-      s"""#Views
-      |
-      |
-      |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
-      |
-      |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
-      |
-      |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
-      |
-      |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
-      |
-      |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
-      |
-      |**Metadata:**
-      |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
-      |
-      |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
-      |
-      |# All
-      |*Optional*
-      |
-      |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
-      |
-      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
-      EmptyBody,
-      viewsJsonV300,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
-      List(apiTagView, apiTagAccount),
-      None,
-      http4sPartialFunction = Some(getViewsForBankAccount)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getViewsForBankAccount),
+      // "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
+      // "Get Views for Account",
+      // s"""#Views
+      // |
+      // |
+      // |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
+      // |
+      // |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
+      // |
+      // |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
+      // |
+      // |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
+      // |
+      // |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
+      // |
+      // |**Metadata:**
+      // |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
+      // |
+      // |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
+      // |
+      // |# All
+      // |*Optional*
+      // |
+      // |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
+      // |
+      // |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      // EmptyBody,
+      // viewsJsonV300,
+      // List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
+      // List(apiTagView, apiTagAccount),
+      // None,
+      // http4sPartialFunction = Some(getViewsForBankAccount)
+    // )
 
     // ─── createViewForBankAccount ─────────────────────────────────────────────
 
@@ -344,44 +346,45 @@ object Http4s300 {
 
     // ─── getPrivateAccountById ────────────────────────────────────────────────
 
-    val getPrivateAccountById: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "account" =>
-        EndpointHelpers.withView(req) { (user, account, view, cc) =>
-          for {
-            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), Some(cc))
-          } yield createCoreBankAccountJSON(moderatedAccount)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getPrivateAccountById: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "account" =>
+        // EndpointHelpers.withView(req) { (user, account, view, cc) =>
+          // for {
+            // moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), Some(cc))
+          // } yield createCoreBankAccountJSON(moderatedAccount)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getPrivateAccountById),
-      "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
-      "Get Account by Id (Full)",
-      """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
-      |
-      |* Number
-      |* Owners
-      |* Type
-      |* Balance
-      |* IBAN
-      |* Available views (sorted by short_name)
-      |
-      |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
-      |
-      |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
-      |This call provides balance and other account information via delegated authentication using OAuth.
-      |
-      |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
-      |""".stripMargin,
-      EmptyBody,
-      moderatedCoreAccountJsonV300,
-      List(BankNotFound, AccountNotFound, ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      apiTagAccount :: Nil,
-      None,
-      http4sPartialFunction = Some(getPrivateAccountById)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getPrivateAccountById),
+      // "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+      // "Get Account by Id (Full)",
+      // """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+      // |
+      // |* Number
+      // |* Owners
+      // |* Type
+      // |* Balance
+      // |* IBAN
+      // |* Available views (sorted by short_name)
+      // |
+      // |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+      // |
+      // |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
+      // |This call provides balance and other account information via delegated authentication using OAuth.
+      // |
+      // |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+      // |""".stripMargin,
+      // EmptyBody,
+      // moderatedCoreAccountJsonV300,
+      // List(BankNotFound, AccountNotFound, ViewNotFound, UserNoPermissionAccessView, UnknownError),
+      // apiTagAccount :: Nil,
+      // None,
+      // http4sPartialFunction = Some(getPrivateAccountById)
+    // )
 
     // ─── getPublicAccountById ─────────────────────────────────────────────────
 
@@ -431,48 +434,49 @@ object Http4s300 {
 
     // ─── getCoreAccountById ───────────────────────────────────────────────────
 
-    val getCoreAccountById: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "my" / "banks" / _ / "accounts" / _ / "account" =>
-        EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
-          for {
-            view            <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(account.bankId, account.accountId), Some(cc))
-            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), Some(cc))
-          } yield {
-            val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(user, BankIdAccountId(account.bankId, account.accountId))
-            createNewCoreBankAccountJson(moderatedAccount, availableViews)
-          }
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getCoreAccountById: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "my" / "banks" / _ / "accounts" / _ / "account" =>
+        // EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
+          // for {
+            // view            <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(user, BankIdAccountId(account.bankId, account.accountId), Some(cc))
+            // moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), Some(cc))
+          // } yield {
+            // val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(user, BankIdAccountId(account.bankId, account.accountId))
+            // createNewCoreBankAccountJson(moderatedAccount, availableViews)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getCoreAccountById),
-      "GET",
-      "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
-      "Get Account by Id (Core)",
-      s"""Information returned about the account specified by ACCOUNT_ID:
-      |
-      |* Number - The human readable account number given by the bank that identifies the account.
-      |* Label - A label given by the owner of the account
-      |* Owners - Users that own this account
-      |* Type - The type of account
-      |* Balance - Currency and Value
-      |* Account Routings - A list that might include IBAN or national account identifiers
-      |* Account Rules - A list that might include Overdraft and other bank specific rules
-      |
-      |This call returns the owner view and requires access to that view.
-      |
-      |
-      |${userAuthenticationMessage(true)}
-      |
-      |""".stripMargin,
-      EmptyBody,
-      newModeratedCoreAccountJsonV300,
-      List(BankAccountNotFound, UnknownError),
-      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
-      None,
-      http4sPartialFunction = Some(getCoreAccountById)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getCoreAccountById),
+      // "GET",
+      // "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
+      // "Get Account by Id (Core)",
+      // s"""Information returned about the account specified by ACCOUNT_ID:
+      // |
+      // |* Number - The human readable account number given by the bank that identifies the account.
+      // |* Label - A label given by the owner of the account
+      // |* Owners - Users that own this account
+      // |* Type - The type of account
+      // |* Balance - Currency and Value
+      // |* Account Routings - A list that might include IBAN or national account identifiers
+      // |* Account Rules - A list that might include Overdraft and other bank specific rules
+      // |
+      // |This call returns the owner view and requires access to that view.
+      // |
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |""".stripMargin,
+      // EmptyBody,
+      // newModeratedCoreAccountJsonV300,
+      // List(BankAccountNotFound, UnknownError),
+      // apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      // None,
+      // http4sPartialFunction = Some(getCoreAccountById)
+    // )
 
     // ─── corePrivateAccountsAllBanks ──────────────────────────────────────────
 
@@ -513,89 +517,90 @@ object Http4s300 {
     // does NOT resolve the bank/view (validateBank checks pathParams("BANK_ID") exactly).
     // Order: prop check (400) → role check (403) → bank lookup (404) — matches test expectations.
 
-    val getFirehoseAccountsAtOneBank: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "firehose" / "accounts" / "views" / viewIdStr =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          val roles = ApiRole.canUseAccountFirehose :: canUseAccountFirehoseAtAnyBank :: Nil
-          val roleMsg = UserHasMissingRoles + roles.mkString(" or ")
-          for {
-            _ <- code.util.Helper.booleanToFuture(AccountFirehoseNotAllowedOnThisInstance, cc = Some(cc)) {
-              allowAccountFirehose
-            }
-            _ <- code.util.Helper.booleanToFuture(roleMsg, failCode = 403, cc = Some(cc)) {
-              APIUtil.hasAtLeastOneEntitlement(bankIdStr, user.userId, roles)
-            }
-            (bank, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
-            view <- ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewIdStr), BankIdAccountId(bank.bankId, AccountId("")), Some(user), Some(cc))
-            availableBankIdAccountIdList <- Future {
-              Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId, a.accountId))
-            }
-            params = req.uri.query.multiParams.filterNot { case (k, _) => k == PARAM_TIMESTAMP || k == PARAM_LOCALE }
-            filteredList <- if (params.isEmpty) {
-              Future.successful(availableBankIdAccountIdList)
-            } else {
-              code.accountattribute.AccountAttributeX.accountAttributeProvider.vend
-                .getAccountIdsByParams(bank.bankId, params.map { case (k, vs) => k -> vs.toList })
-                .map { boxedAccountIds =>
-                  val accountIds = boxedAccountIds.getOrElse(Nil)
-                  availableBankIdAccountIdList.filter(ba => accountIds.contains(ba.accountId.value))
-                }
-            }
-            moderatedAccounts: List[ModeratedBankAccount] = for {
-              bankIdAccountId <- filteredList
-              (bankAccount, callContext) <- Connector.connector.vend.getBankAccountLegacy(bankIdAccountId.bankId, bankIdAccountId.accountId, Some(cc)) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId})"
-              moderatedAccount <- bankAccount.moderatedBankAccount(view, bankIdAccountId, Full(user), Some(cc))
-            } yield moderatedAccount
-            (accountAttributes: Option[List[AccountAttribute]], _) <- if (moderatedAccounts.nonEmpty && params.nonEmpty) {
-              val futures = filteredList.map { bankIdAccount =>
-                NewStyle.function.getAccountAttributesByAccount(bankIdAccount.bankId, bankIdAccount.accountId, Some(cc))
-              }
-              Future.reduceLeft(futures)((r, t) => r.copy(_1 = r._1 ::: t._1))
-                .map(it => (Some(it._1), it._2))
-            } else {
-              Future.successful((None, Some(cc)))
-            }
-          } yield JSONFactory300.createFirehoseCoreBankAccountJSON(moderatedAccounts, accountAttributes)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getFirehoseAccountsAtOneBank: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / bankIdStr / "firehose" / "accounts" / "views" / viewIdStr =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // val roles = ApiRole.canUseAccountFirehose :: canUseAccountFirehoseAtAnyBank :: Nil
+          // val roleMsg = UserHasMissingRoles + roles.mkString(" or ")
+          // for {
+            // _ <- code.util.Helper.booleanToFuture(AccountFirehoseNotAllowedOnThisInstance, cc = Some(cc)) {
+              // allowAccountFirehose
+            // }
+            // _ <- code.util.Helper.booleanToFuture(roleMsg, failCode = 403, cc = Some(cc)) {
+              // APIUtil.hasAtLeastOneEntitlement(bankIdStr, user.userId, roles)
+            // }
+            // (bank, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+            // view <- ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewIdStr), BankIdAccountId(bank.bankId, AccountId("")), Some(user), Some(cc))
+            // availableBankIdAccountIdList <- Future {
+              // Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId, a.accountId))
+            // }
+            // params = req.uri.query.multiParams.filterNot { case (k, _) => k == PARAM_TIMESTAMP || k == PARAM_LOCALE }
+            // filteredList <- if (params.isEmpty) {
+              // Future.successful(availableBankIdAccountIdList)
+            // } else {
+              // code.accountattribute.AccountAttributeX.accountAttributeProvider.vend
+                // .getAccountIdsByParams(bank.bankId, params.map { case (k, vs) => k -> vs.toList })
+                // .map { boxedAccountIds =>
+                  // val accountIds = boxedAccountIds.getOrElse(Nil)
+                  // availableBankIdAccountIdList.filter(ba => accountIds.contains(ba.accountId.value))
+                // }
+            // }
+            // moderatedAccounts: List[ModeratedBankAccount] = for {
+              // bankIdAccountId <- filteredList
+              // (bankAccount, callContext) <- Connector.connector.vend.getBankAccountLegacy(bankIdAccountId.bankId, bankIdAccountId.accountId, Some(cc)) ?~! s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId})"
+              // moderatedAccount <- bankAccount.moderatedBankAccount(view, bankIdAccountId, Full(user), Some(cc))
+            // } yield moderatedAccount
+            // (accountAttributes: Option[List[AccountAttribute]], _) <- if (moderatedAccounts.nonEmpty && params.nonEmpty) {
+              // val futures = filteredList.map { bankIdAccount =>
+                // NewStyle.function.getAccountAttributesByAccount(bankIdAccount.bankId, bankIdAccount.accountId, Some(cc))
+              // }
+              // Future.reduceLeft(futures)((r, t) => r.copy(_1 = r._1 ::: t._1))
+                // .map(it => (Some(it._1), it._2))
+            // } else {
+              // Future.successful((None, Some(cc)))
+            // }
+          // } yield JSONFactory300.createFirehoseCoreBankAccountJSON(moderatedAccounts, accountAttributes)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getFirehoseAccountsAtOneBank),
-      "GET",
-      "/banks/FIREHOSE_BANK_ID/firehose/accounts/views/FIREHOSE_VIEW_ID",
-      "Get Firehose Accounts at Bank",
-      s"""
-      |Get all Accounts at a Bank.
-      |
-      |This endpoint allows bulk access to all accounts at the specified bank.
-      |
-      |Requires the CanUseFirehoseAtAnyBank Role or CanUseAccountFirehose Role
-      |
-      |Returns all accounts at the bank. The VIEW_ID parameter determines what account data fields are visible according to the view's permissions.
-      |
-      |The view specified must have is_firehose = true
-      |
-      |For VIEW_ID try 'owner' or 'firehose'
-      |
-      |Optional request parameters for filtering by account attributes:
-      |URL params example:
-      |  /banks/some-bank-id/firehose/accounts/views/owner?limit=50&offset=1
-      |
-      |To invalidate browser cache, add timestamp query parameter as follows (the parameter name must be `_timestamp_`):
-      |URL params example:
-      |  `/banks/some-bank-id/firehose/accounts/views/owner?limit=50&offset=1&_timestamp_=1596762180358`
-      |
-      |${userAuthenticationMessage(true)}
-      |
-      |""".stripMargin,
-      EmptyBody,
-      moderatedCoreAccountsJsonV300,
-      List(AuthenticatedUserIsRequired, AccountFirehoseNotAllowedOnThisInstance, UnknownError),
-      List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData),
-      None,
-      http4sPartialFunction = Some(getFirehoseAccountsAtOneBank)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getFirehoseAccountsAtOneBank),
+      // "GET",
+      // "/banks/FIREHOSE_BANK_ID/firehose/accounts/views/FIREHOSE_VIEW_ID",
+      // "Get Firehose Accounts at Bank",
+      // s"""
+      // |Get all Accounts at a Bank.
+      // |
+      // |This endpoint allows bulk access to all accounts at the specified bank.
+      // |
+      // |Requires the CanUseFirehoseAtAnyBank Role or CanUseAccountFirehose Role
+      // |
+      // |Returns all accounts at the bank. The VIEW_ID parameter determines what account data fields are visible according to the view's permissions.
+      // |
+      // |The view specified must have is_firehose = true
+      // |
+      // |For VIEW_ID try 'owner' or 'firehose'
+      // |
+      // |Optional request parameters for filtering by account attributes:
+      // |URL params example:
+      // |  /banks/some-bank-id/firehose/accounts/views/owner?limit=50&offset=1
+      // |
+      // |To invalidate browser cache, add timestamp query parameter as follows (the parameter name must be `_timestamp_`):
+      // |URL params example:
+      // |  `/banks/some-bank-id/firehose/accounts/views/owner?limit=50&offset=1&_timestamp_=1596762180358`
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |""".stripMargin,
+      // EmptyBody,
+      // moderatedCoreAccountsJsonV300,
+      // List(AuthenticatedUserIsRequired, AccountFirehoseNotAllowedOnThisInstance, UnknownError),
+      // List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData),
+      // None,
+      // http4sPartialFunction = Some(getFirehoseAccountsAtOneBank)
+    // )
 
     // ─── getFirehoseTransactionsForBankAccount ────────────────────────────────
     // Uses non-standard FIREHOSE_* vars so middleware skips bank/account/view validation.
@@ -915,106 +920,109 @@ object Http4s300 {
 
     // ─── getUser (by email) ───────────────────────────────────────────────────
 
-    val getUser: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "users" / "email" / emailStr / "terminator" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetAnyUser, Some(cc))
-            users <- Users.users.vend.getUserByEmailFuture(emailStr)
-          } yield JSONFactory300.createUserJSONs(users)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getUser: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "users" / "email" / emailStr / "terminator" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetAnyUser, Some(cc))
+            // users <- Users.users.vend.getUserByEmailFuture(emailStr)
+          // } yield JSONFactory300.createUserJSONs(users)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getUser),
-      "GET",
-      "/users/email/USER_EMAIL/terminator",
-      "Get Users by Email Address",
-      s"""Get users by email address
-         |
-         |${userAuthenticationMessage(true)}
-         |CanGetAnyUser entitlement is required,
-         |
-      """.stripMargin,
-      EmptyBody,
-      usersJsonV200,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
-      List(apiTagUser),
-      Some(List(canGetAnyUser)),
-      http4sPartialFunction = Some(getUser)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getUser),
+      // "GET",
+      // "/users/email/USER_EMAIL/terminator",
+      // "Get Users by Email Address",
+      // s"""Get users by email address
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |CanGetAnyUser entitlement is required,
+         // |
+      // """.stripMargin,
+      // EmptyBody,
+      // usersJsonV200,
+      // List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
+      // List(apiTagUser),
+      // Some(List(canGetAnyUser)),
+      // http4sPartialFunction = Some(getUser)
+    // )
 
     // ─── getUserByUserId ──────────────────────────────────────────────────────
 
-    val getUserByUserId: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "users" / "user_id" / userIdStr =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetAnyUser, Some(cc))
-            targetUser <- Users.users.vend.getUserByUserIdFuture(userIdStr) map {
-              x => unboxFullOrFail(x, Some(cc), s"$UserNotFoundByUserId Current UserId($userIdStr)")
-            }
-            entitlements <- NewStyle.function.getEntitlementsByUserId(targetUser.userId, Some(cc))
-          } yield JSONFactory300.createUserJSON(targetUser, entitlements)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getUserByUserId: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "users" / "user_id" / userIdStr =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetAnyUser, Some(cc))
+            // targetUser <- Users.users.vend.getUserByUserIdFuture(userIdStr) map {
+              // x => unboxFullOrFail(x, Some(cc), s"$UserNotFoundByUserId Current UserId($userIdStr)")
+            // }
+            // entitlements <- NewStyle.function.getEntitlementsByUserId(targetUser.userId, Some(cc))
+          // } yield JSONFactory300.createUserJSON(targetUser, entitlements)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getUserByUserId),
-      "GET",
-      "/users/user_id/USER_ID",
-      "Get User by USER_ID",
-      s"""Get user by USER_ID
-         |
-         |${userAuthenticationMessage(true)}
-         |CanGetAnyUser entitlement is required,
-         |
-      """.stripMargin,
-      EmptyBody,
-      usersJsonV200,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundById, UnknownError),
-      List(apiTagUser),
-      Some(List(canGetAnyUser)),
-      http4sPartialFunction = Some(getUserByUserId)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getUserByUserId),
+      // "GET",
+      // "/users/user_id/USER_ID",
+      // "Get User by USER_ID",
+      // s"""Get user by USER_ID
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |CanGetAnyUser entitlement is required,
+         // |
+      // """.stripMargin,
+      // EmptyBody,
+      // usersJsonV200,
+      // List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundById, UnknownError),
+      // List(apiTagUser),
+      // Some(List(canGetAnyUser)),
+      // http4sPartialFunction = Some(getUserByUserId)
+    // )
 
     // ─── getUserByUsername ────────────────────────────────────────────────────
 
-    val getUserByUsername: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "users" / "username" / usernameStr =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetAnyUser, Some(cc))
-            targetUser <- Users.users.vend.getUserByProviderAndUsernameFuture(Constant.localIdentityProvider, usernameStr) map {
-              x => unboxFullOrFail(x, Some(cc), UserNotFoundByProviderAndUsername, 404)
-            }
-            entitlements <- NewStyle.function.getEntitlementsByUserId(targetUser.userId, Some(cc))
-          } yield JSONFactory300.createUserJSON(targetUser, entitlements)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getUserByUsername: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "users" / "username" / usernameStr =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetAnyUser, Some(cc))
+            // targetUser <- Users.users.vend.getUserByProviderAndUsernameFuture(Constant.localIdentityProvider, usernameStr) map {
+              // x => unboxFullOrFail(x, Some(cc), UserNotFoundByProviderAndUsername, 404)
+            // }
+            // entitlements <- NewStyle.function.getEntitlementsByUserId(targetUser.userId, Some(cc))
+          // } yield JSONFactory300.createUserJSON(targetUser, entitlements)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getUserByUsername),
-      "GET",
-      "/users/username/USERNAME",
-      "Get User by USERNAME",
-      s"""Get user by USERNAME
-         |
-         |${userAuthenticationMessage(true)}
-         |
-         |CanGetAnyUser entitlement is required,
-         |
-      """.stripMargin,
-      EmptyBody,
-      usersJsonV200,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
-      List(apiTagUser),
-      Some(List(canGetAnyUser)),
-      http4sPartialFunction = Some(getUserByUsername)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getUserByUsername),
+      // "GET",
+      // "/users/username/USERNAME",
+      // "Get User by USERNAME",
+      // s"""Get user by USERNAME
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |
+         // |CanGetAnyUser entitlement is required,
+         // |
+      // """.stripMargin,
+      // EmptyBody,
+      // usersJsonV200,
+      // List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
+      // List(apiTagUser),
+      // Some(List(canGetAnyUser)),
+      // http4sPartialFunction = Some(getUserByUsername)
+    // )
 
     // ─── getAdapterInfoForBank ────────────────────────────────────────────────
 
@@ -1129,41 +1137,42 @@ object Http4s300 {
 
     // ─── createAtm ────────────────────────────────────────────────────────────
 
-    val createAtm: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / _ / "atms" =>
-        EndpointHelpers.withUserAndBankAndBodyCreated[AtmJsonV300, AtmJsonV300](req) { (user, bank, body, cc) =>
-          for {
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(createAtmEntitlementsRequiredText)(
-              bank.bankId.value, user.userId, createAtmEntitlements, Some(cc))
-            _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body", 400, cc = Some(cc)) {
-              body.bank_id == bank.bankId.value
-            }
-            atm <- NewStyle.function.tryons(CouldNotTransformJsonToInternalModel + " Atm", 400, Some(cc)) {
-              transformToAtmFromV300(body).head
-            }
-            (createdAtm, _) <- NewStyle.function.createOrUpdateAtm(atm, Some(cc))
-          } yield JSONFactory300.createAtmJsonV300(createdAtm)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createAtm: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / _ / "atms" =>
+        // EndpointHelpers.withUserAndBankAndBodyCreated[AtmJsonV300, AtmJsonV300](req) { (user, bank, body, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasAtLeastOneEntitlement(createAtmEntitlementsRequiredText)(
+              // bank.bankId.value, user.userId, createAtmEntitlements, Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body", 400, cc = Some(cc)) {
+              // body.bank_id == bank.bankId.value
+            // }
+            // atm <- NewStyle.function.tryons(CouldNotTransformJsonToInternalModel + " Atm", 400, Some(cc)) {
+              // transformToAtmFromV300(body).head
+            // }
+            // (createdAtm, _) <- NewStyle.function.createOrUpdateAtm(atm, Some(cc))
+          // } yield JSONFactory300.createAtmJsonV300(createdAtm)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(createAtm),
-      "POST",
-      "/banks/BANK_ID/atms",
-      "Create ATM",
-      s"""Create ATM for the Bank.
-      |
-      |${userAuthenticationMessage(true) }
-      |
-      |""",
-      atmJsonV300,
-      atmJsonV300,
-      List(AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
-      List(apiTagATM),
-      Some(List(canCreateAtm, canCreateAtmAtAnyBank)),
-      http4sPartialFunction = Some(createAtm)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(createAtm),
+      // "POST",
+      // "/banks/BANK_ID/atms",
+      // "Create ATM",
+      // s"""Create ATM for the Bank.
+      // |
+      // |${userAuthenticationMessage(true) }
+      // |
+      // |""",
+      // atmJsonV300,
+      // atmJsonV300,
+      // List(AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
+      // List(apiTagATM),
+      // Some(List(canCreateAtm, canCreateAtmAtAnyBank)),
+      // http4sPartialFunction = Some(createAtm)
+    // )
 
     // ─── getBranch ────────────────────────────────────────────────────────────
 
@@ -1324,141 +1333,144 @@ object Http4s300 {
 
     private val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
-    val getAtm: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "atms" / atmIdStr =>
-        EndpointHelpers.withBank(req) { (bank, cc) =>
-          for {
-            _ <- if (!getAtmsIsPublic)
-                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
-                 else Future.unit
-            (atm, _) <- NewStyle.function.getAtm(bank.bankId, AtmId(atmIdStr), Some(cc))
-          } yield JSONFactory300.createAtmJsonV300(atm)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getAtm: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "atms" / atmIdStr =>
+        // EndpointHelpers.withBank(req) { (bank, cc) =>
+          // for {
+            // _ <- if (!getAtmsIsPublic)
+                   // code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 // else Future.unit
+            // (atm, _) <- NewStyle.function.getAtm(bank.bankId, AtmId(atmIdStr), Some(cc))
+          // } yield JSONFactory300.createAtmJsonV300(atm)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getAtm),
-      "GET",
-      "/banks/BANK_ID/atms/ATM_ID",
-      "Get Bank ATM",
-      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
-      |
-      |* Address
-      |* Geo Location
-      |* License the data under this endpoint is released under
-      |
-      |
-      |
-      |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
-      EmptyBody,
-      atmJsonV300,
-      List(AuthenticatedUserIsRequired, BankNotFound, AtmNotFoundByAtmId, UnknownError),
-      List(apiTagATM),
-      None,
-      http4sPartialFunction = Some(getAtm)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getAtm),
+      // "GET",
+      // "/banks/BANK_ID/atms/ATM_ID",
+      // "Get Bank ATM",
+      // s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
+      // |
+      // |* Address
+      // |* Geo Location
+      // |* License the data under this endpoint is released under
+      // |
+      // |
+      // |
+      // |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
+      // EmptyBody,
+      // atmJsonV300,
+      // List(AuthenticatedUserIsRequired, BankNotFound, AtmNotFoundByAtmId, UnknownError),
+      // List(apiTagATM),
+      // None,
+      // http4sPartialFunction = Some(getAtm)
+    // )
 
     // ─── getAtms ──────────────────────────────────────────────────────────────
 
-    val getAtms: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "atms" =>
-        EndpointHelpers.withBank(req) { (bank, cc) =>
-          val qp     = req.uri.query.params
-          val limit  = qp.get("limit")
-          val offset = qp.get("offset")
-          for {
-            _ <- if (!getAtmsIsPublic)
-                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
-                 else Future.unit
-            _ <- code.util.Helper.booleanToFuture(s"${InvalidNumber} limit:${limit.getOrElse("")}", cc = Some(cc)) {
-              limit.forall(_.forall(Character.isDigit))
-            }
-            _ <- code.util.Helper.booleanToFuture(maximumLimitExceeded, cc = Some(cc)) {
-              !limit.exists(_.toInt > 10000)
-            }
-            _ <- code.util.Helper.booleanToFuture(s"${InvalidNumber} offset:${offset.getOrElse("")}", cc = Some(cc)) {
-              offset.forall(_.forall(Character.isDigit))
-            }
-            atms <- Connector.connector.vend.getAtms(bank.bankId, Some(cc)) map {
-              case Empty                      => unboxFullOrFail(Empty ?~! atmsNotFound, Some(cc), atmsNotFound)
-              case Full((Nil, _))             => Nil
-              case Full((list, _))            => list
-              case Failure(msg, _, _)         => unboxFullOrFail(Empty ?~! msg, Some(cc), msg)
-              case ParamFailure(msg, _, _, _) => unboxFullOrFail(Empty ?~! msg, Some(cc), msg)
-            } map { atms =>
-              atms
-                .sortWith(_.atmId.value < _.atmId.value)
-                .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
-            }
-          } yield JSONFactory300.createAtmsJsonV300(atms)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getAtms: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "atms" =>
+        // EndpointHelpers.withBank(req) { (bank, cc) =>
+          // val qp     = req.uri.query.params
+          // val limit  = qp.get("limit")
+          // val offset = qp.get("offset")
+          // for {
+            // _ <- if (!getAtmsIsPublic)
+                   // code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 // else Future.unit
+            // _ <- code.util.Helper.booleanToFuture(s"${InvalidNumber} limit:${limit.getOrElse("")}", cc = Some(cc)) {
+              // limit.forall(_.forall(Character.isDigit))
+            // }
+            // _ <- code.util.Helper.booleanToFuture(maximumLimitExceeded, cc = Some(cc)) {
+              // !limit.exists(_.toInt > 10000)
+            // }
+            // _ <- code.util.Helper.booleanToFuture(s"${InvalidNumber} offset:${offset.getOrElse("")}", cc = Some(cc)) {
+              // offset.forall(_.forall(Character.isDigit))
+            // }
+            // atms <- Connector.connector.vend.getAtms(bank.bankId, Some(cc)) map {
+              // case Empty                      => unboxFullOrFail(Empty ?~! atmsNotFound, Some(cc), atmsNotFound)
+              // case Full((Nil, _))             => Nil
+              // case Full((list, _))            => list
+              // case Failure(msg, _, _)         => unboxFullOrFail(Empty ?~! msg, Some(cc), msg)
+              // case ParamFailure(msg, _, _, _) => unboxFullOrFail(Empty ?~! msg, Some(cc), msg)
+            // } map { atms =>
+              // atms
+                // .sortWith(_.atmId.value < _.atmId.value)
+                // .slice(offset.getOrElse("0").toInt, offset.getOrElse("0").toInt + limit.getOrElse("100").toInt)
+            // }
+          // } yield JSONFactory300.createAtmsJsonV300(atms)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getAtms),
-      "GET",
-      "/banks/BANK_ID/atms",
-      "Get Bank ATMS",
-      s"""Returns information about ATMs for a single bank specified by BANK_ID including:
-      |
-      |* Address
-      |* Geo Location
-      |* License the data under this endpoint is released under
-      |
-      |Pagination:
-      |
-      |By default, 100 records are returned.
-      |
-      |You can use the url query parameters *limit* and *offset* for pagination
-      |
-      |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
-      EmptyBody,
-      atmJsonV300,
-      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
-      List(apiTagATM),
-      None,
-      http4sPartialFunction = Some(getAtms)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getAtms),
+      // "GET",
+      // "/banks/BANK_ID/atms",
+      // "Get Bank ATMS",
+      // s"""Returns information about ATMs for a single bank specified by BANK_ID including:
+      // |
+      // |* Address
+      // |* Geo Location
+      // |* License the data under this endpoint is released under
+      // |
+      // |Pagination:
+      // |
+      // |By default, 100 records are returned.
+      // |
+      // |You can use the url query parameters *limit* and *offset* for pagination
+      // |
+      // |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
+      // EmptyBody,
+      // atmJsonV300,
+      // List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      // List(apiTagATM),
+      // None,
+      // http4sPartialFunction = Some(getAtms)
+    // )
 
     // ─── getUsers ─────────────────────────────────────────────────────────────
 
-    val getUsers: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "users" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetAnyUser, Some(cc))
-            httpParams    = req.uri.query.multiParams.flatMap { case (k, vs) => vs.map(v => HTTPParam(k, v)) }.toList
-            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
-            users <- Users.users.vend.getAllUsersF(obpQueryParams)
-          } yield JSONFactory300.createUserJSONs(users)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getUsers: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "users" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetAnyUser, Some(cc))
+            // httpParams    = req.uri.query.multiParams.flatMap { case (k, vs) => vs.map(v => HTTPParam(k, v)) }.toList
+            // (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            // users <- Users.users.vend.getAllUsersF(obpQueryParams)
+          // } yield JSONFactory300.createUserJSONs(users)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getUsers),
-      "GET",
-      "/users",
-      "Get all Users",
-      s"""Get all users
-         |
-         |${userAuthenticationMessage(true)}
-         |
-         |CanGetAnyUser entitlement is required,
-         |
-         |${urlParametersDocument(false, false)}
-         |* locked_status (if null ignore)
-         |
-      """.stripMargin,
-      EmptyBody,
-      usersJsonV200,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      List(apiTagUser),
-      Some(List(canGetAnyUser)),
-      http4sPartialFunction = Some(getUsers)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getUsers),
+      // "GET",
+      // "/users",
+      // "Get all Users",
+      // s"""Get all users
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |
+         // |CanGetAnyUser entitlement is required,
+         // |
+         // |${urlParametersDocument(false, false)}
+         // |* locked_status (if null ignore)
+         // |
+      // """.stripMargin,
+      // EmptyBody,
+      // usersJsonV200,
+      // List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // List(apiTagUser),
+      // Some(List(canGetAnyUser)),
+      // http4sPartialFunction = Some(getUsers)
+    // )
 
     // ─── getCustomersForUser ──────────────────────────────────────────────────
 
@@ -2005,135 +2017,137 @@ object Http4s300 {
 
     // ─── getAggregateMetrics ──────────────────────────────────────────────────
 
-    val getAggregateMetrics: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "management" / "aggregate-metrics" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canReadAggregateMetrics, Some(cc))
-            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-            limitedHttpParams <- APIMetrics.limitAggregateMetricsWindow(httpParams, Some(cc))
-            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(limitedHttpParams, Some(cc))
-            aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams, false) map {
-              x => unboxFullOrFail(x, Some(cc), GetAggregateMetricsError)
-            }
-          } yield createAggregateMetricJson(aggregateMetrics)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getAggregateMetrics: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "management" / "aggregate-metrics" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canReadAggregateMetrics, Some(cc))
+            // httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            // limitedHttpParams <- APIMetrics.limitAggregateMetricsWindow(httpParams, Some(cc))
+            // (obpQueryParams, _) <- createQueriesByHttpParamsFuture(limitedHttpParams, Some(cc))
+            // aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams, false) map {
+              // x => unboxFullOrFail(x, Some(cc), GetAggregateMetricsError)
+            // }
+          // } yield createAggregateMetricJson(aggregateMetrics)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getAggregateMetrics),
-      "GET",
-      "/management/aggregate-metrics",
-      "Get Aggregate Metrics",
-      s"""Returns aggregate metrics on api usage eg. total count, response time (in ms), etc.
-         |
-         |Should be able to filter on the following fields
-         |
-         |eg: /management/aggregate-metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&consumer_id=5
-         |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
-         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
-         |&verb=GET&anon=false&app_name=MapperPostman
-         |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
-         |
-         |**Date range limit.** One call covers at most ${code.metrics.MetricsProps.aggregateMetricsMaxDays} days of metrics on this instance. A longer range between from_date and to_date is refused with 400 (OBP-10069); to report on a longer period, make one call per period.
-         |
-         |1 from_date (defaults to ${code.metrics.MetricsProps.aggregateMetricsMaxDays} days before to_date): eg:from_date=$DateWithMsExampleString
-         |
-         |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
-         |
-         |3 consumer_id  (if null ignore)
-         |
-         |4 user_id (if null ignore)
-         |
-         |5 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
-         |
-         |6 url (if null ignore), note: can not contain '&'.
-         |
-         |7 app_name (if null ignore)
-         |
-         |8 implemented_by_partial_function (if null ignore),
-         |
-         |9 implemented_in_version (if null ignore)
-         |
-         |10 verb (if null ignore)
-         |
-         |11 correlation_id (if null ignore)
-         |
-         |12 duration (if null ignore) non digit chars will be silently omitted
-         |
-         |13 exclude_app_names (if null ignore).eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
-         |
-         |14 exclude_url_patterns (if null ignore).you can design you own SQL NOT LIKE pattern. eg: &exclude_url_patterns=%management/metrics%,%management/aggregate-metrics%
-         |
-         |15 exclude_implemented_by_partial_functions (if null ignore).eg: &exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
-         |
-         |${userAuthenticationMessage(true)}
-         |
-      """.stripMargin,
-      EmptyBody,
-      aggregateMetricsJSONV300,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, AggregateMetricsDateRangeTooLong, UnknownError),
-      List(apiTagMetric, apiTagAggregateMetrics),
-      Some(List(canReadAggregateMetrics)),
-      http4sPartialFunction = Some(getAggregateMetrics)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getAggregateMetrics),
+      // "GET",
+      // "/management/aggregate-metrics",
+      // "Get Aggregate Metrics",
+      // s"""Returns aggregate metrics on api usage eg. total count, response time (in ms), etc.
+         // |
+         // |Should be able to filter on the following fields
+         // |
+         // |eg: /management/aggregate-metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&consumer_id=5
+         // |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
+         // |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
+         // |&verb=GET&anon=false&app_name=MapperPostman
+         // |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+         // |
+         // |**Date range limit.** One call covers at most ${code.metrics.MetricsProps.aggregateMetricsMaxDays} days of metrics on this instance. A longer range between from_date and to_date is refused with 400 (OBP-10069); to report on a longer period, make one call per period.
+         // |
+         // |1 from_date (defaults to ${code.metrics.MetricsProps.aggregateMetricsMaxDays} days before to_date): eg:from_date=$DateWithMsExampleString
+         // |
+         // |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+         // |
+         // |3 consumer_id  (if null ignore)
+         // |
+         // |4 user_id (if null ignore)
+         // |
+         // |5 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+         // |
+         // |6 url (if null ignore), note: can not contain '&'.
+         // |
+         // |7 app_name (if null ignore)
+         // |
+         // |8 implemented_by_partial_function (if null ignore),
+         // |
+         // |9 implemented_in_version (if null ignore)
+         // |
+         // |10 verb (if null ignore)
+         // |
+         // |11 correlation_id (if null ignore)
+         // |
+         // |12 duration (if null ignore) non digit chars will be silently omitted
+         // |
+         // |13 exclude_app_names (if null ignore).eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+         // |
+         // |14 exclude_url_patterns (if null ignore).you can design you own SQL NOT LIKE pattern. eg: &exclude_url_patterns=%management/metrics%,%management/aggregate-metrics%
+         // |
+         // |15 exclude_implemented_by_partial_functions (if null ignore).eg: &exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |
+      // """.stripMargin,
+      // EmptyBody,
+      // aggregateMetricsJSONV300,
+      // List(AuthenticatedUserIsRequired, UserHasMissingRoles, AggregateMetricsDateRangeTooLong, UnknownError),
+      // List(apiTagMetric, apiTagAggregateMetrics),
+      // Some(List(canReadAggregateMetrics)),
+      // http4sPartialFunction = Some(getAggregateMetrics)
+    // )
 
     // ─── addScope ─────────────────────────────────────────────────────────────
 
-    val addScope: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "consumers" / consumerIdStr / "scopes" =>
-        EndpointHelpers.withUserAndBodyCreated[CreateScopeJson, ScopeJson](req) { (user, body, cc) =>
-          for {
-            consumerIdInt <- Future { tryo(consumerIdStr.toInt) } map {
-              x => unboxFullOrFail(x, Some(cc), s"$ConsumerNotFoundById Current Value is $consumerIdStr")
-            }
-            _ <- Future { Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdInt) } map {
-              x => unboxFullOrFail(x, Some(cc), ConsumerNotFoundById)
-            }
-            role <- Future { tryo(valueOf(body.role_name)) } map {
-              x => unboxFullOrFail(x, Some(cc), IncorrectRoleName + body.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", "))
-            }
-            _ <- code.util.Helper.booleanToFuture(
-              if (ApiRole.valueOf(body.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole,
-              cc = Some(cc)) { ApiRole.valueOf(body.role_name).requiresBankId == body.bank_id.nonEmpty }
-            allowedEntitlements    = canCreateScopeAtOneBank :: canCreateScopeAtAnyBank :: Nil
-            allowedEntitlementsTxt = s"$UserHasMissingRoles ${allowedEntitlements.mkString(", ")}!"
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(allowedEntitlementsTxt)(body.bank_id, user.userId, allowedEntitlements, Some(cc))
-            _ <- code.util.Helper.booleanToFuture(BankNotFound, cc = Some(cc)) {
-              APIUtil.isBankIdWhereRolesCanBeHeld(body.bank_id, Some(cc))
-            }
-            _ <- code.util.Helper.booleanToFuture(EntitlementAlreadyExists, cc = Some(cc)) {
-              !hasScope(body.bank_id, consumerIdStr, role)
-            }
-            addedScope <- Future { Scope.scope.vend.addScope(body.bank_id, consumerIdStr, body.role_name) } map { unboxFull(_) }
-          } yield JSONFactory300.createScopeJson(addedScope)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val addScope: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "consumers" / consumerIdStr / "scopes" =>
+        // EndpointHelpers.withUserAndBodyCreated[CreateScopeJson, ScopeJson](req) { (user, body, cc) =>
+          // for {
+            // consumerIdInt <- Future { tryo(consumerIdStr.toInt) } map {
+              // x => unboxFullOrFail(x, Some(cc), s"$ConsumerNotFoundById Current Value is $consumerIdStr")
+            // }
+            // _ <- Future { Consumers.consumers.vend.getConsumerByPrimaryId(consumerIdInt) } map {
+              // x => unboxFullOrFail(x, Some(cc), ConsumerNotFoundById)
+            // }
+            // role <- Future { tryo(valueOf(body.role_name)) } map {
+              // x => unboxFullOrFail(x, Some(cc), IncorrectRoleName + body.role_name + ". Possible roles are " + ApiRole.availableRoles.sorted.mkString(", "))
+            // }
+            // _ <- code.util.Helper.booleanToFuture(
+              // if (ApiRole.valueOf(body.role_name).requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole,
+              // cc = Some(cc)) { ApiRole.valueOf(body.role_name).requiresBankId == body.bank_id.nonEmpty }
+            // allowedEntitlements    = canCreateScopeAtOneBank :: canCreateScopeAtAnyBank :: Nil
+            // allowedEntitlementsTxt = s"$UserHasMissingRoles ${allowedEntitlements.mkString(", ")}!"
+            // _ <- NewStyle.function.hasAtLeastOneEntitlement(allowedEntitlementsTxt)(body.bank_id, user.userId, allowedEntitlements, Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(BankNotFound, cc = Some(cc)) {
+              // APIUtil.isBankIdWhereRolesCanBeHeld(body.bank_id, Some(cc))
+            // }
+            // _ <- code.util.Helper.booleanToFuture(EntitlementAlreadyExists, cc = Some(cc)) {
+              // !hasScope(body.bank_id, consumerIdStr, role)
+            // }
+            // addedScope <- Future { Scope.scope.vend.addScope(body.bank_id, consumerIdStr, body.role_name) } map { unboxFull(_) }
+          // } yield JSONFactory300.createScopeJson(addedScope)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(addScope),
-      "POST",
-      "/consumers/CONSUMER_ID/scopes",
-      "Create Scope for a Consumer",
-      """Create Scope. Grant Role to Consumer.
-      |
-      |Scopes are used to grant System or Bank level roles to the Consumer (App). (For Account level privileges, see Views)
-      |
-      |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
-      |
-      |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
-      |
-      |""",
-      SwaggerDefinitionsJSON.createScopeJson,
-      scopeJson,
-      List(AuthenticatedUserIsRequired, ConsumerNotFoundById, InvalidJsonFormat, IncorrectRoleName,
-      EntitlementIsBankRole, EntitlementIsSystemRole, EntitlementAlreadyExists, UnknownError),
-      List(apiTagScope, apiTagConsumer),
-      Some(List(canCreateScopeAtOneBank, canCreateScopeAtAnyBank)),
-      http4sPartialFunction = Some(addScope)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(addScope),
+      // "POST",
+      // "/consumers/CONSUMER_ID/scopes",
+      // "Create Scope for a Consumer",
+      // """Create Scope. Grant Role to Consumer.
+      // |
+      // |Scopes are used to grant System or Bank level roles to the Consumer (App). (For Account level privileges, see Views)
+      // |
+      // |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
+      // |
+      // |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
+      // |
+      // |""",
+      // SwaggerDefinitionsJSON.createScopeJson,
+      // scopeJson,
+      // List(AuthenticatedUserIsRequired, ConsumerNotFoundById, InvalidJsonFormat, IncorrectRoleName,
+      // EntitlementIsBankRole, EntitlementIsSystemRole, EntitlementAlreadyExists, UnknownError),
+      // List(apiTagScope, apiTagConsumer),
+      // Some(List(canCreateScopeAtOneBank, canCreateScopeAtAnyBank)),
+      // http4sPartialFunction = Some(addScope)
+    // )
 
     // ─── deleteScope ──────────────────────────────────────────────────────────
 
@@ -2183,104 +2197,107 @@ object Http4s300 {
 
     // ─── getScopes ────────────────────────────────────────────────────────────
 
-    val getScopes: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "consumers" / consumerIdStr / "scopes" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            consumer <- Future { cc.consumer } map {
-              x => unboxFullOrFail(x, Some(cc), InvalidConsumerCredentials)
-            }
-            _ <- Future {
-              NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.get.toString, canGetEntitlementsForAnyUserAtAnyBank, Some(cc))
-            } flatMap { unboxFullAndWrapIntoFuture(_) }
-            scopes <- Future { Scope.scope.vend.getScopesByConsumerId(consumerIdStr) } map { unboxFull(_) }
-          } yield JSONFactory300.createScopeJSONs(scopes)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getScopes: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "consumers" / consumerIdStr / "scopes" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // consumer <- Future { cc.consumer } map {
+              // x => unboxFullOrFail(x, Some(cc), InvalidConsumerCredentials)
+            // }
+            // _ <- Future {
+              // NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.get.toString, canGetEntitlementsForAnyUserAtAnyBank, Some(cc))
+            // } flatMap { unboxFullAndWrapIntoFuture(_) }
+            // scopes <- Future { Scope.scope.vend.getScopesByConsumerId(consumerIdStr) } map { unboxFull(_) }
+          // } yield JSONFactory300.createScopeJSONs(scopes)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getScopes),
-      "GET",
-      "/consumers/CONSUMER_ID/scopes",
-      "Get Scopes for Consumer",
-      s"""Get all the scopes for an consumer specified by CONSUMER_ID
-         |
-         |${userAuthenticationMessage(true)}
-         |
-         |
-      """.stripMargin,
-      EmptyBody,
-      scopeJsons,
-      List(AuthenticatedUserIsRequired, EntitlementNotFound, UnknownError),
-      List(apiTagScope, apiTagConsumer),
-      None,
-      http4sPartialFunction = Some(getScopes)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getScopes),
+      // "GET",
+      // "/consumers/CONSUMER_ID/scopes",
+      // "Get Scopes for Consumer",
+      // s"""Get all the scopes for an consumer specified by CONSUMER_ID
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |
+         // |
+      // """.stripMargin,
+      // EmptyBody,
+      // scopeJsons,
+      // List(AuthenticatedUserIsRequired, EntitlementNotFound, UnknownError),
+      // List(apiTagScope, apiTagConsumer),
+      // None,
+      // http4sPartialFunction = Some(getScopes)
+    // )
 
     // ─── getBanks ─────────────────────────────────────────────────────────────
 
-    val getBanks: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
-          for {
-            _ <- code.util.Helper.booleanToFuture(ServiceIsTooBusy + "Current Service(NewStyle.function.getBanks)", 503, cc = Some(cc)) {
-              canOpenFuture("NewStyle.function.getBanks")
-            }
-            (banks, _) <- FutureUtil.futureWithLimits(NewStyle.function.getBanks(Some(cc)), "NewStyle.function.getBanks")
-          } yield JSONFactory300.createBanksJson(banks)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getBanks: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" =>
+        // EndpointHelpers.executeAndRespond(req) { cc =>
+          // for {
+            // _ <- code.util.Helper.booleanToFuture(ServiceIsTooBusy + "Current Service(NewStyle.function.getBanks)", 503, cc = Some(cc)) {
+              // canOpenFuture("NewStyle.function.getBanks")
+            // }
+            // (banks, _) <- FutureUtil.futureWithLimits(NewStyle.function.getBanks(Some(cc)), "NewStyle.function.getBanks")
+          // } yield JSONFactory300.createBanksJson(banks)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getBanks),
-      "GET",
-      "/banks",
-      "Get Banks",
-      """Get banks on this API instance
-      |Returns a list of banks supported on this server:
-      |
-      |* ID used as parameter in URLs
-      |* Short and full name of bank
-      |* Logo URL
-      |* Website""",
-      EmptyBody,
-      banksJSON,
-      List(UnknownError),
-      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
-      None,
-      http4sPartialFunction = Some(getBanks)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getBanks),
+      // "GET",
+      // "/banks",
+      // "Get Banks",
+      // """Get banks on this API instance
+      // |Returns a list of banks supported on this server:
+      // |
+      // |* ID used as parameter in URLs
+      // |* Short and full name of bank
+      // |* Logo URL
+      // |* Website""",
+      // EmptyBody,
+      // banksJSON,
+      // List(UnknownError),
+      // apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      // None,
+      // http4sPartialFunction = Some(getBanks)
+    // )
 
     // ─── bankById ─────────────────────────────────────────────────────────────
 
-    val bankById: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ =>
-        EndpointHelpers.withBank(req) { (bank, cc) =>
-          Future.successful(code.api.v4_0_0.JSONFactory400.createBankJSON400(bank))
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val bankById: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ =>
+        // EndpointHelpers.withBank(req) { (bank, cc) =>
+          // Future.successful(code.api.v4_0_0.JSONFactory400.createBankJSON400(bank))
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(bankById),
-      "GET",
-      "/banks/BANK_ID",
-      "Get Bank",
-      """Get the bank specified by BANK_ID
-      |Returns information about a single bank specified by BANK_ID including:
-      |
-      |* Short and full name of bank
-      |* Logo URL
-      |* Website""",
-      EmptyBody,
-      bankJson400,
-      List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
-      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
-      None,
-      http4sPartialFunction = Some(bankById)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(bankById),
+      // "GET",
+      // "/banks/BANK_ID",
+      // "Get Bank",
+      // """Get the bank specified by BANK_ID
+      // |Returns information about a single bank specified by BANK_ID including:
+      // |
+      // |* Short and full name of bank
+      // |* Logo URL
+      // |* Website""",
+      // EmptyBody,
+      // bankJson400,
+      // List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
+      // apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      // None,
+      // http4sPartialFunction = Some(bankById)
+    // )
 
     // ─── helpers ──────────────────────────────────────────────────────────────
 
@@ -2302,33 +2319,33 @@ object Http4s300 {
     // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given the docs in this same order.
     lazy val routesInOrder: List[Http4sHandler] = List(
-      root,
-      getViewsForBankAccount,
+      // root,
+      // getViewsForBankAccount,
       createViewForBankAccount,
       updateViewForBankAccount,
       getPermissionForUserForBankAccount,
-      getPrivateAccountById,
+      // getPrivateAccountById,
       getPublicAccountById,
-      getCoreAccountById,
+      // getCoreAccountById,
       corePrivateAccountsAllBanks,
-      getFirehoseAccountsAtOneBank,
+      // getFirehoseAccountsAtOneBank,
       getFirehoseTransactionsForBankAccount,
       getCoreTransactionsForBankAccount,
       getTransactionsForBankAccount,
       dataWarehouseSearch,
       dataWarehouseStatistics,
-      getUser,
-      getUserByUserId,
-      getUserByUsername,
+      // getUser,
+      // getUserByUserId,
+      // getUserByUsername,
       getAdapterInfoForBank,
       createBranch,
       updateBranch,
-      createAtm,
+      // createAtm,
       getBranch,
       getBranches,
-      getAtm,
-      getAtms,
-      getUsers,
+      // getAtm,
+      // getAtms,
+      // getUsers,
       getCustomersForUser,
       getCurrentUser,
       privateAccountsAtOneBank,
@@ -2343,12 +2360,12 @@ object Http4s300 {
       getEntitlementsForCurrentUser,
       getApiGlossary,
       getAccountsHeld,
-      getAggregateMetrics,
-      addScope,
+      // getAggregateMetrics,
+      // addScope,
       deleteScope,
-      getScopes,
-      getBanks,
-      bankById
+      // getScopes,
+      // getBanks,
+      // bankById
     )
 
     lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)

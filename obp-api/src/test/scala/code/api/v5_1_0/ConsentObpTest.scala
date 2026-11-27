@@ -57,7 +57,7 @@ class ConsentObpTest extends V510ServerSetup {
   object AnswerConsentChallenge extends Tag(nameOf(Implementations3_1_0.answerConsentChallenge))
 
   object VersionOfApi2 extends Tag(ApiVersion.v3_0_0.toString)
-  object GetUserByUserId extends Tag(nameOf(Http4s300.Implementations3_0_0.getUserByUserId))
+  object GetUserByUserId extends Tag("getUserByUserId")
 
   val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
 
