@@ -57,11 +57,12 @@ trait V220ServerSetup extends ServerSetupWithTestData with  DefaultUsers{
   def randomBankId : String = {
     
     def getBanksInfo : APIResponse  = {
-      val request = v2_2Request / "banks" //TODO, how can we know which endpoint it called? Although it is V220, but this endpoint called V121-getBanks
+      // getBanks of v5.0.0 and below is commented out, so the bank list comes from v5.1.0.
+      val request = baseRequest / "obp" / "v5.1.0" / "banks"
       makeGetRequest(request)
     }
     
-    val banksJson = getBanksInfo.body.extract[BanksJSON] //TODO, how to make this map automatically.
+    val banksJson = getBanksInfo.body.extract[code.api.v4_0_0.BanksJson400] //TODO, how to make this map automatically.
     val randomPosition = nextInt(banksJson.banks.size)
     val bank = banksJson.banks(randomPosition)
     bank.id
@@ -71,7 +72,8 @@ trait V220ServerSetup extends ServerSetupWithTestData with  DefaultUsers{
   def randomPrivateAccountId(bankId : String) : String = {
     
     def getPrivateAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-      val request = v2_2Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken) //TODO, how can we know which endpoint it called? Although it is V300, but this endpoint called V200-privateAccountsAtOneBank
+      // privateAccountsAtOneBank of v2.2.0 and below is commented out; v5.1.0 serves the path with the v3.0.0 handler.
+      val request = baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / "private" <@(consumerAndToken)
       makeGetRequest(request)
     }
     
