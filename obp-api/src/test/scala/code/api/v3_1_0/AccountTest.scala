@@ -59,8 +59,8 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
 
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.updateAccount))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.createAccount))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getBankAccountsBalances))
+  object ApiEndpoint2 extends Tag("createAccount")
+  object ApiEndpoint3 extends Tag("getBankAccountsBalances")
   //We need this endpoint to test the result 
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.corePrivateAccountsAllBanks))
   object ApiEndpoint5 extends Tag(nameOf(Implementations2_0_0.getPrivateAccountsAtOneBank))

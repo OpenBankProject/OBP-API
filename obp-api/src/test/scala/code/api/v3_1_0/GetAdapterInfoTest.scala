@@ -47,7 +47,7 @@ class GetAdapterInfoTest extends V310ServerSetup with DefaultUsers {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.getAdapterInfo))
+  object ApiEndpoint extends Tag("getAdapterInfo")
 
   feature("Get Adapter Info v3.1.0")
   {

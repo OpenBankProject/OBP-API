@@ -62,9 +62,9 @@ class ProductAttributeTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createProductAttribute))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getProductAttribute))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.updateProductAttribute))
+  object ApiEndpoint1 extends Tag("createProductAttribute")
+  object ApiEndpoint2 extends Tag("getProductAttribute")
+  object ApiEndpoint3 extends Tag("updateProductAttribute")
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.deleteProductAttribute))
 
   lazy val testBankId = randomBankId

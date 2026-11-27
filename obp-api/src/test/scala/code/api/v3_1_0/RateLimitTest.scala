@@ -70,7 +70,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.callsLimit))
+  object ApiEndpoint extends Tag("callsLimit")
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getCallsLimit))
 
   override def beforeEach() = {

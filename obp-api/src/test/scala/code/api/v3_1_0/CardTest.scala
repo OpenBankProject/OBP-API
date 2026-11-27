@@ -49,7 +49,7 @@ import com.openbankproject.commons.util.ApiVersion
 class CardTest extends V310ServerSetup with DefaultUsers {
 
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpointAddCardForBank extends Tag(nameOf(Implementations3_1_0.addCardForBank))
+  object ApiEndpointAddCardForBank extends Tag("addCardForBank")
   object ApiEndpointUpdatedCardForBank extends Tag(nameOf(Implementations3_1_0.updatedCardForBank))
   object ApiEndpointGetCardForBank extends Tag(nameOf(Implementations3_1_0.getCardForBank))
   object ApiEndpointGetCardsForBank extends Tag(nameOf(Implementations3_1_0.getCardsForBank))

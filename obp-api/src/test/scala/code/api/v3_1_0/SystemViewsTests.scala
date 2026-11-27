@@ -65,10 +65,10 @@ class SystemViewsTests extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getSystemView))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.createSystemView))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.updateSystemView))
-  object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.deleteSystemView))
+  object ApiEndpoint1 extends Tag("getSystemView")
+  object ApiEndpoint2 extends Tag("createSystemView")
+  object ApiEndpoint3 extends Tag("updateSystemView")
+  object ApiEndpoint4 extends Tag("deleteSystemView")
   
   // Custom view, name starts from `_`
   // System view, owner

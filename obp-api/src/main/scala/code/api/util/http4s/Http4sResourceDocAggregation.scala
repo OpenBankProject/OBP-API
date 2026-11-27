@@ -89,7 +89,7 @@ object Http4sResourceDocAggregation {
       nameOf(Http4s121.Implementations1_2_1.removePermissionForUserForBankAccountForAllViews) ::
       nameOf(Http4s121.Implementations1_2_1.addPermissionForUserForBankAccountForOneView) ::
       nameOf(Http4s121.Implementations1_2_1.removePermissionForUserForBankAccountForOneView) ::
-      nameOf(Http4s310.Implementations3_1_0.createAccount) ::
+      "createAccount" ::  // v3.1.0 createAccount is commented out, so it is named by string.
       nameOf(Http4s310.Implementations3_1_0.revokeConsent) ::
       Nil
 

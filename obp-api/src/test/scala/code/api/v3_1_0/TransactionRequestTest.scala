@@ -47,7 +47,7 @@ class TransactionRequestTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getTransactionRequests))
+  object ApiEndpoint1 extends Tag("getTransactionRequests")
 
   feature("Get Transaction Requests - v3.1.0")
   {

@@ -57,7 +57,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
    */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
 
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createCustomer))
+  object ApiEndpoint1 extends Tag("createCustomer")
 
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getCustomerAttributeById))
 

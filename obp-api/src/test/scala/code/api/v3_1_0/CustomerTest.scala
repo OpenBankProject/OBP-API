@@ -65,7 +65,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getCustomerByCustomerId))
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getCustomerByCustomerNumber))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.createCustomer))
+  object ApiEndpoint3 extends Tag("createCustomer")
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.updateCustomerEmail))
   object ApiEndpoint5 extends Tag(nameOf(Implementations3_1_0.updateCustomerMobileNumber))
   object ApiEndpoint6 extends Tag(nameOf(Implementations3_1_0.updateCustomerIdentity))

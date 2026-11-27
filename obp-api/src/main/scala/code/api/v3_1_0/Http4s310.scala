@@ -155,35 +155,36 @@ object Http4s310 {
 
     // ─── root ─────────────────────────────────────────────────────────────────
 
-    val root: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v3_1_0, versionStatus))
-        }
-      case req @ GET -> `prefixPath` / "root" =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v3_1_0, versionStatus))
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val root: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v3_1_0, versionStatus))
+        // }
+      // case req @ GET -> `prefixPath` / "root" =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v3_1_0, versionStatus))
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(root),
-      "GET",
-      "/root",
-      "Get API Info (root)",
-      """Returns information about:
-      |
-      |* API version
-      |* Hosted by information
-      |* Git Commit""",
-      EmptyBody,
-      apiInfoJSON,
-      List(UnknownError, MandatoryPropertyIsNotSet),
-      apiTagApi :: Nil,
-      None,
-      http4sPartialFunction = Some(root)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(root),
+      // "GET",
+      // "/root",
+      // "Get API Info (root)",
+      // """Returns information about:
+      // |
+      // |* API version
+      // |* Hosted by information
+      // |* Git Commit""",
+      // EmptyBody,
+      // apiInfoJSON,
+      // List(UnknownError, MandatoryPropertyIsNotSet),
+      // apiTagApi :: Nil,
+      // None,
+      // http4sPartialFunction = Some(root)
+    // )
 
     // ─── getCheckbookOrders ───────────────────────────────────────────────────
 
@@ -526,34 +527,35 @@ object Http4s310 {
 
     // ─── getConsumer ──────────────────────────────────────────────────────────
 
-    val getConsumer: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "management" / "consumers" / consumerIdStr =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetConsumers, Some(cc))
-            consumer <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
-            consumerUser <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId.get)
-          } yield createConsumerJSON(consumer, consumerUser)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getConsumer: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "management" / "consumers" / consumerIdStr =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetConsumers, Some(cc))
+            // consumer <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
+            // consumerUser <- Users.users.vend.getUserByUserIdFuture(consumer.createdByUserId.get)
+          // } yield createConsumerJSON(consumer, consumerUser)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getConsumer),
-      "GET",
-      "/management/consumers/CONSUMER_ID",
-      "Get Consumer",
-      s"""Get the Consumer specified by CONSUMER_ID.
-      |
-      |""",
-      EmptyBody,
-      consumerJSON,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles,
-      ConsumerNotFoundByConsumerId, UnknownError),
-      List(apiTagConsumer),
-      Some(List(canGetConsumers)),
-      http4sPartialFunction = Some(getConsumer)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getConsumer),
+      // "GET",
+      // "/management/consumers/CONSUMER_ID",
+      // "Get Consumer",
+      // s"""Get the Consumer specified by CONSUMER_ID.
+      // |
+      // |""",
+      // EmptyBody,
+      // consumerJSON,
+      // List(AuthenticatedUserIsRequired, UserHasMissingRoles,
+      // ConsumerNotFoundByConsumerId, UnknownError),
+      // List(apiTagConsumer),
+      // Some(List(canGetConsumers)),
+      // http4sPartialFunction = Some(getConsumer)
+    // )
 
     // ─── getConsumersForCurrentUser ──────────────────────────────────────────
 
@@ -585,40 +587,41 @@ object Http4s310 {
 
     // ─── getConsumers ────────────────────────────────────────────────────────
 
-    val getConsumers: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "management" / "consumers" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetConsumers, Some(cc))
-            httpParams = req.headers.headers.toList.map(h => HTTPParam(h.name.toString, h.value)) :::
-              req.uri.query.multiParams.toList.flatMap { case (k, vs) => vs.map(v => HTTPParam(k, v)) }
-            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
-            consumers <- Consumers.consumers.vend.getConsumersFuture(obpQueryParams, Some(cc))
-            users <- Users.users.vend.getUsersByUserIdsFuture(consumers.map(_.createdByUserId.get))
-          } yield createConsumersJson(consumers, users)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getConsumers: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "management" / "consumers" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetConsumers, Some(cc))
+            // httpParams = req.headers.headers.toList.map(h => HTTPParam(h.name.toString, h.value)) :::
+              // req.uri.query.multiParams.toList.flatMap { case (k, vs) => vs.map(v => HTTPParam(k, v)) }
+            // (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            // consumers <- Consumers.consumers.vend.getConsumersFuture(obpQueryParams, Some(cc))
+            // users <- Users.users.vend.getUsersByUserIdsFuture(consumers.map(_.createdByUserId.get))
+          // } yield createConsumersJson(consumers, users)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getConsumers),
-      "GET",
-      "/management/consumers",
-      "Get Consumers",
-      s"""Get the all Consumers.
-      |
-      |${userAuthenticationMessage(true)}
-      |
-      |${urlParametersDocument(true, true)}
-      |
-      |""",
-      EmptyBody,
-      consumersJson310,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      List(apiTagConsumer),
-      Some(List(canGetConsumers)),
-      http4sPartialFunction = Some(getConsumers)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getConsumers),
+      // "GET",
+      // "/management/consumers",
+      // "Get Consumers",
+      // s"""Get the all Consumers.
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |${urlParametersDocument(true, true)}
+      // |
+      // |""",
+      // EmptyBody,
+      // consumersJson310,
+      // List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // List(apiTagConsumer),
+      // Some(List(canGetConsumers)),
+      // http4sPartialFunction = Some(getConsumers)
+    // )
 
     // ─── getAccountWebhooks ──────────────────────────────────────────────────
 
@@ -694,34 +697,35 @@ object Http4s310 {
 
     // ─── getAdapterInfo ───────────────────────────────────────────────────────
 
-    val getAdapterInfo: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "adapter" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetAdapterInfo, Some(cc))
-            (ai, _) <- NewStyle.function.getAdapterInfo(Some(cc))
-          } yield JSONFactory300.createAdapterInfoJson(ai)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getAdapterInfo: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "adapter" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, ApiRole.canGetAdapterInfo, Some(cc))
+            // (ai, _) <- NewStyle.function.getAdapterInfo(Some(cc))
+          // } yield JSONFactory300.createAdapterInfoJson(ai)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getAdapterInfo),
-      "GET",
-      "/adapter",
-      "Get Adapter Info",
-      s"""Get basic information about the Adapter.
-         |
-         |${userAuthenticationMessage(true)}
-         |
-      """.stripMargin,
-      EmptyBody,
-      adapterInfoJsonV300,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      List(apiTagApi),
-      Some(List(canGetAdapterInfo)),
-      http4sPartialFunction = Some(getAdapterInfo)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getAdapterInfo),
+      // "GET",
+      // "/adapter",
+      // "Get Adapter Info",
+      // s"""Get basic information about the Adapter.
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |
+      // """.stripMargin,
+      // EmptyBody,
+      // adapterInfoJsonV300,
+      // List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // List(apiTagApi),
+      // Some(List(canGetAdapterInfo)),
+      // http4sPartialFunction = Some(getAdapterInfo)
+    // )
 
     // ─── getRateLimitingInfo ──────────────────────────────────────────────────
     // Anonymous endpoint — no auth required.
@@ -813,36 +817,37 @@ object Http4s310 {
 
     // ─── getUserAuthContexts ─────────────────────────────────────────────────
 
-    val getUserAuthContexts: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "users" / userIdStr / "auth-context" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, canGetUserAuthContext, Some(cc))
-            (_, _) <- NewStyle.function.findByUserId(userIdStr, Some(cc))
-            (userAuthContexts, _) <- NewStyle.function.getUserAuthContexts(userIdStr, Some(cc))
-          } yield JSONFactory310.createUserAuthContextsJson(userAuthContexts)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getUserAuthContexts: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "users" / userIdStr / "auth-context" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, canGetUserAuthContext, Some(cc))
+            // (_, _) <- NewStyle.function.findByUserId(userIdStr, Some(cc))
+            // (userAuthContexts, _) <- NewStyle.function.getUserAuthContexts(userIdStr, Some(cc))
+          // } yield JSONFactory310.createUserAuthContextsJson(userAuthContexts)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getUserAuthContexts),
-      "GET",
-      "/users/USER_ID/auth-context",
-      "Get User Auth Contexts",
-      s"""Get User Auth Contexts for a User.
-      |
-      |
-      |${userAuthenticationMessage(true)}
-      |
-      |""",
-      EmptyBody,
-      userAuthContextsJson,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      List(apiTagUser),
-      Some(canGetUserAuthContext :: Nil),
-      http4sPartialFunction = Some(getUserAuthContexts)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getUserAuthContexts),
+      // "GET",
+      // "/users/USER_ID/auth-context",
+      // "Get User Auth Contexts",
+      // s"""Get User Auth Contexts for a User.
+      // |
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |""",
+      // EmptyBody,
+      // userAuthContextsJson,
+      // List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // List(apiTagUser),
+      // Some(canGetUserAuthContext :: Nil),
+      // http4sPartialFunction = Some(getUserAuthContexts)
+    // )
 
     // ─── getTaxResidence ─────────────────────────────────────────────────────
 
@@ -966,46 +971,47 @@ object Http4s310 {
 
     // ─── getProductAttribute ─────────────────────────────────────────────────
 
-    val getProductAttribute: Http4sRoute = Http4sRoute {
-      // productCodeStr is read so the attribute can be checked against the product in the path
-      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attributes" / productAttributeIdStr =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canGetProductAttribute, Some(cc))
-            (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
-            (productAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
-            // the attribute must belong to the bank and product in the path, else a role at one bank reads any bank's attribute
-            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
-              productAttribute.bankId.value == bankIdStr &&
-                productAttribute.productCode.value == productCodeStr
-            }
-          } yield createProductAttributeJson(productAttribute)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getProductAttribute: Http4sRoute = Http4sRoute {
+      // // productCodeStr is read so the attribute can be checked against the product in the path
+      // case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attributes" / productAttributeIdStr =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canGetProductAttribute, Some(cc))
+            // (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+            // (productAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // // the attribute must belong to the bank and product in the path, else a role at one bank reads any bank's attribute
+            // _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              // productAttribute.bankId.value == bankIdStr &&
+                // productAttribute.productCode.value == productCodeStr
+            // }
+          // } yield createProductAttributeJson(productAttribute)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getProductAttribute),
-      "GET",
-      "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
-      "Get Product Attribute",
-      s""" Get Product Attribute
-      |
-      |$productAttributeGeneralInfo
-      |
-      |Get one product attribute by its id.
-      |
-      |${userAuthenticationMessage(true)}
-      |
-      |""",
-      EmptyBody,
-      productAttributeResponseJson,
-      // ProductAttributeNotFound: the attribute is not at the bank and product in the path
-      List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
-      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
-      Some(List(canGetProductAttribute)),
-      http4sPartialFunction = Some(getProductAttribute)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getProductAttribute),
+      // "GET",
+      // "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
+      // "Get Product Attribute",
+      // s""" Get Product Attribute
+      // |
+      // |$productAttributeGeneralInfo
+      // |
+      // |Get one product attribute by its id.
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |""",
+      // EmptyBody,
+      // productAttributeResponseJson,
+      // // ProductAttributeNotFound: the attribute is not at the bank and product in the path
+      // List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
+      // List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
+      // Some(List(canGetProductAttribute)),
+      // http4sPartialFunction = Some(getProductAttribute)
+    // )
 
     // ─── getAccountApplications ──────────────────────────────────────────────
 
@@ -1281,38 +1287,39 @@ object Http4s310 {
     // (non-standard ALL_CAPS) to make middleware skip view validation; we look up via
     // ViewNewStyle.systemView inline.
 
-    val getSystemView: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "system-views" / viewIdStr =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemView, Some(cc))
-            view <- ViewNewStyle.systemView(ViewId(viewIdStr), Some(cc))
-          } yield JSONFactory310.createViewJSON(view)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getSystemView: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "system-views" / viewIdStr =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemView, Some(cc))
+            // view <- ViewNewStyle.systemView(ViewId(viewIdStr), Some(cc))
+          // } yield JSONFactory310.createViewJSON(view)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getSystemView),
-      "GET",
-      "/system-views/SYS_VIEW_ID",
-      "Get System View",
-      s"""Get System View
-         |
-         |${userAuthenticationMessage(true)}
-         |
-      """.stripMargin,
-      EmptyBody,
-      viewJSONV220,
-      List(
-        AuthenticatedUserIsRequired,
-        BankNotFound,
-        UnknownError
-      ),
-      List(apiTagSystemView),
-      Some(List(canGetSystemView)),
-      http4sPartialFunction = Some(getSystemView)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getSystemView),
+      // "GET",
+      // "/system-views/SYS_VIEW_ID",
+      // "Get System View",
+      // s"""Get System View
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |
+      // """.stripMargin,
+      // EmptyBody,
+      // viewJSONV220,
+      // List(
+        // AuthenticatedUserIsRequired,
+        // BankNotFound,
+        // UnknownError
+      // ),
+      // List(apiTagSystemView),
+      // Some(List(canGetSystemView)),
+      // http4sPartialFunction = Some(getSystemView)
+    // )
 
     // ─── getCardsForBank ─────────────────────────────────────────────────────
 
@@ -1393,25 +1400,26 @@ object Http4s310 {
 
     // ─── getBankAccountsBalances ─────────────────────────────────────────────
 
-    val getBankAccountsBalances: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "balances" =>
-        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
-          for {
-            (allowedAccounts, _) <- BalanceNewStyle.getAccountsWithBalancePermission(user, bank.bankId, None, Some(cc))
-            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts.map(_._1), Some(cc))
-          } yield createBalancesJson(BalanceNewStyle.moderateAccountsBalances(accountsBalances, allowedAccounts.toMap))
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getBankAccountsBalances: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "balances" =>
+        // EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
+          // for {
+            // (allowedAccounts, _) <- BalanceNewStyle.getAccountsWithBalancePermission(user, bank.bankId, None, Some(cc))
+            // (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts.map(_._1), Some(cc))
+          // } yield createBalancesJson(BalanceNewStyle.moderateAccountsBalances(accountsBalances, allowedAccounts.toMap))
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getBankAccountsBalances), "GET",
-      "/banks/BANK_ID/balances",
-      "Get Accounts Balances",
-      """Get the Balances for the Accounts of the current User at one bank.""",
-      EmptyBody, accountBalancesV310Json,
-      List(UnknownError),
-      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
-      http4sPartialFunction = Some(getBankAccountsBalances))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getBankAccountsBalances), "GET",
+      // "/banks/BANK_ID/balances",
+      // "Get Accounts Balances",
+      // """Get the Balances for the Accounts of the current User at one bank.""",
+      // EmptyBody, accountBalancesV310Json,
+      // List(UnknownError),
+      // apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
+      // http4sPartialFunction = Some(getBankAccountsBalances))
 
     // ─── checkFundsAvailable ─────────────────────────────────────────────────
 
@@ -1522,105 +1530,107 @@ object Http4s310 {
 
     // ─── getTransactionRequests ──────────────────────────────────────────────
 
-    val getTransactionRequests: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "transaction-requests" =>
-        EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
-          for {
-            _ <- NewStyle.function.isEnabledTransactionRequests(Some(cc))
-            view <- ViewNewStyle.checkAccountAccessAndGetView(
-              ViewId(viewIdStr), BankIdAccountId(account.bankId, account.accountId), Full(user), Some(cc))
-            _ <- code.util.Helper.booleanToFuture(
-              s"${ViewDoesNotPermitAccess} You need the `${CAN_SEE_TRANSACTION_REQUESTS}` permission on the View(${viewIdStr})",
-              cc = Some(cc)) {
-              view.allowed_actions.exists(_ == CAN_SEE_TRANSACTION_REQUESTS)
-            }
-            (transactionRequests, _) <- Future(Connector.connector.vend.getTransactionRequests210(user, account, Some(cc))) map {
-              unboxFullOrFail(_, Some(cc), GetTransactionRequestsException)
-            }
-          } yield JSONFactory210.createTransactionRequestJSONs(transactionRequests)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getTransactionRequests: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "transaction-requests" =>
+        // EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
+          // for {
+            // _ <- NewStyle.function.isEnabledTransactionRequests(Some(cc))
+            // view <- ViewNewStyle.checkAccountAccessAndGetView(
+              // ViewId(viewIdStr), BankIdAccountId(account.bankId, account.accountId), Full(user), Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"${ViewDoesNotPermitAccess} You need the `${CAN_SEE_TRANSACTION_REQUESTS}` permission on the View(${viewIdStr})",
+              // cc = Some(cc)) {
+              // view.allowed_actions.exists(_ == CAN_SEE_TRANSACTION_REQUESTS)
+            // }
+            // (transactionRequests, _) <- Future(Connector.connector.vend.getTransactionRequests210(user, account, Some(cc))) map {
+              // unboxFullOrFail(_, Some(cc), GetTransactionRequestsException)
+            // }
+          // } yield JSONFactory210.createTransactionRequestJSONs(transactionRequests)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getTransactionRequests),
-      "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
-      "Get Transaction Requests.",
-      """Returns transaction requests for account specified by ACCOUNT_ID at bank specified by BANK_ID.
-        |
-        |The VIEW_ID specified must be 'owner' and the user must have access to this view.
-        |
-        |Version 2.0.0 now returns charge information.
-        |
-        |Transaction Requests serve to initiate transactions that may or may not proceed. They contain information including:
-        |
-        |* Transaction Request Id
-        |* Type
-        |* Status (INITIATED, COMPLETED)
-        |* Challenge (in order to confirm the request)
-        |* From Bank / Account
-        |* Details including Currency, Value, Description and other initiation information specific to each type. (Could potentialy include a list of future transactions.)
-        |* Related Transactions
-        |
-        |PSD2 Context: PSD2 requires transparency of charges to the customer.
-        |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
-        |The customer can proceed with the Transaction by answering the security challenge.
-        |
-      """.stripMargin,
-      EmptyBody,
-      transactionRequestWithChargeJSONs210,
-      List(AuthenticatedUserIsRequired, BankNotFound, BankAccountNotFound,
-      UserNoPermissionAccessView, ViewDoesNotPermitAccess,
-      GetTransactionRequestsException, UnknownError),
-      List(apiTagTransactionRequest, apiTagPSD2PIS),
-      None,
-      http4sPartialFunction = Some(getTransactionRequests)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getTransactionRequests),
+      // "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
+      // "Get Transaction Requests.",
+      // """Returns transaction requests for account specified by ACCOUNT_ID at bank specified by BANK_ID.
+        // |
+        // |The VIEW_ID specified must be 'owner' and the user must have access to this view.
+        // |
+        // |Version 2.0.0 now returns charge information.
+        // |
+        // |Transaction Requests serve to initiate transactions that may or may not proceed. They contain information including:
+        // |
+        // |* Transaction Request Id
+        // |* Type
+        // |* Status (INITIATED, COMPLETED)
+        // |* Challenge (in order to confirm the request)
+        // |* From Bank / Account
+        // |* Details including Currency, Value, Description and other initiation information specific to each type. (Could potentialy include a list of future transactions.)
+        // |* Related Transactions
+        // |
+        // |PSD2 Context: PSD2 requires transparency of charges to the customer.
+        // |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
+        // |The customer can proceed with the Transaction by answering the security challenge.
+        // |
+      // """.stripMargin,
+      // EmptyBody,
+      // transactionRequestWithChargeJSONs210,
+      // List(AuthenticatedUserIsRequired, BankNotFound, BankAccountNotFound,
+      // UserNoPermissionAccessView, ViewDoesNotPermitAccess,
+      // GetTransactionRequestsException, UnknownError),
+      // List(apiTagTransactionRequest, apiTagPSD2PIS),
+      // None,
+      // http4sPartialFunction = Some(getTransactionRequests)
+    // )
 
     // ─── getProduct ──────────────────────────────────────────────────────────
     // Conditional auth: middleware uses `userAuthenticationMessage(!getProductsIsPublic)`
     // in description to drive needsAuthentication. When public, anonymous is OK.
 
-    val getProduct: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
-          for {
-            (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
-            (product, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
-            (productAttributes, _) <- NewStyle.function.getProductAttributesByBankAndCode(
-              BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
-          } yield JSONFactory310.createProductJson(product, productAttributes)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getProduct: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
+        // EndpointHelpers.executeAndRespond(req) { cc =>
+          // for {
+            // (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+            // (product, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
+            // (productAttributes, _) <- NewStyle.function.getProductAttributesByBankAndCode(
+              // BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
+          // } yield JSONFactory310.createProductJson(product, productAttributes)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getProduct),
-      "GET",
-      "/banks/BANK_ID/products/PRODUCT_CODE",
-      "Get Bank Product",
-      s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE including:
-      |
-      |* Name
-      |* Code
-      |* Parent Product Code
-      |* Category
-      |* Family
-      |* Super Family
-      |* More info URL
-      |* Description
-      |* Terms and Conditions
-      |* License the data under this endpoint is released under
-      |
-      |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
-      EmptyBody,
-      productJsonV310,
-      List(AuthenticatedUserIsRequired, ProductNotFoundByProductCode, UnknownError),
-      List(apiTagProduct),
-      None,
-      http4sPartialFunction = Some(getProduct)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getProduct),
+      // "GET",
+      // "/banks/BANK_ID/products/PRODUCT_CODE",
+      // "Get Bank Product",
+      // s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE including:
+      // |
+      // |* Name
+      // |* Code
+      // |* Parent Product Code
+      // |* Category
+      // |* Family
+      // |* Super Family
+      // |* More info URL
+      // |* Description
+      // |* Terms and Conditions
+      // |* License the data under this endpoint is released under
+      // |
+      // |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      // EmptyBody,
+      // productJsonV310,
+      // List(AuthenticatedUserIsRequired, ProductNotFoundByProductCode, UnknownError),
+      // List(apiTagProduct),
+      // None,
+      // http4sPartialFunction = Some(getProduct)
+    // )
 
     // ─── getProductTree ──────────────────────────────────────────────────────
 
@@ -1670,42 +1680,43 @@ object Http4s310 {
 
     // ─── getProducts ─────────────────────────────────────────────────────────
 
-    val getProducts: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
-          val params = req.uri.query.multiParams.toList.map { case (k, vs) => GetProductsParam(k, vs.toList) }
-          for {
-            (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
-            (products, _) <- NewStyle.function.getProducts(BankId(bankIdStr), params, Some(cc))
-          } yield JSONFactory310.createProductsJson(products)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getProducts: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" =>
+        // EndpointHelpers.executeAndRespond(req) { cc =>
+          // val params = req.uri.query.multiParams.toList.map { case (k, vs) => GetProductsParam(k, vs.toList) }
+          // for {
+            // (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+            // (products, _) <- NewStyle.function.getProducts(BankId(bankIdStr), params, Some(cc))
+          // } yield JSONFactory310.createProductsJson(products)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, "getProducts", "GET",
-      "/banks/BANK_ID/products",
-      "Get Products",
-      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
-      |
-      |* Name
-      |* Code
-      |* Parent Product Code
-      |* Category
-      |* Family
-      |* Super Family
-      |* More info URL
-      |* Description
-      |* Terms and Conditions
-      |* License the data under this endpoint is released under
-      |
-      |Can filter with attributes name and values.
-      |URL params example: /banks/some-bank-id/products?&limit=50&offset=1
-      |
-      |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
-      EmptyBody, productsJsonV310,
-      List(AuthenticatedUserIsRequired, BankNotFound, ProductNotFoundByProductCode, UnknownError),
-      List(apiTagProduct), None,
-      http4sPartialFunction = Some(getProducts))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, "getProducts", "GET",
+      // "/banks/BANK_ID/products",
+      // "Get Products",
+      // s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
+      // |
+      // |* Name
+      // |* Code
+      // |* Parent Product Code
+      // |* Category
+      // |* Family
+      // |* Super Family
+      // |* More info URL
+      // |* Description
+      // |* Terms and Conditions
+      // |* License the data under this endpoint is released under
+      // |
+      // |Can filter with attributes name and values.
+      // |URL params example: /banks/some-bank-id/products?&limit=50&offset=1
+      // |
+      // |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      // EmptyBody, productsJsonV310,
+      // List(AuthenticatedUserIsRequired, BankNotFound, ProductNotFoundByProductCode, UnknownError),
+      // List(apiTagProduct), None,
+      // http4sPartialFunction = Some(getProducts))
 
     // ─── getProductCollection ────────────────────────────────────────────────
 
@@ -1738,102 +1749,104 @@ object Http4s310 {
 
     // ─── getConsents ─────────────────────────────────────────────────────────
 
-    val getConsents: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "my" / "consents" =>
-        EndpointHelpers.withUserAndBank(req) { (user, bank, _) =>
-          val params = req.uri.query.params
-          val limit = params.get("limit").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(50)
-          val offset = params.get("offset").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(0)
-          for {
-            rows <- Future {
-              DoobieConsentQueries.getConsentsByUserAndBank(
-                userId = user.userId,
-                bankId = bank.bankId.value,
-                status = None,
-                limit = limit,
-                offset = offset,
-                sortField = "created_date",
-                sortDirection = "desc"
-              )
-            }
-          } yield {
-            val consents = rows.map(r => ConsentJsonV310(r.consentId, r.jwt.getOrElse(""), r.status))
-            ConsentsJsonV310(consents)
-          }
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getConsents: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "my" / "consents" =>
+        // EndpointHelpers.withUserAndBank(req) { (user, bank, _) =>
+          // val params = req.uri.query.params
+          // val limit = params.get("limit").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(50)
+          // val offset = params.get("offset").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(0)
+          // for {
+            // rows <- Future {
+              // DoobieConsentQueries.getConsentsByUserAndBank(
+                // userId = user.userId,
+                // bankId = bank.bankId.value,
+                // status = None,
+                // limit = limit,
+                // offset = offset,
+                // sortField = "created_date",
+                // sortDirection = "desc"
+              // )
+            // }
+          // } yield {
+            // val consents = rows.map(r => ConsentJsonV310(r.consentId, r.jwt.getOrElse(""), r.status))
+            // ConsentsJsonV310(consents)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getConsents),
-      "GET",
-      "/banks/BANK_ID/my/consents",
-      "Get Consents",
-      s"""
-         |This endpoint gets the Consents that the current User created.
-         |
-         |${userAuthenticationMessage(true)}
-         |
-         |1 limit (for pagination: defaults to 50)  eg:limit=200
-         |
-         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
-         |
-      """.stripMargin,
-      EmptyBody,
-      consentsJsonV310,
-      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
-      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
-      None,
-      http4sPartialFunction = Some(getConsents)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getConsents),
+      // "GET",
+      // "/banks/BANK_ID/my/consents",
+      // "Get Consents",
+      // s"""
+         // |This endpoint gets the Consents that the current User created.
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |
+         // |1 limit (for pagination: defaults to 50)  eg:limit=200
+         // |
+         // |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         // |
+      // """.stripMargin,
+      // EmptyBody,
+      // consentsJsonV310,
+      // List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      // List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+      // None,
+      // http4sPartialFunction = Some(getConsents)
+    // )
 
     // ─── getPrivateAccountByIdFull ───────────────────────────────────────────
 
-    val getPrivateAccountByIdFull: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "account" =>
-        EndpointHelpers.withView(req) { (user, account, view, cc) =>
-          for {
-            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), Some(cc))
-            (accountAttributes, _) <- NewStyle.function.getAccountAttributesByAccount(
-              account.bankId, account.accountId, Some(cc))
-          } yield {
-            val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(
-              user, BankIdAccountId(account.bankId, account.accountId))
-            val viewsAvailable = availableViews.map(JSONFactory.createViewJSON).sortBy(_.short_name)
-            JSONFactory310.createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes)
-          }
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getPrivateAccountByIdFull: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "account" =>
+        // EndpointHelpers.withView(req) { (user, account, view, cc) =>
+          // for {
+            // moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), Some(cc))
+            // (accountAttributes, _) <- NewStyle.function.getAccountAttributesByAccount(
+              // account.bankId, account.accountId, Some(cc))
+          // } yield {
+            // val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(
+              // user, BankIdAccountId(account.bankId, account.accountId))
+            // val viewsAvailable = availableViews.map(JSONFactory.createViewJSON).sortBy(_.short_name)
+            // JSONFactory310.createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getPrivateAccountByIdFull),
-      "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
-      "Get Account by Id (Full)",
-      """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
-      |
-      |* Number
-      |* Owners
-      |* Type
-      |* Balance
-      |* IBAN
-      |* Available views (sorted by short_name)
-      |
-      |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
-      |
-      |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
-      |This call provides balance and other account information via delegated authentication using OAuth.
-      |
-      |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
-      |""".stripMargin,
-      EmptyBody,
-      moderatedAccountJSON310,
-      List(BankNotFound, AccountNotFound, ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      apiTagAccount :: Nil,
-      None,
-      http4sPartialFunction = Some(getPrivateAccountByIdFull)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getPrivateAccountByIdFull),
+      // "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+      // "Get Account by Id (Full)",
+      // """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+      // |
+      // |* Number
+      // |* Owners
+      // |* Type
+      // |* Balance
+      // |* IBAN
+      // |* Available views (sorted by short_name)
+      // |
+      // |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+      // |
+      // |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
+      // |This call provides balance and other account information via delegated authentication using OAuth.
+      // |
+      // |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+      // |""".stripMargin,
+      // EmptyBody,
+      // moderatedAccountJSON310,
+      // List(BankNotFound, AccountNotFound, ViewNotFound, UserNoPermissionAccessView, UnknownError),
+      // apiTagAccount :: Nil,
+      // None,
+      // http4sPartialFunction = Some(getPrivateAccountByIdFull)
+    // )
 
     // ─── getWebUiProps ───────────────────────────────────────────────────────
 
@@ -2159,26 +2172,27 @@ object Http4s310 {
 
     // ─── deleteSystemView ────────────────────────────────────────────────────
 
-    val deleteSystemView: Http4sRoute = Http4sRoute {
-      case req @ DELETE -> `prefixPath` / "system-views" / viewIdStr =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, canDeleteSystemView, Some(cc))
-            _ <- ViewNewStyle.systemView(ViewId(viewIdStr), Some(cc))
-            deleted <- ViewNewStyle.deleteSystemView(ViewId(viewIdStr), Some(cc))
-          } yield Full(deleted)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val deleteSystemView: Http4sRoute = Http4sRoute {
+      // case req @ DELETE -> `prefixPath` / "system-views" / viewIdStr =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, canDeleteSystemView, Some(cc))
+            // _ <- ViewNewStyle.systemView(ViewId(viewIdStr), Some(cc))
+            // deleted <- ViewNewStyle.deleteSystemView(ViewId(viewIdStr), Some(cc))
+          // } yield Full(deleted)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, "deleteSystemView", "DELETE",
-      "/system-views/SYS_VIEW_ID",
-      "Delete System View",
-      "Deletes the system view specified by VIEW_ID",
-      EmptyBody, EmptyBody,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "user does not have owner access"),
-      List(apiTagSystemView), Some(List(canDeleteSystemView)),
-      http4sPartialFunction = Some(deleteSystemView))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, "deleteSystemView", "DELETE",
+      // "/system-views/SYS_VIEW_ID",
+      // "Delete System View",
+      // "Deletes the system view specified by VIEW_ID",
+      // EmptyBody, EmptyBody,
+      // List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "user does not have owner access"),
+      // List(apiTagSystemView), Some(List(canDeleteSystemView)),
+      // http4sPartialFunction = Some(deleteSystemView))
 
     // ─── deleteMethodRouting ─────────────────────────────────────────────────
 
@@ -2474,93 +2488,95 @@ object Http4s310 {
 
     // ─── createUserAuthContext (POST) ────────────────────────────────────────
 
-    val createUserAuthContext: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "users" / userIdStr / "auth-context" =>
-        EndpointHelpers.withUserAndBodyCreated[PostUserAuthContextJson, Any](req) { (user, postedData, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, canCreateUserAuthContext, Some(cc))
-            (subjectUser, _) <- NewStyle.function.findByUserId(userIdStr, Some(cc))
-            (userAuthContext, _) <- NewStyle.function.createUserAuthContext(
-              subjectUser, postedData.key.trim, postedData.value.trim, Some(cc))
-          } yield JSONFactory310.createUserAuthContextJson(userAuthContext)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createUserAuthContext: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "users" / userIdStr / "auth-context" =>
+        // EndpointHelpers.withUserAndBodyCreated[PostUserAuthContextJson, Any](req) { (user, postedData, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, canCreateUserAuthContext, Some(cc))
+            // (subjectUser, _) <- NewStyle.function.findByUserId(userIdStr, Some(cc))
+            // (userAuthContext, _) <- NewStyle.function.createUserAuthContext(
+              // subjectUser, postedData.key.trim, postedData.value.trim, Some(cc))
+          // } yield JSONFactory310.createUserAuthContextJson(userAuthContext)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(createUserAuthContext),
-      "POST",
-      "/users/USER_ID/auth-context",
-      "Create User Auth Context",
-      s"""Create User Auth Context. These key value pairs will be propagated over connector to adapter. Normally used for mapping OBP user and
-      | Bank User/Customer.
-      |${userAuthenticationMessage(true)}
-      |""",
-      postUserAuthContextJson,
-      userAuthContextJson,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, CreateUserAuthContextError, UnknownError),
-      List(apiTagUser),
-      Some(List(canCreateUserAuthContext)),
-      http4sPartialFunction = Some(createUserAuthContext)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(createUserAuthContext),
+      // "POST",
+      // "/users/USER_ID/auth-context",
+      // "Create User Auth Context",
+      // s"""Create User Auth Context. These key value pairs will be propagated over connector to adapter. Normally used for mapping OBP user and
+      // | Bank User/Customer.
+      // |${userAuthenticationMessage(true)}
+      // |""",
+      // postUserAuthContextJson,
+      // userAuthContextJson,
+      // List(AuthenticatedUserIsRequired, InvalidJsonFormat, CreateUserAuthContextError, UnknownError),
+      // List(apiTagUser),
+      // Some(List(canCreateUserAuthContext)),
+      // http4sPartialFunction = Some(createUserAuthContext)
+    // )
 
     // ─── createProductAttribute (POST) ───────────────────────────────────────
 
-    val createProductAttribute: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attribute" =>
-        EndpointHelpers.withUserAndBodyCreated[ProductAttributeJson, Any](req) { (user, postedData, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canCreateProductAttribute, Some(cc))
-            (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
-            productAttributeType <- NewStyle.function.tryons(
-              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                AttributeTypeDocs.typesWithExamples,
-              400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
-            (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
-              BankId(bankIdStr), ProductCode(productCodeStr), None,
-              postedData.name, productAttributeType, postedData.value, None, Some(cc))
-          } yield createProductAttributeJson(productAttribute)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createProductAttribute: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attribute" =>
+        // EndpointHelpers.withUserAndBodyCreated[ProductAttributeJson, Any](req) { (user, postedData, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canCreateProductAttribute, Some(cc))
+            // (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+            // productAttributeType <- NewStyle.function.tryons(
+              // s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                // AttributeTypeDocs.typesWithExamples,
+              // 400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
+            // (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
+              // BankId(bankIdStr), ProductCode(productCodeStr), None,
+              // postedData.name, productAttributeType, postedData.value, None, Some(cc))
+          // } yield createProductAttributeJson(productAttribute)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(createProductAttribute),
-      "POST",
-      "/banks/BANK_ID/products/PRODUCT_CODE/attribute",
-      "Create Product Attribute",
-      s""" Create Product Attribute
-      |
-      |$productAttributeGeneralInfo
-      |
-      |Typical product attributes might be:
-      |
-      |ISIN (for International bonds)
-      |VKN (for German bonds)
-      |REDCODE (markit short code for credit derivative)
-      |LOAN_ID (e.g. used for Anacredit reporting)
-      |
-      |ISSUE_DATE (When the bond was issued in the market)
-      |MATURITY_DATE (End of life time of a product)
-      |TRADABLE
-      |
-      |See [FPML](http://www.fpml.org/) for more examples.
-      |
-      |
-      |${AttributeTypeDocs.typeFieldDescription}
-      |
-      |
-      |
-      |${userAuthenticationMessage(true)}
-      |
-      |""",
-      productAttributeJson,
-      productAttributeResponseJson,
-      List(InvalidJsonFormat, UnknownError),
-      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
-      Some(List(canCreateProductAttribute)),
-      http4sPartialFunction = Some(createProductAttribute)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(createProductAttribute),
+      // "POST",
+      // "/banks/BANK_ID/products/PRODUCT_CODE/attribute",
+      // "Create Product Attribute",
+      // s""" Create Product Attribute
+      // |
+      // |$productAttributeGeneralInfo
+      // |
+      // |Typical product attributes might be:
+      // |
+      // |ISIN (for International bonds)
+      // |VKN (for German bonds)
+      // |REDCODE (markit short code for credit derivative)
+      // |LOAN_ID (e.g. used for Anacredit reporting)
+      // |
+      // |ISSUE_DATE (When the bond was issued in the market)
+      // |MATURITY_DATE (End of life time of a product)
+      // |TRADABLE
+      // |
+      // |See [FPML](http://www.fpml.org/) for more examples.
+      // |
+      // |
+      // |${AttributeTypeDocs.typeFieldDescription}
+      // |
+      // |
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |""",
+      // productAttributeJson,
+      // productAttributeResponseJson,
+      // List(InvalidJsonFormat, UnknownError),
+      // List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
+      // Some(List(canCreateProductAttribute)),
+      // http4sPartialFunction = Some(createProductAttribute)
+    // )
 
     // ─── createAccountWebhook (POST) ─────────────────────────────────────────
 
@@ -2660,64 +2676,65 @@ object Http4s310 {
 
     // ─── callsLimit (PUT) ────────────────────────────────────────────────────
 
-    val callsLimit: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerIdStr / "consumer" / "call-limits" =>
-        EndpointHelpers.withUserAndBody[CallLimitPostJson, Any](req) { (user, postJson, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, canUpdateRateLimits, Some(cc))
-            _ <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
-            // The consumer's one rate limit is changed; with several, which one is meant is not known.
-            sameScope <- RateLimitingDI.rateLimiting.vend.countConsumerCallLimits(consumerIdStr, None, None, None)
-            _ <- code.util.Helper.booleanToFuture(RateLimitNotUnique, 400, Some(cc)) { sameScope <= 1 }
-            rateLimiting <- RateLimitingDI.rateLimiting.vend.createOrUpdateConsumerCallLimits(
-              consumerIdStr,
-              postJson.from_date,
-              postJson.to_date,
-              None, None, None,
-              Some(postJson.per_second_call_limit),
-              Some(postJson.per_minute_call_limit),
-              Some(postJson.per_hour_call_limit),
-              Some(postJson.per_day_call_limit),
-              Some(postJson.per_week_call_limit),
-              Some(postJson.per_month_call_limit)) map {
-              unboxFullOrFail(_, Some(cc), UpdateConsumerError)
-            }
-          } yield createCallsLimitJson(rateLimiting)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val callsLimit: Http4sRoute = Http4sRoute {
+      // case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerIdStr / "consumer" / "call-limits" =>
+        // EndpointHelpers.withUserAndBody[CallLimitPostJson, Any](req) { (user, postJson, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, canUpdateRateLimits, Some(cc))
+            // _ <- NewStyle.function.getConsumerByConsumerId(consumerIdStr, Some(cc))
+            // // The consumer's one rate limit is changed; with several, which one is meant is not known.
+            // sameScope <- RateLimitingDI.rateLimiting.vend.countConsumerCallLimits(consumerIdStr, None, None, None)
+            // _ <- code.util.Helper.booleanToFuture(RateLimitNotUnique, 400, Some(cc)) { sameScope <= 1 }
+            // rateLimiting <- RateLimitingDI.rateLimiting.vend.createOrUpdateConsumerCallLimits(
+              // consumerIdStr,
+              // postJson.from_date,
+              // postJson.to_date,
+              // None, None, None,
+              // Some(postJson.per_second_call_limit),
+              // Some(postJson.per_minute_call_limit),
+              // Some(postJson.per_hour_call_limit),
+              // Some(postJson.per_day_call_limit),
+              // Some(postJson.per_week_call_limit),
+              // Some(postJson.per_month_call_limit)) map {
+              // unboxFullOrFail(_, Some(cc), UpdateConsumerError)
+            // }
+          // } yield createCallsLimitJson(rateLimiting)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(callsLimit),
-      "PUT",
-      "/management/consumers/CONSUMER_ID/consumer/call-limits",
-      "Set Rate Limits (call limits) per Consumer",
-      s"""
-      |Set the API rate limiting (call limits) per Consumer:
-      |
-      |Rate limits can be set:
-      |
-      |Per Second
-      |Per Minute
-      |Per Hour
-      |Per Week
-      |Per Month
-      |
-      |This changes the Consumer's rate limit, or creates it when there is none. A Consumer given several rate limits
-      |with Create Rate Limits (v6.0.0) is refused with 400: change one of them by its RATE_LIMITING_ID instead.
-      |
-      |
-      |${userAuthenticationMessage(true)}
-      |
-      |""".stripMargin,
-      callLimitPostJson,
-      callLimitPostJson,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidConsumerId,
-      ConsumerNotFoundByConsumerId, RateLimitNotUnique, UserHasMissingRoles, UpdateConsumerError, UnknownError),
-      List(apiTagConsumer),
-      Some(List(canUpdateRateLimits)),
-      http4sPartialFunction = Some(callsLimit)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(callsLimit),
+      // "PUT",
+      // "/management/consumers/CONSUMER_ID/consumer/call-limits",
+      // "Set Rate Limits (call limits) per Consumer",
+      // s"""
+      // |Set the API rate limiting (call limits) per Consumer:
+      // |
+      // |Rate limits can be set:
+      // |
+      // |Per Second
+      // |Per Minute
+      // |Per Hour
+      // |Per Week
+      // |Per Month
+      // |
+      // |This changes the Consumer's rate limit, or creates it when there is none. A Consumer given several rate limits
+      // |with Create Rate Limits (v6.0.0) is refused with 400: change one of them by its RATE_LIMITING_ID instead.
+      // |
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |""".stripMargin,
+      // callLimitPostJson,
+      // callLimitPostJson,
+      // List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidConsumerId,
+      // ConsumerNotFoundByConsumerId, RateLimitNotUnique, UserHasMissingRoles, UpdateConsumerError, UnknownError),
+      // List(apiTagConsumer),
+      // Some(List(canUpdateRateLimits)),
+      // http4sPartialFunction = Some(callsLimit)
+    // )
 
     // ─── enableDisableAccountWebhook (PUT) ───────────────────────────────────
 
@@ -2791,90 +2808,92 @@ object Http4s310 {
 
     // ─── updateSystemView (PUT) ──────────────────────────────────────────────
 
-    val updateSystemView: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "system-views" / viewIdStr =>
-        EndpointHelpers.withUserAndBody[UpdateViewJSON, Any](req) { (user, updateJson, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, canUpdateSystemView, Some(cc))
-            _ <- code.util.Helper.booleanToFuture(SystemViewCannotBePublicError, failCode = 400, cc = Some(cc)) {
-              updateJson.is_public == false
-            }
-            _ <- ViewNewStyle.systemView(ViewId(viewIdStr), Some(cc))
-            updatedView <- ViewNewStyle.updateSystemView(ViewId(viewIdStr), updateJson, Some(cc))
-          } yield JSONFactory310.createViewJSON(updatedView)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val updateSystemView: Http4sRoute = Http4sRoute {
+      // case req @ PUT -> `prefixPath` / "system-views" / viewIdStr =>
+        // EndpointHelpers.withUserAndBody[UpdateViewJSON, Any](req) { (user, updateJson, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, canUpdateSystemView, Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(SystemViewCannotBePublicError, failCode = 400, cc = Some(cc)) {
+              // updateJson.is_public == false
+            // }
+            // _ <- ViewNewStyle.systemView(ViewId(viewIdStr), Some(cc))
+            // updatedView <- ViewNewStyle.updateSystemView(ViewId(viewIdStr), updateJson, Some(cc))
+          // } yield JSONFactory310.createViewJSON(updatedView)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(updateSystemView),
-      "PUT",
-      "/system-views/SYS_VIEW_ID",
-      "Update System View",
-      s"""Update an existing view on a bank account
-      |
-      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
-      |
-      |The json sent is the same as during view creation (above), with one difference: the 'name' field
-      |of a view is not editable (it is only set when a view is created)""",
-      updateSystemViewJson310,
-      viewJsonV300,
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
-      List(apiTagSystemView),
-      Some(List(canUpdateSystemView)),
-      http4sPartialFunction = Some(updateSystemView)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(updateSystemView),
+      // "PUT",
+      // "/system-views/SYS_VIEW_ID",
+      // "Update System View",
+      // s"""Update an existing view on a bank account
+      // |
+      // |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
+      // |
+      // |The json sent is the same as during view creation (above), with one difference: the 'name' field
+      // |of a view is not editable (it is only set when a view is created)""",
+      // updateSystemViewJson310,
+      // viewJsonV300,
+      // List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
+      // List(apiTagSystemView),
+      // Some(List(canUpdateSystemView)),
+      // http4sPartialFunction = Some(updateSystemView)
+    // )
 
     // ─── updateProductAttribute (PUT) ────────────────────────────────────────
 
-    val updateProductAttribute: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attributes" / productAttributeIdStr =>
-        EndpointHelpers.withUserAndBody[ProductAttributeJson, Any](req) { (user, postedData, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canUpdateProductAttribute, Some(cc))
-            (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
-            productAttributeType <- NewStyle.function.tryons(
-              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
-                AttributeTypeDocs.typesWithExamples,
-              400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
-            // keep the existing attribute so it can be checked against the path
-            (existingAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
-            // the attribute must belong to the bank and product in the path, else a role at one bank overwrites and moves any bank's attribute
-            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
-              existingAttribute.bankId.value == bankIdStr &&
-                existingAttribute.productCode.value == productCodeStr
-            }
-            (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
-              BankId(bankIdStr), ProductCode(productCodeStr), Some(productAttributeIdStr),
-              postedData.name, productAttributeType, postedData.value, None, Some(cc))
-          } yield createProductAttributeJson(productAttribute)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val updateProductAttribute: Http4sRoute = Http4sRoute {
+      // case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attributes" / productAttributeIdStr =>
+        // EndpointHelpers.withUserAndBody[ProductAttributeJson, Any](req) { (user, postedData, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canUpdateProductAttribute, Some(cc))
+            // (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+            // productAttributeType <- NewStyle.function.tryons(
+              // s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                // AttributeTypeDocs.typesWithExamples,
+              // 400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
+            // // keep the existing attribute so it can be checked against the path
+            // (existingAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // // the attribute must belong to the bank and product in the path, else a role at one bank overwrites and moves any bank's attribute
+            // _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              // existingAttribute.bankId.value == bankIdStr &&
+                // existingAttribute.productCode.value == productCodeStr
+            // }
+            // (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
+              // BankId(bankIdStr), ProductCode(productCodeStr), Some(productAttributeIdStr),
+              // postedData.name, productAttributeType, postedData.value, None, Some(cc))
+          // } yield createProductAttributeJson(productAttribute)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(updateProductAttribute),
-      "PUT",
-      "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
-      "Update Product Attribute",
-      s""" Update Product Attribute.
-      |
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(updateProductAttribute),
+      // "PUT",
+      // "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
+      // "Update Product Attribute",
+      // s""" Update Product Attribute.
+      // |
 
-      |$productAttributeGeneralInfo
-      |
-      |Update one Product Attribute by its id.
-      |
-      |${userAuthenticationMessage(true)}
-      |
-      |""",
-      productAttributeJson,
-      productAttributeResponseJson,
-      // ProductAttributeNotFound: the attribute is not at the bank and product in the path
-      List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
-      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
-      Some(List(canUpdateProductAttribute)),
-      http4sPartialFunction = Some(updateProductAttribute)
-    )
+      // |$productAttributeGeneralInfo
+      // |
+      // |Update one Product Attribute by its id.
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |""",
+      // productAttributeJson,
+      // productAttributeResponseJson,
+      // // ProductAttributeNotFound: the attribute is not at the bank and product in the path
+      // List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
+      // List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
+      // Some(List(canUpdateProductAttribute)),
+      // http4sPartialFunction = Some(updateProductAttribute)
+    // )
 
     // ─── updateCustomerEmail (PUT) ───────────────────────────────────────────
 
@@ -3239,64 +3258,65 @@ object Http4s310 {
 
     // ─── createCustomer (POST) ───────────────────────────────────────────────
 
-    val createCustomer: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / _ / "customers" =>
-        EndpointHelpers.withUserAndBankAndBodyCreated[PostCustomerJsonV310, Any](req) { (user, bank, postedData, cc) =>
-          for {
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(bank.bankId.value, user.userId,
-              canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil, Some(cc))
-            _ <- code.util.Helper.booleanToFuture(
-              failMsg = InvalidJsonContent + s" The field dependants(${postedData.dependants}) not equal the length(${postedData.dob_of_dependants.length}) of dob_of_dependants array",
-              cc = Some(cc)) {
-              postedData.dependants == postedData.dob_of_dependants.length
-            }
-            (customer, _) <- NewStyle.function.createCustomer(
-              bank.bankId,
-              postedData.legal_name,
-              postedData.mobile_phone_number,
-              postedData.email,
-              CustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
-              postedData.date_of_birth,
-              postedData.relationship_status,
-              postedData.dependants,
-              postedData.dob_of_dependants,
-              postedData.highest_education_attained,
-              postedData.employment_status,
-              postedData.kyc_status,
-              postedData.last_ok_date,
-              Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
-              Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount)),
-              postedData.title,
-              postedData.branch_id,
-              postedData.name_suffix,
-              Some(cc))
-          } yield JSONFactory310.createCustomerJson(customer)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createCustomer: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / _ / "customers" =>
+        // EndpointHelpers.withUserAndBankAndBodyCreated[PostCustomerJsonV310, Any](req) { (user, bank, postedData, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasAtLeastOneEntitlement(bank.bankId.value, user.userId,
+              // canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil, Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(
+              // failMsg = InvalidJsonContent + s" The field dependants(${postedData.dependants}) not equal the length(${postedData.dob_of_dependants.length}) of dob_of_dependants array",
+              // cc = Some(cc)) {
+              // postedData.dependants == postedData.dob_of_dependants.length
+            // }
+            // (customer, _) <- NewStyle.function.createCustomer(
+              // bank.bankId,
+              // postedData.legal_name,
+              // postedData.mobile_phone_number,
+              // postedData.email,
+              // CustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
+              // postedData.date_of_birth,
+              // postedData.relationship_status,
+              // postedData.dependants,
+              // postedData.dob_of_dependants,
+              // postedData.highest_education_attained,
+              // postedData.employment_status,
+              // postedData.kyc_status,
+              // postedData.last_ok_date,
+              // Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
+              // Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount)),
+              // postedData.title,
+              // postedData.branch_id,
+              // postedData.name_suffix,
+              // Some(cc))
+          // } yield JSONFactory310.createCustomerJson(customer)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(createCustomer),
-      "POST",
-      "/banks/BANK_ID/customers",
-      "Create Customer",
-      s"""
-      |The Customer resource stores the customer number (which is set by the backend), legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
-      |Dates need to be in the format 2013-01-21T23:08:00Z
-      |
-      |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.
-      |
-      |${userAuthenticationMessage(true)}
-      |""",
-      postCustomerJsonV310,
-      customerJsonV310,
-      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
-      CustomerNumberAlreadyExists, UserNotFoundById, CustomerAlreadyExistsForUser,
-      CreateCustomerError, UnknownError),
-      List(apiTagCustomer, apiTagPerson),
-      Some(List(canCreateCustomer, canCreateCustomerAtAnyBank)),
-      http4sPartialFunction = Some(createCustomer)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(createCustomer),
+      // "POST",
+      // "/banks/BANK_ID/customers",
+      // "Create Customer",
+      // s"""
+      // |The Customer resource stores the customer number (which is set by the backend), legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+      // |Dates need to be in the format 2013-01-21T23:08:00Z
+      // |
+      // |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |""",
+      // postCustomerJsonV310,
+      // customerJsonV310,
+      // List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
+      // CustomerNumberAlreadyExists, UserNotFoundById, CustomerAlreadyExistsForUser,
+      // CreateCustomerError, UnknownError),
+      // List(apiTagCustomer, apiTagPerson),
+      // Some(List(canCreateCustomer, canCreateCustomerAtAnyBank)),
+      // http4sPartialFunction = Some(createCustomer)
+    // )
 
     // ─── getCustomerByCustomerNumber (POST → 200) ────────────────────────────
 
@@ -3559,53 +3579,54 @@ object Http4s310 {
 
     // ─── createSystemView (POST) ─────────────────────────────────────────────
 
-    val createSystemView: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "system-views" =>
-        EndpointHelpers.withUserAndBodyCreated[CreateViewJsonV300, Any](req) { (user, createViewJson, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, canCreateSystemView, Some(cc))
-            _ <- code.util.Helper.booleanToFuture(
-              failMsg = InvalidSystemViewFormat + s"Current view_name (${createViewJson.name})",
-              cc = Some(cc)) { isValidSystemViewName(createViewJson.name) }
-            _ <- code.util.Helper.booleanToFuture(SystemViewCannotBePublicError, failCode = 400, cc = Some(cc)) {
-              createViewJson.is_public == false
-            }
-            view <- ViewNewStyle.createSystemView(createViewJson.toCreateViewJson, Some(cc))
-          } yield JSONFactory310.createViewJSON(view)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createSystemView: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "system-views" =>
+        // EndpointHelpers.withUserAndBodyCreated[CreateViewJsonV300, Any](req) { (user, createViewJson, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, canCreateSystemView, Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(
+              // failMsg = InvalidSystemViewFormat + s"Current view_name (${createViewJson.name})",
+              // cc = Some(cc)) { isValidSystemViewName(createViewJson.name) }
+            // _ <- code.util.Helper.booleanToFuture(SystemViewCannotBePublicError, failCode = 400, cc = Some(cc)) {
+              // createViewJson.is_public == false
+            // }
+            // view <- ViewNewStyle.createSystemView(createViewJson.toCreateViewJson, Some(cc))
+          // } yield JSONFactory310.createViewJSON(view)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(createSystemView),
-      "POST",
-      "/system-views",
-      "Create System View",
-      s"""Create a system view
-      |
-      | ${userAuthenticationMessage(true)} and the user needs to have access to the $canCreateSystemView entitlement.
-      | The 'alias' field in the JSON can take one of two values:
-      |
-      | * _public_: to use the public alias if there is one specified for the other account.
-      | * _private_: to use the private alias if there is one specified for the other account.
-      |
-      | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
-      |
-      | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
-      |
-      | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
-      |
-      | The 'metadata_view' field determines where metadata (comments, tags, images, where tags) for transactions are stored and retrieved. If set to another view's ID (e.g. 'owner'), metadata added through this view will be shared with all other views that also use the same metadata_view value. If left empty, metadata is stored under this view's own ID and is not shared with other views.
-      |
-      | Please note that system views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
-      | """,
-      SwaggerDefinitionsJSON.createSystemViewJsonV300,
-      viewJsonV300,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-      List(apiTagSystemView),
-      Some(List(canCreateSystemView)),
-      http4sPartialFunction = Some(createSystemView)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(createSystemView),
+      // "POST",
+      // "/system-views",
+      // "Create System View",
+      // s"""Create a system view
+      // |
+      // | ${userAuthenticationMessage(true)} and the user needs to have access to the $canCreateSystemView entitlement.
+      // | The 'alias' field in the JSON can take one of two values:
+      // |
+      // | * _public_: to use the public alias if there is one specified for the other account.
+      // | * _private_: to use the private alias if there is one specified for the other account.
+      // |
+      // | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+      // |
+      // | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+      // |
+      // | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+      // |
+      // | The 'metadata_view' field determines where metadata (comments, tags, images, where tags) for transactions are stored and retrieved. If set to another view's ID (e.g. 'owner'), metadata added through this view will be shared with all other views that also use the same metadata_view value. If left empty, metadata is stored under this view's own ID and is not shared with other views.
+      // |
+      // | Please note that system views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
+      // | """,
+      // SwaggerDefinitionsJSON.createSystemViewJsonV300,
+      // viewJsonV300,
+      // List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      // List(apiTagSystemView),
+      // Some(List(canCreateSystemView)),
+      // http4sPartialFunction = Some(createSystemView)
+    // )
 
     // ─── createProductCollection (PUT — "Create or Update") ──────────────────
 
@@ -3665,83 +3686,84 @@ object Http4s310 {
 
     // ─── addCardForBank (POST) ───────────────────────────────────────────────
 
-    val addCardForBank: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "management" / "banks" / _ / "cards" =>
-        EndpointHelpers.withUserAndBankAndBodyCreated[CreatePhysicalCardJsonV310, Any](req) { (user, bank, postJson, cc) =>
-          for {
-            _ <- postJson.allows match {
-              case List() => Future.successful(true)
-              case _ => code.util.Helper.booleanToFuture(
-                AllowedValuesAre + CardAction.availableValues.mkString(", "), cc = Some(cc)) {
-                postJson.allows.forall(a => CardAction.availableValues.contains(a))
-              }
-            }
-            cardReplacementReason <- NewStyle.function.tryons(
-              AllowedValuesAre + CardReplacementReason.availableValues.mkString(", "), 400, Some(cc)) {
-              postJson.replacement match {
-                case Some(value) => CardReplacementReason.valueOf(value.reason_requested)
-                case None => CardReplacementReason.valueOf(CardReplacementReason.FIRST.toString)
-              }
-            }
-            _ <- code.util.Helper.booleanToFuture(
-              s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}",
-              cc = Some(cc)) { postJson.issue_number.length <= 10 }
-            _ <- code.util.Helper.booleanToFuture(
-              s"$UserHasMissingRoles${ApiRole.canCreateCardsForBank}",
-              failCode = 403, cc = Some(cc)) {
-              APIUtil.hasEntitlement(bank.bankId.value, user.userId, ApiRole.canCreateCardsForBank)
-            }
-            (_, _) <- NewStyle.function.getBankAccount(bank.bankId, AccountId(postJson.account_id), Some(cc))
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, Some(cc))
-            replacement = postJson.replacement.map(r =>
-              CardReplacementInfo(requestedDate = r.requested_date, cardReplacementReason))
-            collected = postJson.collected.map(c => CardCollectionInfo(c))
-            posted = postJson.posted.map(p => CardPostedInfo(p))
-            (card, _) <- NewStyle.function.createPhysicalCard(
-              bankCardNumber = postJson.card_number,
-              nameOnCard = postJson.name_on_card,
-              cardType = postJson.card_type,
-              issueNumber = postJson.issue_number,
-              serialNumber = postJson.serial_number,
-              validFrom = postJson.valid_from_date,
-              expires = postJson.expires_date,
-              enabled = postJson.enabled,
-              cancelled = false,
-              onHotList = false,
-              technology = postJson.technology,
-              networks = postJson.networks,
-              allows = postJson.allows,
-              accountId = postJson.account_id,
-              bankId = bank.bankId.value,
-              replacement = replacement,
-              pinResets = postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
-              collected = collected,
-              posted = posted,
-              customerId = postJson.customer_id,
-              cvv = "",
-              brand = "",
-              callContext = Some(cc))
-          } yield createPhysicalCardJson(card, user)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val addCardForBank: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "management" / "banks" / _ / "cards" =>
+        // EndpointHelpers.withUserAndBankAndBodyCreated[CreatePhysicalCardJsonV310, Any](req) { (user, bank, postJson, cc) =>
+          // for {
+            // _ <- postJson.allows match {
+              // case List() => Future.successful(true)
+              // case _ => code.util.Helper.booleanToFuture(
+                // AllowedValuesAre + CardAction.availableValues.mkString(", "), cc = Some(cc)) {
+                // postJson.allows.forall(a => CardAction.availableValues.contains(a))
+              // }
+            // }
+            // cardReplacementReason <- NewStyle.function.tryons(
+              // AllowedValuesAre + CardReplacementReason.availableValues.mkString(", "), 400, Some(cc)) {
+              // postJson.replacement match {
+                // case Some(value) => CardReplacementReason.valueOf(value.reason_requested)
+                // case None => CardReplacementReason.valueOf(CardReplacementReason.FIRST.toString)
+              // }
+            // }
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"${maximumLimitExceeded.replace("10000", "10")} Current issue_number is ${postJson.issue_number}",
+              // cc = Some(cc)) { postJson.issue_number.length <= 10 }
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$UserHasMissingRoles${ApiRole.canCreateCardsForBank}",
+              // failCode = 403, cc = Some(cc)) {
+              // APIUtil.hasEntitlement(bank.bankId.value, user.userId, ApiRole.canCreateCardsForBank)
+            // }
+            // (_, _) <- NewStyle.function.getBankAccount(bank.bankId, AccountId(postJson.account_id), Some(cc))
+            // (_, _) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, Some(cc))
+            // replacement = postJson.replacement.map(r =>
+              // CardReplacementInfo(requestedDate = r.requested_date, cardReplacementReason))
+            // collected = postJson.collected.map(c => CardCollectionInfo(c))
+            // posted = postJson.posted.map(p => CardPostedInfo(p))
+            // (card, _) <- NewStyle.function.createPhysicalCard(
+              // bankCardNumber = postJson.card_number,
+              // nameOnCard = postJson.name_on_card,
+              // cardType = postJson.card_type,
+              // issueNumber = postJson.issue_number,
+              // serialNumber = postJson.serial_number,
+              // validFrom = postJson.valid_from_date,
+              // expires = postJson.expires_date,
+              // enabled = postJson.enabled,
+              // cancelled = false,
+              // onHotList = false,
+              // technology = postJson.technology,
+              // networks = postJson.networks,
+              // allows = postJson.allows,
+              // accountId = postJson.account_id,
+              // bankId = bank.bankId.value,
+              // replacement = replacement,
+              // pinResets = postJson.pin_reset.map(e => PinResetInfo(e.requested_date, PinResetReason.valueOf(e.reason_requested.toUpperCase))),
+              // collected = collected,
+              // posted = posted,
+              // customerId = postJson.customer_id,
+              // cvv = "",
+              // brand = "",
+              // callContext = Some(cc))
+          // } yield createPhysicalCardJson(card, user)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(addCardForBank),
-      "POST",
-      "/management/banks/BANK_ID/cards",
-      "Create Card",
-      s"""Create Card at bank specified by BANK_ID .
-      |
-      |${userAuthenticationMessage(true)}
-      |""",
-      createPhysicalCardJsonV310,
-      physicalCardJsonV310,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, AllowedValuesAre, UnknownError),
-      List(apiTagCard),
-      None,
-      http4sPartialFunction = Some(addCardForBank)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(addCardForBank),
+      // "POST",
+      // "/management/banks/BANK_ID/cards",
+      // "Create Card",
+      // s"""Create Card at bank specified by BANK_ID .
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |""",
+      // createPhysicalCardJsonV310,
+      // physicalCardJsonV310,
+      // List(AuthenticatedUserIsRequired, UserHasMissingRoles, AllowedValuesAre, UnknownError),
+      // List(apiTagCard),
+      // None,
+      // http4sPartialFunction = Some(addCardForBank)
+    // )
 
     // ─── updatedCardForBank (PUT) ────────────────────────────────────────────
 
@@ -3998,83 +4020,85 @@ object Http4s310 {
 
     // ─── createUserAuthContextUpdateRequest (POST) ───────────────────────────
 
-    val createUserAuthContextUpdateRequest: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / _ / "users" / "current" / "auth-context-updates" / scaMethod =>
-        EndpointHelpers.withUserAndBankAndBodyCreated[PostUserAuthContextJson, Any](req) { (user, bank, postedData, cc) =>
-          for {
-            _ <- NewStyle.function.checkCanRequestUserAuthContextUpdate(bank.bankId, user, Some(cc))
-            _ <- code.util.Helper.booleanToFuture(UserAuthContextUpdateRequestAllowedScaMethods, cc = Some(cc)) {
-              List(StrongCustomerAuthentication.SMS.toString, StrongCustomerAuthentication.EMAIL.toString).contains(scaMethod)
-            }
-            (userAuthContextUpdate, _) <- NewStyle.function.validateUserAuthContextUpdateRequest(
-              bank.bankId.value, user.userId, postedData.key, postedData.value, scaMethod, Some(cc))
-          } yield JSONFactory310.createUserAuthContextUpdateJson(userAuthContextUpdate)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createUserAuthContextUpdateRequest: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / _ / "users" / "current" / "auth-context-updates" / scaMethod =>
+        // EndpointHelpers.withUserAndBankAndBodyCreated[PostUserAuthContextJson, Any](req) { (user, bank, postedData, cc) =>
+          // for {
+            // _ <- NewStyle.function.checkCanRequestUserAuthContextUpdate(bank.bankId, user, Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(UserAuthContextUpdateRequestAllowedScaMethods, cc = Some(cc)) {
+              // List(StrongCustomerAuthentication.SMS.toString, StrongCustomerAuthentication.EMAIL.toString).contains(scaMethod)
+            // }
+            // (userAuthContextUpdate, _) <- NewStyle.function.validateUserAuthContextUpdateRequest(
+              // bank.bankId.value, user.userId, postedData.key, postedData.value, scaMethod, Some(cc))
+          // } yield JSONFactory310.createUserAuthContextUpdateJson(userAuthContextUpdate)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(createUserAuthContextUpdateRequest),
-      "POST",
-      "/banks/BANK_ID/users/current/auth-context-updates/SCA_METHOD",
-      "Create User Auth Context Update Request",
-      s"""Create User Auth Context Update Request.
-      |${userAuthenticationMessage(true)}
-      |
-      |A User uses this to prove that they are a Customer of the bank BANK_ID, for example by naming their CUSTOMER_NUMBER.
-      |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the Customer's own contact details,
-      |via the transport defined in SCA_METHOD, and the User then answers it with Answer User Auth Context Update Challenge.
-      |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
-      |
-      |Because this sends a message to a Customer of the bank, the request must come either from an App (Consumer) that has
-      |the Scope ${canCreateUserAuthContextUpdate} at BANK_ID, or from a User that has the Role ${canCreateUserAuthContextUpdate} at BANK_ID.
-      |Either one is enough. A Scope is granted with Create Scope for a Consumer (POST /consumers/CONSUMER_ID/scopes).
-      |
-      |""",
-      postUserAuthContextJson,
-      userAuthContextUpdateJson,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, ConsumerHasMissingRoles, CreateUserAuthContextError, UnknownError),
-      List(apiTagUser),
-      None,
-      http4sPartialFunction = Some(createUserAuthContextUpdateRequest)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(createUserAuthContextUpdateRequest),
+      // "POST",
+      // "/banks/BANK_ID/users/current/auth-context-updates/SCA_METHOD",
+      // "Create User Auth Context Update Request",
+      // s"""Create User Auth Context Update Request.
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |A User uses this to prove that they are a Customer of the bank BANK_ID, for example by naming their CUSTOMER_NUMBER.
+      // |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the Customer's own contact details,
+      // |via the transport defined in SCA_METHOD, and the User then answers it with Answer User Auth Context Update Challenge.
+      // |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
+      // |
+      // |Because this sends a message to a Customer of the bank, the request must come either from an App (Consumer) that has
+      // |the Scope ${canCreateUserAuthContextUpdate} at BANK_ID, or from a User that has the Role ${canCreateUserAuthContextUpdate} at BANK_ID.
+      // |Either one is enough. A Scope is granted with Create Scope for a Consumer (POST /consumers/CONSUMER_ID/scopes).
+      // |
+      // |""",
+      // postUserAuthContextJson,
+      // userAuthContextUpdateJson,
+      // List(AuthenticatedUserIsRequired, InvalidJsonFormat, ConsumerHasMissingRoles, CreateUserAuthContextError, UnknownError),
+      // List(apiTagUser),
+      // None,
+      // http4sPartialFunction = Some(createUserAuthContextUpdateRequest)
+    // )
 
     // ─── answerUserAuthContextUpdateChallenge (POST → 200) ───────────────────
 
-    val answerUserAuthContextUpdateChallenge: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "users" / "current" / "auth-context-updates" / authContextUpdateIdStr / "challenge" =>
-        EndpointHelpers.executeFutureWithBody[PostUserAuthContextUpdateJsonV310, Any](req) { (postBody, cc) =>
-          for {
-            (userAuthContextUpdate, _) <- NewStyle.function.answerUserAuthContextUpdateChallenge(
-              BankId(bankIdStr), authContextUpdateIdStr, postBody.answer,
-              cc.user.openOrThrowException(AuthenticatedUserIsRequired), Some(cc))
-          } yield createUserAuthContextUpdateJson(userAuthContextUpdate)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val answerUserAuthContextUpdateChallenge: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / bankIdStr / "users" / "current" / "auth-context-updates" / authContextUpdateIdStr / "challenge" =>
+        // EndpointHelpers.executeFutureWithBody[PostUserAuthContextUpdateJsonV310, Any](req) { (postBody, cc) =>
+          // for {
+            // (userAuthContextUpdate, _) <- NewStyle.function.answerUserAuthContextUpdateChallenge(
+              // BankId(bankIdStr), authContextUpdateIdStr, postBody.answer,
+              // cc.user.openOrThrowException(AuthenticatedUserIsRequired), Some(cc))
+          // } yield createUserAuthContextUpdateJson(userAuthContextUpdate)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(answerUserAuthContextUpdateChallenge),
-      "POST",
-      "/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
-      "Answer Auth Context Update Challenge",
-      s"""
-      |Answer Auth Context Update Challenge.
-      |
-      |Only the User who requested the update can answer it, and only at the bank (BANK_ID) it was requested at.
-      |An update of another User or another bank is reported as not found, and its challenge is not used up.
-      |
-      |A right answer sets the status to ACCEPTED and adds the User Auth Context. For the key CUSTOMER_NUMBER it also
-      |links the User to the Customer with that number at the bank. A wrong answer sets the status to REJECTED and
-      |changes nothing else.
-      |""",
-      PostUserAuthContextUpdateJsonV310(answer = "12345678"),
-      userAuthContextUpdateJson,
-      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, UserAuthContextUpdateNotFound, InvalidConnectorResponse, UnknownError),
-      apiTagUser :: Nil,
-      None,
-      http4sPartialFunction = Some(answerUserAuthContextUpdateChallenge)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(answerUserAuthContextUpdateChallenge),
+      // "POST",
+      // "/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
+      // "Answer Auth Context Update Challenge",
+      // s"""
+      // |Answer Auth Context Update Challenge.
+      // |
+      // |Only the User who requested the update can answer it, and only at the bank (BANK_ID) it was requested at.
+      // |An update of another User or another bank is reported as not found, and its challenge is not used up.
+      // |
+      // |A right answer sets the status to ACCEPTED and adds the User Auth Context. For the key CUSTOMER_NUMBER it also
+      // |links the User to the Customer with that number at the bank. A wrong answer sets the status to REJECTED and
+      // |changes nothing else.
+      // |""",
+      // PostUserAuthContextUpdateJsonV310(answer = "12345678"),
+      // userAuthContextUpdateJson,
+      // List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, UserAuthContextUpdateNotFound, InvalidConnectorResponse, UnknownError),
+      // apiTagUser :: Nil,
+      // None,
+      // http4sPartialFunction = Some(answerUserAuthContextUpdateChallenge)
+    // )
 
     // ─── refreshUser (POST) ──────────────────────────────────────────────────
 
@@ -4117,63 +4141,64 @@ object Http4s310 {
 
     // ─── createProduct (PUT — "Create or Update") ────────────────────────────
 
-    val createProduct: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
-        EndpointHelpers.withUserAndBankAndBodyCreated[PostPutProductJsonV310, Any](req) { (user, bank, product, cc) =>
-          for {
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(
-              bank.bankId.value, user.userId, createProductEntitlements, Some(cc))
-            (parentProduct, _) <- product.parent_product_code.trim.nonEmpty match {
-              case false => Future((Empty, Some(cc)))
-              case true =>
-                NewStyle.function.getProduct(bank.bankId, ProductCode(product.parent_product_code), Some(cc))
-                  .map(p => (Full(p._1), Some(cc)))
-            }
-            (success, _) <- NewStyle.function.createOrUpdateProduct(
-              bankId = bank.bankId.value,
-              code = productCodeStr,
-              parentProductCode = parentProduct.map(_.code.value).toOption,
-              name = product.name,
-              category = product.category,
-              family = product.family,
-              superFamily = product.super_family,
-              moreInfoUrl = product.more_info_url,
-              termsAndConditionsUrl = null,
-              details = product.details,
-              description = product.description,
-              metaLicenceId = product.meta.license.id,
-              metaLicenceName = product.meta.license.name,
-              Some(cc))
-          } yield JSONFactory310.createProductJson(success)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createProduct: Http4sRoute = Http4sRoute {
+      // case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
+        // EndpointHelpers.withUserAndBankAndBodyCreated[PostPutProductJsonV310, Any](req) { (user, bank, product, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(
+              // bank.bankId.value, user.userId, createProductEntitlements, Some(cc))
+            // (parentProduct, _) <- product.parent_product_code.trim.nonEmpty match {
+              // case false => Future((Empty, Some(cc)))
+              // case true =>
+                // NewStyle.function.getProduct(bank.bankId, ProductCode(product.parent_product_code), Some(cc))
+                  // .map(p => (Full(p._1), Some(cc)))
+            // }
+            // (success, _) <- NewStyle.function.createOrUpdateProduct(
+              // bankId = bank.bankId.value,
+              // code = productCodeStr,
+              // parentProductCode = parentProduct.map(_.code.value).toOption,
+              // name = product.name,
+              // category = product.category,
+              // family = product.family,
+              // superFamily = product.super_family,
+              // moreInfoUrl = product.more_info_url,
+              // termsAndConditionsUrl = null,
+              // details = product.details,
+              // description = product.description,
+              // metaLicenceId = product.meta.license.id,
+              // metaLicenceName = product.meta.license.name,
+              // Some(cc))
+          // } yield JSONFactory310.createProductJson(success)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, "createProduct", "PUT",
-      "/banks/BANK_ID/products/PRODUCT_CODE",
-      "Create Product",
-      s"""Create or Update Product for the Bank.
-      |
-      |
-      |Typical Super Family values / Asset classes are:
-      |
-      |Debt
-      |Equity
-      |FX
-      |Commodity
-      |Derivative
-      |
-      |$productHiearchyAndCollectionNote
-      |
-      |
-      |${userAuthenticationMessage(true) }
-      |
-      |
-      |""",
-      postPutProductJsonV310, productJsonV310,
-      List(AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
-      List(apiTagProduct), Some(List(canCreateProduct, canCreateProductAtAnyBank)),
-      http4sPartialFunction = Some(createProduct))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, "createProduct", "PUT",
+      // "/banks/BANK_ID/products/PRODUCT_CODE",
+      // "Create Product",
+      // s"""Create or Update Product for the Bank.
+      // |
+      // |
+      // |Typical Super Family values / Asset classes are:
+      // |
+      // |Debt
+      // |Equity
+      // |FX
+      // |Commodity
+      // |Derivative
+      // |
+      // |$productHiearchyAndCollectionNote
+      // |
+      // |
+      // |${userAuthenticationMessage(true) }
+      // |
+      // |
+      // |""",
+      // postPutProductJsonV310, productJsonV310,
+      // List(AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
+      // List(apiTagProduct), Some(List(canCreateProduct, canCreateProductAtAnyBank)),
+      // http4sPartialFunction = Some(createProduct))
 
     // ─── createMethodRouting (POST) ──────────────────────────────────────────
 
@@ -4427,92 +4452,93 @@ object Http4s310 {
     // (403 on missing). booleanToFuture is used to enforce 403, matching CLAUDE.md
     // guidance for conditional roles.
 
-    val createAccount: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr =>
-        EndpointHelpers.withUserAndBankAndBodyCreated[CreateAccountRequestJsonV310, Any](req) { (user, bank, body, cc) =>
-          for {
-            (accountBox, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, AccountId(accountIdStr), Some(cc))
-            _ <- code.util.Helper.booleanToFuture(AccountIdAlreadyExists, cc = Some(cc)) { accountBox.isEmpty }
-            loggedInUserId = user.userId
-            // Implicit owner resolves to the HUMAN: under a Consent the caller is the
-            // per-consent shadow, and an account held by it strands when the consent dies.
-            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.onBehalfOfUserId
-            _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountIdStr) }
-            _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bankIdStr) }
-            (accountOwner, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
-            // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
-            _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
-              failCode = 400, cc = Some(cc))(!accountOwner.isConsentUser)
-            _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
-                 else code.util.Helper.booleanToFuture(
-                   s"$UserHasMissingRoles $canCreateAccount or create account for self",
-                   failCode = 403, cc = Some(cc)) {
-                   APIUtil.hasEntitlement(bank.bankId.value, loggedInUserId, canCreateAccount)
-                 }
-            initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, Some(cc)) {
-              BigDecimal(body.balance.amount)
-            }
-            _ <- code.util.Helper.booleanToFuture(InitialBalanceMustBeZero, cc = Some(cc)) { 0 == initialBalanceAsNumber }
-            _ <- code.util.Helper.booleanToFuture(InvalidISOCurrencyCode, cc = Some(cc)) {
-              isValidCurrencyISOCode(body.balance.currency)
-            }
-            _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme",
-              failCode = 400, cc = Some(cc)) {
-              body.account_routings.map(_.scheme).distinct.size == body.account_routings.size
-            }
-            alreadyExistAccountRoutings <- Future.sequence(body.account_routings.map(ar =>
-              NewStyle.function.getAccountRouting(Some(bank.bankId), ar.scheme, ar.address, Some(cc))
-                .map(_ => Some(ar)).fallbackTo(Future.successful(None))
-            ))
-            alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
-              case Some(ar) => s"bankId: ${bank.bankId}, scheme: ${ar.scheme}, address: ${ar.address}"
-            }
-            _ <- code.util.Helper.booleanToFuture(
-              s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})",
-              cc = Some(cc)) { alreadyExistingAccountRouting.isEmpty }
-            (bankAccount, _) <- NewStyle.function.createBankAccount(
-              bank.bankId, AccountId(accountIdStr),
-              body.product_code, body.label, body.balance.currency, initialBalanceAsNumber,
-              accountOwner.name, body.branch_id,
-              body.account_routings.map(r => AccountRouting(r.scheme, r.address)),
-              Some(cc))
-            (productAttributes, _) <- NewStyle.function.getProductAttributesByBankAndCode(
-              bank.bankId, ProductCode(body.product_code), Some(cc))
-            (accountAttributes, _) <- NewStyle.function.createAccountAttributes(
-              bank.bankId, AccountId(accountIdStr), ProductCode(body.product_code),
-              productAttributes, None, Some(cc))
-            _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(
-              bank.bankId, AccountId(accountIdStr), accountOwner, Some(cc))
-          } yield JSONFactory310.createAccountJSON(userIdAccountOwner, bankAccount, accountAttributes)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createAccount: Http4sRoute = Http4sRoute {
+      // case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr =>
+        // EndpointHelpers.withUserAndBankAndBodyCreated[CreateAccountRequestJsonV310, Any](req) { (user, bank, body, cc) =>
+          // for {
+            // (accountBox, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, AccountId(accountIdStr), Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(AccountIdAlreadyExists, cc = Some(cc)) { accountBox.isEmpty }
+            // loggedInUserId = user.userId
+            // // Implicit owner resolves to the HUMAN: under a Consent the caller is the
+            // // per-consent shadow, and an account held by it strands when the consent dies.
+            // userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.onBehalfOfUserId
+            // _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountIdStr) }
+            // _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bankIdStr) }
+            // (accountOwner, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
+            // // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+              // failCode = 400, cc = Some(cc))(!accountOwner.isConsentUser)
+            // _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
+                 // else code.util.Helper.booleanToFuture(
+                   // s"$UserHasMissingRoles $canCreateAccount or create account for self",
+                   // failCode = 403, cc = Some(cc)) {
+                   // APIUtil.hasEntitlement(bank.bankId.value, loggedInUserId, canCreateAccount)
+                 // }
+            // initialBalanceAsNumber <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, Some(cc)) {
+              // BigDecimal(body.balance.amount)
+            // }
+            // _ <- code.util.Helper.booleanToFuture(InitialBalanceMustBeZero, cc = Some(cc)) { 0 == initialBalanceAsNumber }
+            // _ <- code.util.Helper.booleanToFuture(InvalidISOCurrencyCode, cc = Some(cc)) {
+              // isValidCurrencyISOCode(body.balance.currency)
+            // }
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme",
+              // failCode = 400, cc = Some(cc)) {
+              // body.account_routings.map(_.scheme).distinct.size == body.account_routings.size
+            // }
+            // alreadyExistAccountRoutings <- Future.sequence(body.account_routings.map(ar =>
+              // NewStyle.function.getAccountRouting(Some(bank.bankId), ar.scheme, ar.address, Some(cc))
+                // .map(_ => Some(ar)).fallbackTo(Future.successful(None))
+            // ))
+            // alreadyExistingAccountRouting = alreadyExistAccountRoutings.collect {
+              // case Some(ar) => s"bankId: ${bank.bankId}, scheme: ${ar.scheme}, address: ${ar.address}"
+            // }
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$AccountRoutingAlreadyExist (${alreadyExistingAccountRouting.mkString("; ")})",
+              // cc = Some(cc)) { alreadyExistingAccountRouting.isEmpty }
+            // (bankAccount, _) <- NewStyle.function.createBankAccount(
+              // bank.bankId, AccountId(accountIdStr),
+              // body.product_code, body.label, body.balance.currency, initialBalanceAsNumber,
+              // accountOwner.name, body.branch_id,
+              // body.account_routings.map(r => AccountRouting(r.scheme, r.address)),
+              // Some(cc))
+            // (productAttributes, _) <- NewStyle.function.getProductAttributesByBankAndCode(
+              // bank.bankId, ProductCode(body.product_code), Some(cc))
+            // (accountAttributes, _) <- NewStyle.function.createAccountAttributes(
+              // bank.bankId, AccountId(accountIdStr), ProductCode(body.product_code),
+              // productAttributes, None, Some(cc))
+            // _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(
+              // bank.bankId, AccountId(accountIdStr), accountOwner, Some(cc))
+          // } yield JSONFactory310.createAccountJSON(userIdAccountOwner, bankAccount, accountAttributes)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, "createAccount", "PUT",
-      "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
-      "Create Account",
-      """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
-      |
-      |The User can create an Account for themself  - or -  the User that has the USER_ID specified in the POST body.
-      |
-      |If the PUT body USER_ID *is* specified, the logged in user must have the Role canCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
-      |
-      |If the PUT body USER_ID is *not* specified, the account will be owned by the logged in User.
-      |
-      |The 'product_code' field SHOULD be a product_code from Product.
-      |If the 'product_code' matches a product_code from Product, account attributes will be created that match the Product Attributes.
-      |
-      |Note: The Amount MUST be zero.""".stripMargin,
-      createAccountRequestJsonV310, createAccountResponseJsonV310,
-      List(InvalidJsonFormat, BankNotFound, AuthenticatedUserIsRequired,
-        InvalidUserId, InvalidAccountIdFormat, InvalidBankIdFormat,
-        UserNotFoundById, UserHasMissingRoles, InvalidAccountBalanceAmount,
-        InvalidAccountInitialBalance, InitialBalanceMustBeZero,
-        InvalidAccountBalanceCurrency, AccountIdAlreadyExists, UnknownError),
-      List(apiTagAccount, apiTagOnboarding), None,
-      http4sPartialFunction = Some(createAccount))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, "createAccount", "PUT",
+      // "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
+      // "Create Account",
+      // """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
+      // |
+      // |The User can create an Account for themself  - or -  the User that has the USER_ID specified in the POST body.
+      // |
+      // |If the PUT body USER_ID *is* specified, the logged in user must have the Role canCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
+      // |
+      // |If the PUT body USER_ID is *not* specified, the account will be owned by the logged in User.
+      // |
+      // |The 'product_code' field SHOULD be a product_code from Product.
+      // |If the 'product_code' matches a product_code from Product, account attributes will be created that match the Product Attributes.
+      // |
+      // |Note: The Amount MUST be zero.""".stripMargin,
+      // createAccountRequestJsonV310, createAccountResponseJsonV310,
+      // List(InvalidJsonFormat, BankNotFound, AuthenticatedUserIsRequired,
+        // InvalidUserId, InvalidAccountIdFormat, InvalidBankIdFormat,
+        // UserNotFoundById, UserHasMissingRoles, InvalidAccountBalanceAmount,
+        // InvalidAccountInitialBalance, InitialBalanceMustBeZero,
+        // InvalidAccountBalanceCurrency, AccountIdAlreadyExists, UnknownError),
+      // List(apiTagAccount, apiTagOnboarding), None,
+      // http4sPartialFunction = Some(createAccount))
 
     // ─── createConsent (POST) ────────────────────────────────────────────────
 
@@ -5167,7 +5193,7 @@ object Http4s310 {
     // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given the docs in this same order.
     lazy val routesInOrder: List[Http4sHandler] = List(
-      root,
+      // root,
       getCheckbookOrders,
       getStatusOfCreditCardOrder,
       getTopAPIs,
@@ -5175,19 +5201,19 @@ object Http4s310 {
       getFirehoseCustomers,
       getBadLoginStatus,
       getCallsLimit,
-      getConsumer,
+      // getConsumer,
       getConsumersForCurrentUser,
-      getConsumers,
+      // getConsumers,
       getAccountWebhooks,
       config,
-      getAdapterInfo,
+      // getAdapterInfo,
       getRateLimitingInfo,
       getCustomerByCustomerId,
-      getUserAuthContexts,
+      // getUserAuthContexts,
       getTaxResidence,
       getAllEntitlements,
       getCustomerAddresses,
-      getProductAttribute,
+      // getProductAttribute,
       getAccountApplications,
       getAccountApplication,
       getMeetings,
@@ -5195,19 +5221,19 @@ object Http4s310 {
       getServerJWK,
       getOAuth2ServerJWKsURIs,
       getMethodRoutings,
-      getSystemView,
+      // getSystemView,
       getCardsForBank,
       getCardForBank,
-      getBankAccountsBalances,
+      // getBankAccountsBalances,
       checkFundsAvailable,
       getTransactionByIdForBankAccount,
-      getTransactionRequests,
-      getProduct,
+      // getTransactionRequests,
+      // getProduct,
       getProductTree,
-      getProducts,
+      // getProducts,
       getProductCollection,
-      getConsents,
-      getPrivateAccountByIdFull,
+      // getConsents,
+      // getPrivateAccountByIdFull,
       getWebUiProps,
       deleteUserAuthContexts,
       deleteUserAuthContextById,
@@ -5215,7 +5241,7 @@ object Http4s310 {
       deleteCustomerAddress,
       deleteProductAttribute,
       deleteBranch,
-      deleteSystemView,
+      // deleteSystemView,
       deleteMethodRouting,
       deleteCardForBank,
       deleteWebUiProps,
@@ -5223,15 +5249,15 @@ object Http4s310 {
       createTaxResidence,
       createCustomerAddress,
       updateCustomerAddress,
-      createUserAuthContext,
-      createProductAttribute,
+      // createUserAuthContext,
+      // createProductAttribute,
       createAccountWebhook,
       unlockUser,
-      callsLimit,
+      // callsLimit,
       enableDisableAccountWebhook,
       enableDisableConsumers,
-      updateSystemView,
-      updateProductAttribute,
+      // updateSystemView,
+      // updateProductAttribute,
       updateCustomerEmail,
       updateCustomerNumber,
       updateCustomerMobileNumber,
@@ -5241,27 +5267,27 @@ object Http4s310 {
       updateCustomerBranch,
       updateCustomerData,
       updateAccountApplicationStatus,
-      createCustomer,
+      // createCustomer,
       getCustomerByCustomerNumber,
       createAccountApplication,
       createAccountAttribute,
       updateAccountAttribute,
       createMeeting,
-      createSystemView,
+      // createSystemView,
       createProductCollection,
-      addCardForBank,
+      // addCardForBank,
       updatedCardForBank,
       createCardAttribute,
       updateCardAttribute,
       createWebUiProps,
-      createUserAuthContextUpdateRequest,
-      answerUserAuthContextUpdateChallenge,
+      // createUserAuthContextUpdateRequest,
+      // answerUserAuthContextUpdateChallenge,
       refreshUser,
-      createProduct,
+      // createProduct,
       createMethodRouting,
       updateMethodRouting,
       updateAccount,
-      createAccount,
+      // createAccount,
       createConsent,
       answerConsentChallenge,
       saveHistoricalTransaction,

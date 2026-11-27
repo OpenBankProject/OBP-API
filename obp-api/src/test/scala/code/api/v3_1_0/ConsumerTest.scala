@@ -46,9 +46,9 @@ class ConsumerTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getConsumer))
+  object ApiEndpoint1 extends Tag("getConsumer")
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getConsumersForCurrentUser))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getConsumers))
+  object ApiEndpoint3 extends Tag("getConsumers")
   feature("Get Consumer by CONSUMER_ID - v3.1.0")
   {
     scenario("We will Get Consumer by CONSUMER_ID without a proper Role " + canGetConsumers, ApiEndpoint1, VersionOfApi) {
