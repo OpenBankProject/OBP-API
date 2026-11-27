@@ -59,7 +59,7 @@ class CustomerAttributesTest extends V400ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.updateCustomerAttribute))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getCustomerAttributes))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getCustomerAttributeById))
-  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getCustomersByAttributes))
+  object ApiEndpoint5 extends Tag("getCustomersByAttributes")
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.deleteCustomerAttribute))
   
 

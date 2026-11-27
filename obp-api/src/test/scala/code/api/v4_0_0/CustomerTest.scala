@@ -66,7 +66,7 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.getCustomersAtAnyBank))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getCustomersMinimalAtAnyBank))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.createCustomer))
+  object ApiEndpoint3 extends Tag("createCustomer")
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getCustomersByCustomerPhoneNumber))
 
   val customerNumberJson = PostCustomerNumberJsonV310(customer_number = "123")

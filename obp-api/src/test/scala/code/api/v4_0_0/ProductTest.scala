@@ -58,9 +58,9 @@ class ProductTest extends V400ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createProduct))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getProduct))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getProducts))
+  object ApiEndpoint1 extends Tag("createProduct")
+  object ApiEndpoint2 extends Tag("getProduct")
+  object ApiEndpoint3 extends Tag("getProducts")
 
   lazy val testBankId = randomBankId
   lazy val parentPutProductJsonV400: PutProductJsonV400 = SwaggerDefinitionsJSON.putProductJsonV400.copy(parent_product_code ="")

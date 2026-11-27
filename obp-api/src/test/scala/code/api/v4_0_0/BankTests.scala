@@ -64,7 +64,7 @@ class BankTests extends V400ServerSetup with DefaultUsers {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createBank))
+  object ApiEndpoint1 extends Tag("createBank")
 
   feature("Assuring that endpoint createBank works as expected - v4.0.0") {
 

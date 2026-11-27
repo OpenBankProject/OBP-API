@@ -51,16 +51,16 @@ class AtmsTest extends V400ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.updateAtmSupportedCurrencies))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.createAtm))
+  object ApiEndpoint2 extends Tag("createAtm")
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.updateAtmSupportedLanguages))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.updateAtmAccessibilityFeatures))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.updateAtmServices))
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.updateAtmNotes))
   object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.updateAtmLocationCategories))
-  object ApiEndpoint8 extends Tag(nameOf(Implementations4_0_0.updateAtm))
-  object ApiEndpoint9 extends Tag(nameOf(Implementations4_0_0.getAtm))
-  object ApiEndpoint10 extends Tag(nameOf(Implementations4_0_0.getAtms))
-  object ApiEndpoint11 extends Tag(nameOf(Implementations4_0_0.deleteAtm))
+  object ApiEndpoint8 extends Tag("updateAtm")
+  object ApiEndpoint9 extends Tag("getAtm")
+  object ApiEndpoint10 extends Tag("getAtms")
+  object ApiEndpoint11 extends Tag("deleteAtm")
 
   val bankId = testBankId1;
   val postAtmJson = SwaggerDefinitionsJSON.atmJsonV400.copy(bank_id= testBankId1.value)

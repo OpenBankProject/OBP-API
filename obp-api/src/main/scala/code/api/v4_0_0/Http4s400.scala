@@ -306,67 +306,69 @@ object Http4s400 {
     // ─── getBanks ─────────────────────────────────────────────────────────────
     // v4.0.0 overrides v3.x getBanks — v4 uses createBanksJson which adds attributes.
 
-    lazy val getBanks: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
-          for {
-            (banks, _) <- NewStyle.function.getBanks(Some(cc))
-          } yield JSONFactory400.createBanksJson(banks)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val getBanks: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" =>
+        // EndpointHelpers.executeAndRespond(req) { cc =>
+          // for {
+            // (banks, _) <- NewStyle.function.getBanks(Some(cc))
+          // } yield JSONFactory400.createBanksJson(banks)
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getBanks),
-      "GET",
-      "/banks",
-      "Get Banks",
-      """Get banks on this API instance
-      |Returns a list of banks supported on this server:
-      |
-      |* ID used as parameter in URLs
-      |* Short and full name of bank
-      |* Logo URL
-      |* Website""",
-      EmptyBody,
-      banksJSON400,
-      List(UnknownError),
-      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
-      None,
-      http4sPartialFunction = Some(getBanks)
-    )
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getBanks),
+      // "GET",
+      // "/banks",
+      // "Get Banks",
+      // """Get banks on this API instance
+      // |Returns a list of banks supported on this server:
+      // |
+      // |* ID used as parameter in URLs
+      // |* Short and full name of bank
+      // |* Logo URL
+      // |* Website""",
+      // EmptyBody,
+      // banksJSON400,
+      // List(UnknownError),
+      // apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      // None,
+      // http4sPartialFunction = Some(getBanks)
+    // )
 
     // ─── getBank ──────────────────────────────────────────────────────────────
     // v4.0.0 overrides v3.x getBank — v4 includes bank attributes.
 
-    lazy val getBank: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ =>
-        EndpointHelpers.withBank(req) { (bank, cc) =>
-          for {
-            (attributes, _) <- NewStyle.function.getBankAttributesByBank(bank.bankId, Some(cc))
-          } yield JSONFactory400.createBankJSON400(bank, attributes)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val getBank: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ =>
+        // EndpointHelpers.withBank(req) { (bank, cc) =>
+          // for {
+            // (attributes, _) <- NewStyle.function.getBankAttributesByBank(bank.bankId, Some(cc))
+          // } yield JSONFactory400.createBankJSON400(bank, attributes)
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getBank),
-      "GET",
-      "/banks/BANK_ID",
-      "Get Bank",
-      """Get the bank specified by BANK_ID
-      |Returns information about a single bank specified by BANK_ID including:
-      |
-      |* Short and full name of bank
-      |* Logo URL
-      |* Website""",
-      EmptyBody,
-      bankJson400,
-      List(UnknownError, BankNotFound),
-      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
-      None,
-      http4sPartialFunction = Some(getBank)
-    )
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getBank),
+      // "GET",
+      // "/banks/BANK_ID",
+      // "Get Bank",
+      // """Get the bank specified by BANK_ID
+      // |Returns information about a single bank specified by BANK_ID including:
+      // |
+      // |* Short and full name of bank
+      // |* Logo URL
+      // |* Website""",
+      // EmptyBody,
+      // bankJson400,
+      // List(UnknownError, BankNotFound),
+      // apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      // None,
+      // http4sPartialFunction = Some(getBank)
+    // )
 
     // ─── ibanChecker (POST → 200) ─────────────────────────────────────────────
 
@@ -471,460 +473,468 @@ object Http4s400 {
     // Must live in Http4s400's own routes so the bridge cascade can't hijack POST /banks
     // down to Http4s220 (which has its own v2.2.0 createBank — different behavior).
 
-    lazy val createBank: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" =>
-        EndpointHelpers.executeFutureCreated(req) {
-          implicit val cc: CallContext = req.callContext
-          for {
-            bank <- NewStyle.function.tryons(
-              s"$InvalidJsonFormat The Json body should be the $BankJson400 ", 400, Some(cc)) {
-              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[BankJson400]
-            }
-            _ <- code.util.Helper.booleanToFuture(
-              failMsg = InvalidConsumerCredentials, cc = Some(cc)) {
-              cc.consumer.isDefined
-            }
-            shortStringCheck = APIUtil.checkShortString(bank.id)
-            _ <- code.util.Helper.booleanToFuture(
-              failMsg = s"$shortStringCheck.", cc = Some(cc)) {
-              shortStringCheck == code.util.Helper.SILENCE_IS_GOLDEN
-            }
-            _ <- code.util.Helper.booleanToFuture(
-              failMsg = s"$InvalidJsonFormat Min length of BANK_ID should be greater than 3 characters.",
-              cc = Some(cc)) { bank.id.length > 3 }
-            _ <- code.util.Helper.booleanToFuture(
-              failMsg = s"$InvalidJsonFormat BANK_ID can not contain space characters",
-              cc = Some(cc)) { !bank.id.contains(" ") }
-            _ <- code.util.Helper.booleanToFuture(
-              failMsg = s"$InvalidJsonFormat BANK_ID can not contain `::::` characters",
-              cc = Some(cc)) { !APIUtil.`checkIfContains::::`(bank.id) }
-            // Refuse an existing BANK_ID (as v5.0.0 / v6.0.0 do): createOrUpdateBank would overwrite that
-            // bank and the grants below would make the caller entitlement admin at a bank they did not create.
-            (banks, _) <- NewStyle.function.getBanks(Some(cc))
-            _ <- code.util.Helper.booleanToFuture(
-              failMsg = bankIdAlreadyExists, cc = Some(cc)) {
-              !banks.exists(_.bankId.value == bank.id)
-            }
-            (success, _) <- NewStyle.function.createOrUpdateBank(
-              bank.id, bank.full_name, bank.short_name, bank.logo, bank.website,
-              bank.bank_routings.find(_.scheme == "BIC").map(_.address).getOrElse(""),
-              "",
-              bank.bank_routings.filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
-              bank.bank_routings.filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
-              Some(cc))
-            // Creator grants target the HUMAN (as v5.0.0 / v6.0.0 do): under a Consent the
-            // authenticated user is a per-consent shadow, and roles granted to it are stranded.
-            humanUserId = cc.onBehalfOfUserId
-            entitlements <- NewStyle.function.getEntitlementsByUserId(humanUserId, Some(cc))
-            entitlementsByBank = entitlements.filter(_.bankId == bank.id)
-            _ <- entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString()) match {
-              case true  => Future.successful(())
-              // grant to the human, recording the authenticated caller as the granter
-              case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                bank.id, humanUserId, CanCreateEntitlementAtOneBank.toString(),
-                grantedByUserId = Some(cc.userId)))
-            }
-            _ <- entitlementsByBank.exists(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()) match {
-              case true  => Future.successful(())
-              // grant to the human, recording the authenticated caller as the granter
-              case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                bank.id, humanUserId, CanReadDynamicResourceDocsAtOneBank.toString(),
-                grantedByUserId = Some(cc.userId)))
-            }
-          } yield JSONFactory400.createBankJSON400(success)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val createBank: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" =>
+        // EndpointHelpers.executeFutureCreated(req) {
+          // implicit val cc: CallContext = req.callContext
+          // for {
+            // bank <- NewStyle.function.tryons(
+              // s"$InvalidJsonFormat The Json body should be the $BankJson400 ", 400, Some(cc)) {
+              // com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[BankJson400]
+            // }
+            // _ <- code.util.Helper.booleanToFuture(
+              // failMsg = InvalidConsumerCredentials, cc = Some(cc)) {
+              // cc.consumer.isDefined
+            // }
+            // shortStringCheck = APIUtil.checkShortString(bank.id)
+            // _ <- code.util.Helper.booleanToFuture(
+              // failMsg = s"$shortStringCheck.", cc = Some(cc)) {
+              // shortStringCheck == code.util.Helper.SILENCE_IS_GOLDEN
+            // }
+            // _ <- code.util.Helper.booleanToFuture(
+              // failMsg = s"$InvalidJsonFormat Min length of BANK_ID should be greater than 3 characters.",
+              // cc = Some(cc)) { bank.id.length > 3 }
+            // _ <- code.util.Helper.booleanToFuture(
+              // failMsg = s"$InvalidJsonFormat BANK_ID can not contain space characters",
+              // cc = Some(cc)) { !bank.id.contains(" ") }
+            // _ <- code.util.Helper.booleanToFuture(
+              // failMsg = s"$InvalidJsonFormat BANK_ID can not contain `::::` characters",
+              // cc = Some(cc)) { !APIUtil.`checkIfContains::::`(bank.id) }
+            // // Refuse an existing BANK_ID (as v5.0.0 / v6.0.0 do): createOrUpdateBank would overwrite that
+            // // bank and the grants below would make the caller entitlement admin at a bank they did not create.
+            // (banks, _) <- NewStyle.function.getBanks(Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(
+              // failMsg = bankIdAlreadyExists, cc = Some(cc)) {
+              // !banks.exists(_.bankId.value == bank.id)
+            // }
+            // (success, _) <- NewStyle.function.createOrUpdateBank(
+              // bank.id, bank.full_name, bank.short_name, bank.logo, bank.website,
+              // bank.bank_routings.find(_.scheme == "BIC").map(_.address).getOrElse(""),
+              // "",
+              // bank.bank_routings.filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
+              // bank.bank_routings.filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
+              // Some(cc))
+            // // Creator grants target the HUMAN (as v5.0.0 / v6.0.0 do): under a Consent the
+            // // authenticated user is a per-consent shadow, and roles granted to it are stranded.
+            // humanUserId = cc.onBehalfOfUserId
+            // entitlements <- NewStyle.function.getEntitlementsByUserId(humanUserId, Some(cc))
+            // entitlementsByBank = entitlements.filter(_.bankId == bank.id)
+            // _ <- entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString()) match {
+              // case true  => Future.successful(())
+              // // grant to the human, recording the authenticated caller as the granter
+              // case false => Future(Entitlement.entitlement.vend.addEntitlement(
+                // bank.id, humanUserId, CanCreateEntitlementAtOneBank.toString(),
+                // grantedByUserId = Some(cc.userId)))
+            // }
+            // _ <- entitlementsByBank.exists(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()) match {
+              // case true  => Future.successful(())
+              // // grant to the human, recording the authenticated caller as the granter
+              // case false => Future(Entitlement.entitlement.vend.addEntitlement(
+                // bank.id, humanUserId, CanReadDynamicResourceDocsAtOneBank.toString(),
+                // grantedByUserId = Some(cc.userId)))
+            // }
+          // } yield JSONFactory400.createBankJSON400(success)
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion, "createBank", "POST",
-      "/banks",
-      "Create Bank",
-      s"""Create a new bank (Authenticated access).
-      |
-      |The user creating this will be automatically assigned the Role CanCreateEntitlementAtOneBank.
-      |Thus the User can manage the bank they create and assign Roles to other Users.
-      |
-      |Only SANDBOX mode (i.e. when connector=mapped in properties file)
-      |The settlement accounts are automatically created by the system when the bank is created.
-      |Name and account id are created in accordance to the next rules:
-      |  - Incoming account (name: Default incoming settlement account, Account ID: OBP_DEFAULT_INCOMING_ACCOUNT_ID, currency: EUR)
-      |  - Outgoing account (name: Default outgoing settlement account, Account ID: OBP_DEFAULT_OUTGOING_ACCOUNT_ID, currency: EUR)
-      |
-      |""",
-      postBankJson400, bankJson400,
-      List(
-        InvalidJsonFormat,
-        $AuthenticatedUserIsRequired,
-        InsufficientAuthorisationToCreateBank,
-        bankIdAlreadyExists, // the BANK_ID in the body is already taken (400)
-        UnknownError
-      ),
-      List(apiTagBank),
-      Some(List(canCreateBank)),
-      http4sPartialFunction = Some(createBank))
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion, "createBank", "POST",
+      // "/banks",
+      // "Create Bank",
+      // s"""Create a new bank (Authenticated access).
+      // |
+      // |The user creating this will be automatically assigned the Role CanCreateEntitlementAtOneBank.
+      // |Thus the User can manage the bank they create and assign Roles to other Users.
+      // |
+      // |Only SANDBOX mode (i.e. when connector=mapped in properties file)
+      // |The settlement accounts are automatically created by the system when the bank is created.
+      // |Name and account id are created in accordance to the next rules:
+      // |  - Incoming account (name: Default incoming settlement account, Account ID: OBP_DEFAULT_INCOMING_ACCOUNT_ID, currency: EUR)
+      // |  - Outgoing account (name: Default outgoing settlement account, Account ID: OBP_DEFAULT_OUTGOING_ACCOUNT_ID, currency: EUR)
+      // |
+      // |""",
+      // postBankJson400, bankJson400,
+      // List(
+        // InvalidJsonFormat,
+        // $AuthenticatedUserIsRequired,
+        // InsufficientAuthorisationToCreateBank,
+        // bankIdAlreadyExists, // the BANK_ID in the body is already taken (400)
+        // UnknownError
+      // ),
+      // List(apiTagBank),
+      // Some(List(canCreateBank)),
+      // http4sPartialFunction = Some(createBank))
 
     // ─── root (GET) — v4 override of v3.1.0's /root ──────────────────────────
 
-    lazy val root: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory400.getApiInfoJSON(
-            ApiVersion.v4_0_0, versionStatus))
-        }
-      case req @ GET -> `prefixPath` / "root" =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory400.getApiInfoJSON(
-            ApiVersion.v4_0_0, versionStatus))
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val root: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory400.getApiInfoJSON(
+            // ApiVersion.v4_0_0, versionStatus))
+        // }
+      // case req @ GET -> `prefixPath` / "root" =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory400.getApiInfoJSON(
+            // ApiVersion.v4_0_0, versionStatus))
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(root),
-      "GET",
-      "/root",
-      "Get API Info (root)",
-      """Returns information about:
-      |
-      |* API version
-      |* Hosted by information
-      |* Hosted at information
-      |* Energy source information
-      |* Git Commit""",
-      EmptyBody,
-      apiInfoJson400,
-      List(UnknownError, MandatoryPropertyIsNotSet),
-      apiTagApi :: Nil,
-      None,
-      http4sPartialFunction = Some(root)
-    )
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(root),
+      // "GET",
+      // "/root",
+      // "Get API Info (root)",
+      // """Returns information about:
+      // |
+      // |* API version
+      // |* Hosted by information
+      // |* Hosted at information
+      // |* Energy source information
+      // |* Git Commit""",
+      // EmptyBody,
+      // apiInfoJson400,
+      // List(UnknownError, MandatoryPropertyIsNotSet),
+      // apiTagApi :: Nil,
+      // None,
+      // http4sPartialFunction = Some(root)
+    // )
 
     // ─── getAtms (GET) — v4 override; conditional auth via getAtmsIsPublic ───
 
-    lazy val getAtms: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "atms" =>
-        EndpointHelpers.withBank(req) { (bank, cc) =>
-          val limit = req.uri.query.params.get("limit").map(Full(_)).getOrElse(net.liftweb.common.Empty)
-          val offset = req.uri.query.params.get("offset").map(Full(_)).getOrElse(net.liftweb.common.Empty)
-          for {
-            // with apiOptions.getAtmsIsPublic=false the ATM list needs a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read it
-            _ <- if (!getAtmsIsPublic)
-                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
-                 else Future.unit
-            _ <- code.util.Helper.booleanToFuture(
-              failMsg = s"$InvalidNumber limit:${limit.getOrElse("")}", cc = Some(cc)) {
-              limit match {
-                case Full(i) => i.forall(_.isDigit)
-                case _       => true
-              }
-            }
-            _ <- code.util.Helper.booleanToFuture(failMsg = maximumLimitExceeded, cc = Some(cc)) {
-              limit match {
-                case Full(i) if i.toInt > 10000 => false
-                case _                          => true
-              }
-            }
-            (atms, _) <- NewStyle.function.getAtmsByBankId(bank.bankId, offset, limit, Some(cc))
-          } yield JSONFactory400.createAtmsJsonV400(atms)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val getAtms: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "atms" =>
+        // EndpointHelpers.withBank(req) { (bank, cc) =>
+          // val limit = req.uri.query.params.get("limit").map(Full(_)).getOrElse(net.liftweb.common.Empty)
+          // val offset = req.uri.query.params.get("offset").map(Full(_)).getOrElse(net.liftweb.common.Empty)
+          // for {
+            // // with apiOptions.getAtmsIsPublic=false the ATM list needs a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read it
+            // _ <- if (!getAtmsIsPublic)
+                   // code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 // else Future.unit
+            // _ <- code.util.Helper.booleanToFuture(
+              // failMsg = s"$InvalidNumber limit:${limit.getOrElse("")}", cc = Some(cc)) {
+              // limit match {
+                // case Full(i) => i.forall(_.isDigit)
+                // case _       => true
+              // }
+            // }
+            // _ <- code.util.Helper.booleanToFuture(failMsg = maximumLimitExceeded, cc = Some(cc)) {
+              // limit match {
+                // case Full(i) if i.toInt > 10000 => false
+                // case _                          => true
+              // }
+            // }
+            // (atms, _) <- NewStyle.function.getAtmsByBankId(bank.bankId, offset, limit, Some(cc))
+          // } yield JSONFactory400.createAtmsJsonV400(atms)
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getAtms),
-      "GET",
-      "/banks/BANK_ID/atms",
-      "Get Bank ATMS",
-      s"""Returns information about ATMs for a single bank specified by BANK_ID including:
-      |
-      |* Address
-      |* Geo Location
-      |* License the data under this endpoint is released under
-      |
-      |Pagination:
-      |
-      |By default, 100 records are returned.
-      |
-      |You can use the url query parameters *limit* and *offset* for pagination
-      |
-      |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
-      EmptyBody,
-      atmsJsonV400,
-      List(
-        $AuthenticatedUserIsRequired, // 401 when apiOptions.getAtmsIsPublic=false and no user; dropped from the list while ATMs are public
-        $BankNotFound,
-        UnknownError
-      ),
-      List(apiTagATM),
-      None,
-      http4sPartialFunction = Some(getAtms)
-    )
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getAtms),
+      // "GET",
+      // "/banks/BANK_ID/atms",
+      // "Get Bank ATMS",
+      // s"""Returns information about ATMs for a single bank specified by BANK_ID including:
+      // |
+      // |* Address
+      // |* Geo Location
+      // |* License the data under this endpoint is released under
+      // |
+      // |Pagination:
+      // |
+      // |By default, 100 records are returned.
+      // |
+      // |You can use the url query parameters *limit* and *offset* for pagination
+      // |
+      // |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
+      // EmptyBody,
+      // atmsJsonV400,
+      // List(
+        // $AuthenticatedUserIsRequired, // 401 when apiOptions.getAtmsIsPublic=false and no user; dropped from the list while ATMs are public
+        // $BankNotFound,
+        // UnknownError
+      // ),
+      // List(apiTagATM),
+      // None,
+      // http4sPartialFunction = Some(getAtms)
+    // )
 
     // ─── getAtm (GET) — v4 override; conditional auth ────────────────────────
 
-    lazy val getAtm: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "atms" / atmIdStr =>
-        EndpointHelpers.withBank(req) { (bank, cc) =>
-          for {
-            (atm, _) <- NewStyle.function.getAtm(bank.bankId, AtmId(atmIdStr), Some(cc))
-          } yield JSONFactory400.createAtmJsonV400(atm)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val getAtm: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "atms" / atmIdStr =>
+        // EndpointHelpers.withBank(req) { (bank, cc) =>
+          // for {
+            // (atm, _) <- NewStyle.function.getAtm(bank.bankId, AtmId(atmIdStr), Some(cc))
+          // } yield JSONFactory400.createAtmJsonV400(atm)
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getAtm),
-      "GET",
-      "/banks/BANK_ID/atms/ATM_ID",
-      "Get Bank ATM",
-      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
-      |
-      |* Address
-      |* Geo Location
-      |* License the data under this endpoint is released under
-      |${userAuthenticationMessage(!getAtmsIsPublic)}
-      |""".stripMargin,
-      EmptyBody,
-      atmJsonV400,
-      List(
-        $AuthenticatedUserIsRequired,
-        InvalidJsonFormat,
-        UnknownError
-      ),
-      List(apiTagATM),
-      None,
-      http4sPartialFunction = Some(getAtm)
-    )
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getAtm),
+      // "GET",
+      // "/banks/BANK_ID/atms/ATM_ID",
+      // "Get Bank ATM",
+      // s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
+      // |
+      // |* Address
+      // |* Geo Location
+      // |* License the data under this endpoint is released under
+      // |${userAuthenticationMessage(!getAtmsIsPublic)}
+      // |""".stripMargin,
+      // EmptyBody,
+      // atmJsonV400,
+      // List(
+        // $AuthenticatedUserIsRequired,
+        // InvalidJsonFormat,
+        // UnknownError
+      // ),
+      // List(apiTagATM),
+      // None,
+      // http4sPartialFunction = Some(getAtm)
+    // )
 
     // ─── getProducts (GET) — v4 override; conditional auth ───────────────────
 
-    lazy val getProducts: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
-          val params = req.uri.query.multiParams.toList.flatMap {
-            case (k, vs) => vs.map(v => com.openbankproject.commons.dto.GetProductsParam(k, List(v)))
-          }
-          for {
-            // with apiOptions.getProductsIsPublic=false the product list needs a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read it
-            _ <- if (!getProductsIsPublic)
-                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
-                 else Future.unit
-            (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
-            (products, _) <- NewStyle.function.getProducts(BankId(bankIdStr), params, Some(cc))
-          } yield JSONFactory400.createProductsJson(products)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val getProducts: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" =>
+        // EndpointHelpers.executeAndRespond(req) { cc =>
+          // val params = req.uri.query.multiParams.toList.flatMap {
+            // case (k, vs) => vs.map(v => com.openbankproject.commons.dto.GetProductsParam(k, List(v)))
+          // }
+          // for {
+            // // with apiOptions.getProductsIsPublic=false the product list needs a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read it
+            // _ <- if (!getProductsIsPublic)
+                   // code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 // else Future.unit
+            // (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+            // (products, _) <- NewStyle.function.getProducts(BankId(bankIdStr), params, Some(cc))
+          // } yield JSONFactory400.createProductsJson(products)
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getProducts),
-      "GET",
-      "/banks/BANK_ID/products",
-      "Get Products",
-      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
-      |
-      |* Name
-      |* Code
-      |* Parent Product Code
-      |* More info URL
-      |* Terms And Conditions URL
-      |* Description
-      |* Terms and Conditions
-      |* License the data under this endpoint is released under
-      |
-      |The combination of bank_id and product_code is unique.
-      |
-      |Can filter with attributes name and values.
-      |URL params example: /banks/some-bank-id/products?&limit=50&offset=1
-      |
-      |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
-      EmptyBody,
-      productsJsonV400,
-      List(
-        AuthenticatedUserIsRequired,
-        BankNotFound,
-        UnknownError
-      ),
-      List(apiTagProduct),
-      None,
-      http4sPartialFunction = Some(getProducts)
-    )
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getProducts),
+      // "GET",
+      // "/banks/BANK_ID/products",
+      // "Get Products",
+      // s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
+      // |
+      // |* Name
+      // |* Code
+      // |* Parent Product Code
+      // |* More info URL
+      // |* Terms And Conditions URL
+      // |* Description
+      // |* Terms and Conditions
+      // |* License the data under this endpoint is released under
+      // |
+      // |The combination of bank_id and product_code is unique.
+      // |
+      // |Can filter with attributes name and values.
+      // |URL params example: /banks/some-bank-id/products?&limit=50&offset=1
+      // |
+      // |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      // EmptyBody,
+      // productsJsonV400,
+      // List(
+        // AuthenticatedUserIsRequired,
+        // BankNotFound,
+        // UnknownError
+      // ),
+      // List(apiTagProduct),
+      // None,
+      // http4sPartialFunction = Some(getProducts)
+    // )
 
     // ─── getProduct (GET) — v4 override; loads attributes + fees ─────────────
 
-    lazy val getProduct: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
-          for {
-            // with apiOptions.getProductsIsPublic=false the product needs a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read it
-            _ <- if (!getProductsIsPublic)
-                   code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
-                 else Future.unit
-            (product, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
-            (productAttributes, _) <- NewStyle.function.getProductAttributesByBankAndCode(
-              BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
-            (productFees, _) <- NewStyle.function.getProductFeesFromProvider(
-              BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
-          } yield JSONFactory400.createProductJson(product, productAttributes, productFees)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val getProduct: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
+        // EndpointHelpers.executeAndRespond(req) { cc =>
+          // for {
+            // // with apiOptions.getProductsIsPublic=false the product needs a logged-in user (as Lift's authenticatedAccess did), else anonymous callers read it
+            // _ <- if (!getProductsIsPublic)
+                   // code.util.Helper.booleanToFuture(AuthenticatedUserIsRequired, failCode = 401, cc = Some(cc)) { cc.user.isDefined }
+                 // else Future.unit
+            // (product, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
+            // (productAttributes, _) <- NewStyle.function.getProductAttributesByBankAndCode(
+              // BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
+            // (productFees, _) <- NewStyle.function.getProductFeesFromProvider(
+              // BankId(bankIdStr), ProductCode(productCodeStr), Some(cc))
+          // } yield JSONFactory400.createProductJson(product, productAttributes, productFees)
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getProduct),
-      "GET",
-      "/banks/BANK_ID/products/PRODUCT_CODE",
-      "Get Bank Product",
-      s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE including:
-      |
-      |* Name
-      |* Code
-      |* Parent Product Code
-      |* More info URL
-      |* Description
-      |* Terms and Conditions
-      |* Description
-      |* Meta
-      |* Attributes
-      |* Fees
-      |
-      |The combination of bank_id and product_code is unique.
-      |
-      |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
-      EmptyBody,
-      productJsonV400,
-      List(
-        AuthenticatedUserIsRequired,
-        $BankNotFound,
-        ProductNotFoundByProductCode,
-        UnknownError
-      ),
-      List(apiTagProduct),
-      None,
-      http4sPartialFunction = Some(getProduct)
-    )
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getProduct),
+      // "GET",
+      // "/banks/BANK_ID/products/PRODUCT_CODE",
+      // "Get Bank Product",
+      // s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE including:
+      // |
+      // |* Name
+      // |* Code
+      // |* Parent Product Code
+      // |* More info URL
+      // |* Description
+      // |* Terms and Conditions
+      // |* Description
+      // |* Meta
+      // |* Attributes
+      // |* Fees
+      // |
+      // |The combination of bank_id and product_code is unique.
+      // |
+      // |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      // EmptyBody,
+      // productJsonV400,
+      // List(
+        // AuthenticatedUserIsRequired,
+        // $BankNotFound,
+        // ProductNotFoundByProductCode,
+        // UnknownError
+      // ),
+      // List(apiTagProduct),
+      // None,
+      // http4sPartialFunction = Some(getProduct)
+    // )
 
     // ─── createAtm (POST → 201) — v4 override ─────────────────────────────────
 
-    lazy val createAtm: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / _ / "atms" =>
-        EndpointHelpers.executeFutureCreated(req) {
-          implicit val cc: CallContext = req.callContext
-          val bank = cc.bank.getOrElse(throw new RuntimeException(BankNotFound))
-          val rawBody = cc.httpBody.getOrElse("")
-          for {
-            atmJsonV400 <- NewStyle.function.tryons(
-              s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV400]}",
-              400, Some(cc)) {
-              val atm = com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[AtmJsonV400]
-              atm.id.get
-              atm
-            }
-            _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body",
-              failCode = 400, cc = Some(cc)) {
-              atmJsonV400.bank_id == bank.bankId.value
-            }
-            atm <- NewStyle.function.tryons(
-              CouldNotTransformJsonToInternalModel + " Atm", 400, Some(cc)) {
-              JSONFactory400.transformToAtmFromV400(atmJsonV400)
-            }
-            (created, _) <- NewStyle.function.createOrUpdateAtm(atm, Some(cc))
-          } yield JSONFactory400.createAtmJsonV400(created)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val createAtm: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / _ / "atms" =>
+        // EndpointHelpers.executeFutureCreated(req) {
+          // implicit val cc: CallContext = req.callContext
+          // val bank = cc.bank.getOrElse(throw new RuntimeException(BankNotFound))
+          // val rawBody = cc.httpBody.getOrElse("")
+          // for {
+            // atmJsonV400 <- NewStyle.function.tryons(
+              // s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV400]}",
+              // 400, Some(cc)) {
+              // val atm = com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[AtmJsonV400]
+              // atm.id.get
+              // atm
+            // }
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body",
+              // failCode = 400, cc = Some(cc)) {
+              // atmJsonV400.bank_id == bank.bankId.value
+            // }
+            // atm <- NewStyle.function.tryons(
+              // CouldNotTransformJsonToInternalModel + " Atm", 400, Some(cc)) {
+              // JSONFactory400.transformToAtmFromV400(atmJsonV400)
+            // }
+            // (created, _) <- NewStyle.function.createOrUpdateAtm(atm, Some(cc))
+          // } yield JSONFactory400.createAtmJsonV400(created)
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(createAtm), "POST",
-      "/banks/BANK_ID/atms",
-      "Create ATM",
-      s"""Create ATM.""",
-      atmJsonV400, atmJsonV400,
-      List(
-        $AuthenticatedUserIsRequired,
-        InvalidJsonFormat,
-        UnknownError
-      ),
-      List(apiTagATM),
-      Some(List(canCreateAtm, canCreateAtmAtAnyBank)),
-      http4sPartialFunction = Some(createAtm))
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(createAtm), "POST",
+      // "/banks/BANK_ID/atms",
+      // "Create ATM",
+      // s"""Create ATM.""",
+      // atmJsonV400, atmJsonV400,
+      // List(
+        // $AuthenticatedUserIsRequired,
+        // InvalidJsonFormat,
+        // UnknownError
+      // ),
+      // List(apiTagATM),
+      // Some(List(canCreateAtm, canCreateAtmAtAnyBank)),
+      // http4sPartialFunction = Some(createAtm))
 
     // ─── createProduct (PUT → 201) — v4 override ──────────────────────────────
 
-    lazy val createProduct: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
-        EndpointHelpers.executeFutureCreated(req) {
-          implicit val cc: CallContext = req.callContext
-          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
-          val rawBody = cc.httpBody.getOrElse("")
-          for {
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(
-              bankIdStr, user.userId, createProductEntitlements, Some(cc))
-            product <- NewStyle.function.tryons(
-              s"$InvalidJsonFormat The Json body should be the $PutProductJsonV400 ",
-              400, Some(cc)) {
-              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutProductJsonV400]
-            }
-            (parentProduct, _) <- product.parent_product_code.trim.nonEmpty match {
-              case false => Future((net.liftweb.common.Empty, Some(cc)))
-              case true =>
-                NewStyle.function.getProduct(
-                  BankId(bankIdStr), ProductCode(product.parent_product_code), Some(cc))
-                  .map { case (p, ccc) => (Full(p), ccc) }
-            }
-            (success, _) <- NewStyle.function.createOrUpdateProduct(
-              bankId = bankIdStr,
-              code = productCodeStr,
-              parentProductCode = parentProduct.map(_.code.value).toOption,
-              name = product.name,
-              category = null, family = null, superFamily = null,
-              moreInfoUrl = product.more_info_url,
-              termsAndConditionsUrl = product.terms_and_conditions_url,
-              details = null,
-              description = product.description,
-              metaLicenceId = product.meta.license.id,
-              metaLicenceName = product.meta.license.name,
-              Some(cc))
-          } yield JSONFactory400.createProductJson(success)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val createProduct: Http4sRoute = Http4sRoute {
+      // case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
+        // EndpointHelpers.executeFutureCreated(req) {
+          // implicit val cc: CallContext = req.callContext
+          // val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          // val rawBody = cc.httpBody.getOrElse("")
+          // for {
+            // _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = createProductEntitlementsRequiredText)(
+              // bankIdStr, user.userId, createProductEntitlements, Some(cc))
+            // product <- NewStyle.function.tryons(
+              // s"$InvalidJsonFormat The Json body should be the $PutProductJsonV400 ",
+              // 400, Some(cc)) {
+              // com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutProductJsonV400]
+            // }
+            // (parentProduct, _) <- product.parent_product_code.trim.nonEmpty match {
+              // case false => Future((net.liftweb.common.Empty, Some(cc)))
+              // case true =>
+                // NewStyle.function.getProduct(
+                  // BankId(bankIdStr), ProductCode(product.parent_product_code), Some(cc))
+                  // .map { case (p, ccc) => (Full(p), ccc) }
+            // }
+            // (success, _) <- NewStyle.function.createOrUpdateProduct(
+              // bankId = bankIdStr,
+              // code = productCodeStr,
+              // parentProductCode = parentProduct.map(_.code.value).toOption,
+              // name = product.name,
+              // category = null, family = null, superFamily = null,
+              // moreInfoUrl = product.more_info_url,
+              // termsAndConditionsUrl = product.terms_and_conditions_url,
+              // details = null,
+              // description = product.description,
+              // metaLicenceId = product.meta.license.id,
+              // metaLicenceName = product.meta.license.name,
+              // Some(cc))
+          // } yield JSONFactory400.createProductJson(success)
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(createProduct),
-      "PUT",
-      "/banks/BANK_ID/products/PRODUCT_CODE",
-      "Create Product",
-      s"""Create or Update Product for the Bank.
-      |
-      |
-      |Typical Super Family values / Asset classes are:
-      |
-      |Debt
-      |Equity
-      |FX
-      |Commodity
-      |Derivative
-      |
-      |$productHiearchyAndCollectionNote
-      |
-      |
-      |${userAuthenticationMessage(true)}
-      |
-      |
-      |""",
-      putProductJsonV400,
-      productJsonV400.copy(attributes = None, fees = None),
-      List(
-        $AuthenticatedUserIsRequired,
-        $BankNotFound,
-        UserHasMissingRoles,
-        UnknownError
-      ),
-      List(apiTagProduct),
-      Some(List(canCreateProduct, canCreateProductAtAnyBank)),
-      http4sPartialFunction = Some(createProduct)
-    )
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(createProduct),
+      // "PUT",
+      // "/banks/BANK_ID/products/PRODUCT_CODE",
+      // "Create Product",
+      // s"""Create or Update Product for the Bank.
+      // |
+      // |
+      // |Typical Super Family values / Asset classes are:
+      // |
+      // |Debt
+      // |Equity
+      // |FX
+      // |Commodity
+      // |Derivative
+      // |
+      // |$productHiearchyAndCollectionNote
+      // |
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |
+      // |""",
+      // putProductJsonV400,
+      // productJsonV400.copy(attributes = None, fees = None),
+      // List(
+        // $AuthenticatedUserIsRequired,
+        // $BankNotFound,
+        // UserHasMissingRoles,
+        // UnknownError
+      // ),
+      // List(apiTagProduct),
+      // Some(List(canCreateProduct, canCreateProductAtAnyBank)),
+      // http4sPartialFunction = Some(createProduct)
+    // )
 
     // ─── createProductAttribute (POST → 201) — v4 override ────────────────────
 
@@ -1214,133 +1224,136 @@ object Http4s400 {
 
     // ─── getCustomersByAttributes (GET /banks/BANK_ID/customers) — v4 override
 
-    lazy val getCustomersByAttributes: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "customers" =>
-        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
-          val params = req.uri.query.multiParams.map { case (k, vs) => k -> vs.toList }
-          for {
-            (customerIds, _) <- NewStyle.function.getCustomerIdsByAttributeNameValues(
-              bank.bankId, params, Some(cc))
-            list <- Future.sequence(customerIds.map { customerId =>
-              val customerFuture = NewStyle.function.getCustomerByCustomerId(customerId.value, Some(cc))
-              customerFuture.flatMap { case (customer, ccc) =>
-                NewStyle.function.getCustomerAttributes(bank.bankId, customerId, ccc)
-                  .map { case (attributes, _) =>
-                    code.api.v3_1_0.JSONFactory310.createCustomerWithAttributesJson(customer, attributes)
-                  }
-              }
-            })
-          } yield ListResult("customers", list)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val getCustomersByAttributes: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "customers" =>
+        // EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          // val params = req.uri.query.multiParams.map { case (k, vs) => k -> vs.toList }
+          // for {
+            // (customerIds, _) <- NewStyle.function.getCustomerIdsByAttributeNameValues(
+              // bank.bankId, params, Some(cc))
+            // list <- Future.sequence(customerIds.map { customerId =>
+              // val customerFuture = NewStyle.function.getCustomerByCustomerId(customerId.value, Some(cc))
+              // customerFuture.flatMap { case (customer, ccc) =>
+                // NewStyle.function.getCustomerAttributes(bank.bankId, customerId, ccc)
+                  // .map { case (attributes, _) =>
+                    // code.api.v3_1_0.JSONFactory310.createCustomerWithAttributesJson(customer, attributes)
+                  // }
+              // }
+            // })
+          // } yield ListResult("customers", list)
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion, "getCustomersByAttributes", "GET",
-      "/banks/BANK_ID/customers",
-      "Get Customers by ATTRIBUTES",
-      s"""Gets the Customers specified by attributes
-      |
-      |URL params example: /banks/some-bank-id/customers?name=John&age=8
-      |URL params example: /banks/some-bank-id/customers?&limit=50&offset=1
-      |
-      |
-      |""",
-      EmptyBody,
-      ListResult("customers", List(customerWithAttributesJsonV310)),
-      List(
-        $AuthenticatedUserIsRequired,
-        $BankNotFound,
-        UserCustomerLinksNotFoundForUser,
-        UnknownError
-      ),
-      List(apiTagCustomer),
-      Some(List(canGetCustomersAtOneBank)),
-      http4sPartialFunction = Some(getCustomersByAttributes))
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion, "getCustomersByAttributes", "GET",
+      // "/banks/BANK_ID/customers",
+      // "Get Customers by ATTRIBUTES",
+      // s"""Gets the Customers specified by attributes
+      // |
+      // |URL params example: /banks/some-bank-id/customers?name=John&age=8
+      // |URL params example: /banks/some-bank-id/customers?&limit=50&offset=1
+      // |
+      // |
+      // |""",
+      // EmptyBody,
+      // ListResult("customers", List(customerWithAttributesJsonV310)),
+      // List(
+        // $AuthenticatedUserIsRequired,
+        // $BankNotFound,
+        // UserCustomerLinksNotFoundForUser,
+        // UnknownError
+      // ),
+      // List(apiTagCustomer),
+      // Some(List(canGetCustomersAtOneBank)),
+      // http4sPartialFunction = Some(getCustomersByAttributes))
 
     // ─── createCustomer (POST /banks/BANK_ID/customers → 201) — v4 override ──
 
-    lazy val createCustomer: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / _ / "customers" =>
-        EndpointHelpers.withUserAndBankAndBodyCreated[code.api.v3_1_0.PostCustomerJsonV310, Any](req) { (_, bank, postedData, cc) =>
-          for {
-            _ <- code.util.Helper.booleanToFuture(
-              failMsg = InvalidJsonContent + s" The field dependants(${postedData.dependants}) not equal the length(${postedData.dob_of_dependants.length}) of dob_of_dependants array",
-              failCode = 400, cc = Some(cc)) {
-              postedData.dependants == postedData.dob_of_dependants.length
-            }
-            (customer, _) <- NewStyle.function.createCustomer(
-              bank.bankId,
-              postedData.legal_name, postedData.mobile_phone_number, postedData.email,
-              CustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
-              postedData.date_of_birth, postedData.relationship_status,
-              postedData.dependants, postedData.dob_of_dependants,
-              postedData.highest_education_attained, postedData.employment_status,
-              postedData.kyc_status, postedData.last_ok_date,
-              Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
-              Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount)),
-              postedData.title, postedData.branch_id, postedData.name_suffix,
-              Some(cc))
-          } yield code.api.v3_1_0.JSONFactory310.createCustomerJson(customer)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val createCustomer: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / _ / "customers" =>
+        // EndpointHelpers.withUserAndBankAndBodyCreated[code.api.v3_1_0.PostCustomerJsonV310, Any](req) { (_, bank, postedData, cc) =>
+          // for {
+            // _ <- code.util.Helper.booleanToFuture(
+              // failMsg = InvalidJsonContent + s" The field dependants(${postedData.dependants}) not equal the length(${postedData.dob_of_dependants.length}) of dob_of_dependants array",
+              // failCode = 400, cc = Some(cc)) {
+              // postedData.dependants == postedData.dob_of_dependants.length
+            // }
+            // (customer, _) <- NewStyle.function.createCustomer(
+              // bank.bankId,
+              // postedData.legal_name, postedData.mobile_phone_number, postedData.email,
+              // CustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
+              // postedData.date_of_birth, postedData.relationship_status,
+              // postedData.dependants, postedData.dob_of_dependants,
+              // postedData.highest_education_attained, postedData.employment_status,
+              // postedData.kyc_status, postedData.last_ok_date,
+              // Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
+              // Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount)),
+              // postedData.title, postedData.branch_id, postedData.name_suffix,
+              // Some(cc))
+          // } yield code.api.v3_1_0.JSONFactory310.createCustomerJson(customer)
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(createCustomer),
-      "POST",
-      "/banks/BANK_ID/customers",
-      "Create Customer",
-      s"""
-      |The Customer resource stores the customer number (which is set by the backend), legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
-      |Dates need to be in the format 2013-01-21T23:08:00Z
-      |
-      |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.
-      |
-      |${userAuthenticationMessage(true)}
-      |""",
-      postCustomerJsonV310,
-      customerJsonV310,
-      List(
-        $AuthenticatedUserIsRequired,
-        $BankNotFound,
-        InvalidJsonFormat,
-        CustomerNumberAlreadyExists,
-        UserNotFoundById,
-        CustomerAlreadyExistsForUser,
-        CreateConsumerError,
-        UnknownError
-      ),
-      List(apiTagCustomer, apiTagPerson),
-      Some(List(canCreateCustomer, canCreateCustomerAtAnyBank)),
-      http4sPartialFunction = Some(createCustomer)
-    )
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(createCustomer),
+      // "POST",
+      // "/banks/BANK_ID/customers",
+      // "Create Customer",
+      // s"""
+      // |The Customer resource stores the customer number (which is set by the backend), legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+      // |Dates need to be in the format 2013-01-21T23:08:00Z
+      // |
+      // |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |""",
+      // postCustomerJsonV310,
+      // customerJsonV310,
+      // List(
+        // $AuthenticatedUserIsRequired,
+        // $BankNotFound,
+        // InvalidJsonFormat,
+        // CustomerNumberAlreadyExists,
+        // UserNotFoundById,
+        // CustomerAlreadyExistsForUser,
+        // CreateConsumerError,
+        // UnknownError
+      // ),
+      // List(apiTagCustomer, apiTagPerson),
+      // Some(List(canCreateCustomer, canCreateCustomerAtAnyBank)),
+      // http4sPartialFunction = Some(createCustomer)
+    // )
 
     // ─── getBankAccountsBalancesForCurrentUser (GET /banks/BANK_ID/balances) — v4
 
-    lazy val getBankAccountsBalancesForCurrentUser: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "balances" =>
-        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
-          for {
-            (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountsWithBalancePermission(user, bank.bankId, None, Some(cc))
-            (accountsBalances, _) <- code.api.util.newstyle.BalanceNewStyle.getBankAccountsBalances(allowedAccounts.map(_._1), Some(cc))
-          } yield createBalancesJson(code.api.util.newstyle.BalanceNewStyle.moderateAccountsBalances(accountsBalances, allowedAccounts.toMap))
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val getBankAccountsBalancesForCurrentUser: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "balances" =>
+        // EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
+          // for {
+            // (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountsWithBalancePermission(user, bank.bankId, None, Some(cc))
+            // (accountsBalances, _) <- code.api.util.newstyle.BalanceNewStyle.getBankAccountsBalances(allowedAccounts.map(_._1), Some(cc))
+          // } yield createBalancesJson(code.api.util.newstyle.BalanceNewStyle.moderateAccountsBalances(accountsBalances, allowedAccounts.toMap))
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getBankAccountsBalancesForCurrentUser),
-      "GET",
-      "/banks/BANK_ID/balances",
-      "Get Accounts Balances",
-      """Get the Balances for the Accounts of the current User at one bank.""",
-      EmptyBody,
-      accountBalancesV400Json,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
-      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
-      None,
-      http4sPartialFunction = Some(getBankAccountsBalancesForCurrentUser)
-    )
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getBankAccountsBalancesForCurrentUser),
+      // "GET",
+      // "/banks/BANK_ID/balances",
+      // "Get Accounts Balances",
+      // """Get the Balances for the Accounts of the current User at one bank.""",
+      // EmptyBody,
+      // accountBalancesV400Json,
+      // List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+      // apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      // None,
+      // http4sPartialFunction = Some(getBankAccountsBalancesForCurrentUser)
+    // )
 
     // ─── getCoreAccountById (GET /my/banks/BANK_ID/accounts/ACCOUNT_ID/account)
 
@@ -2744,52 +2757,53 @@ object Http4s400 {
 
     // ─── getConsents (GET /banks/BANK_ID/my/consents) — v4 override of Http4s310 ─
 
-    lazy val getConsents: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "my" / "consents" =>
-        EndpointHelpers.withUserAndBank(req) { (user, bank, _) =>
-          val params = req.uri.query.params
-          val limit = params.get("limit").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(50)
-          val offset = params.get("offset").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(0)
-          for {
-            rows <- Future {
-              code.consent.DoobieConsentQueries.getConsentsByUserAndBank(
-                userId = user.userId, bankId = bank.bankId.value, status = None,
-                limit = limit, offset = offset,
-                sortField = "created_date", sortDirection = "desc")
-            }
-          } yield {
-            val consents = rows.map(r => ConsentJsonV400(
-              r.consentId, r.jwt.getOrElse(""), r.status,
-              r.apiStandard.getOrElse(""), r.apiVersion.getOrElse("")))
-            ConsentsJsonV400(consents)
-          }
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val getConsents: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "my" / "consents" =>
+        // EndpointHelpers.withUserAndBank(req) { (user, bank, _) =>
+          // val params = req.uri.query.params
+          // val limit = params.get("limit").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(50)
+          // val offset = params.get("offset").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(0)
+          // for {
+            // rows <- Future {
+              // code.consent.DoobieConsentQueries.getConsentsByUserAndBank(
+                // userId = user.userId, bankId = bank.bankId.value, status = None,
+                // limit = limit, offset = offset,
+                // sortField = "created_date", sortDirection = "desc")
+            // }
+          // } yield {
+            // val consents = rows.map(r => ConsentJsonV400(
+              // r.consentId, r.jwt.getOrElse(""), r.status,
+              // r.apiStandard.getOrElse(""), r.apiVersion.getOrElse("")))
+            // ConsentsJsonV400(consents)
+          // }
+        // }
+    // }
 
-    staticResourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getConsents),
-      "GET",
-      "/banks/BANK_ID/my/consents",
-      "Get Consents",
-      s"""
-         |
-         |This endpoint gets the Consents that the current User created.
-         |
-         |${userAuthenticationMessage(true)}
-         |
-         |1 limit (for pagination: defaults to 50)  eg:limit=200
-         |
-         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
-         |
-      """.stripMargin,
-      EmptyBody,
-      consentsJsonV400,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
-      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
-      None,
-      http4sPartialFunction = Some(getConsents)
-    )
+    // staticResourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getConsents),
+      // "GET",
+      // "/banks/BANK_ID/my/consents",
+      // "Get Consents",
+      // s"""
+         // |
+         // |This endpoint gets the Consents that the current User created.
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |
+         // |1 limit (for pagination: defaults to 50)  eg:limit=200
+         // |
+         // |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         // |
+      // """.stripMargin,
+      // EmptyBody,
+      // consentsJsonV400,
+      // List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+      // List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+      // None,
+      // http4sPartialFunction = Some(getConsents)
+    // )
 
     // ─── updateAccountLabel (POST /banks/BANK_ID/accounts/ACCOUNT_ID → 200) — v4 override of Http4s121 ─
 
@@ -4247,22 +4261,23 @@ object Http4s400 {
         }
     }
 
-    lazy val getBankAccountBalancesForCurrentUser: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "balances" =>
-        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
-          for {
-            (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountsWithBalancePermission(
-              user, bank.bankId, None, Some(cc))
-            msg = s"$CannotFindAccountAccess AccountId(${accountIdStr})"
-            (bankIdAccountId, permissions) <- NewStyle.function.tryons(msg, 400, Some(cc)) {
-              allowedAccounts.find(_._1.accountId == AccountId(accountIdStr)).get
-            }
-            (accountBalances, _) <- code.api.util.newstyle.BalanceNewStyle.getBankAccountBalances(
-              bankIdAccountId, Some(cc))
-          } yield JSONFactory400.createAccountBalancesJson(
-            code.api.util.newstyle.BalanceNewStyle.moderateAccountBalances(accountBalances, permissions))
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val getBankAccountBalancesForCurrentUser: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "balances" =>
+        // EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
+          // for {
+            // (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountsWithBalancePermission(
+              // user, bank.bankId, None, Some(cc))
+            // msg = s"$CannotFindAccountAccess AccountId(${accountIdStr})"
+            // (bankIdAccountId, permissions) <- NewStyle.function.tryons(msg, 400, Some(cc)) {
+              // allowedAccounts.find(_._1.accountId == AccountId(accountIdStr)).get
+            // }
+            // (accountBalances, _) <- code.api.util.newstyle.BalanceNewStyle.getBankAccountBalances(
+              // bankIdAccountId, Some(cc))
+          // } yield JSONFactory400.createAccountBalancesJson(
+            // code.api.util.newstyle.BalanceNewStyle.moderateAccountBalances(accountBalances, permissions))
+        // }
+    // }
 
     lazy val getAccountByAccountRouting: Http4sRoute = Http4sRoute {
       case req @ POST -> `prefixPath` / "management" / "accounts" / "account-routing-query" =>
@@ -4541,15 +4556,16 @@ object Http4s400 {
         http4sPartialFunction = Some(getBalancingTransaction)
       )
 
-      staticResourceDocs += ResourceDoc(
-        implementedInApiVersion, nameOf(getBankAccountBalancesForCurrentUser), "GET",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/balances",
-        "Get Account Balances",
-        """Get the Balances for one Account of the current User at one bank.""",
-        EmptyBody, accountBalanceV400,
-        List($AuthenticatedUserIsRequired, $BankNotFound, CannotFindAccountAccess, UnknownError),
-        apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
-        http4sPartialFunction = Some(getBankAccountBalancesForCurrentUser))
+      // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+      // staticResourceDocs += ResourceDoc(
+        // implementedInApiVersion, nameOf(getBankAccountBalancesForCurrentUser), "GET",
+        // "/banks/BANK_ID/accounts/ACCOUNT_ID/balances",
+        // "Get Account Balances",
+        // """Get the Balances for one Account of the current User at one bank.""",
+        // EmptyBody, accountBalanceV400,
+        // List($AuthenticatedUserIsRequired, $BankNotFound, CannotFindAccountAccess, UnknownError),
+        // apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
+        // http4sPartialFunction = Some(getBankAccountBalancesForCurrentUser))
 
       staticResourceDocs += ResourceDoc(
         implementedInApiVersion,
@@ -6336,22 +6352,23 @@ object Http4s400 {
         }
     }
 
-    lazy val updateAtm: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "banks" / _ / "atms" / atmIdStr =>
-        EndpointHelpers.withUserAndBankAndBodyCreated[AtmJsonV400, Any](req) { (_, bank, atmJsonV400, cc) =>
-          for {
-            (_, _) <- NewStyle.function.getAtm(bank.bankId, AtmId(atmIdStr), Some(cc))
-            _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body",
-              failCode = 400, cc = Some(cc)) { atmJsonV400.bank_id == bank.bankId.value }
-            atm <- NewStyle.function.tryons(
-              CouldNotTransformJsonToInternalModel + " Atm", 400, Some(cc)) {
-              JSONFactory400.transformToAtmFromV400(atmJsonV400.copy(id = Some(atmIdStr)))
-            }
-            (created, _) <- NewStyle.function.createOrUpdateAtm(atm, Some(cc))
-          } yield JSONFactory400.createAtmJsonV400(created)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val updateAtm: Http4sRoute = Http4sRoute {
+      // case req @ PUT -> `prefixPath` / "banks" / _ / "atms" / atmIdStr =>
+        // EndpointHelpers.withUserAndBankAndBodyCreated[AtmJsonV400, Any](req) { (_, bank, atmJsonV400, cc) =>
+          // for {
+            // (_, _) <- NewStyle.function.getAtm(bank.bankId, AtmId(atmIdStr), Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body",
+              // failCode = 400, cc = Some(cc)) { atmJsonV400.bank_id == bank.bankId.value }
+            // atm <- NewStyle.function.tryons(
+              // CouldNotTransformJsonToInternalModel + " Atm", 400, Some(cc)) {
+              // JSONFactory400.transformToAtmFromV400(atmJsonV400.copy(id = Some(atmIdStr)))
+            // }
+            // (created, _) <- NewStyle.function.createOrUpdateAtm(atm, Some(cc))
+          // } yield JSONFactory400.createAtmJsonV400(created)
+        // }
+    // }
 
     private def initBatch6ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
@@ -6462,20 +6479,21 @@ object Http4s400 {
         http4sPartialFunction = Some(updateAtmLocationCategories)
       )
 
-      staticResourceDocs += ResourceDoc(
-        implementedInApiVersion,
-        nameOf(updateAtm),
-        "PUT",
-        "/banks/BANK_ID/atms/ATM_ID",
-        "UPDATE ATM",
-        s"""Update ATM.""",
-        atmJsonV400.copy(id = None),
-        atmJsonV400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        List(apiTagATM),
-        Some(List(canUpdateAtm)),
-        http4sPartialFunction = Some(updateAtm)
-      )
+      // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+      // staticResourceDocs += ResourceDoc(
+        // implementedInApiVersion,
+        // nameOf(updateAtm),
+        // "PUT",
+        // "/banks/BANK_ID/atms/ATM_ID",
+        // "UPDATE ATM",
+        // s"""Update ATM.""",
+        // atmJsonV400.copy(id = None),
+        // atmJsonV400,
+        // List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        // List(apiTagATM),
+        // Some(List(canUpdateAtm)),
+        // http4sPartialFunction = Some(updateAtm)
+      // )
     }
     initBatch6ResourceDocs()
 
@@ -7757,15 +7775,16 @@ object Http4s400 {
         }
     }
 
-    lazy val deleteAtm: Http4sRoute = Http4sRoute {
-      case req @ DELETE -> `prefixPath` / "banks" / _ / "atms" / atmIdStr =>
-        EndpointHelpers.withUserAndBankDelete(req) { (_, bank, cc) =>
-          for {
-            (atm, _) <- NewStyle.function.getAtm(bank.bankId, AtmId(atmIdStr), Some(cc))
-            (deleted, _) <- NewStyle.function.deleteAtm(atm, Some(cc))
-          } yield deleted
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val deleteAtm: Http4sRoute = Http4sRoute {
+      // case req @ DELETE -> `prefixPath` / "banks" / _ / "atms" / atmIdStr =>
+        // EndpointHelpers.withUserAndBankDelete(req) { (_, bank, cc) =>
+          // for {
+            // (atm, _) <- NewStyle.function.getAtm(bank.bankId, AtmId(atmIdStr), Some(cc))
+            // (deleted, _) <- NewStyle.function.deleteAtm(atm, Some(cc))
+          // } yield deleted
+        // }
+    // }
 
     lazy val deleteProductFee: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "products" / _ / "fees" / productFeeId =>
@@ -8176,19 +8195,20 @@ object Http4s400 {
         http4sPartialFunction = Some(deleteBankAttribute)
       )
 
-      staticResourceDocs += ResourceDoc(
-        implementedInApiVersion, nameOf(deleteAtm), "DELETE",
-        "/banks/BANK_ID/atms/ATM_ID",
-        "Delete ATM",
-        s"""Delete ATM.""",
-        EmptyBody, EmptyBody,
-        List(
-          $AuthenticatedUserIsRequired,
-          UnknownError
-        ),
-        List(apiTagATM),
-        Some(List(canDeleteAtm, canDeleteAtmAtAnyBank)),
-        http4sPartialFunction = Some(deleteAtm))
+      // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+      // staticResourceDocs += ResourceDoc(
+        // implementedInApiVersion, nameOf(deleteAtm), "DELETE",
+        // "/banks/BANK_ID/atms/ATM_ID",
+        // "Delete ATM",
+        // s"""Delete ATM.""",
+        // EmptyBody, EmptyBody,
+        // List(
+          // $AuthenticatedUserIsRequired,
+          // UnknownError
+        // ),
+        // List(apiTagATM),
+        // Some(List(canDeleteAtm, canDeleteAtmAtAnyBank)),
+        // http4sPartialFunction = Some(deleteAtm))
 
       staticResourceDocs += ResourceDoc(
         implementedInApiVersion,
@@ -10741,39 +10761,40 @@ object Http4s400 {
 
     // ─── createConsumer ──────────────────────────────────────────────────────
 
-    lazy val createConsumer: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "management" / "consumers" =>
-        EndpointHelpers.withUser(req) { (u, cc) =>
-          val rawBody = cc.httpBody.getOrElse("")
-          for {
-            postedJsonAndAppType <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              val consumerPostJSON = com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[code.api.v2_1_0.ConsumerPostJSON]
-              val appType =
-                if (consumerPostJSON.app_type.equals("Confidential")) AppType.valueOf("Confidential")
-                else AppType.valueOf("Public")
-              (consumerPostJSON, appType)
-            }
-            (postedJson, appType) = postedJsonAndAppType
-            _ <- NewStyle.function.hasEntitlement("", u.userId, code.api.util.ApiRole.canCreateConsumer, Some(cc))
-            _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(postedJson.redirect_url, Some(cc))
-            (consumer, callContext) <- createConsumerNewStyle(
-              key = Some(LiftHelpers.randomString(40).toLowerCase),
-              secret = Some(LiftHelpers.randomString(40).toLowerCase),
-              isActive = Some(postedJson.enabled),
-              name = Some(postedJson.app_name),
-              appType = Some(appType),
-              description = Some(postedJson.description),
-              developerEmail = Some(postedJson.developer_email),
-              company = None,
-              redirectURL = Some(postedJson.redirect_url),
-              createdByUserId = Some(u.userId),
-              clientCertificate = Some(postedJson.clientCertificate),
-              logoURL = None,
-              Some(cc))
-            user <- Users.users.vend.getUserByUserIdFuture(u.userId)
-          } yield JSONFactory400.createConsumerJSON(consumer, user)
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // lazy val createConsumer: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "management" / "consumers" =>
+        // EndpointHelpers.withUser(req) { (u, cc) =>
+          // val rawBody = cc.httpBody.getOrElse("")
+          // for {
+            // postedJsonAndAppType <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              // val consumerPostJSON = com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[code.api.v2_1_0.ConsumerPostJSON]
+              // val appType =
+                // if (consumerPostJSON.app_type.equals("Confidential")) AppType.valueOf("Confidential")
+                // else AppType.valueOf("Public")
+              // (consumerPostJSON, appType)
+            // }
+            // (postedJson, appType) = postedJsonAndAppType
+            // _ <- NewStyle.function.hasEntitlement("", u.userId, code.api.util.ApiRole.canCreateConsumer, Some(cc))
+            // _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(postedJson.redirect_url, Some(cc))
+            // (consumer, callContext) <- createConsumerNewStyle(
+              // key = Some(LiftHelpers.randomString(40).toLowerCase),
+              // secret = Some(LiftHelpers.randomString(40).toLowerCase),
+              // isActive = Some(postedJson.enabled),
+              // name = Some(postedJson.app_name),
+              // appType = Some(appType),
+              // description = Some(postedJson.description),
+              // developerEmail = Some(postedJson.developer_email),
+              // company = None,
+              // redirectURL = Some(postedJson.redirect_url),
+              // createdByUserId = Some(u.userId),
+              // clientCertificate = Some(postedJson.clientCertificate),
+              // logoURL = None,
+              // Some(cc))
+            // user <- Users.users.vend.getUserByUserIdFuture(u.userId)
+          // } yield JSONFactory400.createConsumerJSON(consumer, user)
+        // }
+    // }
 
     // ─── createCounterpartyForAnyAccount ──────────────────────────────────────
 
@@ -11100,29 +11121,30 @@ object Http4s400 {
         http4sPartialFunction = Some(createSettlementAccount)
       )
 
-      staticResourceDocs += ResourceDoc(
-        implementedInApiVersion, "createConsumer", "POST",
-        "/management/consumers",
-        "Post a Consumer",
-        s"""Create a Consumer (Authenticated access).""",
-        ConsumerPostJSON(
-          "Test",
-          "Web",
-          "Description",
-          "some@email.com",
-          "https://app.example.com/callback",
-          "createdby",
-          true,
-          new Date(),
-          """-----BEGIN CERTIFICATE-----
-            |client_certificate_content
-            |-----END CERTIFICATE-----""".stripMargin
-        ),
-        consumerJsonV400,
-        List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
-        List(apiTagConsumer),
-        Some(List(canCreateConsumer)),
-        http4sPartialFunction = Some(createConsumer))
+      // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+      // staticResourceDocs += ResourceDoc(
+        // implementedInApiVersion, "createConsumer", "POST",
+        // "/management/consumers",
+        // "Post a Consumer",
+        // s"""Create a Consumer (Authenticated access).""",
+        // ConsumerPostJSON(
+          // "Test",
+          // "Web",
+          // "Description",
+          // "some@email.com",
+          // "https://app.example.com/callback",
+          // "createdby",
+          // true,
+          // new Date(),
+          // """-----BEGIN CERTIFICATE-----
+            // |client_certificate_content
+            // |-----END CERTIFICATE-----""".stripMargin
+        // ),
+        // consumerJsonV400,
+        // List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
+        // List(apiTagConsumer),
+        // Some(List(canCreateConsumer)),
+        // http4sPartialFunction = Some(createConsumer))
 
       staticResourceDocs += ResourceDoc(
         implementedInApiVersion, "createCounterpartyForAnyAccount", "POST",
@@ -11313,20 +11335,20 @@ object Http4s400 {
     // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given the docs in this same order.
     lazy val routesInOrder: List[Http4sHandler] = List(
-      root,
+      // root,
       getMapperDatabaseInfo,
       getLogoutLink,
-      getBanks,
-      getBank,
+      // getBanks,
+      // getBank,
       ibanChecker,
       callsLimit,
-      createBank,
-      getAtms,
-      getAtm,
-      getProducts,
-      getProduct,
-      createAtm,
-      createProduct,
+      // createBank,
+      // getAtms,
+      // getAtm,
+      // getProducts,
+      // getProduct,
+      // createAtm,
+      // createProduct,
       createProductAttribute,
       updateProductAttribute,
       getEntitlements,
@@ -11334,9 +11356,9 @@ object Http4s400 {
       getUserByUsername,
       getUsersByEmail,
       getUsers,
-      getCustomersByAttributes,
-      createCustomer,
-      getBankAccountsBalancesForCurrentUser,
+      // getCustomersByAttributes,
+      // createCustomer,
+      // getBankAccountsBalancesForCurrentUser,
       getCoreAccountById,
       getPrivateAccountByIdFull,
       getPrivateAccountsAtOneBank,
@@ -11367,7 +11389,7 @@ object Http4s400 {
       getProductAttribute,
       getScopes,
       addScope,
-      getConsents,
+      // getConsents,
       updateAccountLabel,
       getExplicitCounterpartiesForAccount,
       getExplicitCounterpartyById,
@@ -11430,7 +11452,7 @@ object Http4s400 {
       deleteJsonSchemaValidation,
       deleteCustomerAttribute,
       deleteBankAttribute,
-      deleteAtm,
+      // deleteAtm,
       deleteProductFee,
       deleteEndpointMapping,
       deleteBankLevelEndpointMapping,
@@ -11475,7 +11497,7 @@ object Http4s400 {
       updateAtmServices,
       updateAtmNotes,
       updateAtmLocationCategories,
-      updateAtm,
+      // updateAtm,
       // Batch 7 — Attribute Definitions PUT
       createOrUpdateCustomerAttributeAttributeDefinition,
       createOrUpdateAccountAttributeDefinition,
@@ -11497,7 +11519,7 @@ object Http4s400 {
       addTagForViewOnAccount,
       getDoubleEntryTransaction,
       getBalancingTransaction,
-      getBankAccountBalancesForCurrentUser,
+      // getBankAccountBalancesForCurrentUser,
       getAccountByAccountRouting,
       getAccountsByAccountRoutingRegex,
       lockUser,
@@ -11580,7 +11602,7 @@ object Http4s400 {
       //            createUserInvitation, createUserWithAccountAccess, createUserWithRoles)
       addAccount,
       createSettlementAccount,
-      createConsumer,
+      // createConsumer,
       createCounterpartyForAnyAccount,
       createHistoricalTransactionAtBank,
       createUserWithRoles,
