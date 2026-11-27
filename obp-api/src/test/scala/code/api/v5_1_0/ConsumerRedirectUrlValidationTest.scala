@@ -60,9 +60,10 @@ class ConsumerRedirectUrlValidationTest extends V510ServerSetup {
     developer_email = "developer@example.com", company = "Example", redirect_url = redirectUrl,
     enabled = true, client_certificate = None, logo_url = None)
 
-  private def consumerPostJson(redirectUrl: String) = ConsumerPostJSON(
-    "redirect-test-" + randomString(8), "Confidential", "redirect test", "developer@example.com",
-    redirectUrl, "", true, new Date(), "")
+  // Commented out: only commented-out scenarios used this helper. See docs/OLD_VERSION_ONLY_CODE.md.
+  // private def consumerPostJson(redirectUrl: String) = ConsumerPostJSON(
+  //   "redirect-test-" + randomString(8), "Confidential", "redirect test", "developer@example.com",
+  //   redirectUrl, "", true, new Date(), "")
 
   private def messageOf(body: JValue): String = (body \ "message") match {
     case JString(message) => message

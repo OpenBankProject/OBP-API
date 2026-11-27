@@ -227,14 +227,15 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
     // }
   // }
 
-  private def createAccountBodyFor(userId: String) =
-    CreateAccountJSONV220(
-      user_id = userId,
-      label = "Label",
-      `type` = "CURRENT",
-      balance = AmountOfMoneyJsonV121("EUR", "0"),
-      branch_id = "1234",
-      account_routing = AccountRoutingJsonV121(scheme = "OBP", address = "UK123456"))
+  // Commented out: only commented-out scenarios used this helper. See docs/OLD_VERSION_ONLY_CODE.md.
+  // private def createAccountBodyFor(userId: String) =
+  //   CreateAccountJSONV220(
+  //     user_id = userId,
+  //     label = "Label",
+  //     `type` = "CURRENT",
+  //     balance = AmountOfMoneyJsonV121("EUR", "0"),
+  //     branch_id = "1234",
+  //     account_routing = AccountRoutingJsonV121(scheme = "OBP", address = "UK123456"))
 
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Create Account refuses an ACCOUNT_ID that already exists - v2.2.0") {

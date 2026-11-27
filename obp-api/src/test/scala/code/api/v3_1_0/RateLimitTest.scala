@@ -57,11 +57,12 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
     // makePutRequest((v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user2), write(json))
   // }
 
-  /** The consumer's rate limits are gone, and so is the cached copy: the limit just set would refuse the next PUT. */
-  private def removeRateLimits(consumerId: String): Unit = {
-    RateLimiting.bulkDelete_!!(By(RateLimiting.ConsumerId, consumerId))
-    Caching.invalidateRateLimitCache(consumerId)
-  }
+  // Commented out: only commented-out scenarios used this helper. See docs/OLD_VERSION_ONLY_CODE.md.
+  // /** The consumer's rate limits are gone, and so is the cached copy: the limit just set would refuse the next PUT. */
+  // private def removeRateLimits(consumerId: String): Unit = {
+  //   RateLimiting.bulkDelete_!!(By(RateLimiting.ConsumerId, consumerId))
+  //   Caching.invalidateRateLimitCache(consumerId)
+  // }
 
   /**
     * Test tags

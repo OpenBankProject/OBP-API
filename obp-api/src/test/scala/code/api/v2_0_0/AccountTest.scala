@@ -180,8 +180,9 @@ class AccountTest extends V200ServerSetup with DefaultUsers with PrivateUser2Acc
     }
   }
 
-  private def createAccountBodyFor(userId: String) =
-    CreateAccountJSON(userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+  // Commented out: only commented-out scenarios used this helper. See docs/OLD_VERSION_ONLY_CODE.md.
+  // private def createAccountBodyFor(userId: String) =
+  //   CreateAccountJSON(userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
 
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Create Account refuses an ACCOUNT_ID that already exists - v2.0.0") {

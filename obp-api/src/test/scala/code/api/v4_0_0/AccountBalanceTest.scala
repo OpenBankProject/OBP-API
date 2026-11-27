@@ -84,24 +84,25 @@ class AccountBalanceTest extends V400ServerSetup {
     // }
   // }
 
-  // Creates a custom view on an account with the given permissions and gives user2 access to it
-  private def grantCustomViewToUser2(bankId: String, accountId: String, viewName: String, allowedActions: List[String]): View = {
-    val bankIdAccountId = BankIdAccountId(BankId(bankId), AccountId(accountId))
-    val createViewJson = CreateViewJson(
-      name = viewName,
-      description = "Used by AccountBalanceTest",
-      metadata_view = viewName,
-      is_public = false,
-      which_alias_to_use = "",
-      hide_metadata_if_alias_used = false,
-      allowed_actions = allowedActions
-    )
-    val view = Views.views.vend.createCustomView(bankIdAccountId, createViewJson).openOrThrowException("Could not create the custom view")
-    Views.views.vend.grantAccessToCustomView(
-      BankIdAccountIdViewId(BankId(bankId), AccountId(accountId), view.viewId), resourceUser2
-    ).openOrThrowException("Could not grant the custom view")
-    view
-  }
+  // Commented out: only commented-out scenarios used this helper. See docs/OLD_VERSION_ONLY_CODE.md.
+  // // Creates a custom view on an account with the given permissions and gives user2 access to it
+  // private def grantCustomViewToUser2(bankId: String, accountId: String, viewName: String, allowedActions: List[String]): View = {
+  //   val bankIdAccountId = BankIdAccountId(BankId(bankId), AccountId(accountId))
+  //   val createViewJson = CreateViewJson(
+  //     name = viewName,
+  //     description = "Used by AccountBalanceTest",
+  //     metadata_view = viewName,
+  //     is_public = false,
+  //     which_alias_to_use = "",
+  //     hide_metadata_if_alias_used = false,
+  //     allowed_actions = allowedActions
+  //   )
+  //   val view = Views.views.vend.createCustomView(bankIdAccountId, createViewJson).openOrThrowException("Could not create the custom view")
+  //   Views.views.vend.grantAccessToCustomView(
+  //     BankIdAccountIdViewId(BankId(bankId), AccountId(accountId), view.viewId), resourceUser2
+  //   ).openOrThrowException("Could not grant the custom view")
+  //   view
+  // }
 
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint1 and $ApiEndpoint2 version $VersionOfApi - balances follow the user's view permissions") {
