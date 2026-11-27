@@ -1,403 +1,3 @@
-endpoint	v2.1.0	addCardForBank
-endpoint	v2.1.0	createTransactionType
-endpoint	v2.1.0	getEntitlementsByBankAndUser
-endpoint	v2.1.0	getRoles
-endpoint	v2.1.0	getTransactionRequestTypesSupportedByBank
-endpoint	v2.1.0	sandboxDataImport
-endpoint	v2.2.0	createFx
-endpoint	v2.2.0	createProduct
-endpoint	v2.2.0	getConnectorMetrics
-endpoint	v2.2.0	getCurrentFxRate
-endpoint	v2.2.0	getMessageDocs
-endpoint	v3.0.0	addEntitlementRequest
-endpoint	v3.0.0	corePrivateAccountsAllBanks
-endpoint	v3.0.0	createBranch
-endpoint	v3.0.0	createViewForBankAccount
-endpoint	v3.0.0	dataWarehouseSearch
-endpoint	v3.0.0	dataWarehouseStatistics
-endpoint	v3.0.0	deleteEntitlementRequest
-endpoint	v3.0.0	deleteScope
-endpoint	v3.0.0	getAccountsHeld
-endpoint	v3.0.0	getAdapterInfoForBank
-endpoint	v3.0.0	getAllEntitlementRequests
-endpoint	v3.0.0	getApiGlossary
-endpoint	v3.0.0	getBranch
-endpoint	v3.0.0	getBranches
-endpoint	v3.0.0	getCoreTransactionsForBankAccount
-endpoint	v3.0.0	getCurrentUser
-endpoint	v3.0.0	getCustomersForUser
-endpoint	v3.0.0	getEntitlementRequests
-endpoint	v3.0.0	getEntitlementRequestsForCurrentUser
-endpoint	v3.0.0	getEntitlementsForCurrentUser
-endpoint	v3.0.0	getFirehoseTransactionsForBankAccount
-endpoint	v3.0.0	getOtherAccountByIdForBankAccount
-endpoint	v3.0.0	getOtherAccountsForBankAccount
-endpoint	v3.0.0	getPermissionForUserForBankAccount
-endpoint	v3.0.0	getPrivateAccountIdsbyBankId
-endpoint	v3.0.0	getPublicAccountById
-endpoint	v3.0.0	getTransactionsForBankAccount
-endpoint	v3.0.0	privateAccountsAtOneBank
-endpoint	v3.0.0	updateBranch
-endpoint	v3.0.0	updateViewForBankAccount
-endpoint	v3.1.0	answerConsentChallenge
-endpoint	v3.1.0	checkFundsAvailable
-endpoint	v3.1.0	config
-endpoint	v3.1.0	createAccountApplication
-endpoint	v3.1.0	createAccountAttribute
-endpoint	v3.1.0	createAccountWebhook
-endpoint	v3.1.0	createCardAttribute
-endpoint	v3.1.0	createConsentEmail
-endpoint	v3.1.0	createConsentImplicit
-endpoint	v3.1.0	createConsentSms
-endpoint	v3.1.0	createCustomerAddress
-endpoint	v3.1.0	createMeeting
-endpoint	v3.1.0	createMethodRouting
-endpoint	v3.1.0	createProductCollection
-endpoint	v3.1.0	createTaxResidence
-endpoint	v3.1.0	createWebUiProps
-endpoint	v3.1.0	deleteBranch
-endpoint	v3.1.0	deleteCardForBank
-endpoint	v3.1.0	deleteCustomerAddress
-endpoint	v3.1.0	deleteMethodRouting
-endpoint	v3.1.0	deleteProductAttribute
-endpoint	v3.1.0	deleteTaxResidence
-endpoint	v3.1.0	deleteUserAuthContextById
-endpoint	v3.1.0	deleteUserAuthContexts
-endpoint	v3.1.0	deleteWebUiProps
-endpoint	v3.1.0	enableDisableAccountWebhook
-endpoint	v3.1.0	enableDisableConsumers
-endpoint	v3.1.0	getAccountApplication
-endpoint	v3.1.0	getAccountApplications
-endpoint	v3.1.0	getAccountWebhooks
-endpoint	v3.1.0	getAllEntitlements
-endpoint	v3.1.0	getBadLoginStatus
-endpoint	v3.1.0	getCallsLimit
-endpoint	v3.1.0	getCardForBank
-endpoint	v3.1.0	getCardsForBank
-endpoint	v3.1.0	getCheckbookOrders
-endpoint	v3.1.0	getConsumersForCurrentUser
-endpoint	v3.1.0	getCustomerAddresses
-endpoint	v3.1.0	getCustomerByCustomerId
-endpoint	v3.1.0	getCustomerByCustomerNumber
-endpoint	v3.1.0	getFirehoseCustomers
-endpoint	v3.1.0	getMeeting
-endpoint	v3.1.0	getMeetings
-endpoint	v3.1.0	getMessageDocsSwagger
-endpoint	v3.1.0	getMethodRoutings
-endpoint	v3.1.0	getMetricsTopConsumers
-endpoint	v3.1.0	getOAuth2ServerJWKsURIs
-endpoint	v3.1.0	getObpConnectorLoopback
-endpoint	v3.1.0	getProductCollection
-endpoint	v3.1.0	getProductTree
-endpoint	v3.1.0	getRateLimitingInfo
-endpoint	v3.1.0	getServerJWK
-endpoint	v3.1.0	getStatusOfCreditCardOrder
-endpoint	v3.1.0	getTaxResidence
-endpoint	v3.1.0	getTopAPIs
-endpoint	v3.1.0	getTransactionByIdForBankAccount
-endpoint	v3.1.0	getWebUiProps
-endpoint	v3.1.0	refreshUser
-endpoint	v3.1.0	revokeConsent
-endpoint	v3.1.0	saveHistoricalTransaction
-endpoint	v3.1.0	unlockUser
-endpoint	v3.1.0	updateAccount
-endpoint	v3.1.0	updateAccountApplicationStatus
-endpoint	v3.1.0	updateAccountAttribute
-endpoint	v3.1.0	updateCardAttribute
-endpoint	v3.1.0	updateCustomerAddress
-endpoint	v3.1.0	updateCustomerBranch
-endpoint	v3.1.0	updateCustomerCreditLimit
-endpoint	v3.1.0	updateCustomerCreditRatingAndSource
-endpoint	v3.1.0	updateCustomerData
-endpoint	v3.1.0	updateCustomerEmail
-endpoint	v3.1.0	updateCustomerIdentity
-endpoint	v3.1.0	updateCustomerMobileNumber
-endpoint	v3.1.0	updateCustomerNumber
-endpoint	v3.1.0	updateMethodRouting
-endpoint	v3.1.0	updatedCardForBank
-endpoint	v4.0.0	addAccount
-endpoint	v4.0.0	addConsentUser
-endpoint	v4.0.0	addScope
-endpoint	v4.0.0	addTagForViewOnAccount
-endpoint	v4.0.0	answerTransactionRequestChallenge
-endpoint	v4.0.0	buildDynamicEndpointTemplate
-endpoint	v4.0.0	callsLimit
-endpoint	v4.0.0	createAuthenticationTypeValidation
-endpoint	v4.0.0	createBankAccountNotificationWebhook
-endpoint	v4.0.0	createBankAttribute
-endpoint	v4.0.0	createBankLevelDynamicEndpoint
-endpoint	v4.0.0	createBankLevelDynamicEntity
-endpoint	v4.0.0	createBankLevelDynamicMessageDoc
-endpoint	v4.0.0	createBankLevelDynamicResourceDoc
-endpoint	v4.0.0	createBankLevelEndpointMapping
-endpoint	v4.0.0	createBankLevelEndpointTag
-endpoint	v4.0.0	createConnectorMethod
-endpoint	v4.0.0	createCounterparty
-endpoint	v4.0.0	createCounterpartyForAnyAccount
-endpoint	v4.0.0	createCustomerAttribute
-endpoint	v4.0.0	createCustomerMessage
-endpoint	v4.0.0	createDirectDebit
-endpoint	v4.0.0	createDirectDebitManagement
-endpoint	v4.0.0	createDynamicEndpoint
-endpoint	v4.0.0	createDynamicMessageDoc
-endpoint	v4.0.0	createDynamicResourceDoc
-endpoint	v4.0.0	createEndpointMapping
-endpoint	v4.0.0	createHistoricalTransactionAtBank
-endpoint	v4.0.0	createJsonSchemaValidation
-endpoint	v4.0.0	createMyApiCollection
-endpoint	v4.0.0	createMyApiCollectionEndpoint
-endpoint	v4.0.0	createMyApiCollectionEndpointById
-endpoint	v4.0.0	createMyPersonalUserAttribute
-endpoint	v4.0.0	createOrUpdateAccountAttributeDefinition
-endpoint	v4.0.0	createOrUpdateBankAttributeDefinition
-endpoint	v4.0.0	createOrUpdateCardAttributeDefinition
-endpoint	v4.0.0	createOrUpdateCustomerAttributeAttributeDefinition
-endpoint	v4.0.0	createOrUpdateProductAttributeDefinition
-endpoint	v4.0.0	createOrUpdateTransactionAttributeDefinition
-endpoint	v4.0.0	createOrUpdateTransactionRequestAttributeDefinition
-endpoint	v4.0.0	createProductAttribute
-endpoint	v4.0.0	createProductFee
-endpoint	v4.0.0	createSettlementAccount
-endpoint	v4.0.0	createStandingOrder
-endpoint	v4.0.0	createStandingOrderManagement
-endpoint	v4.0.0	createSystemAccountNotificationWebhook
-endpoint	v4.0.0	createSystemDynamicEntity
-endpoint	v4.0.0	createSystemLevelEndpointTag
-endpoint	v4.0.0	createTransactionAttribute
-endpoint	v4.0.0	createTransactionRequestAccount
-endpoint	v4.0.0	createTransactionRequestAccountOtp
-endpoint	v4.0.0	createTransactionRequestAgentCashWithDrawal
-endpoint	v4.0.0	createTransactionRequestAttribute
-endpoint	v4.0.0	createTransactionRequestCard
-endpoint	v4.0.0	createTransactionRequestCounterparty
-endpoint	v4.0.0	createTransactionRequestFreeForm
-endpoint	v4.0.0	createTransactionRequestRefund
-endpoint	v4.0.0	createTransactionRequestSepa
-endpoint	v4.0.0	createTransactionRequestSimple
-endpoint	v4.0.0	createUserCustomerLinks
-endpoint	v4.0.0	createUserInvitation
-endpoint	v4.0.0	createUserWithAccountAccess
-endpoint	v4.0.0	createUserWithRoles
-endpoint	v4.0.0	deleteAccountAttributeDefinition
-endpoint	v4.0.0	deleteAccountCascade
-endpoint	v4.0.0	deleteAuthenticationTypeValidation
-endpoint	v4.0.0	deleteBankAttribute
-endpoint	v4.0.0	deleteBankCascade
-endpoint	v4.0.0	deleteBankLevelDynamicEndpoint
-endpoint	v4.0.0	deleteBankLevelDynamicEntity
-endpoint	v4.0.0	deleteBankLevelDynamicMessageDoc
-endpoint	v4.0.0	deleteBankLevelDynamicResourceDoc
-endpoint	v4.0.0	deleteBankLevelEndpointMapping
-endpoint	v4.0.0	deleteBankLevelEndpointTag
-endpoint	v4.0.0	deleteCardAttributeDefinition
-endpoint	v4.0.0	deleteCounterpartyForAnyAccount
-endpoint	v4.0.0	deleteCustomerAttribute
-endpoint	v4.0.0	deleteCustomerAttributeDefinition
-endpoint	v4.0.0	deleteCustomerCascade
-endpoint	v4.0.0	deleteDynamicEndpoint
-endpoint	v4.0.0	deleteDynamicMessageDoc
-endpoint	v4.0.0	deleteDynamicResourceDoc
-endpoint	v4.0.0	deleteEndpointMapping
-endpoint	v4.0.0	deleteExplicitCounterparty
-endpoint	v4.0.0	deleteJsonSchemaValidation
-endpoint	v4.0.0	deleteMyApiCollection
-endpoint	v4.0.0	deleteMyApiCollectionEndpoint
-endpoint	v4.0.0	deleteMyApiCollectionEndpointById
-endpoint	v4.0.0	deleteMyApiCollectionEndpointByOperationId
-endpoint	v4.0.0	deleteMyDynamicEndpoint
-endpoint	v4.0.0	deleteMyDynamicEntity
-endpoint	v4.0.0	deleteProductAttributeDefinition
-endpoint	v4.0.0	deleteProductCascade
-endpoint	v4.0.0	deleteProductFee
-endpoint	v4.0.0	deleteSystemDynamicEntity
-endpoint	v4.0.0	deleteSystemLevelEndpointTag
-endpoint	v4.0.0	deleteTagForViewOnAccount
-endpoint	v4.0.0	deleteTransactionAttributeDefinition
-endpoint	v4.0.0	deleteTransactionCascade
-endpoint	v4.0.0	deleteTransactionRequestAttributeDefinition
-endpoint	v4.0.0	deleteUser
-endpoint	v4.0.0	deleteUserCustomerLink
-endpoint	v4.0.0	getAccountAttributeDefinition
-endpoint	v4.0.0	getAccountByAccountRouting
-endpoint	v4.0.0	getAccountsByAccountRoutingRegex
-endpoint	v4.0.0	getAccountsMinimalByCustomerId
-endpoint	v4.0.0	getAllAuthenticationTypeValidations
-endpoint	v4.0.0	getAllAuthenticationTypeValidationsPublic
-endpoint	v4.0.0	getAllBankLevelDynamicMessageDocs
-endpoint	v4.0.0	getAllBankLevelDynamicResourceDocs
-endpoint	v4.0.0	getAllBankLevelEndpointMappings
-endpoint	v4.0.0	getAllConnectorMethods
-endpoint	v4.0.0	getAllDynamicMessageDocs
-endpoint	v4.0.0	getAllDynamicResourceDocs
-endpoint	v4.0.0	getAllEndpointMappings
-endpoint	v4.0.0	getAllJsonSchemaValidations
-endpoint	v4.0.0	getAllJsonSchemaValidationsPublic
-endpoint	v4.0.0	getApiCollectionEndpoints
-endpoint	v4.0.0	getApiCollectionsForUser
-endpoint	v4.0.0	getAuthenticationTypeValidation
-endpoint	v4.0.0	getBalancingTransaction
-endpoint	v4.0.0	getBankAttribute
-endpoint	v4.0.0	getBankAttributes
-endpoint	v4.0.0	getBankLevelDynamicEndpoint
-endpoint	v4.0.0	getBankLevelDynamicEndpoints
-endpoint	v4.0.0	getBankLevelDynamicEntities
-endpoint	v4.0.0	getBankLevelDynamicMessageDoc
-endpoint	v4.0.0	getBankLevelDynamicResourceDoc
-endpoint	v4.0.0	getBankLevelEndpointMapping
-endpoint	v4.0.0	getBankLevelEndpointTags
-endpoint	v4.0.0	getCallContext
-endpoint	v4.0.0	getCardAttributeDefinition
-endpoint	v4.0.0	getConnectorMethod
-endpoint	v4.0.0	getConsentInfos
-endpoint	v4.0.0	getConsentInfosByBank
-endpoint	v4.0.0	getCoreAccountById
-endpoint	v4.0.0	getCorrelatedUsersInfoByCustomerId
-endpoint	v4.0.0	getCounterpartiesForAnyAccount
-endpoint	v4.0.0	getCounterpartyByIdForAnyAccount
-endpoint	v4.0.0	getCounterpartyByNameForAnyAccount
-endpoint	v4.0.0	getCurrentUserId
-endpoint	v4.0.0	getCustomerAttributeById
-endpoint	v4.0.0	getCustomerAttributeDefinition
-endpoint	v4.0.0	getCustomerAttributes
-endpoint	v4.0.0	getCustomerMessages
-endpoint	v4.0.0	getCustomersAtAnyBank
-endpoint	v4.0.0	getCustomersByCustomerPhoneNumber
-endpoint	v4.0.0	getCustomersMinimalAtAnyBank
-endpoint	v4.0.0	getDoubleEntryTransaction
-endpoint	v4.0.0	getDynamicEndpoint
-endpoint	v4.0.0	getDynamicEndpoints
-endpoint	v4.0.0	getDynamicMessageDoc
-endpoint	v4.0.0	getDynamicResourceDoc
-endpoint	v4.0.0	getEndpointMapping
-endpoint	v4.0.0	getEntitlements
-endpoint	v4.0.0	getEntitlementsForBank
-endpoint	v4.0.0	getExplicitCounterpartiesForAccount
-endpoint	v4.0.0	getExplicitCounterpartyById
-endpoint	v4.0.0	getFastFirehoseAccountsAtOneBank
-endpoint	v4.0.0	getFeaturedApiCollections
-endpoint	v4.0.0	getFirehoseAccountsAtOneBank
-endpoint	v4.0.0	getJsonSchemaValidation
-endpoint	v4.0.0	getLogoutLink
-endpoint	v4.0.0	getMapperDatabaseInfo
-endpoint	v4.0.0	getMyApiCollectionById
-endpoint	v4.0.0	getMyApiCollectionByName
-endpoint	v4.0.0	getMyApiCollectionEndpoint
-endpoint	v4.0.0	getMyApiCollectionEndpoints
-endpoint	v4.0.0	getMyApiCollectionEndpointsById
-endpoint	v4.0.0	getMyApiCollections
-endpoint	v4.0.0	getMyCorrelatedEntities
-endpoint	v4.0.0	getMyDynamicEndpoints
-endpoint	v4.0.0	getMyDynamicEntities
-endpoint	v4.0.0	getMyPersonalUserAttributes
-endpoint	v4.0.0	getMySpaces
-endpoint	v4.0.0	getPrivateAccountByIdFull
-endpoint	v4.0.0	getPrivateAccountsAtOneBank
-endpoint	v4.0.0	getProductAttribute
-endpoint	v4.0.0	getProductAttributeDefinition
-endpoint	v4.0.0	getProductFee
-endpoint	v4.0.0	getProductFees
-endpoint	v4.0.0	getScannedApiVersions
-endpoint	v4.0.0	getScopes
-endpoint	v4.0.0	getSettlementAccounts
-endpoint	v4.0.0	getSharableApiCollectionById
-endpoint	v4.0.0	getSystemDynamicEntities
-endpoint	v4.0.0	getSystemLevelEndpointTags
-endpoint	v4.0.0	getTagsForViewOnAccount
-endpoint	v4.0.0	getTransactionAttributeById
-endpoint	v4.0.0	getTransactionAttributeDefinition
-endpoint	v4.0.0	getTransactionAttributes
-endpoint	v4.0.0	getTransactionRequest
-endpoint	v4.0.0	getTransactionRequestAttributeById
-endpoint	v4.0.0	getTransactionRequestAttributeDefinition
-endpoint	v4.0.0	getTransactionRequestAttributes
-endpoint	v4.0.0	getUserByUserId
-endpoint	v4.0.0	getUserByUsername
-endpoint	v4.0.0	getUserCustomerLinksByCustomerId
-endpoint	v4.0.0	getUserCustomerLinksByUserId
-endpoint	v4.0.0	getUserInvitation
-endpoint	v4.0.0	getUserInvitationAnonymous
-endpoint	v4.0.0	getUserInvitations
-endpoint	v4.0.0	getUserWithAttributes
-endpoint	v4.0.0	getUsers
-endpoint	v4.0.0	getUsersByEmail
-endpoint	v4.0.0	grantUserAccessToView
-endpoint	v4.0.0	ibanChecker
-endpoint	v4.0.0	lockUser
-endpoint	v4.0.0	resetPasswordUrl
-endpoint	v4.0.0	revokeGrantUserAccessToViews
-endpoint	v4.0.0	revokeUserAccessToView
-endpoint	v4.0.0	updateAccountLabel
-endpoint	v4.0.0	updateAtmAccessibilityFeatures
-endpoint	v4.0.0	updateAtmLocationCategories
-endpoint	v4.0.0	updateAtmNotes
-endpoint	v4.0.0	updateAtmServices
-endpoint	v4.0.0	updateAtmSupportedCurrencies
-endpoint	v4.0.0	updateAtmSupportedLanguages
-endpoint	v4.0.0	updateAuthenticationTypeValidation
-endpoint	v4.0.0	updateBankAttribute
-endpoint	v4.0.0	updateBankLevelDynamicEndpointHost
-endpoint	v4.0.0	updateBankLevelDynamicEntity
-endpoint	v4.0.0	updateBankLevelDynamicMessageDoc
-endpoint	v4.0.0	updateBankLevelDynamicResourceDoc
-endpoint	v4.0.0	updateBankLevelEndpointMapping
-endpoint	v4.0.0	updateBankLevelEndpointTag
-endpoint	v4.0.0	updateConnectorMethod
-endpoint	v4.0.0	updateConsentStatus
-endpoint	v4.0.0	updateCustomerAttribute
-endpoint	v4.0.0	updateDynamicEndpointHost
-endpoint	v4.0.0	updateDynamicMessageDoc
-endpoint	v4.0.0	updateDynamicResourceDoc
-endpoint	v4.0.0	updateEndpointMapping
-endpoint	v4.0.0	updateJsonSchemaValidation
-endpoint	v4.0.0	updateMyDynamicEntity
-endpoint	v4.0.0	updateMyPersonalUserAttribute
-endpoint	v4.0.0	updateProductAttribute
-endpoint	v4.0.0	updateProductFee
-endpoint	v4.0.0	updateSystemDynamicEntity
-endpoint	v4.0.0	updateSystemLevelEndpointTag
-endpoint	v4.0.0	updateTransactionAttribute
-endpoint	v4.0.0	updateTransactionRequestAttribute
-endpoint	v4.0.0	verifyRequestSignResponse
-endpoint	v5.0.0	addCardForBank
-endpoint	v5.0.0	answerUserAuthContextUpdateChallenge
-endpoint	v5.0.0	createAccount
-endpoint	v5.0.0	createBank
-endpoint	v5.0.0	createConsentByConsentRequestIdEmail
-endpoint	v5.0.0	createConsentByConsentRequestIdImplicit
-endpoint	v5.0.0	createConsentByConsentRequestIdSms
-endpoint	v5.0.0	createConsentRequest
-endpoint	v5.0.0	createCustomer
-endpoint	v5.0.0	createCustomerAccountLink
-endpoint	v5.0.0	createProduct
-endpoint	v5.0.0	createSystemView
-endpoint	v5.0.0	createUserAuthContext
-endpoint	v5.0.0	createUserAuthContextUpdateRequest
-endpoint	v5.0.0	deleteCustomerAccountLinkById
-endpoint	v5.0.0	deleteSystemView
-endpoint	v5.0.0	getAdapterInfo
-endpoint	v5.0.0	getBank
-endpoint	v5.0.0	getConsentByConsentRequestId
-endpoint	v5.0.0	getConsentRequest
-endpoint	v5.0.0	getCustomerAccountLinkById
-endpoint	v5.0.0	getCustomerAccountLinksByBankIdAccountId
-endpoint	v5.0.0	getCustomerAccountLinksByCustomerId
-endpoint	v5.0.0	getCustomerOverview
-endpoint	v5.0.0	getCustomerOverviewFlat
-endpoint	v5.0.0	getCustomersAtOneBank
-endpoint	v5.0.0	getCustomersMinimalAtOneBank
-endpoint	v5.0.0	getMetricsAtBank
-endpoint	v5.0.0	getMyCustomersAtAnyBank
-endpoint	v5.0.0	getMyCustomersAtBank
-endpoint	v5.0.0	getProduct
-endpoint	v5.0.0	getProducts
-endpoint	v5.0.0	getSystemView
-endpoint	v5.0.0	getSystemViewsIds
-endpoint	v5.0.0	getUserAuthContexts
-endpoint	v5.0.0	getViewsForBankAccount
-endpoint	v5.0.0	headAtms
-endpoint	v5.0.0	updateBank
-endpoint	v5.0.0	updateCustomerAccountLinkById
-endpoint	v5.0.0	updateSystemView
 endpoint	v5.1.0	accountAccessUniqueIndexCheck
 endpoint	v5.1.0	accountCurrencyCheck
 endpoint	v5.1.0	addSystemViewPermission
@@ -552,15 +152,8 @@ field	code.api.v1_2_1.AccountJSON	id	String
 field	code.api.v1_2_1.AccountJSON	label	String
 field	code.api.v1_2_1.AccountJSON	views_available	List[code.api.v1_2_1.ViewJSONV121]
 field	code.api.v1_2_1.AliasJSON	alias	String
-field	code.api.v1_2_1.BankJSON	bank_routing	code.api.v1_2_1.BankRoutingJsonV121
-field	code.api.v1_2_1.BankJSON	full_name	String
-field	code.api.v1_2_1.BankJSON	id	String
-field	code.api.v1_2_1.BankJSON	logo	String
-field	code.api.v1_2_1.BankJSON	short_name	String
-field	code.api.v1_2_1.BankJSON	website	String
 field	code.api.v1_2_1.BankRoutingJsonV121	address	String
 field	code.api.v1_2_1.BankRoutingJsonV121	scheme	String
-field	code.api.v1_2_1.BanksJSON	banks	List[code.api.v1_2_1.BankJSON]
 field	code.api.v1_2_1.CorporateLocationJSON	corporate_location	code.api.v1_2_1.LocationPlainJSON
 field	code.api.v1_2_1.ImageUrlJSON	image_URL	String
 field	code.api.v1_2_1.LocationJSONV121	date	java.util.Date
@@ -631,7 +224,6 @@ field	code.api.v1_2_1.UrlJSON	URL	String
 field	code.api.v1_2_1.UserJSONV121	display_name	String
 field	code.api.v1_2_1.UserJSONV121	id	String
 field	code.api.v1_2_1.UserJSONV121	provider	String
-field	code.api.v1_2_1.ViewIdsJson	views	List[String]
 field	code.api.v1_2_1.ViewJSONV121	alias	String
 field	code.api.v1_2_1.ViewJSONV121	can_add_comment	Boolean
 field	code.api.v1_2_1.ViewJSONV121	can_add_corporate_location	Boolean
@@ -697,7 +289,6 @@ field	code.api.v1_2_1.ViewJSONV121	hide_metadata_if_alias_used	Boolean
 field	code.api.v1_2_1.ViewJSONV121	id	String
 field	code.api.v1_2_1.ViewJSONV121	is_public	Boolean
 field	code.api.v1_2_1.ViewJSONV121	short_name	String
-field	code.api.v1_2_1.ViewsJSONV121	views	List[code.api.v1_2_1.ViewJSONV121]
 field	code.api.v1_3_0.PhysicalCardJSON	account	code.api.v1_2_1.AccountJSON
 field	code.api.v1_3_0.PhysicalCardJSON	allows	List[String]
 field	code.api.v1_3_0.PhysicalCardJSON	bank_card_number	String
@@ -1891,10 +1482,18 @@ field	code.api.v4_0_0.BankAttributeResponseJsonV400	name	String
 field	code.api.v4_0_0.BankAttributeResponseJsonV400	type	String
 field	code.api.v4_0_0.BankAttributeResponseJsonV400	value	String
 field	code.api.v4_0_0.BankAttributesResponseJsonV400	bank_attributes	List[code.api.v4_0_0.BankAttributeResponseJsonV400]
+field	code.api.v4_0_0.BankJson400	attributes	Option[List[code.api.v4_0_0.BankAttributeBankResponseJsonV400]]
+field	code.api.v4_0_0.BankJson400	bank_routings	List[code.api.v1_2_1.BankRoutingJsonV121]
+field	code.api.v4_0_0.BankJson400	full_name	String
+field	code.api.v4_0_0.BankJson400	id	String
+field	code.api.v4_0_0.BankJson400	logo	String
+field	code.api.v4_0_0.BankJson400	short_name	String
+field	code.api.v4_0_0.BankJson400	website	String
 field	code.api.v4_0_0.BankLevelEndpointTagResponseJson400	bank_id	String
 field	code.api.v4_0_0.BankLevelEndpointTagResponseJson400	endpoint_tag_id	String
 field	code.api.v4_0_0.BankLevelEndpointTagResponseJson400	operation_id	String
 field	code.api.v4_0_0.BankLevelEndpointTagResponseJson400	tag_name	String
+field	code.api.v4_0_0.BanksJson400	banks	List[code.api.v4_0_0.BankJson400]
 field	code.api.v4_0_0.CallLimitPostJsonV400	api_name	Option[String]
 field	code.api.v4_0_0.CallLimitPostJsonV400	api_version	Option[String]
 field	code.api.v4_0_0.CallLimitPostJsonV400	bank_id	Option[String]
@@ -2083,8 +1682,6 @@ field	code.api.v4_0_0.ModeratedFirehoseAccountJsonV400	owners	List[code.api.v1_2
 field	code.api.v4_0_0.ModeratedFirehoseAccountJsonV400	product_code	String
 field	code.api.v4_0_0.ModeratedFirehoseAccountsJsonV400	accounts	List[code.api.v4_0_0.ModeratedFirehoseAccountJsonV400]
 field	code.api.v4_0_0.MySpaces	bank_ids	List[String]
-field	code.api.v4_0_0.PostAccountAccessJsonV400	user_id	String
-field	code.api.v4_0_0.PostAccountAccessJsonV400	view	code.api.v4_0_0.PostViewJsonV400
 field	code.api.v4_0_0.PostAccountTagJSON	value	String
 field	code.api.v4_0_0.PostApiCollectionEndpointJson400	operation_id	String
 field	code.api.v4_0_0.PostApiCollectionJson400	api_collection_name	String
@@ -2127,7 +1724,6 @@ field	code.api.v4_0_0.PostHistoricalTransactionAtBankJson	value	com.openbankproj
 field	code.api.v4_0_0.PostResetPasswordUrlJsonV400	email	String
 field	code.api.v4_0_0.PostResetPasswordUrlJsonV400	user_id	String
 field	code.api.v4_0_0.PostResetPasswordUrlJsonV400	username	String
-field	code.api.v4_0_0.PostRevokeGrantAccountAccessJsonV400	views	List[String]
 field	code.api.v4_0_0.PostSimpleCounterpartyJson400	description	String
 field	code.api.v4_0_0.PostSimpleCounterpartyJson400	name	String
 field	code.api.v4_0_0.PostSimpleCounterpartyJson400	other_account_routing_address	String

@@ -71,7 +71,7 @@ import scala.concurrent.Future
 
 object Http4s220 {
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v2_2_0
-  val versionStatus: String                       = ApiVersionStatus.STABLE.toString
+  val versionStatus: String                       = ApiVersionStatus.DEPRECATED.toString
   val resourceDocs: ArrayBuffer[ResourceDoc]       = ArrayBuffer[ResourceDoc]()
 
   implicit val formats: Formats = CustomJsonFormats.formats

@@ -101,7 +101,7 @@ object Http4s500 {
   implicit def convertAnyToJsonString(any: Any): String = prettyRender(Extraction.decompose(any))
 
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v5_0_0
-  val versionStatus: String = ApiVersionStatus.STABLE.toString
+  val versionStatus: String = ApiVersionStatus.DEPRECATED.toString
   val resourceDocs: ArrayBuffer[ResourceDoc] = ArrayBuffer[ResourceDoc]()
 
   object Implementations5_0_0 extends code.util.Helper.MdcLoggable {
