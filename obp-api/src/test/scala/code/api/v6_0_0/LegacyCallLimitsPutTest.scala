@@ -30,7 +30,6 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateRateLimits, CanGetRateLimits, CanUpdateRateLimits}
 import code.api.util.ErrorMessages.RateLimitScopeNotSupported
-import code.api.v3_1_0.CallLimitPostJson
 import code.api.v4_0_0.CallLimitPostJsonV400
 import code.consumer.Consumers
 import code.entitlement.Entitlement
@@ -43,20 +42,18 @@ import org.json4s.native.Serialization.write
 import java.util.Date
 
 /**
- * The v3.1.0 and v4.0.0 "Set Rate Limits" PUT keeps one rate limit per consumer: it changes the consumer's rate limit
+ * The v4.0.0 "Set Rate Limits" PUT (the v3.1.0 one is commented out) keeps one rate limit per consumer: it changes the consumer's rate limit
  * or creates it. Next to the records v6.0.0 creates, it must not pick one of several to overwrite.
  */
 class LegacyCallLimitsPutTest extends V600ServerSetup {
 
   lazy val consumerId: String = Consumers.consumers.vend.getConsumerByConsumerKey(consumer3.key).map(_.consumerId.get).getOrElse("")
 
-  private def v3_1_0_Request: OBPReq = baseRequest / "obp" / "v3.1.0"
   private def callLimitsPath(base: OBPReq) = base / "management" / "consumers" / consumerId / "consumer" / "call-limits"
 
   private def from = new Date(System.currentTimeMillis() - 3600000L)
   private def to = new Date(System.currentTimeMillis() + 86400000L)
 
-  private def legacyBody(perHour: String) = CallLimitPostJson(from, to, "-1", "-1", perHour, "-1", "-1", "-1")
   private def v400Body(perHour: String) = CallLimitPostJsonV400(from, to, None, None, None, "-1", "-1", perHour, "-1", "-1", "-1")
 
   /** A rate limit created through v6.0.0, which adds a record next to the others. */
@@ -85,18 +82,16 @@ class LegacyCallLimitsPutTest extends V600ServerSetup {
     Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateRateLimits.toString)
   }
 
-  feature("Set Rate Limits (v3.1.0 and v4.0.0) next to the rate limits v6.0.0 creates") {
+  feature("Set Rate Limits (v4.0.0) next to the rate limits v6.0.0 creates") {
 
     scenario("does not change any of a consumer's several rate limits") {
       startClean()
       createV600Limit("1000")
       createV600Limit("5000")
 
-      val v310 = makePutRequest(callLimitsPath(v3_1_0_Request).PUT <@ (user1), write(legacyBody("100")))
+      // v3.1.0 callsLimit is commented out (see docs/OLD_VERSION_ONLY_CODE.md); v4.0.0 keeps it.
       val v400 = makePutRequest(callLimitsPath(v4_0_0_Request).PUT <@ (user1), write(v400Body("100")))
 
-      v310.code should equal(400)
-      v310.body.extract[ErrorMessage].message should startWith("OBP-30625")
       v400.code should equal(400)
       v400.body.extract[ErrorMessage].message should startWith("OBP-30625")
       storedPerHourLimits should equal(List(1000L, 5000L))
@@ -105,10 +100,10 @@ class LegacyCallLimitsPutTest extends V600ServerSetup {
     scenario("changes a consumer's only rate limit, and creates one for a consumer that has none") {
       startClean()
 
-      makePutRequest(callLimitsPath(v3_1_0_Request).PUT <@ (user1), write(legacyBody("100"))).code should equal(200)
+      makePutRequest(callLimitsPath(v4_0_0_Request).PUT <@ (user1), write(v400Body("100"))).code should equal(200)
       storedPerHourLimits should equal(List(100L))
 
-      makePutRequest(callLimitsPath(v3_1_0_Request).PUT <@ (user1), write(legacyBody("200"))).code should equal(200)
+      makePutRequest(callLimitsPath(v4_0_0_Request).PUT <@ (user1), write(v400Body("200"))).code should equal(200)
       storedPerHourLimits should equal(List(200L))
     }
 
@@ -119,7 +114,7 @@ class LegacyCallLimitsPutTest extends V600ServerSetup {
         .PerSecondCallLimit(-1).PerMinuteCallLimit(-1).PerHourCallLimit(1000).PerDayCallLimit(-1)
         .PerWeekCallLimit(-1).PerMonthCallLimit(-1).saveMe()
 
-      makePutRequest(callLimitsPath(v3_1_0_Request).PUT <@ (user1), write(legacyBody("100"))).code should equal(200)
+      makePutRequest(callLimitsPath(v4_0_0_Request).PUT <@ (user1), write(v400Body("100"))).code should equal(200)
 
       storedPerHourLimits should equal(List(100L))
     }
@@ -129,7 +124,7 @@ class LegacyCallLimitsPutTest extends V600ServerSetup {
       createV600Limit("1000")
       activePerHourLimit should equal(1000L)
 
-      makePutRequest(callLimitsPath(v3_1_0_Request).PUT <@ (user1), write(legacyBody("100"))).code should equal(200)
+      makePutRequest(callLimitsPath(v4_0_0_Request).PUT <@ (user1), write(v400Body("100"))).code should equal(200)
 
       activePerHourLimit should equal(100L)
     }
