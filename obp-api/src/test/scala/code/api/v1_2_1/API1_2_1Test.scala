@@ -1914,7 +1914,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       // } {
         // val user = permission.user
 
-        // //TODO: Need to come up with a better way to check that information is not missing
+        // // Open point: Need to come up with a better way to check that information is not missing
         // // idea: reflection on all the json case classes, marking "required" information with annotations
         // stringNotEmpty(user.id)
         // stringNotEmpty(user.provider)

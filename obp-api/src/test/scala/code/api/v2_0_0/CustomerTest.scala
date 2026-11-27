@@ -52,7 +52,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Assuring that create customer, v2.0.0, feedback and get customer, v1.4.0, feedback are the same") {
 
-    // // TODO Add test for AnyBank entitlements
+    // // Open point: add a test for AnyBank entitlements
 
     // scenario("There is a user, and the bank in questions has customer info for that user - v2.0.0") {
       // Given("The bank in question has customer info")

@@ -62,7 +62,7 @@ trait V220ServerSetup extends ServerSetupWithTestData with  DefaultUsers{
       makeGetRequest(request)
     }
     
-    val banksJson = getBanksInfo.body.extract[code.api.v4_0_0.BanksJson400] //TODO, how to make this map automatically.
+    val banksJson = getBanksInfo.body.extract[code.api.v4_0_0.BanksJson400]
     val randomPosition = nextInt(banksJson.banks.size)
     val bank = banksJson.banks(randomPosition)
     bank.id
