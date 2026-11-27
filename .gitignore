@@ -61,3 +61,6 @@ dependency-reduced-pom.xml
 _DO_NOT_COMMIT_/
 __pycache__/
 *.pyc
+
+# Backups of .env, which hold secrets
+.env.bak*
