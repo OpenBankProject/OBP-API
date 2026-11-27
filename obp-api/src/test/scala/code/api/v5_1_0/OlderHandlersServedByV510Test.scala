@@ -37,6 +37,9 @@ import code.api.v3_1_0.{EntitlementJSonsV310, PostPutProductJsonV310}
 import code.api.v4_0_0.{ProductAttributeResponseJsonV400, UpdateAccountJsonV400}
 import code.consumer.Consumers
 import code.entitlement.Entitlement
+import code.views.Views
+import code.api.Constant.CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT
+import com.openbankproject.commons.model.{BankIdAccountId, BankIdAccountIdViewId, CreateViewJson}
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.util.Helpers.randomString
@@ -76,9 +79,20 @@ class OlderHandlersServedByV510Test extends V510ServerSetup {
   feature("GET /banks/BANK_ID/accounts/public (v2.0.0 publicAccountsAtOneBank)") {
     scenario("anyone gets the public accounts of a bank, each listed with its public views only",
       PublicAccountsAtOneBank, VersionOfApi) {
+      Given("an account with a public view that a user has access to")
+      val publicViewName = s"_public${randomString(8).toLowerCase}"
+      val publicView = Views.views.vend.createCustomView(BankIdAccountId(testBankId1, testAccountId1), CreateViewJson(
+        name = publicViewName, description = "public view for the public accounts test", metadata_view = publicViewName,
+        is_public = true, which_alias_to_use = "public", hide_metadata_if_alias_used = false,
+        allowed_actions = List(CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT))).openOrThrowException("Could not create the public view")
+      Views.views.vend.grantAccessToCustomView(BankIdAccountIdViewId(testBankId1, testAccountId1, publicView.viewId), resourceUser1)
+        .openOrThrowException("Could not grant the public view")
+
       val response = makeGetRequest(v5_1_0_Request / "banks" / bankId / "accounts" / "public")
       response.code should equal(200)
       val accounts = response.body.extract[BasicAccountsJSON].accounts
+      Then("the account is listed with that view")
+      accounts.find(_.id == testAccountId1.value).map(_.views_available.map(_.id)).getOrElse(Nil) should contain(publicView.viewId.value)
       accounts.foreach { account =>
         account.bank_id should equal(bankId)
         account.views_available.foreach(_.is_public should equal(true))
