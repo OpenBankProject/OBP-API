@@ -88,52 +88,54 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
   val putUpdateCustomerData = SwaggerDefinitionsJSON.putUpdateCustomerDataJsonV310
   lazy val bankId = randomBankId
 
-  feature("Create Customer v3.1.0 - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST
-      val response310 = makePostRequest(request310, write(postCustomerJson))
-      Then("We should get a 401")
-      response310.code should equal(401)
-      And("error should be " + AuthenticatedUserIsRequired)
-      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
-    }
-  }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Create Customer v3.1.0 - Unauthorized access") {
+    // scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST
+      // val response310 = makePostRequest(request310, write(postCustomerJson))
+      // Then("We should get a 401")
+      // response310.code should equal(401)
+      // And("error should be " + AuthenticatedUserIsRequired)
+      // response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+    // }
+  // }
 
-  feature("Create Customer v3.1.0 - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
-      val response310 = makePostRequest(request310, write(postCustomerJson))
-      Then("We should get a 403")
-      response310.code should equal(403)
-      val errorMsg = UserHasMissingRoles + canCreateCustomer + " or " + canCreateCustomerAtAnyBank
-      And("error should be " + errorMsg)
-      val errorMessage = response310.body.extract[ErrorMessage].message
-      errorMessage contains (UserHasMissingRoles) should be (true)
-      errorMessage contains (canCreateCustomerAtAnyBank.toString()) should be (true)
-    }
-    scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint3, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
-      When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
-      val response310 = makePostRequest(request310, write(postCustomerJson))
-      Then("We should get a 201")
-      response310.code should equal(201)
-      val infoPost = response310.body.extract[CustomerJsonV310]
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Create Customer v3.1.0 - Authorized access") {
+    // scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      // val response310 = makePostRequest(request310, write(postCustomerJson))
+      // Then("We should get a 403")
+      // response310.code should equal(403)
+      // val errorMsg = UserHasMissingRoles + canCreateCustomer + " or " + canCreateCustomerAtAnyBank
+      // And("error should be " + errorMsg)
+      // val errorMessage = response310.body.extract[ErrorMessage].message
+      // errorMessage contains (UserHasMissingRoles) should be (true)
+      // errorMessage contains (canCreateCustomerAtAnyBank.toString()) should be (true)
+    // }
+    // scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint3, VersionOfApi) {
+      // Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      // When("We make a request v3.1.0")
+      // val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      // val response310 = makePostRequest(request310, write(postCustomerJson))
+      // Then("We should get a 201")
+      // response310.code should equal(201)
+      // val infoPost = response310.body.extract[CustomerJsonV310]
 
-      When("We make the request: Get Customer specified by CUSTOMER_ID")
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
-      val requestGet = (v3_1_0_Request / "banks" / bankId / "customers" / infoPost.customer_id).GET <@ (user1)
-      val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 200")
-      responseGet.code should equal(200)
-      And("We should get the right information back")
-      val infoGet = responseGet.body.extract[CustomerJsonV310]
-      And("POST feedback and GET feedback must be the same")
-      infoGet should equal(infoPost)
-    }
-  }
+      // When("We make the request: Get Customer specified by CUSTOMER_ID")
+      // Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
+      // val requestGet = (v3_1_0_Request / "banks" / bankId / "customers" / infoPost.customer_id).GET <@ (user1)
+      // val responseGet = makeGetRequest(requestGet)
+      // Then("We should get a 200")
+      // responseGet.code should equal(200)
+      // And("We should get the right information back")
+      // val infoGet = responseGet.body.extract[CustomerJsonV310]
+      // And("POST feedback and GET feedback must be the same")
+      // infoGet should equal(infoPost)
+    // }
+  // }
 
   feature("Get Customer by CUSTOMER_ID v3.1.0 - Authorized access")
   {
@@ -164,7 +166,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val bankB = testBankId2.value
       Entitlement.entitlement.vend.addEntitlement(bankB, resourceUser1.userId, CanCreateCustomer.toString)
       Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
-      val customerAtB = makePostRequest((v3_1_0_Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
+      val customerAtB = makePostRequest((baseRequest / "obp" / "v5.1.0" / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
       customerAtB.code should equal(201)
       val customerIdAtB = customerAtB.body.extract[CustomerJsonV310].customer_id
       When("We get bank B's customer through bank A's path, holding " + canGetCustomersAtOneBank + " at bank A")
@@ -240,7 +242,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -285,7 +287,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint5, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -331,7 +333,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint6, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -380,7 +382,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint7, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -428,7 +430,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -449,7 +451,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario(s"We will call the endpoint with user credentials and the $canUpdateCustomerCreditRatingAndSourceAtAnyBank role", ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -496,7 +498,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint9, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -542,7 +544,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint10, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -592,7 +594,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint3, ApiEndpoint11, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -629,10 +631,10 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
 
   feature(s" $ApiEndpoint12- Authorized access") {
 
-    //first we create the customers: 
+    //first we create the customers (v3.1.0 createCustomer is commented out, so through v5.1.0):
     Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
     When("We make a request v3.1.0")
-    val request310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+    val request310 = (baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "customers").POST <@(user1)
     val response310 = makePostRequest(request310, write(postCustomerJson))
     Then("We should get a 201")
     response310.code should equal(201)
