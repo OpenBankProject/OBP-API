@@ -58,10 +58,11 @@ class ViewsTests extends V300ServerSetup {
   //System view, owner
   val postBodySystemViewJson = createViewJsonV300.copy(name=SYSTEM_OWNER_VIEW_ID).copy(metadata_view = SYSTEM_OWNER_VIEW_ID).toCreateViewJson
   
-  def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = v3_0Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
-    makeGetRequest(request)
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    // val request = v3_0Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
 
   def postView(bankId: String, accountId: String, view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v3_0Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
