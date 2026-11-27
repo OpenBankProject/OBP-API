@@ -67,10 +67,10 @@ import scala.util.Random
 import scala.util.Random.nextInt
 
 trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
+  private val transactionRequestsPath = "transaction-requests"
 
   def v4_0_0_Request: OBPReq = baseRequest / "obp" / "v4.0.0"
   def v5_0_0_Request: OBPReq = baseRequest / "obp" / "v5.0.0"
-  def v5_1_0_Request: OBPReq = baseRequest / "obp" / "v5.1.0"
   def dynamicEndpoint_Request: OBPReq = baseRequest / "obp" / ApiShortVersions.`dynamic-endpoint`.toString
   def dynamicEntity_Request: OBPReq = baseRequest / "obp" / ApiShortVersions.`dynamic-entity`.toString
 
@@ -101,7 +101,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def randomBankId : String = {
     def getBanksInfo : APIResponse  = {
       // getBanks of v5.0.0 and below is commented out, so the bank list comes from v5.1.0.
-      val request = baseRequest / "obp" / "v5.1.0" / "banks"
+      val request = v5_1_0_Request / "banks"
       makeGetRequest(request)
     }
     val banksJson = getBanksInfo.body.extract[BanksJson400]
@@ -129,7 +129,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def randomOwnerViewPermalinkViaEndpoint(bankId: String, account: AccountJSON) : String = {
     // getViewsForBankAccount of v4.0.0 and below is commented out; v5.1.0 serves the path with the
     // v5.0.0 handler, whose views have another shape, so only id and is_public are read.
-    val request = baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
+    val request = v5_1_0_Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
     val reply = makeGetRequest(request)
     val possibleViewsPermalinks = (reply.body \ "views").children
       .filterNot(v => (v \ "is_public").extractOpt[Boolean].contains(true))
@@ -152,7 +152,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   
   def randomTransactionRequestViaEndpoint(bankId : String, accountId : String, viewId: String, consumerAndToken: Option[(Consumer, Token)]) : code.api.v5_1_0.TransactionRequestJsonV510 = {
     // getTransactionRequests of v4.0.0 and below is commented out, so v5.1.0 lists them, in its own shape.
-    val request310 = (baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / accountId / viewId / "transaction-requests").GET <@(consumerAndToken)
+    val request310 = (v5_1_0_Request / "banks" / bankId / "accounts" / accountId / viewId / transactionRequestsPath).GET <@(consumerAndToken)
     val response310 = makeGetRequest(request310)
     response310.code should equal(200)
     val transactionRequests = response310.body.extract[code.api.v5_1_0.TransactionRequestsJsonV510].transaction_requests
@@ -211,7 +211,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def createProductViaEndpoint(bankId: String, code: String, json: PutProductJsonV400): ProductJsonV400 = {
     val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateProduct.toString)
     // v4.0.0 createProduct is commented out; v5.1.0 serves this path with the v5.0.0 handler.
-    val request400 = (baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "products" / code).PUT <@ (user1)
+    val request400 = (v5_1_0_Request / "banks" / bankId / "products" / code).PUT <@ (user1)
     val response400 = makePutRequest(request400, write(json))
     response400.code should equal(201)
     val product = response400.body.extract[ProductJsonV400]
@@ -261,7 +261,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     Entitlement.entitlement.vend.addEntitlement(bankId, userId, CanCreateCustomer.toString)
     When("We make a request v3.1.0")
     // v4.0.0 createCustomer is commented out; v5.1.0 serves this path with the v5.0.0 handler.
-    val request310 = (baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "customers").POST <@(user1)
+    val request310 = (v5_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
     val response310 = makePostRequest(request310, write(postCustomerJson))
     Then("We should get a 201")
     response310.code should equal(201)
@@ -306,7 +306,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
 
   def createTransactionRequestAttributeEndpoint(bankId:String, accountId:String, transactionRequestId:String, consumerAndToken: Option[(Consumer, Token)]) = {
     lazy val postTransactionRequestAttributeJsonV400 = SwaggerDefinitionsJSON.transactionRequestAttributeJsonV400
-    val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId /"transaction-requests" / transactionRequestId / "attribute").POST <@ (user1)
+    val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId /transactionRequestsPath / transactionRequestId / "attribute").POST <@ (user1)
     Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canCreateTransactionRequestAttributeAtOneBank.toString())
     val responseWithRole = makePostRequest(request400, write(postTransactionRequestAttributeJsonV400))
     responseWithRole.code should equal(201)
@@ -374,7 +374,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val description = "Just test it!"
     val transactionRequestBody = TransactionRequestBodyJsonV200(toAccountJson, bodyValue, description)
     val createTransReqRequest = (v4_0_0_Request / "banks" / fromBankId / "accounts" / fromAccountId /
-      fromViewId / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@ (consumerAndToken)
+      fromViewId / "transaction-request-types" / "SANDBOX_TAN" / transactionRequestsPath).POST <@ (consumerAndToken)
 
     makePostRequest(createTransReqRequest, write(transactionRequestBody)).body.extract[TransactionRequestWithChargeJSON400]
   }

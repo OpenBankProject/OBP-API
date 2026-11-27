@@ -54,7 +54,7 @@ trait V310ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def randomBankId : String = {
     def getBanksInfo : APIResponse  = {
       // getBanks of v5.0.0 and below is commented out, so the bank list comes from v5.1.0.
-      val request = baseRequest / "obp" / "v5.1.0" / "banks"
+      val request = v5_1_0_Request / "banks"
       makeGetRequest(request)
     }
     val banksJson = getBanksInfo.body.extract[code.api.v4_0_0.BanksJson400]
@@ -84,7 +84,7 @@ trait V310ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def randomViewPermalink(bankId: String, account: AccountJSON) : String = {
     // getViewsForBankAccount of v4.0.0 and below is commented out; v5.1.0 serves the path with the
     // v5.0.0 handler, whose views have another shape, so only id and is_public are read.
-    val request = baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
+    val request = v5_1_0_Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
     val reply = makeGetRequest(request)
     val possibleViewsPermalinks = (reply.body \ "views").children
       .filterNot(v => (v \ "is_public").extractOpt[Boolean].contains(true))
@@ -114,7 +114,7 @@ trait V310ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       technology = json.technology, networks = json.networks, allows = json.allows,
       account_id = json.account_id, replacement = json.replacement, pin_reset = json.pin_reset,
       collected = json.collected, posted = json.posted, customer_id = json.customer_id, brand = "Visa")
-    val response = makePostRequest((baseRequest / "obp" / "v5.1.0" / "management" / "banks" / bankId / "cards").POST <@ (user1), write(body))
+    val response = makePostRequest((v5_1_0_Request / "management" / "banks" / bankId / "cards").POST <@ (user1), write(body))
     response.code should equal(201)
     (response.body \ "card_id").extract[String]
   }

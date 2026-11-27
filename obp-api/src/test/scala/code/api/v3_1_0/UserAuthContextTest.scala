@@ -41,6 +41,7 @@ import org.scalatest.Tag
 import scala.language.postfixOps
 
 class UserAuthContextTest extends V310ServerSetup {
+  private val authContextPath = "auth-context"
 
   /**
     * Test tags
@@ -107,7 +108,7 @@ class UserAuthContextTest extends V310ServerSetup {
 
     scenario("We will call the deleteUserAuthContexts endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").DELETE
+      val request310 = (v3_1_0_Request / "users" / userId1.value / authContextPath).DELETE
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
@@ -116,7 +117,7 @@ class UserAuthContextTest extends V310ServerSetup {
     }
     scenario("We will call the deleteUserAuthContexts endpoint without a proper role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context").DELETE <@(user1)
+      val request310 = (v3_1_0_Request / "users" / userId1.value / authContextPath).DELETE <@(user1)
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)
@@ -126,7 +127,7 @@ class UserAuthContextTest extends V310ServerSetup {
 
     scenario("We will call the deleteUserAuthContextById endpoint without a user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context"/ "userAuthContextId").DELETE
+      val request310 = (v3_1_0_Request / "users" / userId1.value / authContextPath/ "userAuthContextId").DELETE
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
@@ -135,7 +136,7 @@ class UserAuthContextTest extends V310ServerSetup {
     }
     scenario("We will call the deleteUserAuthContextById endpoint without a proper role", ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "users" / userId1.value / "auth-context" / "userAuthContextId").DELETE <@(user1)
+      val request310 = (v3_1_0_Request / "users" / userId1.value / authContextPath / "userAuthContextId").DELETE <@(user1)
       val response310 = makeDeleteRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)

@@ -319,7 +319,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       val headerWithToken = ("Authorization", "DirectLogin token=%s".format(token))
       val validHeadersWithToken = List(accessControlOriginHeader, headerWithToken)
       // v2.0.0 corePrivateAccountsAllBanks is commented out; v5.1.0 serves the path with the v3.0.0 handler.
-      val request2 = baseRequest / "obp" / "v5.1.0" / "my" / "accounts"
+      val request2 = v5_1_0_Request / "my" / "accounts"
       val response2 = makeGetRequest(request2, validHeadersWithToken)
 
       Then("We should get a 200 - OK and an empty list of accounts")
@@ -374,7 +374,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       val headerWithToken = ("Authorization", "DirectLogin token=%s".format(token))
       val validHeadersWithToken = List(accessControlOriginHeader, headerWithToken)
       // v2.0.0 corePrivateAccountsAllBanks is commented out; v5.1.0 serves the path with the v3.0.0 handler.
-      val request2 = baseRequest / "obp" / "v5.1.0" / "my" / "accounts"
+      val request2 = v5_1_0_Request / "my" / "accounts"
       val response2 = makeGetRequest(request2, validHeadersWithToken)
 
       Then("We should get a 200 - OK and an empty list of accounts")
@@ -429,7 +429,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       val headerWithToken = ("Authorization", "DirectLogin token=%s".format(token))
       val validHeadersWithToken = List(accessControlOriginHeader, headerWithToken)
       // v2.0.0 corePrivateAccountsAllBanks is commented out; v5.1.0 serves the path with the v3.0.0 handler.
-      val request2 = baseRequest / "obp" / "v5.1.0" / "my" / "accounts"
+      val request2 = v5_1_0_Request / "my" / "accounts"
       val response2 = makeGetRequest(request2, validHeadersWithToken)
 
       Then("We should get a 200 - OK and an empty list of accounts")

@@ -40,6 +40,7 @@ import code.setup.DefaultUsers
 import org.json4s.native.Serialization.write
 
 class EntitlementTests extends V200ServerSetup with DefaultUsers {
+  private val weMakeTheRequest = "We make the request"
 
    override def beforeAll(): Unit = {
      super.beforeAll()
@@ -91,7 +92,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
     scenario("We try to delete some entitlement - deleteEntitlement") {
       When("We add required entitlement")
       val ent = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString).openOrThrowException(attemptedToOpenAnEmptyBox)
-      And("We make the request")
+      And(weMakeTheRequest)
       val requestDelete = (v2_0Request / "users" / resourceUser1.userId / "entitlement" / ent.entitlementId).DELETE <@ (user1)
       And("We grant the role to the user")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canDeleteEntitlementAtAnyBank.toString)
@@ -102,7 +103,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
 
     scenario("We try to create entitlement - addEntitlement-canCreateEntitlementAtOneBank") {
       val requestBody = SwaggerDefinitionsJSON.createEntitlementJSON
-      And("We make the request")
+      And(weMakeTheRequest)
       val requestPost = (v2_0Request / "users" / resourceUser1.userId / "entitlements").POST <@ (user1)
       And("We grant the role to the user")
       val responsePost = makePostRequest(requestPost , write(requestBody))
@@ -129,7 +130,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
 
     scenario("We try to create entitlement - addEntitlement-canCreateEntitlementAtAnyBank") {
       val requestBody = SwaggerDefinitionsJSON.createEntitlementJSON.copy(bank_id = testBankId1.value)
-      And("We make the request")
+      And(weMakeTheRequest)
       val requestPost = (v2_0Request / "users" / resourceUser1.userId / "entitlements").POST <@ (user1)
       And("We grant the role to the user")
       val responsePost = makePostRequest(requestPost , write(requestBody))

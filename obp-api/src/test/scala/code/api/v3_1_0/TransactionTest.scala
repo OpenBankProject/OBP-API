@@ -195,12 +195,12 @@ class TransactionTest extends V310ServerSetup {
       
       //Before call saveHistoricalTransaction, we need store the balance for both account:
       //ApiEndpoint3
-      val requestGetAccount1 = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1 = (v5_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1 = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1.code should equal(200)
       val accountI1Balance = (httpResponseGetAccount1.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2 = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2 = (v5_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2 = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2.code should equal(200)
       val accountI2Balance= (httpResponseGetAccount2.body \ "balance" \ "amount").extract[String]
@@ -218,12 +218,12 @@ class TransactionTest extends V310ServerSetup {
       responseJson.description should be(postJsonAccount.description)
       responseJson.transaction_id.length > 0 should be (true)
 
-      val requestGetAccount1After = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1After = (v5_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1After = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1After.code should equal(200)
       val accountI1BalanceAfter = (httpResponseGetAccount1After.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2After = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2After = (v5_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2After = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2After.code should equal(200)
       val accountI2BalanceAfter= (httpResponseGetAccount2After.body \ "balance" \ "amount").extract[String]
@@ -248,12 +248,12 @@ class TransactionTest extends V310ServerSetup {
 
       //Before call saveHistoricalTransaction, we need store the balance for both account:
       //ApiEndpoint3
-      val requestGetAccount1 = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1 = (v5_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1 = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1.code should equal(200)
       val accountI1Balance = (httpResponseGetAccount1.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2 = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2 = (v5_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2 = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2.code should equal(200)
       val accountI2Balance= (httpResponseGetAccount2.body \ "balance" \ "amount").extract[String]
@@ -284,12 +284,12 @@ class TransactionTest extends V310ServerSetup {
       responseJson.description should be(postJsonAccount.description)
       responseJson.transaction_id.length > 0 should be (true)
 
-      val requestGetAccount1After = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1After = (v5_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1After = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1After.code should equal(200)
       val accountI1BalanceAfter = (httpResponseGetAccount1After.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2After = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2After = (v5_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2After = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2After.code should equal(200)
       val accountI2BalanceAfter= (httpResponseGetAccount2After.body \ "balance" \ "amount").extract[String]
@@ -313,12 +313,12 @@ class TransactionTest extends V310ServerSetup {
 
       //Before call saveHistoricalTransaction, we need store the balance for both account:
       //ApiEndpoint3
-      val requestGetAccount1 = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1 = (v5_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1 = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1.code should equal(200)
       val accountI1Balance = (httpResponseGetAccount1.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2 = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2 = (v5_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2 = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2.code should equal(200)
       val accountI2Balance= (httpResponseGetAccount2.body \ "balance" \ "amount").extract[String]
@@ -347,12 +347,12 @@ class TransactionTest extends V310ServerSetup {
       responseJson.description should be(postJsonAccount.description)
       responseJson.transaction_id.length > 0 should be (true)
 
-      val requestGetAccount1After = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1After = (v5_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1After = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1After.code should equal(200)
       val accountI1BalanceAfter = (httpResponseGetAccount1After.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2After = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2After = (v5_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2After = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2After.code should equal(200)
       val accountI2BalanceAfter= (httpResponseGetAccount2After.body \ "balance" \ "amount").extract[String]
@@ -376,12 +376,12 @@ class TransactionTest extends V310ServerSetup {
 
       //Before call saveHistoricalTransaction, we need store the balance for both account:
       //ApiEndpoint3
-      val requestGetAccount1 = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1 = (v5_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1 = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1.code should equal(200)
       val accountI1Balance = (httpResponseGetAccount1.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2 = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2 = (v5_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2 = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2.code should equal(200)
       val accountI2Balance= (httpResponseGetAccount2.body \ "balance" \ "amount").extract[String]
@@ -413,12 +413,12 @@ class TransactionTest extends V310ServerSetup {
       responseJson.description should be(postJsonAccount.description)
       responseJson.transaction_id.length > 0 should be (true)
 
-      val requestGetAccount1After = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1After = (v5_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1After = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1After.code should equal(200)
       val accountI1BalanceAfter = (httpResponseGetAccount1After.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2After = (baseRequest / "obp" / "v5.1.0" /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2After = (v5_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2After = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2After.code should equal(200)
       val accountI2BalanceAfter= (httpResponseGetAccount2After.body \ "balance" \ "amount").extract[String]

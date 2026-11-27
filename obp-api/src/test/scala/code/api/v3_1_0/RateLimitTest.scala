@@ -49,6 +49,7 @@ import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 class RateLimitTest extends V310ServerSetup with PropsReset {
+  private val callLimitsPath = "call-limits"
 
   // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
@@ -271,7 +272,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
       When("We make a request v3.1.0")
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").GET
+      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / callLimitsPath).GET
       val response310 = makeGetRequest(request310)
       Then("We should get a 401")
       response310.code should equal(401)
@@ -282,7 +283,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
       When("We make a request v3.1.0 without a Role " + ApiRole.canReadCallLimits)
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").GET <@(user1)
+      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / callLimitsPath).GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 403")
       response310.code should equal(403)
@@ -294,7 +295,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanReadCallLimits.toString)
-      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").GET <@(user1)
+      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / callLimitsPath).GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 200")
       response310.code should equal(200)
