@@ -31,10 +31,13 @@ import code.accountapplication.MappedAccountApplication
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
-import code.customer.MappedCustomer
+import code.CustomerDependants.MappedCustomerDependant
+import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customeraccountlinks.CustomerAccountLink
 import code.customeraddress.MappedCustomerAddress
+import code.crm.MappedCrmEvent
+import code.customerlinks.CustomerLink
 import code.customerattribute.MappedCustomerAttribute
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
@@ -50,6 +53,9 @@ import net.liftweb.mapper.By
 object DeleteCustomerCascade {
 
   def delete(customerId: CustomerId): Boolean = {
+    // The tasks run in list order. Rows that point at the customer go first and the customer row goes last,
+    // as the account cascade does with the account: some tasks read the customer row (its primary key, its
+    // bank and number) to find their rows, and a failure of the last task rolls back all the others.
     val doneTasks =
         deleteCustomerAttributes(customerId) ::
           deleteTaxResidence(customerId) ::
@@ -58,11 +64,15 @@ object DeleteCustomerCascade {
           deleteKycCheck(customerId) ::
           deleteKycDocument(customerId) ::
           deleteCustomerAddress(customerId) ::
+          deleteCustomerMessages(customerId) ::
+          deleteCustomerDependants(customerId) ::
+          deleteCustomerLinks(customerId) ::
+          deleteCrmEvents(customerId) ::
           deleteCustomerIdMapping(customerId) ::
           deleteAccountApplication(customerId) ::
           deleteCustomerUserCustomerLinks(customerId) ::
-          deleteCustomer(customerId) ::
           deleteCustomerAccountLinks(customerId) ::
+          deleteCustomer(customerId) ::
         Nil
     doneTasks.forall(_ == true)
   }
@@ -74,6 +84,32 @@ object DeleteCustomerCascade {
       case false =>
         // Throws, so databaseAtomicTask restores what delete has removed.
         fullBoxOrException(Empty ~> APIFailureNewStyle(CouldNotDeleteCascade, 400))
+    }
+  }
+  private def deleteCustomerMessages(customerId: CustomerId): Boolean = {
+    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall(c =>
+      MappedCustomerMessage.bulkDelete_!!(
+        By(MappedCustomerMessage.customer, c.id.get)
+      ))
+  }
+  private def deleteCustomerDependants(customerId: CustomerId): Boolean = {
+    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall(c =>
+      MappedCustomerDependant.bulkDelete_!!(
+        By(MappedCustomerDependant.mCustomer, c.id.get)
+      ))
+  }
+  /** A link between two customers is held once, so the deleted customer can be on either side of it. */
+  private def deleteCustomerLinks(customerId: CustomerId): Boolean = {
+    CustomerLink.bulkDelete_!!(By(CustomerLink.CustomerId, customerId.value)) &&
+      CustomerLink.bulkDelete_!!(By(CustomerLink.OtherCustomerId, customerId.value))
+  }
+  private def deleteCrmEvents(customerId: CustomerId): Boolean = {
+    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall { c =>
+      val number = c.mNumber.get
+      number.isEmpty || MappedCrmEvent.bulkDelete_!!(
+        By(MappedCrmEvent.mBankId, c.mBank.get),
+        By(MappedCrmEvent.mCustomerNumber, number)
+      )
     }
   }
   private def deleteCustomerAccountLinks(customerId: CustomerId): Boolean = {
