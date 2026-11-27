@@ -272,6 +272,69 @@ class CardTest extends V310ServerSetup with DefaultUsers {
     // }
   // }
 
+  feature("Get, update and delete a Card (the card is created through v5.1.0)") {
+    scenario("We read, filter, update and delete a card",
+      ApiEndpointGetCardsForBank, ApiEndpointGetCardForBank, ApiEndpointUpdatedCardForBank,
+      ApiEndpointDeleteCardForBank, VersionOfApi) {
+      Given("A customer and a card at the test bank")
+      val testBank = testBankId1
+      Entitlement.entitlement.vend.addEntitlement(testBank.value, resourceUser1.userId, CanCreateCustomer.toString)
+      val customerId = makePostRequest(
+        (baseRequest / "obp" / "v5.1.0" / "banks" / testBank.value / "customers").POST <@ (user1),
+        write(SwaggerDefinitionsJSON.postCustomerJsonV310)).body.extract[CustomerJsonV310].customer_id
+      val properCardJson = createPhysicalCardJsonV310.copy(account_id = testAccountId1.value, issue_number = "123", customer_id = customerId)
+      Entitlement.entitlement.vend.addEntitlement(testBank.value, resourceUser1.userId, ApiRole.canCreateCardsForBank.toString)
+      val cardId = createCardViaKeptVersion(testBank.value, properCardJson)
+
+      Then("getCards filters by customer and by account")
+      Entitlement.entitlement.vend.addEntitlement(testBank.value, resourceUser1.userId, ApiRole.canGetCardsForBank.toString)
+      def getCards(params: List[(String, String)]) =
+        makeGetRequest((v3_1_0_Request / "management" / "banks" / testBank.value / "cards").GET <@ user1 <<? params)
+      val wrongCustomer = getCards(List(("customer_id", "12323")))
+      wrongCustomer.code should equal(200)
+      wrongCustomer.body.extract[PhysicalCardsJsonV310].cards.size should be (0)
+      val wrongAccount = getCards(List(("account_id", "12323")))
+      wrongAccount.code should equal(200)
+      wrongAccount.body.extract[PhysicalCardsJsonV310].cards.size should be (0)
+      val byAccount = getCards(List(("account_id", testAccountId1.value)))
+      byAccount.code should equal(200)
+      byAccount.body.extract[PhysicalCardsJsonV310].cards.map(_.card_id) should be (List(cardId))
+      val byCustomerAndAccount = getCards(List(("customer_id", customerId), ("account_id", testAccountId1.value)))
+      byCustomerAndAccount.code should equal(200)
+      byCustomerAndAccount.body.extract[PhysicalCardsJsonV310].cards.map(_.card_id) should be (List(cardId))
+
+      Then("getCard returns the card")
+      val cardRequest = v3_1_0_Request / "management" / "banks" / testBank.value / "cards" / cardId
+      val responseGetCard = makeGetRequest(cardRequest.GET <@ (user1))
+      responseGetCard.code should equal(200)
+      val card = responseGetCard.body.extract[PhysicalCardWithAttributesJsonV310]
+      card.bank_id should be (testBank.value)
+      card.card_number should be (properCardJson.card_number)
+      card.allows should be (properCardJson.allows)
+      card.name_on_card should be (properCardJson.name_on_card)
+
+      Then("updateCard changes the name on the card")
+      Entitlement.entitlement.vend.addEntitlement(testBank.value, resourceUser1.userId, ApiRole.canUpdateCardsForBank.toString)
+      val responseUpdateCard = makePutRequest(cardRequest.PUT <@ (user1), write(properCardJson.copy(name_on_card = "testName1")))
+      responseUpdateCard.code should equal(200)
+      responseUpdateCard.body.extract[PhysicalCardJsonV310].name_on_card should be ("testName1")
+      val afterUpdate = makeGetRequest(cardRequest.GET <@ (user1))
+      afterUpdate.code should equal(200)
+      afterUpdate.body.extract[PhysicalCardWithAttributesJsonV310].name_on_card should be ("testName1")
+      afterUpdate.body.extract[PhysicalCardWithAttributesJsonV310].card_number should be (properCardJson.card_number)
+
+      Then("deleteCard removes the card")
+      Entitlement.entitlement.vend.addEntitlement(testBank.value, resourceUser1.userId, ApiRole.canDeleteCardsForBank.toString)
+      makeDeleteRequest(cardRequest.DELETE <@ (user1)).code should equal(204)
+      val afterDelete = makeGetRequest(cardRequest.GET <@ (user1))
+      afterDelete.code should equal(400)
+      afterDelete.body.toString contains (s"$CardNotFound") should be (true)
+      val cardsAfterDelete = getCards(List(("customer_id", customerId), ("account_id", testAccountId1.value)))
+      cardsAfterDelete.code should equal(200)
+      cardsAfterDelete.body.extract[PhysicalCardsJsonV310].cards.size should be (0)
+    }
+  }
+
   feature("Delete Card checks only the delete role") {
     scenario("A user with CanDeleteCardsForBank alone deletes a card", ApiEndpointDeleteCardForBank, VersionOfApi) {
       Given("A card created by user1")
