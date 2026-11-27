@@ -243,4 +243,50 @@ class ProductTest extends V310ServerSetup {
   // }
 
 
+
+  feature("Get Product Tree v3.1.0 (the products are created through the connector)") {
+    scenario("We get the product tree of a child product", ApiEndpoint4, VersionOfApi) {
+      val grandparent = createProduct(testBankId, "TREE_GRANDPARENT", parentPostPutProductJsonV310)
+      val parent = createProduct(testBankId, "TREE_PARENT", parentPostPutProductJsonV310.copy(parent_product_code = grandparent.code))
+      createProduct(testBankId, "TREE_CHILD", parentPostPutProductJsonV310.copy(parent_product_code = parent.code))
+
+      When("We get the tree of TREE_CHILD")
+      val response = makeGetRequest((v3_1_0_Request / "banks" / testBankId / "product-tree" / "TREE_CHILD").GET <@(user1))
+      Then("We should get a 200 with the parent and the grandparent nested")
+      response.code should equal(200)
+      val tree = response.body.extract[ProductTreeJsonV310]
+      tree.code shouldBe "TREE_CHILD"
+      tree.parent_product.map(_.code) shouldBe Some("TREE_PARENT")
+      tree.parent_product.flatMap(_.parent_product).map(_.code) shouldBe Some("TREE_GRANDPARENT")
+    }
+
+    scenario("We get the product tree of products that are their own or each other's parent", ApiEndpoint4, VersionOfApi) {
+      // CYCLE_A -> CYCLE_B -> CYCLE_A: create both, then point CYCLE_A at CYCLE_B
+      createProduct(testBankId, "CYCLE_A", parentPostPutProductJsonV310)
+      createProduct(testBankId, "CYCLE_B", parentPostPutProductJsonV310.copy(parent_product_code = "CYCLE_A"))
+      createProduct(testBankId, "CYCLE_A", parentPostPutProductJsonV310.copy(parent_product_code = "CYCLE_B"))
+
+      When("We get the tree of CYCLE_A")
+      val responseCycle = makeGetRequest((v3_1_0_Request / "banks" / testBankId / "product-tree" / "CYCLE_A").GET <@(user1))
+      Then("We should get a 200 with each product once, and the nesting ending at the repeat")
+      responseCycle.code should equal(200)
+      val cycleTree = responseCycle.body.extract[ProductTreeJsonV310]
+      cycleTree.code shouldBe "CYCLE_A"
+      cycleTree.parent_product.map(_.code) shouldBe Some("CYCLE_B")
+      cycleTree.parent_product.flatMap(_.parent_product) shouldBe None
+
+      // SELF_PARENT -> SELF_PARENT
+      createProduct(testBankId, "SELF_PARENT", parentPostPutProductJsonV310)
+      createProduct(testBankId, "SELF_PARENT", parentPostPutProductJsonV310.copy(parent_product_code = "SELF_PARENT"))
+
+      When("We get the tree of SELF_PARENT")
+      val responseSelf = makeGetRequest((v3_1_0_Request / "banks" / testBankId / "product-tree" / "SELF_PARENT").GET <@(user1))
+      Then("We should get a 200 with the product and no parent")
+      responseSelf.code should equal(200)
+      val selfTree = responseSelf.body.extract[ProductTreeJsonV310]
+      selfTree.code shouldBe "SELF_PARENT"
+      selfTree.parent_product shouldBe None
+    }
+  }
+
 }
