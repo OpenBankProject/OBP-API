@@ -244,6 +244,8 @@ class ProductTest extends V310ServerSetup {
 
 
 
+  private val productTreePath = "product-tree"
+
   feature("Get Product Tree v3.1.0 (the products are created through the connector)") {
     scenario("We get the product tree of a child product", ApiEndpoint4, VersionOfApi) {
       val grandparent = createProduct(testBankId, "TREE_GRANDPARENT", parentPostPutProductJsonV310)
@@ -251,7 +253,7 @@ class ProductTest extends V310ServerSetup {
       createProduct(testBankId, "TREE_CHILD", parentPostPutProductJsonV310.copy(parent_product_code = parent.code))
 
       When("We get the tree of TREE_CHILD")
-      val response = makeGetRequest((v3_1_0_Request / "banks" / testBankId / "product-tree" / "TREE_CHILD").GET <@(user1))
+      val response = makeGetRequest((v3_1_0_Request / "banks" / testBankId / productTreePath / "TREE_CHILD").GET <@(user1))
       Then("We should get a 200 with the parent and the grandparent nested")
       response.code should equal(200)
       val tree = response.body.extract[ProductTreeJsonV310]
@@ -267,7 +269,7 @@ class ProductTest extends V310ServerSetup {
       createProduct(testBankId, "CYCLE_A", parentPostPutProductJsonV310.copy(parent_product_code = "CYCLE_B"))
 
       When("We get the tree of CYCLE_A")
-      val responseCycle = makeGetRequest((v3_1_0_Request / "banks" / testBankId / "product-tree" / "CYCLE_A").GET <@(user1))
+      val responseCycle = makeGetRequest((v3_1_0_Request / "banks" / testBankId / productTreePath / "CYCLE_A").GET <@(user1))
       Then("We should get a 200 with each product once, and the nesting ending at the repeat")
       responseCycle.code should equal(200)
       val cycleTree = responseCycle.body.extract[ProductTreeJsonV310]
@@ -280,7 +282,7 @@ class ProductTest extends V310ServerSetup {
       createProduct(testBankId, "SELF_PARENT", parentPostPutProductJsonV310.copy(parent_product_code = "SELF_PARENT"))
 
       When("We get the tree of SELF_PARENT")
-      val responseSelf = makeGetRequest((v3_1_0_Request / "banks" / testBankId / "product-tree" / "SELF_PARENT").GET <@(user1))
+      val responseSelf = makeGetRequest((v3_1_0_Request / "banks" / testBankId / productTreePath / "SELF_PARENT").GET <@(user1))
       Then("We should get a 200 with the product and no parent")
       responseSelf.code should equal(200)
       val selfTree = responseSelf.body.extract[ProductTreeJsonV310]
