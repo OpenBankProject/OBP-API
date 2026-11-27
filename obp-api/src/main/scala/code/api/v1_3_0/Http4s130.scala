@@ -62,35 +62,36 @@ object Http4s130 {
 
     // ─── root ────────────────────────────────────────────────────────────────
 
-    val root: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v1_3_0, versionStatus))
-        }
-      case req @ GET -> `prefixPath` / "root" =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v1_3_0, versionStatus))
-        }
-    }
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val root: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v1_3_0, versionStatus))
+        // }
+      // case req @ GET -> `prefixPath` / "root" =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v1_3_0, versionStatus))
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(root),
-      "GET",
-      "/root",
-      "Get API Info (root)",
-      """Returns information about:
-        |
-        |* API version
-        |* Hosted by information
-        |* Git Commit""",
-      EmptyBody,
-      apiInfoJSON,
-      List(UnknownError, MandatoryPropertyIsNotSet),
-      apiTagApi :: Nil,
-      None,
-      http4sPartialFunction = Some(root)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(root),
+      // "GET",
+      // "/root",
+      // "Get API Info (root)",
+      // """Returns information about:
+        // |
+        // |* API version
+        // |* Hosted by information
+        // |* Git Commit""",
+      // EmptyBody,
+      // apiInfoJSON,
+      // List(UnknownError, MandatoryPropertyIsNotSet),
+      // apiTagApi :: Nil,
+      // None,
+      // http4sPartialFunction = Some(root)
+    // )
 
     // ─── getCards ────────────────────────────────────────────────────────────
 
@@ -151,7 +152,7 @@ object Http4s130 {
     // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given the docs in this same order.
     lazy val routesInOrder: List[Http4sHandler] = List(
-      root,
+      // root,
       getCards,
       getCardsForBank
     )
