@@ -160,6 +160,25 @@ class AccountTest extends V200ServerSetup with DefaultUsers with PrivateUser2Acc
     // }
   // }
 
+  // v2.0.0 createAccount is commented out, so this scenario reads the private accounts the test
+  // setup already gives user1 instead of creating one first.
+  feature("Get all accounts at all banks - v2.0.0") {
+    scenario("we get the private accounts of the authenticated user") {
+      When("We make the authenticated access request")
+      val responseGetAll = makeGetRequest((v2_0Request / "accounts").GET <@ (user1))
+
+      Then("We should get a 200 with the user's private accounts")
+      responseGetAll.code should equal(200)
+      val accounts = responseGetAll.body.extract[BasicAccountsJSON].accounts
+      accounts.map(_.id) should contain (testAccountId1.value)
+      accounts.foreach { a =>
+        a.views_available.nonEmpty should equal (true)
+        And("only private views are listed")
+        a.views_available.foreach(_.is_public should equal (false))
+      }
+    }
+  }
+
   feature("Information about the public bank accounts for all banks"){
     scenario("we get the public bank accounts"){
       accountTestsSpecificDBSetup()
