@@ -65,6 +65,28 @@ class ProductCollectionTest extends V310ServerSetup {
   // helper, which stores every v3.1.0 field through the connector.
   def createProduct(code: String, json: PostPutProductJsonV310): ProductJsonV310 = createProduct(testBankId, code, json)
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: this helper called v3.1.0 createProduct, which only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def createProduct(code: String, json: PostPutProductJsonV310) = {
+  //   When("We try to create a product v3.1.0")
+  //   val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
+  //   val response310 = makePutRequest(request310, write(json))
+  //   Then("We should get a 201")
+  //   response310.code should equal(201)
+  //   val product = response310.body.extract[ProductJsonV310]
+  //   product.code shouldBe code
+  //   product.parent_product_code shouldBe json.parent_product_code
+  //   product.bank_id shouldBe testBankId
+  //   product.name shouldBe json.name
+  //   product.category shouldBe json.category
+  //   product.super_family shouldBe json.super_family
+  //   product.family shouldBe json.family
+  //   product.more_info_url shouldBe json.more_info_url
+  //   product.details shouldBe json.details
+  //   product.description shouldBe json.description
+  //   product
+  // }
+
 
   feature("Create Product Collections v3.1.0") {
     scenario("We will call the endpoint with a user credentials", ApiEndpoint1, VersionOfApi) {

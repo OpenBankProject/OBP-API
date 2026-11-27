@@ -30,6 +30,9 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateRateLimits, CanGetRateLimits, CanUpdateRateLimits}
 import code.api.util.ErrorMessages.RateLimitScopeNotSupported
+// THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+// Commented out: v3.1.0 callsLimit is only reachable from OBP versions below v5.1.0. See docs/OLD_VERSION_ONLY_CODE.md.
+// import code.api.v3_1_0.CallLimitPostJson
 import code.api.v4_0_0.CallLimitPostJsonV400
 import code.consumer.Consumers
 import code.entitlement.Entitlement
@@ -49,11 +52,17 @@ class LegacyCallLimitsPutTest extends V600ServerSetup {
 
   lazy val consumerId: String = Consumers.consumers.vend.getConsumerByConsumerKey(consumer3.key).map(_.consumerId.get).getOrElse("")
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: v3.1.0 callsLimit is only reachable from OBP versions below v5.1.0. See docs/OLD_VERSION_ONLY_CODE.md.
+  // private def v3_1_0_Request: OBPReq = baseRequest / "obp" / "v3.1.0"
   private def callLimitsPath(base: OBPReq) = base / "management" / "consumers" / consumerId / "consumer" / "call-limits"
 
   private def from = new Date(System.currentTimeMillis() - 3600000L)
   private def to = new Date(System.currentTimeMillis() + 86400000L)
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: v3.1.0 callsLimit is only reachable from OBP versions below v5.1.0. See docs/OLD_VERSION_ONLY_CODE.md.
+  // private def legacyBody(perHour: String) = CallLimitPostJson(from, to, "-1", "-1", perHour, "-1", "-1", "-1")
   private def v400Body(perHour: String) = CallLimitPostJsonV400(from, to, None, None, None, "-1", "-1", perHour, "-1", "-1", "-1")
 
   /** A rate limit created through v6.0.0, which adds a record next to the others. */
@@ -89,9 +98,15 @@ class LegacyCallLimitsPutTest extends V600ServerSetup {
       createV600Limit("1000")
       createV600Limit("5000")
 
-      // v3.1.0 callsLimit is commented out (see docs/OLD_VERSION_ONLY_CODE.md); v4.0.0 keeps it.
+      // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+      // Commented out: v3.1.0 callsLimit is only reachable from OBP versions below v5.1.0. See docs/OLD_VERSION_ONLY_CODE.md.
+      // val v310 = makePutRequest(callLimitsPath(v3_1_0_Request).PUT <@ (user1), write(legacyBody("100")))
       val v400 = makePutRequest(callLimitsPath(v4_0_0_Request).PUT <@ (user1), write(v400Body("100")))
 
+      // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+      // Commented out: v3.1.0 callsLimit is only reachable from OBP versions below v5.1.0. See docs/OLD_VERSION_ONLY_CODE.md.
+      // v310.code should equal(400)
+      // v310.body.extract[ErrorMessage].message should startWith("OBP-30625")
       v400.code should equal(400)
       v400.body.extract[ErrorMessage].message should startWith("OBP-30625")
       storedPerHourLimits should equal(List(1000L, 5000L))
