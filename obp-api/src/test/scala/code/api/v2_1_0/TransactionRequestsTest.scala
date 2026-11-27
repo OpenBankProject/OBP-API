@@ -315,831 +315,837 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       }
     }
 
-  feature("Security Tests: permissions, roles, views...") {
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Security Tests: permissions, roles, views...") {
 
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No login user", TransactionRequest) {}
-    } else {
-      scenario("No login user", TransactionRequest) {
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("No login user", TransactionRequest) {}
+    // } else {
+      // scenario("No login user", TransactionRequest) {
 
-        val helper = defaultSetup()
+        // val helper = defaultSetup()
 
-        Then("We call the 'Create Transaction Request.' without the login user")
-        var request = (v2_1Request / "banks" / helper.fromAccount.bankId.value / "accounts" / helper.fromAccount.accountId.value /
-          SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / helper.transactionRequestType / "transaction-requests").POST
-        var response = makePostRequest(request, write(helper.transactionRequestBody))
+        // Then("We call the 'Create Transaction Request.' without the login user")
+        // var request = (v2_1Request / "banks" / helper.fromAccount.bankId.value / "accounts" / helper.fromAccount.accountId.value /
+          // SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / helper.transactionRequestType / "transaction-requests").POST
+        // var response = makePostRequest(request, write(helper.transactionRequestBody))
 
 
-        Then("we should get a 401 created code")
-        response.code should equal(401)
+        // Then("we should get a 401 created code")
+        // response.code should equal(401)
 
-        Then("We should have the error message")
-        response.body.extract[ErrorMessage].message should startWith(ErrorMessages.AuthenticatedUserIsRequired)
+        // Then("We should have the error message")
+        // response.body.extract[ErrorMessage].message should startWith(ErrorMessages.AuthenticatedUserIsRequired)
 
-      }
-    }
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No owner view , No CanCreateAnyTransactionRequest role", TransactionRequest) {}
-    } else {
-      scenario("No owner view, No CanCreateAnyTransactionRequest role", TransactionRequest) {
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("No owner view , No CanCreateAnyTransactionRequest role", TransactionRequest) {}
+    // } else {
+      // scenario("No owner view, No CanCreateAnyTransactionRequest role", TransactionRequest) {
 
-        val helper = defaultSetup()
+        // val helper = defaultSetup()
 
-        Then("We used the login user2, but it does not have the owner view and CreateTransactionRequest role ")
-        val request = (v2_1Request / "banks" / helper.testBank.bankId.value / "accounts" / helper.fromAccount.accountId.value /
-          SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / helper.transactionRequestType / "transaction-requests").POST <@ (user2)
-        val response = makePostRequest(request, write(helper.transactionRequestBody))
+        // Then("We used the login user2, but it does not have the owner view and CreateTransactionRequest role ")
+        // val request = (v2_1Request / "banks" / helper.testBank.bankId.value / "accounts" / helper.fromAccount.accountId.value /
+          // SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / helper.transactionRequestType / "transaction-requests").POST <@ (user2)
+        // val response = makePostRequest(request, write(helper.transactionRequestBody))
 
-        Then("we should get a 400 created code")
-        response.code should equal(400)
+        // Then("we should get a 400 created code")
+        // response.code should equal(400)
 
-        Then("We should have the error: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-        val error: String = (response.body \ "message").values.toString
-        error contains (ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest) should be (true)
-      }
-    }
+        // Then("We should have the error: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+        // val error: String = (response.body \ "message").values.toString
+        // error contains (ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest) should be (true)
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No owner view, With CanCreateAnyTransactionRequest role", TransactionRequest) {}
-    } else {
-      scenario("No owner view, With CanCreateAnyTransactionRequest role", TransactionRequest) {
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("No owner view, With CanCreateAnyTransactionRequest role", TransactionRequest) {}
+    // } else {
+      // scenario("No owner view, With CanCreateAnyTransactionRequest role", TransactionRequest) {
 
-        val helper = defaultSetup()
+        // val helper = defaultSetup()
 
-        Then("We grant the CanCreateAnyTransactionRequest role to user3")
-        addEntitlement(helper.bankId.value, resourceUser3.userId, CanCreateAnyTransactionRequest.toString)
+        // Then("We grant the CanCreateAnyTransactionRequest role to user3")
+        // addEntitlement(helper.bankId.value, resourceUser3.userId, CanCreateAnyTransactionRequest.toString)
 
-        Then("We used the login user3, it does not have the owner view ,but has the  CreateTransactionRequest role ")
-        var request = (v2_1Request / "banks" / helper.testBank.bankId.value / "accounts" / helper.fromAccount.accountId.value /
-          SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / helper.transactionRequestType / "transaction-requests").POST <@ (user3)
-        var response = makePostRequest(request, write(helper.transactionRequestBody))
+        // Then("We used the login user3, it does not have the owner view ,but has the  CreateTransactionRequest role ")
+        // var request = (v2_1Request / "banks" / helper.testBank.bankId.value / "accounts" / helper.fromAccount.accountId.value /
+          // SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / helper.transactionRequestType / "transaction-requests").POST <@ (user3)
+        // var response = makePostRequest(request, write(helper.transactionRequestBody))
 
-        Then("we should get a 201 created code")
-        response.code should equal(201)
+        // Then("we should get a 201 created code")
+        // response.code should equal(201)
 
-      }
-    }
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("Invalid transactionRequestType", TransactionRequest) {}
-    } else {
-      scenario("Invalid transactionRequestType", TransactionRequest) {
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("Invalid transactionRequestType", TransactionRequest) {}
+    // } else {
+      // scenario("Invalid transactionRequestType", TransactionRequest) {
 
-        val helper = defaultSetup()
+        // val helper = defaultSetup()
 
-        Then("We grant the CanCreateAnyTransactionRequest role to user3")
-        addEntitlement(helper.bankId.value, resourceUser3.userId, CanCreateAnyTransactionRequest.toString)
+        // Then("We grant the CanCreateAnyTransactionRequest role to user3")
+        // addEntitlement(helper.bankId.value, resourceUser3.userId, CanCreateAnyTransactionRequest.toString)
 
-        Then("We call createTransactionRequest with invalid transactionRequestType - V210")
-        val invalidTransactionRequestType = "invalidTransactionRequestType"
-        var request = (v2_1Request / "banks" / helper.fromAccount.bankId.value / "accounts" / helper.fromAccount.accountId.value /
-          SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / invalidTransactionRequestType / "transaction-requests").POST <@ (user3)
-        var response = makePostRequest(request, write(helper.transactionRequestBody))
+        // Then("We call createTransactionRequest with invalid transactionRequestType - V210")
+        // val invalidTransactionRequestType = "invalidTransactionRequestType"
+        // var request = (v2_1Request / "banks" / helper.fromAccount.bankId.value / "accounts" / helper.fromAccount.accountId.value /
+          // SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / invalidTransactionRequestType / "transaction-requests").POST <@ (user3)
+        // var response = makePostRequest(request, write(helper.transactionRequestBody))
 
-        Then("we should get a 400 created code")
-        response.code should equal(400)
+        // Then("we should get a 400 created code")
+        // response.code should equal(400)
         
-        response.body.extract[ErrorMessage].message should startWith(ErrorMessages.InvalidTransactionRequestType)
+        // response.body.extract[ErrorMessage].message should startWith(ErrorMessages.InvalidTransactionRequestType)
         
-      }
-    }
+      // }
+    // }
 
-  }
+  // }
 
-  feature("we can create transaction requests -- SANDBOX_TAN") {
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("we can create transaction requests -- SANDBOX_TAN") {
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX (same currencies)", TransactionRequest) {}
-    } else {
-      scenario("No challenge, No FX (same currencies)", TransactionRequest) {
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("No challenge, No FX (same currencies)", TransactionRequest) {}
+    // } else {
+      // scenario("No challenge, No FX (same currencies)", TransactionRequest) {
 
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup()
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup()
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequest
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequest
 
-        Then("We checked all the fields of createTransactionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
+        // Then("We checked all the fields of createTransactionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
 
-        When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
+        // When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
 
-        Then("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
+        // Then("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
 
-        When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        Then("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, false)
+        // When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // Then("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, false)
 
-        When("We checked all the data in database, we need check the account amout info")
-        helper.checkBankAccountBalance(true)
-      }
-    }
+        // When("We checked all the data in database, we need check the account amout info")
+        // helper.checkBankAccountBalance(true)
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", TransactionRequest) {}
-    } else {
-      scenario("No challenge, With FX ", TransactionRequest) {
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("No challenge, With FX ", TransactionRequest) {}
+    // } else {
+      // scenario("No challenge, With FX ", TransactionRequest) {
 
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup()
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup()
 
-        And("We set the special conditions for different currencies")
-        val fromCurrency = "AED"
-        val toCurrency = "INR"
-        val amt = "10"
-        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
-        And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
-        helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
+        // And("We set the special conditions for different currencies")
+        // val fromCurrency = "AED"
+        // val toCurrency = "INR"
+        // val amt = "10"
+        // helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+        // And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
+        // helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        // helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequest
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequest
 
-        Then("We checked all the fields of createTransactionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
+        // Then("We checked all the fields of createTransactionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
 
-        When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
+        // When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
 
-        Then("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
+        // Then("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
 
-        When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        Then("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, false)
+        // When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // Then("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, false)
 
-        When("We checked all the data in database, we need check the account amout info")
-        helper.checkBankAccountBalance(true)
+        // When("We checked all the data in database, we need check the account amout info")
+        // helper.checkBankAccountBalance(true)
 
-      }
-    }
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX", TransactionRequest) {}
-    } else {
-      scenario("With challenge, No FX ", TransactionRequest) {
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup()
-        And("We set the special conditions for different currencies")
-        val fromCurrency = "AED"
-        val toCurrency = "AED"
-        val amt = "30000.00"
-        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
-        And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
-        helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("With challenge, No FX", TransactionRequest) {}
+    // } else {
+      // scenario("With challenge, No FX ", TransactionRequest) {
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup()
+        // And("We set the special conditions for different currencies")
+        // val fromCurrency = "AED"
+        // val toCurrency = "AED"
+        // val amt = "30000.00"
+        // helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+        // And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
+        // helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        // helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequest
-        And("We checked all the fields of createTransactionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequest
+        // And("We checked all the fields of createTransactionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
 
-        Then("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
-        And("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
+        // Then("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
+        // And("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
 
-        Then("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        And("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, true)
+        // Then("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // And("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, true)
 
-        Then("we need check the account amount info")
-        helper.checkBankAccountBalance(false)
+        // Then("we need check the account amount info")
+        // helper.checkBankAccountBalance(false)
 
-        Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
-        And("we prepare the parameters for it")
-        helper.setAnswerTransactionRequest()
-        And("we call the endpoint")
-        val ansReqResponse = helper.makeAnswerRequest
-        And("We check the all the fields of getAnsReqResponse body ")
-        helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
+        // Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
+        // And("we prepare the parameters for it")
+        // helper.setAnswerTransactionRequest()
+        // And("we call the endpoint")
+        // val ansReqResponse = helper.makeAnswerRequest
+        // And("We check the all the fields of getAnsReqResponse body ")
+        // helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
 
-        Then("we need check the account amount info")
-        helper.checkBankAccountBalance(true)
-      }
-    }
+        // Then("we need check the account amount info")
+        // helper.checkBankAccountBalance(true)
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX ", TransactionRequest) {}
-    } else {
-      scenario("With challenge, With FX ", TransactionRequest) {
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup()
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("With challenge, With FX ", TransactionRequest) {}
+    // } else {
+      // scenario("With challenge, With FX ", TransactionRequest) {
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup()
 
-        And("We set the special conditions for different currencies")
-        val fromCurrency = "AED"
-        val toCurrency = "INR"
-        val amt = "30000.00"
-        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+        // And("We set the special conditions for different currencies")
+        // val fromCurrency = "AED"
+        // val toCurrency = "INR"
+        // val amt = "30000.00"
+        // helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
-        And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
-        helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
+        // And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
+        // helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        // helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequest
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequest
 
-        Then("We checked all the fields of createTransactionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
+        // Then("We checked all the fields of createTransactionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
 
-        When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
+        // When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
 
-        Then("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
+        // Then("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
 
-        When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        Then("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, true)
+        // When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // Then("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, true)
 
-        When("We checked all the data in database, we need check the account amount info")
-        helper.checkBankAccountBalance(false)
+        // When("We checked all the data in database, we need check the account amount info")
+        // helper.checkBankAccountBalance(false)
   
-        Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
-        And("we prepare the parameters for it")
-        helper.setAnswerTransactionRequest()
-        And("we call the endpoint")
-        val ansReqResponse = helper.makeAnswerRequest
-        And("We check the all the fields of getAnsReqResponse body ")
-        helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
+        // Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
+        // And("we prepare the parameters for it")
+        // helper.setAnswerTransactionRequest()
+        // And("we call the endpoint")
+        // val ansReqResponse = helper.makeAnswerRequest
+        // And("We check the all the fields of getAnsReqResponse body ")
+        // helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
   
-        Then("we need check the account amount info")
-        helper.checkBankAccountBalance(true)
-      }
-    }
-  }
+        // Then("we need check the account amount info")
+        // helper.checkBankAccountBalance(true)
+      // }
+    // }
+  // }
 
-  feature("we can create transaction requests -- FREE_FORM") {
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("we can create transaction requests -- FREE_FORM") {
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX ", TransactionRequest) {}
-    } else {
-      scenario("No challenge, No FX ", TransactionRequest) {
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("No challenge, No FX ", TransactionRequest) {}
+    // } else {
+      // scenario("No challenge, No FX ", TransactionRequest) {
 
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup(FREE_FORM.toString)
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup(FREE_FORM.toString)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequest
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequest
 
-        Then("We checked all the fields of createTransact dionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
+        // Then("We checked all the fields of createTransact dionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
 
-        When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
+        // When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
 
-        Then("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
+        // Then("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
 
-        When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        Then("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, false)
+        // When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // Then("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, false)
 
-        When("We checked all the data in database, we need check the account amout info")
-        helper.checkBankAccountBalance(true)
-      }
-    }
+        // When("We checked all the data in database, we need check the account amout info")
+        // helper.checkBankAccountBalance(true)
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", TransactionRequest) {}
-    } else {
-      scenario("No challenge, With FX ", TransactionRequest) {
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("No challenge, With FX ", TransactionRequest) {}
+    // } else {
+      // scenario("No challenge, With FX ", TransactionRequest) {
 
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup(FREE_FORM.toString)
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup(FREE_FORM.toString)
 
-        And("We set the special conditions for different currencies")
-        val fromCurrency = "AED"
-        val toCurrency = "INR"
-        val amt = "10"
-        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
-        And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
-        helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
+        // And("We set the special conditions for different currencies")
+        // val fromCurrency = "AED"
+        // val toCurrency = "INR"
+        // val amt = "10"
+        // helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+        // And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
+        // helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        // helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequest
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequest
 
-        Then("We checked all the fields of createTransactionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
+        // Then("We checked all the fields of createTransactionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
 
-        When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
+        // When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
 
-        Then("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
+        // Then("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
 
-        When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        Then("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, false)
+        // When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // Then("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, false)
 
-        When("We checked all the data in database, we need check the account amout info")
-        helper.checkBankAccountBalance(true)
+        // When("We checked all the data in database, we need check the account amout info")
+        // helper.checkBankAccountBalance(true)
 
-      }
-    }
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX", TransactionRequest) {}
-    } else {
-      scenario("With challenge, No FX ", TransactionRequest) {
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup(FREE_FORM.toString)
-        And("We set the special conditions for different currencies")
-        val fromCurrency = "AED"
-        val toCurrency = "AED"
-        val amt = "30000.00"
-        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
-        And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
-        helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("With challenge, No FX", TransactionRequest) {}
+    // } else {
+      // scenario("With challenge, No FX ", TransactionRequest) {
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup(FREE_FORM.toString)
+        // And("We set the special conditions for different currencies")
+        // val fromCurrency = "AED"
+        // val toCurrency = "AED"
+        // val amt = "30000.00"
+        // helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+        // And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
+        // helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        // helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequest
-        And("We checked all the fields of createTransactionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequest
+        // And("We checked all the fields of createTransactionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
 
-        Then("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
-        And("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
+        // Then("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
+        // And("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
 
-        Then("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        And("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, true)
+        // Then("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // And("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, true)
 
-        Then("we need check the account amount info")
-        helper.checkBankAccountBalance(false)
+        // Then("we need check the account amount info")
+        // helper.checkBankAccountBalance(false)
 
-        Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
-        And("we prepare the parameters for it")
-        helper.setAnswerTransactionRequest()
-        And("we call the endpoint")
-        val ansReqResponse = helper.makeAnswerRequest
-        And("We check the all the fields of getAnsReqResponse body ")
-        helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
+        // Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
+        // And("we prepare the parameters for it")
+        // helper.setAnswerTransactionRequest()
+        // And("we call the endpoint")
+        // val ansReqResponse = helper.makeAnswerRequest
+        // And("We check the all the fields of getAnsReqResponse body ")
+        // helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
 
-        Then("we need check the account amount info")
-        helper.checkBankAccountBalance(true)
-      }
-    }
+        // Then("we need check the account amount info")
+        // helper.checkBankAccountBalance(true)
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX ", TransactionRequest) {}
-    } else {
-      scenario("With challenge, With FX ", TransactionRequest) {
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup(FREE_FORM.toString)
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("With challenge, With FX ", TransactionRequest) {}
+    // } else {
+      // scenario("With challenge, With FX ", TransactionRequest) {
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup(FREE_FORM.toString)
 
-        And("We set the special conditions for different currencies")
-        val fromCurrency = "AED"
-        val toCurrency = "INR"
-        val amt = "30000.00"
-        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+        // And("We set the special conditions for different currencies")
+        // val fromCurrency = "AED"
+        // val toCurrency = "INR"
+        // val amt = "30000.00"
+        // helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
-        And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
-        helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
+        // And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
+        // helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        // helper.transactionRequestBody = helper.transactionRequestBody.copy(value= helper.bodyValue)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequest
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequest
 
-        Then("We checked all the fields of createTransactionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
+        // Then("We checked all the fields of createTransactionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
 
-        When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
+        // When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
 
-        Then("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
+        // Then("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
 
-        When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        Then("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, true)
+        // When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // Then("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, true)
 
-        When("We checked all the data in database, we need check the account amount info")
-        helper.checkBankAccountBalance(false)
+        // When("We checked all the data in database, we need check the account amount info")
+        // helper.checkBankAccountBalance(false)
   
-        Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
-        And("we prepare the parameters for it")
-        helper.setAnswerTransactionRequest()
-        And("we call the endpoint")
-        val ansReqResponse = helper.makeAnswerRequest
-        And("We check the all the fields of getAnsReqResponse body ")
-        helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
+        // Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
+        // And("we prepare the parameters for it")
+        // helper.setAnswerTransactionRequest()
+        // And("we call the endpoint")
+        // val ansReqResponse = helper.makeAnswerRequest
+        // And("We check the all the fields of getAnsReqResponse body ")
+        // helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
   
-        Then("we need check the account amount info")
-        helper.checkBankAccountBalance(true)
-      }
-    }
-  }
+        // Then("we need check the account amount info")
+        // helper.checkBankAccountBalance(true)
+      // }
+    // }
+  // }
 
-  feature("we can create transaction requests -- SEPA") {
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("we can create transaction requests -- SEPA") {
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX ", TransactionRequest) {}
-    } else {
-      scenario("No challenge, No FX ", TransactionRequest) {
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("No challenge, No FX ", TransactionRequest) {}
+    // } else {
+      // scenario("No challenge, No FX ", TransactionRequest) {
 
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup(SEPA.toString)
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup(SEPA.toString)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequestSEPA
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequestSEPA
 
-        Then("We checked all the fields of createTransact dionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
+        // Then("We checked all the fields of createTransact dionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
 
-        When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
+        // When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
 
-        Then("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
+        // Then("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
 
-        When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        Then("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, false)
+        // When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // Then("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, false)
 
-        When("We checked all the data in database, we need check the account amout info")
-        helper.checkBankAccountBalance(true)
-      }
-    }
+        // When("We checked all the data in database, we need check the account amout info")
+        // helper.checkBankAccountBalance(true)
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", TransactionRequest) {}
-    } else {
-      scenario("No challenge, With FX ", TransactionRequest) {
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("No challenge, With FX ", TransactionRequest) {}
+    // } else {
+      // scenario("No challenge, With FX ", TransactionRequest) {
 
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup(SEPA.toString)
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup(SEPA.toString)
 
-        And("We set the special conditions for different currencies")
-        val fromCurrency = "EUR"
-        val toCurrency = "EUR"
-        val amt = "10"
-        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
-        And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
-        helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
+        // And("We set the special conditions for different currencies")
+        // val fromCurrency = "EUR"
+        // val toCurrency = "EUR"
+        // val amt = "10"
+        // helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+        // And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
+        // helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        // helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequestSEPA
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequestSEPA
 
-        Then("We checked all the fields of createTransactionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
+        // Then("We checked all the fields of createTransactionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
 
-        When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
+        // When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
 
-        Then("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
+        // Then("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
 
-        When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        Then("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, false)
+        // When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // Then("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, false)
 
-        When("We checked all the data in database, we need check the account amout info")
-        helper.checkBankAccountBalance(true)
+        // When("We checked all the data in database, we need check the account amout info")
+        // helper.checkBankAccountBalance(true)
 
-      }
-    }
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX ", TransactionRequest) {}
-    } else {
-      scenario("With challenge, No FX ", TransactionRequest) {
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup(SEPA.toString)
-        And("We set the special conditions for different currencies")
-        val fromCurrency = "EUR"
-        val toCurrency = "EUR"
-        val amt = "9000.00"
-        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
-        And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
-        helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("With challenge, No FX ", TransactionRequest) {}
+    // } else {
+      // scenario("With challenge, No FX ", TransactionRequest) {
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup(SEPA.toString)
+        // And("We set the special conditions for different currencies")
+        // val fromCurrency = "EUR"
+        // val toCurrency = "EUR"
+        // val amt = "9000.00"
+        // helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+        // And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
+        // helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        // helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequestSEPA
-        And("We checked all the fields of createTransactionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequestSEPA
+        // And("We checked all the fields of createTransactionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
 
-        Then("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
-        And("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
+        // Then("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
+        // And("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
 
-        Then("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        And("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, true)
+        // Then("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // And("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, true)
 
-        Then("we need check the account amount info")
-        helper.checkBankAccountBalance(false)
+        // Then("we need check the account amount info")
+        // helper.checkBankAccountBalance(false)
 
-        Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
-        And("we prepare the parameters for it")
-        helper.setAnswerTransactionRequest()
-        And("we call the endpoint")
-        val ansReqResponse = helper.makeAnswerRequest
-        And("We check the all the fields of getAnsReqResponse body ")
-        helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
+        // Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
+        // And("we prepare the parameters for it")
+        // helper.setAnswerTransactionRequest()
+        // And("we call the endpoint")
+        // val ansReqResponse = helper.makeAnswerRequest
+        // And("We check the all the fields of getAnsReqResponse body ")
+        // helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
 
-        Then("we need check the account amount info")
-        helper.checkBankAccountBalance(true)
-      }
-    }
+        // Then("we need check the account amount info")
+        // helper.checkBankAccountBalance(true)
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX ", TransactionRequest) {}
-    } else {
-      scenario("With challenge, With FX ", TransactionRequest) {
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup(SEPA.toString)
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("With challenge, With FX ", TransactionRequest) {}
+    // } else {
+      // scenario("With challenge, With FX ", TransactionRequest) {
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup(SEPA.toString)
 
-        And("We set the special conditions for different currencies")
-        val fromCurrency = "EUR"
-        val toCurrency = "EUR"
-        val amt = "9000.00"
-        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+        // And("We set the special conditions for different currencies")
+        // val fromCurrency = "EUR"
+        // val toCurrency = "EUR"
+        // val amt = "9000.00"
+        // helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
-        And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
-        helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
+        // And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
+        // helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        // helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequestSEPA
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequestSEPA
 
-        Then("We checked all the fields of createTransactionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
+        // Then("We checked all the fields of createTransactionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
 
-        When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
+        // When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
 
-        Then("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
+        // Then("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
 
-        When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        Then("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, true)
+        // When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // Then("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, true)
 
-        When("We checked all the data in database, we need check the account amount info")
-        helper.checkBankAccountBalance(false)
+        // When("We checked all the data in database, we need check the account amount info")
+        // helper.checkBankAccountBalance(false)
   
-        Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
-        And("we prepare the parameters for it")
-        helper.setAnswerTransactionRequest()
-        And("we call the endpoint")
-        val ansReqResponse = helper.makeAnswerRequest
-        And("We check the all the fields of getAnsReqResponse body ")
-        helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
+        // Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
+        // And("we prepare the parameters for it")
+        // helper.setAnswerTransactionRequest()
+        // And("we call the endpoint")
+        // val ansReqResponse = helper.makeAnswerRequest
+        // And("We check the all the fields of getAnsReqResponse body ")
+        // helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
   
-        Then("we need check the account amount info")
-        helper.checkBankAccountBalance(true)
-      }
-    }
-  }
+        // Then("we need check the account amount info")
+        // helper.checkBankAccountBalance(true)
+      // }
+    // }
+  // }
 
-  feature("Answer Transaction Request Challenge -- SEPA: account and maker-checker checks") {
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Answer Transaction Request Challenge -- SEPA: account and maker-checker checks") {
 
-    // Creates a SEPA request with a challenge from accountId1 and returns its id and challenge id
-    def createSepaRequestWithChallenge(helper: DefaultSetup): (String, String) = {
-      helper.setCurrencyAndAmt("EUR", "EUR", "9000.00")
-      helper.bodyValue = AmountOfMoneyJsonV121("EUR", "9000.00")
-      helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
-      val createResponse = helper.makeCreateTransReqRequestSEPA
-      createResponse.code should equal(201)
-      ((createResponse.body \ "id").values.toString, (createResponse.body \ "challenge" \ "id").values.toString)
-    }
+    // // Creates a SEPA request with a challenge from accountId1 and returns its id and challenge id
+    // def createSepaRequestWithChallenge(helper: DefaultSetup): (String, String) = {
+      // helper.setCurrencyAndAmt("EUR", "EUR", "9000.00")
+      // helper.bodyValue = AmountOfMoneyJsonV121("EUR", "9000.00")
+      // helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
+      // val createResponse = helper.makeCreateTransReqRequestSEPA
+      // createResponse.code should equal(201)
+      // ((createResponse.body \ "id").values.toString, (createResponse.body \ "challenge" \ "id").values.toString)
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("Answering a request through an account it does not pay from", TransactionRequest) {}
-    } else {
-      scenario("Answering a request through an account it does not pay from", TransactionRequest) {
-        val helper = defaultSetup(SEPA.toString)
-        val (transRequestId, challengeId) = createSepaRequestWithChallenge(helper)
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("Answering a request through an account it does not pay from", TransactionRequest) {}
+    // } else {
+      // scenario("Answering a request through an account it does not pay from", TransactionRequest) {
+        // val helper = defaultSetup(SEPA.toString)
+        // val (transRequestId, challengeId) = createSepaRequestWithChallenge(helper)
 
-        When("user1 answers the challenge through accountId2, which the request does not pay from")
-        val request = (v2_1Request / "banks" / helper.bankId.value / "accounts" / helper.accountId2.value /
-          SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / SEPA.toString / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
-        val response = makePostRequest(request, write(ChallengeAnswerJSON(id = challengeId, answer = "123")))
+        // When("user1 answers the challenge through accountId2, which the request does not pay from")
+        // val request = (v2_1Request / "banks" / helper.bankId.value / "accounts" / helper.accountId2.value /
+          // SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / SEPA.toString / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
+        // val response = makePostRequest(request, write(ChallengeAnswerJSON(id = challengeId, answer = "123")))
 
-        Then("we get 404 and the request is not paid")
-        response.code should equal(404)
-        response.body.extract[ErrorMessage].message should startWith(InvalidTransactionRequestId)
-        helper.checkBankAccountBalance(false)
-      }
-    }
+        // Then("we get 404 and the request is not paid")
+        // response.code should equal(404)
+        // response.body.extract[ErrorMessage].message should startWith(InvalidTransactionRequestId)
+        // helper.checkBankAccountBalance(false)
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("The maker answers their own challenge on a view without the maker-checker bypass", TransactionRequest) {}
-    } else {
-      scenario("The maker answers their own challenge on a view without the maker-checker bypass", TransactionRequest) {
-        val helper = defaultSetup(SEPA.toString)
-        val (transRequestId, challengeId) = createSepaRequestWithChallenge(helper)
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("The maker answers their own challenge on a view without the maker-checker bypass", TransactionRequest) {}
+    // } else {
+      // scenario("The maker answers their own challenge on a view without the maker-checker bypass", TransactionRequest) {
+        // val helper = defaultSetup(SEPA.toString)
+        // val (transRequestId, challengeId) = createSepaRequestWithChallenge(helper)
 
-        Given("a custom view that may add transaction requests but not bypass maker-checker, granted to user1")
-        val view = createCustomRandomView(helper.bankId, helper.accountId1)
-        code.views.system.ViewPermission.resetViewPermissions(view, List(CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT))
-        code.views.Views.views.vend.grantAccessToCustomView(
-          com.openbankproject.commons.model.BankIdAccountIdViewId(helper.bankId, helper.accountId1, view.viewId), resourceUser1)
+        // Given("a custom view that may add transaction requests but not bypass maker-checker, granted to user1")
+        // val view = createCustomRandomView(helper.bankId, helper.accountId1)
+        // code.views.system.ViewPermission.resetViewPermissions(view, List(CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT))
+        // code.views.Views.views.vend.grantAccessToCustomView(
+          // com.openbankproject.commons.model.BankIdAccountIdViewId(helper.bankId, helper.accountId1, view.viewId), resourceUser1)
 
-        When("user1, the maker, answers the challenge through that view")
-        val request = (v2_1Request / "banks" / helper.bankId.value / "accounts" / helper.accountId1.value /
-          view.viewId.value / "transaction-request-types" / SEPA.toString / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
-        val response = makePostRequest(request, write(ChallengeAnswerJSON(id = challengeId, answer = "123")))
+        // When("user1, the maker, answers the challenge through that view")
+        // val request = (v2_1Request / "banks" / helper.bankId.value / "accounts" / helper.accountId1.value /
+          // view.viewId.value / "transaction-request-types" / SEPA.toString / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
+        // val response = makePostRequest(request, write(ChallengeAnswerJSON(id = challengeId, answer = "123")))
 
-        Then("we get 400 MakerCheckerSameUser and the request is not paid")
-        response.code should equal(400)
-        response.body.extract[ErrorMessage].message should include(MakerCheckerSameUser)
-        helper.checkBankAccountBalance(false)
-      }
-    }
-  }
+        // Then("we get 400 MakerCheckerSameUser and the request is not paid")
+        // response.code should equal(400)
+        // response.body.extract[ErrorMessage].message should include(MakerCheckerSameUser)
+        // helper.checkBankAccountBalance(false)
+      // }
+    // }
+  // }
 
-  feature("we can create transaction requests -- COUNTERPARTY") {
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("we can create transaction requests -- COUNTERPARTY") {
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX ", TransactionRequest) {}
-    } else {
-      scenario("No challenge, No FX ", TransactionRequest) {
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("No challenge, No FX ", TransactionRequest) {}
+    // } else {
+      // scenario("No challenge, No FX ", TransactionRequest) {
 
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup(COUNTERPARTY.toString)
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup(COUNTERPARTY.toString)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequestCounterparty
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequestCounterparty
 
-        Then("We checked all the fields of createTransact dionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
+        // Then("We checked all the fields of createTransact dionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
 
-        When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
+        // When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
 
-        Then("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
+        // Then("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
 
-        When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        Then("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, false)
+        // When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // Then("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, false)
 
-        When("We checked all the data in database, we need check the account amount info")
-        helper.checkBankAccountBalance(true)
-      }
-    }
+        // When("We checked all the data in database, we need check the account amount info")
+        // helper.checkBankAccountBalance(true)
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", TransactionRequest) {}
-    } else {
-      scenario("No challenge, With FX ", TransactionRequest) {
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("No challenge, With FX ", TransactionRequest) {}
+    // } else {
+      // scenario("No challenge, With FX ", TransactionRequest) {
 
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup(COUNTERPARTY.toString)
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup(COUNTERPARTY.toString)
 
-        And("We set the special conditions for different currencies")
-        val fromCurrency = "AED"
-        val toCurrency = "INR"
-        val amt = "10"
-        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
-        And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
-        helper.transactionRequestBodyCounterparty = helper.transactionRequestBodyCounterparty.copy(value=helper.bodyValue)
+        // And("We set the special conditions for different currencies")
+        // val fromCurrency = "AED"
+        // val toCurrency = "INR"
+        // val amt = "10"
+        // helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+        // And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
+        // helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        // helper.transactionRequestBodyCounterparty = helper.transactionRequestBodyCounterparty.copy(value=helper.bodyValue)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequestCounterparty
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequestCounterparty
 
-        Then("We checked all the fields of createTransactionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
+        // Then("We checked all the fields of createTransactionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, false)
 
-        When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
+        // When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
 
-        Then("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
+        // Then("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, false)
 
-        When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        Then("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, false)
+        // When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // Then("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, false)
 
-        When("We checked all the data in database, we need check the account amout info")
-        helper.checkBankAccountBalance(true)
+        // When("We checked all the data in database, we need check the account amout info")
+        // helper.checkBankAccountBalance(true)
 
-      }
-    }
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX ", TransactionRequest) {}
-    } else {
-      scenario("With challenge, No FX ", TransactionRequest) {
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup(COUNTERPARTY.toString)
-        And("We set the special conditions for different currencies")
-        val fromCurrency = "AED"
-        val toCurrency = "AED"
-        val amt = "30000.00"
-        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
-        And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
-        helper.transactionRequestBodyCounterparty = helper.transactionRequestBodyCounterparty.copy(value=helper.bodyValue)
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("With challenge, No FX ", TransactionRequest) {}
+    // } else {
+      // scenario("With challenge, No FX ", TransactionRequest) {
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup(COUNTERPARTY.toString)
+        // And("We set the special conditions for different currencies")
+        // val fromCurrency = "AED"
+        // val toCurrency = "AED"
+        // val amt = "30000.00"
+        // helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+        // And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
+        // helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        // helper.transactionRequestBodyCounterparty = helper.transactionRequestBodyCounterparty.copy(value=helper.bodyValue)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequestCounterparty
-        And("We checked all the fields of createTransactionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequestCounterparty
+        // And("We checked all the fields of createTransactionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
 
-        Then("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
-        And("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
+        // Then("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
+        // And("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
 
-        Then("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        And("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, true)
+        // Then("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // And("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, true)
 
-        Then("we need check the account amount info")
-        helper.checkBankAccountBalance(false)
+        // Then("we need check the account amount info")
+        // helper.checkBankAccountBalance(false)
 
-        Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
-        And("we prepare the parameters for it")
-        helper.setAnswerTransactionRequest()
-        And("we call the endpoint")
-        val ansReqResponse = helper.makeAnswerRequest
-        And("We check the all the fields of getAnsReqResponse body ")
-        helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
+        // Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
+        // And("we prepare the parameters for it")
+        // helper.setAnswerTransactionRequest()
+        // And("we call the endpoint")
+        // val ansReqResponse = helper.makeAnswerRequest
+        // And("We check the all the fields of getAnsReqResponse body ")
+        // helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
 
-        Then("we need check the account amount info")
-        helper.checkBankAccountBalance(true)
-      }
-    }
+        // Then("we need check the account amount info")
+        // helper.checkBankAccountBalance(true)
+      // }
+    // }
 
-    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX", TransactionRequest) {}
-    } else {
-      scenario("With challenge, With FX", TransactionRequest) {
-        When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
-        val helper = defaultSetup(COUNTERPARTY.toString)
+    // if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      // ignore("With challenge, With FX", TransactionRequest) {}
+    // } else {
+      // scenario("With challenge, With FX", TransactionRequest) {
+        // When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
+        // val helper = defaultSetup(COUNTERPARTY.toString)
 
-        And("We set the special conditions for different currencies")
-        val fromCurrency = "AED"
-        val toCurrency = "INR"
-        val amt = "30000.00"
-        helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
+        // And("We set the special conditions for different currencies")
+        // val fromCurrency = "AED"
+        // val toCurrency = "INR"
+        // val amt = "30000.00"
+        // helper.setCurrencyAndAmt(fromCurrency, toCurrency, amt)
 
-        And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
-        helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
-        helper.transactionRequestBodyCounterparty = helper.transactionRequestBodyCounterparty.copy(value=helper.bodyValue)
+        // And("We set the special input JSON values for 'V210 Create Transaction Request' endpoint")
+        // helper.bodyValue = AmountOfMoneyJsonV121(fromCurrency, amt.toString())
+        // helper.transactionRequestBodyCounterparty = helper.transactionRequestBodyCounterparty.copy(value=helper.bodyValue)
 
-        Then("we call the 'V210 Create Transaction Request' endpoint")
-        val createTransactionRequestResponse = helper.makeCreateTransReqRequestCounterparty
+        // Then("we call the 'V210 Create Transaction Request' endpoint")
+        // val createTransactionRequestResponse = helper.makeCreateTransReqRequestCounterparty
 
-        Then("We checked all the fields of createTransactionRequestResponse body ")
-        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
+        // Then("We checked all the fields of createTransactionRequestResponse body ")
+        // helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
 
-        When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
-        val getTransReqResponse = helper.makeGetTransReqRequest
+        // When("we need check the 'Get all Transaction Requests. - V210' to double check it in database")
+        // val getTransReqResponse = helper.makeGetTransReqRequest
 
-        Then("We checked all the fields of getTransReqResponse body")
-        helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
+        // Then("We checked all the fields of getTransReqResponse body")
+        // helper.checkAllGetTransReqResBodyField(getTransReqResponse, true)
 
-        When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
-        val getTransResponse = helper.makeGetTransRequest
-        Then("We checked all the fields of getTransResponse body")
-        helper.checkAllGetTransResBodyField(getTransResponse, true)
+        // When("we need to check the 'Get Transactions for Account (Full) -V210' to check the transaction info ")
+        // val getTransResponse = helper.makeGetTransRequest
+        // Then("We checked all the fields of getTransResponse body")
+        // helper.checkAllGetTransResBodyField(getTransResponse, true)
 
-        When("We checked all the data in database, we need check the account amount info")
-        helper.checkBankAccountBalance(false)
+        // When("We checked all the data in database, we need check the account amount info")
+        // helper.checkBankAccountBalance(false)
   
-        Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
-        And("we prepare the parameters for it")
-        helper.setAnswerTransactionRequest()
-        And("we call the endpoint")
-        val ansReqResponse = helper.makeAnswerRequest
-        And("We check the all the fields of getAnsReqResponse body ")
-        helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
+        // Then("We call 'Answer Transaction Request Challenge - V210' to finish the request")
+        // And("we prepare the parameters for it")
+        // helper.setAnswerTransactionRequest()
+        // And("we call the endpoint")
+        // val ansReqResponse = helper.makeAnswerRequest
+        // And("We check the all the fields of getAnsReqResponse body ")
+        // helper.checkAllAnsTransReqBodyFields(ansReqResponse, true)
   
-        Then("we need check the account amount info")
-        helper.checkBankAccountBalance(true)
-      }
-    }
-  }
+        // Then("we need check the account amount info")
+        // helper.checkBankAccountBalance(true)
+      // }
+    // }
+  // }
 
   // TODO Make this tests functional
   /** notes: this is from V140, not the latest test, need to be fixed
