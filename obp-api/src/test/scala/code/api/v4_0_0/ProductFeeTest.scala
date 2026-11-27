@@ -66,7 +66,8 @@ class ProductFeeTest extends V400ServerSetup {
   lazy val parentPutProductJsonV400: PutProductJsonV400 = SwaggerDefinitionsJSON.putProductJsonV400.copy(parent_product_code ="")
   def createProduct(code: String, json: PutProductJsonV400) = {
     When("We try to create a product v4.0.0")
-    val request400 = (v4_0_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
+    // v4.0.0 createProduct is commented out; v5.1.0 serves this path with the v5.0.0 handler.
+    val request400 = (v5_1_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
     val response400 = makePutRequest(request400, write(json))
     Then("We should get a 201")
     response400.code should equal(201)
@@ -98,7 +99,8 @@ class ProductFeeTest extends V400ServerSetup {
       val product: ProductJsonV400 = createProduct(code = "PARENT_CODE", json = parentPutProductJsonV400.copy(parent_product_code = grandparent.product_code))
 
       // Get
-      val requestGet400 = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code ).GET <@(user1)
+      // getProduct and getProducts of v4.0.0 are commented out; v5.1.0 serves them with the v5.0.0 handlers.
+      val requestGet400 = (v5_1_0_Request / "banks" / product.bank_id / "products" / product.product_code ).GET <@(user1)
       val responseGet400 = makeGetRequest(requestGet400)
       Then("We should get a 200")
       responseGet400.code should equal(200)
@@ -109,7 +111,7 @@ class ProductFeeTest extends V400ServerSetup {
       createProduct(code = "PRODUCT_CODE", json = childPutProductJsonV400)
 
       // Get
-      val requestGetAll400 = (v4_0_0_Request / "banks" / product.bank_id / "products").GET <@(user1)
+      val requestGetAll400 = (v5_1_0_Request / "banks" / product.bank_id / "products").GET <@(user1)
       val responseGetAll400 = makeGetRequest(requestGetAll400)
       Then("We should get a 200")
       responseGetAll400.code should equal(200)

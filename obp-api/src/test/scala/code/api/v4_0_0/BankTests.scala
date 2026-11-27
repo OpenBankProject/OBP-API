@@ -66,70 +66,71 @@ class BankTests extends V400ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag("createBank")
 
-  feature("Assuring that endpoint createBank works as expected - v4.0.0") {
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Assuring that endpoint createBank works as expected - v4.0.0") {
 
-    scenario("We try to consume endpoint createBank - Anonymous access", ApiEndpoint1, VersionOfApi) {
-      When("We make the request")
-      val requestGet = (v4_0_0_Request / "banks").POST
-      val responseGet = makePostRequest(requestGet, write(bankJson400))
-      Then("We should get a 401")
-      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
-      responseGet.code should equal(401)
-      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
-    }
+    // scenario("We try to consume endpoint createBank - Anonymous access", ApiEndpoint1, VersionOfApi) {
+      // When("We make the request")
+      // val requestGet = (v4_0_0_Request / "banks").POST
+      // val responseGet = makePostRequest(requestGet, write(bankJson400))
+      // Then("We should get a 401")
+      // And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
+      // responseGet.code should equal(401)
+      // responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
+    // }
 
-    scenario("We try to consume endpoint createBank without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
-      When("We make the request")
-      val requestGet = (v4_0_0_Request / "banks").POST <@ (user1)
-      val responseGet = makePostRequest(requestGet, write(bankJson400))
-      Then("We should get a 403")
-      And("We should get a message: " + s"$CanCreateBank entitlement required")
-      responseGet.code should equal(403)
-      responseGet.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanCreateBank)
-    }
+    // scenario("We try to consume endpoint createBank without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+      // When("We make the request")
+      // val requestGet = (v4_0_0_Request / "banks").POST <@ (user1)
+      // val responseGet = makePostRequest(requestGet, write(bankJson400))
+      // Then("We should get a 403")
+      // And("We should get a message: " + s"$CanCreateBank entitlement required")
+      // responseGet.code should equal(403)
+      // responseGet.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanCreateBank)
+    // }
 
-    scenario("We try to consume endpoint createBank with proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
-      When("We add required entitlement")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
-      And("We make the request")
-      val requestGet = (v4_0_0_Request / "banks").POST <@ (user1)
-      val before = Await.result(
-        NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None), 10.seconds
-      ).exists(e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankJson400.id)
-      val response = makePostRequest(requestGet, write(bankJson400))
-      val after = Await.result(
-        NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None), 10.seconds
-      ).exists(e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankJson400.id)
-      Then("We should get a 201")
-      before should equal(false) // Before we create a bank there is no role CanCreateEntitlementAtOneBank
-      after should equal(true) // After we create a bank there is a role CanCreateEntitlementAtOneBank
-      response.code should equal(201)
-      Then("Default settlement accounts should be created")
-      val defaultOutgoingAccount = Await.result(
-        NewStyle.function.checkBankAccountExists(BankId(bankJson400.id), AccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID), None), 10.seconds)
-      val defaultIncomingAccount = Await.result(
-        NewStyle.function.checkBankAccountExists(BankId(bankJson400.id), AccountId(INCOMING_SETTLEMENT_ACCOUNT_ID), None), 10.seconds)
-      defaultOutgoingAccount._1.accountId.value should equal(OUTGOING_SETTLEMENT_ACCOUNT_ID)
-      defaultIncomingAccount._1.accountId.value should equal(INCOMING_SETTLEMENT_ACCOUNT_ID)
-    }
+    // scenario("We try to consume endpoint createBank with proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+      // When("We add required entitlement")
+      // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
+      // And("We make the request")
+      // val requestGet = (v4_0_0_Request / "banks").POST <@ (user1)
+      // val before = Await.result(
+        // NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None), 10.seconds
+      // ).exists(e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankJson400.id)
+      // val response = makePostRequest(requestGet, write(bankJson400))
+      // val after = Await.result(
+        // NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None), 10.seconds
+      // ).exists(e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankJson400.id)
+      // Then("We should get a 201")
+      // before should equal(false) // Before we create a bank there is no role CanCreateEntitlementAtOneBank
+      // after should equal(true) // After we create a bank there is a role CanCreateEntitlementAtOneBank
+      // response.code should equal(201)
+      // Then("Default settlement accounts should be created")
+      // val defaultOutgoingAccount = Await.result(
+        // NewStyle.function.checkBankAccountExists(BankId(bankJson400.id), AccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID), None), 10.seconds)
+      // val defaultIncomingAccount = Await.result(
+        // NewStyle.function.checkBankAccountExists(BankId(bankJson400.id), AccountId(INCOMING_SETTLEMENT_ACCOUNT_ID), None), 10.seconds)
+      // defaultOutgoingAccount._1.accountId.value should equal(OUTGOING_SETTLEMENT_ACCOUNT_ID)
+      // defaultIncomingAccount._1.accountId.value should equal(INCOMING_SETTLEMENT_ACCOUNT_ID)
+    // }
 
-    // An existing BANK_ID is refused, so CanCreateBank cannot overwrite another bank or gain its entitlement admin role
-    scenario("We try to create a bank with the BANK_ID of an existing bank - Authorized access", ApiEndpoint1, VersionOfApi) {
-      Given("A bank that already exists and a user with CanCreateBank")
-      val existingBankId = createBank("testBank0").bankId.value
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
-      When("We post a bank with that BANK_ID")
-      val request = (v4_0_0_Request / "banks").POST <@ (user1)
-      val response = makePostRequest(request, write(bankJson400.copy(id = existingBankId)))
-      Then("We should get a 400 with bankIdAlreadyExists")
-      response.code should equal(400)
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.bankIdAlreadyExists)
-      And("The caller is not given CanCreateEntitlementAtOneBank at that bank")
-      Await.result(
-        NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None), 10.seconds
-      ).exists(e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == existingBankId) should equal(false)
-    }
-  }
+    // // An existing BANK_ID is refused, so CanCreateBank cannot overwrite another bank or gain its entitlement admin role
+    // scenario("We try to create a bank with the BANK_ID of an existing bank - Authorized access", ApiEndpoint1, VersionOfApi) {
+      // Given("A bank that already exists and a user with CanCreateBank")
+      // val existingBankId = createBank("testBank0").bankId.value
+      // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
+      // When("We post a bank with that BANK_ID")
+      // val request = (v4_0_0_Request / "banks").POST <@ (user1)
+      // val response = makePostRequest(request, write(bankJson400.copy(id = existingBankId)))
+      // Then("We should get a 400 with bankIdAlreadyExists")
+      // response.code should equal(400)
+      // response.body.extract[ErrorMessage].message should equal(ErrorMessages.bankIdAlreadyExists)
+      // And("The caller is not given CanCreateEntitlementAtOneBank at that bank")
+      // Await.result(
+        // NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None), 10.seconds
+      // ).exists(e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == existingBankId) should equal(false)
+    // }
+  // }
 
 
  }

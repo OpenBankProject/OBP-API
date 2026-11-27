@@ -60,7 +60,8 @@ class ConnectorMethodTest extends V400ServerSetup {
     setPropsValues("connector" -> "star")
   }
 
-  val requestGetBank = (v4_0_0_Request / "banks" / "123").GET
+  // v4.0.0 getBank is commented out; v5.1.0 serves this path with the v5.0.0 handler.
+  val requestGetBank = (v5_1_0_Request / "banks" / "123").GET
   val rightEntity = MethodRoutingCommons("getBank", "internal", false, Some("*"), List(MethodRoutingParam("url", "http://mydomain.com/xxx")))
   
   /**
@@ -129,8 +130,7 @@ class ConnectorMethodTest extends V400ServerSetup {
 
 
       val responseGetBank = makeGetRequest(requestGetBank)
-      val responseBank = responseGetBank.body.extract[BankJson400]
-      responseBank.id equals("Hello bank id")
+      (responseGetBank.body \ "id").extractOpt[String] equals(Some("Hello bank id"))
       
       Then(s"we test the $ApiEndpoint3")
       val requestGetAll = (v4_0_0_Request / "management" / "connector-methods").GET <@ (user1)
@@ -172,8 +172,7 @@ class ConnectorMethodTest extends V400ServerSetup {
       //try the getBanks, now it return the js response
       {
         val responseGetBank = makeGetRequest(requestGetBank)
-        val responseBank = responseGetBank.body.extract[BankJson400]
-        responseBank.full_name equals("The Js Bank of Scotland")
+        (responseGetBank.body \ "full_name").extractOpt[String] equals(Some("The Js Bank of Scotland"))
       }
 
       {
@@ -186,8 +185,7 @@ class ConnectorMethodTest extends V400ServerSetup {
         //try the getBanks, now it return the js response
         {
           val responseGetBank = makeGetRequest(requestGetBank)
-          val responseBank = responseGetBank.body.extract[BankJson400]
-          responseBank.short_name equals("The Java Bank of Scotland")
+          (responseGetBank.body \ "short_name").extractOpt[String] equals(Some("The Java Bank of Scotland"))
         }
         
       }
