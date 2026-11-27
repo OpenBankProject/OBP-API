@@ -68,6 +68,8 @@ class OlderHandlersServedByV510Test extends V510ServerSetup {
   object UpdateAccountLabel extends Tag("updateAccountLabel")
 
   private val bankId = testBankId1.value
+  private val renamedBranch = "Renamed branch"
+  private val updatedValue = "updated value"
 
   private def errorMessage(body: JValue): String = body.extract[ErrorMessage].message
 
@@ -130,7 +132,7 @@ class OlderHandlersServedByV510Test extends V510ServerSetup {
       missing.code should equal(400)
       errorMessage(missing.body) should startWith(BranchNotFoundByBranchId)
 
-      val updateBody = SwaggerDefinitionsJSON.postBranchJsonV300.copy(bank_id = bankId, name = "Renamed branch")
+      val updateBody = SwaggerDefinitionsJSON.postBranchJsonV300.copy(bank_id = bankId, name = renamedBranch)
       val noUpdateRole = makePutRequest(branchRequest.PUT <@ (user1), write(updateBody))
       noUpdateRole.code should equal(403)
       errorMessage(noUpdateRole.body) should include(ApiRole.canUpdateBranch.toString)
@@ -138,8 +140,8 @@ class OlderHandlersServedByV510Test extends V510ServerSetup {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canUpdateBranch.toString)
       val updated = makePutRequest(branchRequest.PUT <@ (user1), write(updateBody))
       updated.code should equal(201)
-      updated.body.extract[BranchJsonV300].name should equal("Renamed branch")
-      makeGetRequest(branchRequest.GET <@ (user1)).body.extract[BranchJsonV300].name should equal("Renamed branch")
+      updated.body.extract[BranchJsonV300].name should equal(renamedBranch)
+      makeGetRequest(branchRequest.GET <@ (user1)).body.extract[BranchJsonV300].name should equal(renamedBranch)
     }
   }
 
@@ -261,14 +263,14 @@ class OlderHandlersServedByV510Test extends V510ServerSetup {
       read.code should equal(200)
       read.body.extract[ProductAttributeResponseJsonV400] should equal(createdAttribute)
 
-      val updatedJson = attributeJson.copy(value = "updated value")
+      val updatedJson = attributeJson.copy(value = updatedValue)
       val updateWithoutRole = makePutRequest(attributeRequest.PUT <@ (user1), write(updatedJson))
       updateWithoutRole.code should equal(403)
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canUpdateProductAttribute.toString)
       val updated = makePutRequest(attributeRequest.PUT <@ (user1), write(updatedJson))
       updated.code should equal(200)
-      updated.body.extract[ProductAttributeResponseJsonV400].value should equal("updated value")
-      makeGetRequest(attributeRequest.GET <@ (user1)).body.extract[ProductAttributeResponseJsonV400].value should equal("updated value")
+      updated.body.extract[ProductAttributeResponseJsonV400].value should equal(updatedValue)
+      makeGetRequest(attributeRequest.GET <@ (user1)).body.extract[ProductAttributeResponseJsonV400].value should equal(updatedValue)
     }
   }
 
