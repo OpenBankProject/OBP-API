@@ -333,4 +333,70 @@ class AtmsTest extends V400ServerSetup {
       // responseUpdate.body.extract[AtmLocationCategoriesResponseJsonV400].location_categories should be (postAtmLocationCategoriesJson.location_categories)
     // }
   // }
+
+  // v4.0.0 createAtm is commented out (see docs/OLD_VERSION_ONLY_CODE.md), so the ATM is created
+  // with v5.1.0 createAtm; the six field updates below are still v4.0.0 endpoints.
+  private def createAtmViaKeptVersion(): String = {
+    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateAtmAtAnyBank.toString)
+    val response = makePostRequest((baseRequest / "obp" / "v5.1.0" / "banks" / bankId.value / "atms").POST <@ (user1),
+      write(SwaggerDefinitionsJSON.postAtmJsonV510.copy(bank_id = bankId.value)))
+    response.code should be (201)
+    (response.body \ "id").extract[String]
+  }
+
+  feature("Update the fields of an ATM") {
+    scenario("We update the supported currencies", ApiEndpoint1, VersionOfApi) {
+      val json = SwaggerDefinitionsJSON.supportedCurrenciesJson
+      val atmId = createAtmViaKeptVersion()
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
+      val response = makePutRequest((v4_0_0_Request / "banks" / bankId.value / "atms" / atmId / "supported-currencies").PUT <@ (user1), write(json))
+      response.code should equal(201)
+      response.body.extract[AtmSupportedCurrenciesJson].supported_currencies should be (json.supported_currencies)
+    }
+
+    scenario("We update the accessibility features", ApiEndpoint4, VersionOfApi) {
+      val json = SwaggerDefinitionsJSON.accessibilityFeaturesJson
+      val atmId = createAtmViaKeptVersion()
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
+      val response = makePutRequest((v4_0_0_Request / "banks" / bankId.value / "atms" / atmId / "accessibility-features").PUT <@ (user1), write(json))
+      response.code should equal(201)
+      response.body.extract[AtmAccessibilityFeaturesJson].accessibility_features should be (json.accessibility_features)
+    }
+
+    scenario("We update the supported languages", ApiEndpoint3, VersionOfApi) {
+      val json = SwaggerDefinitionsJSON.supportedLanguagesJson
+      val atmId = createAtmViaKeptVersion()
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
+      val response = makePutRequest((v4_0_0_Request / "banks" / bankId.value / "atms" / atmId / "supported-languages").PUT <@ (user1), write(json))
+      response.code should equal(201)
+      response.body.extract[AtmSupportedLanguagesJson].supported_languages should be (json.supported_languages)
+    }
+
+    scenario("We update the services", ApiEndpoint5, VersionOfApi) {
+      val json = SwaggerDefinitionsJSON.atmServicesJson
+      val atmId = createAtmViaKeptVersion()
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
+      val response = makePutRequest((v4_0_0_Request / "banks" / bankId.value / "atms" / atmId / "services").PUT <@ (user1), write(json))
+      response.code should equal(201)
+      response.body.extract[AtmServicesJsonV400].services should be (json.services)
+    }
+
+    scenario("We update the notes", ApiEndpoint6, VersionOfApi) {
+      val json = SwaggerDefinitionsJSON.atmNotesJson
+      val atmId = createAtmViaKeptVersion()
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
+      val response = makePutRequest((v4_0_0_Request / "banks" / bankId.value / "atms" / atmId / "notes").PUT <@ (user1), write(json))
+      response.code should equal(201)
+      response.body.extract[AtmServicesResponseJsonV400].services should be (json.notes)
+    }
+
+    scenario("We update the location categories", ApiEndpoint7, VersionOfApi) {
+      val json = SwaggerDefinitionsJSON.atmLocationCategoriesJsonV400
+      val atmId = createAtmViaKeptVersion()
+      Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
+      val response = makePutRequest((v4_0_0_Request / "banks" / bankId.value / "atms" / atmId / "location-categories").PUT <@ (user1), write(json))
+      response.code should equal(201)
+      response.body.extract[AtmLocationCategoriesResponseJsonV400].location_categories should be (json.location_categories)
+    }
+  }
 }
