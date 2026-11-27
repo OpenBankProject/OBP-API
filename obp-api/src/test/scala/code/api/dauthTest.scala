@@ -61,6 +61,7 @@ class dauthTest extends ServerSetup with BeforeAndAfter with DefaultUsers with P
   val invalidJwt = ("DAuth", ("%s").format(wrongPublicKeyJwt))
   val validJwt = ("DAuth", ("%s").format(jwt))
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // def dauthRequest = baseRequest / "obp" / "v2.0.0" / "users" /"current"
   def dauthNonBlockingRequest = baseRequest / "obp" / "v3.0.0" / "users" / "current"
 
@@ -69,6 +70,7 @@ class dauthTest extends ServerSetup with BeforeAndAfter with DefaultUsers with P
     scenario("Missing parameter token in a blocking way") {
       When("We try to login without parameter token in a Header")
 
+        // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
         // v2.0.0 getCurrentUser is commented out (see docs/OLD_VERSION_ONLY_CODE.md), so the requests
         // through the v2.0.0 prefix are too. The v3.0.0 requests below still cover DAuth.
         // When("We try to login with an invalid JWT")

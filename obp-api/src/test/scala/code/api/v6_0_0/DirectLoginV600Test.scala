@@ -289,6 +289,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
       currentUserNewStyle.username shouldBe USERNAME
       
+      // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
       // v2.0.0 getCurrentUser is commented out (see docs/OLD_VERSION_ONLY_CODE.md), so the Old Style check is too.
       // When("when we use the token to get current user and it should work - Old Style")
       // val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
@@ -345,6 +346,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
       currentUserNewStyle.username shouldBe USERNAME
       
+      // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
       // v2.0.0 getCurrentUser is commented out (see docs/OLD_VERSION_ONLY_CODE.md), so the Old Style check is too.
       // When("when we use the token to get current user and it should work - Old Style")
       // val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
@@ -401,6 +403,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
       currentUserNewStyle.username shouldBe USERNAME
       
+      // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
       // v2.0.0 getCurrentUser is commented out (see docs/OLD_VERSION_ONLY_CODE.md), so the Old Style check is too.
       // When("when we use the token to get current user and it should work - Old Style")
       // val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"

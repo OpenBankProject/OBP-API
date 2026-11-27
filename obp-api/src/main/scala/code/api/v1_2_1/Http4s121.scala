@@ -2771,6 +2771,7 @@ object Http4s121 {
 
     lazy val allRoutesWithMiddleware: HttpRoutes[IO] =
       ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // bankById ran before the middleware so it could return 400 (not 404) for an unknown bank.
     // It is commented out, so the middleware now serves every v1.2.1 route:
     // lazy val allRoutesWithMiddleware: HttpRoutes[IO] = {
