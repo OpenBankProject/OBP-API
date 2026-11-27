@@ -1902,69 +1902,65 @@ object JSONFactory400 {
     )
   }
   
-  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
-  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
-  // def createAtmsJsonV400(atmList: List[AtmT]): AtmsJsonV400 = {
-      // AtmsJsonV400(atmList.map(createAtmJsonV400))
-  // }
+  def createAtmsJsonV400(atmList: List[AtmT]): AtmsJsonV400 = {
+      AtmsJsonV400(atmList.map(createAtmJsonV400))
+  }
   
-  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
-  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
-  // def transformToAtmFromV400(atmJsonV400: AtmJsonV400): Atm = {
-    // val address : Address = transformToAddressFromV300(atmJsonV400.address) // Note the address in V220 is V140
-    // val location: Location =  transformToLocationFromV140(atmJsonV400.location)  // Note the location is V140
-    // val meta: Meta =  transformToMetaFromV140(atmJsonV400.meta)  // Note the meta  is V140
-    // val isAccessible: Boolean = Try(atmJsonV400.is_accessible.toBoolean).getOrElse(false)
-    // val hdc: Boolean = Try(atmJsonV400.has_deposit_capability.toBoolean).getOrElse(false)
+  def transformToAtmFromV400(atmJsonV400: AtmJsonV400): Atm = {
+    val address : Address = transformToAddressFromV300(atmJsonV400.address) // Note the address in V220 is V140
+    val location: Location =  transformToLocationFromV140(atmJsonV400.location)  // Note the location is V140
+    val meta: Meta =  transformToMetaFromV140(atmJsonV400.meta)  // Note the meta  is V140
+    val isAccessible: Boolean = Try(atmJsonV400.is_accessible.toBoolean).getOrElse(false)
+    val hdc: Boolean = Try(atmJsonV400.has_deposit_capability.toBoolean).getOrElse(false)
     
-    // Atm(
-      // atmId = AtmId(atmJsonV400.id.getOrElse("")),
-      // bankId = BankId(atmJsonV400.bank_id),
-      // name = atmJsonV400.name,
-      // address = address,
-      // location = location,
-      // meta = meta,
-      // OpeningTimeOnMonday = Some(atmJsonV400.monday.opening_time),
-      // ClosingTimeOnMonday = Some(atmJsonV400.monday.closing_time),
+    Atm(
+      atmId = AtmId(atmJsonV400.id.getOrElse("")),
+      bankId = BankId(atmJsonV400.bank_id),
+      name = atmJsonV400.name,
+      address = address,
+      location = location,
+      meta = meta,
+      OpeningTimeOnMonday = Some(atmJsonV400.monday.opening_time),
+      ClosingTimeOnMonday = Some(atmJsonV400.monday.closing_time),
 
-      // OpeningTimeOnTuesday = Some(atmJsonV400.tuesday.opening_time),
-      // ClosingTimeOnTuesday = Some(atmJsonV400.tuesday.closing_time),
+      OpeningTimeOnTuesday = Some(atmJsonV400.tuesday.opening_time),
+      ClosingTimeOnTuesday = Some(atmJsonV400.tuesday.closing_time),
 
-      // OpeningTimeOnWednesday = Some(atmJsonV400.wednesday.opening_time),
-      // ClosingTimeOnWednesday = Some(atmJsonV400.wednesday.closing_time),
+      OpeningTimeOnWednesday = Some(atmJsonV400.wednesday.opening_time),
+      ClosingTimeOnWednesday = Some(atmJsonV400.wednesday.closing_time),
 
-      // OpeningTimeOnThursday = Some(atmJsonV400.thursday.opening_time),
-      // ClosingTimeOnThursday = Some(atmJsonV400.thursday.closing_time),
+      OpeningTimeOnThursday = Some(atmJsonV400.thursday.opening_time),
+      ClosingTimeOnThursday = Some(atmJsonV400.thursday.closing_time),
 
-      // OpeningTimeOnFriday = Some(atmJsonV400.friday.opening_time),
-      // ClosingTimeOnFriday = Some(atmJsonV400.friday.closing_time),
+      OpeningTimeOnFriday = Some(atmJsonV400.friday.opening_time),
+      ClosingTimeOnFriday = Some(atmJsonV400.friday.closing_time),
 
-      // OpeningTimeOnSaturday = Some(atmJsonV400.saturday.opening_time),
-      // ClosingTimeOnSaturday = Some(atmJsonV400.saturday.closing_time),
+      OpeningTimeOnSaturday = Some(atmJsonV400.saturday.opening_time),
+      ClosingTimeOnSaturday = Some(atmJsonV400.saturday.closing_time),
 
-      // OpeningTimeOnSunday = Some(atmJsonV400.sunday.opening_time),
-      // ClosingTimeOnSunday = Some(atmJsonV400.sunday.closing_time),
-      // // Easy access for people who use wheelchairs etc. true or false ""=Unknown
-      // isAccessible = Some(isAccessible),
-      // locatedAt = Some(atmJsonV400.located_at),
-      // moreInfo = Some(atmJsonV400.more_info),
-      // hasDepositCapability = Some(hdc),
+      OpeningTimeOnSunday = Some(atmJsonV400.sunday.opening_time),
+      ClosingTimeOnSunday = Some(atmJsonV400.sunday.closing_time),
+      // Easy access for people who use wheelchairs etc. true or false ""=Unknown
+      isAccessible = Some(isAccessible),
+      locatedAt = Some(atmJsonV400.located_at),
+      moreInfo = Some(atmJsonV400.more_info),
+      hasDepositCapability = Some(hdc),
 
-      // supportedLanguages = Some(atmJsonV400.supported_languages),
-      // services = Some(atmJsonV400.services),
-      // accessibilityFeatures = Some(atmJsonV400.accessibility_features),
-      // supportedCurrencies = Some(atmJsonV400.supported_currencies),
-      // notes = Some(atmJsonV400.notes),
-      // minimumWithdrawal = Some(atmJsonV400.minimum_withdrawal ),
-      // branchIdentification = Some(atmJsonV400.branch_identification),
-      // locationCategories = Some(atmJsonV400.location_categories ),
-      // siteIdentification = Some(atmJsonV400.site_identification),
-      // siteName = Some(atmJsonV400.site_name),
-      // cashWithdrawalNationalFee = Some(atmJsonV400.cash_withdrawal_national_fee),
-      // cashWithdrawalInternationalFee = Some(atmJsonV400.cash_withdrawal_international_fee),
-      // balanceInquiryFee = Some(atmJsonV400.balance_inquiry_fee)
-    // )
-  // }
+      supportedLanguages = Some(atmJsonV400.supported_languages),
+      services = Some(atmJsonV400.services),
+      accessibilityFeatures = Some(atmJsonV400.accessibility_features),
+      supportedCurrencies = Some(atmJsonV400.supported_currencies),
+      notes = Some(atmJsonV400.notes),
+      minimumWithdrawal = Some(atmJsonV400.minimum_withdrawal ),
+      branchIdentification = Some(atmJsonV400.branch_identification),
+      locationCategories = Some(atmJsonV400.location_categories ),
+      siteIdentification = Some(atmJsonV400.site_identification),
+      siteName = Some(atmJsonV400.site_name),
+      cashWithdrawalNationalFee = Some(atmJsonV400.cash_withdrawal_national_fee),
+      cashWithdrawalInternationalFee = Some(atmJsonV400.cash_withdrawal_international_fee),
+      balanceInquiryFee = Some(atmJsonV400.balance_inquiry_fee)
+    )
+  }
 
   def createProductJson(product: Product) : ProductJsonV400 = {
     ProductJsonV400(

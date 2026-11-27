@@ -1055,16 +1055,14 @@ object NewStyle extends MdcLoggable{
         APIUtil.holdsVirtualRole(userId, role) || APIUtil.hasEntitlement(bankId, userId, role)
       } map validateRequestPayload(callContext)
     }
-    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
-    // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
-    // // scala not allow overload method both have default parameter, so this method name is just in order avoid the same name with hasEntitlement
-    // @deprecated("Use handleEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
-    // def ownEntitlement(bankId: String, userId: String, role: ApiRole,callContext: Option[CallContext], errorMsg: String = ""): Box[Unit] = {
-      // val errorInfo = if(StringUtils.isBlank(errorMsg)) UserHasMissingRoles + role.toString()
-                      // else errorMsg
-      // val boxResult = Helper.booleanToBox(APIUtil.hasEntitlement(bankId, userId, role), errorInfo)
-      // validateRequestPayload(callContext)(boxResult)
-    // }
+    // scala not allow overload method both have default parameter, so this method name is just in order avoid the same name with hasEntitlement
+    @deprecated("Use handleEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
+    def ownEntitlement(bankId: String, userId: String, role: ApiRole,callContext: Option[CallContext], errorMsg: String = ""): Box[Unit] = {
+      val errorInfo = if(StringUtils.isBlank(errorMsg)) UserHasMissingRoles + role.toString()
+                      else errorMsg
+      val boxResult = Helper.booleanToBox(APIUtil.hasEntitlement(bankId, userId, role), errorInfo)
+      validateRequestPayload(callContext)(boxResult)
+    }
     
     @deprecated("Use handleEntitlementsAndScopes instead. It checks virtual roles (super_admin, oidc_operator), Scopes, and just-in-time entitlements in addition to Entitlements.", "OBP v6.0.0")
     def hasAtLeastOneEntitlement(failMsg: => String)(bankId: String, userId: String, roles: List[ApiRole], callContext: Option[CallContext]): Future[Box[Unit]] =

@@ -1075,11 +1075,9 @@ object JSONFactory300{
       has_deposit_capability = atm.hasDepositCapability.map(_.toString).getOrElse("")
     )
   }
-  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
-  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
-  // def createAtmsJsonV300(atmList: List[AtmT]): AtmsJsonV300 = {
-    // AtmsJsonV300(atmList.map(createAtmJsonV300))
-  // }
+  def createAtmsJsonV300(atmList: List[AtmT]): AtmsJsonV300 = {
+    AtmsJsonV300(atmList.map(createAtmJsonV300))
+  }
 
 
   def transformToAddressFromV300(addressJsonV300: AddressJsonV300): Address = {
@@ -1095,50 +1093,48 @@ object JSONFactory300{
     )
   }
 
-  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
-  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
-  // def transformToAtmFromV300(atmJsonV300: AtmJsonV300): Box[Atm] = {
-    // val address : Address = transformToAddressFromV300(atmJsonV300.address) // Note the address in V220 is V140
-    // val location: Location =  transformToLocationFromV140(atmJsonV300.location)  // Note the location is V140
-    // val meta: Meta =  transformToMetaFromV140(atmJsonV300.meta)  // Note the meta  is V140
-    // val isAccessible: Boolean = Try(atmJsonV300.is_accessible.toBoolean).getOrElse(false)
-    // val hdc: Boolean = Try(atmJsonV300.has_deposit_capability.toBoolean).getOrElse(false)
+  def transformToAtmFromV300(atmJsonV300: AtmJsonV300): Box[Atm] = {
+    val address : Address = transformToAddressFromV300(atmJsonV300.address) // Note the address in V220 is V140
+    val location: Location =  transformToLocationFromV140(atmJsonV300.location)  // Note the location is V140
+    val meta: Meta =  transformToMetaFromV140(atmJsonV300.meta)  // Note the meta  is V140
+    val isAccessible: Boolean = Try(atmJsonV300.is_accessible.toBoolean).getOrElse(false)
+    val hdc: Boolean = Try(atmJsonV300.has_deposit_capability.toBoolean).getOrElse(false)
 
-    // val atm = Atm(
-      // atmId = AtmId(atmJsonV300.id),
-      // bankId = BankId(atmJsonV300.bank_id),
-      // name = atmJsonV300.name,
-      // address = address,
-      // location = location,
-      // meta = meta,
-      // OpeningTimeOnMonday = Some(atmJsonV300.monday.opening_time),
-      // ClosingTimeOnMonday = Some(atmJsonV300.monday.closing_time),
+    val atm = Atm(
+      atmId = AtmId(atmJsonV300.id),
+      bankId = BankId(atmJsonV300.bank_id),
+      name = atmJsonV300.name,
+      address = address,
+      location = location,
+      meta = meta,
+      OpeningTimeOnMonday = Some(atmJsonV300.monday.opening_time),
+      ClosingTimeOnMonday = Some(atmJsonV300.monday.closing_time),
 
-      // OpeningTimeOnTuesday = Some(atmJsonV300.tuesday.opening_time),
-      // ClosingTimeOnTuesday = Some(atmJsonV300.tuesday.closing_time),
+      OpeningTimeOnTuesday = Some(atmJsonV300.tuesday.opening_time),
+      ClosingTimeOnTuesday = Some(atmJsonV300.tuesday.closing_time),
 
-      // OpeningTimeOnWednesday = Some(atmJsonV300.wednesday.opening_time),
-      // ClosingTimeOnWednesday = Some(atmJsonV300.wednesday.closing_time),
+      OpeningTimeOnWednesday = Some(atmJsonV300.wednesday.opening_time),
+      ClosingTimeOnWednesday = Some(atmJsonV300.wednesday.closing_time),
 
-      // OpeningTimeOnThursday = Some(atmJsonV300.thursday.opening_time),
-      // ClosingTimeOnThursday = Some(atmJsonV300.thursday.closing_time),
+      OpeningTimeOnThursday = Some(atmJsonV300.thursday.opening_time),
+      ClosingTimeOnThursday = Some(atmJsonV300.thursday.closing_time),
 
-      // OpeningTimeOnFriday = Some(atmJsonV300.friday.opening_time),
-      // ClosingTimeOnFriday = Some(atmJsonV300.friday.closing_time),
+      OpeningTimeOnFriday = Some(atmJsonV300.friday.opening_time),
+      ClosingTimeOnFriday = Some(atmJsonV300.friday.closing_time),
 
-      // OpeningTimeOnSaturday = Some(atmJsonV300.saturday.opening_time),
-      // ClosingTimeOnSaturday = Some(atmJsonV300.saturday.closing_time),
+      OpeningTimeOnSaturday = Some(atmJsonV300.saturday.opening_time),
+      ClosingTimeOnSaturday = Some(atmJsonV300.saturday.closing_time),
 
-      // OpeningTimeOnSunday = Some(atmJsonV300.sunday.opening_time),
-      // ClosingTimeOnSunday = Some(atmJsonV300.sunday.closing_time),
-      // // Easy access for people who use wheelchairs etc. true or false ""=Unknown
-      // isAccessible = Some(isAccessible),
-      // locatedAt = Some(atmJsonV300.located_at),
-      // moreInfo = Some(atmJsonV300.more_info),
-      // hasDepositCapability = Some(hdc)
-    // )
-    // Full(atm)
-  // }
+      OpeningTimeOnSunday = Some(atmJsonV300.sunday.opening_time),
+      ClosingTimeOnSunday = Some(atmJsonV300.sunday.closing_time),
+      // Easy access for people who use wheelchairs etc. true or false ""=Unknown
+      isAccessible = Some(isAccessible),
+      locatedAt = Some(atmJsonV300.located_at),
+      moreInfo = Some(atmJsonV300.more_info),
+      hasDepositCapability = Some(hdc)
+    )
+    Full(atm)
+  }
 
   // This goes FROM JSON TO internal representation of a Branch
   def transformToBranchFromV300(branchJsonV300: BranchJsonV300): Box[Branch] = {
