@@ -292,6 +292,28 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
     }
   }
 
+  // ─── Create view: from v1.2.1 API1_2_1Test ───────────────────────────────────────────────
+
+  feature("POST /banks/BANK_ID/accounts/ACCOUNT_ID/views only grants the caller's actions (v3.0.0 createViewForBankAccount)") {
+    scenario("a view with an action that none of the caller's views has is refused, one with the caller's actions is created", VersionOfApi) {
+      val accountId = testAccountId1.value
+      val viewsRequest = v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "views"
+      val viewName = s"_view${Random.alphanumeric.take(8).mkString.toLowerCase}"
+      val ownActions = List(CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT, CAN_SEE_BANK_ACCOUNT_BALANCE)
+      val view = SwaggerDefinitionsJSON.createViewJsonV300.copy(name = viewName, metadata_view = viewName, allowed_actions = ownActions)
+
+      val tooMuch = makePostRequest(viewsRequest.POST <@ (user1),
+        write(view.copy(allowed_actions = ownActions :+ "can_do_what_no_view_of_the_caller_can")))
+      tooMuch.code should equal(403)
+      messageOf(tooMuch.body) should startWith(SourceViewHasLessPermission)
+      Views.views.vend.customView(ViewId(viewName), BankIdAccountId(testBankId1, AccountId(accountId))).isDefined should equal(false)
+
+      val created = makePostRequest(viewsRequest.POST <@ (user1), write(view))
+      created.code should equal(201)
+      (created.body \ "id").extract[String] should equal(viewName)
+    }
+  }
+
   // ─── Create account: from v2.0.0 and v2.2.0 AccountTest ─────────────────────────────────
 
   feature("PUT /banks/BANK_ID/accounts/ACCOUNT_ID refuses an ACCOUNT_ID that already exists (v5.0.0 createAccount)") {
