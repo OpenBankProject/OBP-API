@@ -1017,7 +1017,11 @@ object Http4s400 {
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
                 AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
-            (_, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            (existingAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // The attribute must belong to the bank and product in the path, else a role at one bank overwrites and moves any bank's attribute.
+            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              existingAttribute.bankId.value == bankIdStr && existingAttribute.productCode.value == productCodeStr
+            }
             (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankIdStr), ProductCode(productCodeStr), Some(productAttributeIdStr),
               postedData.name, productAttributeType, postedData.value, postedData.is_active, Some(cc))
@@ -1043,7 +1047,7 @@ object Http4s400 {
       |""",
       productAttributeJsonV400,
       productAttributeResponseJsonV400,
-      List(UserHasMissingRoles, UnknownError),
+      List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canUpdateProductAttribute)),
       http4sPartialFunction = Some(updateProductAttribute)
@@ -2635,12 +2639,16 @@ object Http4s400 {
     // ─── getProductAttribute (v4 override of Http4s310 — Lift declared role mismatch fixed) ─
 
     lazy val getProductAttribute: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / _ / "attributes" / productAttributeIdStr =>
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr / "attributes" / productAttributeIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canGetProductAttribute, Some(cc))
             (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
             (productAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // The attribute must belong to the bank and product in the path, else a role at one bank reads any bank's attribute.
+            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              productAttribute.bankId.value == bankIdStr && productAttribute.productCode.value == productCodeStr
+            }
           } yield createProductAttributeJson(productAttribute)
         }
     }
@@ -2662,7 +2670,7 @@ object Http4s400 {
       |""",
       EmptyBody,
       productAttributeResponseJsonV400,
-      List(UserHasMissingRoles, UnknownError),
+      List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canGetProductAttribute)),
       http4sPartialFunction = Some(getProductAttribute)

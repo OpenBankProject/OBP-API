@@ -3198,6 +3198,22 @@
       "reason": "The http4s list names the \"could not save the privilege\" error through the constant CouldNotSaveThePrivilege instead of repeating the string; the error text is unchanged",
       "lift_digest": "e755321afded624c39215941ea1436bffb9cda4730adaddf36b3f77ae6c1e553",
       "http4s_digest": "93add7cbeb1318c15e28dc7f59e23dcedae9a2d282bc4a85053e970ccd9d8771"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "getProductAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added ProductAttributeNotFound (404): the attribute must belong to the bank and product in the path, else a role at one bank reads or moves another bank's attribute",
+      "lift_digest": "f0e3fc093d8749570c7520dabdb672bbb7a6f84d2f03fa9c138762e8c976981a",
+      "http4s_digest": "cbff97326a2c683036eca4d241b6bcc82b9a45d7cee49516184d63fc450c50b7"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateProductAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added ProductAttributeNotFound (404): the attribute must belong to the bank and product in the path, else a role at one bank reads or moves another bank's attribute",
+      "lift_digest": "f0e3fc093d8749570c7520dabdb672bbb7a6f84d2f03fa9c138762e8c976981a",
+      "http4s_digest": "cbff97326a2c683036eca4d241b6bcc82b9a45d7cee49516184d63fc450c50b7"
     }
   ]
 }
