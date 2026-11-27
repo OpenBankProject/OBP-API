@@ -51,36 +51,39 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
 
   feature("Assuring that endpoint getEntitlements works as expected - v2.0.0") {
 
-    scenario("We try to get entitlements without login - getEntitlements") {
-      When("We make the request")
-      val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET
-      val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 401")
-      responseGet.code should equal(401)
-      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
-      responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.AuthenticatedUserIsRequired)
+    // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+    // scenario("We try to get entitlements without login - getEntitlements") {
+      // When("We make the request")
+      // val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET
+      // val responseGet = makeGetRequest(requestGet)
+      // Then("We should get a 401")
+      // responseGet.code should equal(401)
+      // And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
+      // responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.AuthenticatedUserIsRequired)
 
-    }
+    // }
 
-    scenario("We try to get entitlements without roles - getEntitlements") {
-      When("We make the request")
-      val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
-      val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 403")
-      responseGet.code should equal(403)
-      And("We should get a message: " + s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
-      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
-    }
+    // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+    // scenario("We try to get entitlements without roles - getEntitlements") {
+      // When("We make the request")
+      // val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
+      // val responseGet = makeGetRequest(requestGet)
+      // Then("We should get a 403")
+      // responseGet.code should equal(403)
+      // And("We should get a message: " + s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
+      // responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
+    // }
 
-    scenario("We try to get entitlements with roles - getEntitlements") {
-      When("We add required entitlement")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementsForAnyUserAtAnyBank.toString)
-      And("We make the request")
-      val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
-      val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 200")
-      responseGet.code should equal(200)
-    }
+    // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+    // scenario("We try to get entitlements with roles - getEntitlements") {
+      // When("We add required entitlement")
+      // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementsForAnyUserAtAnyBank.toString)
+      // And("We make the request")
+      // val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
+      // val responseGet = makeGetRequest(requestGet)
+      // Then("We should get a 200")
+      // responseGet.code should equal(200)
+    // }
 
     scenario("We try to delete some entitlement - deleteEntitlement") {
       When("We add required entitlement")

@@ -40,123 +40,124 @@ class AccountTest extends V200ServerSetup with DefaultUsers with PrivateUser2Acc
   val mockAccountId1 = "NEW_ACCOUNT_ID_01"
   val mockAccountLabel1 = "NEW_ACCOUNT_LABEL_01"
   
-  feature("Assuring that Get all accounts at all banks works as expected - v2.0.0") {
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Assuring that Get all accounts at all banks works as expected - v2.0.0") {
 
-    scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAllBanks") {
-      Given("The bank")
-      val testBank = testBankId1
-      val accountPutJSON = CreateAccountJSON(resourceUser1.userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
-      val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
-      val responsePut = makePutRequest(requestPut, write(accountPutJSON))
+    // scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAllBanks") {
+      // Given("The bank")
+      // val testBank = testBankId1
+      // val accountPutJSON = CreateAccountJSON(resourceUser1.userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      // val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
+      // val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
-      And("We should get a 200")
-      responsePut.code should equal(200)
-// TODO Make this work
-//      When("We make the anonymous access request")
-//      val requestGet = (v2_0Request / "accounts").GET
-//      val responseGet = makeGetRequest(requestGet)
-//
-//      Then("We should get a 200")
-//      responseGet.code should equal(200)
-//
-//      val isPublic: List[Boolean] =
-//        for {
-//          JObject(o) <- responseGet.body
-//          JField("is_public", JBool(isPublic)) <- o
-//        } yield {
-//          isPublic
-//        }
-//      And("All received accounts have to be public")
-//      isPublic.forall(_ == true) should equal(true)
+      // And("We should get a 200")
+      // responsePut.code should equal(200)
+// // TODO Make this work
+// //      When("We make the anonymous access request")
+// //      val requestGet = (v2_0Request / "accounts").GET
+// //      val responseGet = makeGetRequest(requestGet)
+// //
+// //      Then("We should get a 200")
+// //      responseGet.code should equal(200)
+// //
+// //      val isPublic: List[Boolean] =
+// //        for {
+// //          JObject(o) <- responseGet.body
+// //          JField("is_public", JBool(isPublic)) <- o
+// //        } yield {
+// //          isPublic
+// //        }
+// //      And("All received accounts have to be public")
+// //      isPublic.forall(_ == true) should equal(true)
 
-      When("We make the authenticated access request")
-      val requestGetAll = (v2_0Request / "accounts").GET <@ (user1)
-      val responseGetAll = makeGetRequest(requestGetAll)
+      // When("We make the authenticated access request")
+      // val requestGetAll = (v2_0Request / "accounts").GET <@ (user1)
+      // val responseGetAll = makeGetRequest(requestGetAll)
 
-      Then("We should get a 200")
-      responseGetAll.code should equal(200)
+      // Then("We should get a 200")
+      // responseGetAll.code should equal(200)
 
-      val isPublicAll =
-        for {
-          obj@JObject(o) <- responseGetAll.body
-          if (o contains JField("id", JString(mockAccountId1)))
-          JBool(isPublic) <- obj \\ "is_public"
-        } yield {
-          isPublic
-        }
-      And("The new created account has to be private")
-      isPublicAll.forall(_ == false) should equal(true)
-    }
+      // val isPublicAll =
+        // for {
+          // obj@JObject(o) <- responseGetAll.body
+          // if (o contains JField("id", JString(mockAccountId1)))
+          // JBool(isPublic) <- obj \\ "is_public"
+        // } yield {
+          // isPublic
+        // }
+      // And("The new created account has to be private")
+      // isPublicAll.forall(_ == false) should equal(true)
+    // }
 
-    scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAtOneBank") {
-      Given("The bank")
-      val testBank = testBankId1
+    // scenario("We create an account and get accounts as anonymous and then as authenticated user - allAccountsAtOneBank") {
+      // Given("The bank")
+      // val testBank = testBankId1
 
-      Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(resourceUser1.userId,"CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
-      val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
-      val responsePut = makePutRequest(requestPut, write(accountPutJSON))
+      // Then("We create an private account at the bank")
+      // val accountPutJSON = CreateAccountJSON(resourceUser1.userId,"CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      // val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / mockAccountId1).PUT <@ (user1)
+      // val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
-      And("We should get a 200")
-      responsePut.code should equal(200)
-//      TODO Make this work
-//      When("We make the anonymous access request")
-//      val requestGet = (v2_0Request / "banks" / testBank.value / "accounts").GET
-//      val responseGet = makeGetRequest(requestGet)
-//
-//      Then("We should get a 200")
-//      responseGet.code should equal(200)
-//
-//      val isPublic: List[Boolean] =
-//        for {
-//          JObject(o) <- responseGet.body
-//          JField("is_public", JBool(isPublic)) <- o
-//        } yield {
-//          isPublic
-//        }
-//      And("All received accounts have to be public")
-//      isPublic.forall(_ == true) should equal(true)
+      // And("We should get a 200")
+      // responsePut.code should equal(200)
+// //      TODO Make this work
+// //      When("We make the anonymous access request")
+// //      val requestGet = (v2_0Request / "banks" / testBank.value / "accounts").GET
+// //      val responseGet = makeGetRequest(requestGet)
+// //
+// //      Then("We should get a 200")
+// //      responseGet.code should equal(200)
+// //
+// //      val isPublic: List[Boolean] =
+// //        for {
+// //          JObject(o) <- responseGet.body
+// //          JField("is_public", JBool(isPublic)) <- o
+// //        } yield {
+// //          isPublic
+// //        }
+// //      And("All received accounts have to be public")
+// //      isPublic.forall(_ == true) should equal(true)
 
-      When("We make the authenticated access request")
-      val requestGetAll = (v2_0Request / "banks" / testBank.value / "accounts").GET <@ (user1)
-      val responseGetAll = makeGetRequest(requestGetAll)
+      // When("We make the authenticated access request")
+      // val requestGetAll = (v2_0Request / "banks" / testBank.value / "accounts").GET <@ (user1)
+      // val responseGetAll = makeGetRequest(requestGetAll)
 
-      Then("We should get a 200")
-      responseGetAll.code should equal(200)
+      // Then("We should get a 200")
+      // responseGetAll.code should equal(200)
 
-      val isPublicAll =
-        for {
-          obj@JObject(o) <- responseGetAll.body
-          if (o contains JField("id", JString(testAccountId1.value)))
-          JBool(isPublic) <- obj \\ "is_public"
-        } yield {
-          isPublic
-        }
-      And("The new created account has to be private")
-      isPublicAll.forall(_ == false) should equal(true)
-    }
+      // val isPublicAll =
+        // for {
+          // obj@JObject(o) <- responseGetAll.body
+          // if (o contains JField("id", JString(testAccountId1.value)))
+          // JBool(isPublic) <- obj \\ "is_public"
+        // } yield {
+          // isPublic
+        // }
+      // And("The new created account has to be private")
+      // isPublicAll.forall(_ == false) should equal(true)
+    // }
 
-    scenario("We create an account, but with wrong format of account_id ") {
-      Given("The bank")
-      val testBank = testBankId1
-      val newAccountIdWithSpaces = "account%20with%20spaces"
+    // scenario("We create an account, but with wrong format of account_id ") {
+      // Given("The bank")
+      // val testBank = testBankId1
+      // val newAccountIdWithSpaces = "account%20with%20spaces"
 
-      Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(resourceUser1.userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
-      val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountIdWithSpaces).PUT <@ (user1)
-      val responsePut = makePutRequest(requestPut, write(accountPutJSON))
+      // Then("We create an private account at the bank")
+      // val accountPutJSON = CreateAccountJSON(resourceUser1.userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      // val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountIdWithSpaces).PUT <@ (user1)
+      // val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
-      And("We should get a 400")
-      responsePut.code should equal(400)
-      And("We should have the error massage")
-      val error: String = (responsePut.body \ "message") match {
-        case JString(i) => i
-        case _ => ""
-      }
-      Then("We should have the error: " + ErrorMessages.InvalidAccountIdFormat)
-      error.toString contains (ErrorMessages.InvalidAccountIdFormat) should be (true)
-    }
-  }
+      // And("We should get a 400")
+      // responsePut.code should equal(400)
+      // And("We should have the error massage")
+      // val error: String = (responsePut.body \ "message") match {
+        // case JString(i) => i
+        // case _ => ""
+      // }
+      // Then("We should have the error: " + ErrorMessages.InvalidAccountIdFormat)
+      // error.toString contains (ErrorMessages.InvalidAccountIdFormat) should be (true)
+    // }
+  // }
 
   feature("Information about the public bank accounts for all banks"){
     scenario("we get the public bank accounts"){
@@ -182,25 +183,26 @@ class AccountTest extends V200ServerSetup with DefaultUsers with PrivateUser2Acc
   private def createAccountBodyFor(userId: String) =
     CreateAccountJSON(userId, "CURRENT", mockAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
 
-  feature("Create Account refuses an ACCOUNT_ID that already exists - v2.0.0") {
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Create Account refuses an ACCOUNT_ID that already exists - v2.0.0") {
 
-    scenario("a second User PUTting an existing ACCOUNT_ID gets 409 AccountIdAlreadyExists and does not become a holder") {
-      val existingAccountId = "EXISTING_ACCOUNT_ID_V200"
-      val createdByUser1 = makePutRequest(
-        (v2_0Request / "banks" / testBankId1.value / "accounts" / existingAccountId).PUT <@ (user1),
-        write(createAccountBodyFor(resourceUser1.userId)))
-      createdByUser1.code should equal(200)
+    // scenario("a second User PUTting an existing ACCOUNT_ID gets 409 AccountIdAlreadyExists and does not become a holder") {
+      // val existingAccountId = "EXISTING_ACCOUNT_ID_V200"
+      // val createdByUser1 = makePutRequest(
+        // (v2_0Request / "banks" / testBankId1.value / "accounts" / existingAccountId).PUT <@ (user1),
+        // write(createAccountBodyFor(resourceUser1.userId)))
+      // createdByUser1.code should equal(200)
 
-      val attemptByUser2 = makePutRequest(
-        (v2_0Request / "banks" / testBankId1.value / "accounts" / existingAccountId).PUT <@ (user2),
-        write(createAccountBodyFor(resourceUser2.userId)))
-      attemptByUser2.code should equal(409)
-      (attemptByUser2.body \ "message").extract[String] should include(ErrorMessages.AccountIdAlreadyExists)
+      // val attemptByUser2 = makePutRequest(
+        // (v2_0Request / "banks" / testBankId1.value / "accounts" / existingAccountId).PUT <@ (user2),
+        // write(createAccountBodyFor(resourceUser2.userId)))
+      // attemptByUser2.code should equal(409)
+      // (attemptByUser2.body \ "message").extract[String] should include(ErrorMessages.AccountIdAlreadyExists)
 
-      val holderUserIds = AccountHolders.accountHolders.vend
-        .getAccountHolders(testBankId1, AccountId(existingAccountId)).map(_.userId)
-      holderUserIds should contain(resourceUser1.userId)
-      holderUserIds should not contain(resourceUser2.userId)
-    }
-  }
+      // val holderUserIds = AccountHolders.accountHolders.vend
+        // .getAccountHolders(testBankId1, AccountId(existingAccountId)).map(_.userId)
+      // holderUserIds should contain(resourceUser1.userId)
+      // holderUserIds should not contain(resourceUser2.userId)
+    // }
+  // }
 }
