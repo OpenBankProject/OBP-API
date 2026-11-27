@@ -75,28 +75,33 @@ class SystemViewsTests extends V310ServerSetup {
   val randomSystemViewId = "a"+APIUtil.generateUUID()
   val postBodySystemViewJson = createSystemViewJsonV300.copy(name=randomSystemViewId).copy(metadata_view = randomSystemViewId).toCreateViewJson
   
-  def getSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = v3_1_0_Request / "system-views" / viewId <@(consumerAndToken)
-    makeGetRequest(request)
-  }
-  def postSystemView(view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = (v3_1_0_Request / "system-views").POST <@(consumerAndToken)
-    makePostRequest(request, write(view))
-  }
-  def putSystemView(viewId : String, view: UpdateViewJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = (v3_1_0_Request / "system-views" / viewId).PUT <@(consumerAndToken)
-    makePutRequest(request, write(view))
-  }
-  def deleteSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = (v3_1_0_Request / "system-views" / viewId).DELETE <@(consumerAndToken)
-    makeDeleteRequest(request)
-  }
-  def createSystemView(viewId: String): Boolean = {
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemView.toString)
-    val postBody = postBodySystemViewJson.copy(name=viewId).copy(metadata_view = viewId)
-    val response400 = postSystemView(postBody, user1)
-    response400.code == 201
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    // val request = v3_1_0_Request / "system-views" / viewId <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def postSystemView(view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    // val request = (v3_1_0_Request / "system-views").POST <@(consumerAndToken)
+    // makePostRequest(request, write(view))
+  // }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def putSystemView(viewId : String, view: UpdateViewJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    // val request = (v3_1_0_Request / "system-views" / viewId).PUT <@(consumerAndToken)
+    // makePutRequest(request, write(view))
+  // }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def deleteSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    // val request = (v3_1_0_Request / "system-views" / viewId).DELETE <@(consumerAndToken)
+    // makeDeleteRequest(request)
+  // }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def createSystemView(viewId: String): Boolean = {
+    // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemView.toString)
+    // val postBody = postBodySystemViewJson.copy(name=viewId).copy(metadata_view = viewId)
+    // val response400 = postSystemView(postBody, user1)
+    // response400.code == 201
+  // }
   
   
   

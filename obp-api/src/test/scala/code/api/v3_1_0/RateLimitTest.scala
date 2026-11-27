@@ -50,11 +50,12 @@ import org.scalatest.Tag
 
 class RateLimitTest extends V310ServerSetup with PropsReset {
 
-  /** Sets the consumer's call limits as another consumer, so this consumer starts the period with no calls made. */
-  private def setLimitAsAnotherConsumer(consumerId: String, json: CallLimitPostJson) = {
-    Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, ApiRole.CanUpdateRateLimits.toString)
-    makePutRequest((v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user2), write(json))
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // /** Sets the consumer's call limits as another consumer, so this consumer starts the period with no calls made. */
+  // private def setLimitAsAnotherConsumer(consumerId: String, json: CallLimitPostJson) = {
+    // Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, ApiRole.CanUpdateRateLimits.toString)
+    // makePutRequest((v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user2), write(json))
+  // }
 
   /** The consumer's rate limits are gone, and so is the cached copy: the limit just set would refuse the next PUT. */
   private def removeRateLimits(consumerId: String): Unit = {

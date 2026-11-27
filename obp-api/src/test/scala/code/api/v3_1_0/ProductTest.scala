@@ -70,31 +70,34 @@ class ProductTest extends V310ServerSetup {
   lazy val postProductAttributeJson = productAttributeJson
   lazy val putProductAttributeJson = productAttributeJson.copy(name = "updated product")
   lazy val createProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attribute")
-  lazy val getProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
-  lazy val updateProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // lazy val getProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // lazy val updateProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
   lazy val deleteProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
 
   lazy val testBankId = randomBankId
   lazy val parentPostPutProductJsonV310: PostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(parent_product_code ="")
-  def createProduct(code: String, json: PostPutProductJsonV310) = {
-    When("We try to create a product v3.1.0")
-    val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
-    val response310 = makePutRequest(request310, write(json))
-    Then("We should get a 201")
-    response310.code should equal(201)
-    val product = response310.body.extract[ProductJsonV310]
-    product.code shouldBe code
-    product.parent_product_code shouldBe json.parent_product_code
-    product.bank_id shouldBe testBankId
-    product.name shouldBe json.name
-    product.category shouldBe json.category
-    product.super_family shouldBe json.super_family
-    product.family shouldBe json.family
-    product.more_info_url shouldBe json.more_info_url
-    product.details shouldBe json.details
-    product.description shouldBe json.description
-    product
-  }
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def createProduct(code: String, json: PostPutProductJsonV310) = {
+    // When("We try to create a product v3.1.0")
+    // val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
+    // val response310 = makePutRequest(request310, write(json))
+    // Then("We should get a 201")
+    // response310.code should equal(201)
+    // val product = response310.body.extract[ProductJsonV310]
+    // product.code shouldBe code
+    // product.parent_product_code shouldBe json.parent_product_code
+    // product.bank_id shouldBe testBankId
+    // product.name shouldBe json.name
+    // product.category shouldBe json.category
+    // product.super_family shouldBe json.super_family
+    // product.family shouldBe json.family
+    // product.more_info_url shouldBe json.more_info_url
+    // product.details shouldBe json.details
+    // product.description shouldBe json.description
+    // product
+  // }
   
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Create Product v3.1.0") {
