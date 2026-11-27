@@ -156,6 +156,21 @@
         <artifactId>json</artifactId>
         <version>20260719</version>
       </dependency>
+      <!-- Pin jline, pulled in by scala-compiler (jdk8 classifier), past the
+           3.29.0 it brings. -->
+      <dependency>
+        <groupId>org.jline</groupId>
+        <artifactId>jline</artifactId>
+        <version>3.30.15</version>
+        <classifier>jdk8</classifier>
+      </dependency>
+      <!-- Pin rhino, pulled in by swagger-parser through json-schema-core, from
+           1.7R4 (2012) to 1.7.15.1. Same 1.7 API; fixes GHSA-3w8q-xq97-5j7x. -->
+      <dependency>
+        <groupId>org.mozilla</groupId>
+        <artifactId>rhino</artifactId>
+        <version>1.7.15.1</version>
+      </dependency>
       <!-- Pin commons-validator to 1.9.0. Fixes CVE-2020-13956 (ReDoS in URL validation). -->
       <dependency>
         <groupId>commons-validator</groupId>
