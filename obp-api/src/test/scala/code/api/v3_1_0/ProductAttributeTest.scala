@@ -75,206 +75,210 @@ class ProductAttributeTest extends V310ServerSetup {
   lazy val updateProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
   lazy val deleteProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
 
-  feature("Create/Get, Update/Get and Delete/Get Product Attribute v3.1.0") {
-    scenario("We will call the endpoints with a proper roles", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Create/Get, Update/Get and Delete/Get Product Attribute v3.1.0") {
+    // scenario("We will call the endpoints with a proper roles", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProductAttribute.toString)
-      When("We make a request v3.1.0")
-      val requestCreate310 = createProductAttributeEndpoint.POST <@(user1)
-      val responseCreate310 = makePostRequest(requestCreate310, write(postProductAttributeJson))
-      Then("We should get a 201")
-      responseCreate310.code should equal(201)
-      val createdProduct = responseCreate310.body.extract[ProductAttributeResponseJson]
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProductAttribute.toString)
+      // When("We make a request v3.1.0")
+      // val requestCreate310 = createProductAttributeEndpoint.POST <@(user1)
+      // val responseCreate310 = makePostRequest(requestCreate310, write(postProductAttributeJson))
+      // Then("We should get a 201")
+      // responseCreate310.code should equal(201)
+      // val createdProduct = responseCreate310.body.extract[ProductAttributeResponseJson]
 
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanGetProductAttribute.toString)
-      val requestGet310 = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / createdProduct.product_attribute_id).GET <@(user1)
-      val responseGet310 = makeGetRequest(requestGet310)
-      Then("We should get a 200")
-      responseGet310.code should equal(200)
-      val gottenProduct = responseGet310.body.extract[ProductAttributeResponseJson]
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanGetProductAttribute.toString)
+      // val requestGet310 = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / createdProduct.product_attribute_id).GET <@(user1)
+      // val responseGet310 = makeGetRequest(requestGet310)
+      // Then("We should get a 200")
+      // responseGet310.code should equal(200)
+      // val gottenProduct = responseGet310.body.extract[ProductAttributeResponseJson]
 
-      createdProduct shouldBe gottenProduct
+      // createdProduct shouldBe gottenProduct
       
 
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanUpdateProductAttribute.toString)
-      When("We make a request v3.1.0")
-      val requestPut310 = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / createdProduct.product_attribute_id).PUT <@(user1)
-      val responsePut310 = makePutRequest(requestPut310, write(putProductAttributeJson))
-      Then("We should get a 200")
-      responsePut310.code should equal(200)
-      val updatedProduct = responsePut310.body.extract[ProductAttributeResponseJson]
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanUpdateProductAttribute.toString)
+      // When("We make a request v3.1.0")
+      // val requestPut310 = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / createdProduct.product_attribute_id).PUT <@(user1)
+      // val responsePut310 = makePutRequest(requestPut310, write(putProductAttributeJson))
+      // Then("We should get a 200")
+      // responsePut310.code should equal(200)
+      // val updatedProduct = responsePut310.body.extract[ProductAttributeResponseJson]
 
-      updatedProduct shouldBe makeGetRequest(requestGet310).body.extract[ProductAttributeResponseJson]
+      // updatedProduct shouldBe makeGetRequest(requestGet310).body.extract[ProductAttributeResponseJson]
 
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanDeleteProductAttribute.toString)
-      When("We make a request v3.1.0")
-      val requestDelete310 = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / createdProduct.product_attribute_id).DELETE <@(user1)
-      val responseDelete310 = makeDeleteRequest(requestDelete310)
-      Then("We should get a 204")
-      responseDelete310.code should equal(204)
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanDeleteProductAttribute.toString)
+      // When("We make a request v3.1.0")
+      // val requestDelete310 = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / createdProduct.product_attribute_id).DELETE <@(user1)
+      // val responseDelete310 = makeDeleteRequest(requestDelete310)
+      // Then("We should get a 204")
+      // responseDelete310.code should equal(204)
 
-      makeGetRequest(requestGet310).code should equal(400)
+      // makeGetRequest(requestGet310).code should equal(400)
 
-      Then("We call create endpoint with another `tpye`")
-      val responseCreate310DateWithDay = makePostRequest(requestCreate310, write(postProductAttributeJson.copy(`type` = s"${ProductAttributeType.DATE_WITH_DAY}")))
-      Then("We should get a 201")
-      responseCreate310DateWithDay.code should equal(201)
+      // Then("We call create endpoint with another `tpye`")
+      // val responseCreate310DateWithDay = makePostRequest(requestCreate310, write(postProductAttributeJson.copy(`type` = s"${ProductAttributeType.DATE_WITH_DAY}")))
+      // Then("We should get a 201")
+      // responseCreate310DateWithDay.code should equal(201)
 
-      val responseCreate310Integer = makePostRequest(requestCreate310, write(postProductAttributeJson.copy(`type` = s"${ProductAttributeType.INTEGER}")))
-      Then("We should get a 201")
-      responseCreate310Integer.code should equal(201)
+      // val responseCreate310Integer = makePostRequest(requestCreate310, write(postProductAttributeJson.copy(`type` = s"${ProductAttributeType.INTEGER}")))
+      // Then("We should get a 201")
+      // responseCreate310Integer.code should equal(201)
 
-      val responseCreate310Double = makePostRequest(requestCreate310, write(postProductAttributeJson.copy(`type` = s"${ProductAttributeType.DOUBLE}")))
-      Then("We should get a 201")
-      responseCreate310Double.code should equal(201)
+      // val responseCreate310Double = makePostRequest(requestCreate310, write(postProductAttributeJson.copy(`type` = s"${ProductAttributeType.DOUBLE}")))
+      // Then("We should get a 201")
+      // responseCreate310Double.code should equal(201)
 
 
-    }
-  }
+    // }
+  // }
 
-  feature("Create Product Attribute v3.1.0") {
-    scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = createProductAttributeEndpoint.POST
-      val response310 = makePostRequest(request310, write(postProductAttributeJson))
-      Then("We should get a 401")
-      response310.code should equal(401)
-      And("error should be " + AuthenticatedUserIsRequired)
-      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
-    }
-    scenario("We will call the Create endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = createProductAttributeEndpoint.POST <@(user1)
-      val response310 = makePostRequest(request310, write(postProductAttributeJson))
-      Then("We should get a 403")
-      response310.code should equal(403)
-      val createProductEntitlementsRequiredText = UserHasMissingRoles + canCreateProductAttribute
-      And("error should be " + createProductEntitlementsRequiredText)
-      val errorMessage = response310.body.extract[ErrorMessage].message
-      errorMessage contains (UserHasMissingRoles) should be (true)
-      errorMessage contains (createProductEntitlementsRequiredText.toString()) should be (true)
-    }
-    scenario("We will call the Create endpoint but wrong `type` ", ApiEndpoint1, VersionOfApi) {
-      When("We make a request v3.1.0")
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProductAttribute.toString)
-      val request310 = createProductAttributeEndpoint.POST <@(user1)
-      val response310 = makePostRequest(request310, write(postProductAttributeJson.copy(`type` = "worngType")))
-      Then("We should get a 400")
-      response310.code should equal(400)
-      And(s"error should be $InvalidJsonFormat" )
-      response310.body.extract[ErrorMessage].message contains( s"$InvalidJsonFormat The `Type` filed can only accept the following field:")
-    }
-  }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Create Product Attribute v3.1.0") {
+    // scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val request310 = createProductAttributeEndpoint.POST
+      // val response310 = makePostRequest(request310, write(postProductAttributeJson))
+      // Then("We should get a 401")
+      // response310.code should equal(401)
+      // And("error should be " + AuthenticatedUserIsRequired)
+      // response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+    // }
+    // scenario("We will call the Create endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val request310 = createProductAttributeEndpoint.POST <@(user1)
+      // val response310 = makePostRequest(request310, write(postProductAttributeJson))
+      // Then("We should get a 403")
+      // response310.code should equal(403)
+      // val createProductEntitlementsRequiredText = UserHasMissingRoles + canCreateProductAttribute
+      // And("error should be " + createProductEntitlementsRequiredText)
+      // val errorMessage = response310.body.extract[ErrorMessage].message
+      // errorMessage contains (UserHasMissingRoles) should be (true)
+      // errorMessage contains (createProductEntitlementsRequiredText.toString()) should be (true)
+    // }
+    // scenario("We will call the Create endpoint but wrong `type` ", ApiEndpoint1, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProductAttribute.toString)
+      // val request310 = createProductAttributeEndpoint.POST <@(user1)
+      // val response310 = makePostRequest(request310, write(postProductAttributeJson.copy(`type` = "worngType")))
+      // Then("We should get a 400")
+      // response310.code should equal(400)
+      // And(s"error should be $InvalidJsonFormat" )
+      // response310.body.extract[ErrorMessage].message contains( s"$InvalidJsonFormat The `Type` filed can only accept the following field:")
+    // }
+  // }
   
-  feature("Get Product Attribute v3.1.0") {
-    scenario("We will call the endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = getProductAttributeEndpoint.GET
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 401")
-      response310.code should equal(401)
-      And("error should be " + AuthenticatedUserIsRequired)
-      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
-    }
-    scenario("We will call the Get endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = getProductAttributeEndpoint.GET <@(user1)
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 403")
-      response310.code should equal(403)
-      val createProductEntitlementsRequiredText = UserHasMissingRoles + canGetProductAttribute
-      And("error should be " + createProductEntitlementsRequiredText)
-      val errorMessage = response310.body.extract[ErrorMessage].message
-      errorMessage contains (UserHasMissingRoles) should be (true)
-      errorMessage contains (canGetProductAttribute.toString()) should be (true)
-    }
-    // a role at one bank must not read a product attribute of another bank or another product
-    scenario("We will call the Get endpoint with an attribute of another bank or another product", ApiEndpoint2, VersionOfApi) {
-      // an attribute owned by another bank, created directly so no role at that bank is needed
-      val otherBankAttribute = Await.result(
-        ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
-          BankId("other-bank-for-product-attribute-get"), ProductCode("PRODUCT_CODE"), None,
-          "other bank attribute", ProductAttributeType.STRING, "12345678", None),
-        Duration.Inf).openOrThrowException("could not create the test attribute")
-      // an attribute of another product at the bank in the path
-      val otherProductAttribute = Await.result(
-        ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
-          BankId(testBankId), ProductCode("OTHER_PRODUCT_CODE"), None,
-          "other product attribute", ProductAttributeType.STRING, "12345678", None),
-        Duration.Inf).openOrThrowException("could not create the test attribute")
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanGetProductAttribute.toString)
-      When("We get the other bank's attribute through the bank in the path")
-      val requestOtherBank = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherBankAttribute.productAttributeId).GET <@(user1)
-      val responseOtherBank = makeGetRequest(requestOtherBank)
-      Then("We should get a 404")
-      responseOtherBank.code should equal(404)
-      responseOtherBank.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
-      When("We get an attribute of another product through the product in the path")
-      val requestOtherProduct = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherProductAttribute.productAttributeId).GET <@(user1)
-      val responseOtherProduct = makeGetRequest(requestOtherProduct)
-      Then("We should get a 404")
-      responseOtherProduct.code should equal(404)
-      responseOtherProduct.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
-    }
-  }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Get Product Attribute v3.1.0") {
+    // scenario("We will call the endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val request310 = getProductAttributeEndpoint.GET
+      // val response310 = makeGetRequest(request310)
+      // Then("We should get a 401")
+      // response310.code should equal(401)
+      // And("error should be " + AuthenticatedUserIsRequired)
+      // response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+    // }
+    // scenario("We will call the Get endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val request310 = getProductAttributeEndpoint.GET <@(user1)
+      // val response310 = makeGetRequest(request310)
+      // Then("We should get a 403")
+      // response310.code should equal(403)
+      // val createProductEntitlementsRequiredText = UserHasMissingRoles + canGetProductAttribute
+      // And("error should be " + createProductEntitlementsRequiredText)
+      // val errorMessage = response310.body.extract[ErrorMessage].message
+      // errorMessage contains (UserHasMissingRoles) should be (true)
+      // errorMessage contains (canGetProductAttribute.toString()) should be (true)
+    // }
+    // // a role at one bank must not read a product attribute of another bank or another product
+    // scenario("We will call the Get endpoint with an attribute of another bank or another product", ApiEndpoint2, VersionOfApi) {
+      // // an attribute owned by another bank, created directly so no role at that bank is needed
+      // val otherBankAttribute = Await.result(
+        // ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
+          // BankId("other-bank-for-product-attribute-get"), ProductCode("PRODUCT_CODE"), None,
+          // "other bank attribute", ProductAttributeType.STRING, "12345678", None),
+        // Duration.Inf).openOrThrowException("could not create the test attribute")
+      // // an attribute of another product at the bank in the path
+      // val otherProductAttribute = Await.result(
+        // ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
+          // BankId(testBankId), ProductCode("OTHER_PRODUCT_CODE"), None,
+          // "other product attribute", ProductAttributeType.STRING, "12345678", None),
+        // Duration.Inf).openOrThrowException("could not create the test attribute")
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanGetProductAttribute.toString)
+      // When("We get the other bank's attribute through the bank in the path")
+      // val requestOtherBank = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherBankAttribute.productAttributeId).GET <@(user1)
+      // val responseOtherBank = makeGetRequest(requestOtherBank)
+      // Then("We should get a 404")
+      // responseOtherBank.code should equal(404)
+      // responseOtherBank.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
+      // When("We get an attribute of another product through the product in the path")
+      // val requestOtherProduct = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherProductAttribute.productAttributeId).GET <@(user1)
+      // val responseOtherProduct = makeGetRequest(requestOtherProduct)
+      // Then("We should get a 404")
+      // responseOtherProduct.code should equal(404)
+      // responseOtherProduct.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
+    // }
+  // }
   
-  feature("Update Product Attribute v3.1.0") {
-    scenario("We will call the endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = updateProductAttributeEndpoint.PUT
-      val response310 = makePutRequest(request310, write(putProductAttributeJson))
-      Then("We should get a 401")
-      response310.code should equal(401)
-      And("error should be " + AuthenticatedUserIsRequired)
-      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
-    }
-    scenario("We will call the Update endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = updateProductAttributeEndpoint.PUT <@(user1)
-      val response310 = makePutRequest(request310, write(putProductAttributeJson))
-      Then("We should get a 403")
-      response310.code should equal(403)
-      val createProductEntitlementsRequiredText = UserHasMissingRoles + canUpdateProductAttribute
-      And("error should be " + createProductEntitlementsRequiredText)
-      val errorMessage = response310.body.extract[ErrorMessage].message
-      errorMessage contains (UserHasMissingRoles) should be (true)
-      errorMessage contains (createProductEntitlementsRequiredText.toString()) should be (true)
-    }
-    // a role at one bank must not overwrite, or move, a product attribute of another bank or another product
-    scenario("We will call the Update endpoint with an attribute of another bank or another product", ApiEndpoint3, VersionOfApi) {
-      // an attribute owned by another bank, created directly so no role at that bank is needed
-      val otherBankAttribute = Await.result(
-        ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
-          BankId("other-bank-for-product-attribute"), ProductCode("PRODUCT_CODE"), None,
-          "other bank attribute", ProductAttributeType.STRING, "12345678", None),
-        Duration.Inf).openOrThrowException("could not create the test attribute")
-      // an attribute of another product at the bank in the path
-      val otherProductAttribute = Await.result(
-        ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
-          BankId(testBankId), ProductCode("OTHER_PRODUCT_CODE"), None,
-          "other product attribute", ProductAttributeType.STRING, "12345678", None),
-        Duration.Inf).openOrThrowException("could not create the test attribute")
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanUpdateProductAttribute.toString)
-      When("We update the other bank's attribute through the bank in the path")
-      val requestOtherBank = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherBankAttribute.productAttributeId).PUT <@(user1)
-      val responseOtherBank = makePutRequest(requestOtherBank, write(putProductAttributeJson))
-      Then("We should get a 404")
-      responseOtherBank.code should equal(404)
-      responseOtherBank.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
-      And("The attribute stays at its own bank, unchanged")
-      val stored = Await.result(
-        ProductAttributeX.productAttributeProvider.vend.getProductAttributeById(otherBankAttribute.productAttributeId),
-        Duration.Inf).openOrThrowException("the test attribute is gone")
-      stored.bankId.value should equal ("other-bank-for-product-attribute")
-      stored.name should equal ("other bank attribute")
-      When("We update an attribute of another product through the product in the path")
-      val requestOtherProduct = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherProductAttribute.productAttributeId).PUT <@(user1)
-      val responseOtherProduct = makePutRequest(requestOtherProduct, write(putProductAttributeJson))
-      Then("We should get a 404")
-      responseOtherProduct.code should equal(404)
-      responseOtherProduct.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
-    }
-  }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Update Product Attribute v3.1.0") {
+    // scenario("We will call the endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val request310 = updateProductAttributeEndpoint.PUT
+      // val response310 = makePutRequest(request310, write(putProductAttributeJson))
+      // Then("We should get a 401")
+      // response310.code should equal(401)
+      // And("error should be " + AuthenticatedUserIsRequired)
+      // response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+    // }
+    // scenario("We will call the Update endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val request310 = updateProductAttributeEndpoint.PUT <@(user1)
+      // val response310 = makePutRequest(request310, write(putProductAttributeJson))
+      // Then("We should get a 403")
+      // response310.code should equal(403)
+      // val createProductEntitlementsRequiredText = UserHasMissingRoles + canUpdateProductAttribute
+      // And("error should be " + createProductEntitlementsRequiredText)
+      // val errorMessage = response310.body.extract[ErrorMessage].message
+      // errorMessage contains (UserHasMissingRoles) should be (true)
+      // errorMessage contains (createProductEntitlementsRequiredText.toString()) should be (true)
+    // }
+    // // a role at one bank must not overwrite, or move, a product attribute of another bank or another product
+    // scenario("We will call the Update endpoint with an attribute of another bank or another product", ApiEndpoint3, VersionOfApi) {
+      // // an attribute owned by another bank, created directly so no role at that bank is needed
+      // val otherBankAttribute = Await.result(
+        // ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
+          // BankId("other-bank-for-product-attribute"), ProductCode("PRODUCT_CODE"), None,
+          // "other bank attribute", ProductAttributeType.STRING, "12345678", None),
+        // Duration.Inf).openOrThrowException("could not create the test attribute")
+      // // an attribute of another product at the bank in the path
+      // val otherProductAttribute = Await.result(
+        // ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(
+          // BankId(testBankId), ProductCode("OTHER_PRODUCT_CODE"), None,
+          // "other product attribute", ProductAttributeType.STRING, "12345678", None),
+        // Duration.Inf).openOrThrowException("could not create the test attribute")
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanUpdateProductAttribute.toString)
+      // When("We update the other bank's attribute through the bank in the path")
+      // val requestOtherBank = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherBankAttribute.productAttributeId).PUT <@(user1)
+      // val responseOtherBank = makePutRequest(requestOtherBank, write(putProductAttributeJson))
+      // Then("We should get a 404")
+      // responseOtherBank.code should equal(404)
+      // responseOtherBank.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
+      // And("The attribute stays at its own bank, unchanged")
+      // val stored = Await.result(
+        // ProductAttributeX.productAttributeProvider.vend.getProductAttributeById(otherBankAttribute.productAttributeId),
+        // Duration.Inf).openOrThrowException("the test attribute is gone")
+      // stored.bankId.value should equal ("other-bank-for-product-attribute")
+      // stored.name should equal ("other bank attribute")
+      // When("We update an attribute of another product through the product in the path")
+      // val requestOtherProduct = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / otherProductAttribute.productAttributeId).PUT <@(user1)
+      // val responseOtherProduct = makePutRequest(requestOtherProduct, write(putProductAttributeJson))
+      // Then("We should get a 404")
+      // responseOtherProduct.code should equal(404)
+      // responseOtherProduct.body.extract[ErrorMessage].message should equal (ProductAttributeNotFound)
+    // }
+  // }
 
   feature("Delete Product Attribute v3.1.0") {
     scenario("We will call the Delete endpoint without a user credentials", ApiEndpoint4, VersionOfApi) {

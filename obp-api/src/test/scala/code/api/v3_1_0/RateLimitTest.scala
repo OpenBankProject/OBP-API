@@ -157,107 +157,108 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
     per_month_call_limit = "1"
   )
 
-  feature("Rate Limit - " + ApiEndpoint + " - " + VersionOfApi)
-  {
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Rate Limit - " + ApiEndpoint + " - " + VersionOfApi)
+  // {
 
-    scenario("We will try to set calls limit per minute for a Consumer - unauthorized access", ApiEndpoint, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT
-      val response310 = makePutRequest(request310, write(callLimitJson1))
-      Then("We should get a 401")
-      response310.code should equal(401)
-      And("error should be " + AuthenticatedUserIsRequired)
-      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
-    }
-    scenario("We will try to set calls limit per minute without a proper Role " + ApiRole.canUpdateRateLimits, ApiEndpoint, VersionOfApi) {
-      When("We make a request v3.1.0 without a Role " + ApiRole.canUpdateRateLimits)
-      val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
-      val response310 = makePutRequest(request310, write(callLimitJson1))
-      Then("We should get a 403")
-      response310.code should equal(403)
-      And("error should be " + UserHasMissingRoles + CanUpdateRateLimits)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanUpdateRateLimits)
-    }
-    scenario("We will try to set calls limit per minute with a proper Role " + ApiRole.canUpdateRateLimits, ApiEndpoint, VersionOfApi) {
-      When("We make a request v3.1.0 with a Role " + ApiRole.canUpdateRateLimits)
-      val Some((c, _)) = user1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
-      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
-      val response310 = makePutRequest(request310, write(callLimitJson1))
-      Then("We should get a 200")
-      response310.code should equal(200)
-      response310.body.extract[CallLimitJson]
-    }
-    scenario("We will set calls limit per second for a Consumer", ApiEndpoint, VersionOfApi) {
+    // scenario("We will try to set calls limit per minute for a Consumer - unauthorized access", ApiEndpoint, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val Some((c, _)) = user1
+      // val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      // val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT
+      // val response310 = makePutRequest(request310, write(callLimitJson1))
+      // Then("We should get a 401")
+      // response310.code should equal(401)
+      // And("error should be " + AuthenticatedUserIsRequired)
+      // response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+    // }
+    // scenario("We will try to set calls limit per minute without a proper Role " + ApiRole.canUpdateRateLimits, ApiEndpoint, VersionOfApi) {
+      // When("We make a request v3.1.0 without a Role " + ApiRole.canUpdateRateLimits)
+      // val Some((c, _)) = user1
+      // val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      // val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
+      // val response310 = makePutRequest(request310, write(callLimitJson1))
+      // Then("We should get a 403")
+      // response310.code should equal(403)
+      // And("error should be " + UserHasMissingRoles + CanUpdateRateLimits)
+      // response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanUpdateRateLimits)
+    // }
+    // scenario("We will try to set calls limit per minute with a proper Role " + ApiRole.canUpdateRateLimits, ApiEndpoint, VersionOfApi) {
+      // When("We make a request v3.1.0 with a Role " + ApiRole.canUpdateRateLimits)
+      // val Some((c, _)) = user1
+      // val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+      // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
+      // val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
+      // val response310 = makePutRequest(request310, write(callLimitJson1))
+      // Then("We should get a 200")
+      // response310.code should equal(200)
+      // response310.body.extract[CallLimitJson]
+    // }
+    // scenario("We will set calls limit per second for a Consumer", ApiEndpoint, VersionOfApi) {
      
-      When("We make a request v3.1.0 with a Role " + ApiRole.canUpdateRateLimits)
-        val Some((c, _)) = user1
-        val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-        val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
-        val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
-        val response01 = setLimitAsAnotherConsumer(consumerId, callLimitSecondJson)
-        Then("We should get a 200")
-        response01.code should equal(200)
+      // When("We make a request v3.1.0 with a Role " + ApiRole.canUpdateRateLimits)
+        // val Some((c, _)) = user1
+        // val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+        // val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
+        // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
+        // val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
+        // val response01 = setLimitAsAnotherConsumer(consumerId, callLimitSecondJson)
+        // Then("We should get a 200")
+        // response01.code should equal(200)
 
-        When("We make the first call after update")
-        val secondStarted = System.nanoTime()
-        val response02 = makePutRequest(request310, write(callLimitSecondJson))
-        Then("We should get a 200")
-        response02.code should equal(200)
+        // When("We make the first call after update")
+        // val secondStarted = System.nanoTime()
+        // val response02 = makePutRequest(request310, write(callLimitSecondJson))
+        // Then("We should get a 200")
+        // response02.code should equal(200)
 
-        When("We make the second call after update")
-        // Redis rounds the counter's TTL to whole seconds, so the one-second window reads as expired about half a second
-        // after the first call: a slower run cannot tell whether the limit was applied.
-        assume((System.nanoTime() - secondStarted) / 1000000 < 400, "the first call took too long to test a per-second limit")
-        val response03 = makePutRequest(request310, write(callLimitSecondJson))
-        Then("We should get a 429, as the new limit applies at once")
-        response03.code should equal(429)
+        // When("We make the second call after update")
+        // // Redis rounds the counter's TTL to whole seconds, so the one-second window reads as expired about half a second
+        // // after the first call: a slower run cannot tell whether the limit was applied.
+        // assume((System.nanoTime() - secondStarted) / 1000000 < 400, "the first call took too long to test a per-second limit")
+        // val response03 = makePutRequest(request310, write(callLimitSecondJson))
+        // Then("We should get a 429, as the new limit applies at once")
+        // response03.code should equal(429)
 
-        // Revert to initial state
-        Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
-        removeRateLimits(consumerId)
-    }
-    // The same steps for each period longer than a second; the per-second scenario above also checks its timing.
-    List(
-      "minute" -> callLimitMinuteJson,
-      "hour" -> callLimitHourJson,
-      "day" -> callLimitDayJson,
-      "week" -> callLimitWeekJson,
-      "month" -> callLimitMonthJson
-    ).foreach { case (period, callLimitJson) =>
-      scenario(s"We will set calls limit per $period for a Consumer", ApiEndpoint, VersionOfApi) {
-        When("We make a request v3.1.0 with a Role " + ApiRole.canUpdateRateLimits)
-        val Some((c, _)) = user1
-        val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
-        val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
-        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
-        val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
-        val response01 = setLimitAsAnotherConsumer(consumerId, callLimitJson)
-        Then("We should get a 200")
-        response01.code should equal(200)
+        // // Revert to initial state
+        // Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
+        // removeRateLimits(consumerId)
+    // }
+    // // The same steps for each period longer than a second; the per-second scenario above also checks its timing.
+    // List(
+      // "minute" -> callLimitMinuteJson,
+      // "hour" -> callLimitHourJson,
+      // "day" -> callLimitDayJson,
+      // "week" -> callLimitWeekJson,
+      // "month" -> callLimitMonthJson
+    // ).foreach { case (period, callLimitJson) =>
+      // scenario(s"We will set calls limit per $period for a Consumer", ApiEndpoint, VersionOfApi) {
+        // When("We make a request v3.1.0 with a Role " + ApiRole.canUpdateRateLimits)
+        // val Some((c, _)) = user1
+        // val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
+        // val id: Long = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.id.get).getOrElse(0)
+        // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateRateLimits.toString)
+        // val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user1)
+        // val response01 = setLimitAsAnotherConsumer(consumerId, callLimitJson)
+        // Then("We should get a 200")
+        // response01.code should equal(200)
 
-        When("We make the first call after update")
-        val response02 = makePutRequest(request310, write(callLimitJson))
-        Then("We should get a 200")
-        response02.code should equal(200)
+        // When("We make the first call after update")
+        // val response02 = makePutRequest(request310, write(callLimitJson))
+        // Then("We should get a 200")
+        // response02.code should equal(200)
 
-        When("We make the second call after update")
-        val response03 = makePutRequest(request310, write(callLimitJson))
-        Then("We should get a 429, as the new limit applies at once")
-        response03.code should equal(429)
+        // When("We make the second call after update")
+        // val response03 = makePutRequest(request310, write(callLimitJson))
+        // Then("We should get a 429, as the new limit applies at once")
+        // response03.code should equal(429)
 
-        // Revert to initial state
-        Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
-        removeRateLimits(consumerId)
-      }
-    }
-  }
+        // // Revert to initial state
+        // Consumers.consumers.vend.updateConsumerCallLimits(id, Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"), Some("-1"))
+        // removeRateLimits(consumerId)
+      // }
+    // }
+  // }
 
   feature("Rate Limit - " + ApiEndpoint2 + " - " + VersionOfApi)
   {

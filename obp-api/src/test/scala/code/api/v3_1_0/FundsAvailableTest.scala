@@ -26,12 +26,12 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_1_0
 
 import org.json4s._
-import com.openbankproject.commons.model.ErrorMessage
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, CreateViewJson, ErrorMessage}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.canCheckFundsAvailable
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages._
-import code.api.v1_2_1.{CreateViewJsonV121, ViewJSONV121}
+import code.api.v1_2_1.CreateViewJsonV121
 import code.api.v3_1_0.Http4s310.Implementations3_1_0
 import code.setup.APIResponse
 import com.github.dwickern.macros.NameOf.nameOf
@@ -51,7 +51,17 @@ class FundsAvailableTest extends V310ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.checkFundsAvailable))
 
-  def getThirdPartyAppView(bankId: String, accountId: String) = postView(bankId, accountId, randomView(true, "")).body.extract[ViewJSONV121]
+  // The v1.2.1 create-view handler is commented out, so the view is created through the views
+  // provider, which is all that handler did once its permission checks passed.
+  def getThirdPartyAppView(bankId: String, accountId: String): String = {
+    val json = randomView(true, "")
+    code.views.Views.views.vend.createCustomView(
+      BankIdAccountId(BankId(bankId), AccountId(accountId)),
+      CreateViewJson(name = json.name, description = json.description, metadata_view = "",
+        is_public = json.is_public, which_alias_to_use = json.which_alias_to_use,
+        hide_metadata_if_alias_used = json.hide_metadata_if_alias_used, allowed_actions = json.allowed_actions)
+    ).openOrThrowException("expected the view to be created").viewId.value
+  }
   def randomView(isPublic: Boolean, alias: String) : CreateViewJsonV121 = {
     val viewFields = List("can_query_available_funds", "can_see_transaction_this_bank_account")
     CreateViewJsonV121(
@@ -96,7 +106,7 @@ class FundsAvailableTest extends V310ServerSetup {
       val bankAccount = randomPrivateAccount(bankId)
 
       When("We make a request v3.1.0 without all params")
-      val viewId = getThirdPartyAppView(bankId, bankAccount.id).id
+      val viewId = getThirdPartyAppView(bankId, bankAccount.id)
       grantUserAccessToView(bankId, bankAccount.id, resourceUser1.idGivenByProvider, viewId)
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / viewId / "funds-available").GET <@(user1)
       val response310 = makeGetRequest(request310)
@@ -123,7 +133,7 @@ class FundsAvailableTest extends V310ServerSetup {
       val bankAccount = randomPrivateAccount(bankId)
 
       When("We make a request v3.1.0 with a Role " + canCheckFundsAvailable + " and all params")
-      val viewId = getThirdPartyAppView(bankId, bankAccount.id).id
+      val viewId = getThirdPartyAppView(bankId, bankAccount.id)
       grantUserAccessToView(bankId, bankAccount.id, resourceUser1.idGivenByProvider, viewId)
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / viewId / "funds-available").GET <@(user1)
       val response310 = makeGetRequest(request310 <<? Map("currency" -> "EUR", "amount" -> "1"))

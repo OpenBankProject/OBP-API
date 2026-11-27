@@ -49,44 +49,45 @@ class TransactionRequestTest extends V310ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag("getTransactionRequests")
 
-  feature("Get Transaction Requests - v3.1.0")
-  {
-    scenario("We will Get Transaction Requests - user is NOT logged in", ApiEndpoint1, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val bankId = randomBankId
-      val bankAccount = randomPrivateAccount(bankId)
-      val view = bankAccount.views_available.map(_.id).headOption.getOrElse(Constant.SYSTEM_OWNER_VIEW_ID)
-      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transaction-requests").GET
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 401")
-      response310.code should equal(401)
-      And("error should be " + AuthenticatedUserIsRequired)
-      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
-    }
-    scenario("We will Get Transaction Requests - user is logged in", ApiEndpoint1, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val bankId = randomBankId
-      val bankAccount = randomPrivateAccount(bankId)
-      val view = bankAccount.views_available.map(_.id).headOption.getOrElse(Constant.SYSTEM_OWNER_VIEW_ID)
-      val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transaction-requests").GET <@(user1)
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 200")
-      response310.code should equal(200)
-      response310.body.extract[TransactionRequestWithChargeJSONs210]
-    }
-    scenario("We will try to Get Transaction Requests for someone else account - user is logged in", ApiEndpoint1, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val bankId = randomBankId
-      val account = createAccountRelevantResource(Some(resourceUser1), BankId(bankId), AccountId(APIUtil.generateUUID()), "EUR")
-      val request310 = (
-        v3_1_0_Request / "banks" / bankId / "accounts" / account.accountId.value 
-        / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-requests").GET <@(user2)
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 403")
-      response310.code should equal(403)
-      And("error should be " + UserNoPermissionAccessView)
-      response310.body.extract[ErrorMessage].message contains (UserNoPermissionAccessView) shouldBe (true)
-    }
-  }
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Get Transaction Requests - v3.1.0")
+  // {
+    // scenario("We will Get Transaction Requests - user is NOT logged in", ApiEndpoint1, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val bankId = randomBankId
+      // val bankAccount = randomPrivateAccount(bankId)
+      // val view = bankAccount.views_available.map(_.id).headOption.getOrElse(Constant.SYSTEM_OWNER_VIEW_ID)
+      // val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transaction-requests").GET
+      // val response310 = makeGetRequest(request310)
+      // Then("We should get a 401")
+      // response310.code should equal(401)
+      // And("error should be " + AuthenticatedUserIsRequired)
+      // response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+    // }
+    // scenario("We will Get Transaction Requests - user is logged in", ApiEndpoint1, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val bankId = randomBankId
+      // val bankAccount = randomPrivateAccount(bankId)
+      // val view = bankAccount.views_available.map(_.id).headOption.getOrElse(Constant.SYSTEM_OWNER_VIEW_ID)
+      // val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "transaction-requests").GET <@(user1)
+      // val response310 = makeGetRequest(request310)
+      // Then("We should get a 200")
+      // response310.code should equal(200)
+      // response310.body.extract[TransactionRequestWithChargeJSONs210]
+    // }
+    // scenario("We will try to Get Transaction Requests for someone else account - user is logged in", ApiEndpoint1, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val bankId = randomBankId
+      // val account = createAccountRelevantResource(Some(resourceUser1), BankId(bankId), AccountId(APIUtil.generateUUID()), "EUR")
+      // val request310 = (
+        // v3_1_0_Request / "banks" / bankId / "accounts" / account.accountId.value 
+        // / Constant.SYSTEM_OWNER_VIEW_ID / "transaction-requests").GET <@(user2)
+      // val response310 = makeGetRequest(request310)
+      // Then("We should get a 403")
+      // response310.code should equal(403)
+      // And("error should be " + UserNoPermissionAccessView)
+      // response310.body.extract[ErrorMessage].message contains (UserNoPermissionAccessView) shouldBe (true)
+    // }
+  // }
 
 }

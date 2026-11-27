@@ -72,7 +72,7 @@ class CardAttributeTest extends V310ServerSetup with DefaultUsers {
       And("We need to prepare the Customer Info")
 
       Then("We prepare the Customer data")
-      val requestForCreateCustomer = (v3_1_0_Request / "banks" / testBankId1.value / "customers").POST <@(user1)
+      val requestForCreateCustomer = (baseRequest / "obp" / "v5.1.0" / "banks" / testBankId1.value / "customers").POST <@(user1)
       val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
       Entitlement.entitlement.vend.addEntitlement(testBank.value, resourceUser1.userId, CanCreateCustomer.toString)
       val responseCustomer310 = makePostRequest(requestForCreateCustomer, write(postCustomerJson))
@@ -80,52 +80,11 @@ class CardAttributeTest extends V310ServerSetup with DefaultUsers {
       
       val properCardJson = dummyCard.copy(account_id = testAccount.value, issue_number = "123", customer_id = customerId)
 
-      val requestForCreateCard = (v3_1_0_Request / "management" /"banks" / testBank.value / "cards" ).POST <@ (user1)
-
-      Then(s"We grant the user ${ApiRole.canCreateCardsForBank} role, but with the wrong AccountId")
+      Then(s"We grant the user ${ApiRole.canCreateCardsForBank} role")
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canCreateCardsForBank.toString)
-      
- 
-      Then(s"We test the success case, prepare all stuff.")
-      val responseProper = makePostRequest(requestForCreateCard, write(properCardJson))
-      And("We should get 400 and get the error message: Not Found the BankAccount.")
-      responseProper.code should equal(201)
-      val cardJsonV31 = responseProper.body.extract[PhysicalCardJsonV310]
-      cardJsonV31.card_number should be (properCardJson.card_number)
-      cardJsonV31.card_type should be (properCardJson.card_type)
-      cardJsonV31.name_on_card should be (properCardJson.name_on_card)
-      cardJsonV31.issue_number should be (properCardJson.issue_number)
-      cardJsonV31.serial_number should be (properCardJson.serial_number )
-      cardJsonV31.valid_from_date should be (properCardJson.valid_from_date )
-      cardJsonV31.expires_date should be (properCardJson.expires_date )
-      cardJsonV31.enabled should be (properCardJson.enabled )
-      cardJsonV31.cancelled should be (false)
-      cardJsonV31.on_hot_list should be (false)
-      cardJsonV31.technology should be (properCardJson.technology )
-      cardJsonV31.networks should be (properCardJson.networks )
-      cardJsonV31.allows should be (properCardJson.allows )
-      cardJsonV31.account.id should be (properCardJson.account_id )
-      cardJsonV31.replacement should be {
-        properCardJson.replacement match {
-          case Some(x) => x
-          case None => null
-        }
-      }
-      cardJsonV31.pin_reset.toString() should be(properCardJson.pin_reset.toString())
-      cardJsonV31.collected should be {
-        properCardJson.collected match {
-          case Some(x) => x
-          case None => null
-        }
-      }
-      cardJsonV31.posted should be {
-        properCardJson.posted match {
-          case Some(x) => x
-          case None => null
-        }
-      }
-      
-      val cardId = cardJsonV31.card_id
+      // v3.1.0 addCardForBank is commented out, so the card is created through v5.1.0. Its fields
+      // are not checked here: this suite is about card attributes.
+      val cardId = createCardViaKeptVersion(testBank.value, properCardJson)
 
       Then(s"We call the create card attribute")
       val requestForCreateCardAttribute = (v3_1_0_Request / "management"/ "banks" / testBankId1.value / "cards" /cardId /"attribute").POST <@(user1)
