@@ -83,6 +83,7 @@ object Http4s220 {
 
     // ─── root ─────────────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val root: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` =>
@@ -109,6 +110,7 @@ object Http4s220 {
 
     // ─── getViewsForBankAccount ───────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getViewsForBankAccount: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" =>
@@ -162,6 +164,7 @@ object Http4s220 {
 
     // ─── createViewForBankAccount ─────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val createViewForBankAccount: Http4sRoute = Http4sRoute {
       // // VIEW_ACCOUNT_ID (non-standard name) bypasses middleware account-existence check so the
@@ -202,6 +205,7 @@ object Http4s220 {
       // List(apiTagAccount, apiTagView, apiTagOldStyle), None,
       // http4sPartialFunction = Some(createViewForBankAccount))
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
     // private def createViewImpl(user: User, account: BankAccount, body: String, cc: CallContext): Future[ViewJSONV220] = {
       // for {
@@ -237,6 +241,7 @@ object Http4s220 {
 
     // ─── updateViewForBankAccount ─────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val updateViewForBankAccount: Http4sRoute = Http4sRoute {
       // case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" / viewIdStr =>
@@ -261,6 +266,7 @@ object Http4s220 {
       // List(apiTagAccount, apiTagView, apiTagOldStyle), None,
       // http4sPartialFunction = Some(updateViewForBankAccount))
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
     // private def updateViewImpl(user: User, account: BankAccount, viewId: ViewId, body: String, cc: CallContext): Future[ViewJSONV220] = {
       // for {
@@ -365,6 +371,7 @@ object Http4s220 {
 
     // ─── getExplicitCounterpartiesForAccount ──────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getExplicitCounterpartiesForAccount: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" =>
@@ -405,6 +412,7 @@ object Http4s220 {
 
     // ─── getExplicitCounterpartyById ──────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getExplicitCounterpartyById: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" / _ =>
@@ -470,6 +478,7 @@ object Http4s220 {
 
     // ─── createBank ───────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val createBank: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "banks" =>
@@ -536,6 +545,7 @@ object Http4s220 {
 
     // ─── createBranch ─────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val createBranch: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "banks" / _ / "branches" =>
@@ -571,6 +581,7 @@ object Http4s220 {
 
     // ─── createAtm ────────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val createAtm: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "banks" / _ / "atms" =>
@@ -705,6 +716,7 @@ object Http4s220 {
 
     // ─── createAccount ────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val createAccount: Http4sRoute = Http4sRoute {
       // case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr =>
@@ -776,6 +788,7 @@ object Http4s220 {
 
     // ─── config ───────────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val config: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "config" =>
@@ -857,6 +870,7 @@ object Http4s220 {
 
     // ─── createConsumer ───────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val createConsumer: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "management" / "consumers" =>
@@ -925,6 +939,7 @@ object Http4s220 {
 
     // ─── createCounterparty ───────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val createCounterparty: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" =>
@@ -1021,6 +1036,7 @@ object Http4s220 {
       // List(apiTagCounterparty, apiTagAccount), None,
       // http4sPartialFunction = Some(createCounterparty))
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
     // private def createCounterpartyImpl(
       // user: User, account: BankAccount, view: View, body: String, cc: CallContext

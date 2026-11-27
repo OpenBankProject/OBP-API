@@ -1075,6 +1075,7 @@ object JSONFactory300{
       has_deposit_capability = atm.hasDepositCapability.map(_.toString).getOrElse("")
     )
   }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def createAtmsJsonV300(atmList: List[AtmT]): AtmsJsonV300 = {
     // AtmsJsonV300(atmList.map(createAtmJsonV300))
@@ -1094,6 +1095,7 @@ object JSONFactory300{
     )
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def transformToAtmFromV300(atmJsonV300: AtmJsonV300): Box[Atm] = {
     // val address : Address = transformToAddressFromV300(atmJsonV300.address) // Note the address in V220 is V140

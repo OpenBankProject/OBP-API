@@ -145,6 +145,7 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
   }
   
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"Create Customer $VersionOfApi - Unauthorized access") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
@@ -158,6 +159,7 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"Create Customer $VersionOfApi - Authorized access") {
     // scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {

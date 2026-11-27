@@ -49,6 +49,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
   val mockAccountId2 = "NEW_MOCKED_ACCOUNT_ID_02"
   
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Assuring that Get all accounts at all banks works as expected - v2.2.0") {
 
@@ -227,6 +228,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only commented-out scenarios used this helper. See docs/OLD_VERSION_ONLY_CODE.md.
   // private def createAccountBodyFor(userId: String) =
   //   CreateAccountJSONV220(
@@ -237,6 +239,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
   //     branch_id = "1234",
   //     account_routing = AccountRoutingJsonV121(scheme = "OBP", address = "UK123456"))
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Create Account refuses an ACCOUNT_ID that already exists - v2.2.0") {
 
@@ -260,6 +263,7 @@ class AccountTest extends V220ServerSetup with DefaultUsers {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Create Account refuses a consent user as the account holder - v2.2.0") {
 

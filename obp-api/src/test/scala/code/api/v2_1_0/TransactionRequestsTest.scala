@@ -63,9 +63,11 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     })
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def defaultSetup(transactionRequestTypeInput : String= SANDBOX_TAN.toString) = new DefaultSetup(transactionRequestTypeInput)
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // class DefaultSetup(transactionRequestTypeInput : String= SANDBOX_TAN.toString) {
 
@@ -317,6 +319,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
       // }
     // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Security Tests: permissions, roles, views...") {
 
@@ -411,6 +414,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("we can create transaction requests -- SANDBOX_TAN") {
 
@@ -581,6 +585,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("we can create transaction requests -- FREE_FORM") {
 
@@ -751,6 +756,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("we can create transaction requests -- SEPA") {
 
@@ -921,6 +927,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Answer Transaction Request Challenge -- SEPA: account and maker-checker checks") {
 
@@ -979,6 +986,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("we can create transaction requests -- COUNTERPARTY") {
 

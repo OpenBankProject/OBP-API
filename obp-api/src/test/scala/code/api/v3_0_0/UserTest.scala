@@ -61,6 +61,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
   object ApiEndpoint4 extends Tag("getUserByUsername")
 
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Assuring that endpoint Get all Users works as expected - v3.0.0") 
   // {
@@ -103,6 +104,7 @@ class UserTest extends V300ServerSetup with DefaultUsers {
   // }
   
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Assuring that Get users by email and Get user by USER_ID works as expected - v3.0.0") 
   // {

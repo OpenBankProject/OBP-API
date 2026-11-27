@@ -69,6 +69,7 @@ object Http4s140 {
 
     // ─── root ─────────────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val root: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` =>
@@ -202,6 +203,7 @@ object Http4s140 {
 
     private val getBranchesIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getBranchesIsPublic", true)
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getBranches: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "branches" =>
@@ -247,6 +249,7 @@ object Http4s140 {
 
     private val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getAtms: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "atms" =>
@@ -289,6 +292,7 @@ object Http4s140 {
 
     private val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getProducts: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "products" =>

@@ -56,6 +56,7 @@ class CardTest extends V310ServerSetup with DefaultUsers {
   object ApiEndpointDeleteCardForBank extends Tag(nameOf(Implementations3_1_0.deleteCardForBank))
   
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("test Card APIs") {
     // scenario("We will create Card with many error cases", 

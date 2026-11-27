@@ -463,6 +463,7 @@ class AccountTest extends V400ServerSetup {
     }
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test ${ApiEndpoint3.name}") {
     // scenario("We will test ${ApiEndpoint3.name}", ApiEndpoint3, VersionOfApi) {

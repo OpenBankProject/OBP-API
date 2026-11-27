@@ -210,6 +210,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
   }
 
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Create Account v3.1.0 - Unauthorized access") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
@@ -222,6 +223,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       // response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     // }
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Create Account v3.1.0 - Authorized access") {
     // scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
@@ -385,6 +387,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
   // }
   
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test ${ApiEndpoint3.name}") {
     // scenario("We will test ${ApiEndpoint3.name}", ApiEndpoint3, VersionOfApi) {

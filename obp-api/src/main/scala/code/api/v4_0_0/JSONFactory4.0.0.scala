@@ -1902,11 +1902,13 @@ object JSONFactory400 {
     )
   }
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def createAtmsJsonV400(atmList: List[AtmT]): AtmsJsonV400 = {
       // AtmsJsonV400(atmList.map(createAtmJsonV400))
   // }
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def transformToAtmFromV400(atmJsonV400: AtmJsonV400): Atm = {
     // val address : Address = transformToAddressFromV300(atmJsonV400.address) // Note the address in V220 is V140

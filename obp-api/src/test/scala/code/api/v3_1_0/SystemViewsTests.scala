@@ -75,26 +75,31 @@ class SystemViewsTests extends V310ServerSetup {
   val randomSystemViewId = "a"+APIUtil.generateUUID()
   val postBodySystemViewJson = createSystemViewJsonV300.copy(name=randomSystemViewId).copy(metadata_view = randomSystemViewId).toCreateViewJson
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     // val request = v3_1_0_Request / "system-views" / viewId <@(consumerAndToken)
     // makeGetRequest(request)
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def postSystemView(view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     // val request = (v3_1_0_Request / "system-views").POST <@(consumerAndToken)
     // makePostRequest(request, write(view))
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def putSystemView(viewId : String, view: UpdateViewJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     // val request = (v3_1_0_Request / "system-views" / viewId).PUT <@(consumerAndToken)
     // makePutRequest(request, write(view))
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def deleteSystemView(viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     // val request = (v3_1_0_Request / "system-views" / viewId).DELETE <@(consumerAndToken)
     // makeDeleteRequest(request)
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def createSystemView(viewId: String): Boolean = {
     // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemView.toString)
@@ -106,6 +111,7 @@ class SystemViewsTests extends V310ServerSetup {
   
   
   /************************ the tests ************************/
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("/root"){
     // scenario("The root of the API") {
@@ -120,6 +126,7 @@ class SystemViewsTests extends V310ServerSetup {
 
   
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
@@ -130,6 +137,7 @@ class SystemViewsTests extends V310ServerSetup {
       // response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     // }
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
@@ -140,6 +148,7 @@ class SystemViewsTests extends V310ServerSetup {
       // response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanCreateSystemView)
     // }
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access with proper Role") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
@@ -153,6 +162,7 @@ class SystemViewsTests extends V310ServerSetup {
   // }
   
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
@@ -163,6 +173,7 @@ class SystemViewsTests extends V310ServerSetup {
       // response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     // }
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
@@ -173,6 +184,7 @@ class SystemViewsTests extends V310ServerSetup {
       // response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetSystemView)
     // }
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with proper Role") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
@@ -188,6 +200,7 @@ class SystemViewsTests extends V310ServerSetup {
   // }
 
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
@@ -198,6 +211,7 @@ class SystemViewsTests extends V310ServerSetup {
       // response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     // }
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
@@ -208,6 +222,7 @@ class SystemViewsTests extends V310ServerSetup {
       // response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetSystemView)
     // }
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access with proper Role") {
     // scenario("we will update a view on a bank account", ApiEndpoint3, VersionOfApi) {
@@ -258,6 +273,7 @@ class SystemViewsTests extends V310ServerSetup {
   // }
 
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint4 version $VersionOfApi - Unauthorized access") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
@@ -268,6 +284,7 @@ class SystemViewsTests extends V310ServerSetup {
       // response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     // }
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
@@ -278,6 +295,7 @@ class SystemViewsTests extends V310ServerSetup {
       // response400.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanDeleteSystemView)
     // }
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access with proper Role") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
@@ -290,6 +308,7 @@ class SystemViewsTests extends V310ServerSetup {
       // response400.code should equal(200)
     // }
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access with proper Role in order to delete owner view") {
     // scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {

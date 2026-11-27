@@ -71,12 +71,15 @@ class ProductAttributeTest extends V310ServerSetup {
   lazy val postProductAttributeJson = productAttributeJson
   lazy val putProductAttributeJson = productAttributeJson.copy(name = "updated product")
   lazy val createProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attribute")
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // lazy val getProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // lazy val updateProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
   lazy val deleteProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Create/Get, Update/Get and Delete/Get Product Attribute v3.1.0") {
     // scenario("We will call the endpoints with a proper roles", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
@@ -135,6 +138,7 @@ class ProductAttributeTest extends V310ServerSetup {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Create Product Attribute v3.1.0") {
     // scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
@@ -170,6 +174,7 @@ class ProductAttributeTest extends V310ServerSetup {
     // }
   // }
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Get Product Attribute v3.1.0") {
     // scenario("We will call the endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
@@ -223,6 +228,7 @@ class ProductAttributeTest extends V310ServerSetup {
     // }
   // }
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Update Product Attribute v3.1.0") {
     // scenario("We will call the endpoint without a user credentials", ApiEndpoint3, VersionOfApi) {

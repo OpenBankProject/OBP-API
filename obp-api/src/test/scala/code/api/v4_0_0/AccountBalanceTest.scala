@@ -56,6 +56,7 @@ class AccountBalanceTest extends V400ServerSetup {
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint1 and $ApiEndpoint2 version $VersionOfApi - Authorized access") {
     // scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
@@ -84,6 +85,7 @@ class AccountBalanceTest extends V400ServerSetup {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only commented-out scenarios used this helper. See docs/OLD_VERSION_ONLY_CODE.md.
   // // Creates a custom view on an account with the given permissions and gives user2 access to it
   // private def grantCustomViewToUser2(bankId: String, accountId: String, viewName: String, allowedActions: List[String]): View = {
@@ -104,6 +106,7 @@ class AccountBalanceTest extends V400ServerSetup {
   //   view
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint1 and $ApiEndpoint2 version $VersionOfApi - balances follow the user's view permissions") {
     // scenario("A custom view without the balance permission does not show the balance, even when the same view id allows it on another account",

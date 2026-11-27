@@ -75,7 +75,7 @@ None of these removes a capability, because each one is shadowed by a newer hand
 
 ## How it was commented out
 
-There is one commit per version, newest first, so each commit removes the users of a helper before the helper itself. Each commit comments out the O handlers, their ResourceDoc blocks, their `routesInOrder` entries and the helpers in the same `Http4sNNN.scala` that only they use. Every commented block starts with a line saying why. Test tags that named an O handler with `nameOf` now use the same name as a string, so they still compile. Each commit was compiled, with its tests, before the next one. The JSONFactory helpers and `NewStyle.function.ownEntitlement` follow in one commit of their own, and the tests that only exercised O endpoints in another.
+There is one commit per version, newest first, so each commit removes the users of a helper before the helper itself. Each commit comments out the O handlers, their ResourceDoc blocks, their `routesInOrder` entries and the helpers in the same `Http4sNNN.scala` that only they use. Every commented block starts with the tag `THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0`, followed by a line saying why, so a search for the tag finds every block. Test tags that named an O handler with `nameOf` now use the same name as a string, so they still compile. Each commit was compiled, with its tests, before the next one. The JSONFactory helpers and `NewStyle.function.ownEntitlement` follow in one commit of their own, and the tests that only exercised O endpoints in another.
 
 1. v5.0.0 (2 docs)
 2. v4.0.0 (18 docs)

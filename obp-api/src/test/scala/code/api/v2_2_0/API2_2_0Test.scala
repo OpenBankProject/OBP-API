@@ -78,6 +78,7 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
     bank.id
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def randomPrivateAccount(bankId : String) : code.api.v1_2.AccountJSON = {
     // val accountsJson = getPrivateAccounts(bankId, user1).body.extract[code.api.v1_2.AccountsJSON].accounts
@@ -85,6 +86,7 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
     // accountsJson(randomPosition)
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def randomViewsIdsToGrant(bankId : String, accountId : String) : List[String]= {
     // //get the view ids of the available views on the bank accounts
@@ -102,6 +104,7 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
   }
 
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getBanksInfo : APIResponse  = {
     // val request = v2_2Request / "banks"
@@ -113,24 +116,28 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
     makeGetRequest(request)
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getPrivateAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     // val request = v1_2_1Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken)
     // makeGetRequest(request)
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     // val request = v2_2Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
     // makeGetRequest(request)
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def postView(bankId: String, accountId: String, view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     // val request = (v2_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
     // makePostRequest(request, write(view))
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def putView(bankId: String, accountId: String, viewId : String, view: UpdateViewJsonV121, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     // val request = (v2_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
@@ -140,6 +147,7 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
 
 
 /************************ the tests ************************/
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("base line URL works"){
     // scenario("we get the api information", API2_2, APIInfo) {
@@ -184,6 +192,7 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
   }
 
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"$ApiEndpoint1 -Get Views for Account. - v2.2.0"){
     // scenario("We will get the list of the available views on a bank account", API2_2, ApiEndpoint1) {
@@ -221,6 +230,7 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
       // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     // }
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"$ApiEndpoint2 -Create a view on a bank account - v2.2.0"){
     // scenario("we will create a view on a bank account", API2_2, ApiEndpoint2) {
@@ -317,6 +327,7 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
       // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     // }
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"$ApiEndpoint3 -Update a view on a bank account - v2.2.0") {
 

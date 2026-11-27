@@ -51,6 +51,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
 
   feature("Assuring that endpoint getEntitlements works as expected - v2.0.0") {
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("We try to get entitlements without login - getEntitlements") {
       // When("We make the request")
@@ -63,6 +64,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
 
     // }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("We try to get entitlements without roles - getEntitlements") {
       // When("We make the request")
@@ -74,6 +76,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       // responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
     // }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("We try to get entitlements with roles - getEntitlements") {
       // When("We add required entitlement")

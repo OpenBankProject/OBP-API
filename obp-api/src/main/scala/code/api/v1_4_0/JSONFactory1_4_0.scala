@@ -287,6 +287,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
       createMetaJson(atm.meta))
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def createAtmsJson(AtmsList: List[AtmT]) : AtmsJson = {
     // AtmsJson(AtmsList.map(createAtmJson))

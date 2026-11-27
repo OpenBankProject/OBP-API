@@ -514,6 +514,7 @@ object JSONFactory210{
       created=c.createdAt.get
     )
   }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def createConsumerJSONs(l : List[Consumer]): ConsumersJson = {
     // ConsumersJson(l.map(createConsumerJSON))

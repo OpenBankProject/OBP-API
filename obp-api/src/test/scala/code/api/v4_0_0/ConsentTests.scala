@@ -62,6 +62,7 @@ class ConsentTests extends V400ServerSetup with DefaultUsers {
   object ApiEndpoint1 extends Tag("getConsents")
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.updateConsentStatus))
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Assuring that endpoint createBank works as expected - v4.0.0") {
 

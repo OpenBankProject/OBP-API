@@ -306,6 +306,7 @@ object Http4s400 {
     // ─── getBanks ─────────────────────────────────────────────────────────────
     // v4.0.0 overrides v3.x getBanks — v4 uses createBanksJson which adds attributes.
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val getBanks: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" =>
@@ -340,6 +341,7 @@ object Http4s400 {
     // ─── getBank ──────────────────────────────────────────────────────────────
     // v4.0.0 overrides v3.x getBank — v4 includes bank attributes.
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val getBank: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ =>
@@ -473,6 +475,7 @@ object Http4s400 {
     // Must live in Http4s400's own routes so the bridge cascade can't hijack POST /banks
     // down to Http4s220 (which has its own v2.2.0 createBank — different behavior).
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val createBank: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "banks" =>
@@ -568,6 +571,7 @@ object Http4s400 {
 
     // ─── root (GET) — v4 override of v3.1.0's /root ──────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val root: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` =>
@@ -605,6 +609,7 @@ object Http4s400 {
 
     // ─── getAtms (GET) — v4 override; conditional auth via getAtmsIsPublic ───
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val getAtms: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "atms" =>
@@ -667,6 +672,7 @@ object Http4s400 {
 
     // ─── getAtm (GET) — v4 override; conditional auth ────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val getAtm: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "atms" / atmIdStr =>
@@ -704,6 +710,7 @@ object Http4s400 {
 
     // ─── getProducts (GET) — v4 override; conditional auth ───────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val getProducts: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" =>
@@ -759,6 +766,7 @@ object Http4s400 {
 
     // ─── getProduct (GET) — v4 override; loads attributes + fees ─────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val getProduct: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
@@ -814,6 +822,7 @@ object Http4s400 {
 
     // ─── createAtm (POST → 201) — v4 override ─────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val createAtm: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "banks" / _ / "atms" =>
@@ -860,6 +869,7 @@ object Http4s400 {
 
     // ─── createProduct (PUT → 201) — v4 override ──────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val createProduct: Http4sRoute = Http4sRoute {
       // case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "products" / productCodeStr =>
@@ -1224,6 +1234,7 @@ object Http4s400 {
 
     // ─── getCustomersByAttributes (GET /banks/BANK_ID/customers) — v4 override
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val getCustomersByAttributes: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "customers" =>
@@ -1270,6 +1281,7 @@ object Http4s400 {
 
     // ─── createCustomer (POST /banks/BANK_ID/customers → 201) — v4 override ──
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val createCustomer: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "banks" / _ / "customers" =>
@@ -1329,6 +1341,7 @@ object Http4s400 {
 
     // ─── getBankAccountsBalancesForCurrentUser (GET /banks/BANK_ID/balances) — v4
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val getBankAccountsBalancesForCurrentUser: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "balances" =>
@@ -2757,6 +2770,7 @@ object Http4s400 {
 
     // ─── getConsents (GET /banks/BANK_ID/my/consents) — v4 override of Http4s310 ─
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val getConsents: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "my" / "consents" =>
@@ -4261,6 +4275,7 @@ object Http4s400 {
         }
     }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val getBankAccountBalancesForCurrentUser: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "balances" =>
@@ -4556,6 +4571,7 @@ object Http4s400 {
         http4sPartialFunction = Some(getBalancingTransaction)
       )
 
+      // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
       // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
       // staticResourceDocs += ResourceDoc(
         // implementedInApiVersion, nameOf(getBankAccountBalancesForCurrentUser), "GET",
@@ -6352,6 +6368,7 @@ object Http4s400 {
         }
     }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val updateAtm: Http4sRoute = Http4sRoute {
       // case req @ PUT -> `prefixPath` / "banks" / _ / "atms" / atmIdStr =>
@@ -6479,6 +6496,7 @@ object Http4s400 {
         http4sPartialFunction = Some(updateAtmLocationCategories)
       )
 
+      // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
       // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
       // staticResourceDocs += ResourceDoc(
         // implementedInApiVersion,
@@ -7775,6 +7793,7 @@ object Http4s400 {
         }
     }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val deleteAtm: Http4sRoute = Http4sRoute {
       // case req @ DELETE -> `prefixPath` / "banks" / _ / "atms" / atmIdStr =>
@@ -8195,6 +8214,7 @@ object Http4s400 {
         http4sPartialFunction = Some(deleteBankAttribute)
       )
 
+      // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
       // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
       // staticResourceDocs += ResourceDoc(
         // implementedInApiVersion, nameOf(deleteAtm), "DELETE",
@@ -10761,6 +10781,7 @@ object Http4s400 {
 
     // ─── createConsumer ──────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // lazy val createConsumer: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "management" / "consumers" =>
@@ -11121,6 +11142,7 @@ object Http4s400 {
         http4sPartialFunction = Some(createSettlementAccount)
       )
 
+      // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
       // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
       // staticResourceDocs += ResourceDoc(
         // implementedInApiVersion, "createConsumer", "POST",

@@ -117,6 +117,7 @@ object Http4s121 {
       new AccountsJSON(accJson)
     }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
     // private def publicBankAccountsListToJson(bankAccounts: List[BankAccount], publicViews: List[View]) = {
       // val accJson = bankAccounts.map { account =>
@@ -150,6 +151,7 @@ object Http4s121 {
 
     // ─── root ───────────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val root: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "root" =>
@@ -178,6 +180,7 @@ object Http4s121 {
 
     // ─── getBanks ────────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getBanks: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" =>
@@ -215,6 +218,7 @@ object Http4s121 {
 
     // bankById runs outside ResourceDocMiddleware so it can return 400 (not 464) for unknown bank,
     // preserving the v1.2.1 Lift behavior.  Builds its own CallContext via Http4sCallContextBuilder.
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val bankById: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / bankId =>
@@ -249,6 +253,7 @@ object Http4s121 {
 
     // ─── getPrivateAccountsAllBanks ──────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getPrivateAccountsAllBanks: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "accounts" =>
@@ -311,6 +316,7 @@ object Http4s121 {
 
     // ─── publicAccountsAllBanks ──────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val publicAccountsAllBanks: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "accounts" / "public" =>
@@ -344,6 +350,7 @@ object Http4s121 {
 
     // ─── getPrivateAccountsAtOneBank ─────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getPrivateAccountsAtOneBank: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" =>
@@ -376,6 +383,7 @@ object Http4s121 {
 
     // ─── privateAccountsAtOneBank ────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val privateAccountsAtOneBank: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / "private" =>
@@ -408,6 +416,7 @@ object Http4s121 {
 
     // ─── publicAccountsAtOneBank ─────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val publicAccountsAtOneBank: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / "public" =>
@@ -438,6 +447,7 @@ object Http4s121 {
 
     // ─── accountById ─────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val accountById: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "account" =>
@@ -485,6 +495,7 @@ object Http4s121 {
 
     // ─── updateAccountLabel ──────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val updateAccountLabel: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId =>
@@ -532,6 +543,7 @@ object Http4s121 {
 
     // ─── getViewsForBankAccount ───────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getViewsForBankAccount: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" =>
@@ -589,6 +601,7 @@ object Http4s121 {
 
     // ─── createViewForBankAccount ─────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val createViewForBankAccount: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" =>
@@ -655,6 +668,7 @@ object Http4s121 {
 
     // ─── updateViewForBankAccount ─────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val updateViewForBankAccount: Http4sRoute = Http4sRoute {
       // case req @ PUT -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId =>
@@ -758,6 +772,7 @@ object Http4s121 {
 
     // ─── getPermissionsForBankAccount ─────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getPermissionsForBankAccount: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "permissions" =>
@@ -792,6 +807,7 @@ object Http4s121 {
 
     // ─── getPermissionForUserForBankAccount ───────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getPermissionForUserForBankAccount: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "permissions" / provider / providerId =>
@@ -991,6 +1007,7 @@ object Http4s121 {
 
     // ─── getOtherAccountsForBankAccount ──────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getOtherAccountsForBankAccount: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" =>
@@ -1019,6 +1036,7 @@ object Http4s121 {
 
     // ─── getOtherAccountByIdForBankAccount ───────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getOtherAccountByIdForBankAccount: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId =>
@@ -1858,6 +1876,7 @@ object Http4s121 {
 
     // ─── getTransactionsForBankAccount ───────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getTransactionsForBankAccount: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / viewId / "transactions" =>
@@ -1895,6 +1914,7 @@ object Http4s121 {
 
     // ─── getTransactionByIdForBankAccount ─────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getTransactionByIdForBankAccount: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "transaction" =>

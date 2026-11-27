@@ -107,6 +107,7 @@ object Http4s210 {
 
     // ─── root ─────────────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val root: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` =>
@@ -211,12 +212,14 @@ object Http4s210 {
     // checkAuthorisationToCreateTransactionRequest handles that internally and
     // supports canCreateAnyTransactionRequest role bypass.
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
     // // The 4 transaction request types this version knows how to handle. v4.0.0 adds more
     // // (ACCOUNT, ACCOUNT_OTP, REFUND, SIMPLE, AGENT_CASH_WITHDRAWAL, CARD); the route guard
     // private val v210SupportedTransactionRequestTypes: Set[String] =
       // Set("SANDBOX_TAN", "COUNTERPARTY", "SEPA", "FREE_FORM")
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val createTransactionRequest: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" =>
@@ -237,12 +240,14 @@ object Http4s210 {
         // }
     // }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
     // val commonTxReqErrors = List(AuthenticatedUserIsRequired, InvalidBankIdFormat, InvalidAccountIdFormat,
       // InvalidJsonFormat, BankNotFound, AccountNotFound, InsufficientAuthorisationToCreateTransactionRequest,
       // InvalidTransactionRequestType, InvalidNumber, NotPositiveAmount, InvalidTransactionRequestCurrency,
       // PaymentChallengeHasNoOnBehalfOfUser, TransactionDisabled, UnknownError)
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // resourceDocs += ResourceDoc(
       // implementedInApiVersion, nameOf(createTransactionRequest) + "SandboxTan", "POST",
@@ -299,6 +304,7 @@ object Http4s210 {
     // 400. The four specific docs above cover what v2.1.0 actually supports; v4-only
     // types miss the route guard and fall through to the version below.)
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
     // private def createTransactionRequestImpl(
       // jsonBody: String,
@@ -432,6 +438,7 @@ object Http4s210 {
 
     // ─── answerTransactionRequestChallenge ────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val answerTransactionRequestChallenge: Http4sRoute = Http4sRoute {
       // // Same guard as createTransactionRequest: v4 trans-req types (ACCOUNT, ACCOUNT_OTP,
@@ -459,6 +466,7 @@ object Http4s210 {
         // }
     // }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
     // // Register one ResourceDoc per supported type rather than a single
     // // TRANSACTION_REQUEST_TYPE wildcard. The route serves every type, including the
@@ -471,11 +479,14 @@ object Http4s210 {
       // TransactionRequestTypeHasChanged, InvalidTransactionRequestChallengeId,
       // AllowedAttemptsUsedUp, ChallengeNotAddressedToCaller, TransactionDisabled, UnknownError)
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
     // private val answerChallengeTags = List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2)
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // v210SupportedTransactionRequestTypes.foreach { trType =>
+      // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
       // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
       // resourceDocs += ResourceDoc(
         // implementedInApiVersion, nameOf(answerTransactionRequestChallenge) + trType.toLowerCase.capitalize, "POST",
@@ -515,6 +526,7 @@ object Http4s210 {
         // http4sPartialFunction = Some(answerTransactionRequestChallenge))
     // }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
     // private def answerChallengeImpl(
       // jsonBody: String,
@@ -586,6 +598,7 @@ object Http4s210 {
 
     // ─── getTransactionRequests ───────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getTransactionRequests: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-requests" =>
@@ -702,6 +715,7 @@ object Http4s210 {
 
     // ─── getConsumer ──────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getConsumer: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId =>
@@ -731,6 +745,7 @@ object Http4s210 {
 
     // ─── getConsumers ─────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getConsumers: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "management" / "consumers" =>
@@ -759,6 +774,7 @@ object Http4s210 {
 
     // ─── enableDisableConsumers ───────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val enableDisableConsumers: Http4sRoute = Http4sRoute {
       // case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId =>
@@ -870,6 +886,7 @@ object Http4s210 {
 
     // ─── getUsers ─────────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getUsers: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "users" =>
@@ -960,6 +977,7 @@ object Http4s210 {
 
     private val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getAtm: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "atms" / atmIdStr =>
@@ -997,6 +1015,7 @@ object Http4s210 {
 
     private val getBranchesIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getBranchesIsPublic", true)
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getBranch: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "branches" / branchIdStr =>
@@ -1036,6 +1055,7 @@ object Http4s210 {
 
     private val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getProduct: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "products" / productCodeStr =>
@@ -1072,6 +1092,7 @@ object Http4s210 {
 
     // ─── getProducts ──────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getProducts: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "products" =>
@@ -1109,6 +1130,7 @@ object Http4s210 {
 
     // ─── createCustomer ───────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val createCustomer: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "banks" / _ / "customers" =>
@@ -1182,6 +1204,7 @@ object Http4s210 {
 
     // ─── getCustomersForUser ──────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getCustomersForUser: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "users" / "current" / "customers" =>
@@ -1207,6 +1230,7 @@ object Http4s210 {
 
     // ─── getCustomersForCurrentUserAtBank ──────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getCustomersForCurrentUserAtBank: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "banks" / _ / "customers" =>
@@ -1243,6 +1267,7 @@ object Http4s210 {
 
     // ─── updateBranch ─────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val updateBranch: Http4sRoute = Http4sRoute {
       // case req @ PUT -> `prefixPath` / "banks" / _ / "branches" / branchIdStr =>
@@ -1277,6 +1302,7 @@ object Http4s210 {
 
     // ─── createBranch ─────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val createBranch: Http4sRoute = Http4sRoute {
       // case req @ POST -> `prefixPath` / "banks" / _ / "branches" =>
@@ -1314,6 +1340,7 @@ object Http4s210 {
 
     // ─── updateConsumerRedirectUrl ────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val updateConsumerRedirectUrl: Http4sRoute = Http4sRoute {
       // case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "redirect_url" =>
@@ -1356,6 +1383,7 @@ object Http4s210 {
 
     // ─── getMetrics ───────────────────────────────────────────────────────────
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
     // val getMetrics: Http4sRoute = Http4sRoute {
       // case req @ GET -> `prefixPath` / "management" / "metrics" =>

@@ -59,6 +59,7 @@ class UserAuthContextTest extends V310ServerSetup {
   val postUserAuthContextJson2 = SwaggerDefinitionsJSON.postUserAuthContextJson.copy(key="TOKEN")
 
   feature("Add/Get/Delete User Auth Context v3.1.0") {
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       // When("We make a request v3.1.0")
@@ -69,6 +70,7 @@ class UserAuthContextTest extends V310ServerSetup {
       // And("error should be " + AuthenticatedUserIsRequired)
       // response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     // }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       // When("We make a request v3.1.0")
@@ -80,6 +82,7 @@ class UserAuthContextTest extends V310ServerSetup {
       // response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanCreateUserAuthContext)
     // }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("We will call the Get endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
       // When("We make a request v3.1.0")
@@ -90,6 +93,7 @@ class UserAuthContextTest extends V310ServerSetup {
       // And("error should be " + AuthenticatedUserIsRequired)
       // response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     // }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("We will call the Get endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
       // When("We make a request v3.1.0")
@@ -139,6 +143,7 @@ class UserAuthContextTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanDeleteUserAuthContext)
     }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("We will call the Add, Get and Delete endpoints with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       // When("We try to create the UserAuthContext v3.1.0")

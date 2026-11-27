@@ -259,6 +259,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     bank.id
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def randomPublicAccount(bankId : String) : AccountJSON = {
     // val accountsJson = getPublicAccounts(bankId).body.extract[AccountsJSON].accounts
@@ -328,12 +329,14 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     )
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getAPIInfo : APIResponse = {
     // val request = v1_2_1Request / "root"
     // makeGetRequest(request)
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getBanksInfo : APIResponse  = {
     // val request = v1_2_1Request / "banks"
@@ -345,24 +348,28 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     makeGetRequest(request)
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getPublicAccounts(bankId : String) : APIResponse= {
     // val request = v1_2_1Request / "banks" / bankId / "accounts" / "public"
     // makeGetRequest(request)
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getPrivateAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     // val request = v1_2_1Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken)
     // makeGetRequest(request)
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getBankAccountsForAllBanks(consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     // val request = v1_2_1Request / "accounts" <@(consumerAndToken)
     // makeGetRequest(request)
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getPublicAccountsForAllBanks() : APIResponse= {
     // val request = v1_2_1Request / "accounts" / "public"
@@ -374,18 +381,21 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     makeGetRequest(request)
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getBankAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     // val request = v1_2_1Request / "banks" / bankId / "accounts" <@(consumerAndToken)
     // makeGetRequest(request)
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getPublicBankAccountDetails(bankId : String, accountId : String, viewId : String) : APIResponse = {
     // val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "account"
     // makeGetRequest(request)
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // //get one bank account
   // def getPrivateBankAccountDetails(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
@@ -393,18 +403,21 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // makeGetRequest(request)
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     // val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
     // makeGetRequest(request)
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def postView(bankId: String, accountId: String, view: CreateViewJsonV121, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     // val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
     // makePostRequest(request, write(view))
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def putView(bankId: String, accountId: String, viewId : String, view: UpdateViewJsonV121, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     // val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
@@ -416,12 +429,14 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     makeDeleteRequest(request)
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getAccountPermissions(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     // val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions" <@(consumerAndToken)
     // makeGetRequest(request)
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getUserAccountPermission(bankId : String, accountId : String, providerId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     // val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / "permissions" / defaultProvider / providerId <@(consumerAndToken)
@@ -449,12 +464,14 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     makeDeleteRequest(request)
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getTheCounterparties(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     // val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" <@(consumerAndToken)
     // makeGetRequest(request)
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getTheCounterparty(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     // val request = v1_2_1Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId <@(consumerAndToken)
@@ -670,6 +687,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     makePutRequest(request, write(narrativeJson))
   }
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def updateAccountLabel(bankId : String, accountId : String, label: String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     // val request = (v1_2_1Request / "banks" / bankId / "accounts" / accountId).POST <@(consumerAndToken)
@@ -1094,6 +1112,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
 
 /************************ the tests ************************/
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("base line URL works"){
     // scenario("we get the api information", API1_2_1, APIInfo){
@@ -1108,6 +1127,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Information about the hosted banks"){
     // scenario("we get the hosted banks information", API1_2_1, GetHostedBanks){
@@ -1123,6 +1143,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Information about one hosted bank"){
     // scenario("we get the hosted bank information", API1_2_1, GetHostedBank){
@@ -1191,6 +1212,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     accJson.accounts.size should equal(accountIdentifiers.size)
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Information about all the bank accounts for all banks"){
 // //    scenario("we get only the public bank accounts", API1_2, GetBankAccountsForAllBanks) {
@@ -1245,6 +1267,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Information about the public bank accounts for all banks"){
     // scenario("we get the public bank accounts", API1_2_1, GetPublicBankAccountsForAllBanks){
@@ -1309,6 +1332,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     }
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Information about all the bank accounts for a single bank"){
 // //    scenario("we get only the public bank accounts", API1_2, GetBankAccounts) {
@@ -1364,6 +1388,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Information about the public bank accounts for a single bank"){
     // scenario("we get the public bank accounts", API1_2_1, GetPublicBankAccounts){
@@ -1392,6 +1417,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Information about the private bank accounts for a single bank"){
     // scenario("we get the private bank accounts", API1_2_1, GetPrivateBankAccounts){
@@ -1429,6 +1455,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Information about a bank account"){
     // //For now, can not get the public accounts from this endpoint: accountById - v121
@@ -1467,6 +1494,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("List of the views of specific bank account"){
     // scenario("We will get the list of the available views on a bank account", API1_2_1, GetViews){
@@ -1504,6 +1532,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     // }
   // }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Create a view on a bank account"){
     // scenario("we will create a view on a bank account", API1_2_1, PostView){
@@ -1617,6 +1646,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Update a view on a bank account") {
 
@@ -1858,6 +1888,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     }
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Information about the permissions of a specific bank account"){
     // scenario("we will get one bank account permissions by using an access token", API1_2_1, GetPermissions){
@@ -1918,6 +1949,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Information about the permissions of a specific user on a specific bank account"){
     // scenario("we will get the permissions by using an access token", API1_2_1, GetPermission){
@@ -2344,6 +2376,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     }
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("We get the list of the other bank accounts linked with a bank account"){
     // scenario("we will get the other bank accounts of a bank account", API1_2_1, GetCounterparties){
@@ -2398,6 +2431,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("We get one specific other bank account among the other accounts "){
     // scenario("we will get one random other bank account of a bank account", API1_2_1, GetCounterparty){
@@ -4479,6 +4513,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     }
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Information about all the transaction"){
     // scenario("we get all the transactions of one random (private) bank account", API1_2_1, GetTransactions){
@@ -4513,6 +4548,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("transactions with params"){
     // import java.util.{Calendar, Date}
@@ -4833,6 +4869,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Information about a transaction"){
     // scenario("we get transaction data by using an access token", API1_2_1, GetTransaction){
@@ -6713,6 +6750,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       reply.body.extract[ErrorMessage].message contains (UserNoPermissionAccessView) shouldBe (true)
     }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("we will not get get the other bank account of a random transaction because the transaction does not exist", API1_2_1, GetTransactionAccount){
       // Given("We will use an access token")
@@ -6728,6 +6766,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     // }
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("We Update Account Label"){
     // scenario("we will the update label for one random account", API1_2_1, UpdateAccountLabel){

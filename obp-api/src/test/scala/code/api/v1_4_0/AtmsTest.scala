@@ -236,6 +236,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     Atms.atmsProvider.default.set(Atms.buildOne)
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Getting bank ATMs") {
 

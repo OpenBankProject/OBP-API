@@ -340,6 +340,7 @@ class CustomerAttributesTest extends V400ServerSetup {
         responseWithId.body.extract[CustomerAttributeResponseJsonV300].`type` equals(postCustomerAttributeJsonV400.`type`) should be (true)
       }
     }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint5 version $VersionOfApi ") {
     // scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
@@ -366,6 +367,7 @@ class CustomerAttributesTest extends V400ServerSetup {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"test $ApiEndpoint5 version $VersionOfApi test the query parameters") {
     // scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {

@@ -226,6 +226,7 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
 
   feature("HTTP4S v5.0.0 Native Endpoints") {
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("GET /obp/v5.0.0/root returns API info", Http4sServerIntegrationTag) {
       // When("We request the root endpoint")
@@ -240,6 +241,7 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
       // (json \ "git_commit") should not equal JObject(Nil)
     // }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("GET /obp/v5.0.0/banks returns banks list", Http4sServerIntegrationTag) {
       // When("We request banks list")

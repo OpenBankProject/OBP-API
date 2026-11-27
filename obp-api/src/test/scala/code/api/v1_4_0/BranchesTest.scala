@@ -291,6 +291,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     Branches.branchesProvider.default.set(Branches.buildOne)
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Getting bank branches") {
 

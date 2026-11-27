@@ -66,6 +66,7 @@ class AtmsTest extends V400ServerSetup {
   val postAtmJson = SwaggerDefinitionsJSON.atmJsonV400.copy(bank_id= testBankId1.value)
 
   feature("Test Create/Update -- error cases ") {
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("Create-error cases", ApiEndpoint1,ApiEndpoint8, VersionOfApi) {
 
@@ -83,6 +84,7 @@ class AtmsTest extends V400ServerSetup {
       // responseCreateAtmNoRole.body.extract[ErrorMessage].message should include (canCreateAtm.toString)
     // }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("Put - error cases", ApiEndpoint1,ApiEndpoint8, VersionOfApi) {
       // When(" Put - no authentications")
@@ -118,6 +120,7 @@ class AtmsTest extends V400ServerSetup {
     }
 
     // with apiOptions.getAtmsIsPublic=false the ATM list refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("Get Atms - no authentication", ApiEndpoint10, VersionOfApi) {
       // When(" Get Atms - no authentication")
@@ -132,6 +135,7 @@ class AtmsTest extends V400ServerSetup {
     // }
   }
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Test Create/Update/Get -- successful cases") {
     // scenario("We will call the endpoint with user credentials", ApiEndpoint1,ApiEndpoint8, ApiEndpoint9, ApiEndpoint10, VersionOfApi) {
@@ -180,6 +184,7 @@ class AtmsTest extends V400ServerSetup {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("We need to first create Atm and update the supported-currencies") {
     // scenario("We will call the endpoint with user credentials", ApiEndpoint1,ApiEndpoint2, VersionOfApi) {
@@ -204,6 +209,7 @@ class AtmsTest extends V400ServerSetup {
     // }
   // }
  
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("We need to first create Atm and update the accessibility features") {
     // scenario("We will call the endpoint with user credentials", ApiEndpoint4,ApiEndpoint2, VersionOfApi) {
@@ -228,6 +234,7 @@ class AtmsTest extends V400ServerSetup {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("We need to first create Atm and update the supported-languages") {
     // scenario("We will call the endpoint with user credentials", ApiEndpoint5, ApiEndpoint2, VersionOfApi) {
@@ -252,6 +259,7 @@ class AtmsTest extends V400ServerSetup {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("We need to first create Atm and update the services") {
     // scenario("We will call the endpoint with user credentials", ApiEndpoint2,ApiEndpoint3, VersionOfApi) {
@@ -276,6 +284,7 @@ class AtmsTest extends V400ServerSetup {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("We need to first create Atm and update the notes") {
     // scenario("We will call the endpoint with user credentials", ApiEndpoint2,ApiEndpoint6, VersionOfApi) {
@@ -300,6 +309,7 @@ class AtmsTest extends V400ServerSetup {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("We need to first create Atm and update the location-categories") {
     // scenario("We will call the endpoint with user credentials", ApiEndpoint2,ApiEndpoint7, VersionOfApi) {

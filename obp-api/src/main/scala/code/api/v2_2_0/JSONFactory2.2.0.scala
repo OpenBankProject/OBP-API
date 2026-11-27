@@ -521,6 +521,7 @@ object JSONFactory220 {
       )
   }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def createCounterpartiesJSON(counterparties : List[CounterpartyTrait]) : CounterpartiesJsonV220 = {
     // val list : List[CounterpartyJsonV220] = counterparties.map(createCounterpartyJSON)
@@ -714,6 +715,7 @@ object JSONFactory220 {
 
 
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def transformV220ToBranch(branchJsonV220: BranchJsonV220): Box[Branch] = {
 
@@ -741,6 +743,7 @@ object JSONFactory220 {
       // None))
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def transformToAtmFromV220(atmJsonV220: AtmJsonV220): Box[Atm] = {
     // val address : Address = transformToAddressFromV140(atmJsonV220.address) // Note the address in V220 is V140

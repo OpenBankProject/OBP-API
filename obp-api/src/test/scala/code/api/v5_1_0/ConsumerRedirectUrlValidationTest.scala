@@ -60,6 +60,7 @@ class ConsumerRedirectUrlValidationTest extends V510ServerSetup {
     developer_email = "developer@example.com", company = "Example", redirect_url = redirectUrl,
     enabled = true, client_certificate = None, logo_url = None)
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only commented-out scenarios used this helper. See docs/OLD_VERSION_ONLY_CODE.md.
   // private def consumerPostJson(redirectUrl: String) = ConsumerPostJSON(
   //   "redirect-test-" + randomString(8), "Confidential", "redirect test", "developer@example.com",
@@ -94,12 +95,14 @@ class ConsumerRedirectUrlValidationTest extends V510ServerSetup {
       shouldBeRejected(makePostRequest((v5_1_0_Request / "my" / "consumers").POST <@ (user1), write(createConsumerRequestJson(badRedirectUrl))))
     }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("v4.0.0 createConsumer") {
       // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateConsumer.toString)
       // shouldBeRejected(makePostRequest((v4_0_0 / "management" / "consumers").POST <@ (user1), write(consumerPostJson(badRedirectUrl))))
     // }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("v2.2.0 createConsumer") {
       // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateConsumer.toString)
@@ -147,6 +150,7 @@ class ConsumerRedirectUrlValidationTest extends V510ServerSetup {
         write(ConsumerRedirectUrlJSON(badRedirectUrl))))
     }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("v2.1.0 updateConsumerRedirectUrl") {
       // val consumerId = createConsumerOwnedByUser1("https://app.example.com/cb")

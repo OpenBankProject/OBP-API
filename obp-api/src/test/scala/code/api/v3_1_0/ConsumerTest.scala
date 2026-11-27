@@ -49,6 +49,7 @@ class ConsumerTest extends V310ServerSetup {
   object ApiEndpoint1 extends Tag("getConsumer")
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getConsumersForCurrentUser))
   object ApiEndpoint3 extends Tag("getConsumers")
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Get Consumer by CONSUMER_ID - v3.1.0")
   // {
@@ -94,6 +95,7 @@ class ConsumerTest extends V310ServerSetup {
       response310.body.extract[ConsumersJsonV310]
     }
   }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Get Consumers - v3.1.0")
   // {

@@ -58,6 +58,7 @@ class ViewsTests extends V300ServerSetup {
   //System view, owner
   val postBodySystemViewJson = createViewJsonV300.copy(name=SYSTEM_OWNER_VIEW_ID).copy(metadata_view = SYSTEM_OWNER_VIEW_ID).toCreateViewJson
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     // val request = v3_0Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
@@ -93,6 +94,7 @@ class ViewsTests extends V300ServerSetup {
   }
   
 /************************ the tests ************************/
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("/root"){
     // scenario("The root of the API") {
@@ -105,6 +107,7 @@ class ViewsTests extends V300ServerSetup {
     // }
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature(s"$ApiEndpoint2 -getViewsForBankAccount - V300"){
     // scenario("All requirements") {
@@ -151,6 +154,7 @@ class ViewsTests extends V300ServerSetup {
   // }
   
   feature(s"$ApiEndpoint3 -createViewForBankAccount - V300"){
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("all requirements") {
       // Given("The BANK_ID, ACCOUNT_ID, Login User and postViewBody")
@@ -289,6 +293,7 @@ class ViewsTests extends V300ServerSetup {
       updatedView.hide_metadata_if_alias_used should equal(true)
     }
 
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("we will not update a view that doesn't exist") {
       // val bankId = randomBankId

@@ -67,6 +67,7 @@ class UserAuthContextUpdateTest extends V310ServerSetup {
   val postUserAuthContextJson = SwaggerDefinitionsJSON.postUserAuthContextJson
   val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Create User Auth Context Update Request v3.1.0") {
     // scenario("We will call the Create endpoint with user credentials", ApiEndpoint1, VersionOfApi) {

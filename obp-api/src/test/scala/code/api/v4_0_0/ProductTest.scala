@@ -64,6 +64,7 @@ class ProductTest extends V400ServerSetup {
 
   lazy val testBankId = randomBankId
   lazy val parentPutProductJsonV400: PutProductJsonV400 = SwaggerDefinitionsJSON.putProductJsonV400.copy(parent_product_code ="")
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def createProduct(code: String, json: PutProductJsonV400) = {
     // When("We try to create a product v4.0.0")
@@ -82,6 +83,7 @@ class ProductTest extends V400ServerSetup {
     // product
   // }
   
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Create Product v4.0.0") {
     // scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {

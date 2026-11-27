@@ -203,8 +203,10 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
         employment_status = "employed", kyc_status = true, last_ok_date = new Date())
       sweep(List(
         Probe("OBPv1.4.0-addCustomer", "POST", s"/obp/v1.4.0/banks/$bankId/customer", v200Body)
+        // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
         // Commented out: only OBP versions below v5.1.0 could reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
         // Probe("OBPv2.0.0-createCustomer", "POST", s"/obp/v2.0.0/banks/$bankId/customers", v200Body),
+        // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
         // Commented out: only OBP versions below v5.1.0 could reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
         // Probe("OBPv2.1.0-createCustomer", "POST", s"/obp/v2.1.0/banks/$bankId/customers",
         //   PostCustomerJsonV210(
@@ -224,6 +226,7 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
       // which is what makes a link to an agent identity impossible to create even by accident.
       val body = CreateUserCustomerLinkJson(user_id = agentId, customer_id = generateUUID())
       sweep(List(
+        // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
         // Commented out: only OBP versions below v5.1.0 could reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
         // Probe("OBPv2.0.0-createUserCustomerLinks", "POST", s"/obp/v2.0.0/banks/$bankId/user_customer_links", body),
         Probe("OBPv4.0.0-createUserCustomerLinks", "POST", s"/obp/v4.0.0/banks/$bankId/user_customer_links", body)
@@ -249,14 +252,17 @@ class ExplicitTargetConsentUserSweepTest extends ServerSetupWithTestData with De
         user_id = agentId, label = "explicit target sweep", product_code = "1234BW",
         balance = money, branch_id = "", account_routings = Nil)
       sweep(List(
+        // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
         // Commented out: only OBP versions below v5.1.0 could reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
         // Probe("OBPv2.0.0-createAccount", "PUT", s"/obp/v2.0.0/banks/$bankId/accounts/${generateUUID()}",
         //   CreateAccountJSON(user_id = agentId, label = "explicit target sweep", `type` = "CURRENT", balance = money)),
+        // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
         // Commented out: only OBP versions below v5.1.0 could reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
         // Probe("OBPv2.2.0-createAccount", "PUT", s"/obp/v2.2.0/banks/$bankId/accounts/${generateUUID()}",
         //   CreateAccountJSONV220(
         //     user_id = agentId, label = "explicit target sweep", `type` = "CURRENT", balance = money,
         //     branch_id = "", account_routing = AccountRoutingJsonV121(scheme = "OBP", address = generateUUID()))),
+        // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
         // Commented out: only OBP versions below v5.1.0 could reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
         // Probe("OBPv3.1.0-createAccount", "PUT", s"/obp/v3.1.0/banks/$bankId/accounts/${generateUUID()}", v310Body),
         Probe("OBPv4.0.0-addAccount", "POST", s"/obp/v4.0.0/banks/$bankId/accounts", v310Body),

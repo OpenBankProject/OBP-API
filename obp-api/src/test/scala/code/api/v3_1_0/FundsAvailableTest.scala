@@ -73,6 +73,7 @@ class FundsAvailableTest extends V310ServerSetup {
       allowed_actions = viewFields
     )
   }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // def postView(bankId: String, accountId: String, view: CreateViewJsonV121): APIResponse = {
     // val request = (baseRequest / "obp" / "v1.2.1" / "banks" / bankId / "accounts" / accountId / "views").POST <@(user1)

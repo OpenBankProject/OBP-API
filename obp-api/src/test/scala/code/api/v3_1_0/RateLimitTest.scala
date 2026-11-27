@@ -50,6 +50,7 @@ import org.scalatest.Tag
 
 class RateLimitTest extends V310ServerSetup with PropsReset {
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
   // /** Sets the consumer's call limits as another consumer, so this consumer starts the period with no calls made. */
   // private def setLimitAsAnotherConsumer(consumerId: String, json: CallLimitPostJson) = {
@@ -57,6 +58,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
     // makePutRequest((v3_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "call-limits").PUT <@(user2), write(json))
   // }
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: only commented-out scenarios used this helper. See docs/OLD_VERSION_ONLY_CODE.md.
   // /** The consumer's rate limits are gone, and so is the cached copy: the limit just set would refuse the next PUT. */
   // private def removeRateLimits(consumerId: String): Unit = {
@@ -159,6 +161,7 @@ class RateLimitTest extends V310ServerSetup with PropsReset {
     per_month_call_limit = "1"
   )
 
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
   // feature("Rate Limit - " + ApiEndpoint + " - " + VersionOfApi)
   // {
