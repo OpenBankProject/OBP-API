@@ -4592,6 +4592,52 @@ object Glossary extends MdcLoggable  {
 """.stripMargin)
 
 	glossaryItems += GlossaryItem(
+		title = "Dynamic Entity Audit Chains",
+		description =
+			s"""
+|# Dynamic Entity Audit Chains
+|
+|A **Dynamic Entity audit chain** is a tamper-evident record of every change to the records of one Dynamic Entity (${getGlossaryItemLink("Dynamic-Entities")}). Use one where you must be able to show later that a record, and its history, has not been altered. Examples are decisions, approvals, assessments and anything else a supervisor or auditor may review.
+|
+|**How it works.** Once a chain is started, each record that is created, updated or deleted adds an entry to the chain. The entry holds the record as it was saved, who saved it, when, and the hash of the entry before it. Each entry's own hash covers all of that. If anyone changes or removes an entry afterwards, its hash no longer matches, and nor does the next entry's link back to it. If anyone changes a record without adding an entry, the record no longer matches its latest entry. Either way the check finds the break and says where it is.
+|
+|**Each chain is bound to its entity.** A chain's first entry, `STARTED`, names the entity's space, id and name, and its hash covers them. Pointing a chain at another entity, or renaming or deleting the entity behind OBP-API's back, makes the check fail.
+|
+|**The root chain ties the chains together.** There is one root audit chain per OBP instance, created when the first entity's chain is started. It records each entity's chain when it is started: its entity, the hash of its first entry, and its last entry at that moment. Sealing the root chain records the last entry of every chain that has changed since. The root chain's check then finds a whole chain deleted, moved, started again, rewound or rewritten, or added without going through OBP-API. With `include_chains=true`, it also checks every entity's chain in full, so one call checks everything.
+|
+|**What it does not do.** A chain does not stop anyone with direct access to the database from changing data. It makes the change visible. Someone who rewrote the records, every chain and the root chain consistently would pass every check. To catch that, seal the root chain regularly and keep each `last_hash` the seal returns somewhere outside OBP's control. That could be with a regulator, in an email, or in a public ledger such as Cardano. One hash covers every chain, and a rewrite will not match a copy taken before it. Only the hash leaves OBP, never the data.
+|
+|**It cannot be stopped.** There is no endpoint to stop or delete a chain. A Dynamic Entity with a chain cannot be deleted or renamed, and nor can the bank it belongs to. This means a chain always covers every change made through OBP-API from the moment it was started.
+|
+|**Starting a chain.** The first entry is `STARTED`. Then each record the entity already holds gets an `EXISTING` entry, so the chain starts from the records as they are. Every later change adds a `CREATED`, `UPDATED` or `DELETED` entry, or `DELETED_BY_RETENTION` when a data retention run deletes a record.
+|
+|**Order and performance.** An entry is added in the same database transaction as the change it records, so a change that rolls back adds nothing. The database puts the entries of one chain in order. Each write locks the chain's row until its transaction ends, so a second write to the same entity waits for the first. Writes to different entities have different chains and never wait for each other. Entities without a chain are not affected at all. The cost to a write is one extra update and one extra insert.
+|
+|**Checking an entry's hash without OBP.** Each entry's `hash` is a SHA-256, written as 64 lowercase hexadecimal characters. It is made from these 11 lines, joined by a line feed, with no line feed at the end. A missing value is an empty line.
+|
+|1. `${code.dynamicentityauditchain.DynamicEntityAuditChains.HashFormat}`
+|2. the chain's `chain_id`
+|3. `sequence`
+|4. `operation`
+|5. `record_id`
+|6. `owner_user_id`
+|7. `data_hash`
+|8. `user_id`
+|9. `on_behalf_of_user_id`
+|10. `recorded_at_epoch_millis`
+|11. `previous_hash`
+|
+|`data_hash` is the SHA-256 of `data_json`, the record's JSON exactly as it was stored, and is empty when there is none. The first entry's `previous_hash` is 64 zeros, and every other entry's is the `hash` of the entry before it. The root chain's entries follow the same rules. With these rules, anyone with the entries can check every chain using any SHA-256 tool, without trusting OBP.
+|
+|**The check.** `GET .../audit-chain/check` checks the whole chain this way, and then compares every current record with its latest entry. It reports whether the chain is intact, and lists the problems it found. These include an entry missing, out of place or changed, and a record changed, added, put back or deleted without going through OBP-API.
+|
+|**Managing.** `POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/audit-chain` starts a chain, and `GET` on the same path reads it, including its `last_hash`. `GET .../audit-chain/entries` pages through the entries, or gives one record's history with `record_id`. `GET .../audit-chain/check` checks it. BANK_ID is a bank's id or `SYS` for the system space. The Roles are CanCreateDynamicEntityAuditChain and CanGetDynamicEntityAuditChain, held at that BANK_ID.
+|
+|**The root chain.** `GET /obp/v7.0.0/management/dynamic-entity-audit-chains/root` reads it, `.../root/entries` pages through its entries, `POST .../root/seal` seals it and `GET .../root/check` checks it. The Roles are CanGetDynamicEntityAuditRootChain and CanSealDynamicEntityAuditRootChain, held at no bank, because the root chain covers every space.
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
 		title = "Dynamic Code Paths",
 		description =
 			s"""
@@ -8265,6 +8311,31 @@ object Glossary extends MdcLoggable  {
 				 |- [Create Settlement](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createOpenCorridorSettlement): `POST /obp/v7.0.0/banks/BANK_ID/open-corridor/settlements`
 				 |- [Get Settlement](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getOpenCorridorSettlement): `GET /obp/v7.0.0/banks/BANK_ID/open-corridor/settlements/SETTLEMENT_ID`
 				 |- [Create Fee Settlement](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createOpenCorridorFeeSettlement): `POST /obp/v7.0.0/banks/BANK_ID/open-corridor/fee-settlements`
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "Onward Routes",
+		description =
+			s"""
+				 |# Onward Routes
+				 |
+				 |An onward route says that a bank on another OBP instance can be reached through a bank that is a member of this one.
+				 |
+				 |Get Banks lists only the members of this OBP instance. A bank that is a member of two OBP instances can carry payments between them. A payment to a bank on the other instance is paid to it here, and it pays the beneficiary bank there. Its own Bank Node states which banks on its other instances it can reach, by replacing its list of onward routes from time to time. A bank on another instance is never listed as a bank here. It appears only inside the onward routes of a member that can reach it.
+				 |
+				 |Each route names the bank it reaches by its routings (for example BIC) and its full name. It also gives the OBP instance that bank is on, its country, and the currencies a payment may be sent in. It may also carry the member's exchange rates for payments it converts.
+				 |
+				 |A route is shown only while it is valid: for `open_corridor.onward_route_validity_seconds` after the member last confirmed it (default one hour). Each exchange rate has its own, shorter validity, set by `open_corridor.onward_route_rate_validity_seconds` (default five minutes). A member whose Bank Node stops confirming drops out by itself, without anyone removing its routes.
+				 |
+				 |Routes are visible to anyone who can see the bank. Regulators can see who reaches whom, and a sending bank can check a route before paying. Only bank-to-bank reach is shown, never customers or amounts.
+				 |
+				 |A member's Bank Node writes its routes with the Scope CanUpdateOnwardRoutes at its bank. The operator grants the Scope to the members that may carry payments between OBP instances.
+				 |
+				 |## Endpoints
+				 |
+				 |- [Get Onward Routes](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getOnwardRoutes): `GET /obp/v7.0.0/banks/BANK_ID/open-corridor/onward-routes`
+				 |- [Update Onward Routes](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateOnwardRoutes): `PUT /obp/v7.0.0/banks/BANK_ID/open-corridor/onward-routes`
+				 |- [Get Banks](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getBanks) and [Get Bank](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getBank) show each bank's onward routes as `onward_routes`.
 				 |""".stripMargin)
 
 	///////////////////////////////////////////////////////////////////

@@ -573,7 +573,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles delete access on this row", 403, cc = callContext) {
              aclVend.allows(bankId, entityName, id, u.userId, DynamicDataAccessPermission.Delete) }
-      _ = dataVend.deleteCommunity(bankId, entityName, id)
+      _ = dataVend.deleteCommunity(bankId, entityName, id, Some(u.userId))
       _ = aclVend.deleteAllForRow(bankId, entityName, id) // cascade the ACL rows for the deleted data row
     } yield JObject(Nil)
   }

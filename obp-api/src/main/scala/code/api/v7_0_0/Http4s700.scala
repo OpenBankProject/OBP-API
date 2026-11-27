@@ -474,7 +474,9 @@ object Http4s700 {
             // Each bank's attributes, as Get Bank returns them (only active ones are shown).
             banksWithAttributes <- Future.sequence(banksCreatedByUser.map(bank =>
               NewStyle.function.getBankAttributesByBank(bank.bankId, Some(cc)).map(result => (bank, result._1))))
-          } yield JSONFactory600.createBanksJsonV600(banksWithAttributes)
+            // Each bank's still-valid onward routes, as in Get Banks.
+            onwardRoutesByBankId <- Future(code.opencorridorroutes.OnwardRoutes.validForBanks(banksCreatedByUser.map(_.bankId.value)))
+          } yield JSONFactory600.createBanksJsonV600(banksWithAttributes, onwardRoutesByBankId)
         }
     }
 
@@ -484,15 +486,11 @@ object Http4s700 {
       "GET",
       "/my/banks",
       "Get My Banks",
-      s"""Returns the banks belonging to the current User — created directly by the User,
-      |or created by an agent acting for the User under a Consent.
+      s"""Returns the banks belonging to the current User. These are the banks the User created, and the banks an agent created while acting for the User under a Consent.
       |
-      |Delegation is resolved server-side from the Consent records: when the caller is a
-      |consent-based agent, the list shows the granting User's banks; when the caller is
-      |the User, the list includes banks created by any of their consent-based agents.
-      |Nothing is accepted from the caller to influence this resolution.
+      |Delegation is resolved on the server from the Consent records. When the caller is a consent-based agent, the list shows the granting User's banks. When the caller is the User, the list includes the banks created by any of their consent-based agents. Nothing is accepted from the caller to influence this resolution.
       |
-      |Each bank is shown with its bank routings and its active bank attributes, as in Get Banks.
+      |Each bank is shown with its bank routings, its active bank attributes and its onward routes, as in Get Banks.
       |
       |${userAuthenticationMessage(true)}
       |""",
@@ -7750,6 +7748,9 @@ object Http4s700 {
     // Dynamic Entity webhooks: URLs OBP sends a request to when records of a Dynamic Entity change.
     resourceDocs ++= Http4s700DynamicEntityWebhooks.resourceDocs
 
+    // Dynamic Entity audit chains: tamper-evident records of every change to the records of a Dynamic Entity.
+    resourceDocs ++= Http4s700DynamicEntityAuditChains.resourceDocs
+
     // Groups: bring the members of a Group in line with its current Roles.
     resourceDocs ++= Http4s700Groups.resourceDocs
 
@@ -7789,6 +7790,9 @@ object Http4s700 {
 
     // The caller's own accounts whose account routing matches a pattern.
     resourceDocs ++= Http4s700MyAccounts.resourceDocs
+
+    // Onward routes: the banks on other OBP instances that can be reached through a member of this one.
+    resourceDocs ++= Http4s700OnwardRoutes.resourceDocs
 
     // The order in which the routes are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given this same list: the doc that validates a request

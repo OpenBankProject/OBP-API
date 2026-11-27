@@ -600,8 +600,32 @@ case class BankJsonV600(
     logo: String,
     website: String,
     bank_routings: List[BankRoutingJsonV121],
-    attributes: Option[List[BankAttributeBankResponseJsonV400]]
+    attributes: Option[List[BankAttributeBankResponseJsonV400]],
+    // The banks on other OBP instances that can be reached through this bank. Empty for a bank that does not carry payments on.
+    onward_routes: List[OnwardRouteJsonV600] = Nil
 )
+
+// One exchange rate on an onward route: one unit of `from` buys `rate` units of `to`, until valid_until.
+case class OnwardRouteRateJsonV600(
+    from: String,
+    to: String,
+    rate: String,
+    valid_until: Date
+)
+
+// One onward route: a bank on another OBP instance that can be reached through the bank whose route it is.
+case class OnwardRouteJsonV600(
+    full_name: String,
+    bank_routings: List[BankRoutingJsonV121],
+    obp_host: String,
+    country: String,
+    currencies: List[String],
+    rates: List[OnwardRouteRateJsonV600],
+    last_confirmed: Date,
+    valid_until: Date
+)
+
+case class OnwardRoutesJsonV600(onward_routes: List[OnwardRouteJsonV600])
 
 case class BanksJsonV600(banks: List[BankJsonV600])
 
@@ -2556,7 +2580,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     )
   }
 
-  def createBankJsonV600(bank: Bank, attributes: List[BankAttributeTrait] = Nil): BankJsonV600 = {
+  def createBankJsonV600(bank: Bank, attributes: List[BankAttributeTrait] = Nil, onwardRoutes: List[code.opencorridorroutes.OnwardRouteView] = Nil): BankJsonV600 = {
     // One OBP entry, at most one BIC, then the bank's other routings: see RoutingRules.
     val routings = code.api.util.RoutingRules.bankRoutingsOf(bank)
     BankJsonV600(
@@ -2571,14 +2595,47 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           name = a.name,
           value = a.value)
         )
-      )
+      ),
+      onward_routes = onwardRoutes.map(createOnwardRouteJsonV600)
     )
   }
 
-  // Each bank with its active attributes, as Get Bank shows them, so a caller can pick banks by attribute from one list.
-  def createBanksJsonV600(banksWithAttributes: List[(Bank, List[BankAttributeTrait])]): BanksJsonV600 = {
-    BanksJsonV600(banksWithAttributes.map { case (bank, attributes) => createBankJsonV600(bank, attributes) })
+  // Each bank with its active attributes and its still-valid onward routes, as Get Bank shows them, so a caller can pick banks from one list.
+  def createBanksJsonV600(
+    banksWithAttributes: List[(Bank, List[BankAttributeTrait])],
+    onwardRoutesByBankId: Map[String, List[code.opencorridorroutes.OnwardRouteView]] = Map.empty
+  ): BanksJsonV600 = {
+    BanksJsonV600(banksWithAttributes.map { case (bank, attributes) =>
+      createBankJsonV600(bank, attributes, onwardRoutesByBankId.getOrElse(bank.bankId.value, Nil))
+    })
   }
+
+  def createOnwardRouteJsonV600(route: code.opencorridorroutes.OnwardRouteView): OnwardRouteJsonV600 =
+    OnwardRouteJsonV600(
+      full_name = route.fullName,
+      bank_routings = route.bankRoutings.map(routing => BankRoutingJsonV121(routing.scheme, routing.address)),
+      obp_host = route.obpHost,
+      country = route.country,
+      currencies = route.currencies,
+      rates = route.rates.map(rate => OnwardRouteRateJsonV600(rate.from, rate.to, rate.rate.bigDecimal.toPlainString, rate.validUntil)),
+      last_confirmed = route.lastConfirmed,
+      valid_until = route.validUntil
+    )
+
+  def createOnwardRoutesJsonV600(routes: List[code.opencorridorroutes.OnwardRouteView]): OnwardRoutesJsonV600 =
+    OnwardRoutesJsonV600(routes.map(createOnwardRouteJsonV600))
+
+  // The example onward route shown in the ResourceDocs: Bank C on another OBP instance, reached through this bank.
+  lazy val onwardRouteJsonV600Example: OnwardRouteJsonV600 = OnwardRouteJsonV600(
+    full_name = "Bank C",
+    bank_routings = List(BankRoutingJsonV121("BIC", "DEMCZZ22")),
+    obp_host = "obp.example.org",
+    country = "NG",
+    currencies = List("KES", "NGN"),
+    rates = List(OnwardRouteRateJsonV600("KES", "NGN", "11.20", Date.from(java.time.Instant.parse("2026-11-23T10:05:00Z")))),
+    last_confirmed = Date.from(java.time.Instant.parse("2026-11-23T10:00:00Z")),
+    valid_until = Date.from(java.time.Instant.parse("2026-11-23T11:00:00Z"))
+  )
 
   /**
    * Create v6.0.0 response for GET /my/dynamic-entities

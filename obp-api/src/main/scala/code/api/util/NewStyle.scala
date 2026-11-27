@@ -3740,7 +3740,12 @@ object NewStyle extends MdcLoggable{
      */
     def deleteDynamicEntity(bankId: Option[String], dynamicEntityId: String): Future[Box[Boolean]] = {
       validateBankId(bankId, None)
-      Future(deleteDynamicEntityNow(bankId, dynamicEntityId))
+      Future {
+        // Refused here as well as in the provider, because some callers do not look at the Box this returns.
+        if (code.dynamicentityauditchain.DynamicEntityAuditChains.hasChain(dynamicEntityId))
+          unboxFullOrFail(Empty, None, DynamicEntityHasAuditChain, 400)
+        deleteDynamicEntityNow(bankId, dynamicEntityId)
+      }
     }
 
     /**

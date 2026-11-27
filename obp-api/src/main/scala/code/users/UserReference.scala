@@ -210,6 +210,9 @@ object UserReference {
   case object DynamicGlossaryItem_CreatedByUserId              extends UserReference(UseOnBehalfOfUserId   , "code.glossaryitem.DynamicGlossaryItem", List("CreatedByUserId"), "outlives the Consent that created it")
   case object DomainApi_CreatedByUserId                        extends UserReference(UseOnBehalfOfUserId   , "code.domainapi.DomainApi", List("CreatedByUserId"), "the Domain API's creator; a published API outlives the Consent that created it")
   case object DynamicEntityWebhook_CreatedByUserId             extends UserReference(UseOnBehalfOfUserId   , "code.dynamicentitywebhook.DynamicEntityWebhook", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: a webhook sends data out of OBP and outlives the Consent that made it, so the agent stays on CreatedByUserId (published as created_by_user_id) and the person it acted for goes to CreatedByOnBehalfOfUserId")
+  case object DynamicEntityAuditChain_StartedByUserId          extends UserReference(UseOnBehalfOfUserId   , "code.dynamicentityauditchain.DynamicEntityAuditChain", List("StartedByUserId", "StartedByOnBehalfOfUserId"), "record both: an audit trail must say which agent started the chain and for whom, and the chain outlives any Consent")
+  case object DynamicEntityAuditEntry_UserId                    extends UserReference(UseOnBehalfOfUserId   , "code.dynamicentityauditchain.DynamicEntityAuditEntry", List("UserId", "OnBehalfOfUserId"), "record both: as DynamicData_UpdatedByUserId, for the call that made the change the entry records")
+  case object DynamicEntityAuditEntry_OwnerUserId               extends UserReference(UseAuthenticatedUserId, "code.dynamicentityauditchain.DynamicEntityAuditEntry", List("OwnerUserId"), "stored as given and never resolved again: it is a copy of DynamicData.UserId as saved, which the record provider has already resolved (DynamicData_UserId), so the check can compare the two")
   case object AccountCreation_CreatedByUserId                   extends UserReference(UseOnBehalfOfUserId   , "code.accountcreation.AccountCreation", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: who made the call that created the account, agent included, and the person it was made for; published in the v7.0.0 Create Account metadata. The holder is AccountHolders_User")
   case object Bank_CreatedByUserId                             extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.MappedBank", List("CreatedByUserId"), "creator grant already resolved at the endpoint")
   case object SelfServiceBank_CreatedByUserId                  extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.SelfServiceBank", List("CreatedByUserId"), "as Bank_CreatedByUserId; the Create My Bank quota counts these rows per creator")
@@ -319,6 +322,9 @@ object UserReference {
     DynamicGlossaryItem_CreatedByUserId,
     DomainApi_CreatedByUserId,
     DynamicEntityWebhook_CreatedByUserId,
+    DynamicEntityAuditChain_StartedByUserId,
+    DynamicEntityAuditEntry_UserId,
+    DynamicEntityAuditEntry_OwnerUserId,
     AccountCreation_CreatedByUserId,
     Bank_CreatedByUserId,
     SelfServiceBank_CreatedByUserId,

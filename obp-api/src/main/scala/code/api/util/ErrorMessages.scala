@@ -129,6 +129,11 @@ object ErrorMessages {
   val InvalidDynamicEntityWebhookDescription = "OBP-09039: Invalid description. description must be at most 2000 characters."
   val DynamicEntityWebhookDeliveryNotFound = "OBP-09040: Dynamic Entity webhook delivery not found for this webhook. Please specify a valid value for EVENT_ID."
   val DynamicEntityWebhookDeliveryNotSticky = "OBP-09041: Only a STICKY delivery can be retried. A PENDING delivery is retried automatically, and a DELIVERED one is done. "
+  // Dynamic Entity audit chains: tamper-evident records of every change to the records of a Dynamic Entity.
+  val DynamicEntityAuditChainAlreadyStarted = "OBP-09042: This Dynamic Entity's audit chain has already been started. An entity has one audit chain, and it cannot be started again."
+  val DynamicEntityAuditChainNotStarted = "OBP-09043: This Dynamic Entity has no audit chain. Start one first."
+  val DynamicEntityHasAuditChain = "OBP-09044: This Dynamic Entity has an audit chain, so it cannot be deleted or renamed. An audit chain cannot be stopped, so that it always covers every change to the entity's records. "
+  val DynamicEntityAuditRootChainNotStarted = "OBP-09045: There is no root audit chain yet. It is created when the first Dynamic Entity audit chain is started, or by sealing."
 
 
   // General messages (OBP-10XXX)
@@ -1141,6 +1146,7 @@ object ErrorMessages {
   val OpenCorridorSettlementAddressMissing = "OBP-40056: The creditor bank has no settlement address registered in its Open Corridor broker registration, so the settlement instruction cannot be addressed."
   val OpenCorridorDisabled = "OBP-40057: Open Corridor is not enabled on this API instance. Set open_corridor_enabled=true in the props."
   val OpenCorridorSettlementNotFound = "OBP-40058: No Open Corridor settlement with this SETTLEMENT_ID exists for this bank."
+  val OpenCorridorOnwardRouteNamesMember = "OBP-40069: An onward route names a bank that is a member of this OBP instance. Pay a member directly: it needs no onward route."
   val OpenCorridorSameBankNotAllowed = "OBP-40061: OPEN_CORRIDOR is inter-bank: the beneficiary bank must differ from the sending bank. Use an ordinary payment for intra-bank transfers."
   val OpenCorridorNetBelowMinimum = "OBP-40068: The net of this Open Corridor pair is below the minimum settlement amount for its currency (open_corridor.min_settlement_amount.<CURRENCY>). Nothing was netted: the promises stay PENDING and are settled together once their net reaches the minimum."
   val MessageOutboxRowNotFound = "OBP-40059: No message outbox row with this OUTBOX_ID exists."

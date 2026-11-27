@@ -30,7 +30,7 @@ package code.dynamicEntity
 import code.api.util.CustomJsonFormats
 import code.util.Helper.MdcLoggable
 import code.util.MappedUUID
-import net.liftweb.common.{Box, Empty, EmptyBox, Full}
+import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
@@ -105,6 +105,12 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           s"admin-only until access is granted via the ACL (no backfill — see DYNAMIC_ENTITY_ROW_LEVEL_ACCESS.md §8.4).")
     }
 
+    // An entity with an audit chain keeps its name: its records and its chain are both found by that name.
+    val renamesAnAuditedEntity = existsDynamicEntity.exists(existing =>
+      existing.entityName != dynamicEntity.entityName && code.dynamicentityauditchain.DynamicEntityAuditChains.hasChain(existing.DynamicEntityId.get))
+    if (renamesAnAuditedEntity)
+      return Failure(code.api.util.ErrorMessages.DynamicEntityHasAuditChain + s"Entity name: ${existsDynamicEntity.map(_.entityName).getOrElse("")}.")
+
     tryo{
       try {
         val saved = entityToPersist
@@ -157,6 +163,9 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
       case v => DynamicEntity.findAll(By(DynamicEntity.BankId, storedBankId(v.bankId)), By(DynamicEntity.EntityName, v.entityName))
         .flatMap(_.dynamicEntityId)
     }
+    // An entity with an audit chain is never deleted, whichever endpoint asks: the chain must keep covering its records.
+    if (dynamicEntityIds.exists(code.dynamicentityauditchain.DynamicEntityAuditChains.hasChain))
+      throw new IllegalStateException(code.api.util.ErrorMessages.DynamicEntityHasAuditChain + s"Entity name: ${dynamicEntity.entityName}.")
     dynamicEntityIds.filter(_.nonEmpty).foreach(code.dynamicentitywebhook.DynamicEntityWebhookDefinitionChanges.beforeDelete)
     try dynamicEntity match {
       case v: DynamicEntity => DynamicEntity.delete_!(v)
