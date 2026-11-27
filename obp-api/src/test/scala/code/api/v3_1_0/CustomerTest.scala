@@ -171,7 +171,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       val bankB = testBankId2.value
       Entitlement.entitlement.vend.addEntitlement(bankB, resourceUser1.userId, CanCreateCustomer.toString)
       Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
-      val customerAtB = makePostRequest((v5_1_0_Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
+      val customerAtB = makePostRequest((v510Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
       customerAtB.code should equal(201)
       val customerIdAtB = customerAtB.body.extract[CustomerJsonV310].customer_id
       When("We get bank B's customer through bank A's path, holding " + canGetCustomersAtOneBank + " at bank A")
@@ -247,7 +247,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v5_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -292,7 +292,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint5, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v5_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -338,7 +338,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint6, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v5_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -387,7 +387,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint7, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v5_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -435,7 +435,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v5_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -456,7 +456,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario(s"We will call the endpoint with user credentials and the $canUpdateCustomerCreditRatingAndSourceAtAnyBank role", ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v5_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -503,7 +503,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint9, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v5_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -549,7 +549,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint10, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v5_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -599,7 +599,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint3, ApiEndpoint11, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val postRequest310 = (v5_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
       val postResponse310 = makePostRequest(postRequest310, write(postCustomerJson))
       Then("We should get a 201")
       postResponse310.code should equal(201)
@@ -639,7 +639,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     //first we create the customers (v3.1.0 createCustomer is commented out, so through v5.1.0):
     Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
     When("We make a request v3.1.0")
-    val request310 = (v5_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+    val request310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
     val response310 = makePostRequest(request310, write(postCustomerJson))
     Then("We should get a 201")
     response310.code should equal(201)

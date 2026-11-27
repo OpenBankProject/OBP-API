@@ -151,7 +151,7 @@ class CustomerAddressTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should startWith (CustomerNotFoundByCustomerId)
       
       When("We try to create the customer v3.1.0")
-      val requestCustomer310 = (v5_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val requestCustomer310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
       val responseCustomer310 = makePostRequest(requestCustomer310, write(postCustomerJson))
       Then("We should get a 201")
       responseCustomer310.code should equal(201)
@@ -196,7 +196,7 @@ class CustomerAddressTest extends V310ServerSetup {
 
     // Creates a customer at the bank, with one address, through the endpoints; returns their ids
     def customerWithAddress(bank: String): (String, String) = {
-      val customer = makePostRequest((v5_1_0_Request / "banks" / bank / "customers").POST <@(user1), write(postCustomerJson))
+      val customer = makePostRequest((v510Request / "banks" / bank / "customers").POST <@(user1), write(postCustomerJson))
       customer.code should equal(201)
       val customerId = customer.body.extract[CustomerJsonV310].customer_id
       val address = makePostRequest((v3_1_0_Request / "banks" / bank / "customers" / customerId / "address").POST <@(user1),
@@ -256,7 +256,7 @@ class CustomerAddressTest extends V310ServerSetup {
 
     // Creates a customer at the bank, with one address, through the endpoints; returns their ids
     def customerWithAddress(bank: String): (String, String) = {
-      val customer = makePostRequest((v5_1_0_Request / "banks" / bank / "customers").POST <@(user1), write(postCustomerJson))
+      val customer = makePostRequest((v510Request / "banks" / bank / "customers").POST <@(user1), write(postCustomerJson))
       customer.code should equal(201)
       val customerId = customer.body.extract[CustomerJsonV310].customer_id
       val address = makePostRequest((v3_1_0_Request / "banks" / bank / "customers" / customerId / "address").POST <@(user1),
@@ -301,7 +301,7 @@ class CustomerAddressTest extends V310ServerSetup {
       val bankB = testBankId2.value
       Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, CanCreateCustomerAddress.toString)
       Entitlement.entitlement.vend.addEntitlement(bankB, resourceUser1.userId, CanCreateCustomer.toString)
-      val customer = makePostRequest((v5_1_0_Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
+      val customer = makePostRequest((v510Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
       customer.code should equal(201)
       val customerAtB = customer.body.extract[CustomerJsonV310].customer_id
       When("We add an address to bank B's customer through bank A's path")
@@ -321,7 +321,7 @@ class CustomerAddressTest extends V310ServerSetup {
       val bankB = testBankId2.value
       Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, CanGetCustomerAddress.toString)
       Entitlement.entitlement.vend.addEntitlement(bankB, resourceUser1.userId, CanCreateCustomer.toString)
-      val customer = makePostRequest((v5_1_0_Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
+      val customer = makePostRequest((v510Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
       customer.code should equal(201)
       val customerAtB = customer.body.extract[CustomerJsonV310].customer_id
       When("We get the addresses of bank B's customer through bank A's path")

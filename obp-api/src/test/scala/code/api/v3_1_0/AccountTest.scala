@@ -101,7 +101,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       responsePut2.body.extract[UpdateAccountResponseJsonV310].account_routings.head.address should be (testPutJson.account_routings.head.address)
 
 
-      val requestGet = (v5_1_0_Request /"my"/ "banks" / testBankId.value / "accounts" / testAccount.value / "account").PUT <@ (user1)
+      val requestGet = (v510Request /"my"/ "banks" / testBankId.value / "accounts" / testAccount.value / "account").PUT <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       And("We should get 200 and updated account data")
       responseGet.code should equal(200)
@@ -121,7 +121,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.canUpdateAccount.toString())
 
       val requestPut = (v3_1_0_Request / "management" / "banks" / testBankId.value / "accounts" / testAccount0.value).PUT <@ (user1)
-      val requestGet = (v5_1_0_Request /"my"/ "banks" / testBankId.value / "accounts" / testAccount0.value / "account").PUT <@ (user1)
+      val requestGet = (v510Request /"my"/ "banks" / testBankId.value / "accounts" / testAccount0.value / "account").PUT <@ (user1)
 
 
       When("We want to add an account routing scheme (IBAN)")
@@ -190,7 +190,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       val testPutJsonWithSameIban = testPutJsonWithUpdatedIban
 
       val requestPutOtherAccount = (v3_1_0_Request / "management" / "banks" / testBankId.value / "accounts" / testAccount1.value).PUT <@ (user1)
-      val requestGetOtherAccount = (v5_1_0_Request / "my" / "banks" / testBankId.value / "accounts" / testAccount1.value / "account").PUT <@ (user1)
+      val requestGetOtherAccount = (v510Request / "my" / "banks" / testBankId.value / "accounts" / testAccount1.value / "account").PUT <@ (user1)
 
       val responseGetOtherAccount_1 = makeGetRequest(requestGetOtherAccount)
       Then("We should get 200 on the first getAccount response to get original account routings")

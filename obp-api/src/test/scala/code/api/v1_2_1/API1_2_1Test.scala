@@ -216,7 +216,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
   private case class ViewIdJSON(id: String, is_public: Boolean)
 
   private def accountViewsViaKeptVersion(bankId: String, accountId: String, consumerAndToken: Option[(Consumer, Token)]): List[ViewIdJSON] = {
-    val reply = makeGetRequest(v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken))
+    val reply = makeGetRequest(v510Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken))
     reply.code should equal(200)
     (reply.body \ "views").children.map(v =>
       ViewIdJSON((v \ "id").extract[String], (v \ "is_public").extractOpt[Boolean].getOrElse(false)))
@@ -225,7 +225,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
   // How many views a user holds on an account, read through v5.1.0 (served by v3.0.0
   // getPermissionForUserForBankAccount); the v1.2.1 handler for this path is commented out.
   private def userViewCountViaKeptVersion(bankId: String, accountId: String, providerId: String, consumerAndToken: Option[(Consumer, Token)]): Int = {
-    val reply = makeGetRequest(v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "permissions" / defaultProvider / providerId <@(consumerAndToken))
+    val reply = makeGetRequest(v510Request / "banks" / bankId / "accounts" / accountId / "permissions" / defaultProvider / providerId <@(consumerAndToken))
     // A failed lookup must not read as zero views, or the "nothing changed" checks pass without testing anything.
     reply.code should equal(200)
     (reply.body \ "views").children.size
@@ -256,7 +256,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
   def randomBank : String = {
     // getBanks of v5.0.0 and below is commented out, so the bank list comes from v5.1.0.
-    val banksJson = makeGetRequest(v5_1_0_Request / "banks").body.extract[code.api.v4_0_0.BanksJson400]
+    val banksJson = makeGetRequest(v510Request / "banks").body.extract[code.api.v4_0_0.BanksJson400]
     val randomPosition = nextInt(banksJson.banks.size)
     val bank = banksJson.banks(randomPosition)
     bank.id
@@ -271,24 +271,24 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
   // }
 
   def randomPrivateAccount(bankId : String) : AccountJSON = {
-    val accountsJson = makeGetRequest(v5_1_0_Request / "banks" / bankId / "accounts" / "private" <@(user1)).body.extract[AccountsJSON].accounts
+    val accountsJson = makeGetRequest(v510Request / "banks" / bankId / "accounts" / "private" <@(user1)).body.extract[AccountsJSON].accounts
     val randomPosition = nextInt(accountsJson.size)
     accountsJson(randomPosition)
   }
 
   def privateAccountThatsNot(bankId: String, accId : String) : AccountJSON = {
-    val accountsJson = makeGetRequest(v5_1_0_Request / "banks" / bankId / "accounts" / "private" <@(user1)).body.extract[AccountsJSON].accounts
+    val accountsJson = makeGetRequest(v510Request / "banks" / bankId / "accounts" / "private" <@(user1)).body.extract[AccountsJSON].accounts
     accountsJson.find(acc => acc.id != accId).getOrElse(fail(s"no private account that's not $accId"))
   }
 
   def randomAccountPermission(bankId : String, accountId : String) : PermissionJSON = {
-    val persmissionsInfo = makeGetRequest(v5_1_0_Request / "banks" / bankId / "accounts" / accountId / "permissions" <@(user1)).body.extract[PermissionsJSON]
+    val persmissionsInfo = makeGetRequest(v510Request / "banks" / bankId / "accounts" / accountId / "permissions" <@(user1)).body.extract[PermissionsJSON]
     val randomPermission = nextInt(persmissionsInfo.permissions.size)
     persmissionsInfo.permissions(randomPermission)
   }
 
   def randomCounterparty(bankId : String, accountId : String, viewId : String): IdJSON = {
-    val reply = makeGetRequest(v5_1_0_Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" <@(user1))
+    val reply = makeGetRequest(v510Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" <@(user1))
     val otherAccounts = (reply.body \ "other_accounts").children.map(o => IdJSON((o \ "id").extract[String]))
     otherAccounts(nextInt(otherAccounts.size))
   }
@@ -305,7 +305,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
   }
 
   def randomTransaction(bankId : String, accountId : String, viewId: String) : IdJSON = {
-    val reply = makeGetRequest(v5_1_0_Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@(user1))
+    val reply = makeGetRequest(v510Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@(user1))
     val transactionsJson = (reply.body \ "transactions").children.map(o => IdJSON((o \ "id").extract[String]))
     val randomPosition = nextInt(transactionsJson.size)
     transactionsJson(randomPosition)
@@ -658,13 +658,13 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
 
   def getTransactions(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)], params: List[(String, String)] = Nil): APIResponse = {
     // Only the payment scenario uses this; the v1.2.1 handler is commented out, so it reads through v5.1.0.
-    val request = v5_1_0_Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@(consumerAndToken)
+    val request = v510Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@(consumerAndToken)
     makeGetRequest(request, params)
   }
 
   def getTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     // Only the payment scenario uses this; the v1.2.1 handler is commented out, so it reads through v5.1.0.
-    val request = v5_1_0_Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "transaction" <@(consumerAndToken)
+    val request = v510Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "transaction" <@(consumerAndToken)
     makeGetRequest(request)
   }
 

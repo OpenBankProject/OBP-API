@@ -68,6 +68,9 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
 
   private val bankId = testBankId1.value
   private val messageField = "message"
+  private val otherBankAttributeName = "other bank attribute"
+  private val otherProductAttributeName = "other product attribute"
+  private val testPhoneNumber = "+49 123 456"
 
   private def messageOf(body: JValue): String = (body \ messageField).extract[String]
 
@@ -84,8 +87,8 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
       v5_1_0_Request / "banks" / bankId / "products" / "PRODUCT_CODE" / "attributes" / productAttributeId
 
     scenario("the attribute of another bank or another product is not found when read", VersionOfApi) {
-      val otherBankAttribute = attributeAt("other-bank-for-attribute-get-v510", "PRODUCT_CODE", "other bank attribute")
-      val otherProductAttribute = attributeAt(bankId, "OTHER_PRODUCT_CODE", "other product attribute")
+      val otherBankAttribute = attributeAt("other-bank-for-attribute-get-v510", "PRODUCT_CODE", otherBankAttributeName)
+      val otherProductAttribute = attributeAt(bankId, "OTHER_PRODUCT_CODE", otherProductAttributeName)
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canGetProductAttribute.toString)
 
       val otherBank = makeGetRequest(attributePath(otherBankAttribute.productAttributeId).GET <@ (user1))
@@ -98,8 +101,8 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
     }
 
     scenario("the attribute of another bank or another product is not changed or moved", VersionOfApi) {
-      val otherBankAttribute = attributeAt("other-bank-for-attribute-put-v510", "PRODUCT_CODE", "other bank attribute")
-      val otherProductAttribute = attributeAt(bankId, "OTHER_PRODUCT_CODE", "other product attribute")
+      val otherBankAttribute = attributeAt("other-bank-for-attribute-put-v510", "PRODUCT_CODE", otherBankAttributeName)
+      val otherProductAttribute = attributeAt(bankId, "OTHER_PRODUCT_CODE", otherProductAttributeName)
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canUpdateProductAttribute.toString)
       val body = write(SwaggerDefinitionsJSON.productAttributeJsonV400.copy(name = "taken over"))
 
@@ -110,7 +113,7 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
         ProductAttributeX.productAttributeProvider.vend.getProductAttributeById(otherBankAttribute.productAttributeId),
         Duration.Inf).openOrThrowException("the test attribute is gone")
       storedOtherBank.bankId.value should equal("other-bank-for-attribute-put-v510")
-      storedOtherBank.name should equal("other bank attribute")
+      storedOtherBank.name should equal(otherBankAttributeName)
 
       val otherProduct = makePutRequest(attributePath(otherProductAttribute.productAttributeId).PUT <@ (user1), body)
       otherProduct.code should equal(404)
@@ -118,7 +121,7 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
         ProductAttributeX.productAttributeProvider.vend.getProductAttributeById(otherProductAttribute.productAttributeId),
         Duration.Inf).openOrThrowException("the test attribute is gone")
       storedOtherProduct.productCode.value should equal("OTHER_PRODUCT_CODE")
-      storedOtherProduct.name should equal("other product attribute")
+      storedOtherProduct.name should equal(otherProductAttributeName)
     }
 
     scenario("an attribute type that does not exist is refused", VersionOfApi) {
@@ -163,7 +166,7 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
 
   feature("User Auth Context updates (v5.0.0 createUserAuthContextUpdateRequest and answerUserAuthContextUpdateChallenge)") {
     scenario("a request needs the App Scope or the User Role CanCreateUserAuthContextUpdate at the bank", VersionOfApi) {
-      val customerNumber = createCustomerEndpointV510(bankId, "Customer for the role check", "+49 123 456").customer_number
+      val customerNumber = createCustomerEndpointV510(bankId, "Customer for the role check", testPhoneNumber).customer_number
       def numberOfUpdatesOfUser2 = UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend
         .getUserAuthContextUpdatesBox(resourceUser2.userId).toList.flatten.size
 
@@ -182,9 +185,9 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
 
     scenario("an update can only be answered at the bank it was requested at", VersionOfApi) {
       Scope.scope.vend.addScope(bankId, consumerPrimaryKeyOf(user1), ApiRole.canCreateUserAuthContextUpdate.toString())
-      val customer = createCustomerEndpointV510(bankId, "Customer at the request bank", "+49 123 456")
+      val customer = createCustomerEndpointV510(bankId, "Customer at the request bank", testPhoneNumber)
       val customerIdAtOtherBank = CustomerX.customerProvider.vend.addCustomer(
-        testBankId2, customer.customer_number, "Customer At Other Bank", "+49 123 456", "other-bank-customer@example.com",
+        testBankId2, customer.customer_number, "Customer At Other Bank", testPhoneNumber, "other-bank-customer@example.com",
         CustomerFaceImage(new Date(), "http://example.com/face.png"),
         new Date(), "single", 0, Nil, "Bachelor", "employed", true, new Date(),
         None, None, "", "", ""
@@ -209,7 +212,7 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
 
     scenario("another user cannot answer, or use up, the challenge of a user's update", VersionOfApi) {
       Scope.scope.vend.addScope(bankId, consumerPrimaryKeyOf(user1), ApiRole.canCreateUserAuthContextUpdate.toString())
-      val customer = createCustomerEndpointV510(bankId, "Customer for the other user check", "+49 123 456")
+      val customer = createCustomerEndpointV510(bankId, "Customer for the other user check", testPhoneNumber)
       val created = requestUpdate(bankId, user1, customer.customer_number)
       created.code should equal(201)
       val authContextUpdateId = (created.body \ "user_auth_context_update_id").extract[String]
@@ -362,7 +365,7 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
 
   feature("POST /management/banks/BANK_ID/cards checks its input (v5.0.0 addCardForBank)") {
     scenario("a card is refused for each kind of wrong input, then created once", VersionOfApi) {
-      val customerId = createCustomerEndpointV510(bankId, "Card holder", "+49 123 456").customer_id
+      val customerId = createCustomerEndpointV510(bankId, "Card holder", testPhoneNumber).customer_id
       val properCard = SwaggerDefinitionsJSON.createPhysicalCardJsonV500.copy(
         account_id = testAccountId1.value, issue_number = "123", customer_id = customerId,
         card_number = s"4${Random.nextInt(1000000000)}")

@@ -155,7 +155,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   val server = TestServer
   def baseRequest = host(server.host, server.port)
   /** The v5.1.0 prefix; tests that read or create their data through a kept version use it. */
-  def v5_1_0_Request: OBPReq = baseRequest / "obp" / "v5.1.0"
+  def v510Request: OBPReq = baseRequest / "obp" / "v5.1.0"
   val secured = APIUtil.getPropsAsBoolValue("external.https", false)
   def externalBaseRequest = (server.externalHost, server.externalPort) match {
     case (Full(h), Full(p)) if secured  => host(h, p).secure
