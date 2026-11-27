@@ -164,6 +164,14 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
   private def isLinked(userId: String, customerId: String): Boolean =
     UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(userId, customerId).isDefined
 
+  // The users linked to a customer, read through the API (v4.0.0 getUserCustomerLinksByCustomerId).
+  private def linkedUserIdsViaApi(bank: String, customerId: String): List[String] = {
+    Entitlement.entitlement.vend.addEntitlement(bank, resourceUser1.userId, ApiRole.canGetUserCustomerLink.toString)
+    val response = makeGetRequest((v5_1_0_Request / "banks" / bank / "user_customer_links" / "customers" / customerId).GET <@ (user1))
+    response.code should equal(200)
+    (response.body \ "user_customer_links").children.map(l => (l \ "user_id").extract[String])
+  }
+
   feature("User Auth Context updates (v5.0.0 createUserAuthContextUpdateRequest and answerUserAuthContextUpdateChallenge)") {
     scenario("a request needs the App Scope or the User Role CanCreateUserAuthContextUpdate at the bank", VersionOfApi) {
       val customerNumber = createCustomerEndpointV510(bankId, "Customer for the role check", testPhoneNumber).customer_number
@@ -207,6 +215,7 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
       atRequestBank.code should equal(200)
       (atRequestBank.body \ "status").extract[String] should equal(UserAuthContextUpdateStatus.ACCEPTED.toString)
       isLinked(resourceUser1.userId, customer.customer_id) should equal(true)
+      linkedUserIdsViaApi(bankId, customer.customer_id) should contain(resourceUser1.userId)
       isLinked(resourceUser1.userId, customerIdAtOtherBank) should equal(false)
     }
 
@@ -228,6 +237,9 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
       byUser1.code should equal(200)
       (byUser1.body \ "status").extract[String] should equal(UserAuthContextUpdateStatus.ACCEPTED.toString)
       isLinked(resourceUser1.userId, customer.customer_id) should equal(true)
+      val linked = linkedUserIdsViaApi(bankId, customer.customer_id)
+      linked should contain(resourceUser1.userId)
+      linked should not contain (resourceUser2.userId)
     }
   }
 
