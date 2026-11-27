@@ -3254,6 +3254,14 @@
       "reason": "Get Banks v6.0.0 now returns onward_routes for each bank; the example shows one.",
       "lift_digest": "054b03eb782e03e7bb9aa689ef74e5b9b72149100d57f7856b02fb536dfa5771",
       "http4s_digest": "eb30507ed15d7be3e19b461d62c2a53d9b8a38db27f934cb2aff8840e619327c"
+    },
+    {
+      "version": "v3_0_0",
+      "endpoint": "createViewForBankAccount",
+      "field": "errorResponseBodies",
+      "reason": "Added SourceViewHasLessPermission (403): the new view may only get actions the caller already has on one of their views of the account, as v3.0.0 Update Custom View does",
+      "lift_digest": "63c2f1b01e07eb8a86158e5631bde4dd32465aa75c13ba61d369f0ad8cf952d7",
+      "http4s_digest": "0f50f78378cc09491986f9a9ee074ebd5d56b93debc411788c9c453db54b623d"
     }
   ]
 }

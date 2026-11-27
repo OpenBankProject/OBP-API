@@ -233,20 +233,20 @@ object SwaggerDefinitionsJSON {
       CAN_SEE_OTHER_ACCOUNT_ROUTING_SCHEME,
       CAN_SEE_OTHER_ACCOUNT_ROUTING_ADDRESS,
       //v310
-      CAN_QUERY_AVAILABLE_FUNDS,
       CAN_ADD_TRANSACTION_REQUEST_TO_OWN_ACCOUNT,
       CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT,
-      CAN_SEE_BANK_ACCOUNT_CREDIT_LIMIT,
-      //v400
-      CAN_CREATE_DIRECT_DEBIT,
-      CAN_CREATE_STANDING_ORDER,
 
       //payments
       CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT
     )
   )
+  // A custom view may only get actions its creator already has, so the example asks only for actions
+  // the system owner view has. A system view is created with a Role, so its example adds the rest.
+  private lazy val actionsTheOwnerViewDoesNotHave =
+    List(CAN_QUERY_AVAILABLE_FUNDS, CAN_SEE_BANK_ACCOUNT_CREDIT_LIMIT, CAN_CREATE_DIRECT_DEBIT, CAN_CREATE_STANDING_ORDER)
 
-  lazy val createSystemViewJsonV300 = createViewJsonV300.copy(name = "test", metadata_view = "test", is_public = false)
+  lazy val createSystemViewJsonV300 = createViewJsonV300.copy(name = "test", metadata_view = "test", is_public = false,
+    allowed_actions = createViewJsonV300.allowed_actions ++ actionsTheOwnerViewDoesNotHave)
 
   lazy val allowedActionsV500 = List(
     CAN_EDIT_OWNER_COMMENT,

@@ -219,7 +219,7 @@ object Http4s300 {
       | """,
       SwaggerDefinitionsJSON.createViewJsonV300,
       viewJsonV300,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, UnknownError),
+      List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, SourceViewHasLessPermission, UnknownError),
       List(apiTagView, apiTagAccount),
       None,
       http4sPartialFunction = Some(createViewForBankAccount)
@@ -239,6 +239,11 @@ object Http4s300 {
         _ <- code.util.Helper.booleanToFuture(
           s"${ViewDoesNotPermitAccess} You need the `${CAN_CREATE_CUSTOM_VIEW}` permission on any your views",
           cc = Some(cc)) { anyCanCreate }
+        // the new view may only get actions the caller already has on one of their views of this account, else they grant themselves more
+        callerActions = permission.views.flatMap(_.allowed_actions).toSet
+        _ <- code.util.Helper.booleanToFuture(
+          s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${createBodyJson.allowed_actions})",
+          failCode = 403, cc = Some(cc)) { createBodyJson.allowed_actions.toSet.subsetOf(callerActions) }
         (view, _) <- ViewNewStyle.createCustomView(BankIdAccountId(account.bankId, account.accountId), createBodyJson.toCreateViewJson, Some(cc))
       } yield JSONFactory300.createViewJSON(view)
     }
