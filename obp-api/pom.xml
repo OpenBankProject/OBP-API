@@ -198,10 +198,12 @@
       <version>2.11.1</version>
     </dependency>
 
+    <!-- elasticsearch-x-content embeds its own jackson-core, so the Jackson BOM
+         does not reach it. 8.19.26 embeds jackson-core 2.21.8 (8.19.15 had 2.17.2). -->
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>8.19.15</version>
+      <version>8.19.26</version>
     </dependency>
     <!-- elastic4s moved to community fork (nl.gn0s1s) by Philippus after the
          original com.sksamuel line stopped publishing past 8.11.5. Package
@@ -212,13 +214,14 @@
       <artifactId>elastic4s-client-esjava_${scala.version}</artifactId>
       <version>8.19.1</version>
     </dependency>
-    <!-- Pin elasticsearch-rest-client to the version elastic4s 8.19.1 expects.
-         The rest-client is a thin Apache-HTTP wrapper; elastic4s uses it as a
+    <!-- Pin elasticsearch-rest-client to the same 8.19 patch release as
+         elasticsearch (elastic4s 8.19.1 was built against 8.19.12). The
+         rest-client is a thin Apache-HTTP wrapper; elastic4s uses it as a
          black box. -->
     <dependency>
       <groupId>org.elasticsearch.client</groupId>
       <artifactId>elasticsearch-rest-client</artifactId>
-      <version>8.19.12</version>
+      <version>8.19.26</version>
     </dependency>
     <!-- for LiftConsole -->
     <dependency>
