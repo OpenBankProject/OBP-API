@@ -94,6 +94,7 @@ object Http4s121 {
 
   object Implementations1_2_1 {
     private val CouldNotSaveThePrivilege = "could not save the privilege"
+    private val UserHasNoAccessToOwnerView = "user does not have access to owner view on account"
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
@@ -889,7 +890,7 @@ object Http4s121 {
       |The User needs to have access to the owner view.""",
       viewIdsJson,
       viewsJSONV121,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "wrong format JSON", CouldNotSaveThePrivilege, "user does not have access to owner view on account"),
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "wrong format JSON", CouldNotSaveThePrivilege, UserHasNoAccessToOwnerView),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
       http4sPartialFunction = Some(addPermissionForUserForBankAccountForMultipleViews)
     )
@@ -928,7 +929,7 @@ object Http4s121 {
       EmptyBody,
       // No Json body required
       viewJSONV121,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, UserLacksPermissionCanGrantAccessToViewForTargetAccount, CouldNotSaveThePrivilege, "user does not have access to owner view on account"),
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, UserLacksPermissionCanGrantAccessToViewForTargetAccount, CouldNotSaveThePrivilege, UserHasNoAccessToOwnerView),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
       http4sPartialFunction = Some(addPermissionForUserForBankAccountForOneView)
     )
@@ -964,7 +965,7 @@ object Http4s121 {
       |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, CannotRevokeOwnAccountAccess, CouldNotSaveThePrivilege, "user does not have access to owner view on account", UnknownError),
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, CannotRevokeOwnAccountAccess, CouldNotSaveThePrivilege, UserHasNoAccessToOwnerView, UnknownError),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagEntitlement, apiTagOwnerRequired),
       http4sPartialFunction = Some(removePermissionForUserForBankAccountForOneView)
     )
@@ -1001,7 +1002,7 @@ object Http4s121 {
       EmptyBody,
       EmptyBody,
       // UserLacksPermissionCanRevokeAccessToViewForTargetAccount: the caller cannot revoke one of the views the target user holds
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, CannotRevokeOwnAccountAccess, UserLacksPermissionCanRevokeAccessToViewForTargetAccount, UnknownError, "user does not have access to owner view on account"),
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, CannotRevokeOwnAccountAccess, UserLacksPermissionCanRevokeAccessToViewForTargetAccount, UnknownError, UserHasNoAccessToOwnerView),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
       http4sPartialFunction = Some(removePermissionForUserForBankAccountForAllViews)
     )
