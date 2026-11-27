@@ -12,7 +12,7 @@ The analysis was made on `origin/develop` at commit `8dfeb284a` (2026-11-26).
 | Reachable from a kept version (set K) | 475 |
 | Reachable only from a version below v5.1.0 (set O) | **140 docs, 134 handlers** |
 | Lines in O handlers and their ResourceDoc blocks | about 5,800 |
-| Helper symbols used only by O | 20 |
+| Helper symbols used only by O | 20 (7 commented out, 13 public ones kept) |
 | Connector methods used only by O | 0 |
 | O endpoints with no replacement in K | **0** |
 
@@ -23,6 +23,8 @@ Every O endpoint is shadowed by a newer handler with the same verb and the same 
 Requests go through one chain, `Http4sApp.baseServices` (`obp-api/src/main/scala/code/api/util/http4s/Http4sApp.scala:145`). It first tries the CORS handler and the apps, status and resource-docs pages. Then it tries v7.0.0, v6.0.0, v5.1.0 and v5.0.0. Next come Berlin Group v2, UK Open Banking v2.0, v3.1 and v4.0.1, and Berlin Group v1.3. Last come v4.0.0 down to v1.2.1. After those come dynamic entities and endpoints, DirectLogin, SIWE, the alive check, domain APIs and a JSON 404.
 
 The props `api_disabled_versions` and `api_enabled_versions` are read in one place, `Http4sApp.gate` (`Http4sApp.scala:76`). A disabled version gets an empty route table, so its own prefix such as `/obp/v4.0.0/` returns 404. Nothing else in the chain checks the version.
+
+The versions below v5.1.0 are not disabled by default: `api_disabled_versions` is empty unless a deployment sets it, and this change does not set it. On an instance that leaves them enabled, the old prefixes keep serving every endpoint in set K, and an endpoint in set O answers 404 under its own old prefix, for example `GET /obp/v1.2.1/banks`. The same path under `/obp/v5.1.0/`, `/obp/v6.0.0/` or `/obp/v7.0.0/` is served as before.
 
 Each version file ends with a bridge to the version below it. The bridge rewrites the path prefix and calls the lower version's routes directly, without the gate:
 
@@ -75,7 +77,7 @@ None of these removes a capability, because each one is shadowed by a newer hand
 
 ## How it was commented out
 
-There is one commit per version, newest first, so each commit removes the users of a helper before the helper itself. Each commit comments out the O handlers, their ResourceDoc blocks, their `routesInOrder` entries and the helpers in the same `Http4sNNN.scala` that only they use. Every commented block starts with the tag `THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0`, followed by a line saying why, so a search for the tag finds every block. Test tags that named an O handler with `nameOf` now use the same name as a string, so they still compile. Each commit was compiled, with its tests, before the next one. The JSONFactory helpers and `NewStyle.function.ownEntitlement` follow in one commit of their own, and the tests that only exercised O endpoints in another.
+There is one commit per version, newest first, so each commit removes the users of a helper before the helper itself. Each commit comments out the O handlers, their ResourceDoc blocks, their `routesInOrder` entries and the helpers in the same `Http4sNNN.scala` that only they use. Every commented block starts with the tag `THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0`, followed by a line saying why, so a search for the tag finds every block. Test tags that named an O handler with `nameOf` now use the same name as a string, so they still compile. Each commit was compiled, with its tests, before the next one. The JSONFactory helpers and `NewStyle.function.ownEntitlement` were commented out in one commit of their own and later restored, because dynamic Scala code may call them (see "Helper code used only by set O"). The tests that only exercised O endpoints follow in another commit.
 
 1. v5.0.0 (2 docs)
 2. v4.0.0 (18 docs)
@@ -290,6 +292,8 @@ The handler column gives the line of the route `val` in the version's `Http4sNNN
 
 ## Helper code used only by set O
 
+Only the 7 private helpers in the table are commented out. The 13 public ones (`ownEntitlement`, `commonTxReqErrors` and the JSONFactory functions) are kept, because dynamic Scala code (connector methods, dynamic endpoints and dynamic resource docs) is compiled at run time and may call them; the compiler of this repository never sees that code. `DynamicCodePublicHelpersTest` compiles dynamic Scala code that refers to each of the 13, so commenting one out, renaming it or changing its parameter types fails that suite.
+
 Found by a fixpoint over every member declared in the old version folders and every `NewStyle.function` method. A symbol counts when each reference to it, apart from its declaration, is inside an O handler, an O ResourceDoc block or another such symbol. Tests are not counted as users, because a test that only covers O goes with it.
 
 | Symbol | Declared at | Used by |
@@ -317,7 +321,7 @@ Found by a fixpoint over every member declared in the old version folders and ev
 
 No connector method becomes unused. Of the 57 connector and `NewStyle.function` methods that O handlers call, only `NewStyle.function.ownEntitlement` has no other caller.
 
-Uncertain: references were matched by name, so two symbols with the same name in different files are treated as one. That can only keep a symbol, never drop one wrongly. Symbols reached through reflection, string names or dynamic code would not be seen; none of the 20 is of that kind.
+Uncertain: references were matched by name, so two symbols with the same name in different files are treated as one. That can only keep a symbol, never drop one wrongly. Symbols reached through reflection or string names would not be seen. Dynamic code is why the public helpers are kept.
 
 ### Already unused, outside this task
 
