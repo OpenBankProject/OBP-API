@@ -130,11 +130,21 @@
       <version>${apache.avro.version}</version>
     </dependency>
     <!-- Pin snappy-java to override older versions pulled in transitively by avro.
-         Fixes CVE-2023-34453, CVE-2023-34454, CVE-2023-34455, CVE-2023-43642. -->
+         Fixes CVE-2023-34453, CVE-2023-34454, CVE-2023-34455, CVE-2023-43642,
+         and since 1.1.10.9 GHSA-gwq9-9ffj-mvrv, GHSA-xqrx-qh46-34m7 and
+         GHSA-q233-g92q-qxp6. -->
     <dependency>
       <groupId>org.xerial.snappy</groupId>
       <artifactId>snappy-java</artifactId>
-      <version>1.1.10.4</version>
+      <version>1.1.10.9</version>
+    </dependency>
+    <!-- Pin lz4-java, pulled in by elasticsearch through elasticsearch-lz4.
+         The maintained line is the at.yawk.lz4 fork (org.lz4 stopped at 1.8.x).
+         1.11.4 fixes GHSA-mcr4-qmvw-px4g and the other 1.10.x / 1.11.x advisories. -->
+    <dependency>
+      <groupId>at.yawk.lz4</groupId>
+      <artifactId>lz4-java</artifactId>
+      <version>1.11.4</version>
     </dependency>
     <!-- Pin msal4j to override the older version pulled in transitively by
          mssql-jdbc → azure-identity. Fixes CVE-2024-35255 (elevation of
