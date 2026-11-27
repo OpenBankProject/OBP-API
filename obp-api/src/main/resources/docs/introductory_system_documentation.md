@@ -1559,11 +1559,9 @@ POST /open-banking/v3.1/cbpii/funds-confirmation-consents
 
 **Versioning:**
 
-- v1.2.1, v1.3.0, v1.4.0 (Legacy, STABLE)
-- v2.0.0, v2.1.0, v2.2.0 (STABLE)
-- v3.0.0, v3.1.0 (STABLE)
-- v4.0.0 (STABLE)
-- v5.0.0, v5.1.0 (STABLE)
+- v1.2.1, v1.3.0, v1.4.0, v2.0.0 (DEPRECATED)
+- v2.1.0, v2.2.0, v3.0.0, v3.1.0, v4.0.0, v5.0.0 (DEPRECATED): call v5.1.0 or newer
+- v5.1.0 (STABLE)
 - v6.0.0 (DRAFT) - Mandates, Maker/Checker, gRPC connector, new User endpoints
 - v7.0.0 (BLEEDING-EDGE) - Files, asset registry, Platform Apps, Consumer Account Access, Groups, Tenants, Organisations, API Product Subscriptions, Domain APIs, Dynamic Entity webhooks, retention policies, Telemetry, utility payments and payment promises
 

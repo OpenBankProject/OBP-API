@@ -47,7 +47,7 @@ text it passes can still need rewriting.
 ## Status of API Versions
 
 OBP instances support multiple versions of the API simultaneously (unless they are deactivated in config)
-To see the status (DRAFT, STABLE or BLEEDING-EDGE) of an API version, look at the root endpoint. For example, `/obp/v2.0.0/root` or `/obp/v3.0.0/root`.
+To see the status (DRAFT, STABLE, BLEEDING-EDGE or DEPRECATED) of an API version, look at the root endpoint. For example, `/obp/v2.0.0/root` or `/obp/v3.0.0/root`.
 
 ```log
 24.01.2017, [V1.2.1](https://apisandbox.openbankproject.com/obp/v1.2.1/root) was marked as stable.
@@ -59,6 +59,7 @@ To see the status (DRAFT, STABLE or BLEEDING-EDGE) of an API version, look at th
 18.11.2020, [V3.1.0](https://apisandbox.openbankproject.com/obp/v3.1.0/root) was marked as stable.
 16.12.2022, [V4.0.0](https://apisandbox.openbankproject.com/obp/v4.0.0/root) was marked as stable.
 16.12.2022, [V5.0.0](https://apisandbox.openbankproject.com/obp/v5.0.0/root) was marked as stable.
+27.11.2026, V2.1.0, V2.2.0, V3.0.0, V3.1.0, V4.0.0 and V5.0.0 were marked as deprecated: call v5.1.0 or newer.
 ```
 
 ## License

@@ -3935,7 +3935,7 @@ object Http4s700 {
         |* `source` — `all` (default), `static` or `dynamic`.
         |* `limit` and `offset` — page the result. Without `limit` the whole Glossary is returned, as it always has been. `total_count` counts what matched before paging.
         |
-        |This is the same Glossary that `GET /obp/v3.0.0/api/glossary` returns. That version is STABLE and its JSON cannot change, so it carries neither the fields above nor these parameters.
+        |This is the same Glossary that `GET /obp/v3.0.0/api/glossary` returns. That version is deprecated and its JSON does not change, so it carries neither the fields above nor these parameters.
         |
         |""",
       EmptyBody,

@@ -133,7 +133,7 @@ import scala.concurrent.Future
 
 object Http4s400 {
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v4_0_0
-  val versionStatus: String                      = ApiVersionStatus.STABLE.toString
+  val versionStatus: String                      = ApiVersionStatus.DEPRECATED.toString
   // v4.0.0 splits doc registration into a static buffer plus a few entries that are dynamic
   // at construction time (createDynamicEntityDoc et al). The public `resourceDocs` accessor
   // (used by the middleware) is the union. For now only `staticResourceDocs` is populated;

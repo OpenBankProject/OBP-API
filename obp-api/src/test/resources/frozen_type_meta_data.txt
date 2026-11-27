@@ -1,504 +1,3 @@
-endpoint	v2.1.0	addCardForBank
-endpoint	v2.1.0	answerTransactionRequestChallengeCounterparty
-endpoint	v2.1.0	answerTransactionRequestChallengeFree_form
-endpoint	v2.1.0	answerTransactionRequestChallengeSandbox_tan
-endpoint	v2.1.0	answerTransactionRequestChallengeSepa
-endpoint	v2.1.0	createBranch
-endpoint	v2.1.0	createCustomer
-endpoint	v2.1.0	createTransactionRequestCounterparty
-endpoint	v2.1.0	createTransactionRequestFreeForm
-endpoint	v2.1.0	createTransactionRequestSandboxTan
-endpoint	v2.1.0	createTransactionRequestSepa
-endpoint	v2.1.0	createTransactionType
-endpoint	v2.1.0	enableDisableConsumers
-endpoint	v2.1.0	getAtm
-endpoint	v2.1.0	getBranch
-endpoint	v2.1.0	getConsumer
-endpoint	v2.1.0	getConsumers
-endpoint	v2.1.0	getCustomersForCurrentUserAtBank
-endpoint	v2.1.0	getCustomersForUser
-endpoint	v2.1.0	getEntitlementsByBankAndUser
-endpoint	v2.1.0	getMetrics
-endpoint	v2.1.0	getProduct
-endpoint	v2.1.0	getProducts
-endpoint	v2.1.0	getRoles
-endpoint	v2.1.0	getTransactionRequestTypesSupportedByBank
-endpoint	v2.1.0	getTransactionRequests
-endpoint	v2.1.0	getUsers
-endpoint	v2.1.0	root
-endpoint	v2.1.0	sandboxDataImport
-endpoint	v2.1.0	updateBranch
-endpoint	v2.1.0	updateConsumerRedirectUrl
-endpoint	v2.2.0	config
-endpoint	v2.2.0	createAccount
-endpoint	v2.2.0	createAtm
-endpoint	v2.2.0	createBank
-endpoint	v2.2.0	createBranch
-endpoint	v2.2.0	createConsumer
-endpoint	v2.2.0	createCounterparty
-endpoint	v2.2.0	createFx
-endpoint	v2.2.0	createProduct
-endpoint	v2.2.0	createViewForBankAccount
-endpoint	v2.2.0	getConnectorMetrics
-endpoint	v2.2.0	getCurrentFxRate
-endpoint	v2.2.0	getExplicitCounterpartiesForAccount
-endpoint	v2.2.0	getExplicitCounterpartyById
-endpoint	v2.2.0	getMessageDocs
-endpoint	v2.2.0	getViewsForBankAccount
-endpoint	v2.2.0	root
-endpoint	v2.2.0	updateViewForBankAccount
-endpoint	v3.0.0	addEntitlementRequest
-endpoint	v3.0.0	addScope
-endpoint	v3.0.0	bankById
-endpoint	v3.0.0	corePrivateAccountsAllBanks
-endpoint	v3.0.0	createAtm
-endpoint	v3.0.0	createBranch
-endpoint	v3.0.0	createViewForBankAccount
-endpoint	v3.0.0	dataWarehouseSearch
-endpoint	v3.0.0	dataWarehouseStatistics
-endpoint	v3.0.0	deleteEntitlementRequest
-endpoint	v3.0.0	deleteScope
-endpoint	v3.0.0	getAccountsHeld
-endpoint	v3.0.0	getAdapterInfoForBank
-endpoint	v3.0.0	getAggregateMetrics
-endpoint	v3.0.0	getAllEntitlementRequests
-endpoint	v3.0.0	getApiGlossary
-endpoint	v3.0.0	getAtm
-endpoint	v3.0.0	getAtms
-endpoint	v3.0.0	getBanks
-endpoint	v3.0.0	getBranch
-endpoint	v3.0.0	getBranches
-endpoint	v3.0.0	getCoreAccountById
-endpoint	v3.0.0	getCoreTransactionsForBankAccount
-endpoint	v3.0.0	getCurrentUser
-endpoint	v3.0.0	getCustomersForUser
-endpoint	v3.0.0	getEntitlementRequests
-endpoint	v3.0.0	getEntitlementRequestsForCurrentUser
-endpoint	v3.0.0	getEntitlementsForCurrentUser
-endpoint	v3.0.0	getFirehoseAccountsAtOneBank
-endpoint	v3.0.0	getFirehoseTransactionsForBankAccount
-endpoint	v3.0.0	getOtherAccountByIdForBankAccount
-endpoint	v3.0.0	getOtherAccountsForBankAccount
-endpoint	v3.0.0	getPermissionForUserForBankAccount
-endpoint	v3.0.0	getPrivateAccountById
-endpoint	v3.0.0	getPrivateAccountIdsbyBankId
-endpoint	v3.0.0	getPublicAccountById
-endpoint	v3.0.0	getScopes
-endpoint	v3.0.0	getTransactionsForBankAccount
-endpoint	v3.0.0	getUser
-endpoint	v3.0.0	getUserByUserId
-endpoint	v3.0.0	getUserByUsername
-endpoint	v3.0.0	getUsers
-endpoint	v3.0.0	getViewsForBankAccount
-endpoint	v3.0.0	privateAccountsAtOneBank
-endpoint	v3.0.0	root
-endpoint	v3.0.0	updateBranch
-endpoint	v3.0.0	updateViewForBankAccount
-endpoint	v3.1.0	addCardForBank
-endpoint	v3.1.0	answerConsentChallenge
-endpoint	v3.1.0	answerUserAuthContextUpdateChallenge
-endpoint	v3.1.0	callsLimit
-endpoint	v3.1.0	checkFundsAvailable
-endpoint	v3.1.0	config
-endpoint	v3.1.0	createAccount
-endpoint	v3.1.0	createAccountApplication
-endpoint	v3.1.0	createAccountAttribute
-endpoint	v3.1.0	createAccountWebhook
-endpoint	v3.1.0	createCardAttribute
-endpoint	v3.1.0	createConsentEmail
-endpoint	v3.1.0	createConsentImplicit
-endpoint	v3.1.0	createConsentSms
-endpoint	v3.1.0	createCustomer
-endpoint	v3.1.0	createCustomerAddress
-endpoint	v3.1.0	createMeeting
-endpoint	v3.1.0	createMethodRouting
-endpoint	v3.1.0	createProduct
-endpoint	v3.1.0	createProductAttribute
-endpoint	v3.1.0	createProductCollection
-endpoint	v3.1.0	createSystemView
-endpoint	v3.1.0	createTaxResidence
-endpoint	v3.1.0	createUserAuthContext
-endpoint	v3.1.0	createUserAuthContextUpdateRequest
-endpoint	v3.1.0	createWebUiProps
-endpoint	v3.1.0	deleteBranch
-endpoint	v3.1.0	deleteCardForBank
-endpoint	v3.1.0	deleteCustomerAddress
-endpoint	v3.1.0	deleteMethodRouting
-endpoint	v3.1.0	deleteProductAttribute
-endpoint	v3.1.0	deleteSystemView
-endpoint	v3.1.0	deleteTaxResidence
-endpoint	v3.1.0	deleteUserAuthContextById
-endpoint	v3.1.0	deleteUserAuthContexts
-endpoint	v3.1.0	deleteWebUiProps
-endpoint	v3.1.0	enableDisableAccountWebhook
-endpoint	v3.1.0	enableDisableConsumers
-endpoint	v3.1.0	getAccountApplication
-endpoint	v3.1.0	getAccountApplications
-endpoint	v3.1.0	getAccountWebhooks
-endpoint	v3.1.0	getAdapterInfo
-endpoint	v3.1.0	getAllEntitlements
-endpoint	v3.1.0	getBadLoginStatus
-endpoint	v3.1.0	getBankAccountsBalances
-endpoint	v3.1.0	getCallsLimit
-endpoint	v3.1.0	getCardForBank
-endpoint	v3.1.0	getCardsForBank
-endpoint	v3.1.0	getCheckbookOrders
-endpoint	v3.1.0	getConsents
-endpoint	v3.1.0	getConsumer
-endpoint	v3.1.0	getConsumers
-endpoint	v3.1.0	getConsumersForCurrentUser
-endpoint	v3.1.0	getCustomerAddresses
-endpoint	v3.1.0	getCustomerByCustomerId
-endpoint	v3.1.0	getCustomerByCustomerNumber
-endpoint	v3.1.0	getFirehoseCustomers
-endpoint	v3.1.0	getMeeting
-endpoint	v3.1.0	getMeetings
-endpoint	v3.1.0	getMessageDocsSwagger
-endpoint	v3.1.0	getMethodRoutings
-endpoint	v3.1.0	getMetricsTopConsumers
-endpoint	v3.1.0	getOAuth2ServerJWKsURIs
-endpoint	v3.1.0	getObpConnectorLoopback
-endpoint	v3.1.0	getPrivateAccountByIdFull
-endpoint	v3.1.0	getProduct
-endpoint	v3.1.0	getProductAttribute
-endpoint	v3.1.0	getProductCollection
-endpoint	v3.1.0	getProductTree
-endpoint	v3.1.0	getProducts
-endpoint	v3.1.0	getRateLimitingInfo
-endpoint	v3.1.0	getServerJWK
-endpoint	v3.1.0	getStatusOfCreditCardOrder
-endpoint	v3.1.0	getSystemView
-endpoint	v3.1.0	getTaxResidence
-endpoint	v3.1.0	getTopAPIs
-endpoint	v3.1.0	getTransactionByIdForBankAccount
-endpoint	v3.1.0	getTransactionRequests
-endpoint	v3.1.0	getUserAuthContexts
-endpoint	v3.1.0	getWebUiProps
-endpoint	v3.1.0	refreshUser
-endpoint	v3.1.0	revokeConsent
-endpoint	v3.1.0	root
-endpoint	v3.1.0	saveHistoricalTransaction
-endpoint	v3.1.0	unlockUser
-endpoint	v3.1.0	updateAccount
-endpoint	v3.1.0	updateAccountApplicationStatus
-endpoint	v3.1.0	updateAccountAttribute
-endpoint	v3.1.0	updateCardAttribute
-endpoint	v3.1.0	updateCustomerAddress
-endpoint	v3.1.0	updateCustomerBranch
-endpoint	v3.1.0	updateCustomerCreditLimit
-endpoint	v3.1.0	updateCustomerCreditRatingAndSource
-endpoint	v3.1.0	updateCustomerData
-endpoint	v3.1.0	updateCustomerEmail
-endpoint	v3.1.0	updateCustomerIdentity
-endpoint	v3.1.0	updateCustomerMobileNumber
-endpoint	v3.1.0	updateCustomerNumber
-endpoint	v3.1.0	updateMethodRouting
-endpoint	v3.1.0	updateProductAttribute
-endpoint	v3.1.0	updateSystemView
-endpoint	v3.1.0	updatedCardForBank
-endpoint	v4.0.0	addAccount
-endpoint	v4.0.0	addConsentUser
-endpoint	v4.0.0	addScope
-endpoint	v4.0.0	addTagForViewOnAccount
-endpoint	v4.0.0	answerTransactionRequestChallenge
-endpoint	v4.0.0	buildDynamicEndpointTemplate
-endpoint	v4.0.0	callsLimit
-endpoint	v4.0.0	createAtm
-endpoint	v4.0.0	createAuthenticationTypeValidation
-endpoint	v4.0.0	createBank
-endpoint	v4.0.0	createBankAccountNotificationWebhook
-endpoint	v4.0.0	createBankAttribute
-endpoint	v4.0.0	createBankLevelDynamicEndpoint
-endpoint	v4.0.0	createBankLevelDynamicEntity
-endpoint	v4.0.0	createBankLevelDynamicMessageDoc
-endpoint	v4.0.0	createBankLevelDynamicResourceDoc
-endpoint	v4.0.0	createBankLevelEndpointMapping
-endpoint	v4.0.0	createBankLevelEndpointTag
-endpoint	v4.0.0	createConnectorMethod
-endpoint	v4.0.0	createConsumer
-endpoint	v4.0.0	createCounterparty
-endpoint	v4.0.0	createCounterpartyForAnyAccount
-endpoint	v4.0.0	createCustomer
-endpoint	v4.0.0	createCustomerAttribute
-endpoint	v4.0.0	createCustomerMessage
-endpoint	v4.0.0	createDirectDebit
-endpoint	v4.0.0	createDirectDebitManagement
-endpoint	v4.0.0	createDynamicEndpoint
-endpoint	v4.0.0	createDynamicMessageDoc
-endpoint	v4.0.0	createDynamicResourceDoc
-endpoint	v4.0.0	createEndpointMapping
-endpoint	v4.0.0	createHistoricalTransactionAtBank
-endpoint	v4.0.0	createJsonSchemaValidation
-endpoint	v4.0.0	createMyApiCollection
-endpoint	v4.0.0	createMyApiCollectionEndpoint
-endpoint	v4.0.0	createMyApiCollectionEndpointById
-endpoint	v4.0.0	createMyPersonalUserAttribute
-endpoint	v4.0.0	createOrUpdateAccountAttributeDefinition
-endpoint	v4.0.0	createOrUpdateBankAttributeDefinition
-endpoint	v4.0.0	createOrUpdateCardAttributeDefinition
-endpoint	v4.0.0	createOrUpdateCustomerAttributeAttributeDefinition
-endpoint	v4.0.0	createOrUpdateProductAttributeDefinition
-endpoint	v4.0.0	createOrUpdateTransactionAttributeDefinition
-endpoint	v4.0.0	createOrUpdateTransactionRequestAttributeDefinition
-endpoint	v4.0.0	createProduct
-endpoint	v4.0.0	createProductAttribute
-endpoint	v4.0.0	createProductFee
-endpoint	v4.0.0	createSettlementAccount
-endpoint	v4.0.0	createStandingOrder
-endpoint	v4.0.0	createStandingOrderManagement
-endpoint	v4.0.0	createSystemAccountNotificationWebhook
-endpoint	v4.0.0	createSystemDynamicEntity
-endpoint	v4.0.0	createSystemLevelEndpointTag
-endpoint	v4.0.0	createTransactionAttribute
-endpoint	v4.0.0	createTransactionRequestAccount
-endpoint	v4.0.0	createTransactionRequestAccountOtp
-endpoint	v4.0.0	createTransactionRequestAgentCashWithDrawal
-endpoint	v4.0.0	createTransactionRequestAttribute
-endpoint	v4.0.0	createTransactionRequestCard
-endpoint	v4.0.0	createTransactionRequestCounterparty
-endpoint	v4.0.0	createTransactionRequestFreeForm
-endpoint	v4.0.0	createTransactionRequestRefund
-endpoint	v4.0.0	createTransactionRequestSepa
-endpoint	v4.0.0	createTransactionRequestSimple
-endpoint	v4.0.0	createUserCustomerLinks
-endpoint	v4.0.0	createUserInvitation
-endpoint	v4.0.0	createUserWithAccountAccess
-endpoint	v4.0.0	createUserWithRoles
-endpoint	v4.0.0	deleteAccountAttributeDefinition
-endpoint	v4.0.0	deleteAccountCascade
-endpoint	v4.0.0	deleteAtm
-endpoint	v4.0.0	deleteAuthenticationTypeValidation
-endpoint	v4.0.0	deleteBankAttribute
-endpoint	v4.0.0	deleteBankCascade
-endpoint	v4.0.0	deleteBankLevelDynamicEndpoint
-endpoint	v4.0.0	deleteBankLevelDynamicEntity
-endpoint	v4.0.0	deleteBankLevelDynamicMessageDoc
-endpoint	v4.0.0	deleteBankLevelDynamicResourceDoc
-endpoint	v4.0.0	deleteBankLevelEndpointMapping
-endpoint	v4.0.0	deleteBankLevelEndpointTag
-endpoint	v4.0.0	deleteCardAttributeDefinition
-endpoint	v4.0.0	deleteCounterpartyForAnyAccount
-endpoint	v4.0.0	deleteCustomerAttribute
-endpoint	v4.0.0	deleteCustomerAttributeDefinition
-endpoint	v4.0.0	deleteCustomerCascade
-endpoint	v4.0.0	deleteDynamicEndpoint
-endpoint	v4.0.0	deleteDynamicMessageDoc
-endpoint	v4.0.0	deleteDynamicResourceDoc
-endpoint	v4.0.0	deleteEndpointMapping
-endpoint	v4.0.0	deleteExplicitCounterparty
-endpoint	v4.0.0	deleteJsonSchemaValidation
-endpoint	v4.0.0	deleteMyApiCollection
-endpoint	v4.0.0	deleteMyApiCollectionEndpoint
-endpoint	v4.0.0	deleteMyApiCollectionEndpointById
-endpoint	v4.0.0	deleteMyApiCollectionEndpointByOperationId
-endpoint	v4.0.0	deleteMyDynamicEndpoint
-endpoint	v4.0.0	deleteMyDynamicEntity
-endpoint	v4.0.0	deleteProductAttributeDefinition
-endpoint	v4.0.0	deleteProductCascade
-endpoint	v4.0.0	deleteProductFee
-endpoint	v4.0.0	deleteSystemDynamicEntity
-endpoint	v4.0.0	deleteSystemLevelEndpointTag
-endpoint	v4.0.0	deleteTagForViewOnAccount
-endpoint	v4.0.0	deleteTransactionAttributeDefinition
-endpoint	v4.0.0	deleteTransactionCascade
-endpoint	v4.0.0	deleteTransactionRequestAttributeDefinition
-endpoint	v4.0.0	deleteUser
-endpoint	v4.0.0	deleteUserCustomerLink
-endpoint	v4.0.0	getAccountAttributeDefinition
-endpoint	v4.0.0	getAccountByAccountRouting
-endpoint	v4.0.0	getAccountsByAccountRoutingRegex
-endpoint	v4.0.0	getAccountsMinimalByCustomerId
-endpoint	v4.0.0	getAllAuthenticationTypeValidations
-endpoint	v4.0.0	getAllAuthenticationTypeValidationsPublic
-endpoint	v4.0.0	getAllBankLevelDynamicMessageDocs
-endpoint	v4.0.0	getAllBankLevelDynamicResourceDocs
-endpoint	v4.0.0	getAllBankLevelEndpointMappings
-endpoint	v4.0.0	getAllConnectorMethods
-endpoint	v4.0.0	getAllDynamicMessageDocs
-endpoint	v4.0.0	getAllDynamicResourceDocs
-endpoint	v4.0.0	getAllEndpointMappings
-endpoint	v4.0.0	getAllJsonSchemaValidations
-endpoint	v4.0.0	getAllJsonSchemaValidationsPublic
-endpoint	v4.0.0	getApiCollectionEndpoints
-endpoint	v4.0.0	getApiCollectionsForUser
-endpoint	v4.0.0	getAtm
-endpoint	v4.0.0	getAtms
-endpoint	v4.0.0	getAuthenticationTypeValidation
-endpoint	v4.0.0	getBalancingTransaction
-endpoint	v4.0.0	getBank
-endpoint	v4.0.0	getBankAccountBalancesForCurrentUser
-endpoint	v4.0.0	getBankAccountsBalancesForCurrentUser
-endpoint	v4.0.0	getBankAttribute
-endpoint	v4.0.0	getBankAttributes
-endpoint	v4.0.0	getBankLevelDynamicEndpoint
-endpoint	v4.0.0	getBankLevelDynamicEndpoints
-endpoint	v4.0.0	getBankLevelDynamicEntities
-endpoint	v4.0.0	getBankLevelDynamicMessageDoc
-endpoint	v4.0.0	getBankLevelDynamicResourceDoc
-endpoint	v4.0.0	getBankLevelEndpointMapping
-endpoint	v4.0.0	getBankLevelEndpointTags
-endpoint	v4.0.0	getBanks
-endpoint	v4.0.0	getCallContext
-endpoint	v4.0.0	getCardAttributeDefinition
-endpoint	v4.0.0	getConnectorMethod
-endpoint	v4.0.0	getConsentInfos
-endpoint	v4.0.0	getConsentInfosByBank
-endpoint	v4.0.0	getConsents
-endpoint	v4.0.0	getCoreAccountById
-endpoint	v4.0.0	getCorrelatedUsersInfoByCustomerId
-endpoint	v4.0.0	getCounterpartiesForAnyAccount
-endpoint	v4.0.0	getCounterpartyByIdForAnyAccount
-endpoint	v4.0.0	getCounterpartyByNameForAnyAccount
-endpoint	v4.0.0	getCurrentUserId
-endpoint	v4.0.0	getCustomerAttributeById
-endpoint	v4.0.0	getCustomerAttributeDefinition
-endpoint	v4.0.0	getCustomerAttributes
-endpoint	v4.0.0	getCustomerMessages
-endpoint	v4.0.0	getCustomersAtAnyBank
-endpoint	v4.0.0	getCustomersByAttributes
-endpoint	v4.0.0	getCustomersByCustomerPhoneNumber
-endpoint	v4.0.0	getCustomersMinimalAtAnyBank
-endpoint	v4.0.0	getDoubleEntryTransaction
-endpoint	v4.0.0	getDynamicEndpoint
-endpoint	v4.0.0	getDynamicEndpoints
-endpoint	v4.0.0	getDynamicMessageDoc
-endpoint	v4.0.0	getDynamicResourceDoc
-endpoint	v4.0.0	getEndpointMapping
-endpoint	v4.0.0	getEntitlements
-endpoint	v4.0.0	getEntitlementsForBank
-endpoint	v4.0.0	getExplicitCounterpartiesForAccount
-endpoint	v4.0.0	getExplicitCounterpartyById
-endpoint	v4.0.0	getFastFirehoseAccountsAtOneBank
-endpoint	v4.0.0	getFeaturedApiCollections
-endpoint	v4.0.0	getFirehoseAccountsAtOneBank
-endpoint	v4.0.0	getJsonSchemaValidation
-endpoint	v4.0.0	getLogoutLink
-endpoint	v4.0.0	getMapperDatabaseInfo
-endpoint	v4.0.0	getMyApiCollectionById
-endpoint	v4.0.0	getMyApiCollectionByName
-endpoint	v4.0.0	getMyApiCollectionEndpoint
-endpoint	v4.0.0	getMyApiCollectionEndpoints
-endpoint	v4.0.0	getMyApiCollectionEndpointsById
-endpoint	v4.0.0	getMyApiCollections
-endpoint	v4.0.0	getMyCorrelatedEntities
-endpoint	v4.0.0	getMyDynamicEndpoints
-endpoint	v4.0.0	getMyDynamicEntities
-endpoint	v4.0.0	getMyPersonalUserAttributes
-endpoint	v4.0.0	getMySpaces
-endpoint	v4.0.0	getPrivateAccountByIdFull
-endpoint	v4.0.0	getPrivateAccountsAtOneBank
-endpoint	v4.0.0	getProduct
-endpoint	v4.0.0	getProductAttribute
-endpoint	v4.0.0	getProductAttributeDefinition
-endpoint	v4.0.0	getProductFee
-endpoint	v4.0.0	getProductFees
-endpoint	v4.0.0	getProducts
-endpoint	v4.0.0	getScannedApiVersions
-endpoint	v4.0.0	getScopes
-endpoint	v4.0.0	getSettlementAccounts
-endpoint	v4.0.0	getSharableApiCollectionById
-endpoint	v4.0.0	getSystemDynamicEntities
-endpoint	v4.0.0	getSystemLevelEndpointTags
-endpoint	v4.0.0	getTagsForViewOnAccount
-endpoint	v4.0.0	getTransactionAttributeById
-endpoint	v4.0.0	getTransactionAttributeDefinition
-endpoint	v4.0.0	getTransactionAttributes
-endpoint	v4.0.0	getTransactionRequest
-endpoint	v4.0.0	getTransactionRequestAttributeById
-endpoint	v4.0.0	getTransactionRequestAttributeDefinition
-endpoint	v4.0.0	getTransactionRequestAttributes
-endpoint	v4.0.0	getUserByUserId
-endpoint	v4.0.0	getUserByUsername
-endpoint	v4.0.0	getUserCustomerLinksByCustomerId
-endpoint	v4.0.0	getUserCustomerLinksByUserId
-endpoint	v4.0.0	getUserInvitation
-endpoint	v4.0.0	getUserInvitationAnonymous
-endpoint	v4.0.0	getUserInvitations
-endpoint	v4.0.0	getUserWithAttributes
-endpoint	v4.0.0	getUsers
-endpoint	v4.0.0	getUsersByEmail
-endpoint	v4.0.0	grantUserAccessToView
-endpoint	v4.0.0	ibanChecker
-endpoint	v4.0.0	lockUser
-endpoint	v4.0.0	resetPasswordUrl
-endpoint	v4.0.0	revokeGrantUserAccessToViews
-endpoint	v4.0.0	revokeUserAccessToView
-endpoint	v4.0.0	root
-endpoint	v4.0.0	updateAccountLabel
-endpoint	v4.0.0	updateAtm
-endpoint	v4.0.0	updateAtmAccessibilityFeatures
-endpoint	v4.0.0	updateAtmLocationCategories
-endpoint	v4.0.0	updateAtmNotes
-endpoint	v4.0.0	updateAtmServices
-endpoint	v4.0.0	updateAtmSupportedCurrencies
-endpoint	v4.0.0	updateAtmSupportedLanguages
-endpoint	v4.0.0	updateAuthenticationTypeValidation
-endpoint	v4.0.0	updateBankAttribute
-endpoint	v4.0.0	updateBankLevelDynamicEndpointHost
-endpoint	v4.0.0	updateBankLevelDynamicEntity
-endpoint	v4.0.0	updateBankLevelDynamicMessageDoc
-endpoint	v4.0.0	updateBankLevelDynamicResourceDoc
-endpoint	v4.0.0	updateBankLevelEndpointMapping
-endpoint	v4.0.0	updateBankLevelEndpointTag
-endpoint	v4.0.0	updateConnectorMethod
-endpoint	v4.0.0	updateConsentStatus
-endpoint	v4.0.0	updateCustomerAttribute
-endpoint	v4.0.0	updateDynamicEndpointHost
-endpoint	v4.0.0	updateDynamicMessageDoc
-endpoint	v4.0.0	updateDynamicResourceDoc
-endpoint	v4.0.0	updateEndpointMapping
-endpoint	v4.0.0	updateJsonSchemaValidation
-endpoint	v4.0.0	updateMyDynamicEntity
-endpoint	v4.0.0	updateMyPersonalUserAttribute
-endpoint	v4.0.0	updateProductAttribute
-endpoint	v4.0.0	updateProductFee
-endpoint	v4.0.0	updateSystemDynamicEntity
-endpoint	v4.0.0	updateSystemLevelEndpointTag
-endpoint	v4.0.0	updateTransactionAttribute
-endpoint	v4.0.0	updateTransactionRequestAttribute
-endpoint	v4.0.0	verifyRequestSignResponse
-endpoint	v5.0.0	addCardForBank
-endpoint	v5.0.0	answerUserAuthContextUpdateChallenge
-endpoint	v5.0.0	createAccount
-endpoint	v5.0.0	createBank
-endpoint	v5.0.0	createConsentByConsentRequestIdEmail
-endpoint	v5.0.0	createConsentByConsentRequestIdImplicit
-endpoint	v5.0.0	createConsentByConsentRequestIdSms
-endpoint	v5.0.0	createConsentRequest
-endpoint	v5.0.0	createCustomer
-endpoint	v5.0.0	createCustomerAccountLink
-endpoint	v5.0.0	createProduct
-endpoint	v5.0.0	createSystemView
-endpoint	v5.0.0	createUserAuthContext
-endpoint	v5.0.0	createUserAuthContextUpdateRequest
-endpoint	v5.0.0	deleteCustomerAccountLinkById
-endpoint	v5.0.0	deleteSystemView
-endpoint	v5.0.0	getAdapterInfo
-endpoint	v5.0.0	getBank
-endpoint	v5.0.0	getBanks
-endpoint	v5.0.0	getConsentByConsentRequestId
-endpoint	v5.0.0	getConsentRequest
-endpoint	v5.0.0	getCustomerAccountLinkById
-endpoint	v5.0.0	getCustomerAccountLinksByBankIdAccountId
-endpoint	v5.0.0	getCustomerAccountLinksByCustomerId
-endpoint	v5.0.0	getCustomerOverview
-endpoint	v5.0.0	getCustomerOverviewFlat
-endpoint	v5.0.0	getCustomersAtOneBank
-endpoint	v5.0.0	getCustomersMinimalAtOneBank
-endpoint	v5.0.0	getMetricsAtBank
-endpoint	v5.0.0	getMyCustomersAtAnyBank
-endpoint	v5.0.0	getMyCustomersAtBank
-endpoint	v5.0.0	getProduct
-endpoint	v5.0.0	getProducts
-endpoint	v5.0.0	getSystemView
-endpoint	v5.0.0	getSystemViewsIds
-endpoint	v5.0.0	getUserAuthContexts
-endpoint	v5.0.0	getViewsForBankAccount
-endpoint	v5.0.0	headAtms
-endpoint	v5.0.0	root
-endpoint	v5.0.0	updateBank
-endpoint	v5.0.0	updateCustomerAccountLinkById
-endpoint	v5.0.0	updateSystemView
 endpoint	v5.1.0	accountAccessUniqueIndexCheck
 endpoint	v5.1.0	accountCurrencyCheck
 endpoint	v5.1.0	addSystemViewPermission
@@ -646,11 +145,6 @@ field	code.api.util.ConsentView	helper_info	Option[code.api.v5_0_0.HelperInfoJso
 field	code.api.util.ConsentView	view_id	String
 field	code.api.util.Role	bank_id	String
 field	code.api.util.Role	role_name	String
-field	code.api.v1_2_1.APIInfoJSON	connector	String
-field	code.api.v1_2_1.APIInfoJSON	git_commit	String
-field	code.api.v1_2_1.APIInfoJSON	hosted_by	code.api.v1_2_1.HostedBy
-field	code.api.v1_2_1.APIInfoJSON	version	String
-field	code.api.v1_2_1.APIInfoJSON	version_status	String
 field	code.api.v1_2_1.AccountHolderJSON	is_alias	Boolean
 field	code.api.v1_2_1.AccountHolderJSON	name	String
 field	code.api.v1_2_1.AccountJSON	bank_id	String
@@ -658,15 +152,8 @@ field	code.api.v1_2_1.AccountJSON	id	String
 field	code.api.v1_2_1.AccountJSON	label	String
 field	code.api.v1_2_1.AccountJSON	views_available	List[code.api.v1_2_1.ViewJSONV121]
 field	code.api.v1_2_1.AliasJSON	alias	String
-field	code.api.v1_2_1.BankJSON	bank_routing	code.api.v1_2_1.BankRoutingJsonV121
-field	code.api.v1_2_1.BankJSON	full_name	String
-field	code.api.v1_2_1.BankJSON	id	String
-field	code.api.v1_2_1.BankJSON	logo	String
-field	code.api.v1_2_1.BankJSON	short_name	String
-field	code.api.v1_2_1.BankJSON	website	String
 field	code.api.v1_2_1.BankRoutingJsonV121	address	String
 field	code.api.v1_2_1.BankRoutingJsonV121	scheme	String
-field	code.api.v1_2_1.BanksJSON	banks	List[code.api.v1_2_1.BankJSON]
 field	code.api.v1_2_1.CorporateLocationJSON	corporate_location	code.api.v1_2_1.LocationPlainJSON
 field	code.api.v1_2_1.CreateViewJsonV121	allowed_actions	List[String]
 field	code.api.v1_2_1.CreateViewJsonV121	description	String
@@ -674,10 +161,6 @@ field	code.api.v1_2_1.CreateViewJsonV121	hide_metadata_if_alias_used	Boolean
 field	code.api.v1_2_1.CreateViewJsonV121	is_public	Boolean
 field	code.api.v1_2_1.CreateViewJsonV121	name	String
 field	code.api.v1_2_1.CreateViewJsonV121	which_alias_to_use	String
-field	code.api.v1_2_1.HostedBy	email	String
-field	code.api.v1_2_1.HostedBy	organisation	String
-field	code.api.v1_2_1.HostedBy	organisation_website	String
-field	code.api.v1_2_1.HostedBy	phone	String
 field	code.api.v1_2_1.ImageUrlJSON	image_URL	String
 field	code.api.v1_2_1.LocationJSONV121	date	java.util.Date
 field	code.api.v1_2_1.LocationJSONV121	latitude	Double
@@ -687,17 +170,6 @@ field	code.api.v1_2_1.LocationPlainJSON	latitude	Double
 field	code.api.v1_2_1.LocationPlainJSON	longitude	Double
 field	code.api.v1_2_1.MinimalBankJSON	name	String
 field	code.api.v1_2_1.MinimalBankJSON	national_identifier	String
-field	code.api.v1_2_1.ModeratedAccountJSON	IBAN	String
-field	code.api.v1_2_1.ModeratedAccountJSON	account_routing	com.openbankproject.commons.model.AccountRoutingJsonV121
-field	code.api.v1_2_1.ModeratedAccountJSON	balance	com.openbankproject.commons.model.AmountOfMoneyJsonV121
-field	code.api.v1_2_1.ModeratedAccountJSON	bank_id	String
-field	code.api.v1_2_1.ModeratedAccountJSON	id	String
-field	code.api.v1_2_1.ModeratedAccountJSON	label	String
-field	code.api.v1_2_1.ModeratedAccountJSON	number	String
-field	code.api.v1_2_1.ModeratedAccountJSON	owners	List[code.api.v1_2_1.UserJSONV121]
-field	code.api.v1_2_1.ModeratedAccountJSON	swift_bic	String
-field	code.api.v1_2_1.ModeratedAccountJSON	type	String
-field	code.api.v1_2_1.ModeratedAccountJSON	views_available	List[code.api.v1_2_1.ViewJSONV121]
 field	code.api.v1_2_1.MoreInfoJSON	more_info	String
 field	code.api.v1_2_1.OpenCorporateUrlJSON	open_corporates_URL	String
 field	code.api.v1_2_1.OtherAccountJSON	IBAN	String
@@ -716,7 +188,6 @@ field	code.api.v1_2_1.OtherAccountMetadataJSON	open_corporates_URL	String
 field	code.api.v1_2_1.OtherAccountMetadataJSON	physical_location	code.api.v1_2_1.LocationJSONV121
 field	code.api.v1_2_1.OtherAccountMetadataJSON	private_alias	String
 field	code.api.v1_2_1.OtherAccountMetadataJSON	public_alias	String
-field	code.api.v1_2_1.OtherAccountsJSON	other_accounts	List[code.api.v1_2_1.OtherAccountJSON]
 field	code.api.v1_2_1.PermissionJSON	user	code.api.v1_2_1.UserJSONV121
 field	code.api.v1_2_1.PermissionJSON	views	List[code.api.v1_2_1.ViewJSONV121]
 field	code.api.v1_2_1.PermissionsJSON	permissions	List[code.api.v1_2_1.PermissionJSON]
@@ -768,9 +239,6 @@ field	code.api.v1_2_1.TransactionTagJSON	user	code.api.v1_2_1.UserJSONV121
 field	code.api.v1_2_1.TransactionTagJSON	value	String
 field	code.api.v1_2_1.TransactionWhereJSON	where	code.api.v1_2_1.LocationJSONV121
 field	code.api.v1_2_1.TransactionsJSON	transactions	List[code.api.v1_2_1.TransactionJSON]
-field	code.api.v1_2_1.UpdateAccountJSON	bank_id	String
-field	code.api.v1_2_1.UpdateAccountJSON	id	String
-field	code.api.v1_2_1.UpdateAccountJSON	label	String
 field	code.api.v1_2_1.UpdateViewJsonV121	allowed_actions	List[String]
 field	code.api.v1_2_1.UpdateViewJsonV121	description	String
 field	code.api.v1_2_1.UpdateViewJsonV121	hide_metadata_if_alias_used	Boolean
@@ -780,7 +248,6 @@ field	code.api.v1_2_1.UrlJSON	URL	String
 field	code.api.v1_2_1.UserJSONV121	display_name	String
 field	code.api.v1_2_1.UserJSONV121	id	String
 field	code.api.v1_2_1.UserJSONV121	provider	String
-field	code.api.v1_2_1.ViewIdsJson	views	List[String]
 field	code.api.v1_2_1.ViewJSONV121	alias	String
 field	code.api.v1_2_1.ViewJSONV121	can_add_comment	Boolean
 field	code.api.v1_2_1.ViewJSONV121	can_add_corporate_location	Boolean
@@ -888,28 +355,6 @@ field	code.api.v1_3_0.ReplacementJSON	requested_date	java.util.Date
 field	code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson	from_department	String
 field	code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson	from_person	String
 field	code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson	message	String
-field	code.api.v1_4_0.JSONFactory1_4_0.AddressJsonV140	city	String
-field	code.api.v1_4_0.JSONFactory1_4_0.AddressJsonV140	country	String
-field	code.api.v1_4_0.JSONFactory1_4_0.AddressJsonV140	line_1	String
-field	code.api.v1_4_0.JSONFactory1_4_0.AddressJsonV140	line_2	String
-field	code.api.v1_4_0.JSONFactory1_4_0.AddressJsonV140	line_3	String
-field	code.api.v1_4_0.JSONFactory1_4_0.AddressJsonV140	postcode	String
-field	code.api.v1_4_0.JSONFactory1_4_0.AddressJsonV140	state	String
-field	code.api.v1_4_0.JSONFactory1_4_0.AtmJson	address	code.api.v1_4_0.JSONFactory1_4_0.AddressJsonV140
-field	code.api.v1_4_0.JSONFactory1_4_0.AtmJson	id	String
-field	code.api.v1_4_0.JSONFactory1_4_0.AtmJson	location	code.api.v1_4_0.JSONFactory1_4_0.LocationJsonV140
-field	code.api.v1_4_0.JSONFactory1_4_0.AtmJson	meta	code.api.v1_4_0.JSONFactory1_4_0.MetaJsonV140
-field	code.api.v1_4_0.JSONFactory1_4_0.AtmJson	name	String
-field	code.api.v1_4_0.JSONFactory1_4_0.AtmsJson	atms	List[code.api.v1_4_0.JSONFactory1_4_0.AtmJson]
-field	code.api.v1_4_0.JSONFactory1_4_0.BranchJson	address	code.api.v1_4_0.JSONFactory1_4_0.AddressJsonV140
-field	code.api.v1_4_0.JSONFactory1_4_0.BranchJson	branch_routing	com.openbankproject.commons.model.BranchRoutingJsonV141
-field	code.api.v1_4_0.JSONFactory1_4_0.BranchJson	drive_up	code.api.v1_4_0.JSONFactory1_4_0.DriveUpStringJson
-field	code.api.v1_4_0.JSONFactory1_4_0.BranchJson	id	String
-field	code.api.v1_4_0.JSONFactory1_4_0.BranchJson	lobby	code.api.v1_4_0.JSONFactory1_4_0.LobbyStringJson
-field	code.api.v1_4_0.JSONFactory1_4_0.BranchJson	location	code.api.v1_4_0.JSONFactory1_4_0.LocationJsonV140
-field	code.api.v1_4_0.JSONFactory1_4_0.BranchJson	meta	code.api.v1_4_0.JSONFactory1_4_0.MetaJsonV140
-field	code.api.v1_4_0.JSONFactory1_4_0.BranchJson	name	String
-field	code.api.v1_4_0.JSONFactory1_4_0.BranchesJson	branches	List[code.api.v1_4_0.JSONFactory1_4_0.BranchJson]
 field	code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON	answer	String
 field	code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON	id	String
 field	code.api.v1_4_0.JSONFactory1_4_0.ChallengeJsonV140	allowed_attempts	Int
@@ -948,10 +393,8 @@ field	code.api.v1_4_0.JSONFactory1_4_0.CustomerMessageJson	from_person	String
 field	code.api.v1_4_0.JSONFactory1_4_0.CustomerMessageJson	id	String
 field	code.api.v1_4_0.JSONFactory1_4_0.CustomerMessageJson	message	String
 field	code.api.v1_4_0.JSONFactory1_4_0.CustomerMessagesJson	messages	List[code.api.v1_4_0.JSONFactory1_4_0.CustomerMessageJson]
-field	code.api.v1_4_0.JSONFactory1_4_0.DriveUpStringJson	hours	String
 field	code.api.v1_4_0.JSONFactory1_4_0.LicenseJsonV140	id	String
 field	code.api.v1_4_0.JSONFactory1_4_0.LicenseJsonV140	name	String
-field	code.api.v1_4_0.JSONFactory1_4_0.LobbyStringJson	hours	String
 field	code.api.v1_4_0.JSONFactory1_4_0.LocationJsonV140	latitude	Double
 field	code.api.v1_4_0.JSONFactory1_4_0.LocationJsonV140	longitude	Double
 field	code.api.v1_4_0.JSONFactory1_4_0.MetaJsonV140	license	code.api.v1_4_0.JSONFactory1_4_0.LicenseJsonV140
@@ -975,10 +418,6 @@ field	code.api.v2_0_0.CoreAccountJSON	bank_id	String
 field	code.api.v2_0_0.CoreAccountJSON	id	String
 field	code.api.v2_0_0.CoreAccountJSON	label	String
 field	code.api.v2_0_0.CoreAccountsJSON	accounts	List[code.api.v2_0_0.CoreAccountJSON]
-field	code.api.v2_0_0.CreateAccountJSON	balance	com.openbankproject.commons.model.AmountOfMoneyJsonV121
-field	code.api.v2_0_0.CreateAccountJSON	label	String
-field	code.api.v2_0_0.CreateAccountJSON	type	String
-field	code.api.v2_0_0.CreateAccountJSON	user_id	String
 field	code.api.v2_0_0.CreateCustomerJson	branchId	String
 field	code.api.v2_0_0.CreateCustomerJson	customer_number	String
 field	code.api.v2_0_0.CreateCustomerJson	date_of_birth	java.util.Date
@@ -1009,35 +448,12 @@ field	code.api.v2_0_0.EntitlementJSON	bank_id	String
 field	code.api.v2_0_0.EntitlementJSON	entitlement_id	String
 field	code.api.v2_0_0.EntitlementJSON	role_name	String
 field	code.api.v2_0_0.EntitlementJSONs	list	List[code.api.v2_0_0.EntitlementJSON]
-field	code.api.v2_0_0.JSONFactory200.CoreAccountHolderJSON	name	String
-field	code.api.v2_0_0.JSONFactory200.CoreCounterpartyJSON	IBAN	String
-field	code.api.v2_0_0.JSONFactory200.CoreCounterpartyJSON	bank	code.api.v1_2_1.MinimalBankJSON
-field	code.api.v2_0_0.JSONFactory200.CoreCounterpartyJSON	holder	code.api.v2_0_0.JSONFactory200.CoreAccountHolderJSON
-field	code.api.v2_0_0.JSONFactory200.CoreCounterpartyJSON	id	String
-field	code.api.v2_0_0.JSONFactory200.CoreCounterpartyJSON	kind	String
-field	code.api.v2_0_0.JSONFactory200.CoreCounterpartyJSON	number	String
-field	code.api.v2_0_0.JSONFactory200.CoreCounterpartyJSON	swift_bic	String
 field	code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON	completed	java.util.Date
 field	code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON	description	String
 field	code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON	new_balance	com.openbankproject.commons.model.AmountOfMoneyJsonV121
 field	code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON	posted	java.util.Date
 field	code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON	type	String
 field	code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON	value	com.openbankproject.commons.model.AmountOfMoneyJsonV121
-field	code.api.v2_0_0.JSONFactory200.CoreTransactionJSON	account	code.api.v1_2_1.ThisAccountJSON
-field	code.api.v2_0_0.JSONFactory200.CoreTransactionJSON	counterparty	code.api.v2_0_0.JSONFactory200.CoreCounterpartyJSON
-field	code.api.v2_0_0.JSONFactory200.CoreTransactionJSON	details	code.api.v2_0_0.JSONFactory200.CoreTransactionDetailsJSON
-field	code.api.v2_0_0.JSONFactory200.CoreTransactionJSON	id	String
-field	code.api.v2_0_0.JSONFactory200.CoreTransactionsJSON	transactions	List[code.api.v2_0_0.JSONFactory200.CoreTransactionJSON]
-field	code.api.v2_0_0.JSONFactory200.ModeratedCoreAccountJSON	IBAN	String
-field	code.api.v2_0_0.JSONFactory200.ModeratedCoreAccountJSON	account_routing	com.openbankproject.commons.model.AccountRoutingJsonV121
-field	code.api.v2_0_0.JSONFactory200.ModeratedCoreAccountJSON	balance	com.openbankproject.commons.model.AmountOfMoneyJsonV121
-field	code.api.v2_0_0.JSONFactory200.ModeratedCoreAccountJSON	bank_id	String
-field	code.api.v2_0_0.JSONFactory200.ModeratedCoreAccountJSON	id	String
-field	code.api.v2_0_0.JSONFactory200.ModeratedCoreAccountJSON	label	String
-field	code.api.v2_0_0.JSONFactory200.ModeratedCoreAccountJSON	number	String
-field	code.api.v2_0_0.JSONFactory200.ModeratedCoreAccountJSON	owners	List[code.api.v1_2_1.UserJSONV121]
-field	code.api.v2_0_0.JSONFactory200.ModeratedCoreAccountJSON	swift_bic	String
-field	code.api.v2_0_0.JSONFactory200.ModeratedCoreAccountJSON	type	String
 field	code.api.v2_0_0.JSONFactory200.UserJsonV200	email	String
 field	code.api.v2_0_0.JSONFactory200.UserJsonV200	entitlements	code.api.v2_0_0.EntitlementJSONs
 field	code.api.v2_0_0.JSONFactory200.UserJsonV200	provider	String
@@ -1145,21 +561,6 @@ field	code.api.v2_0_0.UserCustomerLinksJson	user_customer_links	List[code.api.v2
 field	code.api.v2_1_0.AvailableRoleJSON	requires_bank_id	Boolean
 field	code.api.v2_1_0.AvailableRoleJSON	role	String
 field	code.api.v2_1_0.AvailableRolesJSON	roles	List[code.api.v2_1_0.AvailableRoleJSON]
-field	code.api.v2_1_0.BranchJsonPostV210	address	code.api.v1_4_0.JSONFactory1_4_0.AddressJsonV140
-field	code.api.v2_1_0.BranchJsonPostV210	bank_id	String
-field	code.api.v2_1_0.BranchJsonPostV210	drive_up	code.api.v1_4_0.JSONFactory1_4_0.DriveUpStringJson
-field	code.api.v2_1_0.BranchJsonPostV210	id	String
-field	code.api.v2_1_0.BranchJsonPostV210	lobby	code.api.v1_4_0.JSONFactory1_4_0.LobbyStringJson
-field	code.api.v2_1_0.BranchJsonPostV210	location	code.api.v1_4_0.JSONFactory1_4_0.LocationJsonV140
-field	code.api.v2_1_0.BranchJsonPostV210	meta	code.api.v1_4_0.JSONFactory1_4_0.MetaJsonV140
-field	code.api.v2_1_0.BranchJsonPostV210	name	String
-field	code.api.v2_1_0.BranchJsonPutV210	address	code.api.v1_4_0.JSONFactory1_4_0.AddressJsonV140
-field	code.api.v2_1_0.BranchJsonPutV210	bank_id	String
-field	code.api.v2_1_0.BranchJsonPutV210	drive_up	code.api.v1_4_0.JSONFactory1_4_0.DriveUpStringJson
-field	code.api.v2_1_0.BranchJsonPutV210	lobby	code.api.v1_4_0.JSONFactory1_4_0.LobbyStringJson
-field	code.api.v2_1_0.BranchJsonPutV210	location	code.api.v1_4_0.JSONFactory1_4_0.LocationJsonV140
-field	code.api.v2_1_0.BranchJsonPutV210	meta	code.api.v1_4_0.JSONFactory1_4_0.MetaJsonV140
-field	code.api.v2_1_0.BranchJsonPutV210	name	String
 field	code.api.v2_1_0.ConsumerJsonV210	app_name	String
 field	code.api.v2_1_0.ConsumerJsonV210	app_type	String
 field	code.api.v2_1_0.ConsumerJsonV210	consumer_id	Long
@@ -1170,17 +571,7 @@ field	code.api.v2_1_0.ConsumerJsonV210	description	String
 field	code.api.v2_1_0.ConsumerJsonV210	developer_email	String
 field	code.api.v2_1_0.ConsumerJsonV210	enabled	Boolean
 field	code.api.v2_1_0.ConsumerJsonV210	redirect_url	String
-field	code.api.v2_1_0.ConsumerPostJSON	app_name	String
-field	code.api.v2_1_0.ConsumerPostJSON	app_type	String
-field	code.api.v2_1_0.ConsumerPostJSON	clientCertificate	String
-field	code.api.v2_1_0.ConsumerPostJSON	created	java.util.Date
-field	code.api.v2_1_0.ConsumerPostJSON	created_by_user_id	String
-field	code.api.v2_1_0.ConsumerPostJSON	description	String
-field	code.api.v2_1_0.ConsumerPostJSON	developer_email	String
-field	code.api.v2_1_0.ConsumerPostJSON	enabled	Boolean
-field	code.api.v2_1_0.ConsumerPostJSON	redirect_url	String
 field	code.api.v2_1_0.ConsumerRedirectUrlJSON	redirect_url	String
-field	code.api.v2_1_0.ConsumersJson	list	List[code.api.v2_1_0.ConsumerJsonV210]
 field	code.api.v2_1_0.CounterpartyIdJson	counterparty_id	String
 field	code.api.v2_1_0.CustomerCreditRatingJSON	rating	String
 field	code.api.v2_1_0.CustomerCreditRatingJSON	source	String
@@ -1222,45 +613,6 @@ field	code.api.v2_1_0.MetricJson	verb	String
 field	code.api.v2_1_0.MetricsJson	metrics	List[code.api.v2_1_0.MetricJson]
 field	code.api.v2_1_0.PostCounterpartyBespokeJson	key	String
 field	code.api.v2_1_0.PostCounterpartyBespokeJson	value	String
-field	code.api.v2_1_0.PostCounterpartyJSON	bespoke	List[code.api.v2_1_0.PostCounterpartyBespokeJson]
-field	code.api.v2_1_0.PostCounterpartyJSON	description	String
-field	code.api.v2_1_0.PostCounterpartyJSON	is_beneficiary	Boolean
-field	code.api.v2_1_0.PostCounterpartyJSON	name	String
-field	code.api.v2_1_0.PostCounterpartyJSON	other_account_routing_address	String
-field	code.api.v2_1_0.PostCounterpartyJSON	other_account_routing_scheme	String
-field	code.api.v2_1_0.PostCounterpartyJSON	other_account_secondary_routing_address	String
-field	code.api.v2_1_0.PostCounterpartyJSON	other_account_secondary_routing_scheme	String
-field	code.api.v2_1_0.PostCounterpartyJSON	other_bank_routing_address	String
-field	code.api.v2_1_0.PostCounterpartyJSON	other_bank_routing_scheme	String
-field	code.api.v2_1_0.PostCounterpartyJSON	other_branch_routing_address	String
-field	code.api.v2_1_0.PostCounterpartyJSON	other_branch_routing_scheme	String
-field	code.api.v2_1_0.PostCustomerJsonV210	credit_limit	com.openbankproject.commons.model.AmountOfMoneyJsonV121
-field	code.api.v2_1_0.PostCustomerJsonV210	credit_rating	code.api.v2_1_0.CustomerCreditRatingJSON
-field	code.api.v2_1_0.PostCustomerJsonV210	customer_number	String
-field	code.api.v2_1_0.PostCustomerJsonV210	date_of_birth	java.util.Date
-field	code.api.v2_1_0.PostCustomerJsonV210	dependants	Int
-field	code.api.v2_1_0.PostCustomerJsonV210	dob_of_dependants	List[java.util.Date]
-field	code.api.v2_1_0.PostCustomerJsonV210	email	String
-field	code.api.v2_1_0.PostCustomerJsonV210	employment_status	String
-field	code.api.v2_1_0.PostCustomerJsonV210	face_image	code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
-field	code.api.v2_1_0.PostCustomerJsonV210	highest_education_attained	String
-field	code.api.v2_1_0.PostCustomerJsonV210	kyc_status	Boolean
-field	code.api.v2_1_0.PostCustomerJsonV210	last_ok_date	java.util.Date
-field	code.api.v2_1_0.PostCustomerJsonV210	legal_name	String
-field	code.api.v2_1_0.PostCustomerJsonV210	mobile_phone_number	String
-field	code.api.v2_1_0.PostCustomerJsonV210	relationship_status	String
-field	code.api.v2_1_0.PostCustomerJsonV210	user_id	String
-field	code.api.v2_1_0.ProductJsonV210	bank_id	String
-field	code.api.v2_1_0.ProductJsonV210	category	String
-field	code.api.v2_1_0.ProductJsonV210	code	String
-field	code.api.v2_1_0.ProductJsonV210	description	String
-field	code.api.v2_1_0.ProductJsonV210	details	String
-field	code.api.v2_1_0.ProductJsonV210	family	String
-field	code.api.v2_1_0.ProductJsonV210	meta	code.api.v1_4_0.JSONFactory1_4_0.MetaJsonV140
-field	code.api.v2_1_0.ProductJsonV210	more_info_url	String
-field	code.api.v2_1_0.ProductJsonV210	name	String
-field	code.api.v2_1_0.ProductJsonV210	super_family	String
-field	code.api.v2_1_0.ProductsJsonV210	products	List[code.api.v2_1_0.ProductJsonV210]
 field	code.api.v2_1_0.PutEnabledJSON	enabled	Boolean
 field	code.api.v2_1_0.ResourceUserJSON	email	String
 field	code.api.v2_1_0.ResourceUserJSON	provider	String
@@ -1275,11 +627,6 @@ field	code.api.v2_1_0.TransactionRequestBodyCounterpartyJSON	to	code.api.v2_1_0.
 field	code.api.v2_1_0.TransactionRequestBodyCounterpartyJSON	value	com.openbankproject.commons.model.AmountOfMoneyJsonV121
 field	code.api.v2_1_0.TransactionRequestBodyFreeFormJSON	description	String
 field	code.api.v2_1_0.TransactionRequestBodyFreeFormJSON	value	com.openbankproject.commons.model.AmountOfMoneyJsonV121
-field	code.api.v2_1_0.TransactionRequestBodySEPAJSON	charge_policy	String
-field	code.api.v2_1_0.TransactionRequestBodySEPAJSON	description	String
-field	code.api.v2_1_0.TransactionRequestBodySEPAJSON	future_date	Option[String]
-field	code.api.v2_1_0.TransactionRequestBodySEPAJSON	to	code.api.v2_1_0.IbanJson
-field	code.api.v2_1_0.TransactionRequestBodySEPAJSON	value	com.openbankproject.commons.model.AmountOfMoneyJsonV121
 field	code.api.v2_1_0.TransactionRequestTypeJSONV210	transaction_request_type	String
 field	code.api.v2_1_0.TransactionRequestTypesJSON	transaction_request_types	List[code.api.v2_1_0.TransactionRequestTypeJSONV210]
 field	code.api.v2_1_0.TransactionRequestWithChargeJSON210	challenge	code.api.v1_4_0.JSONFactory1_4_0.ChallengeJsonV140
@@ -1299,29 +646,6 @@ field	code.api.v2_1_0.UserJSONV210	username	String
 field	code.api.v2_2_0.AkkaJSON	log_level	String
 field	code.api.v2_2_0.AkkaJSON	ports	List[code.api.v2_2_0.PortJSON]
 field	code.api.v2_2_0.AkkaJSON	remote_data_secret_matched	Option[Boolean]
-field	code.api.v2_2_0.AtmJsonV220	address	code.api.v1_4_0.JSONFactory1_4_0.AddressJsonV140
-field	code.api.v2_2_0.AtmJsonV220	bank_id	String
-field	code.api.v2_2_0.AtmJsonV220	id	String
-field	code.api.v2_2_0.AtmJsonV220	location	code.api.v1_4_0.JSONFactory1_4_0.LocationJsonV140
-field	code.api.v2_2_0.AtmJsonV220	meta	code.api.v1_4_0.JSONFactory1_4_0.MetaJsonV140
-field	code.api.v2_2_0.AtmJsonV220	name	String
-field	code.api.v2_2_0.BankJSONV220	bank_routing	code.api.v1_2_1.BankRoutingJsonV121
-field	code.api.v2_2_0.BankJSONV220	full_name	String
-field	code.api.v2_2_0.BankJSONV220	id	String
-field	code.api.v2_2_0.BankJSONV220	logo_url	String
-field	code.api.v2_2_0.BankJSONV220	national_identifier	String
-field	code.api.v2_2_0.BankJSONV220	short_name	String
-field	code.api.v2_2_0.BankJSONV220	swift_bic	String
-field	code.api.v2_2_0.BankJSONV220	website_url	String
-field	code.api.v2_2_0.BranchJsonV220	address	code.api.v1_4_0.JSONFactory1_4_0.AddressJsonV140
-field	code.api.v2_2_0.BranchJsonV220	bank_id	String
-field	code.api.v2_2_0.BranchJsonV220	branch_routing	com.openbankproject.commons.model.BranchRoutingJsonV141
-field	code.api.v2_2_0.BranchJsonV220	drive_up	code.api.v1_4_0.JSONFactory1_4_0.DriveUpStringJson
-field	code.api.v2_2_0.BranchJsonV220	id	String
-field	code.api.v2_2_0.BranchJsonV220	lobby	code.api.v1_4_0.JSONFactory1_4_0.LobbyStringJson
-field	code.api.v2_2_0.BranchJsonV220	location	code.api.v1_4_0.JSONFactory1_4_0.LocationJsonV140
-field	code.api.v2_2_0.BranchJsonV220	meta	code.api.v1_4_0.JSONFactory1_4_0.MetaJsonV140
-field	code.api.v2_2_0.BranchJsonV220	name	String
 field	code.api.v2_2_0.CachedFunctionJSON	function_name	String
 field	code.api.v2_2_0.CachedFunctionJSON	ttl_in_seconds	Int
 field	code.api.v2_2_0.ConfigurationJSON	akka	code.api.v2_2_0.AkkaJSON
@@ -1334,24 +658,6 @@ field	code.api.v2_2_0.ConnectorMetricJson	date	java.util.Date
 field	code.api.v2_2_0.ConnectorMetricJson	duration	Long
 field	code.api.v2_2_0.ConnectorMetricJson	function_name	String
 field	code.api.v2_2_0.ConnectorMetricsJson	metrics	List[code.api.v2_2_0.ConnectorMetricJson]
-field	code.api.v2_2_0.CounterpartiesJsonV220	counterparties	List[code.api.v2_2_0.CounterpartyJsonV220]
-field	code.api.v2_2_0.CounterpartyJsonV220	bespoke	List[code.api.v2_1_0.PostCounterpartyBespokeJson]
-field	code.api.v2_2_0.CounterpartyJsonV220	counterparty_id	String
-field	code.api.v2_2_0.CounterpartyJsonV220	created_by_user_id	String
-field	code.api.v2_2_0.CounterpartyJsonV220	description	String
-field	code.api.v2_2_0.CounterpartyJsonV220	is_beneficiary	Boolean
-field	code.api.v2_2_0.CounterpartyJsonV220	name	String
-field	code.api.v2_2_0.CounterpartyJsonV220	other_account_routing_address	String
-field	code.api.v2_2_0.CounterpartyJsonV220	other_account_routing_scheme	String
-field	code.api.v2_2_0.CounterpartyJsonV220	other_account_secondary_routing_address	String
-field	code.api.v2_2_0.CounterpartyJsonV220	other_account_secondary_routing_scheme	String
-field	code.api.v2_2_0.CounterpartyJsonV220	other_bank_routing_address	String
-field	code.api.v2_2_0.CounterpartyJsonV220	other_bank_routing_scheme	String
-field	code.api.v2_2_0.CounterpartyJsonV220	other_branch_routing_address	String
-field	code.api.v2_2_0.CounterpartyJsonV220	other_branch_routing_scheme	String
-field	code.api.v2_2_0.CounterpartyJsonV220	this_account_id	String
-field	code.api.v2_2_0.CounterpartyJsonV220	this_bank_id	String
-field	code.api.v2_2_0.CounterpartyJsonV220	this_view_id	String
 field	code.api.v2_2_0.CounterpartyMetadataJson	corporate_location	code.api.v2_1_0.LocationJsonV210
 field	code.api.v2_2_0.CounterpartyMetadataJson	image_url	String
 field	code.api.v2_2_0.CounterpartyMetadataJson	more_info	String
@@ -1360,30 +666,6 @@ field	code.api.v2_2_0.CounterpartyMetadataJson	physical_location	code.api.v2_1_0
 field	code.api.v2_2_0.CounterpartyMetadataJson	private_alias	String
 field	code.api.v2_2_0.CounterpartyMetadataJson	public_alias	String
 field	code.api.v2_2_0.CounterpartyMetadataJson	url	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	bespoke	List[code.api.v2_1_0.PostCounterpartyBespokeJson]
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	counterparty_id	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	created_by_user_id	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	description	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	is_beneficiary	Boolean
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	metadata	code.api.v2_2_0.CounterpartyMetadataJson
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	name	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	other_account_routing_address	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	other_account_routing_scheme	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	other_account_secondary_routing_address	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	other_account_secondary_routing_scheme	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	other_bank_routing_address	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	other_bank_routing_scheme	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	other_branch_routing_address	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	other_branch_routing_scheme	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	this_account_id	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	this_bank_id	String
-field	code.api.v2_2_0.CounterpartyWithMetadataJson	this_view_id	String
-field	code.api.v2_2_0.CreateAccountJSONV220	account_routing	com.openbankproject.commons.model.AccountRoutingJsonV121
-field	code.api.v2_2_0.CreateAccountJSONV220	balance	com.openbankproject.commons.model.AmountOfMoneyJsonV121
-field	code.api.v2_2_0.CreateAccountJSONV220	branch_id	String
-field	code.api.v2_2_0.CreateAccountJSONV220	label	String
-field	code.api.v2_2_0.CreateAccountJSONV220	type	String
-field	code.api.v2_2_0.CreateAccountJSONV220	user_id	String
 field	code.api.v2_2_0.ElasticSearchJSON	metrics	List[code.api.v2_2_0.MetricsJsonV220]
 field	code.api.v2_2_0.ElasticSearchJSON	warehouse	List[code.api.v2_2_0.WarehouseJSON]
 field	code.api.v2_2_0.FXRateJsonV220	bank_id	String
@@ -1489,7 +771,6 @@ field	code.api.v2_2_0.ViewJSONV220	hide_metadata_if_alias_used	Boolean
 field	code.api.v2_2_0.ViewJSONV220	id	String
 field	code.api.v2_2_0.ViewJSONV220	is_public	Boolean
 field	code.api.v2_2_0.ViewJSONV220	short_name	String
-field	code.api.v2_2_0.ViewsJSONV220	views	List[code.api.v2_2_0.ViewJSONV220]
 field	code.api.v2_2_0.WarehouseJSON	property	String
 field	code.api.v2_2_0.WarehouseJSON	value	String
 field	code.api.v3_0_0.AccountHeldJson	account_routings	List[com.openbankproject.commons.model.AccountRoutingJsonV121]
@@ -1517,23 +798,6 @@ field	code.api.v3_0_0.AggregateMetricJSON	average_response_time	Double
 field	code.api.v3_0_0.AggregateMetricJSON	count	Int
 field	code.api.v3_0_0.AggregateMetricJSON	maximum_response_time	Double
 field	code.api.v3_0_0.AggregateMetricJSON	minimum_response_time	Double
-field	code.api.v3_0_0.AtmJsonV300	address	code.api.v3_0_0.AddressJsonV300
-field	code.api.v3_0_0.AtmJsonV300	bank_id	String
-field	code.api.v3_0_0.AtmJsonV300	friday	code.api.v3_0_0.OpeningTimesV300
-field	code.api.v3_0_0.AtmJsonV300	has_deposit_capability	String
-field	code.api.v3_0_0.AtmJsonV300	id	String
-field	code.api.v3_0_0.AtmJsonV300	is_accessible	String
-field	code.api.v3_0_0.AtmJsonV300	located_at	String
-field	code.api.v3_0_0.AtmJsonV300	location	code.api.v1_4_0.JSONFactory1_4_0.LocationJsonV140
-field	code.api.v3_0_0.AtmJsonV300	meta	code.api.v1_4_0.JSONFactory1_4_0.MetaJsonV140
-field	code.api.v3_0_0.AtmJsonV300	monday	code.api.v3_0_0.OpeningTimesV300
-field	code.api.v3_0_0.AtmJsonV300	more_info	String
-field	code.api.v3_0_0.AtmJsonV300	name	String
-field	code.api.v3_0_0.AtmJsonV300	saturday	code.api.v3_0_0.OpeningTimesV300
-field	code.api.v3_0_0.AtmJsonV300	sunday	code.api.v3_0_0.OpeningTimesV300
-field	code.api.v3_0_0.AtmJsonV300	thursday	code.api.v3_0_0.OpeningTimesV300
-field	code.api.v3_0_0.AtmJsonV300	tuesday	code.api.v3_0_0.OpeningTimesV300
-field	code.api.v3_0_0.AtmJsonV300	wednesday	code.api.v3_0_0.OpeningTimesV300
 field	code.api.v3_0_0.BranchJsonV300	accessibleFeatures	String
 field	code.api.v3_0_0.BranchJsonV300	address	code.api.v3_0_0.AddressJsonV300
 field	code.api.v3_0_0.BranchJsonV300	bank_id	String
@@ -1661,16 +925,6 @@ field	code.api.v3_0_0.ModeratedCoreAccountJsonV300	label	String
 field	code.api.v3_0_0.ModeratedCoreAccountJsonV300	number	String
 field	code.api.v3_0_0.ModeratedCoreAccountJsonV300	owners	List[code.api.v1_2_1.UserJSONV121]
 field	code.api.v3_0_0.ModeratedCoreAccountJsonV300	type	String
-field	code.api.v3_0_0.ModeratedCoreAccountsJsonV300	accounts	List[code.api.v3_0_0.ModeratedCoreAccountJsonV300]
-field	code.api.v3_0_0.NewModeratedCoreAccountJsonV300	account_routings	List[com.openbankproject.commons.model.AccountRoutingJsonV121]
-field	code.api.v3_0_0.NewModeratedCoreAccountJsonV300	balance	com.openbankproject.commons.model.AmountOfMoneyJsonV121
-field	code.api.v3_0_0.NewModeratedCoreAccountJsonV300	bank_id	String
-field	code.api.v3_0_0.NewModeratedCoreAccountJsonV300	id	String
-field	code.api.v3_0_0.NewModeratedCoreAccountJsonV300	label	String
-field	code.api.v3_0_0.NewModeratedCoreAccountJsonV300	number	String
-field	code.api.v3_0_0.NewModeratedCoreAccountJsonV300	owners	List[code.api.v1_2_1.UserJSONV121]
-field	code.api.v3_0_0.NewModeratedCoreAccountJsonV300	type	String
-field	code.api.v3_0_0.NewModeratedCoreAccountJsonV300	views_basic	List[code.api.v3_0_0.ViewBasicV300]
 field	code.api.v3_0_0.OpeningTimesV300	closing_time	String
 field	code.api.v3_0_0.OpeningTimesV300	opening_time	String
 field	code.api.v3_0_0.OtherAccountJsonV300	account_routings	List[com.openbankproject.commons.model.AccountRoutingJsonV121]
@@ -1834,11 +1088,6 @@ field	code.api.v3_1_0.AccountAttributeResponseJson	product_code	String
 field	code.api.v3_1_0.AccountAttributeResponseJson	product_instance_code	Option[String]
 field	code.api.v3_1_0.AccountAttributeResponseJson	type	String
 field	code.api.v3_1_0.AccountAttributeResponseJson	value	String
-field	code.api.v3_1_0.AccountBalanceV310	account_routings	List[com.openbankproject.commons.model.AccountRouting]
-field	code.api.v3_1_0.AccountBalanceV310	balance	com.openbankproject.commons.model.AmountOfMoney
-field	code.api.v3_1_0.AccountBalanceV310	bank_id	String
-field	code.api.v3_1_0.AccountBalanceV310	id	String
-field	code.api.v3_1_0.AccountBalanceV310	label	String
 field	code.api.v3_1_0.AccountBasicV310	bank_id	String
 field	code.api.v3_1_0.AccountBasicV310	id	String
 field	code.api.v3_1_0.AccountBasicV310	label	String
@@ -1861,9 +1110,6 @@ field	code.api.v3_1_0.AccountWebhookPostJson	url	String
 field	code.api.v3_1_0.AccountWebhookPutJson	account_webhook_id	String
 field	code.api.v3_1_0.AccountWebhookPutJson	is_active	String
 field	code.api.v3_1_0.AccountWebhooksJson	web_hooks	List[code.api.v3_1_0.AccountWebhookJson]
-field	code.api.v3_1_0.AccountsBalancesV310Json	accounts	List[code.api.v3_1_0.AccountBalanceV310]
-field	code.api.v3_1_0.AccountsBalancesV310Json	overall_balance	com.openbankproject.commons.model.AmountOfMoney
-field	code.api.v3_1_0.AccountsBalancesV310Json	overall_balance_date	java.util.Date
 field	code.api.v3_1_0.BadLoginStatusJson	bad_attempts_since_last_success_or_reset	Int
 field	code.api.v3_1_0.BadLoginStatusJson	last_failure_date	java.util.Date
 field	code.api.v3_1_0.BadLoginStatusJson	username	String
@@ -1874,14 +1120,6 @@ field	code.api.v3_1_0.CallLimitJson	per_minute_call_limit	String
 field	code.api.v3_1_0.CallLimitJson	per_month_call_limit	String
 field	code.api.v3_1_0.CallLimitJson	per_second_call_limit	String
 field	code.api.v3_1_0.CallLimitJson	per_week_call_limit	String
-field	code.api.v3_1_0.CallLimitPostJson	from_date	java.util.Date
-field	code.api.v3_1_0.CallLimitPostJson	per_day_call_limit	String
-field	code.api.v3_1_0.CallLimitPostJson	per_hour_call_limit	String
-field	code.api.v3_1_0.CallLimitPostJson	per_minute_call_limit	String
-field	code.api.v3_1_0.CallLimitPostJson	per_month_call_limit	String
-field	code.api.v3_1_0.CallLimitPostJson	per_second_call_limit	String
-field	code.api.v3_1_0.CallLimitPostJson	per_week_call_limit	String
-field	code.api.v3_1_0.CallLimitPostJson	to_date	java.util.Date
 field	code.api.v3_1_0.CardAttributeJson	name	String
 field	code.api.v3_1_0.CardAttributeJson	type	String
 field	code.api.v3_1_0.CardAttributeJson	value	String
@@ -1894,7 +1132,6 @@ field	code.api.v3_1_0.ConsentChallengeJsonV310	status	String
 field	code.api.v3_1_0.ConsentJsonV310	consent_id	String
 field	code.api.v3_1_0.ConsentJsonV310	jwt	String
 field	code.api.v3_1_0.ConsentJsonV310	status	String
-field	code.api.v3_1_0.ConsentsJsonV310	consents	List[code.api.v3_1_0.ConsentJsonV310]
 field	code.api.v3_1_0.ConsumerJsonV310	app_name	String
 field	code.api.v3_1_0.ConsumerJsonV310	app_type	String
 field	code.api.v3_1_0.ConsumerJsonV310	consumer_id	String
@@ -1927,23 +1164,6 @@ field	code.api.v3_1_0.CreateMeetingJsonV310	date	java.util.Date
 field	code.api.v3_1_0.CreateMeetingJsonV310	invitees	List[code.api.v3_1_0.InviteeJson]
 field	code.api.v3_1_0.CreateMeetingJsonV310	provider_id	String
 field	code.api.v3_1_0.CreateMeetingJsonV310	purpose_id	String
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	account_id	String
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	allows	List[String]
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	card_number	String
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	card_type	String
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	collected	Option[java.util.Date]
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	customer_id	String
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	enabled	Boolean
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	expires_date	java.util.Date
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	issue_number	String
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	name_on_card	String
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	networks	List[String]
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	pin_reset	List[code.api.v1_3_0.PinResetJSON]
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	posted	Option[java.util.Date]
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	replacement	Option[code.api.v1_3_0.ReplacementJSON]
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	serial_number	String
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	technology	String
-field	code.api.v3_1_0.CreatePhysicalCardJsonV310	valid_from_date	java.util.Date
 field	code.api.v3_1_0.CreditCardOrderStatusResponseJson	cards	List[com.openbankproject.commons.model.CardObjectJson]
 field	code.api.v3_1_0.CustomerAddressJsonV310	city	String
 field	code.api.v3_1_0.CustomerAddressJsonV310	country_code	String
@@ -2021,16 +1241,6 @@ field	code.api.v3_1_0.MeetingJsonV310	provider_id	String
 field	code.api.v3_1_0.MeetingJsonV310	purpose_id	String
 field	code.api.v3_1_0.MeetingJsonV310	when	java.util.Date
 field	code.api.v3_1_0.MeetingsJsonV310	meetings	List[code.api.v3_1_0.MeetingJsonV310]
-field	code.api.v3_1_0.ModeratedAccountJSON310	account_attributes	List[code.api.v3_1_0.AccountAttributeResponseJson]
-field	code.api.v3_1_0.ModeratedAccountJSON310	account_routings	List[com.openbankproject.commons.model.AccountRoutingJsonV121]
-field	code.api.v3_1_0.ModeratedAccountJSON310	balance	com.openbankproject.commons.model.AmountOfMoneyJsonV121
-field	code.api.v3_1_0.ModeratedAccountJSON310	bank_id	String
-field	code.api.v3_1_0.ModeratedAccountJSON310	id	String
-field	code.api.v3_1_0.ModeratedAccountJSON310	label	String
-field	code.api.v3_1_0.ModeratedAccountJSON310	number	String
-field	code.api.v3_1_0.ModeratedAccountJSON310	owners	List[code.api.v1_2_1.UserJSONV121]
-field	code.api.v3_1_0.ModeratedAccountJSON310	type	String
-field	code.api.v3_1_0.ModeratedAccountJSON310	views_available	List[code.api.v1_2_1.ViewJSONV121]
 field	code.api.v3_1_0.OAuth2ServerJWKURIJson	jwks_uri	String
 field	code.api.v3_1_0.OAuth2ServerJwksUrisJson	jwks_uris	List[code.api.v3_1_0.OAuth2ServerJWKURIJson]
 field	code.api.v3_1_0.ObpApiLoopbackJson	connector_version	String
@@ -2116,23 +1326,6 @@ field	code.api.v3_1_0.PostCustomerAddressJsonV310	postcode	String
 field	code.api.v3_1_0.PostCustomerAddressJsonV310	state	String
 field	code.api.v3_1_0.PostCustomerAddressJsonV310	status	String
 field	code.api.v3_1_0.PostCustomerAddressJsonV310	tags	List[String]
-field	code.api.v3_1_0.PostCustomerJsonV310	branch_id	String
-field	code.api.v3_1_0.PostCustomerJsonV310	credit_limit	com.openbankproject.commons.model.AmountOfMoneyJsonV121
-field	code.api.v3_1_0.PostCustomerJsonV310	credit_rating	code.api.v2_1_0.CustomerCreditRatingJSON
-field	code.api.v3_1_0.PostCustomerJsonV310	date_of_birth	java.util.Date
-field	code.api.v3_1_0.PostCustomerJsonV310	dependants	Int
-field	code.api.v3_1_0.PostCustomerJsonV310	dob_of_dependants	List[java.util.Date]
-field	code.api.v3_1_0.PostCustomerJsonV310	email	String
-field	code.api.v3_1_0.PostCustomerJsonV310	employment_status	String
-field	code.api.v3_1_0.PostCustomerJsonV310	face_image	code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
-field	code.api.v3_1_0.PostCustomerJsonV310	highest_education_attained	String
-field	code.api.v3_1_0.PostCustomerJsonV310	kyc_status	Boolean
-field	code.api.v3_1_0.PostCustomerJsonV310	last_ok_date	java.util.Date
-field	code.api.v3_1_0.PostCustomerJsonV310	legal_name	String
-field	code.api.v3_1_0.PostCustomerJsonV310	mobile_phone_number	String
-field	code.api.v3_1_0.PostCustomerJsonV310	name_suffix	String
-field	code.api.v3_1_0.PostCustomerJsonV310	relationship_status	String
-field	code.api.v3_1_0.PostCustomerJsonV310	title	String
 field	code.api.v3_1_0.PostCustomerNumberJsonV310	customer_number	String
 field	code.api.v3_1_0.PostHistoricalTransactionJson	charge_policy	String
 field	code.api.v3_1_0.PostHistoricalTransactionJson	completed	String
@@ -2151,23 +1344,11 @@ field	code.api.v3_1_0.PostHistoricalTransactionResponseJson	to	code.api.v3_1_0.H
 field	code.api.v3_1_0.PostHistoricalTransactionResponseJson	transaction_id	String
 field	code.api.v3_1_0.PostHistoricalTransactionResponseJson	transaction_request_type	String
 field	code.api.v3_1_0.PostHistoricalTransactionResponseJson	value	com.openbankproject.commons.model.AmountOfMoneyJsonV121
-field	code.api.v3_1_0.PostPutProductJsonV310	category	String
-field	code.api.v3_1_0.PostPutProductJsonV310	description	String
-field	code.api.v3_1_0.PostPutProductJsonV310	details	String
-field	code.api.v3_1_0.PostPutProductJsonV310	family	String
-field	code.api.v3_1_0.PostPutProductJsonV310	meta	code.api.v1_4_0.JSONFactory1_4_0.MetaJsonV140
-field	code.api.v3_1_0.PostPutProductJsonV310	more_info_url	String
-field	code.api.v3_1_0.PostPutProductJsonV310	name	String
-field	code.api.v3_1_0.PostPutProductJsonV310	parent_product_code	String
-field	code.api.v3_1_0.PostPutProductJsonV310	super_family	String
 field	code.api.v3_1_0.PostTaxResidenceJsonV310	domain	String
 field	code.api.v3_1_0.PostTaxResidenceJsonV310	tax_number	String
 field	code.api.v3_1_0.PostUserAuthContextJson	key	String
 field	code.api.v3_1_0.PostUserAuthContextJson	value	String
 field	code.api.v3_1_0.PostUserAuthContextUpdateJsonV310	answer	String
-field	code.api.v3_1_0.ProductAttributeJson	name	String
-field	code.api.v3_1_0.ProductAttributeJson	type	String
-field	code.api.v3_1_0.ProductAttributeJson	value	String
 field	code.api.v3_1_0.ProductAttributeResponseWithoutBankIdJson	name	String
 field	code.api.v3_1_0.ProductAttributeResponseWithoutBankIdJson	product_attribute_id	String
 field	code.api.v3_1_0.ProductAttributeResponseWithoutBankIdJson	product_code	String
@@ -2203,7 +1384,6 @@ field	code.api.v3_1_0.ProductTreeJsonV310	more_info_url	String
 field	code.api.v3_1_0.ProductTreeJsonV310	name	String
 field	code.api.v3_1_0.ProductTreeJsonV310	parent_product	Option[code.api.v3_1_0.ProductTreeJsonV310]
 field	code.api.v3_1_0.ProductTreeJsonV310	super_family	String
-field	code.api.v3_1_0.ProductsJsonV310	products	List[code.api.v3_1_0.ProductJsonV310]
 field	code.api.v3_1_0.PutProductCollectionsV310	children_product_codes	List[String]
 field	code.api.v3_1_0.PutProductCollectionsV310	parent_product_code	String
 field	code.api.v3_1_0.PutUpdateCustomerBranchJsonV310	branch_id	String
@@ -2274,17 +1454,6 @@ field	code.api.v3_1_0.UpdatePhysicalCardJsonV310	replacement	code.api.v1_3_0.Rep
 field	code.api.v3_1_0.UpdatePhysicalCardJsonV310	serial_number	String
 field	code.api.v3_1_0.UpdatePhysicalCardJsonV310	technology	String
 field	code.api.v3_1_0.UpdatePhysicalCardJsonV310	valid_from_date	java.util.Date
-field	code.api.v3_1_0.UserAuthContextJson	key	String
-field	code.api.v3_1_0.UserAuthContextJson	time_stamp	java.util.Date
-field	code.api.v3_1_0.UserAuthContextJson	user_auth_context_id	String
-field	code.api.v3_1_0.UserAuthContextJson	user_id	String
-field	code.api.v3_1_0.UserAuthContextJson	value	String
-field	code.api.v3_1_0.UserAuthContextUpdateJson	key	String
-field	code.api.v3_1_0.UserAuthContextUpdateJson	status	String
-field	code.api.v3_1_0.UserAuthContextUpdateJson	user_auth_context_update_id	String
-field	code.api.v3_1_0.UserAuthContextUpdateJson	user_id	String
-field	code.api.v3_1_0.UserAuthContextUpdateJson	value	String
-field	code.api.v3_1_0.UserAuthContextsJson	user_auth_contexts	List[code.api.v3_1_0.UserAuthContextJson]
 field	code.api.v4_0_0.APIInfoJson400	connector	String
 field	code.api.v4_0_0.APIInfoJson400	energy_source	code.api.v4_0_0.EnergySource400
 field	code.api.v4_0_0.APIInfoJson400	git_commit	String
@@ -2464,25 +1633,6 @@ field	code.api.v4_0_0.ConsentInfoJsonV400	last_action_date	String
 field	code.api.v4_0_0.ConsentInfoJsonV400	last_usage_date	String
 field	code.api.v4_0_0.ConsentInfoJsonV400	status	String
 field	code.api.v4_0_0.ConsentInfosJsonV400	consents	List[code.api.v4_0_0.ConsentInfoJsonV400]
-field	code.api.v4_0_0.ConsentJsonV400	api_standard	String
-field	code.api.v4_0_0.ConsentJsonV400	api_version	String
-field	code.api.v4_0_0.ConsentJsonV400	consent_id	String
-field	code.api.v4_0_0.ConsentJsonV400	jwt	String
-field	code.api.v4_0_0.ConsentJsonV400	status	String
-field	code.api.v4_0_0.ConsentsJsonV400	consents	List[code.api.v4_0_0.ConsentJsonV400]
-field	code.api.v4_0_0.ConsumerJson	app_name	String
-field	code.api.v4_0_0.ConsumerJson	app_type	String
-field	code.api.v4_0_0.ConsumerJson	client_certificate	String
-field	code.api.v4_0_0.ConsumerJson	consumer_id	String
-field	code.api.v4_0_0.ConsumerJson	created	java.util.Date
-field	code.api.v4_0_0.ConsumerJson	created_by_user	code.api.v2_1_0.ResourceUserJSON
-field	code.api.v4_0_0.ConsumerJson	created_by_user_id	String
-field	code.api.v4_0_0.ConsumerJson	description	String
-field	code.api.v4_0_0.ConsumerJson	developer_email	String
-field	code.api.v4_0_0.ConsumerJson	enabled	Boolean
-field	code.api.v4_0_0.ConsumerJson	key	String
-field	code.api.v4_0_0.ConsumerJson	redirect_url	String
-field	code.api.v4_0_0.ConsumerJson	secret	String
 field	code.api.v4_0_0.CorrelatedEntities	correlated_entities	List[code.api.v4_0_0.CustomerAndUsersWithAttributesResponseJson]
 field	code.api.v4_0_0.CounterpartiesJson400	counterparties	List[code.api.v4_0_0.CounterpartyJson400]
 field	code.api.v4_0_0.CounterpartyJson400	bespoke	List[code.api.v2_1_0.PostCounterpartyBespokeJson]
@@ -2635,19 +1785,11 @@ field	code.api.v4_0_0.ModeratedFirehoseAccountJsonV400	owners	List[code.api.v1_2
 field	code.api.v4_0_0.ModeratedFirehoseAccountJsonV400	product_code	String
 field	code.api.v4_0_0.ModeratedFirehoseAccountsJsonV400	accounts	List[code.api.v4_0_0.ModeratedFirehoseAccountJsonV400]
 field	code.api.v4_0_0.MySpaces	bank_ids	List[String]
-field	code.api.v4_0_0.PostAccountAccessJsonV400	user_id	String
-field	code.api.v4_0_0.PostAccountAccessJsonV400	view	code.api.v4_0_0.PostViewJsonV400
 field	code.api.v4_0_0.PostAccountTagJSON	value	String
 field	code.api.v4_0_0.PostApiCollectionEndpointJson400	operation_id	String
 field	code.api.v4_0_0.PostApiCollectionJson400	api_collection_name	String
 field	code.api.v4_0_0.PostApiCollectionJson400	description	Option[String]
 field	code.api.v4_0_0.PostApiCollectionJson400	is_sharable	Boolean
-field	code.api.v4_0_0.PostBankJson400	bank_routings	List[code.api.v1_2_1.BankRoutingJsonV121]
-field	code.api.v4_0_0.PostBankJson400	full_name	String
-field	code.api.v4_0_0.PostBankJson400	id	String
-field	code.api.v4_0_0.PostBankJson400	logo	String
-field	code.api.v4_0_0.PostBankJson400	short_name	String
-field	code.api.v4_0_0.PostBankJson400	website	String
 field	code.api.v4_0_0.PostCounterpartyJson400	bespoke	List[code.api.v2_1_0.PostCounterpartyBespokeJson]
 field	code.api.v4_0_0.PostCounterpartyJson400	currency	String
 field	code.api.v4_0_0.PostCounterpartyJson400	description	String
@@ -2685,7 +1827,6 @@ field	code.api.v4_0_0.PostHistoricalTransactionAtBankJson	value	com.openbankproj
 field	code.api.v4_0_0.PostResetPasswordUrlJsonV400	email	String
 field	code.api.v4_0_0.PostResetPasswordUrlJsonV400	user_id	String
 field	code.api.v4_0_0.PostResetPasswordUrlJsonV400	username	String
-field	code.api.v4_0_0.PostRevokeGrantAccountAccessJsonV400	views	List[String]
 field	code.api.v4_0_0.PostSimpleCounterpartyJson400	description	String
 field	code.api.v4_0_0.PostSimpleCounterpartyJson400	name	String
 field	code.api.v4_0_0.PostSimpleCounterpartyJson400	other_account_routing_address	String
@@ -2755,12 +1896,6 @@ field	code.api.v4_0_0.ProductsJsonV400	products	List[code.api.v4_0_0.ProductJson
 field	code.api.v4_0_0.Properties	xxx_id	code.api.v4_0_0.XxxId
 field	code.api.v4_0_0.PutConsentStatusJsonV400	status	String
 field	code.api.v4_0_0.PutConsentUserJsonV400	user_id	String
-field	code.api.v4_0_0.PutProductJsonV400	description	String
-field	code.api.v4_0_0.PutProductJsonV400	meta	code.api.v1_4_0.JSONFactory1_4_0.MetaJsonV140
-field	code.api.v4_0_0.PutProductJsonV400	more_info_url	String
-field	code.api.v4_0_0.PutProductJsonV400	name	String
-field	code.api.v4_0_0.PutProductJsonV400	parent_product_code	String
-field	code.api.v4_0_0.PutProductJsonV400	terms_and_conditions_url	String
 field	code.api.v4_0_0.RefundJson	reason_code	String
 field	code.api.v4_0_0.RefundJson	transaction_id	String
 field	code.api.v4_0_0.ResetPasswordUrlJsonV400	reset_password_url	String
