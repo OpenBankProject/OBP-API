@@ -33,8 +33,58 @@ import code.metrics.MappedMetric
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
+import net.liftweb.util.DefaultConnectionIdentifier
+
+import scala.collection.mutable.ListBuffer
 
 object MigrationOfUserIdIndexes {
+
+  /**
+   * Give a new user id to each resource user that has none, and to each one whose user id is
+   * also held by a resource user with a lower row id.
+   *
+   * The unique index on userid_ cannot be created over such rows: every database refuses a
+   * repeated value, and SQL Server also refuses a second NULL. No row is removed, because other
+   * tables point at a resource user by its row id. The user with the lowest row id keeps the
+   * shared user id, so rows that point at that user id still find a user. Postgres and SQL Server
+   * compare the values the way their unique index does, so the rows found here are the rows the
+   * index would refuse.
+   *
+   * @return one line per changed row: its row id, its old user id and its new one
+   */
+  private[migration] def giveEveryResourceUserItsOwnUserId(): List[String] = {
+    val table = ResourceUser._dbTableNameLC
+    val idColumn = ResourceUser.id.dbColumnName
+    val userIdColumn = ResourceUser.userId_.dbColumnName
+    DB.use(DefaultConnectionIdentifier) { connection =>
+      val select = connection.createStatement()
+      val rowsToChange = try {
+        val rs = select.executeQuery(
+          s"""SELECT r.$idColumn, r.$userIdColumn FROM $table r
+             |WHERE r.$userIdColumn IS NULL
+             |   OR EXISTS (SELECT 1 FROM $table o WHERE o.$userIdColumn = r.$userIdColumn AND o.$idColumn < r.$idColumn)
+             |ORDER BY r.$idColumn""".stripMargin)
+        try {
+          val rows = ListBuffer.empty[(Long, Option[String])]
+          while (rs.next()) rows += (rs.getLong(1) -> Option(rs.getString(2)))
+          rows.toList
+        } finally rs.close()
+      } finally select.close()
+
+      val update = connection.prepareStatement(s"UPDATE $table SET $userIdColumn = ? WHERE $idColumn = ?")
+      val changes = try {
+        rowsToChange.map { case (rowId, oldUserId) =>
+          val newUserId = APIUtil.generateUUID()
+          update.setString(1, newUserId)
+          update.setLong(2, rowId)
+          update.executeUpdate()
+          s"$idColumn $rowId: ${oldUserId.getOrElse("NULL")} -> $newUserId"
+        }
+      } finally update.close()
+      if (!connection.getAutoCommit) connection.commit()
+      changes
+    }
+  }
 
   /**
    * Creates a UNIQUE index on resourceuser.userid_ field
@@ -46,6 +96,10 @@ object MigrationOfUserIdIndexes {
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
+
+        // Rows the index would refuse get their own user id first, or the CREATE fails and the
+        // boot that runs this migration stops.
+        val changedUserIds = giveEveryResourceUserItsOwnUserId()
 
         val executedSql =
           DbFunction.maybeWrite(true, Schemifier.infoF _) {
@@ -85,6 +139,8 @@ object MigrationOfUserIdIndexes {
              |Executed SQL:
              |$executedSql
              |This ensures user_id is enforced as unique at the database level.
+             |Resource users given a new user id first, because they had none or shared one: ${changedUserIds.size}
+             |${changedUserIds.mkString("\n")}
              |""".stripMargin
         isSuccessful = true
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
