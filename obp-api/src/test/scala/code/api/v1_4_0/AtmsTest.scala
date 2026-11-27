@@ -236,51 +236,52 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     Atms.atmsProvider.default.set(Atms.buildOne)
   }
 
-  feature("Getting bank ATMs") {
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Getting bank ATMs") {
 
-    scenario("We try to get ATMs for a bank without a data license for ATM information") {
+    // scenario("We try to get ATMs for a bank without a data license for ATM information") {
 
-      When("We make a request")
-      val request = (v1_4Request / "banks" / bankWithoutLicense.value / "atms").GET <@ user1
-      val response = makeGetRequest(request)
+      // When("We make a request")
+      // val request = (v1_4Request / "banks" / bankWithoutLicense.value / "atms").GET <@ user1
+      // val response = makeGetRequest(request)
 
-      Then("We should get a 200")
-      response.code should equal(200)
+      // Then("We should get a 200")
+      // response.code should equal(200)
 
-    }
+    // }
 
-    scenario("We try to get ATMs for a bank with a data license for ATM information") {
-      When("We make a request")
-      val request = (v1_4Request / "banks" / bankWithLicense.value / "atms").GET <@ user1
-      val response = makeGetRequest(request)
+    // scenario("We try to get ATMs for a bank with a data license for ATM information") {
+      // When("We make a request")
+      // val request = (v1_4Request / "banks" / bankWithLicense.value / "atms").GET <@ user1
+      // val response = makeGetRequest(request)
 
-      Then("We should get a 200")
-      response.code should equal(200)
+      // Then("We should get a 200")
+      // response.code should equal(200)
 
-      And("We should get the right json format containing a list of ATMs")
-      val wholeResponseBody = response.body
-      val responseBodyOpt = wholeResponseBody.extractOpt[AtmsJson]
-      responseBodyOpt.isDefined should equal(true)
+      // And("We should get the right json format containing a list of ATMs")
+      // val wholeResponseBody = response.body
+      // val responseBodyOpt = wholeResponseBody.extractOpt[AtmsJson]
+      // responseBodyOpt.isDefined should equal(true)
 
-      val responseBody = responseBodyOpt.get
+      // val responseBody = responseBodyOpt.get
 
-      And("We should get the right atms")
-      val atms = responseBody.atms
+      // And("We should get the right atms")
+      // val atms = responseBody.atms
 
-      // Order of ATMs in the list is arbitrary
-      atms.size should equal(3)
-      val first = atms(0)
-      if(first.id == fakeAtm1.atmId.value) {
-        verifySameData(fakeAtm1, first)
-        verifySameData(fakeAtm2, atms(1))
-      } else if (first.id == fakeAtm2.atmId.value) {
-        verifySameData(fakeAtm2, first)
-        verifySameData(fakeAtm1, atms(1))
-      } else {
-        fail("Incorrect ATMs")
-      }
+      // // Order of ATMs in the list is arbitrary
+      // atms.size should equal(3)
+      // val first = atms(0)
+      // if(first.id == fakeAtm1.atmId.value) {
+        // verifySameData(fakeAtm1, first)
+        // verifySameData(fakeAtm2, atms(1))
+      // } else if (first.id == fakeAtm2.atmId.value) {
+        // verifySameData(fakeAtm2, first)
+        // verifySameData(fakeAtm1, atms(1))
+      // } else {
+        // fail("Incorrect ATMs")
+      // }
 
-    }
-  }
+    // }
+  // }
 
 }
