@@ -1,6 +1,6 @@
 # Code that only versions below v5.1.0 can reach
 
-OBP versions below v5.1.0 are now disabled. The kept API sets are OBP v5.1.0, v6.0.0 and v7.0.0, Berlin Group v1.3 and v2, and UK Open Banking v2.0, v3.1 and v4.0.1. This document lists the endpoint implementations in the v1.2.1 to v5.0.0 files that none of the kept sets can reach. It also lists the helper code and the tests that only those implementations use. It is the input for commenting that code out, one version at a time.
+OBP versions below v5.1.0 are now disabled. The kept API sets are OBP v5.1.0, v6.0.0 and v7.0.0, Berlin Group v1.3 and v2, and UK Open Banking v2.0, v3.1 and v4.0.1. This document lists the endpoint implementations in the v1.2.1 to v5.0.0 files that none of the kept sets can reach. It also lists the helper code and the tests that only those implementations use. That code has been commented out, one version at a time, in the commits that follow this document.
 
 The analysis was made on `origin/develop` at commit `8dfeb284a` (2026-11-26).
 
@@ -73,9 +73,9 @@ None of these removes a capability, because each one is shadowed by a newer hand
   - consumer management in v2.1.0 and v3.1.0
   - the view and permission endpoints of v1.2.1
 
-## Proposed commenting order
+## How it was commented out
 
-One commit per version, newest first, so each commit removes the users of a helper before the helper itself. Each commit comments out the O handlers, their ResourceDoc blocks, their `routesInOrder` entries, the helpers only they use, and the tests that only exercise them. Each commit is compiled and the affected suites are run before the next one.
+There is one commit per version, newest first, so each commit removes the users of a helper before the helper itself. Each commit comments out the O handlers, their ResourceDoc blocks, their `routesInOrder` entries and the helpers in the same `Http4sNNN.scala` that only they use. Every commented block starts with a line saying why. Test tags that named an O handler with `nameOf` now use the same name as a string, so they still compile. Each commit was compiled, with its tests, before the next one. The JSONFactory helpers and `NewStyle.function.ownEntitlement` follow in one commit of their own, and the tests that only exercised O endpoints in another.
 
 1. v5.0.0 (2 docs)
 2. v4.0.0 (18 docs)
@@ -88,7 +88,11 @@ One commit per version, newest first, so each commit removes the users of a help
 9. v1.3.0 (1 doc)
 10. v1.2.1 (19 docs)
 
-Code is commented out, not deleted. After each commit the probe is run again to check that set K is unchanged.
+Code is commented out, not deleted.
+
+v1.2.1 `bankById` ran before the middleware, so `Http4s121` used to wrap it around the middleware. With `bankById` gone, the middleware serves every remaining v1.2.1 route directly.
+
+Three symbols were commented out beyond the 20 helpers below, because commenting out the v2.1.0 handlers left them with no user: `v210SupportedTransactionRequestTypes` (the transaction request types the v2.1.0 route accepted), and `answerChallengeCommonErrors` and `answerChallengeTags`, which the scan had already found unused.
 
 ## Set O by version
 
