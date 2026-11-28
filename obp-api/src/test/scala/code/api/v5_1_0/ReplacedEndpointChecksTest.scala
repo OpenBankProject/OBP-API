@@ -337,6 +337,17 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
       holderUserIds should contain(resourceUser1.userId)
       holderUserIds should not contain (resourceUser2.userId)
     }
+
+    scenario("an ACCOUNT_ID in the wrong format is refused and no account is created", VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canCreateAccount.toString)
+      val response = makePutRequest(
+        (v5_1_0_Request / "banks" / bankId / "accounts" / "account%20with%20spaces").PUT <@ (user1),
+        write(SwaggerDefinitionsJSON.createAccountRequestJsonV500.copy(
+          user_id = Some(resourceUser1.userId), label = "format check", account_routings = Some(Nil))))
+      response.code should equal(400)
+      messageOf(response.body) should include(InvalidAccountIdFormat)
+      AccountHolders.accountHolders.vend.getAccountHolders(testBankId1, AccountId("account with spaces")) should be(empty)
+    }
   }
 
   // ─── Smaller cases, one old scenario each ────────────────────────────────────────────────
