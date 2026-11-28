@@ -154,7 +154,7 @@ object ChatMessage {
     update(chatMessageId, fr"content = $content")
 
   def softDelete(chatMessageId: String): Box[ChatMessage] =
-    update(chatMessageId, fr"isdeleted = true")
+    update(chatMessageId, fr"isdeleted = ${true}")
 
   def deleteAll(): Unit = {
     DoobieUtil.runUpdate(sql"DELETE FROM chatmessage".update.run)

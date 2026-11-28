@@ -123,7 +123,7 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
       Full {
         if (params.isEmpty) {
           DoobieUtil.runQuery(
-            (selectCols ++ fr"WHERE bankid = ${bankId.value} AND ispersonal = true")
+            (selectCols ++ fr"WHERE bankid = ${bankId.value} AND ispersonal = ${true}")
               .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
           ).map(rowOf)
         } else {
@@ -139,7 +139,7 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
           }.reduceOption((a, b) => a ++ fr" OR " ++ b).getOrElse(fr"1=1")
 
           DoobieUtil.runQuery(
-            (selectCols ++ fr"WHERE bankid = ${bankId.value} AND ispersonal = true AND (" ++ filterFrag ++ fr")")
+            (selectCols ++ fr"WHERE bankid = ${bankId.value} AND ispersonal = ${true} AND (" ++ filterFrag ++ fr")")
               .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].to[List]
           ).map(rowOf)
         }

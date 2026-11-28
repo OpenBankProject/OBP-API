@@ -56,7 +56,7 @@ object MigrationOfProductAttribute {
         val emptyIds = DoobieUtil.runQuery(
           sql"SELECT id FROM mappedproductattribute WHERE isactive IS NULL".query[Long].to[List])
         emptyIds.foreach { id =>
-          DoobieUtil.runUpdate(sql"UPDATE mappedproductattribute SET isactive = true WHERE id = $id".update.run)
+          DoobieUtil.runUpdate(sql"UPDATE mappedproductattribute SET isactive = ${true} WHERE id = $id".update.run)
         }
 
         val endDate = System.currentTimeMillis()

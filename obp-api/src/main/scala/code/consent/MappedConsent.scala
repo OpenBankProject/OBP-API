@@ -634,7 +634,7 @@ object MappedConsent {
    */
   def findAllRecurringValidForPsuAndTpp(apiStandard: String, status: String, userId: String,
                                         consumerId: String): List[MappedConsent] =
-    query(fr"""WHERE mapistandard = ${opt(apiStandard)} AND mrecurringindicator = true
+    query(fr"""WHERE mapistandard = ${opt(apiStandard)} AND mrecurringindicator = ${true}
                  AND mstatus = ${opt(status)} AND muserid = ${opt(userId)}
                  AND mconsumerid = ${opt(consumerId)}""")
 

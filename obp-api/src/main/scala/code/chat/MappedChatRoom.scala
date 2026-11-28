@@ -141,7 +141,7 @@ object ChatRoom {
     }
 
   def findAllOpenByBankId(bankId: String): List[ChatRoom] =
-    query(fr"WHERE bankid = $bankId AND isopenroom = true")
+    query(fr"WHERE bankid = $bankId AND isopenroom = ${true}")
 
   private def update(chatRoomId: String, set: Fragment): Box[ChatRoom] =
     findByChatRoomId(chatRoomId).flatMap { _ =>
@@ -170,7 +170,7 @@ object ChatRoom {
       fr"lastmessageat = ${new java.sql.Timestamp(lastMessageAt.getTime)}," ++
       fr"lastmessagepreview = $preview, lastmessagesenderusername = $senderUsername")
 
-  def archive(chatRoomId: String): Box[ChatRoom] = update(chatRoomId, fr"isarchived = true")
+  def archive(chatRoomId: String): Box[ChatRoom] = update(chatRoomId, fr"isarchived = ${true}")
 
   def updateJoiningKey(chatRoomId: String, joiningKey: String): Box[ChatRoom] =
     update(chatRoomId, fr"joiningkey = $joiningKey")

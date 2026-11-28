@@ -154,7 +154,7 @@ object MetricsArchiveRun {
   /** Most recent successful run by start time, if any. */
   def lastSuccessfulRun: Option[MetricsArchiveRunTrait] =
     DoobieUtil.runQuery(
-      (selectColumns ++ DoobieUtil.firstRowOf(fr"WHERE success = true ORDER BY startedat DESC"))
+      (selectColumns ++ DoobieUtil.firstRowOf(fr"WHERE success = ${true} ORDER BY startedat DESC"))
         .query[(Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[Long], Option[Int], Option[Int], Option[Boolean], Option[String])]
         .option
     ).map(fromRow)

@@ -337,17 +337,17 @@ object ViewDefinition {
     }
 
   def findSystemView(viewId: String): Box[ViewDefinition] =
-    one(fr"""WHERE bank_id IS NULL AND account_id IS NULL AND issystem_ = true
+    one(fr"""WHERE bank_id IS NULL AND account_id IS NULL AND issystem_ = ${true}
                AND view_id = ${opt(viewId)}""")
 
-  def getSystemViews(): List[ViewDefinition] = query(fr"WHERE issystem_ = true")
+  def getSystemViews(): List[ViewDefinition] = query(fr"WHERE issystem_ = ${true}")
 
   def findCustomView(bankId: String, accountId: String, viewId: String): Box[ViewDefinition] =
     one(fr"WHERE " ++ isNullOr(fr"bank_id", bankId) ++ fr"AND" ++
       isNullOr(fr"account_id", accountId) ++
-      fr"AND issystem_ = false AND view_id = ${opt(viewId)}")
+      fr"AND issystem_ = ${false} AND view_id = ${opt(viewId)}")
 
-  def getCustomViews(): List[ViewDefinition] = query(fr"WHERE issystem_ = false")
+  def getCustomViews(): List[ViewDefinition] = query(fr"WHERE issystem_ = ${false}")
 
   def findByPrimaryKey(viewPrimaryKey: Long): Box[ViewDefinition] =
     one(fr"WHERE id_ = $viewPrimaryKey")
@@ -364,11 +364,11 @@ object ViewDefinition {
   /** System views scoped to one bank (bank set, account null). */
   def findAllBankSystemViews(bankId: String): List[ViewDefinition] =
     query(fr"WHERE " ++ isNullOr(fr"bank_id", bankId) ++
-      fr"AND account_id IS NULL AND issystem_ = true")
+      fr"AND account_id IS NULL AND issystem_ = ${true}")
 
   /** System views scoped to no bank at all. */
   def findAllSandboxSystemViews(): List[ViewDefinition] =
-    query(fr"WHERE bank_id IS NULL AND account_id IS NULL AND issystem_ = true")
+    query(fr"WHERE bank_id IS NULL AND account_id IS NULL AND issystem_ = ${true}")
 
   /** Views that name a bank, an account AND a view id - what the system-to-custom migration walks. */
   def findAllFullyScoped(): List[ViewDefinition] =
@@ -376,7 +376,7 @@ object ViewDefinition {
 
   /** System views scoped to a bank but no account. */
   def findAllBankScopedSystemViews(): List[ViewDefinition] =
-    query(fr"WHERE bank_id IS NOT NULL AND account_id IS NULL AND issystem_ = true")
+    query(fr"WHERE bank_id IS NOT NULL AND account_id IS NULL AND issystem_ = ${true}")
 
   def setIsSystem(viewPrimaryKey: Long, isSystem: Boolean): Boolean =
     DoobieUtil.runUpdate(
@@ -387,14 +387,14 @@ object ViewDefinition {
 
   def findAll(): List[ViewDefinition] = query(Fragment.empty)
 
-  def findAllPublic(): List[ViewDefinition] = query(fr"WHERE ispublic_ = true")
+  def findAllPublic(): List[ViewDefinition] = query(fr"WHERE ispublic_ = ${true}")
 
   def findAllPublicByBankAndSystem(bankId: String, isSystem: Boolean): List[ViewDefinition] =
-    query(fr"WHERE ispublic_ = true AND " ++ isNullOr(fr"bank_id", bankId) ++
+    query(fr"WHERE ispublic_ = ${true} AND " ++ isNullOr(fr"bank_id", bankId) ++
       fr"AND issystem_ = $isSystem")
 
   def findAllPublicBySystem(isSystem: Boolean): List[ViewDefinition] =
-    query(fr"WHERE ispublic_ = true AND issystem_ = $isSystem")
+    query(fr"WHERE ispublic_ = ${true} AND issystem_ = $isSystem")
 
   def countSystemView(viewId: String): Long =
     count(fr"""WHERE view_id = ${opt(viewId)} AND bank_id IS NULL AND account_id IS NULL""")

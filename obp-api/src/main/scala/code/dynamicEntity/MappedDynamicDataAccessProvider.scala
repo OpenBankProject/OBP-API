@@ -116,7 +116,7 @@ object DynamicDataAccess {
 
   def findReadable(bankId: Option[String], entityName: String, userId: String): List[DynamicDataAccess] =
     query(fr"WHERE bankid = ${storedBankId(bankId)} AND entityname = $entityName AND userid = $userId" ++
-      fr"AND canread = true ORDER BY id ASC")
+      fr"AND canread = ${true} ORDER BY id ASC")
 
   /** Upsert on (space, entity, record, user) — the unique index is what makes that tuple single-valued. */
   def grant(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String,
@@ -342,7 +342,7 @@ object DynamicDataOrganisationAccess {
       case Nil => Nil
       case ids =>
         query(fr"WHERE bankid = ${storedBankId(bankId)} AND entityname = ${Option(entityName)} AND" ++
-          Fragments.in(fr"organisationid", NonEmptyList.fromListUnsafe(ids)) ++ fr"AND canread = true ORDER BY id ASC")
+          Fragments.in(fr"organisationid", NonEmptyList.fromListUnsafe(ids)) ++ fr"AND canread = ${true} ORDER BY id ASC")
     }
 
   /** Upsert on (space, entity, record, Organisation): the unique index makes that tuple single-valued. */

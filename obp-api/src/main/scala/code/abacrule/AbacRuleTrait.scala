@@ -135,7 +135,7 @@ object AbacRule {
 
   def findAll(): List[AbacRule] = query(fr"ORDER BY id ASC")
 
-  def findAllActive(): List[AbacRule] = query(fr"WHERE isactive = true ORDER BY id ASC")
+  def findAllActive(): List[AbacRule] = query(fr"WHERE isactive = ${true} ORDER BY id ASC")
 
   // ── Maker/checker write helpers (upstream commit 5d4af81c3) ────────────────────────────────
   // An ABAC rule's approved hash covers its RuleCode, not a method body: the engine refuses to

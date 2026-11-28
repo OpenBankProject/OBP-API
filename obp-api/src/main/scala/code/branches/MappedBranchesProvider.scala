@@ -269,7 +269,7 @@ object MappedBranch {
   def findLiveByBankId(bankId: String, queryParams: List[OBPQueryParam]): List[MappedBranch] = {
     val limit = queryParams.collectFirst { case OBPLimit(value) => value }
     val offset = queryParams.collectFirst { case OBPOffset(value) => value }
-    query(DoobieUtil.pageOf(fr"WHERE mbankid = $bankId AND misdeleted = false ORDER BY id ASC", limit, offset))
+    query(DoobieUtil.pageOf(fr"WHERE mbankid = $bankId AND misdeleted = ${false} ORDER BY id ASC", limit, offset))
   }
 
   def createOrUpdate(

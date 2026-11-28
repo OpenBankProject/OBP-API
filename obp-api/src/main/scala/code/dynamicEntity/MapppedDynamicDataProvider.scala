@@ -384,7 +384,7 @@ object DynamicData {
 
   private def owned(ownership: Option[Ownership]): Fragment = ownership match {
     case Some(Ownership(true, userId)) => fr"AND userid = $userId"
-    case Some(Ownership(false, _))     => fr"AND ispersonalentity = false"
+    case Some(Ownership(false, _))     => fr"AND ispersonalentity = ${false}"
     case None                          => Fragment.empty
   }
 
@@ -412,7 +412,7 @@ object DynamicData {
   /** Impersonal record count for one entity in one space — the dynamic-entity listing shows it. */
   def countImpersonal(bankId: Option[String], entityName: String): Long =
     DoobieUtil.runQuery((fr"SELECT COUNT(*) FROM dynamicdata" ++ inSpace(bankId, entityName) ++
-      fr"AND ispersonalentity = false").query[Long].unique)
+      fr"AND ispersonalentity = ${false}").query[Long].unique)
 
   /**
    * Creates a record. INSERT only - never an upsert.

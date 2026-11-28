@@ -120,7 +120,7 @@ object MappedAccountWebhook {
 
   /** The delivery path: only active webhooks registered for this account and trigger. */
   def findActiveFor(bankId: String, accountId: String, triggerName: String): List[MappedAccountWebhook] =
-    query(fr"""WHERE misactive = true AND mbankid = $bankId AND maccountid = $accountId
+    query(fr"""WHERE misactive = ${true} AND mbankid = $bankId AND maccountid = $accountId
                AND mtriggername = $triggerName ORDER BY id ASC""")
 
   def setActive(accountWebhookId: String, isActive: Boolean): Box[MappedAccountWebhook] =
