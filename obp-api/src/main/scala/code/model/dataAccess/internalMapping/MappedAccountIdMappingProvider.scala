@@ -67,7 +67,7 @@ object MappedAccountIdMappingProvider extends AccountIdMappingProvider with MdcL
         val inserted: Box[Int] = tryo {
           DoobieUtil.runUpdate(
             sql"""INSERT INTO accountidmapping (maccountid, maccountplaintextreference, createdat, updatedat)
-                  VALUES ($newAccountId, $accountPlainTextReference, NOW(), NOW())"""
+                  VALUES ($newAccountId, $accountPlainTextReference, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"""
               .update.run)
         }
         inserted match {

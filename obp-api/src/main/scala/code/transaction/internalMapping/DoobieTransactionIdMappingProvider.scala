@@ -28,7 +28,7 @@ object DoobieTransactionIdMappingProvider extends TransactionIdMappingProvider w
         val inserted: Box[Int] = tryo {
           DoobieUtil.runUpdate(
             sql"""INSERT INTO transactionidmapping (transactionid, transactionplaintextreference, createdat, updatedat)
-                  VALUES ($newTransactionId, $transactionPlainTextReference, NOW(), NOW())"""
+                  VALUES ($newTransactionId, $transactionPlainTextReference, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"""
               .update.run)
         }
         inserted match {

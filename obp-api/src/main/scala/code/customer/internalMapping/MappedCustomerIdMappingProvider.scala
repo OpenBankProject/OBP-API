@@ -62,7 +62,7 @@ object MappedCustomerIdMappingProvider extends CustomerIdMappingProvider with Md
         val inserted: Box[Int] = tryo {
           DoobieUtil.runUpdate(
             sql"""INSERT INTO mappedcustomeridmapping (mcustomerid, mcustomerplaintextreference, createdat, updatedat)
-                  VALUES ($newCustomerId, $customerPlainTextReference, NOW(), NOW())"""
+                  VALUES ($newCustomerId, $customerPlainTextReference, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"""
               .update.run)
         }
         inserted match {

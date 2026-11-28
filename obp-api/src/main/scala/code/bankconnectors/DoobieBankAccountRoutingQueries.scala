@@ -102,7 +102,7 @@ object DoobieBankAccountRoutingQueries {
   def create(bankId: BankId, accountId: AccountId, scheme: String, address: String): BankAccountRoutingRow = {
     DoobieUtil.runUpdate(
       sql"""INSERT INTO bankaccountrouting (bankid, accountid, accountroutingscheme, accountroutingaddress, createdat, updatedat)
-            VALUES (${bankId.value}, ${accountId.value}, $scheme, $address, NOW(), NOW())"""
+            VALUES (${bankId.value}, ${accountId.value}, $scheme, $address, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"""
         .update.run)
     BankAccountRoutingRow(bankId, accountId, AccountRouting(scheme, address))
   }
@@ -110,14 +110,14 @@ object DoobieBankAccountRoutingQueries {
   /** Rewrites the address for an existing (bankId, accountId, scheme) row. */
   def updateAddress(bankId: BankId, accountId: AccountId, scheme: String, address: String): Int =
     DoobieUtil.runUpdate(
-      sql"""UPDATE bankaccountrouting SET accountroutingaddress = $address, updatedat = NOW()
+      sql"""UPDATE bankaccountrouting SET accountroutingaddress = $address, updatedat = CURRENT_TIMESTAMP
             WHERE bankid = ${bankId.value} AND accountid = ${accountId.value} AND accountroutingscheme = $scheme"""
         .update.run)
 
   /** Rewrites the accountId for an existing (bankId, scheme, address) row. */
   def updateAccountId(bankId: BankId, scheme: String, address: String, accountId: AccountId): Int =
     DoobieUtil.runUpdate(
-      sql"""UPDATE bankaccountrouting SET accountid = ${accountId.value}, updatedat = NOW()
+      sql"""UPDATE bankaccountrouting SET accountid = ${accountId.value}, updatedat = CURRENT_TIMESTAMP
             WHERE bankid = ${bankId.value} AND accountroutingscheme = $scheme AND accountroutingaddress = $address"""
         .update.run)
 
