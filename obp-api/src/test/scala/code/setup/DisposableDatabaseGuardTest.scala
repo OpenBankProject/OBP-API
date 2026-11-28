@@ -110,7 +110,9 @@ class DisposableDatabaseGuardTest extends AnyFlatSpec with Matchers {
     // suite is pointed somewhere the application is not.
     DisposableDatabaseGuard.resolvedDbUrl should startWith("jdbc:")
     withClue(s"the resolved url must be disposable: ${DisposableDatabaseGuard.resolvedDbUrl} ") {
-      isDisposable(DisposableDatabaseGuard.resolvedDbUrl) should equal(true)
+      // With the user the suite logs in as, which is what is judged on Oracle.
+      DisposableDatabaseGuard.isDisposableFor(DisposableDatabaseGuard.resolvedDbUrl,
+        code.api.util.APIUtil.getPropsValue("db.user").toOption) should equal(true)
     }
   }
 
