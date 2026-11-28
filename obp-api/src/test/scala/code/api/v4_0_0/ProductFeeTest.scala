@@ -33,10 +33,15 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.{ProductFeeNotFoundById, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.entitlement.Entitlement
+import code.productfee.MappedProductFeeProvider
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.{BankId, ErrorMessage, ProductCode}
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 class ProductFeeTest extends V400ServerSetup {
 
@@ -249,7 +254,38 @@ class ProductFeeTest extends V400ServerSetup {
         responseDeleteProductFee.body.toString contains(UserHasMissingRoles) should be (true)
         responseDeleteProductFee.body.toString contains(canDeleteProductFee.toString()) should be (true)
       }
- 
+
+    }
+
+    scenario("We will call the Update endpoint with a fee of another bank or another product", ApiEndpoint4, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanUpdateProductFee.toString)
+      val product: ProductJsonV400 = createProduct(code = "PRODUCT_CODE", json = parentPutProductJsonV400)
+      // fees created directly, so no role at the other bank is needed
+      def createFee(bankId: String, productCode: String) = Await.result(
+        MappedProductFeeProvider.createOrUpdateProductFee(
+          BankId(bankId), ProductCode(productCode), None,
+          "original fee", true, "more info", "EUR", BigDecimal(10), "DAILY", "TYPE1"),
+        Duration.Inf).openOrThrowException("could not create the test fee")
+
+      val otherBankFee = createFee("other-bank-for-product-fee-v400", product.product_code)
+      val otherProductFee = createFee(testBankId, "OTHER_PRODUCT_CODE")
+
+      List(otherBankFee, otherProductFee).foreach { fee =>
+        When("We update the fee through the bank and product in the path")
+        val requestPut = (v4_0_0_Request / "banks" / testBankId / "products" / product.product_code / "fees" / fee.productFeeId).PUT <@(user1)
+        val responsePut = makePutRequest(requestPut, write(productFeeJsonV400.copy(name = "updated fee")))
+        Then("We should get a 404")
+        responsePut.code should equal(404)
+        responsePut.body.extract[ErrorMessage].message should equal (s"$ProductFeeNotFoundById {${fee.productFeeId}}")
+        And("The fee stays at its own bank and product, unchanged")
+        val stored = Await.result(
+          MappedProductFeeProvider.getProductFeeById(fee.productFeeId),
+          Duration.Inf).openOrThrowException("the test fee is gone")
+        stored.bankId should equal (fee.bankId)
+        stored.productCode should equal (fee.productCode)
+        stored.name should equal ("original fee")
+      }
     }
   }
 }

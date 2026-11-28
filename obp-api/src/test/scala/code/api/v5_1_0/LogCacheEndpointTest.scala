@@ -30,7 +30,7 @@ package code.api.v5_1_0
 import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetSystemLogCacheAll,CanGetSystemLogCacheError,CanGetSystemLogCacheInfo}
-import code.api.util.ErrorMessages.{UserHasMissingRoles, ApplicationNotIdentified}
+import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import code.entitlement.Entitlement
 import code.scope.Scope
@@ -58,7 +58,7 @@ class LogCacheEndpointTest extends V510ServerSetup {
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 

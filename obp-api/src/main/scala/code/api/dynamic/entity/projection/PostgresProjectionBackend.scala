@@ -159,10 +159,20 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
     (isRowLevel, callerUserId) match {
       case (true, None) => fr"AND FALSE"
       case (true, Some(uid)) =>
-        fr"AND EXISTS (SELECT 1 FROM" ++ Fragment.const(s"${ProjectionStore.aclTable} acl") ++
-          fr"WHERE" ++ Fragment.const(s"acl.${ProjectionStore.aclDataIdColumn} = $childBlobAlias.${ProjectionStore.idColumn}") ++
-          fr"AND" ++ Fragment.const(s"acl.${ProjectionStore.aclUserIdColumn}") ++ fr"=" ++ fr"$uid" ++
-          fr"AND" ++ Fragment.const(s"acl.${ProjectionStore.aclCanReadColumn} = true") ++ fr")"
+        import ProjectionStore._
+        val activeStatus = code.organisation.Organisations.StatusActive
+        fr"AND (EXISTS (SELECT 1 FROM" ++ Fragment.const(s"$aclTable acl") ++
+          fr"WHERE" ++ Fragment.const(s"acl.$aclDataIdColumn = $childBlobAlias.$idColumn") ++
+          fr"AND" ++ Fragment.const(s"acl.$aclUserIdColumn") ++ fr"=" ++ fr"$uid" ++
+          fr"AND" ++ Fragment.const(s"acl.$aclCanReadColumn = true") ++ fr")" ++
+          // or a grant to an active Organisation the caller is a member of
+          fr"OR EXISTS (SELECT 1 FROM" ++ Fragment.const(s"$organisationAclTable oacl") ++
+          Fragment.const(s"JOIN $organisationMemberTable om ON om.$organisationMemberOrgIdColumn = oacl.$organisationAclOrgIdColumn") ++
+          Fragment.const(s"JOIN $organisationTable org ON org.$organisationIdColumn = oacl.$organisationAclOrgIdColumn") ++
+          fr"WHERE" ++ Fragment.const(s"oacl.$organisationAclDataIdColumn = $childBlobAlias.$idColumn") ++
+          fr"AND" ++ Fragment.const(s"om.$organisationMemberUserIdColumn") ++ fr"=" ++ fr"$uid" ++
+          fr"AND" ++ Fragment.const(s"org.$organisationStatusColumn") ++ fr"=" ++ fr"$activeStatus" ++
+          fr"AND" ++ Fragment.const(s"oacl.$organisationAclCanReadColumn = true") ++ fr"))"
       case _ => Fragment.empty
     }
   }

@@ -344,7 +344,7 @@ object Http4s510 {
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
             (banks, _) <- NewStyle.function.getBanks(Some(cc))
-          } yield JSONFactory400.createBanksJson(banks)
+          } yield JSONFactory400.createBanksJsonWithRoutingRules(banks)
         }
     }
 
@@ -353,7 +353,7 @@ object Http4s510 {
       "/banks", "Get Banks",
       """Get banks on this API instance
         |Returns a list of banks supported on this server.""",
-      EmptyBody, banksJSON,
+      EmptyBody, banksJSON400,
       List(UnknownError),
       List(apiTagBank),
       None,
@@ -789,7 +789,6 @@ object Http4s510 {
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
       List(apiTagConsumer),
       Some(List(canCreateConsumer)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(createConsumer)
     )
 
@@ -853,7 +852,6 @@ object Http4s510 {
       ),
       List(apiTagConsumer),
       Some(List(canGetConsumers)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsumers)
     )
 
@@ -934,9 +932,9 @@ object Http4s510 {
           val bankId = BankId(bankIdStr)
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
-            (allowedAccounts, _) <- BalanceNewStyle.getAccountAccessAtBank(user, bankId, Some(cc))
-            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts, Some(cc))
-          } yield createBalancesJson(accountsBalances)
+            (allowedAccounts, _) <- BalanceNewStyle.getAccountsWithBalancePermission(user, bankId, None, Some(cc))
+            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts.map(_._1), Some(cc))
+          } yield createBalancesJson(BalanceNewStyle.moderateAccountsBalances(accountsBalances, allowedAccounts.toMap))
         }
     }
 
@@ -1231,7 +1229,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheTrace, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheTraceEndpoint)
     )
 
@@ -1258,7 +1255,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheDebug, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheDebugEndpoint)
     )
 
@@ -1285,7 +1281,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheInfo, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheInfoEndpoint)
     )
 
@@ -1312,7 +1307,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheWarning, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheWarningEndpoint)
     )
 
@@ -1339,7 +1333,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheError, canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheErrorEndpoint)
     )
 
@@ -1366,7 +1359,6 @@ object Http4s510 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheAll)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(logCacheAllEndpoint)
     )
 
@@ -1654,16 +1646,21 @@ object Http4s510 {
     )
 
     val updateAgentStatus: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "banks" / _ / "agents" / agentId =>
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "agents" / agentId =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostAgentJsonV510 ", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PutAgentJsonV510]
             }
-            (_, _) <- NewStyle.function.getAgentByAgentId(agentId, Some(cc))
+            (existingAgent, _) <- NewStyle.function.getAgentByAgentId(agentId, Some(cc))
+            // only an agent of the bank in the path
+            _ <- Helper.booleanToFuture(s"$AgentNotFound. Current AGENT_ID($agentId)", 404, Some(cc)) {
+              existingAgent.bankId == bankIdStr
+            }
             (links, _) <- NewStyle.function.getAgentAccountLinksByAgentId(agentId, Some(cc))
-            link <- NewStyle.function.tryons(AgentAccountLinkNotFound, 400, Some(cc)) { links.head }
+            // only show an account held at this bank
+            link <- NewStyle.function.tryons(AgentAccountLinkNotFound, 400, Some(cc)) { links.filter(_.bankId == bankIdStr).head }
             (bankAccount, _) <- NewStyle.function.getBankAccount(BankId(link.bankId), AccountId(link.accountId), Some(cc))
             (agent, _) <- NewStyle.function.updateAgentStatus(agentId, postedData.is_pending_agent, postedData.is_confirmed_agent, Some(cc))
           } yield JSONFactory510.createAgentJson(agent, bankAccount)
@@ -3645,7 +3642,7 @@ object Http4s510 {
               view.allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_BALANCE)
             }
             (accountBalances, _) <- BalanceNewStyle.getBankAccountBalances(bankIdAccountId, Some(cc))
-          } yield createAccountBalancesJson(accountBalances)
+          } yield createAccountBalancesJson(BalanceNewStyle.moderateAccountBalances(accountBalances, view.allowed_actions.toSet))
         }
     }
     resourceDocs += ResourceDoc(
@@ -3670,9 +3667,9 @@ object Http4s510 {
           val bankId = BankId(bankIdStr); val viewId = ViewId(viewIdStr)
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
-            (allowedAccounts, _) <- BalanceNewStyle.getAccountAccessAtBankThroughView(user, bankId, viewId, Some(cc))
-            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts, Some(cc))
-          } yield createBalancesJson(accountsBalances)
+            (allowedAccounts, _) <- BalanceNewStyle.getAccountsWithBalancePermission(user, bankId, Some(viewId), Some(cc))
+            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts.map(_._1), Some(cc))
+          } yield createBalancesJson(BalanceNewStyle.moderateAccountsBalances(accountsBalances, allowedAccounts.toMap))
         }
     }
     resourceDocs += ResourceDoc(
@@ -4458,6 +4455,11 @@ object Http4s510 {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
+            // Only a UK Open Banking consent may be (re-)authorised here. REVOKED is also the status
+            // an OBP consent gets when it is revoked, so without this its owner could bring it back.
+            _ <- Helper.booleanToFuture(s"$ConsentDoesNotMatchStandard Required: ${Consent.ConsentStandardUK}.", 403, Some(cc)) {
+              Consent.assertConsentStandard(consent, Consent.ConsentStandardUK).isEmpty
+            }
             _ <- Helper.booleanToFuture(s"$ConsentStatusIssue one of ${ukReAuthableStatuses.mkString(", ")} to start SCA (current: ${consent.status}).", 400, Some(cc)) {
               ukReAuthableStatuses.contains(consent.status.toUpperCase)
             }
@@ -4509,7 +4511,8 @@ object Http4s510 {
       |""",
       EmptyBody,
       UKConsentScaChallengeJsonV510("74a8ebda-9e5a-4c3f-9b0b-1a2b3c4d5e6f", "received", "SMS"),
-      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, ConsentExpiredIssue, ConsentDoesNotMatchUser, InvalidConnectorResponse, UnknownError),
+      // ConsentDoesNotMatchStandard: only a UK Open Banking consent may start SCA here.
+      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentDoesNotMatchStandard, ConsentStatusIssue, ConsentExpiredIssue, ConsentDoesNotMatchUser, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: Nil,
       None,
       http4sPartialFunction = Some(authoriseUKConsentChallenge)
@@ -4533,9 +4536,14 @@ object Http4s510 {
               .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
             // The initial authorisation (AWAITINGAUTHORISATION) and re-authentication of an
             // already-authorised or dashboard-revoked (wire: CANC) consent are both allowed --
-            // see ukReAuthableStatuses. EXPIRED/REJECTED are terminal. These statuses are
-            // UK-specific (Berlin Group uses "received", OBP uses INITIATED), so the guard also
-            // effectively scopes this endpoint to the UK flow.
+            // see ukReAuthableStatuses. EXPIRED/REJECTED are terminal.
+            //
+            // Only a UK Open Banking consent may be authorised here. An OBP consent revoked through
+            // the OBP revoke endpoints is REVOKED too, so the status guard alone would let its owner
+            // turn it back to AUTHORISED for its original consumer, without the bank.
+            _ <- Helper.booleanToFuture(s"$ConsentDoesNotMatchStandard Required: ${Consent.ConsentStandardUK}.", 403, Some(cc)) {
+              Consent.assertConsentStandard(consent, Consent.ConsentStandardUK).isEmpty
+            }
             _ <- Helper.booleanToFuture(s"$ConsentStatusIssue one of ${ukReAuthableStatuses.mkString(", ")} to be authorised (current: ${consent.status}).", 400, Some(cc)) {
               ukReAuthableStatuses.contains(consent.status.toUpperCase)
             }
@@ -4672,7 +4680,8 @@ object Http4s510 {
         "eyJhbGciOiJIUzI1NiJ9.eyJ2aWV3cyI6W119.signature",
         "AUTHORISED"
       ),
-      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, ConsentExpiredIssue, ConsentDoesNotMatchUser, InvalidJsonFormat, InvalidChallengeAnswer, $BankAccountNotFound, InvalidConnectorResponse, UnknownError),
+      // ConsentDoesNotMatchStandard: only a UK Open Banking consent may be authorised here.
+      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentDoesNotMatchStandard, ConsentStatusIssue, ConsentExpiredIssue, ConsentDoesNotMatchUser, InvalidJsonFormat, InvalidChallengeAnswer, $BankAccountNotFound, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: Nil,
       None,
       http4sPartialFunction = Some(authoriseUKConsent)
@@ -4742,7 +4751,8 @@ object Http4s510 {
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
             (consents, totalPages) <- Future(Consents.consentProvider.vend.getConsents(obpQueryParams))
           } yield {
-            val consentsOfBank = Consent.filterByBankId(consents, bankId)
+            // only consents with a view or a role at this bank
+            val consentsOfBank = Consent.filterStrictlyByBank(consents, bankId.value)
             createConsentsJsonV510(consentsOfBank, totalPages)
           }
         }

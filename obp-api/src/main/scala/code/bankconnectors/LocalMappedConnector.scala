@@ -219,7 +219,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       case true =>
         fx.exchangeRate(thresholdCurrency, currency, Some(bankId), callContext) match {
           case rate@Some(_) =>
-            val convertedThreshold = fx.convert(threshold, rate)
+            val convertedThreshold = fx.convert(threshold, rate, currency)
             logger.debug(s"getChallengeThreshold for currency $currency is $convertedThreshold")
             (Full(AmountOfMoney(currency, convertedThreshold.toString())), callContext)
           case _ =>
@@ -861,7 +861,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           transferCurrency = transactionRequest.bodyValueCurrency //eg: if the payment json body currency is GBP.
           transferAmount= BigDecimal(transactionRequest.bodyValueAmount) //eg: if the payment json body amount is 1.
           debitRate = fx.exchangeRate(transferCurrency, fromAccountCurrency, Some(fromBankId.value), callContext) //eg: the rate here is 1.16278.
-          transactionAmount = fx.convert(transferAmount, debitRate) // 1.16278 Euro
+          transactionAmount = fx.convert(transferAmount, debitRate, fromAccountCurrency) // 1.16278 Euro
         }yield{
           transactionAmount // 1.16278 Euro
         }
@@ -913,6 +913,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
 
     def byRoutingTable: Box[(MappedBankAccount, Option[CallContext])] = {
+      // NUBAN routings are stored as NG.NUBAN, so NUBAN (in any letter case) finds them too.
+      val storedScheme = if (code.api.util.Nuban.isNubanScheme(scheme)) code.api.util.Nuban.NubanScheme else scheme
       def handleRouting(routing: List[BankAccountRoutingRow]): Box[(MappedBankAccount, Option[CallContext])] = {
         if (routing.size > 1) { // Handle more than 1 occurrence
           // Routing MUST be unique
@@ -925,11 +927,35 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
       bankId match {
         case Some(bankId) => // Bank specific routing
-          val routing = DoobieBankAccountRoutingQueries.findAllByBankSchemeAddress(bankId, scheme, address)
+          val routing = DoobieBankAccountRoutingQueries.findAllByBankSchemeAddress(bankId, storedScheme, address)
           handleRouting(routing)
         case None => // World wide specific routing (IBAN etc.)
-          val routing = DoobieBankAccountRoutingQueries.findAllBySchemeAddress(scheme, address)
+          val routing = DoobieBankAccountRoutingQueries.findAllBySchemeAddress(storedScheme, address)
           handleRouting(routing)
+      }
+    }
+
+    // An account number can be in an account routing (scheme ACCOUNT_NUMBER, or another spelling of
+    // it such as AccountNumber) or in the deprecated account number field. Both are searched. An
+    // account that holds two different numbers is an error, whichever of them is looked up, and so
+    // is a number that more than one account holds.
+    def byAccountNumber: Box[(MappedBankAccount, Option[CallContext])] = {
+      val number = address.trim
+      val numberRoutings = (bankId match {
+        case Some(bankId) => DoobieBankAccountRoutingQueries.findAllByBankAddress(bankId, number)
+        case None => DoobieBankAccountRoutingQueries.findAllByAddress(number)
+      }).filter(routing => code.api.util.RoutingRules.isAccountNumberScheme(routing.accountRouting.scheme))
+      val fromRoutings = numberRoutings.flatMap(routing => getBankAccountCommon(routing.bankId, routing.accountId, callContext).map(_._1).toList)
+      val fromNumberField = MappedBankAccount.findAllByAccountNumber(bankId.map(_.value), number)
+      val accounts = (fromRoutings ++ fromNumberField)
+        .groupBy(account => (account.bankId.value, account.accountId.value)).values.map(_.head).toList
+      accounts.map(code.api.util.RoutingRules.accountNumberOf).collectFirst { case failure: Failure => failure } match {
+        case Some(failure) => failure
+        case None => accounts match {
+          case account :: Nil => Full((account, callContext))
+          case Nil => Empty
+          case _ => Failure(s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)")
+        }
       }
     }
 
@@ -966,6 +992,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         // several accounts" into a bare "not found". Keep what the implicit reading concluded.
         case decided => decided
       }
+    } else if (code.api.util.RoutingRules.isAccountNumberScheme(scheme)) {
+      byAccountNumber
     } else {
       byRoutingTable
     }
@@ -1071,7 +1099,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         requestAccountAmount = BigDecimal(accountBalance.balance.amount)
         //From change from requestAccount Currency to mostCommon Currency
         rate <- fx.exchangeRate(requestAccountCurrency, mostCommonCurrency, None, callContext)
-        requestChangedCurrencyAmount = fx.convert(requestAccountAmount, Some(rate))
+        requestChangedCurrencyAmount = fx.convert(requestAccountAmount, Some(rate), mostCommonCurrency)
       } yield {
         requestChangedCurrencyAmount
       }
@@ -1199,6 +1227,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
 
+  // The OBP bank id of the bank named by a bank routing. None when no bank is named (an empty
+  // address). Fails when no bank, or more than one bank, has the routing.
+  private def bankIdOfBankRouting(scheme: String, address: String, callContext: Option[CallContext]): Option[BankId] = {
+    if (address == null || address.trim.isEmpty) None
+    else if (Constant.isImplicitOBPBankScheme(scheme)) Some(BankId(address.trim))
+    else {
+      val banks = getBanksLegacy(callContext).map(_._1).openOr(Nil)
+      val bank = code.api.util.RoutingRules.findBank(banks, scheme, address)
+      Some(unboxFullOrFail(bank, callContext, s"$BankNotFound bank_routing: $scheme $address", 404).bankId)
+    }
+  }
+
   override def getBankAccountByRoutings(
     bankAccountRoutings: BankAccountRoutings,
     callContext: Option[CallContext]
@@ -1223,11 +1263,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         } yield {
           (account, callContext)
         }
-      } else if (bankAccountRoutings.account.scheme.equalsIgnoreCase("ACCOUNT_NUMBER")|| bankAccountRoutings.account.scheme.equalsIgnoreCase("ACCOUNT_NO")){
+      } else if (code.api.util.RoutingRules.isAccountNumberScheme(bankAccountRoutings.account.scheme)){
+        // The bank can be named by any of its bank routings (its BIC, a national bank code or its
+        // OBP bank id), and the account number is looked up at that bank only.
         for{
-          bankIdOption <- Future.successful(if (bankAccountRoutings.bank.address.isEmpty) None else Some(bankAccountRoutings.bank.address))
-          (account, callContext) <- NewStyle.function.getBankAccountByNumber(
-            bankIdOption.map(BankId(_)),
+          bankIdOption <- Future {
+            bankIdOfBankRouting(bankAccountRoutings.bank.scheme, bankAccountRoutings.bank.address, callContext)
+          }
+          (account, callContext) <- NewStyle.function.getBankAccountByRouting(
+            bankIdOption,
+            bankAccountRoutings.account.scheme,
             bankAccountRoutings.account.address,
             callContext)
         } yield {
@@ -2298,8 +2343,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       creditRate <- Future (fx.exchangeRate(currency, toAccount.currency, Some(bankIdExchangeRate.bankId.value), callContext))
       _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($currency to ${toAccount.currency}) is not supported.", cc=callContext){creditRate.isDefined}
 
-      fromTransAmt = -fx.convert(amount, debitRate) //from fromAccount balance should decrease
-      toTransAmt = fx.convert(amount, creditRate)
+      fromTransAmt = -fx.convert(amount, debitRate, fromAccount.currency) //from fromAccount balance should decrease
+      toTransAmt = fx.convert(amount, creditRate, toAccount.currency)
 
       debitTransactionBox <- Future(
         saveHistoricalTransaction(fromAccount, toAccount, posted, completed, fromTransAmt, description, transactionRequestType, chargePolicy, callContext)
@@ -2319,7 +2364,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               // In the case we selected the default settlement account INCOMING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
                 if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, fromAccount.currency)) {
                   val rate = fx.exchangeRate(currency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
-                  Try(-fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
+                  Try(-fx.convert(amount, rate, settlementAccount._1.currency)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
                 } else fromTransAmt
               }
               saveHistoricalTransaction(settlementAccount._1, toAccount, posted, completed, fromTransAmtSettlementAccount, description, transactionRequestType, chargePolicy, callContext)
@@ -2344,7 +2389,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 // In the case we selected the default settlement account OUTGOING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
                 if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, toAccount.currency)) {
                   val rate = fx.exchangeRate(currency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
-                  Try(fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
+                  Try(fx.convert(amount, rate, settlementAccount._1.currency)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($currency to ${settlementAccount._1.currency}) is not supported."))
                 } else toTransAmt
               }
               saveHistoricalTransaction(settlementAccount._1, fromAccount, posted, completed, toTransAmtSettlementAccount, description, transactionRequestType, chargePolicy, callContext)
@@ -2454,8 +2499,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       creditRate <- Future (fx.exchangeRate(transactionCurrency, toAccount.currency, Some(bankIdExchangeRate.bankId.value), callContext))
       _ <- Helper.booleanToFuture(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${toAccount.currency}) is not supported.", cc=callContext){creditRate.isDefined}
 
-      fromTransAmt = -fx.convert(amount, debitRate) //from fromAccount balance should decrease
-      toTransAmt = fx.convert(amount, creditRate)
+      fromTransAmt = -fx.convert(amount, debitRate, fromAccount.currency) //from fromAccount balance should decrease
+      toTransAmt = fx.convert(amount, creditRate, toAccount.currency)
 
       debitTransactionBox <- Future {
         LocalMappedConnectorInternal.saveTransaction(fromAccount, toAccount, transactionRequestCommonBody, fromTransAmt, description, transactionRequestType, chargePolicy)
@@ -2474,7 +2519,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 // In the case we selected the default settlement account INCOMING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
                 if (settlementAccount._1.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, fromAccount.currency)) {
                   val rate = fx.exchangeRate(transactionCurrency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
-                  Try(-fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
+                  Try(-fx.convert(amount, rate, settlementAccount._1.currency)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
                 } else fromTransAmt
               }
               LocalMappedConnectorInternal.saveTransaction(settlementAccount._1, toAccount, transactionRequestCommonBody, fromTransAmtSettlementAccount, description, transactionRequestType, chargePolicy)
@@ -2499,7 +2544,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                 // In the case we selected the default settlement account OUTGOING_ACCOUNT_ID account and that the counterparty currency is different from EUR, we need to calculate the amount in EUR
                 if (settlementAccount._1.accountId.value == OUTGOING_SETTLEMENT_ACCOUNT_ID && !code.asset.CurrencyCodes.same(settlementAccount._1.currency, toAccount.currency)) {
                   val rate = fx.exchangeRate(transactionCurrency, settlementAccount._1.currency, Some(bankIdExchangeRate.bankId.value), callContext)
-                  Try(fx.convert(amount, rate)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
+                  Try(fx.convert(amount, rate, settlementAccount._1.currency)).getOrElse(throw new Exception(s"$InvalidCurrency The requested currency conversion ($transactionCurrency to ${settlementAccount._1.currency}) is not supported."))
                 } else toTransAmt
               }
               LocalMappedConnectorInternal.saveTransaction(settlementAccount._1, fromAccount, transactionRequestCommonBody, toTransAmtSettlementAccount, description, transactionRequestType, chargePolicy)
@@ -2614,15 +2659,47 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                   accountRoutings: List[AccountRouting],
                                   callContext: Option[CallContext]
                                 ): OBPReturnType[Box[BankAccount]] = Future {
-    (LocalMappedConnectorInternal.createBankAccountLegacy(bankId: BankId,
-      accountId: AccountId,
-      accountType: String,
-      accountLabel: String,
-      currency: String,
-      initialBalance: BigDecimal,
-      accountHolderName: String,
-      branchId: String,
-      accountRoutings: List[AccountRouting]), callContext)
+    // With this connector OBP is the bank, so it assigns the account number. An account number
+    // routing with an empty address (or none at all) asks for one. A given number was checked by
+    // NewStyle.function.createBankAccount, and is stored as the caller gave it, as a routing and in
+    // the deprecated account number field. An assigned number is stored in that field only, so
+    // versions before v6.0.0 show the same routings as before. From v6.0.0, responses show the
+    // number as an ACCOUNT_NUMBER routing either way (RoutingRules.accountRoutingsOf).
+    //
+    // An NG.NUBAN routing asks for a NUBAN (Nigeria Uniform Bank Account Number). A NUBAN is the
+    // account's number, so it is stored in the account number field and as an NG.NUBAN routing. With
+    // an empty address, the NUBAN is worked out from the bank's NG.BANK_CODE routing. A given NUBAN
+    // was checked by NewStyle.function.createBankAccount.
+    val (numberRoutings, notNumberRoutings) = accountRoutings.partition(r => code.api.util.RoutingRules.isAccountNumberScheme(r.scheme))
+    val (nubanRoutings, otherRoutings) = notNumberRoutings.partition(r => code.api.util.Nuban.isNubanScheme(r.scheme))
+    val givenNumberRouting = numberRoutings.find(r => Option(r.address).exists(_.trim.nonEmpty))
+    val givenNuban = nubanRoutings.map(r => Option(r.address).map(_.trim).getOrElse("")).find(_.nonEmpty)
+    val accountNumber: Box[String] =
+      givenNumberRouting.map(_.address.trim).orElse(givenNuban) match {
+        case Some(number) => Full(number)
+        case None if nubanRoutings.nonEmpty =>
+          MappedBank.findByBankId(bankId) match {
+            case Full(bank) => code.api.util.Nuban.bankCodeOf(bank) match {
+              case Right(bankCode) => Full(LocalMappedConnectorInternal.newNuban(bankId, bankCode))
+              case Left(reason) => Failure(s"$NubanBankCodeNotUsable $reason")
+            }
+            case _ => Failure(s"$BankNotFound Current BANK_ID = ${bankId.value}")
+          }
+        case None => Full(LocalMappedConnectorInternal.newAccountNumber(bankId))
+      }
+    val nubanRouting = if (nubanRoutings.nonEmpty) accountNumber.toList.map(number => AccountRouting(code.api.util.Nuban.NubanScheme, number)) else Nil
+    (accountNumber.flatMap { accountNumber => LocalMappedConnectorInternal.createSandboxBankAccount(
+      bankId,
+      accountId,
+      accountNumber,
+      accountType,
+      accountLabel,
+      currency,
+      initialBalance,
+      accountHolderName,
+      branchId,
+      otherRoutings ++ givenNumberRouting.map(r => AccountRouting(r.scheme, accountNumber)).toList ++ nubanRouting
+    ) }, callContext)
   }
 
 
@@ -3185,24 +3262,40 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                    national_identifier: String,
                                    bankRoutingScheme: String,
                                    bankRoutingAddress: String,
-                                   callContext: Option[CallContext]
+                                   callContext: Option[CallContext],
+                                   bankRoutings: Option[List[BankRoutingJson]] = None
                                  ): Box[Bank] = {
+    // The bank's routings are stored in the bank routing table, all of them. When the caller gives
+    // only the older single routing pair and a BIC, those become the list.
+    val requestedRoutings: List[code.api.v1_2_1.BankRoutingJsonV121] = bankRoutings
+      .map(_.map(r => code.api.v1_2_1.BankRoutingJsonV121(r.scheme, r.address)))
+      .getOrElse(List(code.api.v1_2_1.BankRoutingJsonV121("BIC", swiftBIC), code.api.v1_2_1.BankRoutingJsonV121(bankRoutingScheme, bankRoutingAddress)))
+    val routingsBox = code.api.util.RoutingRules.bankRoutingsToStore(requestedRoutings)
+    val routings = routingsBox.openOr(Nil)
+    // The older columns are kept in step with the list, for code that still reads them: the routing
+    // pair holds the BIC if there is one, otherwise the first routing, and swift_bic holds the BIC.
+    val bic = routings.find(_.scheme == code.api.util.RoutingRules.BicScheme).map(_.address).getOrElse("")
+    val pair = routings.find(_.scheme == code.api.util.RoutingRules.BicScheme).orElse(routings.headOption)
+      .getOrElse(BankRoutingJson("", ""))
   //check the bank existence and update or insert data
-    val bank = MappedBank.findByBankId(BankId(bankId)) match {
+    val bank: Box[MappedBank] = routingsBox.flatMap(_ => MappedBank.findByBankId(BankId(bankId)) match {
       case Full(_) =>
         tryo {
           MappedBank.updateByBankId(bankId, fullBankName, shortBankName, logoURL, websiteURL,
-            swiftBIC, national_identifier, bankRoutingScheme, bankRoutingAddress)
+            bic, national_identifier, pair.scheme, pair.address)
             .openOrThrowException("the bank just updated must be readable")
-        } ?~! ErrorMessages.CreateBankError
+        } ?~! ErrorMessages.UpdateBankError
       case _ =>
         tryo {
           // Only a create records who made the bank; an update leaves the original creator alone.
-          MappedBank.insert(bankId, fullBankName, shortBankName, logoURL, websiteURL, swiftBIC,
-            national_identifier, bankRoutingScheme, bankRoutingAddress,
-            bankCreatorUserId(callContext))
-        } ?~! ErrorMessages.UpdateBankError
-    }
+          MappedBank.insert(bankId, fullBankName, shortBankName, logoURL, websiteURL, bic,
+            national_identifier, pair.scheme, pair.address, bankCreatorUserId(callContext))
+        } ?~! ErrorMessages.CreateBankError
+    })
+    // A routing another bank already has is refused by the table's unique index.
+    // The bank was read before its routings were replaced, so it is given the ones just stored.
+    val saved = bank.flatMap(savedBank =>
+      tryo(BankRouting.replaceRoutingsOf(bankId, routings)).map(_ => savedBank.copy(bankRoutings = routings)) ?~! ErrorMessages.BankRoutingAlreadyExists)
 
     // Insert the default settlement accounts if they doesn't exist
     MappedBankAccount.find(bankId, INCOMING_SETTLEMENT_ACCOUNT_ID) match {
@@ -3235,7 +3328,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         logger.debug(s"creating BankAccount(${bankId}, $OUTGOING_SETTLEMENT_ACCOUNT_ID).")
     }
 
-    bank
+    saved
   }
 
   override def createCounterparty(
@@ -4768,7 +4861,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       transactionRequestCommonBodyAmount <- NewStyle.function.tryons(s"$InvalidNumber Request Json value.amount ${transactionRequestCommonBody.value.amount} not convertible to number", 400, callContext) {
         BigDecimal(transactionRequestCommonBody.value.amount)
       }
-      
+
+      // The amount must be above zero for every caller (MOBILE_WALLET, UTILITY, OPEN_CORRIDOR_PROMISE, the v4 pipeline, ...).
+      // A negative amount would pass the payment limit and challenge threshold checks and then move money from the destination to the caller.
+      isPositiveAmount = transactionRequestCommonBodyAmount > BigDecimal("0")
+      _ <- Helper.booleanToFuture(s"${NotPositiveAmount} Current input is: '${transactionRequestCommonBodyAmount}'", 400, callContext) {
+        isPositiveAmount
+      }
+
       (paymentLimit, callContext) <- Connector.connector.vend.getPaymentLimit(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, initiator.userId, initiator.name, callContext) map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForGetPaymentLimit ", 400), i._2)
       }

@@ -1,6 +1,24 @@
 # Draft v4: Asset Registry
 
-**Status**: partly implemented. The registry exists, is seeded, and decides which currency codes are accepted and their decimal places, giving the same answers as the built-in list it replaced. The only changes callers can see so far are two attribute types (`DECIMAL`, `BOOLEAN`) and an amount too large to store being refused instead of wrapped. The progress section below lists what is built and what is next; section 12 records how the questions it raised were settled.
+**Status (2026-11-18)**: partly implemented. Steps 1 to 9 are built and committed; the last commit was on 2026-10-29. Nothing has been started since, and no decision is waiting: every open question was settled on 2026-10-20 (section 12).
+
+What callers can do now:
+- read the registry with no login (`GET /assets`, `GET /assets/ASSET_CODE` and the reverse chain lookup);
+- register an asset with Create Asset: a bank registers an asset it issues, such as a `STABLECOIN`, and `SYS` registers a `CRYPTO` asset. The new code is accepted in `currency` fields at once;
+- send currency codes in any letter case;
+- expect an amount with more decimal places than its currency allows to be refused with 400, not cut off.
+
+What a bank still cannot do, in the order proposed:
+1. **Use a new asset on every node at once.** Each node keeps the registry in memory, and Create Asset clears only its own copy (`AssetLookup.invalidate`). On a deployment with several nodes, the others refuse the new code until they restart.
+2. **Freeze or suspend an asset.** The status endpoint and status history (§6, §8) are not built, so an issuer cannot stop its coin being used.
+3. **Hold token amounts exactly.** Amounts are still stored as `Long` minor units (§5). At 18 decimal places a `Long` holds only about 9.2 units, so a token with many decimal places cannot be held in useful amounts.
+4. **Update or delete an asset** (§8).
+5. **Rely on correct precision for every code.** Some ISO codes and every crypto asset still have the built-in decimal places (§7 Part B). Run the step 2 report against a copy of production data first.
+6. **Use `ADA` and `ETH` alone.** `lovelace` and `wei` are still separate codes (§7 Part C).
+
+Minting and burning on a chain is not part of this work. It belongs to the bank node (the TEuro repository).
+
+The progress section below gives the detail of each step.
 
 **Changes in v4 (2026-10-05)**: adds the progress section. `chain_scheme` names the network as well as the chain (§2); questions 10 and 11 are new. Records what the implementation settled or exposed: the seed has no switch (question 6), Mapper cannot declare the partial unique indexes (§2), the 4–10 character rule for non-seeded codes is not enforced yet (§3), the test setup empties the registry between tests (§11), and the unused `MappedCurrency` table (§11). Code references are brought up to date.
 
@@ -61,8 +79,13 @@ The work is ordered so that each step changes nothing a caller can see until the
 | 6 | `isValidCurrencyISOCode` and `currencyDecimalPlaces` read from the registry (§4) | Done (`b4ac8c374`) |
 | 7 | Case-insensitive codes (§4): codes upper-cased in requests by `ResourceDocMiddleware`, compared ignoring case | Done (`8763728f6`) |
 | 8 | Rejecting excess decimals (§4): 400 (OBP-10068) from `ResourceDocMiddleware`, crypto assets exempt until §7 | Done (`91289dbf0`) |
-| 9 | Create Asset, `POST /banks/BANK_ID/assets` (§8) | Done, not committed |
-| Later | the other write endpoints (§8), amount storage (§5, §7 Part A), precision corrections (§7 Part B), folding `lovelace` and `wei` (§7 Part C, §10) | Each changes behaviour; the open questions they waited on are settled (§12) |
+| 9 | Create Asset, `POST /banks/BANK_ID/assets` (§8) | Done (`fc8587455`; rules checked before conflicts in `c3fca5107`) |
+| 10 | Registry cache that expires on every node after a write (step 6) | Not started; needed now that Create Asset writes |
+| 11 | Update Asset Status and Get Asset Status History (§6, §8) | Not started |
+| 12 | Amount storage as exact decimals (§5, §7 Part A) | Not started |
+| 13 | Update Asset and Delete Asset (§8) | Not started |
+| 14 | Precision corrections (§7 Part B) | Not started; run the step 2 report on real data first |
+| 15 | Folding `lovelace` and `wei` into `ADA` and `ETH` (§7 Part C, §10) | Not started |
 
 **Step 1.** `CurrencyHandlingTest` is a pure unit test (no server, no database). It asserts correct behaviour only. The three known defects are written as the correct expectation inside `pendingUntilFixed`, so they report as pending now and fail, demanding the wrapper's removal, once fixed:
 - codes are not accepted in every letter case;

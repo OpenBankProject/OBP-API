@@ -133,7 +133,7 @@ import scala.concurrent.Future
 
 object Http4s400 {
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v4_0_0
-  val versionStatus: String                      = ApiVersionStatus.STABLE.toString
+  val versionStatus: String                      = ApiVersionStatus.DEPRECATED.toString
   // v4.0.0 splits doc registration into a static buffer plus a few entries that are dynamic
   // at construction time (createDynamicEntityDoc et al). The public `resourceDocs` accessor
   // (used by the middleware) is the union. For now only `staticResourceDocs` is populated;
@@ -997,7 +997,12 @@ object Http4s400 {
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
                 AttributeTypeDocs.typesWithExamples,
               400, Some(cc)) { ProductAttributeType.withName(postedData.`type`) }
-            (_, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            (existingAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+            // only an attribute of the bank and product in the path
+            _ <- code.util.Helper.booleanToFuture(ProductAttributeNotFound, 404, Some(cc)) {
+              existingAttribute.bankId.value == bankIdStr &&
+                existingAttribute.productCode.value == productCodeStr
+            }
             (productAttribute, _) <- NewStyle.function.createOrUpdateProductAttribute(
               BankId(bankIdStr), ProductCode(productCodeStr), Some(productAttributeIdStr),
               postedData.name, productAttributeType, postedData.value, postedData.is_active, Some(cc))
@@ -1023,7 +1028,7 @@ object Http4s400 {
       |""",
       productAttributeJsonV400,
       productAttributeResponseJsonV400,
-      List(UserHasMissingRoles, UnknownError),
+      List(UserHasMissingRoles, ProductAttributeNotFound, UnknownError),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canUpdateProductAttribute)),
       http4sPartialFunction = Some(updateProductAttribute)
@@ -1321,9 +1326,9 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "banks" / _ / "balances" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
-            (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountAccessAtBank(user, bank.bankId, Some(cc))
-            (accountsBalances, _) <- code.api.util.newstyle.BalanceNewStyle.getBankAccountsBalances(allowedAccounts, Some(cc))
-          } yield createBalancesJson(accountsBalances)
+            (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountsWithBalancePermission(user, bank.bankId, None, Some(cc))
+            (accountsBalances, _) <- code.api.util.newstyle.BalanceNewStyle.getBankAccountsBalances(allowedAccounts.map(_._1), Some(cc))
+          } yield createBalancesJson(code.api.util.newstyle.BalanceNewStyle.moderateAccountsBalances(accountsBalances, allowedAccounts.toMap))
         }
     }
 
@@ -1568,7 +1573,6 @@ object Http4s400 {
       ),
       List(apiTagCustomer, apiTagUser),
       Some(List(canCreateUserCustomerLinkAtAnyBank, canCreateUserCustomerLink)),
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(createUserCustomerLinks))
 
     // ─── getSystemDynamicEntities ─────────────────────────────────────────────
@@ -4267,15 +4271,16 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "balances" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
-            (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountAccessAtBank(
-              user, bank.bankId, Some(cc))
+            (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountsWithBalancePermission(
+              user, bank.bankId, None, Some(cc))
             msg = s"$CannotFindAccountAccess AccountId(${accountIdStr})"
-            bankIdAccountId <- NewStyle.function.tryons(msg, 400, Some(cc)) {
-              allowedAccounts.find(_.accountId == AccountId(accountIdStr)).get
+            (bankIdAccountId, permissions) <- NewStyle.function.tryons(msg, 400, Some(cc)) {
+              allowedAccounts.find(_._1.accountId == AccountId(accountIdStr)).get
             }
             (accountBalances, _) <- code.api.util.newstyle.BalanceNewStyle.getBankAccountBalances(
               bankIdAccountId, Some(cc))
-          } yield JSONFactory400.createAccountBalancesJson(accountBalances)
+          } yield JSONFactory400.createAccountBalancesJson(
+            code.api.util.newstyle.BalanceNewStyle.moderateAccountBalances(accountBalances, permissions))
         }
     }
 
@@ -4314,9 +4319,18 @@ object Http4s400 {
               postJson.bank_id.map(BankId(_)),
               postJson.account_routing.scheme,
               Some(cc))
+            // The accounts the caller can see through the owner view. Only these are matched, so the
+            // regex never runs against, and the response never tells anything about, other users' accounts.
+            ownerViewAccounts <- Views.views.vend.getPrivateBankAccountsFuture(
+              user, List(ViewId(Constant.SYSTEM_OWNER_VIEW_ID)))
+            ownerViewAccountSet = ownerViewAccounts.toSet
             accountRoutingAddressRegex = postJson.account_routing.address.r
-            filteredAccountRoutings = accountRoutings.filter(accountRouting =>
-              accountRoutingAddressRegex.findFirstIn(accountRouting.accountRouting.address).isDefined)
+            // Other users' accounts are skipped silently before the regex runs, as if they did not exist.
+            filteredAccountRoutings = accountRoutings
+              .filter(accountRouting => ownerViewAccountSet.contains(
+                BankIdAccountId(accountRouting.bankId, accountRouting.accountId)))
+              .filter(accountRouting =>
+                accountRoutingAddressRegex.findFirstIn(accountRouting.accountRouting.address).isDefined)
             accountsJson <- Future.sequence(
               filteredAccountRoutings.map(accountRouting =>
                 for {
@@ -4884,7 +4898,12 @@ object Http4s400 {
         EndpointHelpers.withUserAndBodyCreated[ProductFeeJsonV400, Any](req) { (_, postedData, cc) =>
           for {
             (_, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCode), Some(cc))
-            (_, _) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+            (existingFee, _) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+            // only a fee of the bank and product in the path
+            _ <- code.util.Helper.booleanToFuture(ProductFeeNotFoundById + " {" + productFeeId + "}", 404, Some(cc)) {
+              existingFee.bankId.value == bankIdStr &&
+                existingFee.productCode.value == productCode
+            }
             (productFee, _) <- NewStyle.function.createOrUpdateProductFee(
               BankId(bankIdStr), ProductCode(productCode), Some(productFeeId),
               postedData.name, postedData.is_active, postedData.more_info,
@@ -5156,7 +5175,7 @@ object Http4s400 {
         |""",
         productFeeJsonV400.copy(product_fee_id = None),
         productFeeResponseJsonV400,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, ProductFeeNotFoundById, UnknownError),
         List(apiTagProduct),
         Some(List(canUpdateProductFee)),
         http4sPartialFunction = Some(updateProductFee)
@@ -7695,9 +7714,13 @@ object Http4s400 {
 
     lazy val deleteCustomerCascade: Http4sRoute = Http4sRoute {
       case req @ DELETE -> `prefixPath` / "management" / "cascading" / "banks" / _ / "customers" / customerIdStr =>
-        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
-            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            // The delete is addressed through a bank, so a customer of another bank is not found here.
+            _ <- code.util.Helper.booleanToFuture(CustomerNotFoundByCustomerId, 404, cc = Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
             _ <- Future(deletion.DeleteCustomerCascade.atomicDelete(CustomerId(customerIdStr)))
           } yield Full(true)
         }

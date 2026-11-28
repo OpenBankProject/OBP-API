@@ -34,6 +34,8 @@ import code.api.util.ApiRole
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
+import code.api.util.DoobieUtil
+import code.customer.MappedCustomer
 import code.entitlement.Entitlement
 import code.methodrouting.{MethodRouting, MethodRoutingCommons, MethodRoutingProvider}
 import code.model.dataAccess.{MappedBank, MappedBankAccount}
@@ -41,6 +43,7 @@ import code.views.system.AccountAccess
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankId, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
+import doobie.implicits._
 import net.liftweb.db.DB
 import net.liftweb.util.DefaultConnectionIdentifier
 import org.json4s.jvalue2extractable
@@ -56,6 +59,7 @@ class CascadeDeleteAtomicityTest extends V400ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object DeleteAccountCascade extends Tag(nameOf(Implementations4_0_0.deleteAccountCascade))
   object DeleteBankCascade extends Tag(nameOf(Implementations4_0_0.deleteBankCascade))
+  object DeleteCustomerCascade extends Tag(nameOf(Implementations4_0_0.deleteCustomerCascade))
 
   private def createAccountWithSecondViewer(bankId: String): String = {
     Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canCreateAccount.toString)
@@ -143,6 +147,32 @@ class CascadeDeleteAtomicityTest extends V400ServerSetup {
         accountExists(bankId, accountId) should equal(true)
         accessRows(bankId, accountId) should equal(accessBefore)
       } finally runSql("DROP TABLE cascade_atomicity_blocker")
+    }
+
+    scenario("A customer cascade that a database error stops keeps everything it had deleted", DeleteCustomerCascade, VersionOfApi) {
+      val bankId = randomBankId
+      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      createAndGetCustomerAttributeIdViaEndpoint(bankId, customerId, user1)
+      def attributes = DoobieUtil.runQuery(
+        sql"SELECT COUNT(*) FROM mappedcustomerattribute WHERE mcustomerid = ${Option(customerId)}".query[Long].unique)
+      val attributesBefore = attributes
+      attributesBefore should be >= 1L
+      val customerPk = MappedCustomer.findByCustomerId(customerId).openOrThrowException("expected the customer").customerPrimaryKey
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteCustomerCascade.toString)
+      // A row that still refers to the customer, so deleting the customer itself, the last step, fails. The attributes
+      // are deleted by an earlier step: they must be back after the failure.
+      val table = "mappedcustomer"
+      runSql(s"CREATE TABLE cascade_customer_atomicity_blocker (customer_pk BIGINT REFERENCES $table(id))")
+      try {
+        runSql(s"INSERT INTO cascade_customer_atomicity_blocker (customer_pk) VALUES ($customerPk)")
+
+        val response = makeDeleteRequest(
+          (v4_0_0_Request / "management" / "cascading" / "banks" / bankId / "customers" / customerId).DELETE <@ (user1))
+
+        response.code should not equal 200
+        MappedCustomer.findByCustomerId(customerId).isDefined should equal(true)
+        attributes should equal(attributesBefore)
+      } finally runSql("DROP TABLE cascade_customer_atomicity_blocker")
     }
   }
 }

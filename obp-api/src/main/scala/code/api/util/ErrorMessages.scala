@@ -129,6 +129,11 @@ object ErrorMessages {
   val InvalidDynamicEntityWebhookDescription = "OBP-09039: Invalid description. description must be at most 2000 characters."
   val DynamicEntityWebhookDeliveryNotFound = "OBP-09040: Dynamic Entity webhook delivery not found for this webhook. Please specify a valid value for EVENT_ID."
   val DynamicEntityWebhookDeliveryNotSticky = "OBP-09041: Only a STICKY delivery can be retried. A PENDING delivery is retried automatically, and a DELIVERED one is done. "
+  // Dynamic Entity audit chains: tamper-evident records of every change to the records of a Dynamic Entity.
+  val DynamicEntityAuditChainAlreadyStarted = "OBP-09042: This Dynamic Entity's audit chain has already been started. An entity has one audit chain, and it cannot be started again."
+  val DynamicEntityAuditChainNotStarted = "OBP-09043: This Dynamic Entity has no audit chain. Start one first."
+  val DynamicEntityHasAuditChain = "OBP-09044: This Dynamic Entity has an audit chain, so it cannot be deleted or renamed. An audit chain cannot be stopped, so that it always covers every change to the entity's records. "
+  val DynamicEntityAuditRootChainNotStarted = "OBP-09045: There is no root audit chain yet. It is created when the first Dynamic Entity audit chain is started, or by sealing."
 
 
   // General messages (OBP-10XXX)
@@ -315,6 +320,7 @@ object ErrorMessages {
   val DAuthIsDisabled = "OBP-20407: DAuth is disabled. Set allow_dauth=true to enable."
   val OpenIDConnectIsDisabled = "OBP-20408: OpenID Connect is disabled. Set allow_openid_connect=true to enable."
   val DirectLoginIsDisabled = "OBP-20409: DirectLogin is disabled. Set allow_direct_login=true to enable."
+  val ConsumerGrantTypeNotAllowed = "OBP-20410: This Consumer cannot be used this way. Its grant types do not include the one this call needs. An administrator can change them with PUT /management/consumers/CONSUMER_ID/grant-types. "
 
   val InvalidProviderUrl = "OBP-20079: Cannot match the local identity provider."
 
@@ -544,7 +550,19 @@ object ErrorMessages {
   val BankAccountNotFoundByAccountRouting = "OBP-30073: Bank Account not found. Please specify valid values for account routing scheme and address."
   val BankAccountNotFoundByIban = "OBP-30074: Bank Account not found. Please specify a valid value for iban."
   val AccountRoutingNotFound = "OBP-30075: Account routing not found, Please specify valid values for account routing scheme and address"
+  val InvalidAccountRoutingAddressRegex = "OBP-30649: Invalid account_routing.address. It must be a valid regular expression."
   val AccountRoutingNotUnique = "OBP-31075: Routing is not unique at this instance"
+  val BankBicConflict = "OBP-31076: The bank has two different BICs. The BIC in its bank routing and the BIC in its deprecated swift_bic field must be the same."
+  val BankRoutingNotUnique = "OBP-31077: More than one bank has this bank routing."
+  val BankRoutingAlreadyExists = "OBP-31079: Another bank already has this bank routing."
+  val AccountNumberAssignedByBank = "OBP-31080: The bank assigns account numbers. Give the account routing scheme ACCOUNT_NUMBER with an empty address, and the bank will assign the number. A number can be given only on a sandbox, or by a user with the role CanCreateAccountWithAccountNumber."
+  val AccountNumberAlreadyExists = "OBP-31081: Another account at this bank already has this account number."
+  val AccountRoutingAddressNotAssigned = "OBP-31082: OBP cannot assign an address for this account routing scheme. Give the address, or use the scheme ACCOUNT_NUMBER."
+  val AccountNumberDoesNotMatchScheme = "OBP-31083: The account number does not match the address pattern of its account routing scheme."
+  val TooManyAccountNumbers = "OBP-31084: An account can have only one account number."
+  val NubanBankCodeNotUsable = "OBP-31085: OBP cannot work out a NUBAN at this bank. To use the account routing scheme NG.NUBAN, the bank needs one bank routing with scheme NG.BANK_CODE. It holds the bank's CBN code of 3, 5 or 6 digits."
+  val NubanCheckDigitInvalid = "OBP-31086: The NUBAN is not valid at this bank. A NUBAN has ten digits. The last digit must be the check digit worked out from the bank's CBN code and the first nine digits."
+  val AccountNumberConflict = "OBP-31078:The account has two different account numbers. The account number in its account routing and the one in its account number field must be the same."
   val BankAccountNotFoundByAccountId = "OBP-30076: Bank Account not found. Please specify a valid value for ACCOUNT_ID."
 
   val TransactionRequestAttributeNotFound = "OBP-30078: Transaction Request Attribute not found. Please specify a valid value for TRANSACTION_REQUEST_ATTRIBUTE_ID."
@@ -571,7 +589,7 @@ object ErrorMessages {
   val ApiProductSubscriptionAlreadyExists = "OBP-30561: ApiProductSubscription already exists. The Consumer already holds a non-cancelled subscription to this API Product."
   val InvalidApiProductSubscriptionStatus = "OBP-30562: Invalid ApiProductSubscription status. Allowed values are: requested, active, past_due, suspended, cancelled."
   val InvalidApiProductSubscriptionStatusTransition = "OBP-30563: Invalid ApiProductSubscription status transition."
-  val ConsumerNotOwnedByUser = "OBP-30564: The Consumer was not created by the current User. Please specify the CONSUMER_ID of one of your own Consumers."
+  val ConsumerNotOwnedByUser = "OBP-30564: The Consumer is not yours. Please specify the CONSUMER_ID of a Consumer you created, or of one that belongs to your Organisation."
   val CreateApiProductSubscriptionError = "OBP-30565: Could not create ApiProductSubscription."
   val UpdateApiProductSubscriptionError = "OBP-30566: Could not update ApiProductSubscription."
   val DeleteApiProductSubscriptionError = "OBP-30567: Could not delete ApiProductSubscription."
@@ -634,6 +652,27 @@ object ErrorMessages {
   val CreateTenantError = "OBP-30511: Could not create Tenant."
   val UpdateTenantError = "OBP-30512: Could not update Tenant."
   val DeleteTenantError = "OBP-30513: Could not delete Tenant."
+
+  // Organisations: a group of people that owns Consumers (OBP-30630 .. OBP-30645)
+  val OrganisationNotFound = "OBP-30630: Organisation not found. Please specify the ORGANISATION_ID of an Organisation you belong to."
+  val OrganisationAdminRequired = "OBP-30631: Only an admin of the Organisation can do this."
+  val InvalidOrganisationMemberRole = "OBP-30632: Invalid member_role. Allowed values are: admin, member."
+  val OrganisationMemberAlreadyExists = "OBP-30633: The User is already a member of this Organisation."
+  val OrganisationMemberNotFound = "OBP-30634: The User is not a member of this Organisation."
+  val OrganisationNeedsAnAdmin = "OBP-30635: An Organisation must keep at least one admin. Make another member an admin first."
+  val OrganisationHasConsumers = "OBP-30636: The Organisation still has Consumers. Move them out of it first."
+  val InvalidOrganisationStatus = "OBP-30637: Invalid Organisation status. Allowed values are: active, suspended."
+  val InvalidOrganisationName = "OBP-30638: The name of an Organisation must be 1 to 255 characters."
+  val CreateOrganisationError = "OBP-30639: Could not create the Organisation."
+  val UpdateOrganisationError = "OBP-30640: Could not update the Organisation."
+  val DeleteOrganisationError = "OBP-30641: Could not delete the Organisation."
+  val UpdateOrganisationMemberError = "OBP-30642: Could not change the members of the Organisation."
+  val MyConsumerNotFound = "OBP-30643: Consumer not found. Please specify the CONSUMER_ID of a Consumer you created or one that belongs to your Organisation."
+  val UpdateConsumerOrganisationError = "OBP-30644: Could not change the Organisation of the Consumer."
+  val InvalidOrganisationBankId = "OBP-30645: Invalid bank_id for an Organisation. Use SYS, or the BANK_ID of a bank that exists."
+  val RecordAccessOrganisationNotFound = "OBP-30646: Organisation not found. Please specify the ORGANISATION_ID of an Organisation that exists."
+  val MyOrganisationBankIdNotAllowed = "OBP-30648: An Organisation you create for yourself is always at SYS, so leave out bank_id. To create an Organisation at a bank, use POST /management/organisations with CanCreateOrganisationAtOneBank at that bank."
+  val InvalidRecordAccessEntry = "OBP-30647: Invalid access entry. Each entry needs either a user_id or an organisation_id, not both."
 
   // Data retention (OBP-30582 .. OBP-30596)
   val RetentionPolicyNotFound = "OBP-30609: Retention policy not found in this space. Please specify a valid value for RETENTION_POLICY_ID."
@@ -976,6 +1015,7 @@ object ErrorMessages {
   val PlatformAppAlreadyExists = "OBP-35045: This Consumer is already a Platform App."
   val PlatformAppNotFound = "OBP-35046: This Consumer is not a Platform App. An administrator marks a Consumer as a Platform App first (POST /management/platform-apps)."
   val InvalidPlatformApp = "OBP-35047: Invalid Platform App. label must be between 1 and 100 characters."
+  val InvalidConsumerGrantTypes = "OBP-35061: Invalid grant types. Each value must be authorization_code, refresh_token, client_credentials or direct_login, and refresh_token requires authorization_code. Send an empty list to remove the grant types. "
   val InvalidPlatformAppDeclaration = "OBP-35048: Invalid Platform App declaration. Send at most 100 required_scopes, each with a known role_name, a bank_id that suits the Role (empty for a system Role), and needed_for between 1 and 1000 characters; version is at most 100 characters."
 
   //Authorisations
@@ -1106,7 +1146,9 @@ object ErrorMessages {
   val OpenCorridorSettlementAddressMissing = "OBP-40056: The creditor bank has no settlement address registered in its Open Corridor broker registration, so the settlement instruction cannot be addressed."
   val OpenCorridorDisabled = "OBP-40057: Open Corridor is not enabled on this API instance. Set open_corridor_enabled=true in the props."
   val OpenCorridorSettlementNotFound = "OBP-40058: No Open Corridor settlement with this SETTLEMENT_ID exists for this bank."
+  val OpenCorridorOnwardRouteNamesMember = "OBP-40069: An onward route names a bank that is a member of this OBP instance. Pay a member directly: it needs no onward route."
   val OpenCorridorSameBankNotAllowed = "OBP-40061: OPEN_CORRIDOR is inter-bank: the beneficiary bank must differ from the sending bank. Use an ordinary payment for intra-bank transfers."
+  val OpenCorridorNetBelowMinimum = "OBP-40068: The net of this Open Corridor pair is below the minimum settlement amount for its currency (open_corridor.min_settlement_amount.<CURRENCY>). Nothing was netted: the promises stay PENDING and are settled together once their net reaches the minimum."
   val MessageOutboxRowNotFound = "OBP-40059: No message outbox row with this OUTBOX_ID exists."
   val MessageOutboxRowNotSticky = "OBP-40060: The message outbox row is not STICKY. Only STICKY rows can be re-queued; PENDING rows retry automatically."
   // Renumbered from OBP-40058 on merge: develop had meanwhile taken 40058 through 40061 for Open
@@ -1375,12 +1417,14 @@ object ErrorMessages {
     // scala.meta.contrib.TreeOps.collect function - the extension available via
     // scala.meta.contrib._ only provides collectFirst/descendants/ancestors, not collect.
     import scala.meta.contrib.TreeOps
+    // A message may be a plain string ("OBP-..."), an interpolated one (s"OBP-...") or a triple-quoted one
+    // ("""OBP-..."""). All three are checked; the number is the OBP-NNNNN at the start, without its quotes.
+    val messageNumberAtStart = """^s?(?:"{3}|")(OBP-[0-9]+)""".r
     val listOfMessaegeNumbers = TreeOps.collect(source) {
       case obj: Defn.Object if obj.name.value == "ErrorMessages" =>
         TreeOps.collect(obj) {
-          case v: Defn.Val if v.rhs.syntax.startsWith(""""OBP-""") =>
-            val messageNumber = v.rhs.syntax.split(":")
-            messageNumber(0)
+          case v: Defn.Val if messageNumberAtStart.findFirstMatchIn(v.rhs.syntax).isDefined =>
+            "\"" + messageNumberAtStart.findFirstMatchIn(v.rhs.syntax).get.group(1)
         }
     }
     val list = listOfMessaegeNumbers.flatten

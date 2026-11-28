@@ -322,14 +322,28 @@ object MappedEntitlementsProvider extends EntitlementProvider with MdcLoggable {
     if (targetUserId != userId)
       logger.warn(s"addEntitlement: role '$roleName' (bankId '$bankId', createdByProcess '$createdByProcess') requested for consent user $userId is granted to its on-behalf-of user $targetUserId")
 
+    // If the user already holds this Role at this bank id, return that grant. Look first rather
+    // than insert and catch the error: on PostgreSQL a failed INSERT aborts the whole request
+    // transaction, so nothing after it (not even a SELECT) can run. Creating a dynamic entity
+    // whose Record Roles the creator still held from an earlier grant failed that way with
+    // "current transaction is aborted" (2026-11-11).
+    val existing = MappedEntitlement.find(bankId, targetUserId, roleName)
+    if (existing.isDefined) {
+      logger.info(s"addEntitlement: user $targetUserId already holds role '$roleName' at bankId '$bankId', so the existing grant is kept")
+      return existing
+    }
+
     tryo(MappedEntitlement.insert(bankId, targetUserId, roleName, createdByProcess,
       grantedByUserId, groupId)) match {
       case Full(saved) =>
         NotificationUtil.sendEmailRegardingAssignedRole(targetUserId, saved)
         Full(saved)
-      case _: net.liftweb.common.Failure =>
-        // UniqueIndex(mBankId, mUserId, mRoleName) violated by concurrent grant - return the committed row
-        MappedEntitlement.find(bankId, targetUserId, roleName)
+      case f: Failure =>
+        // Most likely the same grant was made at the same moment by another request
+        // (UniqueIndex(mBankId, mUserId, mRoleName)). Log it and return the failure: on
+        // PostgreSQL this request's transaction is now aborted, so it can't look the row up.
+        logger.error(s"addEntitlement: could not grant role '$roleName' at bankId '$bankId' to user $targetUserId: ${f.messageChain}", f.exception.openOr(null))
+        f
       case other => other
     }
   }

@@ -30,15 +30,15 @@ import code.api.{Constant, RequestHeader}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.Consent
+import code.api.util.{Consent, ConsentView}
 import code.api.util.ErrorMessages._
-import code.api.v3_1_0.{ConsentJsonV310, PostConsentChallengeJsonV310, PostConsentEntitlementJsonV310}
+import code.api.v3_1_0.{ConsentJsonV310, PostConsentBodyCommonJson, PostConsentChallengeJsonV310,PostConsentEntitlementJsonV310}
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
 import code.api.v4_0_0.{PutConsentStatusJsonV400, UsersJsonV400}
 import code.api.v5_0_0.Http4s500.Implementations5_0_0
 import code.api.v5_0_0.{AccountAccessV500, ConsentJsonV500, ConsentRequestResponseJson}
 import code.api.v5_1_0.Http4s510.Implementations5_1_0
-import code.consent.ConsentStatus
+import code.consent.{ConsentStatus, Consents}
 import code.entitlement.Entitlement
 import code.setup.PropsReset
 import com.github.dwickern.macros.NameOf.nameOf
@@ -104,6 +104,17 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
   def updateConsentStatusByConsent(consentId: String) = (v5_1_0_Request / "management" / "banks" / bankId / "consents" / consentId).PUT
   def updateConsentPayloadByConsent(consentId: String) = (v5_1_0_Request / "management" / "banks" / bankId / "consents" / consentId / "account-access").PUT
   def revokeMyConsentUrl(consentId: String) = (v5_1_0_Request / "my" / "consents" / consentId ).DELETE
+
+  // stores a consent of user2 with these views and roles, returns its reference id
+  private def createConsentOfUser2(views: List[ConsentView], roles: List[PostConsentEntitlementJsonV310]): String = {
+    val consumerId = testConsumer.consumerId
+    val consent = Consents.consentProvider.vend.createObpConsent(resourceUser2, "12345678", None, Some(testConsumer))
+      .openOrThrowException("consent")
+    val body = PostConsentBodyCommonJson(false, None, Nil, roles, Some(consumerId), None, None, None)
+    val jwt = Consent.createConsentJWT(resourceUser2, body, consent.secret, consent.consentId, Some(consumerId), None, 3600, None, Some(views))
+    Consents.consentProvider.vend.setJsonWebToken(consent.consentId, jwt).openOrThrowException("consent with JWT")
+    consent.consentReferenceId
+  }
 
   Feature(s"test $ApiEndpoint6 version $VersionOfApi - Unauthorized access") {
     Scenario("We will call the endpoint without user credentials", ApiEndpoint6, VersionOfApi) {
@@ -177,6 +188,52 @@ class ConsentsTest extends V510ServerSetup with PropsReset{
       Then("We should get a 403")
       response510.code should equal(403)
       response510.body.extract[ErrorMessage].message contains (UserHasMissingRoles + s"$CanGetConsentsAtOneBank or $CanGetConsentsAtAnyBank") should be(true)
+    }
+  }
+
+  Feature(s"test $ApiEndpoint9 version $VersionOfApi - Authenticated access with Role $CanGetConsentsAtOneBank") {
+    Scenario("We get only the consents with a view or a role at the bank in the path", ApiEndpoint9, VersionOfApi) {
+      val otherBankId = testBankId2.value
+      val roleAtBank = PostConsentEntitlementJsonV310(bankId, CanCreateCustomer.toString)
+      val roleAtOtherBank = PostConsentEntitlementJsonV310(otherBankId, CanCreateCustomer.toString)
+      val systemRole = PostConsentEntitlementJsonV310("", CanGetAnyUser.toString)
+      List(roleAtBank, roleAtOtherBank, systemRole).foreach { role =>
+        Entitlement.entitlement.vend.addEntitlement(role.bank_id, resourceUser2.userId, role.role_name)
+      }
+      val viewAtBank = ConsentView(bankId, testAccountId1.value, Constant.SYSTEM_OWNER_VIEW_ID, None)
+      val viewAtOtherBank = viewAtBank.copy(bank_id = otherBankId)
+
+      Given("Consents of user2 at the bank, at another bank, and at no bank")
+      val withView = createConsentOfUser2(List(viewAtBank), Nil)
+      val withRole = createConsentOfUser2(Nil, List(roleAtBank))
+      val otherBankView = createConsentOfUser2(List(viewAtOtherBank), Nil)
+      val otherBankRole = createConsentOfUser2(Nil, List(roleAtOtherBank))
+      val otherBankViewAndSystemRole = createConsentOfUser2(List(viewAtOtherBank), List(systemRole))
+      val onlySystemRole = createConsentOfUser2(Nil, List(systemRole))
+      val noViewsOrRoles = createConsentOfUser2(Nil, Nil)
+
+      When(s"user1 makes a request $ApiEndpoint9 with the role at the bank only")
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetConsentsAtOneBank.toString)
+      val response510 = makeGetRequest(getConsentsAtBAnk("whatever") <@ (user1))
+      Then("We should get a 200")
+      response510.code should equal(200)
+      val found = (response510.body \ "consents").children.map(i => (i \ "consent_reference_id").extract[String])
+      And("The consents at the bank are in the list")
+      found should contain allOf (withView, withRole)
+      And("The other consents are not")
+      found should contain noneOf (otherBankView, otherBankRole, otherBankViewAndSystemRole, onlySystemRole, noViewsOrRoles)
+
+      When("user1 also names the other bank in the query")
+      val responseOtherBank = makeGetRequest((getConsentsAtBAnk("whatever") <<? List(("bank_id", otherBankId))) <@ (user1))
+      Then("No consent of the other bank is returned")
+      responseOtherBank.code should equal(200)
+      (responseOtherBank.body \ "consents").children should be(Nil)
+
+      When("user1 asks for the other bank, where the role is not held")
+      val responseNoRole = makeGetRequest((v5_1_0_Request / "management" / "consents" / "banks" / otherBankId).GET <@ (user1))
+      Then("We should get a 403")
+      responseNoRole.code should equal(403)
+      responseNoRole.body.extract[ErrorMessage].message should include(UserHasMissingRoles + s"$CanGetConsentsAtOneBank or $CanGetConsentsAtAnyBank")
     }
   }
 

@@ -224,6 +224,12 @@ object ApiRole extends MdcLoggable{
   case class CanCreateAccount(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAccount = CanCreateAccount()
 
+  // Lets the caller give an account number when creating an account, for loading accounts that
+  // already have numbers. Without it the bank assigns the number, except on a sandbox instance
+  // (allow_sandbox_account_creation=true).
+  case class CanCreateAccountWithAccountNumber(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateAccountWithAccountNumber = CanCreateAccountWithAccountNumber()
+
   case class CanUpdateAccount(requiresBankId: Boolean = true) extends ApiRole
   lazy val canUpdateAccount = CanUpdateAccount()
 
@@ -260,6 +266,12 @@ object ApiRole extends MdcLoggable{
   // PENDING promises, posts the net Transaction and enqueues the Interface C messages.
   case class CanSettleOpenCorridor(requiresBankId: Boolean = true) extends ApiRole
   lazy val canSettleOpenCorridor = CanSettleOpenCorridor()
+
+  // Open Corridor: replace a bank's onward routes, the banks on other OBP instances that can be reached through it.
+  // Normally held as a Scope by the bank's own Bank Node, which confirms its routes from time to time. The operator
+  // grants it to the members that may carry payments between OBP instances.
+  case class CanUpdateOnwardRoutes(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateOnwardRoutes = CanUpdateOnwardRoutes()
 
   // Operator role for reading the generic message outbox (delivery states,
   // sticky failures) across all outbox types.
@@ -340,6 +352,8 @@ object ApiRole extends MdcLoggable{
   lazy val canUpdateConsumerCertificate = CanUpdateConsumerCertificate()
   case class CanUpdateConsumerName(requiresBankId: Boolean = false) extends ApiRole
   lazy val canUpdateConsumerName = CanUpdateConsumerName()
+  case class CanUpdateConsumerGrantTypes(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateConsumerGrantTypes = CanUpdateConsumerGrantTypes()
 
   case class CanCreateConsumer (requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateConsumer = CanCreateConsumer()
@@ -659,6 +673,20 @@ object ApiRole extends MdcLoggable{
 
   case class CanDeleteDynamicEntityWebhook(requiresBankId: Boolean = true) extends ApiRole
   lazy val canDeleteDynamicEntityWebhook = CanDeleteDynamicEntityWebhook()
+
+  // Dynamic Entity audit chains: tamper-evident records of every change to the records of a Dynamic Entity. Held at a bank id, or at SYS for the system space. There is no Role to stop or delete a chain, because nobody can.
+  case class CanCreateDynamicEntityAuditChain(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateDynamicEntityAuditChain = CanCreateDynamicEntityAuditChain()
+
+  case class CanGetDynamicEntityAuditChain(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetDynamicEntityAuditChain = CanGetDynamicEntityAuditChain()
+
+  // The root audit chain covers the chains of every space, so its Roles are held at no bank.
+  case class CanGetDynamicEntityAuditRootChain(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetDynamicEntityAuditRootChain = CanGetDynamicEntityAuditRootChain()
+
+  case class CanSealDynamicEntityAuditRootChain(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canSealDynamicEntityAuditRootChain = CanSealDynamicEntityAuditRootChain()
 
   // Data retention: how long a space's resources stay live, legal holds, runs and approvals, and the
   // retention archive. Each Role targets one space: held at a bank id, or at SYS for the system space.
@@ -1577,6 +1605,15 @@ object ApiRole extends MdcLoggable{
   lazy val canGetGroupsAtAllBanks = CanGetGroupsAtAllBanks()
   case class CanGetGroupsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetGroupsAtOneBank = CanGetGroupsAtOneBank()
+
+  // Organisation roles for staff, held at the Organisation's bank_id: the bank that administers it, or SYS.
+  // Not CanCreateOrganisation, CanGetOrganisation or CanUpdateOrganisation: the Tenant migration renames those.
+  case class CanCreateOrganisationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canCreateOrganisationAtOneBank = CanCreateOrganisationAtOneBank()
+  case class CanGetOrganisationAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canGetOrganisationAtOneBank = CanGetOrganisationAtOneBank()
+  case class CanUpdateOrganisationStatusAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateOrganisationStatusAtOneBank = CanUpdateOrganisationStatusAtOneBank()
 
   // Tenant management roles. A Tenant belongs to no bank, so these are system Roles.
   case class CanCreateTenant(requiresBankId: Boolean = false) extends ApiRole

@@ -27,38 +27,48 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.util
 
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import code.setup.ServerSetup
 
-/** Links in the Glossary to the API Explorer's own pages are served fully qualified. */
-class GlossaryLinksTest extends AnyFlatSpec with Matchers {
+/**
+ * Links in the Glossary to the API Explorer's own pages are served fully qualified.
+ *
+ * This extends ServerSetup because creating the Glossary reads WebUiProps from the database, so the
+ * suite needs the test server's database even though it makes no requests.
+ */
+class GlossaryLinksTest extends ServerSetup {
 
-  private val explorer = Glossary.apiExplorerUrl
+  private lazy val explorer = Glossary.apiExplorerUrl
 
-  "qualifyExplorerLinks" should "prefix links to the API Explorer's pages with its address" in {
-    Glossary.qualifyExplorerLinks("see [here](/glossary#Platform%20Apps) and [it](/resource-docs/OBPv7.0.0?operationid=x)") shouldBe
-      s"see [here]($explorer/glossary#Platform%20Apps) and [it]($explorer/resource-docs/OBPv7.0.0?operationid=x)"
-    Glossary.qualifyExplorerLinks("""<a href="/message-docs/akka">docs</a> and [bank](/?version=OBPv4.0.0)""") shouldBe
-      s"""<a href="$explorer/message-docs/akka">docs</a> and [bank]($explorer/?version=OBPv4.0.0)"""
+  feature("qualifyExplorerLinks") {
+    scenario("prefix links to the API Explorer's pages with its address") {
+      Glossary.qualifyExplorerLinks("see [here](/glossary#Platform%20Apps) and [it](/resource-docs/OBPv7.0.0?operationid=x)") shouldBe
+        s"see [here]($explorer/glossary#Platform%20Apps) and [it]($explorer/resource-docs/OBPv7.0.0?operationid=x)"
+      Glossary.qualifyExplorerLinks("""<a href="/message-docs/akka">docs</a> and [bank](/?version=OBPv4.0.0)""") shouldBe
+        s"""<a href="$explorer/message-docs/akka">docs</a> and [bank]($explorer/?version=OBPv4.0.0)"""
+    }
+
+    scenario("leave external and already qualified links alone") {
+      val text = s"[akka](https://akka.io/) and [again]($explorer/glossary#API) and [anchor](#Onboarding)"
+      Glossary.qualifyExplorerLinks(text) shouldBe text
+    }
+
+    scenario("leave a path that is not one of the API Explorer's pages alone") {
+      Glossary.qualifyExplorerLinks("[x](/glossaryish) [y](/banks)") shouldBe "[x](/glossaryish) [y](/banks)"
+    }
   }
 
-  it should "leave external and already qualified links alone" in {
-    val text = s"[akka](https://akka.io/) and [again]($explorer/glossary#API) and [anchor](#Onboarding)"
-    Glossary.qualifyExplorerLinks(text) shouldBe text
+  feature("getGlossaryItemLink") {
+    scenario("expand to a fully qualified link, with spaces encoded") {
+      Glossary.expandGlossaryPlaceholders(Glossary.getGlossaryItemLink("Platform Apps")) shouldBe
+        s"[here]($explorer/glossary#Platform%20Apps)"
+    }
   }
 
-  it should "leave a path that is not one of the API Explorer's pages alone" in {
-    Glossary.qualifyExplorerLinks("[x](/glossaryish) [y](/banks)") shouldBe "[x](/glossaryish) [y](/banks)"
-  }
-
-  "getGlossaryItemLink" should "expand to a fully qualified link, with spaces encoded" in {
-    Glossary.expandGlossaryPlaceholders(Glossary.getGlossaryItemLink("Platform Apps")) shouldBe
-      s"[here]($explorer/glossary#Platform%20Apps)"
-  }
-
-  "every served Glossary Item" should "have no site-relative link to the API Explorer" in {
-    val relative = Glossary.glossaryItems.toList.filter(i => """\]\(/(glossary|index|resource-docs|message-docs|operationid)\b""".r
-      .findFirstIn(i.description()).isDefined).map(_.title)
-    relative shouldBe empty
+  feature("every served Glossary Item") {
+    scenario("have no site-relative link to the API Explorer") {
+      val relative = Glossary.glossaryItems.toList.filter(glossaryItem => """\]\(/(glossary|index|resource-docs|message-docs|operationid)\b""".r
+        .findFirstIn(glossaryItem.description()).isDefined).map(_.title)
+      relative shouldBe empty
+    }
   }
 }

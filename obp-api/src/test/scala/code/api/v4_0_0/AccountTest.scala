@@ -431,6 +431,36 @@ class AccountTest extends V400ServerSetup {
       responseIncorrectBank.body.extract[ModeratedAccountsJSON400].accounts should be(List.empty)
 
     }
+
+    // A user without the owner view of an account must not find it, nor learn its ids, through the regex.
+    scenario("Another user's account is not matched and its ids are not returned", ApiEndpoint6, VersionOfApi) {
+      Given("user1 creates an account with a routing address that only it can see")
+      val accountRoutingSchemeTest = "AccountNumber"
+      val uniquePrefix = "SENTINEL" + APIUtil.generateUUID().replace("-", "").take(12).toUpperCase
+      val createdAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310
+        .copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR", "0"),
+          account_routings = List(AccountRoutingJsonV121(accountRoutingSchemeTest, uniquePrefix + "-EUR")))
+      val createdAccount = createAccountViaEndpoint(testBankId.value, createdAccountJson, user1)
+      val queryJson = getAccountByRoutingJson.copy(bank_id = None,
+        account_routing = AccountRoutingJsonV121(accountRoutingSchemeTest, "^" + uniquePrefix))
+
+      When("user2, who has no view on that account, queries with a regex that matches its address")
+      val request = (v4_0_0_Request / "management" / "accounts" / "account-routing-regex-query").POST <@ (user2)
+      val response = makePostRequest(request, write(queryJson))
+
+      Then("We should get a 200 with no accounts, and nothing about user1's account")
+      response.code should equal(200)
+      response.body.extract[ModeratedAccountsJSON400].accounts should be(List.empty)
+      response.body.toString.contains(createdAccount.account_id) should be(false)
+
+      When("user1, who owns the account, makes the same query")
+      val requestOwner = (v4_0_0_Request / "management" / "accounts" / "account-routing-regex-query").POST <@ (user1)
+      val responseOwner = makePostRequest(requestOwner, write(queryJson))
+
+      Then("We should get a 200 with that account")
+      responseOwner.code should equal(200)
+      responseOwner.body.extract[ModeratedAccountsJSON400].accounts.map(_.id) should be(List(createdAccount.account_id))
+    }
   }
 
   Feature(s"test ${ApiEndpoint3.name}") {

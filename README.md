@@ -22,10 +22,32 @@ The API documentation is best viewed using the [OBP API Explorer](https://apiexp
 
 If you want to run your own copy of API Explorer II, see [here](https://github.com/OpenBankProject/API-Explorer-II)
 
+### Writing documentation
+
+Write glossary items, endpoint descriptions, error messages and code comments in plain English. Plain English is
+not simplified English: it keeps the meaning and the detail, and says it clearly. Two UK guides explain how:
+
+- [Clear language](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/writing-guidelines/clear-language/) from GOV.UK
+- [How to write in plain English](https://www.plainenglish.co.uk/how-to-write-in-plain-english) from the Plain English Campaign
+
+In short:
+
+- Keep sentences to 15 to 20 words on average, and split any sentence over 25 words.
+- Use the active voice: "OBP-API refuses the call", not "the call is refused".
+- Use short, familiar words: "start", not "commence"; "before", not "prior to".
+- Explain a technical term the first time you use it. Specialists prefer plain English too.
+- Write full sentences. Avoid long chains joined by semicolons, and make sure every "it" and "they" clearly
+  refers to one thing.
+- Give an example when a rule is hard to follow on its own.
+
+`scripts/plain_english_check.py` lists the sentences over 25 words in ResourceDocs, glossary items and error
+messages. Run it with `--changed` to check only the files you have changed. It measures length only, so a
+text it passes can still need rewriting.
+
 ## Status of API Versions
 
 OBP instances support multiple versions of the API simultaneously (unless they are deactivated in config)
-To see the status (DRAFT, STABLE or BLEEDING-EDGE) of an API version, look at the root endpoint. For example, `/obp/v2.0.0/root` or `/obp/v3.0.0/root`.
+To see the status (DRAFT, STABLE, BLEEDING-EDGE or DEPRECATED) of an API version, look at the root endpoint. For example, `/obp/v2.0.0/root` or `/obp/v3.0.0/root`.
 
 ```log
 24.01.2017, [V1.2.1](https://apisandbox.openbankproject.com/obp/v1.2.1/root) was marked as stable.
@@ -37,6 +59,7 @@ To see the status (DRAFT, STABLE or BLEEDING-EDGE) of an API version, look at th
 18.11.2020, [V3.1.0](https://apisandbox.openbankproject.com/obp/v3.1.0/root) was marked as stable.
 16.12.2022, [V4.0.0](https://apisandbox.openbankproject.com/obp/v4.0.0/root) was marked as stable.
 16.12.2022, [V5.0.0](https://apisandbox.openbankproject.com/obp/v5.0.0/root) was marked as stable.
+27.11.2026, V2.1.0, V2.2.0, V3.0.0, V3.1.0, V4.0.0 and V5.0.0 were marked as deprecated: call v5.1.0 or newer.
 ```
 
 ## License

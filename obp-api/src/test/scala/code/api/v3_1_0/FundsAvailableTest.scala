@@ -27,15 +27,15 @@ package code.api.v3_1_0
 
 import org.json4s._
 import com.openbankproject.commons.model.ErrorMessage
+import code.api.Constant.{CAN_QUERY_AVAILABLE_FUNDS, CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.canCheckFundsAvailable
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.ErrorMessages._
-import code.api.v1_2_1.{CreateViewJsonV121, ViewJSONV121}
 import code.api.v3_1_0.Http4s310.Implementations3_1_0
-import code.setup.APIResponse
+import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import org.json4s.native.Serialization.write
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, BankIdAccountIdViewId, CreateViewJson}
 import net.liftweb.util.Helpers.randomString
 import org.scalatest.Tag
 
@@ -51,26 +51,23 @@ class FundsAvailableTest extends V310ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.checkFundsAvailable))
 
-  def getThirdPartyAppView(bankId: String, accountId: String) = postView(bankId, accountId, randomView(true, "")).body.extract[ViewJSONV121]
-  def randomView(isPublic: Boolean, alias: String) : CreateViewJsonV121 = {
-    val viewFields = List("can_query_available_funds", "can_see_transaction_this_bank_account")
-    CreateViewJsonV121(
+  // a custom view that can query funds, made directly since the owner view cannot grant that
+  def grantFundsViewToUser1(bankId: String, accountId: String): String = {
+    val createViewJson = CreateViewJson(
       name = "_"+randomString(3),//Now, all created views should start with `_`.
       description = randomString(3),
-      is_public = isPublic,
-      which_alias_to_use=alias,
+      metadata_view = "",
+      is_public = true,
+      which_alias_to_use = "",
       hide_metadata_if_alias_used = false,
-      allowed_actions = viewFields
+      allowed_actions = List(CAN_QUERY_AVAILABLE_FUNDS, CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT)
     )
-  }
-  def postView(bankId: String, accountId: String, view: CreateViewJsonV121): APIResponse = {
-    val request = (baseRequest / "obp" / "v1.2.1" / "banks" / bankId / "accounts" / accountId / "views").POST <@(user1)
-    makePostRequest(request, write(view))
-  }
-
-  def grantUserAccessToView(bankId : String, accountId : String, userId : String, viewId : String) : APIResponse= {
-    val request = (baseRequest / "obp" / "v1.2.1" / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views" / viewId).POST <@(user1)
-    makePostRequest(request, "")
+    val bankIdAccountId = BankIdAccountId(BankId(bankId), AccountId(accountId))
+    val view = Views.views.vend.createCustomView(bankIdAccountId, createViewJson).openOrThrowException("Could not create the custom view")
+    Views.views.vend.grantAccessToCustomView(
+      BankIdAccountIdViewId(BankId(bankId), AccountId(accountId), view.viewId), resourceUser1
+    ).openOrThrowException("Could not grant the custom view")
+    view.viewId.value
   }
 
   Feature("Check available funds v3.1.0 - Unauthorized access") {
@@ -94,8 +91,7 @@ class FundsAvailableTest extends V310ServerSetup {
       val bankAccount = randomPrivateAccount(bankId)
 
       When("We make a request v3.1.0 without all params")
-      val viewId = getThirdPartyAppView(bankId, bankAccount.id).id
-      grantUserAccessToView(bankId, bankAccount.id, resourceUser1.idGivenByProvider, viewId)
+      val viewId = grantFundsViewToUser1(bankId, bankAccount.id)
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / viewId / "funds-available").GET <@(user1)
       val response310 = makeGetRequest(request310)
       Then("We should get a 400")
@@ -121,8 +117,7 @@ class FundsAvailableTest extends V310ServerSetup {
       val bankAccount = randomPrivateAccount(bankId)
 
       When("We make a request v3.1.0 with a Role " + canCheckFundsAvailable + " and all params")
-      val viewId = getThirdPartyAppView(bankId, bankAccount.id).id
-      grantUserAccessToView(bankId, bankAccount.id, resourceUser1.idGivenByProvider, viewId)
+      val viewId = grantFundsViewToUser1(bankId, bankAccount.id)
       val request310 = (v3_1_0_Request / "banks" / bankId / "accounts" / bankAccount.id / viewId / "funds-available").GET <@(user1)
       val response310 = makeGetRequest(request310 <<? Map("currency" -> "EUR", "amount" -> "1"))
       Then("We should get a 200")

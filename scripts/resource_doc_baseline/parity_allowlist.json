@@ -132,6 +132,22 @@
   ],
   "field_mismatches": [
     {
+      "version": "v6_0_0",
+      "endpoint": "getPopularApis",
+      "field": "description",
+      "reason": "The public endpoint now uses only from_date and to_date, so filtering by user or app needs a Role. The description says which filters are ignored.",
+      "lift_digest": "23846b4ba3c1ae811448bcfeef69c445790d7d138dccac8f929e415f3a250f74",
+      "http4s_digest": "5a8117168f16e523c860e789cdfc5969a95c43e163cf170dbaae992f6e7bbb6b"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getProductsV600",
+      "field": "errorResponseBodies",
+      "reason": "AuthenticatedUserIsRequired is added when apiOptions.getProductsIsPublic=false, so the middleware requires a login as the Lift code did with authenticatedAccess",
+      "lift_digest": "3bdcd0c958443de6b8a40314fb0e25bb976e6a734c73b4877302491756cb2ab9",
+      "http4s_digest": "ff19d358f83b960a52f9fbdd96a02ddd930feef41ad37737d3c812fe99f72c7b"
+    },
+    {
       "version": "v4_0_0",
       "endpoint": "getAtms",
       "field": "errorResponseBodies",
@@ -247,9 +263,9 @@
       "version": "v1_2_1",
       "endpoint": "removePermissionForUserForBankAccountForAllViews",
       "field": "errorResponseBodies",
-      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to all views",
+      "reason": "Added CannotRevokeOwnAccountAccess (403): a user cannot revoke their own access to all views. Added UserLacksPermissionCanRevokeAccessToViewForTargetAccount (403): the caller must be able to revoke each view the target user holds",
       "lift_digest": "b72cefb915c6af0190e4543aed820722db264a43a54247247d9a1fdb25321703",
-      "http4s_digest": "1504d43b14defdedbab99f5784e36dbc7d3c6e1eca29fddc41d81f43d3ae0bcd"
+      "http4s_digest": "8fc3bece8cf4d5a977125fd6e97ca3feee5d8730a8fb0942e35c337591fc5ddd"
     },
     {
       "version": "v4_0_0",
@@ -274,6 +290,22 @@
       "reason": "Added UserAttributeNotFound (404): the attribute id must be one of the caller's personal attributes, else a user could take over another user's attribute",
       "lift_digest": "8b9e9294a47baff632975336cec3da4c29f3ca3b8398ec5875e9b5d1712f0140",
       "http4s_digest": "e6807a06ff3025c039b0402f9b51e6a08c093f831943f023172632f7289fdb4f"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateProductAttribute",
+      "field": "errorResponseBodies",
+      "reason": "Added ProductAttributeNotFound: the attribute must belong to the bank and product in the path",
+      "lift_digest": "f0e3fc093d8749570c7520dabdb672bbb7a6f84d2f03fa9c138762e8c976981a",
+      "http4s_digest": "cbff97326a2c683036eca4d241b6bcc82b9a45d7cee49516184d63fc450c50b7"
+    },
+    {
+      "version": "v4_0_0",
+      "endpoint": "updateProductFee",
+      "field": "errorResponseBodies",
+      "reason": "Added ProductFeeNotFoundById: the fee must belong to the bank and product in the path",
+      "lift_digest": "539a3f33f0d6ea0276b6e3f0171b796a54a6fa2ac67753776dc74c63f7599b3d",
+      "http4s_digest": "fd8cf080eb4161518ab82177e082ad82f77bfe2c83895f754fceb5f5f6e1968a"
     },
     {
       "version": "v5_1_0",
@@ -318,6 +350,14 @@
     {
       "version": "v6_0_0",
       "endpoint": "updateBankLevelDynamicEntity",
+      "field": "exampleRequestBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
+      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
+      "http4s_digest": "ace4e0cbfac4471fe60d8719343ff35ae8e5e421311d2640f4e81d6fe73ad362"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateBankLevelDynamicEntity",
       "field": "successResponseBody",
       "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
       "lift_digest": "fb39e7460ca2805f706bb8ac37ae375df3195a146a4fd4f1423670c60068c460",
@@ -326,10 +366,26 @@
     {
       "version": "v6_0_0",
       "endpoint": "updateMyDynamicEntity",
+      "field": "exampleRequestBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
+      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
+      "http4s_digest": "ace4e0cbfac4471fe60d8719343ff35ae8e5e421311d2640f4e81d6fe73ad362"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateMyDynamicEntity",
       "field": "successResponseBody",
       "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
       "lift_digest": "30dea326337d124762eb3a45a7e36bdd6307858b4acca6c765144f7e11cce19e",
       "http4s_digest": "92739c84cab456c0d5933c5c7c255439134982c9edaa84c741621936eb8a05ba"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "updateSystemDynamicEntity",
+      "field": "exampleRequestBody",
+      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
+      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
+      "http4s_digest": "ace4e0cbfac4471fe60d8719343ff35ae8e5e421311d2640f4e81d6fe73ad362"
     },
     {
       "version": "v6_0_0",
@@ -636,6 +692,14 @@
       "http4s_digest": "d9336c4032a9807b5124b916d49a67e156cac3705b15d8e9406af542570ed2d1"
     },
     {
+      "version": "v1_2_1",
+      "endpoint": "createViewForBankAccount",
+      "field": "errorResponseBodies",
+      "reason": "Added SourceViewHasLessPermission (403): the new view may only get actions the caller already has on one of their views of the account, as v2.2.0 does",
+      "lift_digest": "e64cc06ba0411539c75ffdea1b6465c6938c540d6aac4eb6f1d3e345ad10f789",
+      "http4s_digest": "de1f55019a1891ed9fac07145ebbbac21f9abe99d06dfdb22a4fcc9522a47d3f"
+    },
+    {
       "version": "v1_4_0",
       "endpoint": "getTransactionRequestTypes",
       "field": "errorResponseBodies",
@@ -682,6 +746,14 @@
       "reason": "Template variable renamed for clarity; same URL path shape, same route.",
       "lift_digest": "91d541e4991471ff3b872dabd9b68fe6bc29b979fc91df495643a3bd361c0d60",
       "http4s_digest": "69ccaef44e7ddda887462c6431f0ffe7b0f0a4a91f4e12bb5f207dffb3d3dc20"
+    },
+    {
+      "version": "v2_2_0",
+      "endpoint": "createViewForBankAccount",
+      "field": "errorResponseBodies",
+      "reason": "Added SourceViewHasLessPermission: Create View refuses (403) a view whose allowed_actions are not all on one of the caller's views of the account, as Update View does",
+      "lift_digest": "63c2f1b01e07eb8a86158e5631bde4dd32465aa75c13ba61d369f0ad8cf952d7",
+      "http4s_digest": "0f50f78378cc09491986f9a9ee074ebd5d56b93debc411788c9c453db54b623d"
     },
     {
       "version": "v2_2_0",
@@ -1319,41 +1391,41 @@
       "version": "v6_0_0",
       "endpoint": "createBankLevelDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-10-29: auth_mode UserOrApplication renamed to UserXORApplication (Scopes for the application acting as itself, Entitlements for a person); the former name is still accepted. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints. Digest refresh 2026-11-17: the row-level access paragraph now says an access entry can name an organisation_id as well as a user_id, and that use_row_level_access can be combined with has_community_access (not with has_public_access).",
       "lift_digest": "2e7c649041362776f7eec66ccbb9f025f3edfead992108d0fd5864af76e93961",
-      "http4s_digest": "d2a81d825f3e109ec7cb4e6aece220fe2334a924be6a4c57a8294a3bc8bab0f1"
+      "http4s_digest": "c14aa9b9535499b763e2eb902edb1774b65cf105352e59e5df71c0c9bf34a149"
     },
     {
       "version": "v6_0_0",
       "endpoint": "createSystemDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints. Digest refresh 2026-11-17: the row-level access paragraph now says an access entry can name an organisation_id as well as a user_id, and that use_row_level_access can be combined with has_community_access (not with has_public_access).",
       "lift_digest": "81310cdd2be1c2b33d465cabd1604cedee38bfa1ecccae4b016d0f99aa443ab6",
-      "http4s_digest": "a54cf6b69e5dd2ea2ac99f012f4e2986adeb2f5c49b344c8984b21f4757b0110"
+      "http4s_digest": "3ac0f64ec4e482e4890abc20926259c6dfe57dfd649be1e5880a38a76e941099"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateBankLevelDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints. Digest refresh 2026-11-17: the row-level access paragraph now says an access entry can name an organisation_id as well as a user_id, and that use_row_level_access can be combined with has_community_access (not with has_public_access).",
       "lift_digest": "2d18665f9db52506a1b043ad7575b16ac52cedf0d11f036afd4a96b353eb8ddd",
-      "http4s_digest": "9cbf8c520307ca38d82c69d079504d19c344696220ec459b9ef38475adb55332"
+      "http4s_digest": "c4f9df3991dc36e7215f3f749a654eed6d96eaf23d16e865fc269fdb0eba11a3"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateMyDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints. Digest refresh 2026-11-17: the row-level access paragraph now says an access entry can name an organisation_id as well as a user_id, and that use_row_level_access can be combined with has_community_access (not with has_public_access).",
       "lift_digest": "97f0c97cc592f89f4dba8a6641ad4b41f6ffa6f4f6e78bf3d3cc34a6a11f76e7",
-      "http4s_digest": "71c7c1036177280c60d568471033fc9dac7dbdc5ae171241920bd6bc49edf9ea"
+      "http4s_digest": "1cf13771496c2d0673a405c3a150296b0a7e243dc6c502af56039d47d8a30237"
     },
     {
       "version": "v6_0_0",
       "endpoint": "updateSystemDynamicEntity",
       "field": "description",
-      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag.",
+      "reason": "Digest refresh: row-level access grant endpoint corrected from GET/POST to GET/PUT (matches Method.PUT route in Http4sDynamicEntity.scala), on top of the field-level access control and indexed/index docs already reviewed. Digest refresh 2026-10-02: documents the hide_field_from_public_access field flag. Digest refresh 2026-11-10: auth_mode is removed (endpoint auth modes are gone); the text now says that the entity's Roles decide who may use its data endpoints. Digest refresh 2026-11-17: the row-level access paragraph now says an access entry can name an organisation_id as well as a user_id, and that use_row_level_access can be combined with has_community_access (not with has_public_access).",
       "lift_digest": "e28c2996f3fd54842534fd54d45d7ba49df8b346e65f541353be4fb5311b550c",
-      "http4s_digest": "03efe3fdb3fb7c924c0c880942931e6fe51dc889d288a52946ee7b84a25f95db"
+      "http4s_digest": "0b69022e06f93f0e7e2ee843fedd886555828e90d4fc0bee6bb2a678b03015bc"
     },
     {
       "version": "v3_0_0",
@@ -1399,7 +1471,7 @@
       "version": "v6_0_0",
       "endpoint": "createApiProduct",
       "field": "description",
-      "reason": "Documents the six call-limit semantics, tiering and recognised Api Product Attribute names (SELF_SUBSCRIBE/BILLING_SYSTEM/etc) \u2014 real feature per code.apiproductsubscription.*, opening sentence and auth note preserved verbatim.",
+      "reason": "Documents the six call-limit semantics, tiering and recognised Api Product Attribute names (SELF_SUBSCRIBE/BILLING_SYSTEM/etc) — real feature per code.apiproductsubscription.*, opening sentence and auth note preserved verbatim.",
       "lift_digest": "a0a19cc5100424e4e1824f1d1c70dc4329971051689338c8559c988e334ddab7",
       "http4s_digest": "585ffe0ecaab1b7ee5d333fffc55aca0016497dba502ad9ebc446dd3a4c92ade"
     },
@@ -2191,17 +2263,17 @@
       "version": "v6_0_0",
       "endpoint": "getOidcClient",
       "field": "description",
-      "reason": "States that redirect_uris leaves out stored entries that break the redirect URL rules, which the endpoint now filters, and links the Redirect URL glossary entry.",
+      "reason": "States that redirect_uris leaves out stored entries that break the redirect URL rules, which the endpoint now filters, and links the Redirect URL glossary entry. Digest refresh 2026-11-10: documents the Consumer's grant_types in the response.",
       "lift_digest": "49ddd5f6ec985292ee48802cd18e479c5a1b46fee368ce0d06a653e07eb65e90",
-      "http4s_digest": "afb1da33f039efe8cff6de2d718c11e552434fb08f7e41a66d82a26d07be0de6"
+      "http4s_digest": "2cbc0e150e744d45e4ef13b2629a834bdaab700a0da64b32d157c21f923d366e"
     },
     {
       "version": "v6_0_0",
       "endpoint": "verifyOidcClient",
       "field": "description",
-      "reason": "States that redirect_uris leaves out stored entries that break the redirect URL rules, which the endpoint now filters, and links the Redirect URL glossary entry.",
+      "reason": "States that redirect_uris leaves out stored entries that break the redirect URL rules, which the endpoint now filters, and links the Redirect URL glossary entry. Digest refresh 2026-11-10: documents the Consumer's grant_types in the response.",
       "lift_digest": "120f4c6ed1083567d078a7afbb5c2e97d8de69e68e7314166c05e3afcdf50ecd",
-      "http4s_digest": "670c0479be7d2aa3c8beb18d2e1708c3ec7e67b2a1b625018b07a89c770fe962"
+      "http4s_digest": "b668308e83b4f0420c549eb9bd69a762b93991dfe1d5da3874019cf9b4050a08"
     },
     {
       "version": "v5_1_0",
@@ -2725,27 +2797,35 @@
     },
     {
       "version": "v6_0_0",
-      "endpoint": "updateBankLevelDynamicEntity",
-      "field": "exampleRequestBody",
-      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity; the update example also names has_community_access and personal_requires_role, which UpdateDynamicEntityRequestJsonV600 accepts",
-      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
-      "http4s_digest": "ace4e0cbfac4471fe60d8719343ff35ae8e5e421311d2640f4e81d6fe73ad362"
+      "endpoint": "getBank",
+      "field": "description",
+      "reason": "Get Bank v6.0.0 now also lists bank routings, active bank attributes and onward routes, with a Glossary link for Onward Routes.",
+      "lift_digest": "3cef2f2e891c8ebbb0405a57f1ec4ac8c10d36505a238450d6b941d966a7d781",
+      "http4s_digest": "0b0461b2089f0fc25bd657886ff3ea3268acf60bf9818ccbbdd9eb1731867946"
     },
     {
       "version": "v6_0_0",
-      "endpoint": "updateMyDynamicEntity",
-      "field": "exampleRequestBody",
-      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity; the update example also names has_community_access and personal_requires_role, which UpdateDynamicEntityRequestJsonV600 accepts",
-      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
-      "http4s_digest": "ace4e0cbfac4471fe60d8719343ff35ae8e5e421311d2640f4e81d6fe73ad362"
+      "endpoint": "getBank",
+      "field": "successResponseBody",
+      "reason": "Get Bank v6.0.0 now returns onward_routes; the example shows one.",
+      "lift_digest": "8aa031962e0d821f2653f792063d5b17fb0b6ec2b0bf65667c192010bb817600",
+      "http4s_digest": "bd2ce07b4e6bf95852dab43d4ef60b24f88ed5ce973340f5a3b5d7a9e853b421"
     },
     {
       "version": "v6_0_0",
-      "endpoint": "updateSystemDynamicEntity",
-      "field": "exampleRequestBody",
-      "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity; the update example also names has_community_access and personal_requires_role, which UpdateDynamicEntityRequestJsonV600 accepts",
-      "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
-      "http4s_digest": "ace4e0cbfac4471fe60d8719343ff35ae8e5e421311d2640f4e81d6fe73ad362"
+      "endpoint": "getBanks",
+      "field": "description",
+      "reason": "Get Banks v6.0.0 now returns each bank's routings, active attributes and onward routes, and says that only member banks of this OBP instance are listed.",
+      "lift_digest": "f8eed91b6c942fd390530df286b17be59bf953f7d4a0fccf87e1850aa8df298a",
+      "http4s_digest": "279a74d1fa3cf536dd2b643ba77fdae7c54cee66870e18b88db8e7e5958920c5"
+    },
+    {
+      "version": "v6_0_0",
+      "endpoint": "getBanks",
+      "field": "successResponseBody",
+      "reason": "Get Banks v6.0.0 now returns onward_routes for each bank; the example shows one.",
+      "lift_digest": "054b03eb782e03e7bb9aa689ef74e5b9b72149100d57f7856b02fb536dfa5771",
+      "http4s_digest": "eb30507ed15d7be3e19b461d62c2a53d9b8a38db27f934cb2aff8840e619327c"
     }
   ]
 }

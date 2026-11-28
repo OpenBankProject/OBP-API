@@ -59,6 +59,19 @@ object ProjectionStore {
   val aclUserIdColumn: String  = code.DynamicData.DynamicDataAccess.userIdColumn
   val aclCanReadColumn: String = code.DynamicData.DynamicDataAccess.canReadColumn
 
+  // Grants to Organisations, and the membership tables they are checked against: a join onto a row-level
+  // child also counts child rows granted to an active Organisation the caller belongs to.
+  val organisationAclTable: String          = code.DynamicData.DynamicDataOrganisationAccess.tableName
+  val organisationAclDataIdColumn: String   = code.DynamicData.DynamicDataOrganisationAccess.dataIdColumn
+  val organisationAclOrgIdColumn: String    = code.DynamicData.DynamicDataOrganisationAccess.organisationIdColumn
+  val organisationAclCanReadColumn: String  = code.DynamicData.DynamicDataOrganisationAccess.canReadColumn
+  val organisationTable: String             = code.organisation.Organisation.tableName
+  val organisationIdColumn: String          = code.organisation.Organisation.organisationIdColumn
+  val organisationStatusColumn: String      = code.organisation.Organisation.statusColumn
+  val organisationMemberTable: String       = code.organisation.OrganisationMember.tableName
+  val organisationMemberOrgIdColumn: String = code.organisation.OrganisationMember.organisationIdColumn
+  val organisationMemberUserIdColumn: String = code.organisation.OrganisationMember.userIdColumn
+
   /** One indexed field's value for a record: safe column, SQL type, coerced text (None => NULL). */
   case class ColumnValue(safeColumn: String, sqlType: String, value: Option[String])
 

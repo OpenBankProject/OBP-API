@@ -798,7 +798,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       bankRoutingScheme=bankRoutingSchemeExample.value,
       bankRoutingAddress=bankRoutingAddressExample.value,
       swiftBic=bankSwiftBicExample.value,
-      nationalIdentifier=bankNationalIdentifierExample.value))
+      nationalIdentifier=bankNationalIdentifierExample.value,
+      bankRoutings=List(BankRoutingJson(scheme=bankRoutingSchemeExample.value, address=bankRoutingAddressExample.value))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -831,7 +832,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       bankRoutingScheme=bankRoutingSchemeExample.value,
       bankRoutingAddress=bankRoutingAddressExample.value,
       swiftBic=bankSwiftBicExample.value,
-      nationalIdentifier=bankNationalIdentifierExample.value)))
+      nationalIdentifier=bankNationalIdentifierExample.value,
+      bankRoutings=List(BankRoutingJson(scheme=bankRoutingSchemeExample.value, address=bankRoutingAddressExample.value)))))
     ),
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
@@ -1889,7 +1891,8 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
       bankRoutingScheme=bankRoutingSchemeExample.value,
       bankRoutingAddress=bankRoutingAddressExample.value,
       swiftBic=bankSwiftBicExample.value,
-      nationalIdentifier=bankNationalIdentifierExample.value),
+      nationalIdentifier=bankNationalIdentifierExample.value,
+      bankRoutings=List(BankRoutingJson(scheme=bankRoutingSchemeExample.value, address=bankRoutingAddressExample.value))),
       user= UserCommons(userPrimaryKey=UserPrimaryKey(123),
       userId=userIdExample.value,
       idGivenByProvider="string",

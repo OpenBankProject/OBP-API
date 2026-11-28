@@ -63,6 +63,24 @@ trait DynamicDataAccessT {
   def bankId: Option[String]
 }
 
+/**
+ * A grant on one record to an Organisation rather than to one User. Every active member of an active
+ * Organisation holds these permissions on the record. Membership is checked each time the record is
+ * used, so people who join the Organisation gain access and people who leave lose it, with no change
+ * to the grant itself.
+ */
+trait DynamicDataOrganisationAccessT {
+  def dynamicDataId: String
+  def organisationId: String
+  def canRead: Boolean
+  def canUpdate: Boolean
+  def canDelete: Boolean
+  def canGrant: Boolean
+  def grantedBy: String
+  def entityName: String
+  def bankId: Option[String]
+}
+
 trait DynamicDataAccessProvider {
 
   /**
@@ -93,16 +111,43 @@ trait DynamicDataAccessProvider {
   /** All ACL rows for a single record (for the GET .../access listing). */
   def getAccessForRow(bankId: Option[String], entityName: String, dynamicDataId: String): List[DynamicDataAccessT]
 
-  /** DynamicDataIds of the entity in this space that `userId` may read -- the get-all filter. */
+  /**
+   * Upsert one grant to an Organisation on the named record. Its active members hold these
+   * permissions while the Organisation is active.
+   */
+  def grantToOrganisation(bankId: Option[String], entityName: String, dynamicDataId: String, organisationId: String,
+                          canRead: Boolean, canUpdate: Boolean, canDelete: Boolean, canGrant: Boolean,
+                          grantedBy: String): Box[DynamicDataOrganisationAccessT]
+
+  /**
+   * Remove the Organisation's grant on the named record. Grants that members made to other Users
+   * stay: each of those was made by a person, and revoking that person removes them.
+   * Returns the number of grants removed (0 or 1).
+   */
+  def revokeOrganisation(bankId: Option[String], entityName: String, dynamicDataId: String, organisationId: String): Box[Int]
+
+  /** The Organisation grants on a single record (for the GET .../access listing). */
+  def getOrganisationAccessForRow(bankId: Option[String], entityName: String, dynamicDataId: String): List[DynamicDataOrganisationAccessT]
+
+  /** Remove every grant made to the Organisation, on any record. Used when the Organisation is deleted. */
+  def deleteAllForOrganisation(organisationId: String): Box[Boolean]
+
+  /**
+   * DynamicDataIds of the entity in this space that `userId` may read -- the get-all filter.
+   * This includes records granted to an active Organisation the User belongs to.
+   */
   def getReadableDynamicDataIds(bankId: Option[String], entityName: String, userId: String): List[String]
 
-  /** Does `userId` hold `permission` on the named record? */
+  /**
+   * Does `userId` hold `permission` on the named record, through their own grant or through a grant to
+   * an active Organisation they belong to?
+   */
   def allows(bankId: Option[String], entityName: String, dynamicDataId: String, userId: String,
              permission: DynamicDataAccessPermission): Boolean
 
-  /** Cascade on record delete: remove every ACL row for that record. */
+  /** Cascade on record delete: remove every ACL row for that record, User and Organisation grants alike. */
   def deleteAllForRow(bankId: Option[String], entityName: String, dynamicDataId: String): Box[Boolean]
 
-  /** Cascade on entity delete: remove every ACL row for the entity in this space. */
+  /** Cascade on entity delete: remove every ACL row for the entity in this space, User and Organisation grants alike. */
   def deleteAllForEntity(bankId: Option[String], entityName: String): Box[Boolean]
 }

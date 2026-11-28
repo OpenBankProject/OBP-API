@@ -32,7 +32,7 @@ import code.util.Helper.MdcLoggable
 import doobie._
 import doobie.implicits._
 import doobie.implicits.javasql._
-import net.liftweb.common.{Box, Empty, EmptyBox, Full}
+import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
@@ -84,6 +84,12 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           s"admin-only until access is granted via the ACL (no backfill — see DYNAMIC_ENTITY_ROW_LEVEL_ACCESS.md §8.4).")
     }
 
+    // An entity with an audit chain keeps its name: its records and its chain are both found by that name.
+    val renamesAnAuditedEntity = existsDynamicEntity.exists(existing =>
+      existing.entityName != dynamicEntity.entityName && existing.dynamicEntityId.exists(code.dynamicentityauditchain.DynamicEntityAuditChains.hasChain))
+    if (renamesAnAuditedEntity)
+      return Failure(code.api.util.ErrorMessages.DynamicEntityHasAuditChain + s"Entity name: ${existsDynamicEntity.map(_.entityName).getOrElse("")}.")
+
     tryo{
       try {
         val saved = DynamicEntity.upsert(
@@ -100,8 +106,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           hasPublicAccess = dynamicEntity.hasPublicAccess,
           hasCommunityAccess = dynamicEntity.hasCommunityAccess,
           personalRequiresRole = dynamicEntity.personalRequiresRole,
-          useRowLevelAccess = dynamicEntity.useRowLevelAccess,
-          authMode = dynamicEntity.authMode)
+          useRowLevelAccess = dynamicEntity.useRowLevelAccess)
         code.api.dynamic.entity.helper.DynamicEntityHelper.forgetDefinitions()
         fieldTypesBefore.foreach(code.dynamicentitywebhook.DynamicEntityWebhookDefinitionChanges.afterUpdate(saved, _))
         // DE_indexing: provision/refresh the projection for this definition's indexed scalar fields.
@@ -112,7 +117,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           try {
             val info = code.api.dynamic.entity.helper.DynamicEntityInfo(
               dynamicEntity.metadataJson, dynamicEntity.entityName, dynamicEntity.bankId,
-              dynamicEntity.hasPersonalEntity, dynamicEntity.hasPublicAccess, dynamicEntity.hasCommunityAccess, dynamicEntity.personalRequiresRole, dynamicEntity.useRowLevelAccess, dynamicEntity.authMode)
+              dynamicEntity.hasPersonalEntity, dynamicEntity.hasPublicAccess, dynamicEntity.hasCommunityAccess, dynamicEntity.personalRequiresRole, dynamicEntity.useRowLevelAccess)
             val scalar = code.api.dynamic.entity.projection.ProjectionProvisioner.scalarFieldsOf(info.indexedFields)
             if (scalar.nonEmpty)
               code.api.dynamic.entity.projection.ProjectionProvisioner
@@ -139,6 +144,9 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
       case v => DynamicEntity.findAllScopedByName(v.bankId, v.entityName)
         .flatMap(_.dynamicEntityId)
     }
+    // An entity with an audit chain is never deleted, whichever endpoint asks: the chain must keep covering its records.
+    if (dynamicEntityIds.exists(code.dynamicentityauditchain.DynamicEntityAuditChains.hasChain))
+      throw new IllegalStateException(code.api.util.ErrorMessages.DynamicEntityHasAuditChain + s"Entity name: ${dynamicEntity.entityName}.")
     dynamicEntityIds.filter(_.nonEmpty).foreach(code.dynamicentitywebhook.DynamicEntityWebhookDefinitionChanges.beforeDelete)
     try dynamicEntity match {
       case v: DynamicEntity => DynamicEntity.deleteById(v.dynamicEntityId.getOrElse(""))
@@ -174,10 +182,9 @@ case class DynamicEntity(
   hasPublicAccess: Boolean,
   hasCommunityAccess: Boolean,
   personalRequiresRole: Boolean,
-  useRowLevelAccess: Boolean,
-  // Upstream commit c583fe421. Null / empty on rows created before the column existed, which
-  // DynamicEntityAuthMode.normalise reads back as the UserOnly default.
-  authMode: String = DynamicEntityAuthMode.default
+  useRowLevelAccess: Boolean
+  // There was an authmode column here (endpoint auth modes, removed in November 2026). Existing
+  // databases keep the column, unused.
 ) extends DynamicEntityT {
   override def dynamicEntityId: Option[String] = Option(dynamicEntityIdRaw)
   // The sentinel is filtered back out here so every reader still sees None for the system space.
@@ -190,25 +197,22 @@ object DynamicEntity {
 
   private val selectColumns =
     fr"""SELECT dynamicentityid, entityname, metadatajson, userid, bankid, haspersonalentity,
-                haspublicaccess, hascommunityaccess, personalrequiresrole, userowlevelaccess,
-                authmode
+                haspublicaccess, hascommunityaccess, personalrequiresrole, userowlevelaccess
          FROM dynamicentity"""
 
   // Option wherever the insert binds Option, and for the flags too: Mapper's MappedBoolean read a
   // NULL column as false rather than throwing, and older rows predate these columns.
   private type Row = (Option[String], Option[String], Option[String], Option[String],
     Option[String], Option[Boolean], Option[Boolean], Option[Boolean], Option[Boolean],
-    Option[Boolean], Option[String])
+    Option[Boolean])
 
   private def fromRow(row: Row): DynamicEntity = row match {
     case (dynamicEntityId, entityName, metadataJson, userId, bankId, hasPersonalEntity,
-          hasPublicAccess, hasCommunityAccess, personalRequiresRole, useRowLevelAccess,
-          authMode) =>
+          hasPublicAccess, hasCommunityAccess, personalRequiresRole, useRowLevelAccess) =>
       DynamicEntity(dynamicEntityId.orNull, entityName.orNull, metadataJson.orNull, userId.orNull,
         bankId, hasPersonalEntity.getOrElse(false), hasPublicAccess.getOrElse(false),
         hasCommunityAccess.getOrElse(false), personalRequiresRole.getOrElse(false),
-        useRowLevelAccess.getOrElse(false),
-        DynamicEntityAuthMode.normalise(authMode.orNull))
+        useRowLevelAccess.getOrElse(false))
   }
 
   private def query(condition: Fragment): List[DynamicEntity] =
@@ -252,7 +256,7 @@ object DynamicEntity {
   def upsert(dynamicEntityId: Option[String], entityName: String, metadataJson: String,
              userId: String, bankId: Option[String], hasPersonalEntity: Boolean,
              hasPublicAccess: Boolean, hasCommunityAccess: Boolean, personalRequiresRole: Boolean,
-             useRowLevelAccess: Boolean, authMode: String): DynamicEntity = {
+             useRowLevelAccess: Boolean): DynamicEntity = {
     val now = new java.sql.Timestamp(System.currentTimeMillis())
     val id = dynamicEntityId.getOrElse(APIUtil.generateUUID())
     val updated = DoobieUtil.runUpdate(
@@ -262,19 +266,17 @@ object DynamicEntity {
               haspersonalentity = $hasPersonalEntity, haspublicaccess = $hasPublicAccess,
               hascommunityaccess = $hasCommunityAccess,
               personalrequiresrole = $personalRequiresRole,
-              userowlevelaccess = $useRowLevelAccess,
-              authmode = ${Option(DynamicEntityAuthMode.normalise(authMode))}, updatedat = $now
+              userowlevelaccess = $useRowLevelAccess, updatedat = $now
             WHERE dynamicentityid = $id""".update.run)
     if (updated == 0) {
       DoobieUtil.runUpdate(
         sql"""INSERT INTO dynamicentity
               (dynamicentityid, entityname, metadatajson, userid, bankid, haspersonalentity,
                haspublicaccess, hascommunityaccess, personalrequiresrole, userowlevelaccess,
-               authmode, createdat, updatedat)
+               createdat, updatedat)
               VALUES ($id, ${Option(entityName)}, ${Option(metadataJson)}, ${Option(userId)},
                ${storedBankId(bankId)}, $hasPersonalEntity, $hasPublicAccess, $hasCommunityAccess,
-               $personalRequiresRole, $useRowLevelAccess,
-               ${Option(DynamicEntityAuthMode.normalise(authMode))}, $now, $now)"""
+               $personalRequiresRole, $useRowLevelAccess, $now, $now)"""
           .update.run)
     }
     findById(id).openOrThrowException("the dynamic entity just written must be readable")

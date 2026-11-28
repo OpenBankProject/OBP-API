@@ -42,7 +42,7 @@
         <notes><![CDATA[
             dep-check is scanning the embedded pom inside avro-1.8.2.jar and
             reporting the guava@11.0.2 declared there. The actual runtime
-            guava on the classpath is 32.0.0-jre (managed by parent pom
+            guava on the classpath is 33.7.2-jre (managed by parent pom
             dependencyManagement), and all three CVEs are fixed well before:
               - CVE-2018-10237 fixed in guava 25.0
               - CVE-2020-8908 fixed in guava 32.0.0

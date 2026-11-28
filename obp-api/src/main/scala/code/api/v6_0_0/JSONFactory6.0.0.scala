@@ -178,7 +178,9 @@ case class VerifyOidcClientResponseJsonV600(
     valid: Boolean,
     client_id: Option[String] = None,
     consumer_id: Option[String] = None,
-    redirect_uris: Option[List[String]] = None
+    redirect_uris: Option[List[String]] = None,
+    // The OAuth2 grant types the client may be issued tokens for (see ConsumerGrantTypes)
+    grant_types: Option[List[String]] = None
 )
 
 // OIDC Client Get (metadata lookup without secret verification)
@@ -187,7 +189,9 @@ case class GetOidcClientResponseJsonV600(
     client_name: String,
     consumer_id: String,
     redirect_uris: List[String],
-    enabled: Boolean
+    enabled: Boolean,
+    // The OAuth2 grant types the client may be issued tokens for: the Consumer's own, or the defaults when it sets none
+    grant_types: List[String] = code.consumer.ConsumerGrantTypes.DefaultOAuth2
 )
 
 case class CallLimitPostJsonV600(
@@ -595,8 +599,32 @@ case class BankJsonV600(
     logo: String,
     website: String,
     bank_routings: List[BankRoutingJsonV121],
-    attributes: Option[List[BankAttributeBankResponseJsonV400]]
+    attributes: Option[List[BankAttributeBankResponseJsonV400]],
+    // The banks on other OBP instances that can be reached through this bank. Empty for a bank that does not carry payments on.
+    onward_routes: List[OnwardRouteJsonV600] = Nil
 )
+
+// One exchange rate on an onward route: one unit of `from` buys `rate` units of `to`, until valid_until.
+case class OnwardRouteRateJsonV600(
+    from: String,
+    to: String,
+    rate: String,
+    valid_until: Date
+)
+
+// One onward route: a bank on another OBP instance that can be reached through the bank whose route it is.
+case class OnwardRouteJsonV600(
+    full_name: String,
+    bank_routings: List[BankRoutingJsonV121],
+    obp_host: String,
+    country: String,
+    currencies: List[String],
+    rates: List[OnwardRouteRateJsonV600],
+    last_confirmed: Date,
+    valid_until: Date
+)
+
+case class OnwardRoutesJsonV600(onward_routes: List[OnwardRouteJsonV600])
 
 case class BanksJsonV600(banks: List[BankJsonV600])
 
@@ -1005,7 +1033,6 @@ case class DynamicEntityDefinitionJsonV600(
     has_community_access: Boolean = false,
     personal_requires_role: Boolean = false,
     use_row_level_access: Boolean = false,
-    auth_mode: String = "UserOnly",
     schema: org.json4s.JsonAST.JObject,
     _links: Option[DynamicEntityLinksJsonV600] = None
 )
@@ -1025,7 +1052,6 @@ case class DynamicEntityDefinitionWithCountJsonV600(
     has_community_access: Boolean = false,
     personal_requires_role: Boolean = false,
     use_row_level_access: Boolean = false,
-    auth_mode: String = "UserOnly",
     schema: org.json4s.JsonAST.JObject,
     record_count: Long,
     _links: Option[DynamicEntityLinksJsonV600] = None
@@ -1043,7 +1069,6 @@ case class CreateDynamicEntityRequestJsonV600(
     has_community_access: Option[Boolean] = None,  // defaults to false if not provided
     personal_requires_role: Option[Boolean] = None,  // defaults to false if not provided
     use_row_level_access: Option[Boolean] = None,  // defaults to false if not provided
-    auth_mode: Option[String] = None,  // UserOnly | ApplicationOnly | UserXORApplication | UserAndApplication; defaults to UserOnly
     schema: org.json4s.JsonAST.JObject
 )
 
@@ -1055,7 +1080,6 @@ case class UpdateDynamicEntityRequestJsonV600(
     has_community_access: Option[Boolean] = None,
     personal_requires_role: Option[Boolean] = None,
     use_row_level_access: Option[Boolean] = None,
-    auth_mode: Option[String] = None,
     schema: org.json4s.JsonAST.JObject
 )
 
@@ -1745,9 +1769,10 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         account.currency.getOrElse(""),
         account.balance.getOrElse("").toString
       ),
-      account_routings = Constant.accountRoutingsWithImplicitOBP(
+      account_routings = code.api.util.RoutingRules.accountRoutingsOf(
         account.accountId.value,
-        account.accountRoutings.map(r => AccountRoutingJsonV121(scheme = r.scheme, address = r.address))
+        account.accountRoutings.map(r => AccountRoutingJsonV121(scheme = r.scheme, address = r.address)),
+        account.number.orNull
       ),
       views_basic = availableViews.map(_.viewId.value)
     )
@@ -1825,25 +1850,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       bank: Bank,
       attributes: List[BankAttributeTrait] = Nil
   ): BankJson600 = {
-    val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
-    val bic = BankRoutingJsonV121("BIC", bank.swiftBic)
-    val routings = bank.bankRoutingScheme match {
-      case "OBP" =>
-        bic :: BankRoutingJsonV121(
-          bank.bankRoutingScheme,
-          bank.bankRoutingAddress
-        ) :: Nil
-      case "BIC" =>
-        obp :: BankRoutingJsonV121(
-          bank.bankRoutingScheme,
-          bank.bankRoutingAddress
-        ) :: Nil
-      case _ =>
-        obp :: bic :: BankRoutingJsonV121(
-          bank.bankRoutingScheme,
-          bank.bankRoutingAddress
-        ) :: Nil
-    }
+    // One OBP entry, at most one BIC, then the bank's other routings: see RoutingRules.
+    val routings = code.api.util.RoutingRules.bankRoutingsOf(bank)
     new BankJson600(
       stringOrNull(bank.bankId.value),
       stringOrNull(bank.shortName),
@@ -2577,32 +2585,62 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     )
   }
 
-  def createBankJsonV600(bank: Bank, attributes: List[BankAttributeTrait] = Nil): BankJsonV600 = {
-    val bic = BankRoutingJsonV121("BIC", bank.swiftBic)
-    val stored = BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress)
-    val nonObpRoutings =
-      if (bank.bankRoutingScheme == "BIC") List(stored)
-      else List(bic, stored)
-    val routings = Constant.bankRoutingsWithImplicitOBP(bank.bankId.value, nonObpRoutings)
+  def createBankJsonV600(bank: Bank, attributes: List[BankAttributeTrait] = Nil, onwardRoutes: List[code.opencorridorroutes.OnwardRouteView] = Nil): BankJsonV600 = {
+    // One OBP entry, at most one BIC, then the bank's other routings: see RoutingRules.
+    val routings = code.api.util.RoutingRules.bankRoutingsOf(bank)
     BankJsonV600(
       bank_id = stringOrNull(bank.bankId.value),
       bank_code = stringOrNull(bank.shortName),
       full_name = stringOrNull(bank.fullName),
       logo = stringOrNull(bank.logoUrl),
       website = stringOrNull(bank.websiteUrl),
-      bank_routings = routings.filter(a => stringOrNull(a.address) != null),
+      bank_routings = routings,
       attributes = Option(
         attributes.filter(_.isActive == Some(true)).map(a => BankAttributeBankResponseJsonV400(
           name = a.name,
           value = a.value)
         )
-      )
+      ),
+      onward_routes = onwardRoutes.map(createOnwardRouteJsonV600)
     )
   }
 
-  def createBanksJsonV600(banks: List[Bank]): BanksJsonV600 = {
-    BanksJsonV600(banks.map(bank => createBankJsonV600(bank, Nil)))
+  // Each bank with its active attributes and its still-valid onward routes, as Get Bank shows them, so a caller can pick banks from one list.
+  def createBanksJsonV600(
+    banksWithAttributes: List[(Bank, List[BankAttributeTrait])],
+    onwardRoutesByBankId: Map[String, List[code.opencorridorroutes.OnwardRouteView]] = Map.empty
+  ): BanksJsonV600 = {
+    BanksJsonV600(banksWithAttributes.map { case (bank, attributes) =>
+      createBankJsonV600(bank, attributes, onwardRoutesByBankId.getOrElse(bank.bankId.value, Nil))
+    })
   }
+
+  def createOnwardRouteJsonV600(route: code.opencorridorroutes.OnwardRouteView): OnwardRouteJsonV600 =
+    OnwardRouteJsonV600(
+      full_name = route.fullName,
+      bank_routings = route.bankRoutings.map(routing => BankRoutingJsonV121(routing.scheme, routing.address)),
+      obp_host = route.obpHost,
+      country = route.country,
+      currencies = route.currencies,
+      rates = route.rates.map(rate => OnwardRouteRateJsonV600(rate.from, rate.to, rate.rate.bigDecimal.toPlainString, rate.validUntil)),
+      last_confirmed = route.lastConfirmed,
+      valid_until = route.validUntil
+    )
+
+  def createOnwardRoutesJsonV600(routes: List[code.opencorridorroutes.OnwardRouteView]): OnwardRoutesJsonV600 =
+    OnwardRoutesJsonV600(routes.map(createOnwardRouteJsonV600))
+
+  // The example onward route shown in the ResourceDocs: Bank C on another OBP instance, reached through this bank.
+  lazy val onwardRouteJsonV600Example: OnwardRouteJsonV600 = OnwardRouteJsonV600(
+    full_name = "Bank C",
+    bank_routings = List(BankRoutingJsonV121("BIC", "DEMCZZ22")),
+    obp_host = "obp.example.org",
+    country = "NG",
+    currencies = List("KES", "NGN"),
+    rates = List(OnwardRouteRateJsonV600("KES", "NGN", "11.20", Date.from(java.time.Instant.parse("2026-11-23T10:05:00Z")))),
+    last_confirmed = Date.from(java.time.Instant.parse("2026-11-23T10:00:00Z")),
+    valid_until = Date.from(java.time.Instant.parse("2026-11-23T11:00:00Z"))
+  )
 
   /**
    * Create v6.0.0 response for GET /my/dynamic-entities
@@ -2676,6 +2714,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         val schemaOption = fullJson.obj.find(_.name == entity.entityName).map(_.value.asInstanceOf[JObject])
 
         // Validate that the dynamic key matches entity_name
+        // authMode: a flag that older definitions may still carry; it is skipped, not shown
         val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole", "useRowLevelAccess", "authMode")
         val dynamicKeyName = fullJson.obj.find(f => !knownFlagFields.contains(f.name)).map(_.name)
         if (dynamicKeyName.exists(_ != entity.entityName)) {
@@ -2700,7 +2739,6 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           has_community_access = entity.hasCommunityAccess,
           personal_requires_role = entity.personalRequiresRole,
           use_row_level_access = entity.useRowLevelAccess,
-          auth_mode = entity.authMode,
           schema = schemaObj,
           _links = Some(links)
         )
@@ -2724,6 +2762,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         val schemaOption = fullJson.obj.find(_.name == entity.entityName).map(_.value.asInstanceOf[JObject])
 
         // Validate that the dynamic key matches entity_name
+        // authMode: a flag that older definitions may still carry; it is skipped, not shown
         val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole", "useRowLevelAccess", "authMode")
         val dynamicKeyName = fullJson.obj.find(f => !knownFlagFields.contains(f.name)).map(_.name)
         if (dynamicKeyName.exists(_ != entity.entityName)) {
@@ -2748,7 +2787,6 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           has_community_access = entity.hasCommunityAccess,
           personal_requires_role = entity.personalRequiresRole,
           use_row_level_access = entity.useRowLevelAccess,
-          auth_mode = entity.authMode,
           schema = schema,
           record_count = recordCount,
           _links = Some(links)
@@ -2781,7 +2819,6 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     val hasCommunityAccess = request.has_community_access.getOrElse(false)
     val personalRequiresRole = request.personal_requires_role.getOrElse(false)
     val useRowLevelAccess = request.use_row_level_access.getOrElse(false)
-    val authMode = code.dynamicEntity.DynamicEntityAuthMode.normalise(request.auth_mode.getOrElse(""))
 
     // Build the internal format: entity name as dynamic key + flags
     JObject(
@@ -2791,7 +2828,6 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       JField("hasCommunityAccess", JBool(hasCommunityAccess)) ::
       JField("personalRequiresRole", JBool(personalRequiresRole)) ::
       JField("useRowLevelAccess", JBool(useRowLevelAccess)) ::
-      JField("authMode", JString(authMode)) ::
       Nil
     )
   }
@@ -2804,7 +2840,6 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     val hasCommunityAccess = request.has_community_access.getOrElse(false)
     val personalRequiresRole = request.personal_requires_role.getOrElse(false)
     val useRowLevelAccess = request.use_row_level_access.getOrElse(false)
-    val authMode = code.dynamicEntity.DynamicEntityAuthMode.normalise(request.auth_mode.getOrElse(""))
 
     // Build the internal format: entity name as dynamic key + flags
     JObject(
@@ -2814,7 +2849,6 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       JField("hasCommunityAccess", JBool(hasCommunityAccess)) ::
       JField("personalRequiresRole", JBool(personalRequiresRole)) ::
       JField("useRowLevelAccess", JBool(useRowLevelAccess)) ::
-      JField("authMode", JString(authMode)) ::
       Nil
     )
   }
@@ -3080,9 +3114,10 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           account_number = a.number,
           account_type = a.productCode,
           branch_id = a.branchId,
-          account_routings = Constant.accountRoutingsWithImplicitOBP(
+          account_routings = code.api.util.RoutingRules.accountRoutingsOf(
             a.id,
-            a.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address))
+            a.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address)),
+            a.number
           ),
           account_attributes = a.accountAttributes,
           view_ids = viewsPerAccount.getOrElse(BankIdAccountId(BankId(a.bankId), AccountId(a.id)), Nil)
@@ -3143,9 +3178,10 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       balance = createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       views_available = viewsAvailable,
       bank_id = stringOrNull(account.bankId.value),
-      account_routings = Constant.accountRoutingsWithImplicitOBP(
+      account_routings = code.api.util.RoutingRules.accountRoutingsOf(
         account.accountId.value,
-        createAccountRoutingsJSON(account.accountRoutings)
+        createAccountRoutingsJSON(account.accountRoutings),
+        account.number.orNull
       ),
       account_attributes = accountAttributes.map(createAccountAttributeJson),
       tags = tags.map(createAccountTagJSON)

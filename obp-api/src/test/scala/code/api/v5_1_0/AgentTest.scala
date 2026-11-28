@@ -29,7 +29,7 @@ package code.api.v5_1_0
 
 import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{postAgentJsonV510, putAgentJsonV510}
-import code.api.util.ErrorMessages.{BankNotFound, UserHasMissingRoles, AuthenticatedUserIsRequired}
+import code.api.util.ErrorMessages.{AgentAccountLinkNotFound, AgentNotFound, BankNotFound, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v5_1_0.Http4s510.Implementations5_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
@@ -38,7 +38,12 @@ import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{canUpdateAgentStatusAtAnyBank, canUpdateAgentStatusAtOneBank}
+import code.customer.agent.AgentX
+import code.customeraccountlinks.CustomerAccountLinkX
 import code.entitlement.Entitlement
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 class AgentTest extends V510ServerSetup {
   /**
@@ -142,12 +147,66 @@ class AgentTest extends V510ServerSetup {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateAgentStatusAtAnyBank.toString)
 
       {
-        val request = (v5_1_0_Request / "banks" / bankId2 / "agents"/ agentId).PUT <@user1
+        val request = (v5_1_0_Request / "banks" / bankId / "agents"/ agentId).PUT <@user1
         val response = makePutRequest(request, write(putAgentJsonV510))
         response.code should equal(200)
       }
+
+      // the bank in the path must be the agent's own, whichever Role is used
+      {
+        val request = (v5_1_0_Request / "banks" / bankId2 / "agents"/ agentId).PUT <@user1
+        val response = makePutRequest(request, write(putAgentJsonV510))
+        response.code should equal(404)
+        response.body.extract[ErrorMessage].message contains AgentNotFound shouldBe(true)
+      }
     }
-    
+
+    Scenario("We will update the status of an agent of another bank", UpdateAgentStatus, VersionOfApi) {
+      val request = (v5_1_0_Request / "banks" / testBankId2.value / "agents").POST <@ (user1)
+      val response = makePostRequest(request, write(postAgentJsonV510))
+      response.code should equal(201)
+      val agentId = response.body.extract[AgentJsonV510].agent_id
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, canUpdateAgentStatusAtOneBank.toString)
+
+      When("We update the agent through a bank that is not its own")
+      val requestPut = (v5_1_0_Request / "banks" / testBankId1.value / "agents" / agentId).PUT <@ (user1)
+      val responsePut = makePutRequest(requestPut, write(putAgentJsonV510))
+      Then("We should get a 404")
+      responsePut.code should equal(404)
+      responsePut.body.extract[ErrorMessage].message contains AgentNotFound shouldBe(true)
+      And("The agent is unchanged")
+      val stored = AgentX.agentProvider.vend.getAgentByAgentId(agentId).openOrThrowException("the test agent is gone")
+      stored.isPendingAgent should equal(true)
+      stored.isConfirmedAgent should equal(false)
+    }
+
+    Scenario("We will update the status of an agent linked only to an account of another bank", UpdateAgentStatus, VersionOfApi) {
+      val request = (v5_1_0_Request / "banks" / testBankId2.value / "agents").POST <@ (user1)
+      val response = makePostRequest(request, write(postAgentJsonV510))
+      response.code should equal(201)
+      val otherBankLink = CustomerAccountLinkX.customerAccountLink.vend
+        .getCustomerAccountLinksByCustomerId(response.body.extract[AgentJsonV510].agent_id)
+        .openOrThrowException("could not read the test link").head
+      // agent created directly, so it has no account at its own bank
+      val agent = Await.result(
+        AgentX.agentProvider.vend.createAgent(testBankId1.value, "legal name", "+49123456", "agent-without-account", None),
+        Duration.Inf).openOrThrowException("could not create the test agent")
+      CustomerAccountLinkX.customerAccountLink.vend.createCustomerAccountLink(
+        agent.agentId, otherBankLink.bankId, otherBankLink.accountId, "Owner")
+      Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, canUpdateAgentStatusAtOneBank.toString)
+
+      When("We update the agent through its own bank")
+      val requestPut = (v5_1_0_Request / "banks" / testBankId1.value / "agents" / agent.agentId).PUT <@ (user1)
+      val responsePut = makePutRequest(requestPut, write(putAgentJsonV510))
+      Then("We should get a 400, as for an agent without an account")
+      responsePut.code should equal(400)
+      responsePut.body.extract[ErrorMessage].message contains AgentAccountLinkNotFound shouldBe(true)
+      And("The agent is unchanged")
+      val stored = AgentX.agentProvider.vend.getAgentByAgentId(agent.agentId).openOrThrowException("the test agent is gone")
+      stored.isPendingAgent should equal(true)
+      stored.isConfirmedAgent should equal(false)
+    }
+
     Scenario(s"We will test all endpoints successful cases", UpdateAgentStatus) {
       val bankId =randomBankId
       val request = (v5_1_0_Request / "banks" / bankId / "agents").POST <@ (user1) 

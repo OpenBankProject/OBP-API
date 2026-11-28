@@ -234,6 +234,9 @@ object DynamicEntityRecordRetention extends RetentionResourceHandler {
         // a retention run is not a write through the endpoints.
         code.api.dynamic.entity.projection.ProjectionDualWrite.onDelete(
           Option(space).filterNot(_ == SystemSpace), entityName, recordId)
+        // Record the deletion in the entity's audit chain, if it has one, so the chain still matches the records. Nobody made a call, so no user is recorded.
+        code.dynamicentityauditchain.DynamicEntityAuditChains.recordDeleted(
+          Option(space).filterNot(_ == SystemSpace), entityName, recordId, Option(row.userId), None, byRetention = true)
         disposal.register(self, action, archiveId, None)
         true
       }

@@ -179,6 +179,11 @@ class OnBehalfOfOwnershipSweepTest extends ServerSetupWithTestData with DefaultU
    * skipped, so the scan can never quietly look at fewer tables than the policy file names.
    */
   private val storeTables: Map[String, String] = Map(
+    "code.DynamicData.DynamicDataOrganisationAccess" -> "dynamicdataorganisationaccess",
+    "code.organisation.Organisation" -> "obporganisation",
+    "code.organisation.OrganisationMember" -> "obporganisationmember",
+    "code.dynamicentityauditchain.DynamicEntityAuditChain" -> "dynamic_entity_audit_chain",
+    "code.dynamicentityauditchain.DynamicEntityAuditEntry" -> "dynamic_entity_audit_entry",
     "code.DynamicData.DynamicData" -> "dynamicdata",
     "code.DynamicData.DynamicDataAccess" -> "dynamicdataaccess",
     "code.DynamicEndpoint.DynamicEndpoint" -> "dynamicendpoint",

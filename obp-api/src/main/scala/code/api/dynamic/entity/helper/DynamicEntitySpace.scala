@@ -27,7 +27,6 @@ TESOBE (http://www.tesobe.com/)
 package code.api.dynamic.entity.helper
 
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
-import code.api.util.APIUtil.{EndpointAuthMode, UserOnly}
 import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.api.util.{APIUtil, ApiRole, CallContext}
 import code.util.Helper
@@ -66,14 +65,13 @@ object DynamicEntitySpace {
    * URL, so the middleware would check their Role at the empty bank id, where no Definition Role is
    * granted any more. Those endpoints declare the Role with disableAutoValidateRoles(), so it still
    * shows in the catalogue, and call this instead. It answers exactly as the middleware would have:
-   * the same access rule, the same 403 and the same message. `authMode` is the endpoint's own, as its
-   * ResourceDoc declares it.
+   * the same access rule, the same 403 and the same message.
    */
-  def requireRoleAtSystemSpace(role: ApiRole, cc: CallContext, authMode: EndpointAuthMode = UserOnly): Future[Box[Unit]] = {
+  def requireRoleAtSystemSpace(role: ApiRole, cc: CallContext): Future[Box[Unit]] = {
     val userId = cc.user.map(_.userId).openOr("")
     Helper.booleanToFuture(UserHasMissingRoles + role.toString, 403, Some(cc)) {
-      APIUtil.handleAccessControlWithAuthMode(
-        DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, userId, APIUtil.getConsumerPrimaryKey(Some(cc)), List(role), authMode)
+      APIUtil.handleAccessControlRegardingEntitlementsAndScopes(
+        DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, userId, APIUtil.getConsumerPrimaryKey(Some(cc)), List(role))
     }
   }
 }

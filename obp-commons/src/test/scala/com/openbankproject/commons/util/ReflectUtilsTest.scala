@@ -73,15 +73,15 @@ class ReflectUtilsTest extends AnyFlatSpec with Matchers {
   }
 
   /**
-   * BankCommons has a 9-field primary constructor and a 7-field auxiliary constructor
+   * BankCommons has a 10-field primary constructor and a 7-field auxiliary constructor
    * (bankId..bankRoutingAddress) whose parameter names are all real declared fields too, so both
    * pass getPrimaryConstructor's "params are a subset of declared fields" filter. Regression for
    * picking the wrong one when the JVM's `alternatives` happens to return the auxiliary
    * constructor first.
    */
-  "getPrimaryConstructor" should "resolve the 9-field primary constructor for BankCommons, not the 7-field auxiliary one" taggedAs(ReflectUtilsTag) in {
+  "getPrimaryConstructor" should "resolve the 10-field primary constructor for BankCommons, not the 7-field auxiliary one" taggedAs(ReflectUtilsTag) in {
     val ctor = ReflectUtils.getPrimaryConstructor(typeOf[BankCommons])
-    ctor.paramLists.headOption.getOrElse(Nil).size shouldBe 9
+    ctor.paramLists.headOption.getOrElse(Nil).size shouldBe 10
   }
 
   /**
@@ -96,7 +96,7 @@ class ReflectUtilsTest extends AnyFlatSpec with Matchers {
     values.get("helperMethod") shouldBe None
   }
 
-  "toOther" should "build a BankCommons using the 9-field primary constructor, not the 7-field auxiliary one" taggedAs(ReflectUtilsTag) in {
+  "toOther" should "build a BankCommons using the 10-field primary constructor, not the 7-field auxiliary one" taggedAs(ReflectUtilsTag) in {
     val bank = BankCommons(
       bankId = BankId("bank-id"),
       shortName = "short",

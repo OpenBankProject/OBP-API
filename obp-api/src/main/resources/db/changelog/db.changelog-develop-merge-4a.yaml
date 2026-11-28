@@ -1,0 +1,244 @@
+databaseChangeLog:
+  # Schema for the Organisation feature the fourth origin/develop merge brought in: Organisations and their
+  # members, grants on Dynamic Entity records to an Organisation, and the Consumer's Organisation and grant types.
+  #
+  # Upstream creates these through Lift's Schemifier; this branch has none, so every table, column and index
+  # the ported Doobie stores rely on is declared here, with the names Schemifier gives them (the entity name,
+  # or its dbTableName, lower-cased; indexes named table_column_column).
+  #
+  # Organisations live in obporganisation, not organisation: the table of that name is the one from before
+  # Organisations were renamed Tenants, and is left alone.
+  #
+  # Each changeset guards itself with tableExists / indexExists / columnExists, so a database that already has
+  # the object records the changeset as run instead of aborting the boot.
+
+  - changeSet:
+      id: create-table-obporganisation
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: obporganisation
+      comment: >-
+        An Organisation: a group of people that uses the APIs and owns Consumers, administered in the space named by bankid (a bank id, or SYS).
+      changes:
+        - createTable:
+            tableName: obporganisation
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: organisationid, type: VARCHAR(36)}
+              - column: {name: bankid, type: VARCHAR(255)}
+              - column: {name: name, type: VARCHAR(255)}
+              - column: {name: description, type: "${text.type}"}
+              - column: {name: website, type: VARCHAR(1024)}
+              - column: {name: status, type: VARCHAR(32)}
+              - column: {name: createdbyuserid, type: VARCHAR(36)}
+              - column: {name: creationdate, type: TIMESTAMP}
+              - column: {name: lastupdate, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-index-obporganisation_organisationid
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: obporganisation_organisationid
+      comment: >-
+        An Organisation is looked up by its id.
+      changes:
+        - createIndex:
+            tableName: obporganisation
+            indexName: obporganisation_organisationid
+            unique: true
+            columns:
+              - column: {name: organisationid}
+
+  - changeSet:
+      id: create-index-obporganisation_bankid
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: obporganisation_bankid
+      comment: >-
+        Organisations are listed per administering space.
+      changes:
+        - createIndex:
+            tableName: obporganisation
+            indexName: obporganisation_bankid
+            columns:
+              - column: {name: bankid}
+
+  - changeSet:
+      id: create-table-obporganisationmember
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: obporganisationmember
+      comment: >-
+        A member of an Organisation, with the role (admin or member) they hold in it and who added them.
+      changes:
+        - createTable:
+            tableName: obporganisationmember
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: organisationid, type: VARCHAR(36)}
+              - column: {name: userid, type: VARCHAR(36)}
+              - column: {name: memberrole, type: VARCHAR(32)}
+              - column: {name: createdbyuserid, type: VARCHAR(36)}
+              - column: {name: creationdate, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-index-obporganisationmember_organisationid_userid
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: obporganisationmember_organisationid_userid
+      comment: >-
+        A User is a member of an Organisation at most once.
+      changes:
+        - createIndex:
+            tableName: obporganisationmember
+            indexName: obporganisationmember_organisationid_userid
+            unique: true
+            columns:
+              - column: {name: organisationid}
+              - column: {name: userid}
+
+  - changeSet:
+      id: create-index-obporganisationmember_userid
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: obporganisationmember_userid
+      comment: >-
+        A User's Organisations are looked up by their memberships.
+      changes:
+        - createIndex:
+            tableName: obporganisationmember
+            indexName: obporganisationmember_userid
+            columns:
+              - column: {name: userid}
+
+  - changeSet:
+      id: create-table-dynamicdataorganisationaccess
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: dynamicdataorganisationaccess
+      comment: >-
+        A grant on one Dynamic Entity record to an Organisation: every active member of the active Organisation holds these permissions on it. A system level grant stores SYS in bankid, as dynamicdataaccess does.
+      changes:
+        - createTable:
+            tableName: dynamicdataorganisationaccess
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: dynamicdataid, type: VARCHAR(255)}
+              - column: {name: organisationid, type: VARCHAR(36)}
+              - column: {name: canread, type: BOOLEAN}
+              - column: {name: canupdate, type: BOOLEAN}
+              - column: {name: candelete, type: BOOLEAN}
+              - column: {name: cangrant, type: BOOLEAN}
+              - column: {name: grantedby, type: VARCHAR(255)}
+              - column: {name: entityname, type: VARCHAR(255)}
+              - column: {name: bankid, type: VARCHAR(255)}
+
+  - changeSet:
+      id: create-index-dynamicdataorganisationaccess_bankid_entityname_dynamicdataid_organisationid
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamicdataorganisationaccess_bankid_entityname_dynamicdataid_o
+      comment: >-
+        One grant per (space, entity, record, Organisation), in the same order as the dynamicdataaccess index. The name Schemifier gives it is longer than Postgres allows; this is the 63-character name Postgres cuts it to, used on every database so the guard finds an index Schemifier already built.
+      changes:
+        - createIndex:
+            tableName: dynamicdataorganisationaccess
+            indexName: dynamicdataorganisationaccess_bankid_entityname_dynamicdataid_o
+            unique: true
+            columns:
+              - column: {name: bankid}
+              - column: {name: entityname}
+              - column: {name: dynamicdataid}
+              - column: {name: organisationid}
+
+  - changeSet:
+      id: create-index-dynamicdataorganisationaccess_organisationid_entityname_bankid
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamicdataorganisationaccess_organisationid_entityname_bankid
+      comment: >-
+        The records granted to an Organisation are found by Organisation, entity and space.
+      changes:
+        - createIndex:
+            tableName: dynamicdataorganisationaccess
+            indexName: dynamicdataorganisationaccess_organisationid_entityname_bankid
+            columns:
+              - column: {name: organisationid}
+              - column: {name: entityname}
+              - column: {name: bankid}
+
+  # ── Columns the feature adds to existing tables ─────────────────────────────────────────
+
+  - changeSet:
+      id: add-organisationid-consumer
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: consumer
+                columnName: organisationid
+      comment: >-
+        The Organisation that owns the Consumer, or empty for a personal Consumer owned by its creator alone. Nullable: Consumers that predate the column hold NULL, which reads as personal.
+      changes:
+        - addColumn:
+            tableName: consumer
+            columns:
+              - column: {name: organisationid, type: VARCHAR(36)}
+
+  - changeSet:
+      id: add-granttypes-consumer
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: consumer
+                columnName: granttypes
+      comment: >-
+        The OAuth2 grant types (and direct_login) the Consumer allows, comma separated, set by an administrator. NULL or empty: not set, every way of calling works.
+      changes:
+        - addColumn:
+            tableName: consumer
+            columns:
+              - column: {name: granttypes, type: VARCHAR(250)}
+

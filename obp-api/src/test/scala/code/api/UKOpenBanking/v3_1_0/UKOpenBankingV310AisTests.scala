@@ -27,13 +27,21 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.UKOpenBanking.v3_1_0
 
-import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, UserXORApplication, buildOperationId}
+import code.api.{Constant, RequestHeader}
+import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.{TransactionInnerJson, TransactionsJsonUKV310}
+import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, buildOperationId}
+import code.api.util.Consent
 import org.json4s.jvalue2extractable
 import code.api.util.ErrorMessages.ConsentNotFound
-import code.consent.Consents
-import com.openbankproject.commons.model.ErrorMessage
+import code.consent.{ConsentStatus, Consents}
+import code.transaction.MappedTransaction
+import code.views.Views
+import com.openbankproject.commons.model.{AccountId, BankId, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 /**
  * UK Open Banking v3.1 — AIS (Account Information) family.
@@ -71,6 +79,57 @@ class UKOpenBankingV310AisTests extends UKOpenBankingV310ServerSetup {
       apiVersion = Some("3.1.0")
     ).openOrThrowException("test consent creation failed").consentId
 
+  private val ReadTransactionsCredits = Constant.SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID
+  private val ReadTransactionsDebits = Constant.SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID
+
+  // turns every second row of the account into a debit: (credit ids, debit ids)
+  private def makeHalfDebits(bankId: BankId): (Set[String], Set[String]) = {
+    import doobie.implicits._
+    val ids = code.api.util.DoobieUtil.runQuery(
+      sql"SELECT transactionid FROM mappedtransaction WHERE bank = ${bankId.value} AND account = $acc ORDER BY id"
+        .query[String].to[List])
+    val (debits, credits) = ids.zipWithIndex.partition { case (_, i) => i % 2 == 0 }
+    debits.foreach { case (id, _) =>
+      code.api.util.DoobieUtil.runUpdate(sql"UPDATE mappedtransaction SET amount = ${-100L} WHERE transactionid = $id".update.run)
+    }
+    (credits.map(_._1).toSet, debits.map(_._1).toSet)
+  }
+
+  // reads GET /transactions with an authorised consent, sent in the Consent-Id header
+  private def bulkTransactions(
+    directions: List[String],
+    bankId: BankId,
+    accountIds: List[AccountId] = List(testAccountId1)
+  ): List[TransactionInnerJson] = {
+    val permissions = Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID :: directions
+    permissions.foreach(Views.views.vend.getOrCreateSystemView(_).openOrThrowException("could not create system view"))
+    val consentId = Consents.consentProvider.vend.saveUKConsent(
+      user = Some(resourceUser1),
+      bankId = None,
+      accountIds = None,
+      consumerId = Some(testConsumer.consumerId),
+      permissions = permissions,
+      expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
+      transactionToDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      apiStandard = Some("UKOpenBanking"),
+      apiVersion = Some("3.1.0")
+    ).openOrThrowException("test consent creation failed").consentId
+    val consent = Consents.consentProvider.vend.getConsentByConsentId(consentId)
+      .openOrThrowException(s"consent $consentId not found")
+    Await.result(
+      Consent.grantUKConsentAccountAccess(resourceUser1, bankId, accountIds.map(_.value), consent, None),
+      10.seconds).isDefined should equal(true)
+    Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED)
+
+    setPropsValues("consents.allowed" -> "true", "consumer_validation_method_for_consent" -> "CONSUMER_KEY_VALUE")
+    val response = makeGetRequest(v31("transactions").GET, List(
+      RequestHeader.`Consent-Id` -> consentId,
+      RequestHeader.`Consumer-Key` -> testConsumer.key))
+    response.code should equal(200)
+    response.body.extract[TransactionsJsonUKV310].Data.Transaction
+  }
+
   // ── AccountAccessApi ───────────────────────────────────────────────
   Feature("UKOB v3.1 POST /account-access-consents") {
     Scenario("authenticated", UKOpenBankingV310) {
@@ -81,13 +140,13 @@ class UKOpenBankingV310AisTests extends UKOpenBankingV310ServerSetup {
       postUnauthed("{}", "account-access-consents").code should equal(401)
     }
     // See the twin scenario in UKOpenBankingV401AccountInfoTests for why this is pinned: lodging is
-    // a client-credentials call with no PSU, and the ResourceDoc default (UserOnly) would 401 it as
-    // soon as a client-credentials token stops auto-vivifying a user.
-    Scenario("ResourceDoc declares UserXORApplication so a PSU-less TPP call is not rejected", UKOpenBankingV310) {
+    // a client-credentials call with no PSU, and a doc listing AuthenticatedUserIsRequired would 401
+    // it as soon as a client-credentials token stops auto-vivifying a user.
+    Scenario("ResourceDoc needs only an identified application, so a PSU-less TPP call is not rejected", UKOpenBankingV310) {
       val docs = ResourceDoc.getResourceDocs(
         List(buildOperationId(ApiVersion.ukOpenBankingV31, "createAccountAccessConsents")))
       docs should not be empty
-      docs.foreach(_.authMode should equal(UserXORApplication))
+      docs.foreach(_.requiresApplicationButNotUser shouldBe true)
     }
   }
   Feature("UKOB v3.1 DELETE /account-access-consents/CONSENT_ID") {
@@ -377,6 +436,33 @@ class UKOpenBankingV310AisTests extends UKOpenBankingV310ServerSetup {
     }
     Scenario("unauthenticated -> 401", UKOpenBankingV310) {
       getUnauthed("transactions").code should equal(401)
+    }
+    scenario("a Credits-only consent returns credits only", UKOpenBankingV310) {
+      val (credits, _) = makeHalfDebits(testBankId1)
+      val rows = bulkTransactions(List(ReadTransactionsCredits), testBankId1)
+      rows.map(_.TransactionId).toSet should equal(credits)
+      rows.map(_.CreditDebitIndicator).toSet should equal(Set("Credit"))
+    }
+    scenario("a Debits-only consent returns debits only", UKOpenBankingV310) {
+      val (_, debits) = makeHalfDebits(testBankId1)
+      val rows = bulkTransactions(List(ReadTransactionsDebits), testBankId1)
+      rows.map(_.TransactionId).toSet should equal(debits)
+      rows.map(_.CreditDebitIndicator).toSet should equal(Set("Debit"))
+    }
+    scenario("a consent for both directions, or for neither, returns both", UKOpenBankingV310) {
+      val (credits, debits) = makeHalfDebits(testBankId1)
+      bulkTransactions(List(ReadTransactionsCredits, ReadTransactionsDebits), testBankId1)
+        .map(_.TransactionId).toSet should equal(credits ++ debits)
+      bulkTransactions(Nil, testBankId1).map(_.TransactionId).toSet should equal(credits ++ debits)
+    }
+    scenario("accounts at a bank other than the default one return their own rows", UKOpenBankingV310) {
+      val (credits, _) = makeHalfDebits(testBankId2)
+      val rows = bulkTransactions(List(ReadTransactionsCredits), testBankId2)
+      rows.map(_.TransactionId).toSet should equal(credits)
+    }
+    scenario("each row names the account it belongs to", UKOpenBankingV310) {
+      val rows = bulkTransactions(Nil, testBankId1, List(testAccountId0, testAccountId1))
+      rows.map(_.AccountId).toSet should equal(Set(testAccountId0.value, testAccountId1.value))
     }
   }
 

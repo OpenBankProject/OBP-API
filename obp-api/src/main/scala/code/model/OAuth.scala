@@ -232,6 +232,10 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
     }
   }
 
+  override def updateConsumerGrantTypes(id: Long, grantTypes: List[String]): Future[Box[Consumer]] = Future {
+    Consumer.findByPrimaryKey(id).flatMap(c => tryo(Consumer.update(c.copy(grantTypes = grantTypes.mkString(",")))))
+  }
+
   def updateConsumerCallLimitsRemote(id: Long,
                                         perSecond: Option[String],
                                         perMinute: Option[String],
@@ -437,7 +441,13 @@ case class Consumer(
   jwksUri: String = "",
   company: String = "",
   createdAt: Date = null,
-  updatedAt: Date = null
+  updatedAt: Date = null,
+  // The Organisation that owns this Consumer, or empty for a personal Consumer owned by its creator alone.
+  // See code.organisation.ConsumerOwnership.
+  organisationId: String = "",
+  // The OAuth2 grant types (and direct_login) this Consumer allows, comma separated, set by an administrator.
+  // Empty: not set, every way of calling works as before. See code.consumer.ConsumerGrantTypes.
+  grantTypes: String = ""
 )
 
 object Consumer extends MdcLoggable {
@@ -531,16 +541,17 @@ object Consumer extends MdcLoggable {
                 description, developeremail, redirecturl, logourl, userauthenticationurl,
                 createdbyuserid, persecondcalllimit, perminutecalllimit, perhourcalllimit,
                 perdaycalllimit, perweekcalllimit, permonthcalllimit, clientcertificate, jwksuri,
-                company, createdat, updatedat
+                company, createdat, updatedat, organisationid, granttypes
          FROM consumer"""
 
-  // 28 columns, past the 22-element tuple limit, so the row is read as two nested tuples.
+  // 30 columns, past the 22-element tuple limit, so the row is read as two nested tuples.
   private type RowHead = (Long, Option[String], Option[String], Option[String], Option[String],
     Option[String], Option[String], Option[String], Option[Boolean], Option[String],
     Option[String], Option[String], Option[String], Option[String])
   private type RowTail = (Option[String], Option[String], Option[String], Option[Long],
     Option[Long], Option[Long], Option[Long], Option[Long], Option[Long], Option[String],
-    Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+    Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[String], Option[String])
   private type Row = (RowHead, RowTail)
 
   /** Timestamps come back as plain java.util.Date, which is what CreatedUpdated gave. */
@@ -551,7 +562,8 @@ object Consumer extends MdcLoggable {
     case ((id, consumerId, key, secret, azp, aud, iss, sub, isActive, name, appType, description,
            developerEmail, redirectURL),
           (logoUrl, userAuthenticationURL, createdByUserId, perSecond, perMinute, perHour, perDay,
-           perWeek, perMonth, clientCertificate, jwksUri, company, createdAt, updatedAt)) =>
+           perWeek, perMonth, clientCertificate, jwksUri, company, createdAt, updatedAt,
+           organisationId, grantTypes)) =>
       Consumer(id, consumerId.orNull, key.orNull, secret.orNull, azp.orNull, aud.orNull,
         iss.orNull, sub.orNull,
         // What a NULL column reads back as is per field type, not one rule: MappedBoolean's getter
@@ -564,7 +576,9 @@ object Consumer extends MdcLoggable {
         perHour.getOrElse(perHourCallLimitDefault), perDay.getOrElse(perDayCallLimitDefault),
         perWeek.getOrElse(perWeekCallLimitDefault), perMonth.getOrElse(perMonthCallLimitDefault),
         clientCertificate.orNull, jwksUri.orNull, company.orNull, readDate(createdAt),
-        readDate(updatedAt))
+        readDate(updatedAt),
+        // Rows that predate the two columns hold NULL; both are read as Mapper's MappedString read them.
+        organisationId.orNull, grantTypes.orNull)
   }
 
   private def query(condition: Fragment): List[Consumer] =
@@ -598,6 +612,17 @@ object Consumer extends MdcLoggable {
   def findAllByName(name: String): List[Consumer] = query(fr"WHERE name = ${opt(name)}")
   def findAllByAzp(azp: String): List[Consumer] = query(fr"WHERE azp = ${opt(azp)}")
   def findAll(): List[Consumer] = query(Fragment.empty)
+
+  /** The Consumers that belong to any of these Organisations. An empty list matches nothing. */
+  def findAllByOrganisationIds(organisationIds: List[String]): List[Consumer] =
+    organisationIds.distinct match {
+      case Nil => Nil
+      case ids => query(fr"WHERE" ++ Fragments.in(fr"organisationid", cats.data.NonEmptyList.fromListUnsafe(ids)))
+    }
+
+  def countByOrganisationId(organisationId: String): Long =
+    DoobieUtil.runQuery(
+      sql"SELECT COUNT(*) FROM consumer WHERE organisationid = ${opt(organisationId)}".query[Long].unique)
 
   def countByAzpAndSub(azp: String, sub: String): Long =
     DoobieUtil.runQuery(
@@ -642,7 +667,7 @@ object Consumer extends MdcLoggable {
              developeremail, redirecturl, logourl, userauthenticationurl, createdbyuserid,
              persecondcalllimit, perminutecalllimit, perhourcalllimit, perdaycalllimit,
              perweekcalllimit, permonthcalllimit, clientcertificate, jwksuri, company,
-             createdat, updatedat)
+             createdat, updatedat, organisationid, granttypes)
             VALUES (${opt(row.consumerId)}, ${opt(row.key)}, ${opt(row.secret)}, ${opt(row.azp)},
              ${opt(row.aud)}, ${opt(row.iss)}, ${opt(row.sub)}, ${row.isActive}, ${opt(row.name)},
              ${opt(row.appType)}, ${opt(row.description)}, ${opt(row.developerEmail)},
@@ -650,7 +675,7 @@ object Consumer extends MdcLoggable {
              ${opt(row.createdByUserId)}, ${row.perSecondCallLimit}, ${row.perMinuteCallLimit},
              ${row.perHourCallLimit}, ${row.perDayCallLimit}, ${row.perWeekCallLimit},
              ${row.perMonthCallLimit}, ${opt(row.clientCertificate)}, ${opt(row.jwksUri)},
-             ${opt(row.company)}, $now, $now)"""
+             ${opt(row.company)}, $now, $now, ${opt(row.organisationId)}, ${opt(row.grantTypes)})"""
         .update.withUniqueGeneratedKeys[Long]("id"))
     row.copy(id = id, createdAt = new Date(now.getTime), updatedAt = new Date(now.getTime))
   }
@@ -675,7 +700,8 @@ object Consumer extends MdcLoggable {
                 perweekcalllimit = ${row.perWeekCallLimit},
                 permonthcalllimit = ${row.perMonthCallLimit},
                 clientcertificate = ${opt(row.clientCertificate)}, jwksuri = ${opt(row.jwksUri)},
-                company = ${opt(row.company)}, updatedat = $now
+                company = ${opt(row.company)}, organisationid = ${opt(row.organisationId)},
+                granttypes = ${opt(row.grantTypes)}, updatedat = $now
             WHERE id = ${row.id}"""
         .update.run)
     row.copy(updatedAt = new Date(now.getTime))

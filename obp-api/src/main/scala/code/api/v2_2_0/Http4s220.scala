@@ -71,7 +71,7 @@ import scala.concurrent.Future
 
 object Http4s220 {
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v2_2_0
-  val versionStatus: String                       = ApiVersionStatus.STABLE.toString
+  val versionStatus: String                       = ApiVersionStatus.DEPRECATED.toString
   val resourceDocs: ArrayBuffer[ResourceDoc]       = ArrayBuffer[ResourceDoc]()
 
   implicit val formats: Formats = CustomJsonFormats.formats
@@ -194,7 +194,8 @@ object Http4s220 {
       | You should use a leading _ (underscore) for the view name because other view names may become reserved by OBP internally
       | """,
       createViewJsonV121, viewJSONV220,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, UnknownError),
+      // SourceViewHasLessPermission: the body asks for actions none of the caller's views on the account has
+      List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, SourceViewHasLessPermission, UnknownError),
       List(apiTagAccount, apiTagView, apiTagOldStyle), None,
       http4sPartialFunction = Some(createViewForBankAccount))
 
@@ -212,6 +213,11 @@ object Http4s220 {
         _ <- code.util.Helper.booleanToFuture(
           s"${CreateCustomViewError} You need the `${CAN_CREATE_CUSTOM_VIEW}` permission on any your views",
           cc = Some(cc)) { anyCanCreate }
+        // the new view may only get actions the caller already has on one of their views of this account, else they create a view with more and grant it to themselves (as Update View and v5.1.0 check)
+        callerActions = permission.views.flatMap(_.allowed_actions).toSet
+        _ <- code.util.Helper.booleanToFuture(
+          s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${createBodyJson.allowed_actions})",
+          failCode = 403, cc = Some(cc)) { createBodyJson.allowed_actions.toSet.subsetOf(callerActions) }
         createViewJson = CreateViewJson(
           createBodyJson.name,
           createBodyJson.description,

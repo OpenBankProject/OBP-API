@@ -31,7 +31,7 @@ import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanReadAggregateMetrics
 import code.api.util.APIUtil
-import code.api.util.ErrorMessages.{AggregateMetricsDateRangeTooLong, ApplicationNotIdentified, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{AggregateMetricsDateRangeTooLong, AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.entitlement.Entitlement
 import code.metrics.{MetricBatchWriter, MetricsProps}
 import code.scope.Scope
@@ -61,7 +61,7 @@ class AggregateMetricsTest extends V600ServerSetup {
       val response = makeGetRequest(request)
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -139,7 +139,7 @@ class AggregateMetricsTest extends V600ServerSetup {
       try {
         Then("the application acting as itself gets aggregate metrics")
         makeGetRequest(aggregateMetrics.GET <@ (application2)).code should equal(200)
-        And("user2, a person signing with testConsumer2, still needs an Entitlement of their own (UserXORApplication)")
+        And("user2, a person signing with testConsumer2, still needs an Entitlement of their own")
         makeGetRequest(aggregateMetrics.GET <@ (user2)).code should equal(403)
       } finally Scope.scope.vend.deleteScope(granted)
     }

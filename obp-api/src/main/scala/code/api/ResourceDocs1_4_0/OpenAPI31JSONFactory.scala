@@ -168,7 +168,8 @@ object OpenAPI31JSONFactory extends MdcLoggable {
        |
        |### Client Credentials Flow (2-legged / Application Only)
        |
-       |Use this flow for endpoints with authMode ApplicationOnly or UserXORApplication.
+       |Use this flow when the application acts as itself. Its Consumer must be a Platform App, and the Roles it
+       |needs must be granted to the Consumer as Scopes.
        |The application authenticates itself using its client_id and client_secret without a user login.
        |
        |    POST $oidcTokenEndpoint
@@ -661,7 +662,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
         content = Map(
           "application/json" -> MediaTypeJson(
             schema = Some(convertJValueSchemaToSchemaJson(doc.typed_request_body)),
-            example = Some(doc.typed_request_body)
+            example = exampleOf(doc.example_request_body)
           )
         ),
         required = Some(true)
@@ -675,7 +676,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
         Some(Map(
           "application/json" -> MediaTypeJson(
             schema = Some(convertJValueSchemaToSchemaJson(doc.typed_success_response_body)),
-            example = Some(doc.typed_success_response_body)
+            example = exampleOf(doc.success_response_body)
           )
         ))
       } else None
@@ -714,6 +715,23 @@ object OpenAPI31JSONFactory extends MdcLoggable {
   }
 
 
+
+  /**
+   * The example body of a request or response, as JSON.
+   *
+   * An example written as JSON text is held in a JvalueCaseClass. Turned into JSON, the wrapper
+   * adds a "jvalueToCaseclass" field that is not part of the API, so it is taken off again here.
+   * The resource docs in OBP's own format do the same.
+   */
+  private def exampleOf(body: Any): Option[JValue] = {
+    val example = Extraction.decompose(body)(CustomJsonFormats.formats) transform {
+      case JObject(List(JField("jvalueToCaseclass", inner))) => inner
+    }
+    example match {
+      case JNothing | JNull => None
+      case other => Some(other)
+    }
+  }
 
   /**
    * Extracts path parameters from OpenAPI path format

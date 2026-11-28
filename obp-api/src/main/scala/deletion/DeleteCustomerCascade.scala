@@ -49,6 +49,9 @@ import net.liftweb.util.DefaultConnectionIdentifier
 object DeleteCustomerCascade {
 
   def delete(customerId: CustomerId): Boolean = {
+    // The tasks run in list order. Rows that point at the customer go first and the customer row goes last,
+    // as the account cascade does with the account: some tasks read the customer row (its primary key, its
+    // bank and number) to find their rows, and a failure of the last task rolls back all the others.
     val doneTasks =
         deleteCustomerAttributes(customerId) ::
           deleteTaxResidence(customerId) ::
@@ -57,11 +60,15 @@ object DeleteCustomerCascade {
           deleteKycCheck(customerId) ::
           deleteKycDocument(customerId) ::
           deleteCustomerAddress(customerId) ::
+          deleteCustomerMessages(customerId) ::
+          deleteCustomerDependants(customerId) ::
+          deleteCustomerLinks(customerId) ::
+          deleteCrmEvents(customerId) ::
           deleteCustomerIdMapping(customerId) ::
           deleteAccountApplication(customerId) ::
           deleteCustomerUserCustomerLinks(customerId) ::
-          deleteCustomer(customerId) ::
           deleteCustomerAccountLinks(customerId) ::
+          deleteCustomer(customerId) ::
         Nil
     doneTasks.forall(_ == true)
   }
@@ -73,6 +80,34 @@ object DeleteCustomerCascade {
       case false =>
         // Throws, so databaseAtomicTask restores what delete has removed.
         fullBoxOrException(Empty ~> APIFailureNewStyle(CouldNotDeleteCascade, 400))
+    }
+  }
+  private def deleteCustomerMessages(customerId: CustomerId): Boolean = {
+    MappedCustomer.findByCustomerId(customerId.value).forall { c =>
+      DoobieUtil.runUpdate(sql"DELETE FROM mappedcustomermessage WHERE customer = ${c.customerPrimaryKey}".update.run)
+      true
+    }
+  }
+  private def deleteCustomerDependants(customerId: CustomerId): Boolean = {
+    MappedCustomer.findByCustomerId(customerId.value).forall { c =>
+      DoobieUtil.runUpdate(sql"DELETE FROM mappedcustomerdependant WHERE mcustomer = ${c.customerPrimaryKey}".update.run)
+      true
+    }
+  }
+  /** A link between two customers is held once, so the deleted customer can be on either side of it. */
+  private def deleteCustomerLinks(customerId: CustomerId): Boolean = {
+    DoobieUtil.runUpdate(sql"DELETE FROM customerlink WHERE customerid = ${customerId.value}".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM customerlink WHERE othercustomerid = ${customerId.value}".update.run)
+    true
+  }
+  private def deleteCrmEvents(customerId: CustomerId): Boolean = {
+    MappedCustomer.findByCustomerId(customerId.value).forall { c =>
+      val number = Option(c.number).getOrElse("")
+      number.isEmpty || {
+        DoobieUtil.runUpdate(
+          sql"DELETE FROM mappedcrmevent WHERE mbankid = ${c.bankId} AND mcustomernumber = $number".update.run)
+        true
+      }
     }
   }
   private def deleteCustomerAccountLinks(customerId: CustomerId): Boolean = {

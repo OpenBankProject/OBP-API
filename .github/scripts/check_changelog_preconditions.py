@@ -45,6 +45,8 @@ SCHEMA_CHANGELOGS = [
     CHANGELOG_DIR / "db.changelog-develop-merge.yaml",
     CHANGELOG_DIR / "db.changelog-develop-merge-2.yaml",
     CHANGELOG_DIR / "db.changelog-develop-merge-3.yaml",
+    CHANGELOG_DIR / "db.changelog-develop-merge-4a.yaml",
+    CHANGELOG_DIR / "db.changelog-develop-merge-4b.yaml",
 ]
 
 

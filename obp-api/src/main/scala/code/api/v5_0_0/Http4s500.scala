@@ -100,7 +100,7 @@ object Http4s500 {
   implicit def convertAnyToJsonString(any: Any): String = prettyRender(Extraction.decompose(any))
 
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v5_0_0
-  val versionStatus: String = ApiVersionStatus.STABLE.toString
+  val versionStatus: String = ApiVersionStatus.DEPRECATED.toString
   val resourceDocs: ArrayBuffer[ResourceDoc] = ArrayBuffer[ResourceDoc]()
 
   object Implementations5_0_0 extends code.util.Helper.MdcLoggable {
@@ -165,7 +165,7 @@ object Http4s500 {
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           for {
             (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
-          } yield JSONFactory400.createBanksJson(banks)
+          } yield JSONFactory400.createBanksJsonWithRoutingRules(banks)
         }
     }
 
@@ -478,33 +478,38 @@ object Http4s500 {
             _ <- Helper.booleanToFuture(bankIdAlreadyExists, cc = Some(cc)) {
               !banks.exists(b => Some(b.bankId.value) == postJson.id)
             }
+            bankIdToCreate = postJson.id.getOrElse(APIUtil.generateUUID())
+            bankRoutings <- NewStyle.function.bankRoutingsToStore(bankIdToCreate, postJson.bank_routings.getOrElse(Nil), Some(cc))
             (success, _) <- NewStyle.function.createOrUpdateBank(
-              postJson.id.getOrElse(APIUtil.generateUUID()),
+              bankIdToCreate,
               postJson.full_name.getOrElse(""),
               postJson.bank_code,
               postJson.logo.getOrElse(""),
               postJson.website.getOrElse(""),
-              postJson.bank_routings.getOrElse(Nil).find(_.scheme == "BIC").map(_.address).getOrElse(""),
               "",
-              postJson.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
-              postJson.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
-              Some(cc)
+              "",
+              "",
+              "",
+              Some(cc),
+              Some(bankRoutings)
             )
             // Creator grants target the HUMAN (see v6.0.0 createBank): under a Consent the
             // authenticated user is a per-consent shadow, and roles granted to it are stranded.
             humanUserId = cc.onBehalfOfUserId
             entitlements <- NewStyle.function.getEntitlementsByUserId(humanUserId, Some(cc))
-            entitlementsByBank = entitlements.filter(_.bankId == postJson.id.getOrElse(""))
+            // grant the creator's Roles at the id the bank was created with
+            createdBankId = success.bankId.value
+            entitlementsByBank = entitlements.filter(_.bankId == createdBankId)
             _ <- entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString()) match {
               case true  => Future.successful(())
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                postJson.id.getOrElse(""), humanUserId, CanCreateEntitlementAtOneBank.toString(),
+                createdBankId, humanUserId, CanCreateEntitlementAtOneBank.toString(),
                 grantedByUserId = Some(cc.userId)))
             }
             _ <- entitlementsByBank.exists(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()) match {
               case true  => Future.successful(())
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                postJson.id.getOrElse(""), humanUserId, CanReadDynamicResourceDocsAtOneBank.toString(),
+                createdBankId, humanUserId, CanReadDynamicResourceDocsAtOneBank.toString(),
                 grantedByUserId = Some(cc.userId)))
             }
           } yield JSONFactory500.createBankJSON500(success)
@@ -562,17 +567,19 @@ object Http4s500 {
               bank.id.get
             }
             (_, _) <- NewStyle.function.getBank(BankId(bankId), Some(cc))
+            bankRoutings <- NewStyle.function.bankRoutingsToStore(bankId, bank.bank_routings.getOrElse(Nil), Some(cc))
             (success, _) <- NewStyle.function.createOrUpdateBank(
               bankId,
               bank.full_name.getOrElse(""),
               bank.bank_code,
               bank.logo.getOrElse(""),
               bank.website.getOrElse(""),
-              bank.bank_routings.getOrElse(Nil).find(_.scheme == "BIC").map(_.address).getOrElse(""),
               "",
-              bank.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.scheme).getOrElse(""),
-              bank.bank_routings.getOrElse(Nil).filterNot(_.scheme == "BIC").headOption.map(_.address).getOrElse(""),
-              Some(cc)
+              "",
+              "",
+              "",
+              Some(cc),
+              Some(bankRoutings)
             )
           } yield JSONFactory500.createBankJSON500(success)
         }
@@ -2020,7 +2027,9 @@ object Http4s500 {
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
-            metrics <- Future(APIMetrics.apiMetrics.vend.getAllMetrics(obpQueryParams ::: List(OBPBankId(bankIdStr))))
+            // only the bank in the path, whatever bank_id the query asks for
+            bankParams = obpQueryParams.filterNot(_.isInstanceOf[OBPBankId]) :+ OBPBankId(bankIdStr)
+            metrics <- Future(APIMetrics.apiMetrics.vend.getAllMetrics(bankParams))
           } yield JSONFactory210.createMetricsJson(metrics)
         }
     }

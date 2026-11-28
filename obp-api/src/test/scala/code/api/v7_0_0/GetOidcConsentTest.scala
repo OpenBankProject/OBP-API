@@ -66,7 +66,7 @@ class GetOidcConsentTest extends V600ServerSetup {
 
       Then("We should get a 401")
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.ApplicationNotIdentified)
+      response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
     scenario("Authenticated user without role should fail with 403", ApiEndpoint, VersionOfApi) {

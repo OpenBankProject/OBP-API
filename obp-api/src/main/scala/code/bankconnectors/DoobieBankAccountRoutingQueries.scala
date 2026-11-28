@@ -68,6 +68,26 @@ object DoobieBankAccountRoutingQueries {
         .query[(Option[String], Option[String], Option[String], Option[String])].to[List]
     ).map(rowOf)
 
+  /** Every routing at the bank with this address, whatever its scheme. */
+  def findAllByBankAddress(bankId: BankId, address: String): List[BankAccountRoutingRow] =
+    DoobieUtil.runQuery(
+      (selectCols ++ fr"WHERE bankid = ${Option(bankId.value)} AND accountroutingaddress = ${Option(address)}")
+        .query[(Option[String], Option[String], Option[String], Option[String])].to[List]
+    ).map(rowOf)
+
+  /** Every routing with this address, at any bank and whatever its scheme. */
+  def findAllByAddress(address: String): List[BankAccountRoutingRow] =
+    DoobieUtil.runQuery(
+      (selectCols ++ fr"WHERE accountroutingaddress = ${Option(address)}")
+        .query[(Option[String], Option[String], Option[String], Option[String])].to[List]
+    ).map(rowOf)
+
+  /** Every routing of every account. */
+  def findAll(): List[BankAccountRoutingRow] =
+    DoobieUtil.runQuery(
+      selectCols.query[(Option[String], Option[String], Option[String], Option[String])].to[List]
+    ).map(rowOf)
+
   def findAllByScheme(scheme: String): List[BankAccountRoutingRow] =
     DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE accountroutingscheme = $scheme").query[(Option[String], Option[String], Option[String], Option[String])].to[List]

@@ -117,7 +117,7 @@ class DynamicEntityJoinQueryIntegrationTest extends V600ServerSetup {
       saveRec(Contract, "active" -> JBool(false))                                // orphan: partner_ref absent (NULL)
 
       val d1 = saveRec(Deal, "partner_ref" -> JString(p1))
-      saveRec(Deal, "partner_ref" -> JString(p2)) // d2: granted to nobody
+      val d2 = saveRec(Deal, "partner_ref" -> JString(p2)) // granted to no User; shared with an Organisation below
       DynamicDataAccessProvider.provider.vend.grant(bankId = None, entityName = Deal, dynamicDataId = d1,
         userId = userA, canRead = true, canUpdate = false, canDelete = false, canGrant = false,
         grantedBy = owner)
@@ -148,6 +148,18 @@ class DynamicEntityJoinQueryIntegrationTest extends V600ServerSetup {
       queryPartnerIds(dealExists, userA) shouldBe Set(p1)
       // userB has no grants -> no readable deals -> no partner matches.
       queryPartnerIds(dealExists, userB) shouldBe Set.empty[String]
+
+      // D2 is shared with an Organisation userB belongs to -> P2 counts for userB, while the Organisation is active.
+      val organisationId = code.organisation.Organisations
+        .createOrganisation(code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, s"Join team $sfx", "", None, userB, owner)
+        .openOrThrowException("the Organisation should be created").organisationId
+      DynamicDataAccessProvider.provider.vend.grantToOrganisation(bankId = None, entityName = Deal, dynamicDataId = d2,
+        organisationId = organisationId, canRead = true, canUpdate = false, canDelete = false, canGrant = false,
+        grantedBy = owner)
+      queryPartnerIds(dealExists, userB) shouldBe Set(p2)
+      code.organisation.Organisations.updateStatus(organisationId, code.organisation.Organisations.StatusSuspended)
+      queryPartnerIds(dealExists, userB) shouldBe Set.empty[String]
+      code.organisation.Organisations.deleteOrganisation(organisationId)
     }
 
     Scenario("indexing is switched on for entities that already have rows, then a join works (backfill)") {

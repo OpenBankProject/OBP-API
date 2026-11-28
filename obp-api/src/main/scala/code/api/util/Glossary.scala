@@ -1251,43 +1251,31 @@ object Glossary extends MdcLoggable  {
 
 
     glossaryItems += GlossaryItem(
-        title = "API.Endpoint Auth Modes",
+        title = "API.Entitlements and Scopes",
         description =
             s"""
 |
-|Each API endpoint has an **authMode** that determines how Roles are checked when both a User and a Consumer (Application) are present in the request.
+|A Role can be held in two ways. A User holds it as an **Entitlement**. A Consumer (an application) holds it as a **Scope**. When an endpoint needs a Role, who is acting on the request decides which one counts.
 |
-|The four auth modes are:
+|* **A person is acting.** The Role must be one of the User's Entitlements. The Consumer's Scopes do not count for a person.
 |
-|* **UserOnly** (default): Only the User's Entitlements are checked. Consumer Scopes are ignored.
+|* **The Application is acting as itself.** The Role must be one of its Consumer's Scopes. The Application counts as acting as itself only if both of these hold:
+|  1. Its Consumer is a Platform App (see ${getGlossaryItemLink("Platform Apps")}).
+|  2. It calls with no User, or as its own User. A client-credentials token brings that User: provider *obp-oidc#client* (or *keycloak#client* for a Keycloak service account), named after the client id.
 |
-|* **ApplicationOnly**: Only the Consumer's Scopes are checked. No User is required.
+|For example, a person logs in by DirectLogin through a Consumer that holds the Scope *CanGetConsumers*. They still need their own *CanGetConsumers* Entitlement. The same Consumer, if it is a Platform App, can call with a client-credentials token and is let in on its Scope. So whoever is let in is also who is recorded as acting.
 |
-|* **UserXORApplication**: Either a person or the Application acting as itself, never a mix. When the Application acts as itself (there is no User, or the User is the Application's own, the one an OBP-OIDC client-credentials token resolves to: provider *obp-oidc#client*, named after the client id), only the Consumer's Scopes are checked. Otherwise a person is acting, and only the User's Entitlements are checked: the Consumer's Scopes are ignored. It was called *UserOrApplication* until October 2026, when it granted access if either held the Role.
+|A Consumer that is not a Platform App can still hold Scopes. They then work only as a limit on people, as described next.
 |
-|* **UserAndApplication**: Access is granted only if the Consumer has the required Scope **AND** the User has the required Entitlement. Both are required.
+|**Scopes as a limit on people.** An installation can set *require_scopes_for_all_roles* to true, or list the Role in *require_scopes_for_listed_roles*. A person then needs the Entitlement, and the Consumer they call through needs the Scope. An Application acting as itself still needs only its Scope.
 |
-|For example, if a User logs in via DirectLogin with a Consumer that has the Scope *CanGetConsumers*, and the endpoint's authMode is *UserXORApplication*, the User still needs a personal *CanGetConsumers* Entitlement: a person never acts on the Consumer's Scopes. The same Consumer calling with a client-credentials token, as itself, is let in on its Scope. So whoever is let in is also who is recorded as acting.
+|**Who may call an endpoint at all** is set by its list of possible errors:
 |
-|The authMode is set in the ResourceDoc definition for each endpoint, for example:
+|* *OBP-20001* (User not logged in), or a Role: a User is required.
+|* *OBP-20200* (The application cannot be identified) without the first: an identified Application is required, and a User is optional. Payment providers creating Berlin Group and UK Open Banking consents call like this.
+|* Neither: anyone may call.
 |
-|```
-|resourceDocs += ResourceDoc(
-|  getConsumers,
-|  implementedInApiVersion,
-|  nameOf(getConsumers),
-|  "GET",
-|  "/management/consumers",
-|  "Get Consumers",
-|  ...,
-|  Some(List(canGetConsumers)),
-|  authMode = UserXORApplication
-|)
-|```
-|
-|If authMode is not specified, it defaults to UserOnly.
-|
-|Note: If the property *require_scopes_for_all_roles* is set to true (or *require_scopes_for_listed_roles* lists the Role), endpoints behave as *UserAndApplication* regardless of their configured authMode, except that an Application acting as itself on an *ApplicationOnly* or *UserXORApplication* endpoint still needs only its Scopes: it has no Entitlements to add.
+|Endpoints used to carry an *authMode* (UserOnly, ApplicationOnly, UserXORApplication or UserAndApplication). It was removed in November 2026, because who is acting is a fact about each request, not about the endpoint.
 |
 |See also: [Access Control](/index#API.Access-Control), [Scopes](/index#group-Scope), [Roles](/index#group-Role)
 |
@@ -1410,9 +1398,9 @@ object Glossary extends MdcLoggable  {
           |
           |### A note on the "OBP" scheme name
           |
-          |The implicit self-routing is currently emitted with `scheme: "OBP"`. Read in context — inside an `account_routings` array — this unambiguously means "the address is the OBP `account_id`". Read out of context (a flat routing table, a federation message, a log line), the name `"OBP"` alone does not say whether the address is an account_id or a bank_id.
+          |The implicit self-routing is currently emitted with `scheme: "OBP"`. Read in context — inside an `account_routings` array — this unambiguously means "the address is the OBP `account_id`". Read out of context, the name `"OBP"` alone does not say whether the address is an account_id or a bank_id. Examples of such contexts are a flat routing table, a federation message and a log line.
           |
-          |The explicit alias `"OBP_ACCOUNT_ID"` is also recognised on input (when storing a routing via the `Create or Update Account Routing` endpoint, or when resolving a counterparty). It is not emitted in responses today, but robust clients should treat `"OBP"` and `"OBP_ACCOUNT_ID"` as equivalent — e.g. by matching case-insensitively against the set `{"OBP", "OBP_ACCOUNT_ID"}` rather than equality with the literal `"OBP"`.
+          |The explicit alias `"OBP_ACCOUNT_ID"` is also recognised on input (when storing a routing via the `Create or Update Account Routing` endpoint, or when resolving a counterparty). It is not emitted in responses today. Robust clients should still treat `"OBP"` and `"OBP_ACCOUNT_ID"` as equivalent. For example, match case-insensitively against the set `{"OBP", "OBP_ACCOUNT_ID"}`, rather than comparing with the literal `"OBP"`.
           |
           |See also: `Bank.bank_routings` for the analogous bank-level alias `"OBP_BANK_ID"`.
           |
@@ -1423,7 +1411,33 @@ object Glossary extends MdcLoggable  {
           |1. **Exactly one canonical OBP self-routing** as the first element: `{ "scheme": "OBP", "address": "<account_id>" }`. This means a client can always address the account by its `account_id` without first probing for which routing schemes the bank has configured.
           |2. **Zero or more stored routings** from the `bankaccountrouting` table — whatever the bank or admin has configured (IBAN, BIC, AccountNumber, country-qualified MSISDN, etc.).
           |
-          |If a bank has stored an `OBP`-scheme routing whose address diverges from the `account_id`, the response prefers the canonical form (`address = account_id`) — the stored value is dropped to guarantee a single, consistent OBP entry.
+          |If a bank has stored an `OBP`-scheme routing whose address diverges from the `account_id`, the response uses the canonical form (`address = account_id`). The stored value is dropped, so there is always a single, consistent OBP entry.
+          |
+          |### The account number
+          |
+          |An account's number belongs in an account routing with the scheme `ACCOUNT_NUMBER`. The scheme can also be written `AccountNumber`, `ACCOUNT_NO` or `NUMBER`, in any letter case. Responses always write `ACCOUNT_NUMBER` and show at most one such entry.
+          |
+          |Accounts also have an older account number field. It is deprecated. It is used only when none of the account's routings holds a number. A number held only there is shown as an `ACCOUNT_NUMBER` entry, if the view lets the caller see the account number.
+          |
+          |If an account holds the same number in both places, that is fine. If it holds two different numbers, looking the account up by its number fails with `OBP-31078`, whichever of the two is used. Responses still show the account, with the number from its account routings.
+          |
+          |An account number is looked up at one bank when a bank is given. If more than one account has the number, the lookup fails with `OBP-31075`.
+          |
+          |Versions before v6.0.0 show an account's routings as they were stored, with the scheme spelled as it was given. They do not add an `ACCOUNT_NUMBER` entry for a number held only in the account number field.
+          |
+          |### Who assigns the account number
+          |
+          |The bank assigns account numbers. To create an account, give the account routing scheme `ACCOUNT_NUMBER` with an empty address, or leave the account number out. The bank then assigns the number. With the local database connector, OBP assigns a ten-digit number that no other account at the bank has. With another connector, the core banking system assigns it.
+          |
+          |A number can be given only on a sandbox (`allow_sandbox_account_creation=true`) or by a user with the role `CanCreateAccountWithAccountNumber`. A given number must match the address pattern of the `ACCOUNT_NUMBER` routing scheme, if it has one. It must not belong to another account at the bank (409, `OBP-31081`). Otherwise the request is refused with 400 (`OBP-31080`).
+          |
+          |### NUBAN (Nigeria)
+          |
+          |To give an account a Nigeria Uniform Bank Account Number (NUBAN), give the account routing scheme `NG.NUBAN` with an empty address. `NUBAN` is accepted as another spelling. OBP works out the NUBAN by the Central Bank of Nigeria's revised NUBAN standard. It is a random nine-digit serial number, then a check digit. The check digit comes from the bank's CBN code and the serial number.
+          |
+          |The bank's CBN code is kept in a bank routing with scheme `NG.BANK_CODE`. It can be the three-digit code of a deposit money bank, the five-digit code of another financial institution, or the six-digit institution code. A bank with no `NG.BANK_CODE` routing, or with two different ones, cannot assign NUBANs (400, `OBP-31085`).
+          |
+          |A NUBAN is the account's number. It is stored as an `NG.NUBAN` routing and as the account number, so versions from v6.0.0 also show it as `ACCOUNT_NUMBER`. The account can be found by either scheme. A NUBAN can be given under the same rules as any account number. A given NUBAN must have the right check digit for the bank (400, `OBP-31086`).
           |
           |### Example
           |
@@ -1455,7 +1469,7 @@ object Glossary extends MdcLoggable  {
 |
 |Both standard entities (e.g. financial products and bank accounts in the OBP standard) and dynamic entities and endpoints (created by you or your organisation) can exist at the Bank level.
 |
-|For example see [Bank/Space level Dynamic Entities](/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEntity) and [Bank/Space level Dynamic Endpoints](http://localhost:5174/?version=OBPv4.0.0&operation_id=OBPv4_0_0-createBankLevelDynamicEndpoint)
+|For example see [Create Dynamic Entity Definition](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createDynamicEntityDefinition), which defines a Dynamic Entity in a bank or in the system space `SYS`, and [Bank/Space level Dynamic Endpoints](${apiExplorerUrl}/resource-docs/OBPv4.0.0?operationid=OBPv4.0.0-createBankLevelDynamicEndpoint)
 |
 |The Bank is important because many Roles can be granted at the Bank level. In this way, it's possible to create segregated or partitioned sets of endpoints and data structures in a single OBP instance.
 |
@@ -1521,23 +1535,43 @@ object Glossary extends MdcLoggable  {
           |
           |### A note on the "OBP" scheme name
           |
-          |The implicit self-routing is currently emitted with `scheme: "OBP"`. Read in context — inside a `bank_routings` array — this unambiguously means "the address is the OBP `bank_id`". Read out of context (a flat routing table, a federation message, a log line), the name `"OBP"` alone does not say whether the address is a bank_id or an account_id.
+          |The implicit self-routing is currently emitted with `scheme: "OBP"`. Read in context — inside a `bank_routings` array — this unambiguously means "the address is the OBP `bank_id`". Read out of context, the name `"OBP"` alone does not say whether the address is a bank_id or an account_id. Examples of such contexts are a flat routing table, a federation message and a log line.
           |
-          |The explicit alias `"OBP_BANK_ID"` is also recognised on input. It is not emitted in responses today, but robust clients should treat `"OBP"` and `"OBP_BANK_ID"` as equivalent — e.g. by matching case-insensitively against the set `{"OBP", "OBP_BANK_ID"}` rather than equality with the literal `"OBP"`.
+          |The explicit alias `"OBP_BANK_ID"` is also recognised on input. It is not emitted in responses today. Robust clients should still treat `"OBP"` and `"OBP_BANK_ID"` as equivalent. For example, match case-insensitively against the set `{"OBP", "OBP_BANK_ID"}`, rather than comparing with the literal `"OBP"`.
           |
           |See also: `Account.account_routings` for the analogous account-level alias `"OBP_ACCOUNT_ID"`.
           |
           |### Response shape (v6.0.0 onwards)
           |
-          |For every endpoint that returns `bank_routings` (e.g. `getBank`, `getBanks`, `createBank`), the response is guaranteed to contain:
+          |For every endpoint that returns `bank_routings` (e.g. `getBank`, `getBanks`, `createBank`, `updateBank`), the response contains:
           |
           |1. **Exactly one canonical OBP self-routing** as the first element: `{ "scheme": "OBP", "address": "<bank_id>" }`. This means a client can always address the bank by its `bank_id` regardless of which other schemes have been registered.
-          |2. **A BIC entry**, derived from the bank's dedicated SWIFT/BIC column (`swiftBic`), if non-empty. If the explicit stored routing is itself a BIC, only one BIC entry appears — duplicates are removed.
-          |3. **The explicit stored routing** (the legacy single `(bankRoutingScheme, bankRoutingAddress)` column pair), unless it is an `OBP` or `BIC` entry already covered above.
+          |2. **At most one BIC entry**, with the scheme `BIC`.
+          |3. **The bank's other routings**, in the order they were stored.
           |
-          |If a bank has stored an `OBP`-scheme routing whose address diverges from the `bank_id`, the response prefers the canonical form (`address = bank_id`) — the stored value is dropped to guarantee a single, consistent OBP entry.
+          |If a bank has stored an `OBP`-scheme routing whose address diverges from the `bank_id`, the response uses the canonical form (`address = bank_id`). The stored value is dropped, so there is always a single, consistent OBP entry.
           |
-          |Entries with an empty/null address are filtered out (e.g. if a bank has no BIC, the implicit BIC entry is dropped rather than emitted as a null).
+          |An entry with an empty address is never shown. For example, a bank with no BIC has no BIC entry.
+          |
+          |The same applies to the v5.0.0 and v5.1.0 bank responses. Their JSON shape is unchanged.
+          |
+          |### A bank can have several routings
+          |
+          |A bank can have any number of routings, such as a BIC and a national bank code side by side. Create Bank and Update Bank (v5.0.0 onwards) store every entry of `bank_routings`. Update Bank replaces the bank's routings with the ones in the request.
+          |
+          |A routing belongs to one bank only. Creating or updating a bank with a routing that another bank already has is refused with 409 (`OBP-31079`). A request with two different BICs is refused with 400.
+          |
+          |### Where the BIC is kept
+          |
+          |A bank's BIC belongs in a bank routing with the scheme `BIC`. The scheme can also be written `SWIFT_BIC`, in any letter case. Responses always write `BIC`.
+          |
+          |Banks also have an older `swift_bic` field. It is deprecated. It is used only when none of the bank's routings holds a BIC.
+          |
+          |If a bank holds the same BIC in both places, that is fine. If it holds two different BICs, looking the bank up by its BIC fails with `OBP-31076`, whichever of the two is used. Responses still show the bank, with the BIC from its bank routings.
+          |
+          |If more than one bank has the routing being looked up, the lookup fails with `OBP-31077`.
+          |
+          |These rules apply to banks from every connector. A connector sends a bank's routings in the `bankRoutings` list of the bank it returns, or in its `bankRoutingScheme` and `bankRoutingAddress` pair.
           |
           |### Example
           |
@@ -1561,21 +1595,57 @@ object Glossary extends MdcLoggable  {
         title = "Consumer",
         description =
         s"""
-          |The "consumer" of the API, i.e. the web, mobile or serverside "App" that calls on the OBP API on behalf of the end user (or system).
-          |
-          |Each Consumer has a consumer key and secret which allows it to enter into secure communication with the API server.
+            |# Consumer
             |
-            |A Consumer is given a Consumer ID (a UUID) which appears in logs and messages to the backend.
+            |A Consumer is an application that calls OBP: a web, mobile or server application. Every call to OBP is made through a Consumer, whether a person is logged in or not. The Consumer records which application made the call.
             |
-            |A Consumer may be pinned to an mTLS certificate i.e. the consumer record in the database is given a field which matches the PEM representation of the certificate.
+            |This item gives an overview. Each part has its own Glossary item with the details.
             |
-            |After pinning, the consumer must present the certificate in all communication with the server.
+            |## Identifying the application
             |
-            |There is a one to one relationship between a Consumer and its certificate. i.e. OBP does not (currently) store the history of certificates bound to a Consumer. If a certificate expires, the third party provider (TPP) must generate a new consumer using a new certificate. In this case, related resources such as rate limits and scopes must be copied from the old consumer to the new consumer. In the future, OBP may store multiple certificates for a consumer, but a certificate will always identify only one consumer record.
+            |- **Consumer ID.** A UUID that OBP gives the Consumer. It appears in logs, metrics and messages to the backend. Use it whenever you refer to a Consumer.
+            |- **Key and secret.** The application uses these to get tokens. The key is also called the client id. See ${getGlossaryItemLink("Consumer.consumer_key (Consumer Key)")}.
+            |- **Certificate.** A Consumer can be tied to an mTLS certificate. It must then present that certificate on every call. A Consumer has one certificate at a time. When a certificate expires, an administrator replaces it with Update Consumer Certificate, and the Consumer keeps its Scopes, rate limits and other settings.
+            |- **Redirect URL.** Where people are sent back to after they log in through the Consumer. See ${getGlossaryItemLink("Redirect URL")}.
             |
-            |A Consumer for an app the installation runs itself (the Portal, the API Manager, Opey, OBP-Sentinel or a bank's own service) that calls OBP with its own application token needs Roles granted to it as Scopes. An administrator marks it as a Platform App, the app declares the Scopes it needs, and the administrator grants them. See ${getGlossaryItemLink("Platform Apps")}
+            |## How tokens can be obtained
             |
-        """)
+            |A Consumer's **grant types** say how tokens can be obtained through it. People may log in through it by OAuth2 or by DirectLogin, the application may get a token for itself, or both. A Consumer with no grant types set can be used in every way. See ${getGlossaryItemLink("Consumer Grant Types")}.
+            |
+            |## What the application may do
+            |
+            |A Role can be granted to a Consumer as a **Scope**. Who is acting on a call decides whether the Scope counts:
+            |
+            |- When a person calls through the Consumer, their own Entitlements count. The Consumer's Scopes do not give them anything. An installation can also require the Consumer to hold the Scope, as a limit on people.
+            |- When the application acts as itself, with no person logged in, its Consumer's Scopes count. It can do this only if its Consumer is marked as a **Platform App**.
+            |
+            |See ${getGlossaryItemLink("API.Entitlements and Scopes")} and ${getGlossaryItemLink("Platform Apps")}.
+            |
+            |## Which accounts the application may use
+            |
+            |A Scope lets an application call an endpoint. A Platform App that acts on an account as itself also needs access to a view of that account. An example is initiating payments from the account. See ${getGlossaryItemLink("Consumer Account Access")}.
+            |
+            |## Who owns a Consumer
+|
+|A Consumer is owned by the User who created it. It can be moved into an ${getGlossaryItemLink("Organisation")}, and then its members own it together, so it stays with the team when someone leaves. Owners need no Role to read their Consumers, their usage, Scopes and API Product Subscriptions under `/my/consumers`, or to subscribe them to API Products. See ${getGlossaryItemLink("API Product Subscription")}.
+|
+|## Switching a Consumer off
+            |
+            |An administrator can disable a Consumer. Every call through it is then refused, by people and by the application itself. It can be enabled again later.
+            |
+            |## Endpoints
+            |
+            |- [Get Consumers](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getConsumers): `GET /obp/v7.0.0/management/consumers`
+            |- [Get Consumer](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getConsumer): `GET /obp/v7.0.0/management/consumers/CONSUMER_ID`
+            |- [Create a Consumer](${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.1.0-createConsumer): `POST /obp/v5.1.0/management/consumers`
+            |- [Enable or Disable Consumers](${apiExplorerUrl}/resource-docs/OBPv3.1.0?operationid=OBPv3.1.0-enableDisableConsumers): `PUT /obp/v3.1.0/management/consumers/CONSUMER_ID`
+            |- [Update Consumer Certificate](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateConsumerCertificate): `PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/certificate`
+            |- [Update Consumer RedirectURL](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateConsumerRedirectURL): `PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/consumer/redirect_url`
+            |- [Get Current Consumer](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getCurrentConsumer): `GET /obp/v6.0.0/consumers/current`, for an application to read its own Consumer.
+|- [Get My Consumers](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyConsumers): `GET /obp/v7.0.0/my/consumers`, for owners to read their Consumers.
+            |
+            |The endpoints for grant types, Scopes, Platform Apps and account access are listed in their own items.
+            |""".stripMargin)
 
       glossaryItems += GlossaryItem(
         title = "Consumer.consumer_key (Consumer Key)",
@@ -3674,9 +3744,19 @@ object Glossary extends MdcLoggable  {
 |
 |Only the rate limit record and the Scopes created by the subscription are touched. Limits and Scopes granted by hand are never removed. Overlapping rate limit records are summed, so a Consumer holding two products gets both allowances.
 |
-|A developer never needs a Role to subscribe their own Consumer, read their own subscriptions or cancel them. Roles exist for bank staff (enrol a partner's Consumer, approve, suspend, reinstate) and for billing systems (move the status on payment events). Two attributes on the API Product decide the flow: `SELF_SUBSCRIBE` (may developers subscribe their own Consumers; default `true`) and `BILLING_SYSTEM` (`none` activates at once; `manual` waits for a bank admin; `stripe` or `invoice_ninja` waits for that billing system).
+|Anyone who may act for a Consumer needs no Role to subscribe it, read its subscriptions or cancel them. That is the User who created it, or, once it belongs to an ${getGlossaryItemLink("Organisation")}, every member of that Organisation. Roles exist for bank staff (enrol a partner's Consumer, approve, suspend, reinstate) and for billing systems (move the status on payment events). Two attributes on the API Product decide the flow: `SELF_SUBSCRIBE` (may developers subscribe their own Consumers; default `true`) and `BILLING_SYSTEM` (`none` activates at once; `manual` waits for a bank admin; `stripe` or `invoice_ninja` waits for that billing system).
 |
-|OBP-API core carries no billing vocabulary: payments, invoices and refunds live in the billing system, which only ever changes the subscription status.
+|OBP-API core carries no billing vocabulary: payments, invoices and refunds live in the billing system, which only ever changes the subscription status. For `stripe`, that billing system is ${getGlossaryItemLink("OBP-Stripe")}.
+|
+|## Endpoints
+|
+|- [Create Api Product Subscription](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createApiProductSubscription): `POST /obp/v7.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/subscriptions`
+|- [Get My Api Product Subscriptions](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyApiProductSubscriptions): `GET /obp/v7.0.0/my/api-product-subscriptions`
+|- [Cancel My Api Product Subscription](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateMyApiProductSubscriptionStatus): `PUT /obp/v7.0.0/my/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/status`
+|- [Get My Consumer Api Product Subscriptions](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyConsumerApiProductSubscriptions): `GET /obp/v7.0.0/my/consumers/CONSUMER_ID/api-product-subscriptions`
+|- [Get Api Product Subscriptions by Product](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getApiProductSubscriptionsByProduct): `GET /obp/v7.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/subscriptions`
+|- [Update Api Product Subscription Status](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateApiProductSubscriptionStatus): `PUT /obp/v7.0.0/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID/status`
+|- [Delete Api Product Subscription](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteApiProductSubscription): `DELETE /obp/v7.0.0/management/api-product-subscriptions/API_PRODUCT_SUBSCRIPTION_ID`
 |
  """)
 
@@ -3685,6 +3765,8 @@ object Glossary extends MdcLoggable  {
         description =
             s"""In OBP, if you have access to a "Space", you have access to a set of Dynamic Endpoints and Dynamic Entities that belong to that Space.
 |Internally, Spaces are defined as a "Banks" thus Spaces are synonymous with OBP Banks.
+|
+|There is also the system space, whose bank id is `SYS`. It belongs to no bank. Dynamic Entities, Dynamic Resource Docs, Files and retention policies can live in it, and Roles for it are granted at `SYS`.
 |
 |A user can have access to several spaces. The API Explorer shows these under the Spaces menu.
 |
@@ -3722,7 +3804,7 @@ object Glossary extends MdcLoggable  {
 |In other words, if you create an Entity called X which has a field called A, you can force the values of X.A to match the values of Y.B where Y is another Dynamic Entity or Z.B where Z is a Static (OBP) Entity.
 |If you want to add data to an existing Entity, you can create a Dynamic Entity which has a reference field to the existing entity.
 |
-|Dynamic Entities can be created at the System level (bank_id is null) - or Bank / Space level (bank_id is not null). You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain.
+|Dynamic Entities can be created in the system space (bank_id `SYS`) or in a Bank / Space (the bank's id). You might want to create Bank level Dynamic Entities in order to grant automated roles based on user email domain.
 |
 |When creating a Dynamic Entity, OBP automatically:
 |
@@ -3791,7 +3873,7 @@ object Glossary extends MdcLoggable  {
 |
 |**IMPORTANT - JSON Structure:**
 |
-|The entity name (e.g., "CustomerPreferences") MUST be a direct top-level key in the JSON. Besides the entity name, the root object may only contain the access flags: "hasPersonalEntity", "personalRequiresRole", "hasPublicAccess", "hasCommunityAccess", "useRowLevelAccess" and "authMode" (see ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}).
+|The entity name (e.g., "CustomerPreferences") MUST be a direct top-level key in the JSON. Besides the entity name, the root object may only contain the access flags: "hasPersonalEntity", "personalRequiresRole", "hasPublicAccess", "hasCommunityAccess" and "useRowLevelAccess" (see ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}). An "authMode" flag from older clients is accepted and ignored.
 |
 |**Common mistake - DO NOT do this:**
 |```json
@@ -3857,7 +3939,7 @@ object Glossary extends MdcLoggable  {
 |
 |* UserId may be stored for audit purposes but is **ignored in queries**
 |* All authorized users see the same shared data
-|* Role-based authorization is **required** (e.g., CanGetDynamicEntity_FooBar)
+|* Role-based authorization is **required** (e.g., CanGetDynamicEntityRecord_FooBar)
 |* Cascade delete **is allowed** - you can delete the entity definition and all its records in one operation
 |
 |**Summary table:**
@@ -3879,10 +3961,10 @@ object Glossary extends MdcLoggable  {
 |
 |When you create a Dynamic Entity named 'FooBar', OBP automatically creates these roles:
 |
-|* CanCreateDynamicEntity_FooBar
-|* CanUpdateDynamicEntity_FooBar
-|* CanGetDynamicEntity_FooBar
-|* CanDeleteDynamicEntity_FooBar
+|* CanCreateDynamicEntityRecord_FooBar
+|* CanUpdateDynamicEntityRecord_FooBar
+|* CanGetDynamicEntityRecord_FooBar
+|* CanDeleteDynamicEntityRecord_FooBar
 |* CanGrantDynamicEntityRowAccess_FooBar (only meaningful when the entity uses row-level access, see below)
 |
 |**Field-level write/read permissions (per property):**
@@ -3906,12 +3988,15 @@ object Glossary extends MdcLoggable  {
 |
 |Set `useRowLevelAccess` on the definition (`use_row_level_access` in the v6.0.0 snake_case request) to decide access **per record** instead of by the entity's roles. The entity's Get, Update and Delete roles then stop gating the shared routes and an access list on each record decides, carrying four permissions per User: `can_read`, `can_update`, `can_delete` and `can_grant`.
 |
-|* The User who creates a record holds all four on it, so they share their own records without holding any role. Creating a record still needs CanCreateDynamicEntity_FooBar.
+|* The User who creates a record holds all four on it, so they share their own records without holding any role. Creating a record still needs CanCreateDynamicEntityRecord_FooBar.
 |* Records the caller may not read are omitted from list responses and return 404 individually, so a record's existence is not disclosed.
-|* `GET /obp/dynamic-entity/FooBar/FOO_BAR_ID/access` lists the access list; `POST` to the same URL grants or updates one entry (or an array of them) — `user_id` is required, `can_read`/`can_update`/`can_delete` default to `false` and `can_grant` defaults to `true`, so a grantee may re-share; `DELETE /obp/dynamic-entity/FooBar/FOO_BAR_ID/access/USER_ID` revokes, cascading to the grants that User passed on. Bank level entities take the same paths under `/banks/BANK_ID/`.
+|* `GET /obp/dynamic-entity/FooBar/FOO_BAR_ID/access` lists the access list. `PUT` to the same URL grants or updates one entry, or an array of them. Each entry names a `user_id` or an `organisation_id`. `can_read`, `can_update` and `can_delete` default to `false`. `can_grant` defaults to `true` for a User, so a grantee may share further, and to `false` for an Organisation.
+|* `DELETE /obp/dynamic-entity/FooBar/FOO_BAR_ID/access/USER_ID` revokes a User, and also removes the grants that User passed on. `DELETE .../access/organisations/ORGANISATION_ID` revokes an Organisation. Bank level entities take the same paths under `/banks/BANK_ID/`.
+|* A grant to an Organisation gives its permissions to every member while the Organisation is active. Access follows membership: people who join get it and people who leave lose it, with no change to the grant. This is how a team shares records, for example one survey answer per team.
 |* CanGrantDynamicEntityRowAccess_FooBar (CanGrantDynamicEntityRowAccess_SystemFooBar at system level) administers the access list of any record.
 |* Field-level read and write roles still apply on top of the access list.
-|* `useRowLevelAccess` cannot be combined with `hasPublicAccess` or `hasCommunityAccess`, and is only supported for locally-backed entities (an entity routed to an external connector for `dynamicEntityProcess` cannot enforce the access list).
+|* `useRowLevelAccess` cannot be combined with `hasPublicAccess`. It can be combined with `hasCommunityAccess`: a holder of CanGetDynamicEntityRecord_FooBar then reads every record through `/obp/dynamic-entity/community/FooBar`, read-only, while everyone else reads only the records shared with them. This is how staff read everything in a programme where each team sees only its own records.
+|* `useRowLevelAccess` is only supported for locally-backed entities. An entity routed to an external connector for `dynamicEntityProcess` cannot enforce the access list.
 |
 |See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")} for how this sits alongside the other routes.
 |
@@ -4081,13 +4166,13 @@ object Glossary extends MdcLoggable  {
 || Personal: `/obp/dynamic-entity/my/ENTITY` | `hasPersonalEntity` | any authenticated User; a role only if `personalRequiresRole`; a consent user in addition only if its Consent lists the entity in `my_resources` | same rule | the caller's own rows only, keyed by the on-behalf-of user |
 || Community: `/obp/dynamic-entity/community/ENTITY` | `hasCommunityAccess` | authenticated holders of the Get role | nobody (read only) | every row, personal rows included |
 || Public: `/obp/dynamic-entity/public/ENTITY` | `hasPublicAccess` | anyone, no login | nobody (read only) | the shared pool only |
-|| Row level: the System routes with `useRowLevelAccess` | `useRowLevelAccess` | per row, whoever the access list marks readable; lists are filtered | per row, access list Update and Delete; the creator is granted read, update, delete and grant on their own row | whatever the access list says |
+|| Row level: the System routes with `useRowLevelAccess` | `useRowLevelAccess` | per row, whoever the access list marks readable, directly or as a member of an active Organisation on the list; lists are filtered | per row, access list Update and Delete; the creator is granted read, update, delete and grant on their own row | whatever the access list says |
 |
-|The entity roles are named after the entity: `CanCreateDynamicEntity_SystemENTITY`, `CanGetDynamicEntity_SystemENTITY`, `CanUpdateDynamicEntity_SystemENTITY`, `CanDeleteDynamicEntity_SystemENTITY` (without `System` for bank level entities, held at the bank).
+|The entity roles are named after the entity: `CanCreateDynamicEntityRecord_ENTITY`, `CanGetDynamicEntityRecord_ENTITY`, `CanUpdateDynamicEntityRecord_ENTITY` and `CanDeleteDynamicEntityRecord_ENTITY`. The name carries no space: each Role is held at the entity's space, `SYS` for a system entity or the bank's id for a bank level one.
 |
 |Two settings apply on top of the routes:
 |
-|* `authMode` says which credential satisfies the role checks on the System route: `UserOnly` (Entitlements), `ApplicationOnly` (Consumer Scopes), `UserXORApplication` (Scopes for the Application acting as itself, Entitlements for a person; `UserOrApplication` is accepted as its former name), `UserAndApplication`. The Personal and Row level routes always need a User; `ApplicationOnly` is refused on an entity with `hasPersonalEntity`.
+|* Roles: a person needs the entity's Role as an Entitlement. An Application acting as itself needs it as a Scope, and its Consumer must be a Platform App (see ${getGlossaryItemLink("Platform Apps")}).
 |* Field roles: a field with a `read_role` is omitted from every response unless the caller holds that role; a field with a `write_role` is only changed by PATCH from a holder (POST ignores it, PUT preserves its value).
 |
 |**Managing a record's access list (row level)**
@@ -4095,10 +4180,11 @@ object Glossary extends MdcLoggable  {
 || Call | Does |
 ||---|---|
 || `GET /obp/dynamic-entity/ENTITY/RECORD_ID/access` | lists who may read, update, delete and grant this record, and who granted them |
-|| `PUT /obp/dynamic-entity/ENTITY/RECORD_ID/access` | grants or replaces one entry, or an array of them: `user_id` is required, `can_read`, `can_update` and `can_delete` default to `false`, `can_grant` defaults to `true` |
-|| `DELETE /obp/dynamic-entity/ENTITY/RECORD_ID/access/USER_ID` | revokes that User, cascading to every grant they passed on |
+|| `PUT /obp/dynamic-entity/ENTITY/RECORD_ID/access` | grants or replaces one entry, or an array of them. Each entry names a `user_id` or an `organisation_id`. `can_read`, `can_update` and `can_delete` default to `false`. `can_grant` defaults to `true` for a User and `false` for an Organisation |
+|| `DELETE /obp/dynamic-entity/ENTITY/RECORD_ID/access/USER_ID` | revokes that User, and every grant they passed on |
+|| `DELETE /obp/dynamic-entity/ENTITY/RECORD_ID/access/organisations/ORGANISATION_ID` | revokes that Organisation; its members lose the access it gave them |
 |
-|Bank level entities take the same paths under `/banks/BANK_ID/`. The caller needs `can_grant` on the record — the User who created it has it — or `CanGrantDynamicEntityRowAccess_SystemENTITY` (`CanGrantDynamicEntityRowAccess_ENTITY` at a bank), which administers any record. The calls return 400 on an entity that is not row level. Creating a record still takes the entity's Create role, and `useRowLevelAccess` is only supported for locally-backed entities.
+|Bank level entities take the same paths under `/banks/BANK_ID/`. The caller needs `can_grant` on the record, which the User who created it has. Members of an Organisation have it too if the Organisation was granted it. Otherwise the caller needs `CanGrantDynamicEntityRowAccess_ENTITY`, held at the entity's space, which administers any record. The calls return 400 on an entity that is not row level. Creating a record still takes the entity's Create role, and `useRowLevelAccess` is only supported for locally-backed entities.
 |
 |**Authorship and editing by actor**
 |
@@ -4120,6 +4206,7 @@ object Glossary extends MdcLoggable  {
 || Team space | personal on, `personalRequiresRole` on, community on | members write their own rows, the whole team reads everything; the entity roles define the team |
 || User owned records | personal on, `personalRequiresRole` off, community off, public off | each User has their own rows; an agent reaches them only through a Consent whose `my_resources` lists the entity |
 || Shared records with per row sharing | `useRowLevelAccess` on | the creator owns the row and grants others read, update, delete or grant |
+|| Records per team, read in full by staff | `useRowLevelAccess` on, community on | each record is shared with one team's Organisation, so each team sees only its own; staff with the Get role read every record through `community` |
 |
 |One combination deserves care: personal on, `personalRequiresRole` off, community on. It shows every User's personal rows to any holder of the Get role, which is rarely intended.
 |
@@ -4501,6 +4588,52 @@ object Glossary extends MdcLoggable  {
 |**Deactivation.** `is_active` false stops a webhook. `deactivated_reason` says why: `TURNED_OFF` when someone set it, `CIRCUIT_BREAKER` when it had ${code.dynamicentitywebhook.DynamicEntityWebhookFiring.circuitBreakerPerMinute} requests queued within a minute (on this instance), the backstop against a receiver whose reply fires the webhook again, `ENTITY_FIELD_REMOVED` or `ENTITY_FIELD_TYPE_CHANGED` when the entity's definition changed under one of its field conditions. Deleting a Dynamic Entity deletes its webhooks.
 |
 |**Managing.** `/obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/web-hooks` creates and lists an entity's webhooks, and `.../web-hooks/WEBHOOK_ID` reads, updates and deletes one. `/obp/v7.0.0/management/banks/BANK_ID/dynamic-entity-web-hooks` lists every webhook of a space. BANK_ID is a bank's id or `SYS` for the system space. The Roles are CanCreateDynamicEntityWebhook, CanGetDynamicEntityWebhooks, CanUpdateDynamicEntityWebhook and CanDeleteDynamicEntityWebhook, held at that BANK_ID.
+|
+""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "Dynamic Entity Audit Chains",
+        description =
+            s"""
+|# Dynamic Entity Audit Chains
+|
+|A **Dynamic Entity audit chain** is a tamper-evident record of every change to the records of one Dynamic Entity (${getGlossaryItemLink("Dynamic-Entities")}). Use one where you must be able to show later that a record, and its history, has not been altered. Examples are decisions, approvals, assessments and anything else a supervisor or auditor may review.
+|
+|**How it works.** Once a chain is started, each record that is created, updated or deleted adds an entry to the chain. The entry holds the record as it was saved, who saved it, when, and the hash of the entry before it. Each entry's own hash covers all of that. If anyone changes or removes an entry afterwards, its hash no longer matches, and nor does the next entry's link back to it. If anyone changes a record without adding an entry, the record no longer matches its latest entry. Either way the check finds the break and says where it is.
+|
+|**Each chain is bound to its entity.** A chain's first entry, `STARTED`, names the entity's space, id and name, and its hash covers them. Pointing a chain at another entity, or renaming or deleting the entity behind OBP-API's back, makes the check fail.
+|
+|**The root chain ties the chains together.** There is one root audit chain per OBP instance, created when the first entity's chain is started. It records each entity's chain when it is started: its entity, the hash of its first entry, and its last entry at that moment. Sealing the root chain records the last entry of every chain that has changed since. The root chain's check then finds a whole chain deleted, moved, started again, rewound or rewritten, or added without going through OBP-API. With `include_chains=true`, it also checks every entity's chain in full, so one call checks everything.
+|
+|**What it does not do.** A chain does not stop anyone with direct access to the database from changing data. It makes the change visible. Someone who rewrote the records, every chain and the root chain consistently would pass every check. To catch that, seal the root chain regularly and keep each `last_hash` the seal returns somewhere outside OBP's control. That could be with a regulator, in an email, or in a public ledger such as Cardano. One hash covers every chain, and a rewrite will not match a copy taken before it. Only the hash leaves OBP, never the data.
+|
+|**It cannot be stopped.** There is no endpoint to stop or delete a chain. A Dynamic Entity with a chain cannot be deleted or renamed, and nor can the bank it belongs to. This means a chain always covers every change made through OBP-API from the moment it was started.
+|
+|**Starting a chain.** The first entry is `STARTED`. Then each record the entity already holds gets an `EXISTING` entry, so the chain starts from the records as they are. Every later change adds a `CREATED`, `UPDATED` or `DELETED` entry, or `DELETED_BY_RETENTION` when a data retention run deletes a record.
+|
+|**Order and performance.** An entry is added in the same database transaction as the change it records, so a change that rolls back adds nothing. The database puts the entries of one chain in order. Each write locks the chain's row until its transaction ends, so a second write to the same entity waits for the first. Writes to different entities have different chains and never wait for each other. Entities without a chain are not affected at all. The cost to a write is one extra update and one extra insert.
+|
+|**Checking an entry's hash without OBP.** Each entry's `hash` is a SHA-256, written as 64 lowercase hexadecimal characters. It is made from these 11 lines, joined by a line feed, with no line feed at the end. A missing value is an empty line.
+|
+|1. `${code.dynamicentityauditchain.DynamicEntityAuditChains.HashFormat}`
+|2. the chain's `chain_id`
+|3. `sequence`
+|4. `operation`
+|5. `record_id`
+|6. `owner_user_id`
+|7. `data_hash`
+|8. `user_id`
+|9. `on_behalf_of_user_id`
+|10. `recorded_at_epoch_millis`
+|11. `previous_hash`
+|
+|`data_hash` is the SHA-256 of `data_json`, the record's JSON exactly as it was stored, and is empty when there is none. The first entry's `previous_hash` is 64 zeros, and every other entry's is the `hash` of the entry before it. The root chain's entries follow the same rules. With these rules, anyone with the entries can check every chain using any SHA-256 tool, without trusting OBP.
+|
+|**The check.** `GET .../audit-chain/check` checks the whole chain this way, and then compares every current record with its latest entry. It reports whether the chain is intact, and lists the problems it found. These include an entry missing, out of place or changed, and a record changed, added, put back or deleted without going through OBP-API.
+|
+|**Managing.** `POST /obp/v7.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/audit-chain` starts a chain, and `GET` on the same path reads it, including its `last_hash`. `GET .../audit-chain/entries` pages through the entries, or gives one record's history with `record_id`. `GET .../audit-chain/check` checks it. BANK_ID is a bank's id or `SYS` for the system space. The Roles are CanCreateDynamicEntityAuditChain and CanGetDynamicEntityAuditChain, held at that BANK_ID.
+|
+|**The root chain.** `GET /obp/v7.0.0/management/dynamic-entity-audit-chains/root` reads it, `.../root/entries` pages through its entries, `POST .../root/seal` seals it and `GET .../root/check` checks it. The Roles are CanGetDynamicEntityAuditRootChain and CanSealDynamicEntityAuditRootChain, held at no bank, because the root chain covers every space.
 |
 """.stripMargin)
 
@@ -7311,15 +7444,18 @@ object Glossary extends MdcLoggable  {
         title = "OBP-Sentinel",
         description =
             s"""
-                 |# OBP-Sentinel
                  |
-                 |**OBP-Sentinel** watches running OBP-API instances, and the apps around them (API Explorer II, the API Manager, the Portal, OBP-OIDC), for hours. It works out what is actually going wrong or getting slower, and suggests the few improvements that matter most. Fewer, better suggestions is the point.
+                 |# Senti configured for OBP
                  |
-                 |Watching is plain code and costs nothing. Only the analyst, the source review and the questions a person asks on a finding (Trace history, Look again) use Claude, each with a spending limit.
+                 |**Senti** watches running services and their source code for hours, and suggests the few improvements that matter most. Configured for OBP, it watches OBP-API instances and the apps around them: API Explorer II, the API Manager, the Portal, Cohort, OBP-OIDC, the Sandbox Populator and Conformator. It works out what is actually going wrong or getting slower. Fewer, better suggestions is the point.
+                 |
+                 |Senti is made by TESOBE, and can be set up for other systems too: see https://senti.tesobe.com. Its code is at https://github.com/TESOBE/Senti.
+                 |
+                 |Watching is plain code and costs nothing. Claude is used only by the analyst, the source review, Fix this, and the questions a person asks about a finding (Trace history, Rescan, a comment). Each has a spending limit.
                  |
                  |## 1. Watching
                  |
-                 |Every 2 minutes (by default) Sentinel reads from each instance, with its own token:
+                 |Every 2 minutes (by default) Senti reads from each instance, with its own token:
                  |
                  |- the **log cache**: the newest log lines for each level (GET /obp/v5.1.0/system/log-cache/LEVEL);
                  |- **Telemetry**: counters and timings, such as how many calls each endpoint gets and how long they take (GET /obp/v7.0.0/management/telemetry);
@@ -7328,28 +7464,31 @@ object Glossary extends MdcLoggable  {
                  |
                  |The apps are watched too: see **The apps' monitoring endpoints** below.
                  |
-                 |Each log line becomes a **signature**: the same message with its ids, numbers, quoted values, emails and IP addresses taken out. So one problem counts once, however many users hit it. Signatures are counted per 15-minute period, so Sentinel can tell a new or rising problem from an old, steady one. The log cache keeps only the newest 1000 lines per level: if more arrive between two reads, the read is marked as possibly missing lines.
+                 |Each log line becomes a **signature**: the same message with its ids, numbers, quoted values, emails and IP addresses taken out. So one problem counts once, however many users hit it. Signatures are counted per 15-minute period, so Senti can tell a new or rising problem from an old, steady one. The log cache keeps only the newest 1000 lines per level: if more arrive between two reads, the read is marked as possibly missing lines.
                  |
                  |## The apps' monitoring endpoints
                  |
-                 |API Explorer II, the API Manager, the Portal and OBP-OIDC each serve their own log cache and Telemetry, in the same shape as OBP-API's:
+                 |API Explorer II, the API Manager, the Portal, Cohort, OBP-OIDC, the Sandbox Populator and Conformator each serve their own log cache and Telemetry, in the same shape as OBP-API's:
                  |
                  || App | Log cache | Telemetry |
                  ||---|---|---|
                  || API Explorer II | GET /api/monitoring/log-cache/LEVEL | GET /api/monitoring/telemetry |
                  || API Manager | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
                  || Portal | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
+                 || Cohort | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
                  || OBP-OIDC | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
+                 || Sandbox Populator | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
+                 || Conformator | GET /monitoring/log-cache/LEVEL | GET /monitoring/telemetry |
                  |
                  |LEVEL is a log level (error, warning, info, debug, trace) or `all`. Each app lists these endpoints on its `/status` page.
                  |
-                 |They are guarded by the same Roles as OBP-API's own endpoints: CanGetSystemLogCacheLEVEL (or CanGetSystemLogCacheAll; `all` needs CanGetSystemLogCacheAll) and CanGetTelemetry. The app does not decide this itself: it passes the caller's token to OBP-API (GET /obp/v7.0.0/banks/SYS/my/roles/ROLE) and answers only if OBP-API says the Role is held. A call with no token gets 401, and a call without the Role gets 403.
+                 |They are guarded by the same Roles as OBP-API's own endpoints: CanGetSystemLogCacheError, CanGetSystemLogCacheWarning and so on, one per level (`all` needs CanGetSystemLogCacheAll) and CanGetTelemetry. The app does not decide this itself. It passes the caller's token to OBP-API (GET /obp/v7.0.0/banks/SYS/my/roles/ROLE), and answers only if OBP-API says the Role is held. A call with no token gets 401, and a call without the Role gets 403.
                  |
-                 |Sentinel finds the apps in OBP-API's app directory (GET /obp/v6.0.0/app-directory: public_obp_api_explorer_url, public_obp_api_manager_url, public_obp_portal_url, public_obp_oidc_url) and watches each like a small instance of its own, with its own findings, using its OBP-API instance's token. The analyst then reads the app's own source. An app has no aggregate metrics and no source review.
+                 |Senti finds the apps in OBP-API's app directory (GET /obp/v6.0.0/app-directory: public_obp_api_explorer_url, public_obp_api_manager_url, public_obp_portal_url, public_obp_cohort_url, public_obp_oidc_url, public_obp_sandbox_populator_url, public_obp_conformator_url). It watches each like a small instance of its own, with its own findings, using its OBP-API instance's token. The analyst then reads the app's own source. An app has no aggregate metrics and no source review.
                  |
                  |## 2. The analyst
                  |
-                 |Every few hours, once Sentinel has watched for long enough, Claude reads a summary of what was collected (the last hours compared with the hours before) and reads the source code to find the cause of what stands out. Each problem it is confident about becomes a **finding**, scored by:
+                 |Once Senti has watched for long enough, Claude reads a summary every few hours. It compares the last hours with the hours before. It then reads the source code to find the cause of what stands out. Each problem it is confident about becomes a **finding**, scored by:
                  |
                  |- **Impact**: how much it hurts users or the service;
                  |- **Confidence**: how sure the analyst is about the cause;
@@ -7359,48 +7498,163 @@ object Glossary extends MdcLoggable  {
                  |
                  |## 3. Source review
                  |
-                 |Besides following the logs, Sentinel can read the code of the endpoints each instance serves, looking for security problems such as SQL injection or missing authorisation checks. Go and Stop turn it on and off. It starts with the endpoints anyone can call without a login, then those that need a login, then those whose Role someone holds. It remembers what it read: an endpoint is read again only when its code changes.
+                 |Senti can also read the code of the endpoints each OBP-API instance serves. It looks for security problems such as SQL injection or missing authorisation checks. Go and Stop turn it on and off. It starts with the endpoints anyone can call without a login, then those that need a login, then those whose Role someone holds. It remembers what it read: an endpoint is read again only when its code changes.
                  |
                  |## 4. Suggestions
                  |
-                 |A finding is suggested only if Sentinel has watched for long enough (4 hours by default), its priority is high enough, it was seen in more than one 15-minute period, and it was not already suggested, acted on, dismissed or fixed. At most 3 suggestions are made at a time, and at most 10 a week. When nothing qualifies, Sentinel says so rather than inventing work.
+                 |A finding is suggested only when all of these are true:
+                 |
+                 |- Senti has watched for long enough (4 hours by default).
+                 |- Its priority is high enough.
+                 |- It was seen in more than one 15-minute period.
+                 |- It was not already suggested, acted on, dismissed or fixed.
+                 |
+                 |At most 3 suggestions are made at a time, and at most 10 a week. When nothing qualifies, Senti says so rather than inventing work.
                  |
                  |## Using the page
                  |
-                 |The tabs above the list sort the findings: **To review** (suggested and waiting for an answer), **Not yet suggested**, **Snoozed** and **Done**. Below them, three sections show Sentinel at work: monitoring activity, the Analyst (Run analysis now starts a run without waiting) and the Source review. With several instances, the first row of tabs chooses an OBP-API instance and the second row its apps.
+                 |At the top, a grid shows each service in a row and each environment (local, test, production, or your own names) in a column. Each cell holds that service's instances there, with how old their commit is, whether Senti is connected, and how many findings wait for review. Choose one to open it.
+                 |
+                 |The tabs sort its findings as they move along: **Not suggested yet**, **To review**, **Snoozed**, then **Queued**, **Being fixed** and **To commit** for Fix this, and **Done**. Your ratings have tabs of their own. Below the list, three sections show Senti at work: monitoring activity, the analyst (Run analysis now starts a run without waiting) and the source review.
                  |
                  |Each finding shows its evidence, why it happens, where in the code, and the suggested change. The copy button next to its title copies it all as text, ready to give to a coding agent.
                  |
-                 |- **Trace history** lists the commits that changed the lines the finding names, and Claude says which commit introduced the problem (at most $$0.30).
-                 |- **Look again: still an issue?** has Claude read the code the instance runs now, the commits since the finding was made, and whether its log messages are still seen. It answers in one line: still an issue, fixed (and by which commit), or could not tell. It takes a few minutes and costs at most $$0.50. While it works, the page shows how long it has been going and the command it is running. It does not change the finding's status.
-                 |- **Look again at the security findings to review**, above the list, does the same for each security finding in To review, one at a time. Those Claude finds fixed are marked fixed and move to Done, with Claude's answer as the comment.
+                 |- **Trace history** lists the commits that changed the lines the finding names, and Claude says which commit introduced the problem (at most $$2).
+                 |- **Rescan** has Claude read the code the instance runs now and the commits since the finding was made, and check whether its log messages are still seen. It answers in one line: still an issue, fixed (and by which commit), or could not tell. A finding Claude finds fixed moves to Done. It costs at most $$3.
+                 |- **Rescan the security findings**, above the list, does the same for each security finding in To review, one at a time.
+                 |- **Fix this** has Claude make the change in Senti's own copy of the code, build it and run the tests that cover it. Senti then stages the change in your working tree, for you to review. **Commit** commits it, **Discard** takes it back out. **Fix this without tests** leaves the tests to CI.
+                 |- A **comment** is answered by Claude, who can also act on it when you ask: rate the finding, dismiss it, rescan it or fix it again.
                  |
-                 |Then answer, with a comment for the analyst if you like:
+                 |Then answer, with a comment if you like:
                  |
-                 |- **Accept**: worth doing.
-                 |- **Later**: snooze it.
-                 |- **Some action taken**: someone tried to fix it; the analyst checks whether the problem went away.
+                 |- **Relevant**, **Important**, **Urgent**: worth doing, and how much. Urgent also queues Fix this.
+                 |- **Skip for now**: snooze it.
                  |- **Should be fixed now**: fixed; if it comes back, it will be suggested again.
-                 |- **Dismiss, never suggest again**: not useful; its log messages are also left out of future summaries.
+                 |- **Dismiss**: not useful; its log messages are also left out of future summaries.
                  |
-                 |These answers teach the analyst what is worth suggesting.
+                 |These answers teach Senti what to put first, separately for each kind of code.
                  |
                  |## The Secured check
                  |
-                 |Once an hour Sentinel calls the endpoints it reads (log cache, Telemetry and, for OBP-API, aggregate metrics) without a token. They must refuse. The header shows **Secured** when every one refused (401 or 403), **Open** when at least one answered with data (fix this first: anyone can read those logs), and **Could not tell** when some gave no answer or an unexpected one, such as 404.
+                 |Once an hour Senti calls the endpoints it reads (log cache, Telemetry and, for OBP-API, aggregate metrics) without a token. They must refuse. The header shows one of these:
                  |
-                 |## What Sentinel needs
+                 |- **Secured:** every one refused (401 or 403).
+                 |- **Open:** at least one answered with data. Fix this first, because anyone can read those logs.
+                 |- **Could not tell:** some gave no answer, or an unexpected one such as 404.
                  |
-                 |Its Consumer is a Platform App: an administrator marks it, Sentinel declares the Scopes it needs, and the administrator grants them. They are CanGetSystemLogCacheAll (or one per level), CanGetTelemetry and the Role for aggregate metrics. When something stops Sentinel from watching an instance, its page lists what to fix, most blocking first, with what OBP-API answered.
+                 |## What Senti needs
                  |
-                 |## What Sentinel never does
+                 |Its Consumer is a Platform App: an administrator marks it, Senti declares the Scopes it needs, and the administrator grants them. They are CanGetSystemLogCacheAll (or one per level), CanGetTelemetry and the Role for aggregate metrics. When something stops Senti from watching an instance, its page lists what to fix, most blocking first, with what OBP-API answered.
                  |
-                 |- It only reads OBP-API: it does not change settings or log levels, edit code, commit or open pull requests.
-                 |- It reads source code with git only, and never changes the checkout.
+                 |## What Senti never does
+                 |
+                 |- It only reads OBP-API and the apps: it does not change settings or log levels.
+                 |- It never commits or pushes by itself. Fix this works in Senti's own copy of the code, and stages the change only when a person asked for it; a person commits.
+                 |- It reads source code with git only.
                  |- Log text is treated as data: instructions inside a log line are never followed.
                  |- Its page has no login: keep it on 127.0.0.1, or behind a proxy that asks for one.
                  |""".stripMargin)
 
+
+    glossaryItems += GlossaryItem(
+        title = "OBP Cohort",
+        description =
+            s"""
+                 |# OBP Cohort
+                 |
+                 |**OBP Cohort** runs startup programmes for incubators, accelerators, banks, regulators and innovation hubs, from the call for applications to graduation, in English and Arabic.
+                 |
+                 |- **Call:** a call is published on a public site, and anyone can apply.
+                 |- **Apply:** forms with attachments, saved drafts, and eligibility checked when the form is sent.
+                 |- **Evaluate:** reviewers declare any conflict of interest, then score each application against the call's weighted rubric. Staff see a ranked shortlist and record each decision.
+                 |- **Deliver:** milestones, sessions, attendance, surveys and discussions for each startup.
+                 |- **Graduate:** stage gates are checked before a startup moves on, and it gets a certificate.
+                 |
+                 |## How it uses OBP-API
+                 |
+                 |OBP-API is Cohort's only backend. Its records are Dynamic Entities in a space of its own, and it uses OBP's Users, login, Roles, Customers, Files and messages. Cohort is a Platform App: it declares the Scopes it needs, and an administrator grants them.
+|
+|Each startup is a team: an ${getGlossaryItemLink("Organisation")} its founder creates, at `SYS`, and Cohort records its `organisation_id`. Every member of the team sees the programme. A survey is answered once per team: the answers are a row-level record shared with the team's Organisation, so every member can read and edit them, and staff read all the answers through community access. See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}.
+                 |
+                 |It is part of the OBP-Frontend repository (`apps/cohort`). See https://cohort.tesobe.com.
+                 |""".stripMargin)
+
+
+    glossaryItems += GlossaryItem(
+        title = "Conformator",
+        description =
+            s"""
+                 |# Conformator
+                 |
+                 |**Conformator** lets a regulator test the open banking APIs of the banks, payment service providers and third-party providers it supervises against the agreed standard. The regulator reviews the results and issues conformance reports.
+                 |
+                 |The name is the Latin *conformator*, "one who shapes": the regulator sets the shape, and Conformator checks each participant's API against it.
+                 |
+                 |## From the rules to a signed report
+                 |
+                 |1. **Define:** the rules are recorded as requirements, and the tests that check each one are grouped into versioned suites. A suite's endpoints come from a standard OBP implements, or from an OpenAPI document.
+                 |2. **Admit:** each participant is registered and given a space of its own, kept apart from everyone else's.
+                 |3. **Test:** participants run the suites against their own non-production systems, as often as they need.
+                 |4. **Review:** participants submit their results with evidence. Reviewers assess them, and an approver who did not assess makes the decision. Participants can ask for waivers and appeal.
+                 |5. **Report:** approval issues a report signed with Ed25519. Anyone can check a report by its reference, without trusting the site that shows it.
+                 |
+                 |## How it uses OBP-API
+                 |
+                 |Conformator is two Platform Apps in the OBP-Frontend repository: the web app (`apps/conformator`) and the runner (`apps/conformator-runner`). The runner carries out the tests and records each result. Both keep their records in OBP-API as Dynamic Entities, in a central space and in each participant's space, and each declares the Scopes it needs.
+|
+|Each participant has an ${getGlossaryItemLink("Organisation")}, which regulator staff create when they register it, naming its first admin. From then on the participant's admins add and remove their own people. Conformator gives the Organisation's members the participant Roles in the participant's space, and takes them away from people who leave, with `DELETE /obp/v7.0.0/banks/BANK_ID/entitlements/ENTITLEMENT_ID`.
+                 |""".stripMargin)
+
+
+    glossaryItems += GlossaryItem(
+        title = "OBP-Stripe",
+        description =
+            s"""
+                 |# OBP-Stripe
+                 |
+                 |**OBP-Stripe** takes card payments for API Products through Stripe, and keeps each ${getGlossaryItemLink("API Product Subscription")} in step with Stripe.
+                 |
+                 |- **Prices:** OBP-API is the source of truth. OBP-Stripe reads the API Products whose `BILLING_SYSTEM` attribute is `stripe`, and keeps a monthly Stripe Price for each one, from `monthly_subscription_amount` and `monthly_subscription_currency`.
+                 |- **Checkout:** a developer subscribes a Consumer in the Portal, and the subscription starts as `requested`. The Portal sends them to OBP-Stripe, which checks that they may act for the Consumer, then starts a Stripe Checkout. Members of an ${getGlossaryItemLink("Organisation")} can pay for its Consumers' subscriptions.
+                 |- **Status:** Stripe's webhooks, and a check every 5 minutes, set the subscription to `active`, `past_due`, `suspended` or `cancelled`. OBP-API grants and removes access on each status, so OBP-Stripe never grants a Role or Scope itself. A subscription cancelled in OBP is cancelled in Stripe.
+                 |- **Billing:** each person's Stripe customer is kept in their non-personal user attribute `STRIPE_CUSTOMER_ID`, and they change their card or download invoices on Stripe's billing page.
+                 |
+                 |OBP-Stripe is a Platform App: it calls OBP-API with its own token, and declares the Scopes it needs. See ${getGlossaryItemLink("Platform Apps")}.
+                 |""".stripMargin)
+
+
+    glossaryItems += GlossaryItem(
+        title = "OAuth Standards and OBP",
+        description =
+            s"""
+                 |# OAuth Standards and OBP
+                 |
+                 |OAuth decides how an application gets a token. It leaves the access rules inside an API to the API itself. So OBP's Roles, Entitlements and Scopes are OBP's own, and they work alongside these standards:
+                 |
+                 || Standard | What it covers | How OBP uses it |
+                 ||---|---|---|
+                 || [OAuth 2.0, client credentials grant](https://www.rfc-editor.org/rfc/rfc6749#section-4.4) (RFC 6749, section 4.4) | An application gets a token for itself, with no user. | An application acting as itself uses this grant. OBP-API then checks its Consumer's Scopes. |
+                 || [Dynamic Client Registration](https://www.rfc-editor.org/rfc/rfc7591) (RFC 7591) | Standard fields for a client, including `grant_types`, `scope` and `token_endpoint_auth_method`. | A Consumer's grant types use the standard's field and values. See ${getGlossaryItemLink("Consumer Grant Types")}. |
+                 || [JWT access tokens](https://www.rfc-editor.org/rfc/rfc9068) (RFC 9068) | In a token an application got for itself, `sub` is the application's own client id. | OBP-API recognises such a token when `sub` equals the client id (`azp`). |
+                 || [Client authentication with a private key](https://www.rfc-editor.org/rfc/rfc7523) (RFC 7523) and [with a certificate](https://www.rfc-editor.org/rfc/rfc8705) (RFC 8705) | An application proves who it is with a signed key or a client certificate, instead of a shared secret. | A Consumer can hold a JWKS URI and a client certificate for this. |
+                 || [OAuth security best practice](https://www.rfc-editor.org/rfc/rfc9700) (RFC 9700) and OAuth 2.1 | PKCE for every login, and no password grant. | DirectLogin sends a username and password, much like the password grant. Prefer an OAuth2 login for people, and client credentials for applications. |
+                 || [Token exchange](https://www.rfc-editor.org/rfc/rfc8693) (RFC 8693) | Says explicitly that one party acts on behalf of another (the `act` claim). | OBP does not use it today. |
+                 |
+                 |## Permissions for people and permissions for applications
+                 |
+                 |Identity providers usually keep two kinds of permission apart. Microsoft Entra ID, for example, calls them delegated permissions and application permissions:
+                 |
+                 |- A delegated permission says what an application may do for a person who is logged in.
+                 |- An application permission says what an application may do as itself. An administrator grants it.
+                 |
+                 |In OBP, a person's Role comes from their Entitlement. An application acting as itself uses its Consumer's Scopes. With `require_scopes_for_all_roles` or `require_scopes_for_listed_roles`, a Consumer's Scope also limits which Roles people can use through that application.
+                 |
+                 |## OBP Scopes and OAuth scopes
+                 |
+                 |In standard OAuth, the identity provider writes the granted scopes into the token, and the API reads them there. OBP-API instead looks up a Consumer's Scopes in its own records. OAuth allows this, and it lets OBP work with any identity provider. So an OBP Scope is not the same thing as the `scope` in a token, although they share a name.
+                 |
+                 |One setting connects the two. With `oauth2.keycloak.source_of_truth=true`, OBP-API copies the roles in a Keycloak token into the Consumer's Scopes.
+                 |""".stripMargin)
 
     glossaryItems += GlossaryItem(
         title = "Platform Apps",
@@ -7408,13 +7662,13 @@ object Glossary extends MdcLoggable  {
             s"""
                  |# Platform Apps
                  |
-                 |A **Platform App** is an application an installation runs as part of its own OBP deployment, such as the Portal, the API Manager, Opey or one of the bank's own services. Like any application it calls OBP as a Consumer, and some of its calls are made with its own application token (OAuth2 client credentials) rather than for a logged-in User: reading published pages for anonymous visitors, or creating the Dynamic Entities it depends on at startup. Those calls need Roles granted to its Consumer as Scopes.
+                 |A **Platform App** is an application that an installation runs as part of its own OBP deployment. Examples are the Portal, the API Manager, Opey and the bank's own services. Like any application, it calls OBP as a Consumer. Some of its calls are made with its own application token (OAuth2 client credentials), not for a logged-in User. For example, it reads published pages for anonymous visitors, or creates the Dynamic Entities it depends on at startup. Those calls need Roles granted to its Consumer as Scopes.
                  |
                  |## How it works
                  |
                  |1. An administrator marks the app's Consumer as a Platform App (Role CanCreatePlatformApp), giving it the name administrators know it by.
                  |2. The app declares, as itself, the Scopes it needs and what each is needed for. It does this whenever it starts or checks itself, so the list follows the version that is running. An app whose Consumer has not been marked cannot declare anything, so an arbitrary Consumer cannot ask to be granted Scopes this way.
-                 |3. OBP compares each declaration with the Scopes the Consumer holds. An administrator with CanGetPlatformApps sees, for every Platform App, which Scopes are held and which are missing, and grants the missing ones (CanCreateScopeAtAnyBank, or CanCreateScopeAtOneBank at the Scope's bank id).
+                 |3. OBP compares each declaration with the Scopes the Consumer holds. An administrator with CanGetPlatformApps sees which Scopes each Platform App holds and which are missing. They grant the missing ones with CanCreateScopeAtAnyBank, or CanCreateScopeAtOneBank at the Scope's bank id.
                  |
                  |A Scope declared as optional is one the app can manage without, for example because another Platform App does the same work. It is shown, but does not count as missing.
                  |
@@ -7429,7 +7683,63 @@ object Glossary extends MdcLoggable  {
                  |- [Get Current Consumer Scopes](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getCurrentConsumerScopes): `GET /obp/v7.0.0/consumers/current/scopes`, for an app to read the Scopes its Consumer holds.
                  |- [Create Scope for a Consumer](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-addScope): `POST /obp/v7.0.0/consumers/CONSUMER_ID/scopes`, to grant a missing Scope.
                  |
-                 |A Scope says which endpoints an app may call. An app that also acts on an account through a view, such as initiating payments from it, needs access to that view of the account as well: see ${getGlossaryItemLink("Consumer Account Access")}.
+                 |To act as itself, the app needs a token of its own. If its Consumer has grant types set, they must include `client_credentials`. See ${getGlossaryItemLink("Consumer Grant Types")}.
+                 |
+                 |A Scope says which endpoints an app may call. Some apps also act on an account through a view, for example to initiate payments from it. They also need access to that view of the account. See ${getGlossaryItemLink("Consumer Account Access")}.
+                 |""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "Consumer Grant Types",
+        description =
+            s"""
+                 |# Consumer Grant Types
+                 |
+                 |A Consumer's grant types control how tokens can be obtained through the Consumer. They say whether people can log in through it, whether the application can get a token for itself, or both.
+                 |
+                 |A person "logs in through a Consumer" when they get a token with that Consumer's client id or key. They can do this by an OAuth2 login, by DirectLogin, or by renewing such a login. The token then names both the person and the application.
+                 |
+                 |Grant types are optional. A Consumer that has no grant types set can be used in every way, as before.
+                 |
+                 |Grant types only control how tokens are obtained. What the application may do with a token depends on the Scopes its Consumer holds.
+                 |
+                 |## Why set them
+                 |
+                 |Some applications both log people in and get tokens for themselves. Such an application can use two Consumers: one for people logging in, and one for the application itself. If one Consumer's secret leaks, only one of the two uses is exposed. Each Consumer holds only the Scopes it needs, and metrics show people's calls and the application's calls separately.
+                 |
+                 |## Values
+                 |
+                 |- `authorization_code`: people log in through an OAuth2 / OpenID Connect provider, such as OBP-OIDC or Keycloak.
+                 |- `refresh_token`: such a login can be renewed. Requires `authorization_code`.
+                 |- `client_credentials`: the application gets a token for itself.
+                 |- `direct_login`: people log in with DirectLogin.
+                 |
+                 |## Examples
+                 |
+                 |Only `client_credentials`:
+                 |
+                 |- The application can get a token for itself through the Consumer.
+                 |- People cannot log in through it, by OAuth2 or by DirectLogin.
+                 |
+                 |`authorization_code`, `refresh_token` and `direct_login`, without `client_credentials`:
+                 |
+                 |- People can log in through the Consumer.
+                 |- The application cannot get a token for itself through it. So it cannot act on its own through this Consumer.
+                 |
+                 |## Where they are checked
+                 |
+                 |Grant types are checked twice:
+                 |
+                 |1. When a token is requested. DirectLogin is blocked for a Consumer whose grant types do not include `direct_login`: logging in with its consumer key fails. OBP-OIDC, and Keycloak through OBP's client storage, refuse to issue a token for a grant type that is not included.
+                 |2. When a token is used. OBP-API refuses a call through the Consumer that its grant types do not allow, wherever the token came from. This also catches tokens issued before the grant types were set.
+                 |
+                 |## Who sets them
+                 |
+                 |An administrator sets a Consumer's grant types. OBP never works them out from other settings, such as the Scopes the Consumer holds or whether it is a Platform App (see ${getGlossaryItemLink("Platform Apps")}). So granting a Consumer a new Scope never changes how it can be used.
+                 |
+                 |## Endpoints
+                 |
+                 |- [Get Consumer Grant Types](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getConsumerGrantTypes): `GET /obp/v7.0.0/management/consumers/CONSUMER_ID/grant-types`
+                 |- [Update Consumer Grant Types](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateConsumerGrantTypes): `PUT /obp/v7.0.0/management/consumers/CONSUMER_ID/grant-types`, with the Role CanUpdateConsumerGrantTypes. Sending an empty list removes them, so the Consumer can again be used in every way.
                  |""".stripMargin)
 
     glossaryItems += GlossaryItem(
@@ -7438,21 +7748,21 @@ object Glossary extends MdcLoggable  {
             s"""
                  |# Consumer Account Access
                  |
-                 |OBP has two layers of permission. **Roles** say which endpoints may be called; they are granted to a User as Entitlements and to a Consumer as Scopes. **Account access** says which accounts may be used, and through which view; it is granted to a User, and with Consumer Account Access also to a Consumer.
+                 |OBP has two layers of permission. **Roles** say which endpoints may be called. They are granted to a User as Entitlements and to a Consumer as Scopes. **Account access** says which accounts may be used, and through which view. It is granted to a User, and with Consumer Account Access also to a Consumer.
                  |
-                 |It is for an application that acts on an account as itself, with its own application token (OAuth2 client credentials), when no person is involved: for example a bank's service that initiates payments from the bank's own account for customers whose payments it relays. Without it, such a service has to log in as a stand-in User who holds the account access.
+                 |It is for an application that acts on an account as itself, with its own application token (OAuth2 client credentials), when no person is involved. An example is a bank's service that relays customers' payments and initiates them from the bank's own account. Without it, such a service has to log in as a stand-in User who holds the account access.
                  |
                  |## How it works
                  |
-                 |1. Someone who may grant views of the account (their view lists the target view in `can_grant_access_to_views`, or has `can_grant_access_to_custom_views` for a custom view) gives the Consumer access to a view. The grant records who gave it.
-                 |2. The application calls an endpoint of that view with its client-credentials token. Its User is then the Consumer's own (provider `obp-oidc#client`, named after the Consumer's key), and OBP finds the Consumer's grant.
-                 |3. The grant counts only on endpoints that admit an application acting as itself (auth mode ApplicationOnly or UserXORApplication). On every other endpoint the view still needs a User's account access.
+                 |1. Someone who may grant views of the account gives the Consumer access to a view. Their own view must list the target view in `can_grant_access_to_views`, or have `can_grant_access_to_custom_views` for a custom view. The grant records who gave it.
+                 |2. The application calls an endpoint of that view with its client-credentials token. Its User is then the Consumer's own: provider `obp-oidc#client` (or `keycloak#client` for a Keycloak service account), named after the client id. OBP then finds the Consumer's grant.
+                 |3. The Consumer must be a Platform App. The grant then works like a person's access to the view, on every endpoint that uses the view.
                  |
-                 |A person who logs in through the same Consumer does not get the Consumer's account access, and a caller identified by the Consumer Key alone does not either: only the client-credentials token proves the application is calling as itself.
+                 |A person who logs in through the same Consumer does not get the Consumer's account access. Nor does a caller identified only by the Consumer Key. Only the client-credentials token proves that the application is calling as itself.
                  |
                  |## Which view
                  |
-                 |The owner view and public views can't be granted to a Consumer. Holding an account is for people. Give the Consumer a view with only the permissions it needs, for example a custom view with `can_add_transaction_request_to_any_account` for initiating payments: create it with Create Custom View (Management), `POST /obp/v6.0.0/management/banks/BANK_ID/accounts/ACCOUNT_ID/views` (Role CanCreateCustomView), and grant it through the ManageCustomViews system view, which has `can_grant_access_to_custom_views` and which the account holder can give through owner. The Transaction Requests the Consumer creates record it.
+                 |The owner view and public views can't be granted to a Consumer. Holding an account is for people. Give the Consumer a view with only the permissions it needs. For initiating payments, that is a custom view with `can_add_transaction_request_to_any_account`. Create it with Create Custom View (Management), `POST /obp/v6.0.0/management/banks/BANK_ID/accounts/ACCOUNT_ID/views` (Role CanCreateCustomView). Grant it through the ManageCustomViews system view, which has `can_grant_access_to_custom_views`. The account holder can give ManageCustomViews through owner. The Transaction Requests the Consumer creates record it.
                  |
                  |## Endpoints
                  |
@@ -7641,6 +7951,99 @@ object Glossary extends MdcLoggable  {
                  |""".stripMargin)
 
     glossaryItems += GlossaryItem(
+        title = "Product",
+        description =
+            s"""
+                 |# Product
+                 |
+                 |A **Product** is a kind of financial product a bank offers, such as a current account, a savings account, a loan or a fund. Each Product belongs to one bank and is known by its `product_code`, which is unique in that bank.
+                 |
+                 |An ${getGlossaryItemLink("Account")} is opened on a Product: the account's `product_code` names it. When an account is created with the `product_code` of a Product, the account gets attributes that match the Product's attributes.
+                 |
+                 |## What a Product holds
+                 |
+                 |- **Name and description**, and links to its terms and conditions and its more information page.
+                 |- **Attributes**: named values, such as an interest rate or a minimum balance.
+                 |- **Fees**: what the Product costs, each with an amount in an ${getGlossaryItemLink("Asset")}, such as EUR, and how often it is charged.
+                 |- **Parent Product**: a Product can name a `parent_product_code`. It then inherits the attributes of its parent, so a family of Products can share what they have in common.
+                 |- **Tags**: free labels, such as `featured`, used to find and show Products.
+                 |
+                 |A **Product Collection** (also called a basket or a bucket) groups Products together, for example the Products sold as one package. It is separate from the parent and child hierarchy.
+                 |
+                 |## Endpoints
+                 |
+                 |Creating or changing a Product needs the Role CanCreateProduct at the bank, or CanCreateProductAtAnyBank.
+                 |
+                 |- [Create Product]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.0.0-createProduct): `PUT /obp/v5.1.0/banks/BANK_ID/products/PRODUCT_CODE`, which also updates a Product that already has this code.
+                 |- [Get Products]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.0.0-getProducts): `GET /obp/v5.1.0/banks/BANK_ID/products`
+                 |- [Get Bank Product]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.0.0-getProduct): `GET /obp/v5.1.0/banks/BANK_ID/products/PRODUCT_CODE`
+                 |- [Create Product Attribute]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv4.0.0-createProductAttribute): `POST /obp/v5.1.0/banks/BANK_ID/products/PRODUCT_CODE/attribute`
+                 |- [Create Product Fee]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv4.0.0-createProductFee): `POST /obp/v5.1.0/banks/BANK_ID/products/PRODUCT_CODE/fee`
+                 |- [Get Product Fees]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv4.0.0-getProductFees): `GET /obp/v5.1.0/banks/BANK_ID/products/PRODUCT_CODE/fees`
+                 |- [Update Product Tags]($${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-updateProductTagsV600): `PUT /obp/v6.0.0/banks/BANK_ID/products/PRODUCT_CODE/tags`
+                 |- [Create Product Collection]($${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv3.1.0-createProductCollection): `PUT /obp/v5.1.0/banks/BANK_ID/product-collections/COLLECTION_CODE`
+                 |""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "Glossary",
+        description =
+            s"""
+                 |# Glossary
+                 |
+                 |The **Glossary** explains the terms used in OBP: what a ${getGlossaryItemLink("Consumer")} or a ${getGlossaryItemLink("Space")} is, how a feature works and how to set it up. Each entry is a **Glossary Item**, with a title and a description written in markdown. Titles are unique, ignoring letter case.
+                 |
+                 |There are two kinds of Glossary Item:
+                 |
+                 |- **Static Glossary Items** are part of the API's source code, so they change only when the API is deployed again. This Item is one of them.
+                 |- **Dynamic Glossary Items** are kept in the database, and are added and changed through the API while it is running, for example to explain the records of one space. They apply to the whole OBP instance.
+                 |
+                 |A Dynamic Glossary Item can replace a static one with the same title, but only if it says so when it is created (`overrides_static_item: true`). Deleting it brings back the static text.
+                 |
+                 |Endpoint descriptions link to Glossary Items, and API Explorer II shows the Glossary, with a link to each Item by its title. AI agents can read it too, for example through the OBP-MCP server.
+                 |
+                 |## Endpoints
+                 |
+                 |Reading the Glossary needs no Role. Read one Item at a time where you can: the whole Glossary is about a megabyte.
+                 |
+                 |- [Get Glossary of the API]($${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getGlossary): `GET /obp/v7.0.0/api/glossary`, which can search and page the Items. `GET /obp/v5.1.0/api/glossary` returns the same Glossary without those options.
+                 |- [Get Glossary Item]($${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getGlossaryItem): `GET /obp/v7.0.0/api/glossary/TITLE`
+                 |- [Create Glossary Item]($${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createGlossaryItem): `POST /obp/v7.0.0/api/glossary`, with the Role CanCreateGlossaryItem.
+                 |- [Update Glossary Item]($${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateGlossaryItem): `PUT /obp/v7.0.0/api/glossary/TITLE`, with the Role CanUpdateGlossaryItem.
+                 |- [Delete Glossary Item]($${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteGlossaryItem): `DELETE /obp/v7.0.0/api/glossary/TITLE`, with the Role CanDeleteGlossaryItem.
+                 |""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "View",
+        description =
+            s"""
+                 |# View
+                 |
+                 |A **View** says what a User may see and do on a bank ${getGlossaryItemLink("Account")}: which fields of the account and its transactions they can see, and which actions they can take, such as making payments. Every call that reads or changes an account goes through a View, so its path contains `/views/VIEW_ID`.
+                 |
+                 |A User gets a View on an account through an ${getGlossaryItemLink("Account Access")} record. Without one, they cannot use the account at all. One User can have several Views on the same account.
+                 |
+                 |## System Views and custom Views
+                 |
+                 |- **System Views**, such as `owner`, `accountant` and `auditor`, are defined once and can be used on every account. Creating or changing one needs a Role, such as CanCreateSystemView.
+                 |- **Custom Views** belong to one account. Their names start with an underscore, such as `_family`, because other names are kept for system Views. Someone with the right View on the account creates them, and no Role is needed.
+                 |
+                 |## Permissions
+                 |
+                 |A View's `allowed_actions` lists what it allows, for example `can_see_bank_account_balance`, `can_see_transaction_amount` or `can_add_transaction_request_to_any_account`. Anything not on the list is not allowed.
+                 |
+                 |A View can also let its holder give Views to other Users. For a system View, the View the holder uses must list the target View in `can_grant_access_to_views`. For a custom View, it needs the action `can_grant_access_to_custom_views`.
+                 |
+                 |## Endpoints
+                 |
+                 |- [Get Views for Account](${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.0.0-getViewsForBankAccount): `GET /obp/v5.1.0/banks/BANK_ID/accounts/ACCOUNT_ID/views`
+                 |- [Create Custom View](${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.1.0-createCustomView): `POST /obp/v5.1.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views`
+                 |- [Grant User access to View](${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.1.0-grantUserAccessToViewById): `POST /obp/v5.1.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/grant`
+                 |- [Revoke User access to View](${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.1.0-revokeUserAccessToViewById): `POST /obp/v5.1.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/revoke`
+                 |- [Create System View](${apiExplorerUrl}/resource-docs/OBPv5.1.0?operationid=OBPv5.0.0-createSystemView): `POST /obp/v5.1.0/system-views`, with the Role CanCreateSystemView.
+                 |- [Get System Views]($${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getSystemViews): `GET /obp/v6.0.0/management/system-views`
+                 |""".stripMargin)
+
+    glossaryItems += GlossaryItem(
         title = "Files",
         description =
             s"""
@@ -7674,7 +8077,7 @@ object Glossary extends MdcLoggable  {
                  |
                  |The owner, or a holder of CanCreateFileAtOneBank, attaches a file to a record and detaches it. A record is named by `record_type` (e.g. `customer`, or a Dynamic Entity's name) and `record_id`, and a file is attached to a record at most once. OBP does not look the record up, so access to a file never follows from access to a record: it comes only from owning the file, being given access to it, or the Role CanGetFileAtOneBank.
                  |
-                 |These endpoints are UserXORApplication: an application acting as itself, with a client-credentials token, may hold the Roles as Scopes on its Consumer. A person calling through a Consumer still needs their own Entitlements.
+                 |An application acting as itself, with a client-credentials token, may hold the Roles as Scopes on its Consumer, if the Consumer is a Platform App. A person calling through a Consumer still needs their own Entitlements.
                  |
                  |## Public files
                  |
@@ -7708,6 +8111,232 @@ object Glossary extends MdcLoggable  {
                  |- [Get Public Files Attached to a Record](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPublicFilesAttachedToRecord): `GET /obp/v7.0.0/banks/BANK_ID/public-files?record_type=&record_id=`
                  |- [Get Public File](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPublicFile): `GET /obp/v7.0.0/banks/BANK_ID/public-files/FILE_ID`
                  |- [Get Public File Content](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getPublicFileContent): `GET /obp/v7.0.0/banks/BANK_ID/public-files/FILE_ID/content`
+                 |""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "Tenant",
+        description =
+            s"""
+                 |# Tenant
+                 |
+                 |A **Tenant** is a customer of the operator of an OBP instance: an organisation that uses the instance. A Tenant belongs to no bank, and the Roles that manage Tenants are system Roles: CanCreateTenant, CanGetTenant, CanUpdateTenant and CanDeleteTenant.
+                 |
+                 |A Tenant has a `tenant_id`, which is unique, cannot change, and is 2 to 64 URL-safe characters. It also has a name, a status (`active`, `suspended` or `archived`), a visibility (`public`, `unlisted` or `private`), and optionally a website and a logo.
+                 |
+                 |Tenants were called Organisations until November 2026. The migration renameOrganisationsToTenants copied the Organisations and moved their Roles.
+                 |
+                 |This is not the same as the tenancy model of a deployment, which is about how separate installations are run for different customers. See ${getGlossaryItemLink("Tenancy-Model-Open-Bank-Project")}.
+                 |
+                 |## Endpoints
+                 |
+                 |- [Create Tenant](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createTenant): `POST /obp/v7.0.0/tenants`
+                 |- [Get Tenants](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getTenants): `GET /obp/v7.0.0/tenants`
+                 |- [Get Tenant](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getTenant): `GET /obp/v7.0.0/tenants/TENANT_ID`
+                 |- [Update Tenant](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateTenant): `PUT /obp/v7.0.0/tenants/TENANT_ID`
+                 |- [Delete Tenant](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteTenant): `DELETE /obp/v7.0.0/tenants/TENANT_ID`
+                 |""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "Organisation",
+        description =
+            s"""
+                 |# Organisation
+                 |
+                 |An **Organisation** is a group of people that uses the APIs and owns Consumers. It is most likely a fintech or another external group, or an informal group within a bank. It has members.
+                 |
+                 |An Organisation has no direct legal relationship with a bank. That is what a Customer is: a legal person or entity with a formal relationship with a bank on this instance. Where an Organisation does have such a relationship, it comes through a link to the Customer the bank keeps for it. That link is not built yet.
+                 |
+                 |An Organisation is not a ${getGlossaryItemLink("Tenant")} either. A Tenant is a customer of the operator of this OBP instance. The fintechs building on a bank's APIs are one level down.
+                 |
+                 |Anyone who is logged in can create an Organisation, and becomes its first admin. Each member is an `admin` or a `member`. An Organisation always keeps at least one admin.
+                 |
+                 |## Who may act for a Consumer
+                 |
+                 |No Role is needed to act for your own Consumers:
+                 |
+                 |* A Consumer that belongs to no Organisation is owned by the User who created it.
+                 |* A Consumer that belongs to an active Organisation is owned by the Organisation's members. Its creator no longer owns it on their own, so it stays with the team when someone leaves.
+                 |
+                 |Owners read their Consumers, their usage, Scopes and API Product Subscriptions under `/my/consumers`, and subscribe them to API Products. Admins also change the Organisation and its members, and move Consumers into or out of it.
+                 |
+                 |## Sharing Dynamic Entity records
+                 |
+                 |A record of a Dynamic Entity with row-level access can be shared with an Organisation as well as with single Users: `PUT .../RECORD_ID/access` with an `organisation_id`. Every member of the active Organisation then holds the permissions given, and access follows membership. See ${getGlossaryItemLink("Dynamic-Entity-Access-Model")}.
+                 |
+                 |## bank_id
+                 |
+                 |Every Organisation has a `bank_id`: the space that administers it. It says where staff Roles for the Organisation are held, and it never changes. It is not a legal relationship with that bank.
+                 |
+                 |An Organisation you create for yourself is always at SYS. Only staff with CanCreateOrganisationAtOneBank at a bank can create an Organisation there, so each bank decides which Organisations it administers. An application that only needs to know which Organisation is which, such as a programme recording its startups' teams, keeps the `organisation_id` in its own records.
+                 |
+                 |## Staff
+                 |
+                 |Staff Roles are held at the Organisation's `bank_id`. With CanCreateOrganisationAtOneBank, staff create an Organisation for someone else and name its first admin, for example when a regulator registers a participant. With CanGetOrganisationAtOneBank they read Organisations and their members. With CanUpdateOrganisationStatusAtOneBank they suspend one: its members still see it, but cannot act for its Consumers.
+                 |
+                 |## Endpoints
+                 |
+                 |- [Create My Organisation](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createMyOrganisation): `POST /obp/v7.0.0/my/organisations`
+                 |- [Get My Organisations](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyOrganisations): `GET /obp/v7.0.0/my/organisations`
+                 |- [Add My Organisation Member](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-addMyOrganisationMember): `POST /obp/v7.0.0/my/organisations/ORGANISATION_ID/members`
+                 |- [Update My Consumer Organisation](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateMyConsumerOrganisation): `PUT /obp/v7.0.0/my/consumers/CONSUMER_ID/organisation`
+                 |- [Get My Consumers](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyConsumers): `GET /obp/v7.0.0/my/consumers`
+                 |- [Get My Consumer Usage](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getMyConsumerUsage): `GET /obp/v7.0.0/my/consumers/CONSUMER_ID/usage`
+                 |- [Create Organisation](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createOrganisation): `POST /obp/v7.0.0/management/organisations`
+                 |- [Get Organisations](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getOrganisations): `GET /obp/v7.0.0/management/organisations`
+                 |- [Get Organisation Members](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getOrganisationMembers): `GET /obp/v7.0.0/management/organisations/ORGANISATION_ID/members`
+                 |""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "Data Retention",
+        description =
+            s"""
+                 |# Data Retention
+                 |
+                 |A **retention policy** says how long one kind of record in a space stays live, and what happens to it then. The space is a bank, or `SYS` for the system space. Periods are set per space through the API, never in code.
+                 |
+                 |A policy covers one resource type: Dynamic Entity records (of one entity), files, chat messages, chat rooms, customers or consents. It says:
+                 |
+                 |- what the period is counted from, for example when the record was created, last updated, or a date held in one of its fields;
+                 |- optionally, a condition, so that only records with a given value in a field are covered, for example a status of CLOSED;
+                 |- how many days a record stays live: at least `retention.minimum_retain_days` (five years by default);
+                 |- what then happens: **archive** (moved out of the live tables into the retention archive, and deleted after a further period), **delete**, or, for customers only, **anonymise** (the personal fields are cleared, and the customer id is kept so that references stay valid);
+                 |- whether a second, different person must approve each run.
+                 |
+                 |A scheduler runs the enabled policies, and a run can also be started by hand. Preview a policy first to see what it would affect. Records on legal hold are skipped by every run, and every disposal is written to the disposal register. Nothing is restored from the archive. Archiving needs `retention.archive.enabled=true`, and deleting or anonymising needs `retention.delete.enabled=true`.
+                 |
+                 |The Roles are granted at the space: CanManageRetentionPolicy, CanGetRetentionPolicies, CanRunRetentionPolicy, CanApproveRetentionRun, CanGetRetentionRuns, CanManageRetentionHold and CanGetRetentionArchive.
+                 |
+                 |## Endpoints
+                 |
+                 |- [Create Retention Policy](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createRetentionPolicy): `POST /obp/v7.0.0/management/banks/BANK_ID/retention-policies`
+                 |- [Get Retention Policies](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getRetentionPolicies): `GET /obp/v7.0.0/management/banks/BANK_ID/retention-policies`
+                 |- [Get Retention Policy Preview](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getRetentionPolicyPreview): `GET /obp/v7.0.0/management/banks/BANK_ID/retention-policies/RETENTION_POLICY_ID/preview`
+                 |- [Create Retention Run](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createRetentionRun): `POST /obp/v7.0.0/management/banks/BANK_ID/retention-policies/RETENTION_POLICY_ID/runs`
+                 |- [Update Retention Run Approval](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateRetentionRunApproval): `PUT /obp/v7.0.0/management/banks/BANK_ID/retention-runs/RETENTION_RUN_ID/approval`
+                 |- [Create Retention Hold](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createRetentionHold): `POST /obp/v7.0.0/management/banks/BANK_ID/retention-holds`
+                 |- [Get Retention Archive Entries](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getRetentionArchiveEntries): `GET /obp/v7.0.0/management/banks/BANK_ID/retention-archive`
+                 |""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "IP Penalties",
+        description =
+            s"""
+                 |# IP Penalties
+                 |
+                 |An **IP penalty** is an operator's temporary per-minute limit on one IP address. It applies to every endpoint, and is checked before all other rate limits. A limit of 0 refuses every request from that address. A refused request gets 429 OBP-10062.
+                 |
+                 |Penalties are kept in Redis, so every instance applies them, and each one is removed when it expires, after at most one week. The penalty endpoints themselves are never refused, so a mistake can always be undone.
+                 |
+                 |The Roles are system Roles: CanCreateIpPenalty, CanGetIpPenalties and CanDeleteIpPenalty. To find which addresses to limit, see ${getGlossaryItemLink("Deployment Checks and Traffic Sources")}.
+                 |
+                 |## Endpoints
+                 |
+                 |- [Create IP Penalty](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createIpPenalty): `POST /obp/v7.0.0/management/ip-penalties`
+                 |- [Get IP Penalties](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getIpPenalties): `GET /obp/v7.0.0/management/ip-penalties`
+                 |- [Delete IP Penalty](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-deleteIpPenalty): `DELETE /obp/v7.0.0/management/ip-penalties/IP_ADDRESS`
+                 |""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "Deployment Checks and Traffic Sources",
+        description =
+            s"""
+                 |# Deployment Checks and Traffic Sources
+                 |
+                 |**Deployment checks** look at an instance's props and its last 15 minutes of traffic, and say whether it is set up well: whether client IP addresses are passed on by the proxies and believed only from them, whether applications pass on their users' addresses, how rate limiting is set up, the root log level, Telemetry, Redis, and whether API Metrics are being lost. They need the Role CanGetConfig.
+                 |
+                 |Set `trust.proxy.peers` to the addresses or CIDR ranges of your proxies, so that a forwarded client address is believed only from them. When it is not set, it is believed from anyone.
+                 |
+                 |**Traffic sources** show where the traffic on the answering instance comes from: the busiest Consumers, client IP addresses, and callers and endpoints, over the last 1, 5 or 15 minutes. The counts are estimates, kept in memory only. They need the Role CanGetTrafficSources.
+                 |
+                 |See also ${getGlossaryItemLink("Telemetry")} and ${getGlossaryItemLink("IP Penalties")}.
+                 |
+                 |## Endpoints
+                 |
+                 |- [Get Deployment Checks](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getDeploymentChecks): `GET /obp/v7.0.0/management/system/diagnostics/deployment`
+                 |- [Get Top Callers](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getTrafficSources): `GET /obp/v7.0.0/management/traffic/top-callers?window=1|5|15`
+                 |""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "Sign-In With Ethereum",
+        description =
+            s"""
+                 |# Sign-In With Ethereum (SIWE)
+                 |
+                 |A User can log in by proving that they hold an Ethereum wallet, following EIP-4361. Only externally owned accounts are supported. The signature is checked locally, so no blockchain node is needed.
+                 |
+                 |1. The client asks for a challenge with `POST /my/logins/siwe/challenge`, without authentication. OBP returns a nonce and the message to sign.
+                 |2. The wallet signs the message, and the client sends it to `POST /my/logins/siwe`. OBP checks the signature, the domain, the chain and the nonce, and returns a token.
+                 |
+                 |It is off unless `allow_siwe=true`. `siwe.domain` is the domain the message must name, which protects against phishing. `siwe.allowed_chain_ids` lists the chains accepted, for example `1` for mainnet. `siwe.nonce.ttl` is how long a challenge lasts, 300 seconds by default.
+                 |""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "Utility Payments",
+        description =
+            s"""
+                 |# Utility Payments
+                 |
+                 |The **UTILITY** transaction request type pays a bill or buys a prepaid service, for example a prepaid electricity meter token. The biller is identified by a routing scheme of the category UTILITY or BILL, such as a meter number or a bill control number.
+                 |
+                 |1. Look the payee up first, to confirm who will be paid (Confirmation of Payee). The lookup returns a `lookup_id`.
+                 |2. Create the transaction request, passing the `lookup_id` as `verified_payee_lookup_id`, and optionally a `callback_url`.
+                 |3. The result, such as the electricity token, does not exist yet when the request is created. It arrives later from the payment rail and is recorded as the vend result. The registered callback is then called once.
+                 |
+                 |`data_fields` carries name and value pairs that adapters pass on to the payment rail unchanged.
+                 |
+                 |## Endpoints
+                 |
+                 |- [Create Payee Lookup](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createPayeeLookup): `POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/payees/lookup`
+                 |- [Create Transaction Request (UTILITY)](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createTransactionRequestUtility): `POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/UTILITY/transaction-requests`
+                 |- [Create Utility Vend Result](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createUtilityVendResult): `POST /obp/v7.0.0/banks/BANK_ID/utility-payments/UTILITY_TRANSACTION_REQUEST_ID/vend-result`
+                 |""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "Payment Promises and Netting",
+        description =
+            s"""
+                 |# Payment Promises and Netting
+                 |
+                 |A payment between two banks can be held as a **promise**, then settled later together with the other promises between the same two banks, as one net transaction.
+                 |
+                 |A promise is a transaction request of the type OPEN_CORRIDOR_PROMISE. It carries the payer's originator information, as FATF Recommendation 16 requires. It is held at the status `PENDING`, and no Transaction is posted when it is created. Evidence can be attached to it.
+                 |
+                 |The **settle** step nets all the pending promises between a pair of banks and posts one net Transaction, which covers them. Fees are settled separately.
+                 |
+                 |It is off unless `open_corridor_enabled=true`. Whether it is on shows in the bank's transaction request types. The caller is a User with access to the view, or an application acting as itself whose Consumer has access to the view (see ${getGlossaryItemLink("Consumer Account Access")}).
+                 |
+                 |## Endpoints
+                 |
+                 |- [Create Transaction Request (OPEN_CORRIDOR_PROMISE)](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createTransactionRequestOpenCorridor): `POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/OPEN_CORRIDOR_PROMISE/transaction-requests`
+                 |- [Attach Promise Evidence](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-attachOpenCorridorPromise): `POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/open-corridor/promise`
+                 |- [Create Settlement](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createOpenCorridorSettlement): `POST /obp/v7.0.0/banks/BANK_ID/open-corridor/settlements`
+                 |- [Get Settlement](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getOpenCorridorSettlement): `GET /obp/v7.0.0/banks/BANK_ID/open-corridor/settlements/SETTLEMENT_ID`
+                 |- [Create Fee Settlement](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-createOpenCorridorFeeSettlement): `POST /obp/v7.0.0/banks/BANK_ID/open-corridor/fee-settlements`
+                 |""".stripMargin)
+
+    glossaryItems += GlossaryItem(
+        title = "Onward Routes",
+        description =
+            s"""
+                 |# Onward Routes
+                 |
+                 |An onward route says that a bank on another OBP instance can be reached through a bank that is a member of this one.
+                 |
+                 |Get Banks lists only the members of this OBP instance. A bank that is a member of two OBP instances can carry payments between them. A payment to a bank on the other instance is paid to it here, and it pays the beneficiary bank there. Its own Bank Node states which banks on its other instances it can reach, by replacing its list of onward routes from time to time. A bank on another instance is never listed as a bank here. It appears only inside the onward routes of a member that can reach it.
+                 |
+                 |Each route names the bank it reaches by its routings (for example BIC) and its full name. It also gives the OBP instance that bank is on, its country, and the currencies a payment may be sent in. It may also carry the member's exchange rates for payments it converts.
+                 |
+                 |A route is shown only while it is valid: for `open_corridor.onward_route_validity_seconds` after the member last confirmed it (default one hour). Each exchange rate has its own, shorter validity, set by `open_corridor.onward_route_rate_validity_seconds` (default five minutes). A member whose Bank Node stops confirming drops out by itself, without anyone removing its routes.
+                 |
+                 |Routes are visible to anyone who can see the bank. Regulators can see who reaches whom, and a sending bank can check a route before paying. Only bank-to-bank reach is shown, never customers or amounts.
+                 |
+                 |A member's Bank Node writes its routes with the Scope CanUpdateOnwardRoutes at its bank. The operator grants the Scope to the members that may carry payments between OBP instances.
+                 |
+                 |## Endpoints
+                 |
+                 |- [Get Onward Routes](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-getOnwardRoutes): `GET /obp/v7.0.0/banks/BANK_ID/open-corridor/onward-routes`
+                 |- [Update Onward Routes](${apiExplorerUrl}/resource-docs/OBPv7.0.0?operationid=OBPv7.0.0-updateOnwardRoutes): `PUT /obp/v7.0.0/banks/BANK_ID/open-corridor/onward-routes`
+                 |- [Get Banks](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getBanks) and [Get Bank](${apiExplorerUrl}/resource-docs/OBPv6.0.0?operationid=OBPv6.0.0-getBank) show each bank's onward routes as `onward_routes`.
                  |""".stripMargin)
 
     ///////////////////////////////////////////////////////////////////

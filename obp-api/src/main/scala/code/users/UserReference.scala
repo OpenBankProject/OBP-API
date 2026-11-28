@@ -164,6 +164,8 @@ object UserReference {
   case object PlatformApp_MarkedByUserId                       extends UserReference(UseAuthenticatedUserId, "code.platformapp.PlatformApp", List("MarkedByUserId"), "audit: who marked the Consumer as a platform app")
   case object ConsumerAccountAccess_GrantedByUserId            extends UserReference(UseAuthenticatedUserId, "code.consumeraccountaccess.ConsumerAccountAccess", List("GrantedByUserId"), "audit: who gave the Consumer access to the view, as Entitlement_GrantedByUserId")
   case object GroupMembership_CreatedByUserId                  extends UserReference(UseAuthenticatedUserId, "code.group.GroupMembership", List("CreatedByUserId"), "audit: who added the member, as Entitlement_GrantedByUserId")
+  case object OrganisationMember_CreatedByUserId             extends UserReference(UseAuthenticatedUserId, "code.organisation.OrganisationMember", List("CreatedByUserId"), "audit: who added the member, as GroupMembership_CreatedByUserId")
+  case object DynamicDataOrganisationAccess_GrantedBy          extends UserReference(UseAuthenticatedUserId, "code.DynamicData.DynamicDataOrganisationAccess", List("GrantedBy"), "audit: who shared the record with the Organisation, as DynamicDataAccess_GrantedBy")
   case object AssetStatusHistory_ChangedByUserId              extends UserReference(UseAuthenticatedUserId, "code.asset.AssetStatusHistory", List("ChangedByUserId"), "audit: who changed the asset's status, the question a regulator asks")
   case object File_ScanStatusUpdatedByUserId                   extends UserReference(UseAuthenticatedUserId, "code.files.File", List("ScanStatusUpdatedByUserId"), "audit: who set the scan status, the scanner or the staff member who decided")
   case object RetentionPolicy_CreatedByUserId                  extends UserReference(UseAuthenticatedUserId, "code.retention.RetentionPolicy", List("CreatedByUserId"), "audit: who created the retention policy")
@@ -209,10 +211,15 @@ object UserReference {
   case object DynamicGlossaryItem_CreatedByUserId              extends UserReference(UseOnBehalfOfUserId   , "code.glossaryitem.DynamicGlossaryItem", List("CreatedByUserId"), "outlives the Consent that created it")
   case object DomainApi_CreatedByUserId                        extends UserReference(UseOnBehalfOfUserId   , "code.domainapi.DomainApi", List("CreatedByUserId"), "the Domain API's creator; a published API outlives the Consent that created it")
   case object DynamicEntityWebhook_CreatedByUserId             extends UserReference(UseOnBehalfOfUserId   , "code.dynamicentitywebhook.DynamicEntityWebhook", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: a webhook sends data out of OBP and outlives the Consent that made it, so the agent stays on CreatedByUserId (published as created_by_user_id) and the person it acted for goes to CreatedByOnBehalfOfUserId")
+  case object DynamicEntityAuditChain_StartedByUserId          extends UserReference(UseOnBehalfOfUserId   , "code.dynamicentityauditchain.DynamicEntityAuditChain", List("StartedByUserId", "StartedByOnBehalfOfUserId"), "record both: an audit trail must say which agent started the chain and for whom, and the chain outlives any Consent")
+  case object DynamicEntityAuditEntry_UserId                    extends UserReference(UseOnBehalfOfUserId   , "code.dynamicentityauditchain.DynamicEntityAuditEntry", List("UserId", "OnBehalfOfUserId"), "record both: as DynamicData_UpdatedByUserId, for the call that made the change the entry records")
+  case object DynamicEntityAuditEntry_OwnerUserId               extends UserReference(UseAuthenticatedUserId, "code.dynamicentityauditchain.DynamicEntityAuditEntry", List("OwnerUserId"), "stored as given and never resolved again: it is a copy of DynamicData.UserId as saved, which the record provider has already resolved (DynamicData_UserId), so the check can compare the two")
   case object AccountCreation_CreatedByUserId                   extends UserReference(UseOnBehalfOfUserId   , "code.accountcreation.AccountCreation", List("CreatedByUserId", "CreatedByOnBehalfOfUserId"), "record both, like Counterparty: who made the call that created the account, agent included, and the person it was made for; published in the v7.0.0 Create Account metadata. The holder is AccountHolders_User")
   case object Bank_CreatedByUserId                             extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.MappedBank", List("CreatedByUserId"), "creator grant already resolved at the endpoint")
   case object SelfServiceBank_CreatedByUserId                  extends UserReference(UseOnBehalfOfUserId   , "code.model.dataAccess.SelfServiceBank", List("createdbyuserid"), "as Bank_CreatedByUserId; the Create My Bank quota counts these rows per creator")
   case object Tenant_CreatedByUserId                     extends UserReference(UseOnBehalfOfUserId   , "code.tenant.Tenant", List("CreatedByUserId"), "outlives the Consent that created it")
+  case object Organisation_CreatedByUserId                     extends UserReference(UseOnBehalfOfUserId   , "code.organisation.Organisation", List("CreatedByUserId"), "outlives the Consent that created it, as Tenant_CreatedByUserId")
+  case object OrganisationMember_UserId                        extends UserReference(UseOnBehalfOfUserId   , "code.organisation.OrganisationMember", List("UserId"), "the member, who acts for the Organisation and its Consumers; as GroupMembership_UserId, a membership held by a consent user would die with its Consent")
   case object Asset_CreatedByUserId                            extends UserReference(UseOnBehalfOfUserId   , "code.asset.Asset", List("CreatedByUserId"), "outlives the Consent that created it, as RoutingScheme_CreatedByUserId; seeded rows hold system:asset-seed")
   case object File_UserId                                      extends UserReference(UseOnBehalfOfUserId   , "code.files.File", List("UserId", "OnBehalfOfUserId"), "record both: UserId = who uploaded (the agent), OnBehalfOfUserId = the human, who owns the file")
   case object FileAttachment_UserId                            extends UserReference(UseOnBehalfOfUserId   , "code.files.FileAttachment", List("UserId", "OnBehalfOfUserId"), "record both: UserId = who attached (the agent), OnBehalfOfUserId = the human")
@@ -273,6 +280,8 @@ object UserReference {
     PlatformApp_MarkedByUserId,
     ConsumerAccountAccess_GrantedByUserId,
     GroupMembership_CreatedByUserId,
+    OrganisationMember_CreatedByUserId,
+    DynamicDataOrganisationAccess_GrantedBy,
     AssetStatusHistory_ChangedByUserId,
     RetentionPolicy_CreatedByUserId,
     RetentionHold_PlacedByUserId,
@@ -313,10 +322,15 @@ object UserReference {
     DynamicGlossaryItem_CreatedByUserId,
     DomainApi_CreatedByUserId,
     DynamicEntityWebhook_CreatedByUserId,
+    DynamicEntityAuditChain_StartedByUserId,
+    DynamicEntityAuditEntry_UserId,
+    DynamicEntityAuditEntry_OwnerUserId,
     AccountCreation_CreatedByUserId,
     Bank_CreatedByUserId,
     SelfServiceBank_CreatedByUserId,
     Tenant_CreatedByUserId,
+    Organisation_CreatedByUserId,
+    OrganisationMember_UserId,
     Asset_CreatedByUserId,
     File_UserId,
     File_ScanStatusUpdatedByUserId,
@@ -416,6 +430,8 @@ object UserReference {
     ApiProductSubscription_CreatedByUserId -> mechanicalBatch,
     DynamicGlossaryItem_CreatedByUserId    -> mechanicalBatch,
     Tenant_CreatedByUserId           -> mechanicalBatch,
+    Organisation_CreatedByUserId           -> mechanicalBatch,
+    OrganisationMember_UserId              -> mechanicalBatch,
     SelfServiceBank_CreatedByUserId        -> mechanicalBatch,
     PayeeLookup_CreatedByUserId            -> mechanicalBatch,
     RoutingScheme_CreatedByUserId          -> mechanicalBatch,

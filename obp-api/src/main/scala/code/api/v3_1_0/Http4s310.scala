@@ -89,7 +89,7 @@ import scala.concurrent.Future
 
 object Http4s310 {
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v3_1_0
-  val versionStatus: String                      = ApiVersionStatus.STABLE.toString
+  val versionStatus: String                      = ApiVersionStatus.DEPRECATED.toString
   val resourceDocs: ArrayBuffer[ResourceDoc]     = ArrayBuffer[ResourceDoc]()
 
   implicit val formats: Formats = CustomJsonFormats.formats
@@ -1405,9 +1405,9 @@ object Http4s310 {
       case req @ GET -> `prefixPath` / "banks" / _ / "balances" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           for {
-            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(user, bank.bankId)
-            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(availablePrivateAccounts, Some(cc))
-          } yield createBalancesJson(accountsBalances)
+            (allowedAccounts, _) <- BalanceNewStyle.getAccountsWithBalancePermission(user, bank.bankId, None, Some(cc))
+            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts.map(_._1), Some(cc))
+          } yield createBalancesJson(BalanceNewStyle.moderateAccountsBalances(accountsBalances, allowedAccounts.toMap))
         }
     }
 

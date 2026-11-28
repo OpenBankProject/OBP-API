@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.model.dataAccess
 
 import code.api.util.DoobieUtil
-import com.openbankproject.commons.model.{Bank, BankId}
+import com.openbankproject.commons.model.{Bank, BankId, BankRoutingJson}
 import doobie._
 import doobie.implicits._
 import doobie.implicits.javasql._
@@ -49,6 +49,10 @@ import net.liftweb.common.{Box, Empty, Full}
  * The field names are the ones the `Bank` trait declares, not the column names, because the proxy
  * connector serializes a result to JSON and re-extracts it as BankCommons: a row whose bank id sat
  * under a different name would come back with a null bankId.
+ *
+ * `bankRoutings` is all of the bank's routings, from the bank routing table (BankRouting). It is a
+ * field rather than a lookup on each read so that it survives that round trip too, and every read
+ * here fills it for all the banks it returns with one query, not one per bank.
  */
 case class MappedBank(
   bankId: BankId,
@@ -60,7 +64,9 @@ case class MappedBank(
   nationalIdentifier: String,
   bankRoutingScheme: String,
   bankRoutingAddress: String,
-  createdByUserId: String
+  createdByUserId: String,
+  // All of the bank's routings, from the bank routing table.
+  override val bankRoutings: List[BankRoutingJson] = Nil
 ) extends Bank
 
 object MappedBank {
@@ -82,7 +88,15 @@ object MappedBank {
   }
 
   private def query(condition: Fragment): List[MappedBank] =
-    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+    withRoutings(DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow))
+
+  /** The banks with their routings from the bank routing table, read for all of them at once. */
+  private def withRoutings(banks: List[MappedBank]): List[MappedBank] =
+    if (banks.isEmpty) banks
+    else {
+      val routings = BankRouting.routingsOfBanks(banks.map(_.bankId.value))
+      banks.map(bank => bank.copy(bankRoutings = routings.getOrElse(bank.bankId.value, Nil)))
+    }
 
   private def opt(value: String): Option[String] = Option(value)
 
@@ -122,6 +136,8 @@ object MappedBank {
              websiteURL: String, swiftBIC: String, nationalIdentifier: String,
              bankRoutingScheme: String, bankRoutingAddress: String,
              createdByUserId: String): MappedBank = {
+    // A new bank's routings are stored by BankRouting.replaceRoutingsOf after the bank row, so the
+    // returned bank has the routings the table already held for its id, if any.
     val now = new java.sql.Timestamp(System.currentTimeMillis())
     DoobieUtil.runUpdate(
       sql"""INSERT INTO mappedbank
@@ -134,7 +150,8 @@ object MappedBank {
              $now, $now)"""
         .update.run)
     MappedBank(BankId(bankId), fullBankName, shortBankName, logoURL, websiteURL, swiftBIC,
-      nationalIdentifier, bankRoutingScheme, bankRoutingAddress, createdByUserId)
+      nationalIdentifier, bankRoutingScheme, bankRoutingAddress, createdByUserId,
+      BankRouting.routingsOf(bankId))
   }
 
   /**

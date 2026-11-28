@@ -20,7 +20,7 @@
          default `sbt clean publishM2`, which publishes only the default Scala version, so
          lift-persistence_2.13 did not exist however the tag was numbered. -->
     <lift.version>v1.0.5</lift.version>
-    <http4s.version>0.23.35</http4s.version>
+    <http4s.version>0.23.37</http4s.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -135,11 +135,14 @@
     <dependencies>
       <!-- Jackson BOM: forces all com.fasterxml.jackson.* 2.x artifacts to one
            version. Mixing minor versions (databind 2.12 + core 2.14 + ...) is
-           unsupported and causes subtle runtime failures. -->
+           unsupported and causes subtle runtime failures. 2.18.11 fixes the
+           jackson-core and jackson-databind advisories published up to 2026-10
+           (GHSA-7hhh-6rmp-j9qf, GHSA-p6pp-m3f8-5c89, GHSA-cxp5-3px4-pw24,
+           GHSA-wv8q-qhhj-9h54 and the earlier 2.18.8 - 2.18.10 fixes). -->
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
-        <version>2.18.7</version>
+        <version>2.18.11</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -157,11 +160,27 @@
         <artifactId>accessors-smart</artifactId>
         <version>2.6.0</version>
       </dependency>
-      <!-- Pin org.json to 20250107. Fixes CVE-2022-45688 and CVE-2023-5072. -->
+      <!-- Pin org.json to 20260719. Fixes CVE-2022-45688, CVE-2023-5072 and
+           GHSA-ghc9-756g-vrcv (unbounded numeric strings in JSONTokener). -->
       <dependency>
         <groupId>org.json</groupId>
         <artifactId>json</artifactId>
-        <version>20250107</version>
+        <version>20260719</version>
+      </dependency>
+      <!-- Pin jline, pulled in by scala-compiler (jdk8 classifier), past the
+           3.29.0 it brings. -->
+      <dependency>
+        <groupId>org.jline</groupId>
+        <artifactId>jline</artifactId>
+        <version>3.30.15</version>
+        <classifier>jdk8</classifier>
+      </dependency>
+      <!-- Pin rhino, pulled in by swagger-parser through json-schema-core, from
+           1.7R4 (2012) to 1.7.15.1. Same 1.7 API; fixes GHSA-3w8q-xq97-5j7x. -->
+      <dependency>
+        <groupId>org.mozilla</groupId>
+        <artifactId>rhino</artifactId>
+        <version>1.7.15.1</version>
       </dependency>
       <!-- Pin commons-validator to 1.9.0. Fixes CVE-2020-13956 (ReDoS in URL validation). -->
       <dependency>
@@ -223,7 +242,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>32.0.0-jre</version>
+        <version>33.7.2-jre</version>
       </dependency>
       <dependency>
         <groupId>org.scalatest</groupId>

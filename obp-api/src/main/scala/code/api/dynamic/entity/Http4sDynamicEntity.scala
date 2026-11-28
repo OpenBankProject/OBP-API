@@ -29,7 +29,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.DynamicData.{DynamicData, DynamicDataProvider, DynamicDataAccessProvider, DynamicDataAccessPermission, DynamicDataT}
 import code.api.Constant.PARAM_LOCALE
-import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, DynamicEntitySpace, EntityAccessName, EntityName, PublicEntityName}
+import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, DynamicEntitySpace, EntityAccessName, EntityName, EntityOrganisationAccessName, PublicEntityName}
 import code.api.dynamic.entity.query.{FieldSpec, InMemoryQueryExecutor, JoinTargetInfo, QueryParamParser, QueryPlan, QueryPlanner}
 import code.api.dynamic.entity.projection.{IndexingCapabilities, PostgresProjectionBackend, ProjectionReadiness}
 import cats.effect.unsafe.implicits.{global => ioRuntime} // aliased: avoids clashing with the EC `global` imported below
@@ -332,20 +332,10 @@ object Http4sDynamicEntity extends MdcLoggable {
   // write role is sufficient to PATCH that field alone. Returns the distinct role names the caller is missing.
   // For a personal entity that doesn't require a role, the entity update role on unrestricted fields is skipped,
   // but write-restricted fields are still gated by their field write role.
-  // ---- Auth mode (who may hold the entity's roles) ------------------------------------------
-  // The entity definition's authMode decides whether the data endpoints accept a User's Entitlements,
-  // a Consumer's Scopes, either, or both. Personal ("my") endpoints and row-level (ACL) entities
-  // always need a User: their rows belong to one.
-  private def authModeOf(bankId: Option[String], entityName: String): EndpointAuthMode =
-    DynamicEntityHelper.definitionOf(bankId, entityName).map(_.endpointAuthMode).getOrElse(UserOnly)
-
-  /** authenticatedAccess for user modes, applicationAccess (User optional, Consumer required) for application modes. */
-  private def entityAccess(cc: CallContext, bankId: Option[String], entityName: String, isPersonalEntity: Boolean): Future[(Box[User], Option[CallContext])] =
-    if (isPersonalEntity || isRowLevel(bankId, entityName)) authenticatedAccess(cc)
-    else authModeOf(bankId, entityName) match {
-      case ApplicationOnly | UserXORApplication => applicationAccess(cc)
-      case _ => authenticatedAccess(cc)
-    }
+  // ---- Who may call ---------------------------------------------------------------------------
+  // An entity's data endpoints work like static endpoints with Roles: a user is required. A person needs the
+  // entity's Role as an Entitlement. A Platform App acting as itself calls as its own client-credentials user
+  // and needs the Role as a Scope (APIUtil.handleAccessControlRegardingEntitlementsAndScopes).
 
   /**
    * Personal ("my") endpoints and consent users. A consent user's rows resolve to the User its
@@ -369,14 +359,14 @@ object Http4sDynamicEntity extends MdcLoggable {
     if (isPersonalEntity) userIdOpt.map(id => code.users.Users.users.vend.attributedUserId(id, code.users.UserReference.DynamicData_UserId).openOr(id))
     else userIdOpt
 
-  /** The entity's role, checked per the entity's auth mode (entitlements, scopes, either or both). */
+  /** The entity's role: an Entitlement for a person, a Scope for a Platform App acting as itself. */
   private def checkEntityRole(bankId: Option[String], entityName: String, boxUser: Box[User], role: ApiRole, callContext: Option[CallContext]): Future[Box[Unit]] = {
     val bankIdStr = DynamicEntitySpace.bankIdOrSystem(bankId)
     val userId = boxUser.map(_.userId).openOr("")
     val consumerId = code.api.util.APIUtil.getConsumerPrimaryKey(callContext)
     val errorMessage = UserHasMissingRoles + role.toString + s" at Bank($bankIdStr)"
     Helper.booleanToFuture(errorMessage, cc = callContext) {
-      code.api.util.APIUtil.handleAccessControlWithAuthMode(bankIdStr, userId, consumerId, List(role), authModeOf(bankId, entityName))
+      code.api.util.APIUtil.handleAccessControlRegardingEntitlementsAndScopes(bankIdStr, userId, consumerId, List(role))
     }
   }
 
@@ -388,9 +378,8 @@ object Http4sDynamicEntity extends MdcLoggable {
     val schemaFields = info.map(_.propertyNames).getOrElse(bodyFieldNames)
     val touched = bodyFieldNames.intersect(schemaFields)
     val writeRestricted = info.map(_.writeRestrictedFields).getOrElse(Nil).toSet
-    val authMode = authModeOf(bankId, entityName)
     def has(role: code.api.util.ApiRole): Boolean =
-      code.api.util.APIUtil.handleAccessControlWithAuthMode(DynamicEntitySpace.bankIdOrSystem(bankId), userId, consumerId, List(role), authMode)
+      code.api.util.APIUtil.handleAccessControlRegardingEntitlementsAndScopes(DynamicEntitySpace.bankIdOrSystem(bankId), userId, consumerId, List(role))
     touched.flatMap { f =>
       if (writeRestricted.contains(f)) {
         val role = DynamicEntityInfo.fieldWriteRole(entityName, f, bankId, info.flatMap(_.explicitWriteRole(f)))
@@ -584,7 +573,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
       _ <- Helper.booleanToFuture(s"$UserHasMissingRoles delete access on this row", 403, cc = callContext) {
              aclVend.allows(bankId, entityName, id, u.userId, DynamicDataAccessPermission.Delete) }
-      _ = dataVend.deleteCommunity(bankId, entityName, id)
+      _ = dataVend.deleteCommunity(bankId, entityName, id, Some(u.userId))
       _ = aclVend.deleteAllForRow(bankId, entityName, id) // cascade the ACL rows for the deleted data row
     } yield JObject(Nil)
   }
@@ -606,8 +595,19 @@ object Http4sDynamicEntity extends MdcLoggable {
     ("can_grant" -> a.canGrant) ~
     ("granted_by" -> a.grantedBy)
 
+  private def organisationAccessRowJson(a: code.DynamicData.DynamicDataOrganisationAccessT): JObject =
+    ("organisation_id" -> a.organisationId) ~
+    ("can_read" -> a.canRead) ~
+    ("can_update" -> a.canUpdate) ~
+    ("can_delete" -> a.canDelete) ~
+    ("can_grant" -> a.canGrant) ~
+    ("granted_by" -> a.grantedBy)
+
+  // Grants to Users are listed under "access" and grants to Organisations under "organisation_access",
+  // so a client that reads user_id from every "access" entry keeps working.
   private def rowAccessListJson(bankId: Option[String], entityName: String, dataId: String): JObject =
-    ("access" -> JArray(aclVend.getAccessForRow(bankId, entityName, dataId).map(rowAccessRowJson)))
+    ("access" -> JArray(aclVend.getAccessForRow(bankId, entityName, dataId).map(rowAccessRowJson))) ~
+    ("organisation_access" -> JArray(aclVend.getOrganisationAccessForRow(bankId, entityName, dataId).map(organisationAccessRowJson)))
 
   // Shared preamble: before-intercept, auth, bank, flag-off (400), grant authorisation (403).
   private def rowAccessAuthorise(cc: CallContext, bankId: Option[String], entityName: String, id: String,
@@ -643,16 +643,34 @@ object Http4sDynamicEntity extends MdcLoggable {
           case o: JObject  => List(o)
           case _           => Nil
         }
-        _ <- Helper.booleanToFuture(s"$InvalidJsonFormat each access entry needs a non-empty user_id", 400, cc = callContext) {
-               entries.nonEmpty && entries.forall(o => strField(o, "user_id").isDefined)
+        _ <- Helper.booleanToFuture(InvalidRecordAccessEntry, 400, cc = callContext) {
+               entries.nonEmpty && entries.forall(o => strField(o, "user_id").isDefined != strField(o, "organisation_id").isDefined)
+             }
+        unknownOrganisationIds = entries.flatMap(o => strField(o, "organisation_id"))
+          .filterNot(organisationId => code.organisation.Organisations.getOrganisation(organisationId).isDefined)
+        _ <- Helper.booleanToFuture(s"$RecordAccessOrganisationNotFound Current value: ${unknownOrganisationIds.mkString(", ")}", 404, cc = callContext) {
+               unknownOrganisationIds.isEmpty
              }
         _ = entries.foreach { o =>
-              aclVend.grant(bankId, entityName, id, strField(o, "user_id").get,
-                canRead = boolField(o, "can_read", default = false),
-                canUpdate = boolField(o, "can_update", default = false),
-                canDelete = boolField(o, "can_delete", default = false),
-                canGrant = boolField(o, "can_grant", default = true), // §8.1: re-share by default
-                grantedBy = granter.userId)
+              (strField(o, "user_id"), strField(o, "organisation_id")) match {
+                case (Some(grantUserId), _) =>
+                  aclVend.grant(bankId, entityName, id, grantUserId,
+                    canRead = boolField(o, "can_read", default = false),
+                    canUpdate = boolField(o, "can_update", default = false),
+                    canDelete = boolField(o, "can_delete", default = false),
+                    canGrant = boolField(o, "can_grant", default = true), // §8.1: re-share by default
+                    grantedBy = granter.userId)
+                case (None, Some(grantOrganisationId)) =>
+                  // can_grant defaults to false here: with it, every member could change the access list,
+                  // including removing the person who shared the record.
+                  aclVend.grantToOrganisation(bankId, entityName, id, grantOrganisationId,
+                    canRead = boolField(o, "can_read", default = false),
+                    canUpdate = boolField(o, "can_update", default = false),
+                    canDelete = boolField(o, "can_delete", default = false),
+                    canGrant = boolField(o, "can_grant", default = false),
+                    grantedBy = granter.userId)
+                case _ =>
+              }
             }
       } yield rowAccessListJson(bankId, entityName, id)
     }
@@ -662,6 +680,14 @@ object Http4sDynamicEntity extends MdcLoggable {
       for {
         _ <- rowAccessAuthorise(cc, bankId, entityName, id, DELETE)
         removed = aclVend.revoke(bankId, entityName, id, grantUserId).getOrElse(0) // cascades to downstream grants (§7)
+      } yield (("revoked_count" -> removed): JObject)
+    }
+
+  private def revokeOrganisationRowAccess(req: Request[IO], bankId: Option[String], entityName: String, id: String, grantOrganisationId: String): IO[Response[IO]] =
+    EndpointHelpers.executeAndRespond(req) { cc =>
+      for {
+        _ <- rowAccessAuthorise(cc, bankId, entityName, id, DELETE)
+        removed = aclVend.revokeOrganisation(bankId, entityName, id, grantOrganisationId).getOrElse(0)
       } yield (("revoked_count" -> removed): JObject)
     }
 
@@ -680,7 +706,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       val operationId = callContext0.operationId.orNull
       for {
         _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
-        (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
+        (boxUser, callContext) <- authenticatedAccess(callContext0)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
@@ -725,7 +751,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       val operationId = callContext0.operationId.orNull
       for {
         _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
-        (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
+        (boxUser, callContext) <- authenticatedAccess(callContext0)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
@@ -759,7 +785,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       val operationId = callContext0.operationId.orNull
       for {
         _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
-        (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
+        (boxUser, callContext) <- authenticatedAccess(callContext0)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
@@ -788,7 +814,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       val operationId = callContext0.operationId.orNull
       for {
         _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
-        (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
+        (boxUser, callContext) <- authenticatedAccess(callContext0)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
@@ -822,7 +848,7 @@ object Http4sDynamicEntity extends MdcLoggable {
       val operationId = callContext0.operationId.orNull
       for {
         _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
-        (boxUser, callContext) <- entityAccess(callContext0, bankId, entityName, isPersonalEntity)
+        (boxUser, callContext) <- authenticatedAccess(callContext0)
         userIdOpt = boxUser.map(_.userId).toOption
         (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionOf(bankId, entityName).exists(_.personalRequiresRole)
@@ -928,6 +954,8 @@ object Http4sDynamicEntity extends MdcLoggable {
         Some(r => upsertRowAccess(r, bankId, entityName, id))
       case (Method.DELETE, EntityAccessName(bankId, entityName, id, Some(grantUserId))) =>
         Some(r => revokeRowAccess(r, bankId, entityName, id, grantUserId))
+      case (Method.DELETE, EntityOrganisationAccessName(bankId, entityName, id, grantOrganisationId)) =>
+        Some(r => revokeOrganisationRowAccess(r, bankId, entityName, id, grantOrganisationId))
       case (method, EntityName(bankId, entityName, id, isPersonalEntity)) =>
         method match {
           case Method.GET    => Some(r => genericGet(r, bankId, entityName, id, isPersonalEntity))

@@ -140,9 +140,14 @@ object fx extends MdcLoggable {
     }
   }
 
-  def convert(amount: BigDecimal, exchangeRate: Option[Double]): BigDecimal = {
+  /**
+   * Converts an amount with an exchange rate and rounds the result to the decimal places of the
+   * currency it is converted into: 3 for OMR, 2 for EUR, 0 for JPY. Rounding every currency to 2
+   * places would lose the third decimal of an OMR, KWD or BHD amount.
+   */
+  def convert(amount: BigDecimal, exchangeRate: Option[Double], toCurrency: String): BigDecimal = {
     val result = amount * exchangeRate.get // TODO handle if None
-    result.setScale(2, BigDecimal.RoundingMode.HALF_UP)
+    result.setScale(code.util.Helper.currencyDecimalPlaces(toCurrency), BigDecimal.RoundingMode.HALF_UP)
   }
 
   /** 

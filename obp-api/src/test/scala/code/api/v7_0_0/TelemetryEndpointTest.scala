@@ -31,7 +31,7 @@ import org.json4s.jvalue2extractable
 import code.api.Constant
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetTelemetry
-import code.api.util.ErrorMessages.{ApplicationNotIdentified, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.api.v6_0_0.V600ServerSetup
 import code.entitlement.Entitlement
 import code.scope.Scope
@@ -64,7 +64,7 @@ class TelemetryEndpointTest extends V600ServerSetup {
     scenario("Anonymous access fails with 401", ApiEndpoint, VersionOfApi) {
       val response = makeGetRequest(telemetryRequest.GET)
       response.code should equal(401)
-      response.body.extract[ErrorMessage].message should equal(ApplicationNotIdentified)
+      response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
     scenario("A logged-in user without CanGetTelemetry gets 403", ApiEndpoint, VersionOfApi) {

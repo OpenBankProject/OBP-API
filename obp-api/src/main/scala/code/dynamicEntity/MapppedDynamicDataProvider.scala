@@ -144,7 +144,12 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   }
 
   override def delete(bankId: Option[String], entityName: String, id: String, userId: Option[String], isPersonalEntity: Boolean) = {
-    get(bankId, entityName, id, userId, isPersonalEntity).map(_ => deleteRecord(bankId, entityName, id))
+    get(bankId, entityName, id, userId, isPersonalEntity).map { d =>
+      val result = deleteRecord(bankId, entityName, id)
+      // Dynamic Entity audit chain: an entry in this same transaction. Does nothing for an entity without a chain.
+      if (result) code.dynamicentityauditchain.DynamicEntityAuditChains.recordDeleted(bankId, entityName, id, d.userId, userId)
+      result
+    }
   }
 
   // Community access: return ALL records regardless of userId/IsPersonalEntity
@@ -190,8 +195,13 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     // Grouped so that a long list never becomes one very long IN clause.
     ids.distinct.grouped(1000).toList.flatMap(someIds => DynamicData.findAllByIds(bankId, entityName, someIds))
 
-  override def deleteCommunity(bankId: Option[String], entityName: String, id: String): Box[Boolean] = {
-    getCommunity(bankId, entityName, id).map(_ => deleteRecord(bankId, entityName, id))
+  override def deleteCommunity(bankId: Option[String], entityName: String, id: String, callerUserId: Option[String]): Box[Boolean] = {
+    getCommunity(bankId, entityName, id).map { d =>
+      val result = deleteRecord(bankId, entityName, id)
+      // Dynamic Entity audit chain: an entry in this same transaction. Does nothing for an entity without a chain.
+      if (result) code.dynamicentityauditchain.DynamicEntityAuditChains.recordDeleted(bankId, entityName, id, d.userId, callerUserId)
+      result
+    }
   }
 
   private def deleteRecord(bankId: Option[String], entityName: String, id: String): Boolean = {
@@ -256,6 +266,9 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
       // Dynamic Entity webhooks: queued in this same transaction, so they go out only if the write commits.
       code.dynamicentitywebhook.DynamicEntityWebhookFiring.recordSaved(bankId, entityName,
         saved.dynamicDataId.getOrElse(""), before, requestBody, saved.updatedDate.getOrElse(new Date()))
+      // Dynamic Entity audit chain: an entry in this same transaction, so it is kept only if the write commits. Does nothing for an entity without a chain.
+      code.dynamicentityauditchain.DynamicEntityAuditChains.recordSaved(bankId, entityName,
+        saved.dynamicDataId.getOrElse(""), existing.isEmpty, saved.userId, dataStr, callerUserId)
       saved
     }
 

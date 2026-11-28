@@ -93,6 +93,10 @@ databaseChangeLog:
   - include:
       file: db/changelog/db.changelog-dynamic-entity-space.yaml
   - include:
+      file: db/changelog/db.changelog-develop-merge-4a.yaml
+  - include:
+      file: db/changelog/db.changelog-develop-merge-4b.yaml
+  - include:
       file: db/changelog/db.changelog-oidc-views.yaml
   - include:
       file: db/changelog/db.changelog-app-views.yaml

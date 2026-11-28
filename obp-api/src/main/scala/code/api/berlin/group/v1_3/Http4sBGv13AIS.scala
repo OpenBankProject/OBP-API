@@ -38,7 +38,7 @@ import code.api.berlin.group.v1_3.model._
 import code.api.berlin.group.v1_3.{BgSpecValidation, JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass}
 import code.api.RequestHeader
 import code.api.util.APIUtil
-import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, UserXORApplication, connectorEmptyResponse, createQueriesByHttpParams, fullBoxOrException, getHttpRequestUrlParam, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Aisp, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{Http4sHandler, Http4sRoute, EmptyBody, ResourceDoc, connectorEmptyResponse, createQueriesByHttpParams, fullBoxOrException, getHttpRequestUrlParam, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Aisp, unboxFull, unboxFullOrFail}
 import code.api.util.CallContext
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -846,9 +846,8 @@ recurringIndicator:
         consentStatus = "received",
         _links = ConsentLinksV13(Some(Href("/v1.3/consents/1234-wertiq-983/authorisations")))
       ),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List(ApplicationNotIdentified, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(createConsent)
     )
 
@@ -862,9 +861,8 @@ recurringIndicator:
             The TPP can delete an account information consent object if needed.""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List(ApplicationNotIdentified, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(deleteConsent)
     )
 
@@ -900,9 +898,8 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
                     "lastActionDate": "2019-06-30",
                     "consentStatus": "received"
                   }""")),
-      List(AuthenticatedUserIsRequired, ConsentNotFound, UnknownError),
+      List(ApplicationNotIdentified, ConsentNotFound, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsentInformation)
     )
 
@@ -918,9 +915,8 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
       JvalueCaseClass(json.parse("""{
                     "consentStatus": "received"
                    }""")),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List(ApplicationNotIdentified, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsentStatus)
     )
 
@@ -973,15 +969,13 @@ using the extended forms as indicated above.
       generalStartConsentAuthorisationSummary,
       JvalueCaseClass(json.parse("""{"scaAuthenticationData":""}""")),
       startConsentAuthorisationResponse,
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List(ApplicationNotIdentified, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       // Berlin Group's Embedded SCA step, and the TPP is the caller: the PSU either authenticated
       // at the ASPSP under Redirect or handed its factors to the TPP under Embedded. Which PSU the
       // challenge is for no longer comes from the session -- see Consent.resolveBerlinGroupPsu --
-      // so the doc can now say what the call actually is, as its GET siblings already do. Left on
-      // the UserOnly default it would 401 a client-credentials caller the day OAuth2 token parsing
-      // stops auto-vivifying a user.
-      authMode = UserXORApplication,
+      // so the doc can now say what the call actually is, as its GET siblings already do: its error
+      // list names ApplicationNotIdentified, not AuthenticatedUserIsRequired, so no user is needed.
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -994,9 +988,8 @@ using the extended forms as indicated above.
       generalStartConsentAuthorisationSummary,
       JvalueCaseClass(json.parse("""{"psuData": {"password": "start12"}}""")),
       startConsentAuthorisationResponse,
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List(ApplicationNotIdentified, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -1009,9 +1002,8 @@ using the extended forms as indicated above.
       generalStartConsentAuthorisationSummary,
       JvalueCaseClass(json.parse("""{"authenticationMethodId":""}""")),
       startConsentAuthorisationResponse,
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List(ApplicationNotIdentified, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -1056,9 +1048,8 @@ Maybe in a later version the access path will change.
         scaStatus = "received",
         _links = Some(LinksAll(scaStatus = Some(HrefType(Some(s"/v1.3/consents/1234-wertiq-983/authorisations")))))
       ),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List(ApplicationNotIdentified, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -1076,9 +1067,8 @@ Maybe in a later version the access path will change.
          |           "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
          |          }
          |        }""".stripMargin)),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List(ApplicationNotIdentified, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -1104,9 +1094,8 @@ Maybe in a later version the access path will change.
                    |             "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
                    |          }
                    |        }""".stripMargin)),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List(ApplicationNotIdentified, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -1124,9 +1113,8 @@ Maybe in a later version the access path will change.
                    |            "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
                    |          }
                    |        }""".stripMargin)),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List(ApplicationNotIdentified, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
   }
@@ -1337,7 +1325,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
       JvalueCaseClass(json.parse("""{
   "authorisationIds" : "faa3657e-13f0-4feb-a6c3-34bf21a9ae8e"
 }""")),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List(ApplicationNotIdentified, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       // The TPP reads its own consent's authorisation sub-resources; no PSU is party to the call.
       // The Implementation Guidelines put it plainly (§4.6, Authorisation Endpoints): the ASPSP
@@ -1345,11 +1333,9 @@ This function returns an array of hyperlinks to all generated authorisation sub-
       // and "the authorisation status would still result by submitting the command GET
       // .../authorisations/authorisationId". In Berlin Group the PSU never calls the API at all --
       // it authenticates at the ASPSP under Redirect, or hands its factors to the TPP under
-      // Embedded. The handler already reflects that, taking no user; only the doc disagreed, and a
-      // doc left on the UserOnly default sends the middleware down anonymousAccess, which 401s a
-      // request carrying no user. Brings these into line with the consent endpoints in this same
-      // file, which have been UserXORApplication all along.
-      authMode = UserXORApplication,
+      // Embedded. The handler already reflects that, taking no user, and so does the doc: its error list
+      // names ApplicationNotIdentified, not AuthenticatedUserIsRequired, like the consent endpoints
+      // in this same file.
       http4sPartialFunction = Some(getConsentAuthorisation)
     )
 
@@ -1366,10 +1352,9 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
       JvalueCaseClass(json.parse("""{
   "scaStatus" : "started"
 }""")),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List(ApplicationNotIdentified, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       // As above -- reading the SCA status is the TPP polling its own authorisation sub-resource.
-      authMode = UserXORApplication,
       http4sPartialFunction = Some(getConsentScaStatus)
     )
 

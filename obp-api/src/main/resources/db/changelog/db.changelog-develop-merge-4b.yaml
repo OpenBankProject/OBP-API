@@ -1,0 +1,219 @@
+databaseChangeLog:
+  # Schema for three features the fourth origin/develop merge brought in: a bank's routings, the onward
+  # routes a member bank states, and the Dynamic Entity audit chains.
+  #
+  # Upstream creates these through Lift's Schemifier; this branch has none, so every table and index the
+  # ported Doobie stores rely on is declared here, with the names and types Schemifier gives the entities
+  # (code.model.dataAccess.BankRouting, code.opencorridorroutes.OnwardRoute,
+  # code.dynamicentityauditchain.DynamicEntityAuditChain and DynamicEntityAuditEntry).
+  #
+  # Each changeset guards itself with tableExists / indexExists, so a database that already has the object
+  # (one Schemifier built for upstream) records the changeset as run instead of aborting the boot.
+
+  - changeSet:
+      id: create-table-mappedbankrouting
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: mappedbankrouting
+      comment: >-
+        The bank routings of each bank stored by the local database connector, such as its BIC and its BLZ, any number of them per bank.
+      changes:
+        - createTable:
+            tableName: mappedbankrouting
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: bankid, type: VARCHAR(255)}
+              - column: {name: scheme, type: VARCHAR(64)}
+              - column: {name: address, type: VARCHAR(255)}
+              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: updatedat, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-indexes-mappedbankrouting
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: mappedbankrouting_scheme_address
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes. The unique one keeps a routing to one bank.
+      changes:
+        - createIndex:
+            tableName: mappedbankrouting
+            indexName: mappedbankrouting_bankid
+            columns:
+              - column: {name: bankid}
+        - createIndex:
+            tableName: mappedbankrouting
+            indexName: mappedbankrouting_scheme_address
+            unique: true
+            columns:
+              - column: {name: scheme}
+              - column: {name: address}
+
+  - changeSet:
+      id: create-table-onwardroute
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: onwardroute
+      comment: >-
+        The onward routes a member bank states: the banks on other OBP instances it can reach, in the bank's order, with the routings, currencies and rates of each and when the bank last confirmed it.
+      changes:
+        - createTable:
+            tableName: onwardroute
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: bank_id, type: VARCHAR(255)}
+              - column: {name: position, type: INTEGER}
+              - column: {name: full_name, type: VARCHAR(255)}
+              - column: {name: bank_routings, type: "${text.type}"}
+              - column: {name: obp_host, type: VARCHAR(255)}
+              - column: {name: country, type: VARCHAR(8)}
+              - column: {name: currencies, type: VARCHAR(255)}
+              - column: {name: rates, type: "${text.type}"}
+              - column: {name: last_confirmed, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-indexes-onwardroute
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: onwardroute_bank_id
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: onwardroute
+            indexName: onwardroute_bank_id
+            columns:
+              - column: {name: bank_id}
+
+  - changeSet:
+      id: create-table-dynamic_entity_audit_chain
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: dynamic_entity_audit_chain
+      comment: >-
+        The audit chain of each Dynamic Entity that has one, and the root chain that ties them together: which entity, who started it and when, and the sequence number and hash of its last entry.
+      changes:
+        - createTable:
+            tableName: dynamic_entity_audit_chain
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: chain_id, type: VARCHAR(36)}
+              - column: {name: bank_id, type: VARCHAR(255)}
+              - column: {name: dynamic_entity_id, type: VARCHAR(255)}
+              - column: {name: entity_name, type: VARCHAR(255)}
+              - column: {name: last_sequence, type: BIGINT}
+              - column: {name: last_hash, type: VARCHAR(64)}
+              - column: {name: started_by_user_id, type: VARCHAR(255)}
+              - column: {name: started_by_on_behalf_of_user_id, type: VARCHAR(255)}
+              - column: {name: started_at, type: TIMESTAMP}
+
+  - changeSet:
+      id: create-indexes-dynamic_entity_audit_chain
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamic_entity_audit_chain_chain_id
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes.
+      changes:
+        - createIndex:
+            tableName: dynamic_entity_audit_chain
+            indexName: dynamic_entity_audit_chain_chain_id
+            unique: true
+            columns:
+              - column: {name: chain_id}
+        - createIndex:
+            tableName: dynamic_entity_audit_chain
+            indexName: dynamic_entity_audit_chain_dynamic_entity_id
+            unique: true
+            columns:
+              - column: {name: dynamic_entity_id}
+        - createIndex:
+            tableName: dynamic_entity_audit_chain
+            indexName: dynamic_entity_audit_chain_bank_id_entity_name
+            unique: true
+            columns:
+              - column: {name: bank_id}
+              - column: {name: entity_name}
+
+  - changeSet:
+      id: create-table-dynamic_entity_audit_entry
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: dynamic_entity_audit_entry
+      comment: >-
+        The entries of the Dynamic Entity audit chains: one per change to a record, plus each chain's first entry, each with the hash of the entry before it. Entries are only ever added.
+      changes:
+        - createTable:
+            tableName: dynamic_entity_audit_entry
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints: {primaryKey: true, nullable: false}
+              - column: {name: chain_id, type: VARCHAR(36)}
+              - column: {name: sequence, type: BIGINT}
+              - column: {name: operation, type: VARCHAR(32)}
+              - column: {name: record_id, type: VARCHAR(255)}
+              - column: {name: owner_user_id, type: VARCHAR(255)}
+              - column: {name: data_json, type: "${text.type}"}
+              - column: {name: data_hash, type: VARCHAR(64)}
+              - column: {name: user_id, type: VARCHAR(255)}
+              - column: {name: on_behalf_of_user_id, type: VARCHAR(255)}
+              - column: {name: recorded_at_millis, type: BIGINT}
+              - column: {name: previous_hash, type: VARCHAR(64)}
+              - column: {name: hash, type: VARCHAR(64)}
+
+  - changeSet:
+      id: create-indexes-dynamic_entity_audit_entry
+      author: obp
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamic_entity_audit_entry_chain_id_sequence
+      comment: The indexes upstream's Schemifier built for the entity's dbIndexes. The unique one keeps two entries of a chain from sharing a sequence number.
+      changes:
+        - createIndex:
+            tableName: dynamic_entity_audit_entry
+            indexName: dynamic_entity_audit_entry_chain_id_sequence
+            unique: true
+            columns:
+              - column: {name: chain_id}
+              - column: {name: sequence}
+        - createIndex:
+            tableName: dynamic_entity_audit_entry
+            indexName: dynamic_entity_audit_entry_chain_id_record_id
+            columns:
+              - column: {name: chain_id}
+              - column: {name: record_id}

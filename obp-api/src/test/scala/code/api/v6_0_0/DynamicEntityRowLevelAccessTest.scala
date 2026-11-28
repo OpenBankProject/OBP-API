@@ -40,7 +40,7 @@ import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
  * Row-level access (use_row_level_access) — see ideas/DYNAMIC_ENTITY_ROW_LEVEL_ACCESS.md.
  * Covers: owner bootstrap, per-row read isolation (404 hides), owner sharing with no role,
  * per-row update gate (403), revoke cascade, get-all ACL filter, admin-role override,
- * flag-off 400, and the §8.3 public/community mutual-exclusion guard.
+ * flag-off 400, the §8.3 public-access guard, community reads with the Get role, and Organisation grants.
  */
 class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
 
@@ -208,7 +208,7 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
 
   // ==================== Feature 5: flag-off & definition-time validation ====================
 
-  Feature("Feature 5: flag-off and mutual-exclusion validation") {
+  Feature("Feature 5: flag-off and flag-combination validation") {
     Scenario("5.1: access endpoints return 400 for a non-row-level entity", VersionOfApi) {
       val normalEntity: JValue =
         ("entity_name" -> "test_normal_rl") ~ ("has_personal_entity" -> false) ~ ("schema" -> simpleSchema)
@@ -237,6 +237,39 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
       val (code, _) = createSystemEntity(contradictory)
       Then("it is rejected (not 201)")
       code should equal(400)
+    }
+
+    scenario("5.3: use_row_level_access with has_community_access lets the Get role read every record", VersionOfApi) {
+      val rowLevelWithCommunity: JValue =
+        ("entity_name" -> "test_rl_community") ~
+        ("use_row_level_access" -> true) ~
+        ("has_community_access" -> true) ~
+        ("schema" -> simpleSchema)
+      val (createStatus, body) = createSystemEntity(rowLevelWithCommunity)
+      Then("the entity is created")
+      createStatus should equal(201)
+      val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
+      try {
+        val createResponse = makePostRequest((dynamicEntity_Request / "test_rl_community").POST <@ (user1), write(("name" -> "private to user1"): JValue))
+        createResponse.code should equal(201)
+        val recordId = (createResponse.body \ "test_rl_community" \ "test_rl_community_id").extract[String]
+
+        When("user2, with no grant and no role, reads the record and the community list")
+        Then("the record is hidden and the community list is refused")
+        makeGetRequest((dynamicEntity_Request / "test_rl_community" / recordId).GET <@ (user2)).code should equal(404)
+        val refusedCommunityList = makeGetRequest((dynamicEntity_Request / "community" / "test_rl_community").GET <@ (user2))
+        refusedCommunityList.code should equal(403)
+        refusedCommunityList.body.toString should include("CanGetDynamicEntityRecord_test_rl_community")
+
+        When("user2 is given the entity's Get role")
+        Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, "CanGetDynamicEntityRecord_test_rl_community")
+        Then("user2 reads every record through the community URL")
+        val communityList = makeGetRequest((dynamicEntity_Request / "community" / "test_rl_community").GET <@ (user2))
+        communityList.code should equal(200)
+        (communityList.body \ "test_rl_community_list").asInstanceOf[JArray].arr.size should equal(1)
+        And("the role still does not open the record through the shared URL, where the access list decides")
+        makeGetRequest((dynamicEntity_Request / "test_rl_community" / recordId).GET <@ (user2)).code should equal(404)
+      } finally deleteSystemEntity(dynamicEntityId)
     }
   }
 
@@ -313,4 +346,120 @@ class DynamicEntityRowLevelAccessTest extends V600ServerSetup {
     }
   }
 
+  // ==================== Feature 7: sharing with an Organisation ====================
+
+  // user1 creates the Organisation and is its admin; user2 is a member; user3 belongs to nothing.
+  private def createOrganisationWithMember(memberUserId: String): String = {
+    val organisationId = code.organisation.Organisations.createOrganisation(
+      DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, "Row access team", "", None, resourceUser1.userId, resourceUser1.userId
+    ).openOrThrowException("the Organisation should be created").organisationId
+    code.organisation.Organisations.addMember(organisationId, memberUserId, code.organisation.Organisations.RoleMember, resourceUser1.userId)
+      .openOrThrowException("the member should be added")
+    organisationId
+  }
+
+  private def grantToOrganisation(recordId: String, organisationId: String, canUpdate: Boolean) =
+    makePutRequest(
+      (dynamicEntity_Request / "test_rl" / recordId / "access").PUT <@ (user1),
+      write(("organisation_id" -> organisationId) ~ ("can_read" -> true) ~ ("can_update" -> canUpdate)))
+
+  feature("Feature 7: a grant to an Organisation follows its membership") {
+    scenario("7.1: members read and update; outsiders, former members and suspended Organisations do not", VersionOfApi) {
+      val (createStatus, body) = createSystemEntity(entityRowLevel)
+      createStatus should equal(201)
+      val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
+      val organisationId = createOrganisationWithMember(resourceUser2.userId)
+      try {
+        val recordId = createRecord("team answer")
+
+        When("user1 grants read and update to the Organisation")
+        val grantResponse = grantToOrganisation(recordId, organisationId, canUpdate = true)
+        grantResponse.code should equal(200)
+        Then("the access list shows the grant under organisation_access, with can_grant false by default")
+        val organisationGrant = (grantResponse.body \ "organisation_access").asInstanceOf[JArray].arr.head
+        (organisationGrant \ "organisation_id").extract[String] should equal(organisationId)
+        (organisationGrant \ "can_grant").extract[Boolean] should equal(false)
+
+        Then("user2, a member, reads, lists and updates the record")
+        makeGetRequest((dynamicEntity_Request / "test_rl" / recordId).GET <@ (user2)).code should equal(200)
+        val memberList = makeGetRequest((dynamicEntity_Request / "test_rl").GET <@ (user2))
+        (memberList.body \ "test_rl_list").asInstanceOf[JArray].arr.size should equal(1)
+        makePutRequest((dynamicEntity_Request / "test_rl" / recordId).PUT <@ (user2), write(("name" -> "edited by the team"): JValue))
+          .code should equal(200)
+
+        And("user2 cannot change the access list, because the Organisation has no can_grant")
+        makePutRequest(
+          (dynamicEntity_Request / "test_rl" / recordId / "access").PUT <@ (user2),
+          write(("user_id" -> resourceUser3.userId) ~ ("can_read" -> true))).code should equal(403)
+
+        And("user3, who is not a member, gets 404")
+        makeGetRequest((dynamicEntity_Request / "test_rl" / recordId).GET <@ (user3)).code should equal(404)
+
+        When("the Organisation is suspended")
+        code_organisation.updateStatus(organisationId, code_organisation.StatusSuspended)
+        Then("user2 loses access")
+        makeGetRequest((dynamicEntity_Request / "test_rl" / recordId).GET <@ (user2)).code should equal(404)
+        code_organisation.updateStatus(organisationId, code_organisation.StatusActive)
+        makeGetRequest((dynamicEntity_Request / "test_rl" / recordId).GET <@ (user2)).code should equal(200)
+
+        When("user2 leaves the Organisation")
+        code_organisation.removeMember(organisationId, resourceUser2.userId)
+        Then("user2 loses access, with no change to the grant")
+        makeGetRequest((dynamicEntity_Request / "test_rl" / recordId).GET <@ (user2)).code should equal(404)
+
+        When("user3 joins the Organisation")
+        code_organisation.addMember(organisationId, resourceUser3.userId, code_organisation.RoleMember, resourceUser1.userId)
+        Then("user3 gains access")
+        makeGetRequest((dynamicEntity_Request / "test_rl" / recordId).GET <@ (user3)).code should equal(200)
+
+        When("user1 revokes the Organisation")
+        val revokeResponse = makeDeleteRequest(
+          (dynamicEntity_Request / "test_rl" / recordId / "access" / "organisations" / organisationId).DELETE <@ (user1))
+        revokeResponse.code should equal(200)
+        (revokeResponse.body \ "revoked_count").extract[Int] should equal(1)
+        Then("its members lose access, and the creator keeps theirs")
+        makeGetRequest((dynamicEntity_Request / "test_rl" / recordId).GET <@ (user3)).code should equal(404)
+        makeGetRequest((dynamicEntity_Request / "test_rl" / recordId).GET <@ (user1)).code should equal(200)
+      } finally {
+        deleteSystemEntity(dynamicEntityId)
+        code_organisation.deleteOrganisation(organisationId)
+      }
+    }
+
+    scenario("7.2: an entry must name a User or an Organisation that exists", VersionOfApi) {
+      val (createStatus, body) = createSystemEntity(entityRowLevel)
+      createStatus should equal(201)
+      val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
+      val organisationId = createOrganisationWithMember(resourceUser2.userId)
+      try {
+        val recordId = createRecord("checked entries")
+
+        When("an entry names both a user_id and an organisation_id")
+        val bothResponse = makePutRequest(
+          (dynamicEntity_Request / "test_rl" / recordId / "access").PUT <@ (user1),
+          write(("user_id" -> resourceUser2.userId) ~ ("organisation_id" -> organisationId) ~ ("can_read" -> true)))
+        Then("it is 400")
+        bothResponse.code should equal(400)
+        bothResponse.body.toString should include(code.api.util.ErrorMessages.InvalidRecordAccessEntry.takeWhile(_ != ':'))
+
+        When("an entry names an Organisation that does not exist")
+        val unknownResponse = grantToOrganisation(recordId, "no-such-organisation", canUpdate = false)
+        Then("it is 404")
+        unknownResponse.code should equal(404)
+        unknownResponse.body.toString should include(code.api.util.ErrorMessages.RecordAccessOrganisationNotFound.takeWhile(_ != ':'))
+
+        When("the Organisation is deleted after it was granted access")
+        grantToOrganisation(recordId, organisationId, canUpdate = false).code should equal(200)
+        code_organisation.deleteOrganisation(organisationId)
+        Then("its grant is gone from the access list")
+        val accessList = makeGetRequest((dynamicEntity_Request / "test_rl" / recordId / "access").GET <@ (user1))
+        (accessList.body \ "organisation_access").asInstanceOf[JArray].arr should be(empty)
+      } finally {
+        deleteSystemEntity(dynamicEntityId)
+        code_organisation.deleteOrganisation(organisationId)
+      }
+    }
+  }
+
+  private val code_organisation = code.organisation.Organisations
 }

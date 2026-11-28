@@ -205,7 +205,7 @@ class DynamicEntityDefinitionTest extends ServerSetupWithTestData {
 
     scenario("a Consumer holding the Role as a Scope may list and update definitions", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
       // A service (the Portal, the API Manager) ensures its entities at startup with a client-credentials
-      // token: no User, so the Roles must be accepted as Scopes on its Consumer (auth mode UserXORApplication).
+      // token, so the Roles must be accepted as Scopes on its Consumer, which is a Platform App.
       // user2 holds none of these Roles and signs with testConsumer2, which gets the Scopes; application2 is
       // testConsumer2 acting as itself.
       val entityName = newEntityName()

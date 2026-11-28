@@ -102,7 +102,7 @@ class PostgresMigrationTest extends AnyFlatSpec with Matchers {
             "AND table_type = 'BASE TABLE' " +
             "AND lower(table_name) NOT IN ('databasechangelog', 'databasechangeloglock')")
         withClue("table count must match the H2 schema: ") {
-          tables should equal(173)
+          tables should equal(180)
         }
 
         val lowercased = scalar(c,

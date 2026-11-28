@@ -75,6 +75,7 @@ object ExampleValue {
 
   lazy val userIdExample = ConnectorField("9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1", s"A string that MUST uniquely identify the user on this OBP instance.")
   glossaryItems += makeGlossaryItem("User.userId", userIdExample)  
+  lazy val organisationIdExample = ConnectorField("8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0", s"A string that MUST uniquely identify the Organisation (a team that owns Consumers) on this OBP instance.")
   
   lazy val relationshipTypeExample = ConnectorField("Owner", s"Relationship between two parties.")
   glossaryItems += makeGlossaryItem("Customer.relationshipType", relationshipTypeExample)
@@ -2532,7 +2533,7 @@ object ExampleValue {
   lazy val bankFullNameExample = ConnectorField("bank fullName string", "fix me")
   lazy val bankLogoUrlExample = ConnectorField("bank logoUrl string", "fix me")
   lazy val bankWebsiteUrlExample = ConnectorField("bank websiteUrl string", "fix me")
-  lazy val bankSwiftBicExample = ConnectorField("bank swiftBic string", "fix me")
+  lazy val bankSwiftBicExample = ConnectorField("GENODEM1GLS", "Deprecated. Put the BIC in a bank routing with scheme BIC instead (bankRoutings, or bankRoutingScheme and bankRoutingAddress). This field is read only when no bank routing holds a BIC. If both hold one, they must be the same, or looking the bank up is an error.")
   lazy val bankNationalIdentifierExample = ConnectorField("bank nationalIdentifier string", "fix me")
 
   lazy val bankAccountExample = ConnectorField("bankAccount nationalIdentifier string", "fix me")

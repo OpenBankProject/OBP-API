@@ -317,6 +317,13 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM retentionrun".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM retentionrunitem".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM selfservicebank".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM obporganisationmember".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM obporganisation".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM dynamicdataorganisationaccess".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedbankrouting".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM onwardroute".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM dynamic_entity_audit_entry".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM dynamic_entity_audit_chain".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM tenant".update.run)
     // The reset empties the asset registry behind AssetLookup's in-memory copy, so forget the copy too.
     code.asset.AssetLookup.invalidate()
