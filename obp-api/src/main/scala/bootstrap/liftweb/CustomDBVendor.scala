@@ -83,6 +83,10 @@ class CustomDBVendor(driverName: String,
         config.setJdbcUrl(dbUrl)
     }
 
+    // Oracle's driver binds a double as a decimal NUMBER unless told otherwise, which keeps about 15 significant
+    // digits; with this it sends the IEEE 754 value, which the BINARY_DOUBLE columns store exactly.
+    if (code.api.util.DBUtil.isOracle) config.addDataSourceProperty("SetFloatAndDoubleUseBinary", "true")
+
     config.addDataSourceProperty("cachePrepStmts", "true")
     config.addDataSourceProperty("prepStmtCacheSize", "250")
     config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048")
