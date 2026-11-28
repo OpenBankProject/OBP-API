@@ -67,7 +67,17 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
   lazy val putCreateAccountJSONV310 = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
   lazy val putCreateAccountOtherUserJsonV310 = SwaggerDefinitionsJSON.createAccountRequestJsonV310
     .copy(user_id = resourceUser2.userId, balance = AmountOfMoneyJsonV121("EUR","0"),
-    account_routings = List(AccountRoutingJsonV121(Random.nextString(10), Random.nextString(10))))
+    account_routings = List(AccountRoutingJsonV121(randomText(10), randomText(10))))
+
+  /**
+   * Random text across the Basic Multilingual Plane, without control characters or white space. Random.nextString
+   * can end a value in a control character, which the account routing's trim removes, so the value read back
+   * differed from the one sent whenever the last character drawn happened to be one.
+   */
+  private def randomText(length: Int): String =
+    Iterator.continually((Random.nextInt(0xD7FF - 0x21) + 0x21).toChar)
+      .filterNot(c => Character.isISOControl(c) || Character.isWhitespace(c) || Character.isSpaceChar(c))
+      .take(length).mkString
 
   val userAccountId = UUID.randomUUID.toString
   val user2AccountId = UUID.randomUUID.toString
