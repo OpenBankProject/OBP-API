@@ -74,8 +74,26 @@ object Migration extends MdcLoggable {
   private val executeAll = getPropsAsBoolValue("migration_scripts.execute_all", false)
   private val scriptsToExecute: immutable.Seq[String] = getPropsValue("list_of_migration_scripts_to_execute").toList.map(_.split(",")).flatten
 
+  /**
+   * The MigrationOf* scripts reshape databases that Lift's Schemifier built, and are written for the
+   * vendors such databases ran on: H2, Postgres and SQL Server. A MySQL, MariaDB or Oracle database
+   * only ever comes from the Liquibase changelog, already in its final shape, and the scripts'
+   * Postgres spelling fails there.
+   */
+  def legacyScriptsApplyTo(dbDriver: String): Boolean = {
+    val driver = dbDriver.toLowerCase
+    !(driver.contains("mysql") || driver.contains("mariadb") || driver.contains("oracle"))
+  }
+
+  private lazy val legacyScriptsApply: Boolean = {
+    val driver = getPropsValue("db.driver", "org.h2.Driver")
+    val applies = legacyScriptsApplyTo(driver)
+    if (!applies) logger.info(s"Migration scripts are skipped on $driver: the Liquibase changelog builds that database in its final shape.")
+    applies
+  }
+
   private def executeScript(blockOfCode: => Boolean): Boolean = {
-    if(migrationScriptsEnabled) blockOfCode else migrationScriptsEnabled
+    if(migrationScriptsEnabled && legacyScriptsApply) blockOfCode else migrationScriptsEnabled
   }
   
   private def runOnce(name: String)(blockOfCode: => Boolean): Boolean = {
