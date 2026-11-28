@@ -112,7 +112,7 @@ object ApiProduct {
     DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
 
   def findByBankIdAndCode(bankId: String, apiProductCode: String): Box[ApiProduct] =
-    query(fr"WHERE bankid = $bankId AND apiproductcode = $apiProductCode LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE bankid = $bankId AND apiproductcode = $apiProductCode")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

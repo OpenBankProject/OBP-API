@@ -139,7 +139,7 @@ object Mandate {
     Option(value).map(d => new java.sql.Timestamp(d.getTime))
 
   def findByMandateId(mandateId: String): Box[Mandate] =
-    query(fr"WHERE mandateid = ${opt(mandateId)} LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE mandateid = ${opt(mandateId)}")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -256,7 +256,7 @@ object MandateProvision {
   private def opt(value: String): Option[String] = Option(value)
 
   def findByProvisionId(provisionId: String): Box[MandateProvision] =
-    query(fr"WHERE provisionid = ${opt(provisionId)} LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE provisionid = ${opt(provisionId)}")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -352,7 +352,7 @@ object SignatoryPanel {
   private def opt(value: String): Option[String] = Option(value)
 
   def findByPanelId(panelId: String): Box[SignatoryPanel] =
-    query(fr"WHERE panelid = ${opt(panelId)} LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE panelid = ${opt(panelId)}")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

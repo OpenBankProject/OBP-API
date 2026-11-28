@@ -77,8 +77,8 @@ object Reaction {
   }
 
   def find(chatMessageId: String, userId: String, emoji: String): Box[Reaction] =
-    query(fr"""WHERE chatmessageid = $chatMessageId AND userid = $userId AND emoji = $emoji
-               ORDER BY id ASC LIMIT 1""").headOption match {
+    query(DoobieUtil.firstRowOf(fr"""WHERE chatmessageid = $chatMessageId AND userid = $userId AND emoji = $emoji
+               ORDER BY id ASC""")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

@@ -62,7 +62,7 @@ object DoobieFeaturedApiCollectionsProvider extends MdcLoggable with FeaturedApi
 
   override def getFeaturedApiCollectionById(featuredApiCollectionId: String): Box[FeaturedApiCollectionTrait] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE featuredapicollectionid = $featuredApiCollectionId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE featuredapicollectionid = $featuredApiCollectionId"))
         .query[(Option[String], Option[String], Option[Int])].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -71,7 +71,7 @@ object DoobieFeaturedApiCollectionsProvider extends MdcLoggable with FeaturedApi
 
   override def getFeaturedApiCollectionByApiCollectionId(apiCollectionId: String): Box[FeaturedApiCollectionTrait] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE apicollectionid = $apiCollectionId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE apicollectionid = $apiCollectionId"))
         .query[(Option[String], Option[String], Option[Int])].option
     ) match {
       case Some(r) => Full(rowOf(r))

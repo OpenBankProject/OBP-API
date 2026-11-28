@@ -104,7 +104,7 @@ object UserAgreement {
    * `findAllByUserIds` orders the same way for the same reason — see the note there.
    */
   def newestByUserIdAndType(userId: String, agreementType: String): Box[UserAgreement] =
-    query(fr"WHERE userid = $userId AND agreementtype = $agreementType ORDER BY date_c DESC, id DESC LIMIT 1")
+    query(DoobieUtil.firstRowOf(fr"WHERE userid = $userId AND agreementtype = $agreementType ORDER BY date_c DESC, id DESC"))
       .headOption match {
         case Some(row) => Full(row)
         case None => net.liftweb.common.Empty

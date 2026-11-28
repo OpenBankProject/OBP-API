@@ -224,7 +224,7 @@ object MessageOutbox {
       outboxType.map(t => fr"outbox_type = $t")
     ).flatten
     val where = if (conditions.isEmpty) Fragment.empty else fr"WHERE " ++ conditions.reduce((a, b) => a ++ fr"AND" ++ b)
-    query(where ++ fr"ORDER BY id DESC LIMIT $limit")
+    query(where ++ DoobieUtil.limitOf(fr"ORDER BY id DESC", limit))
   }
 
   /** Record an attempt that did not settle the row: bumps attempts, keeps it PENDING. */

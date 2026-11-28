@@ -97,7 +97,7 @@ object ProductFee {
     query(fr"WHERE bankid = $bankId AND productcode = $productCode")
 
   def findByProductFeeId(productFeeId: String): Box[ProductFee] =
-    query(fr"WHERE productfeeid = $productFeeId LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE productfeeid = $productFeeId")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

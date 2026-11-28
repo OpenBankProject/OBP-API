@@ -82,7 +82,7 @@ object DoobieConsentAuthContextProvider extends ConsentAuthContextProvider with 
 
   private def findOne(consentId: String, key: String): Option[ConsentAuthContextRow] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE consentid = $consentId AND key_c = $key LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE consentid = $consentId AND key_c = $key"))
         .query[(Option[String], Option[String], Option[String], Option[String], Timestamp)].option
     ).map(rowOf)
 
@@ -115,7 +115,7 @@ object DoobieConsentAuthContextProvider extends ConsentAuthContextProvider with 
   override def deleteConsentAuthContextById(consentAuthContextId: String): Future[Box[Boolean]] =
     Future {
       DoobieUtil.runQuery(
-        (selectCols ++ fr"WHERE consentauthcontextid = $consentAuthContextId LIMIT 1")
+        (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE consentauthcontextid = $consentAuthContextId"))
           .query[(Option[String], Option[String], Option[String], Option[String], Timestamp)].option
       ) match {
         case Some(_) =>

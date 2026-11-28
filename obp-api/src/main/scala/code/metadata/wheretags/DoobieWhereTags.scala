@@ -38,8 +38,8 @@ object DoobieWhereTags extends WhereTags {
     fr"SELECT id, user_c, view_c, date_c, account, geolatitude, geolongitude, bank, transaction_c FROM mappedwheretag"
 
   private def findRow(bankId: String, accountId: String, transactionId: String, viewId: String): Option[WhereTagRow] = {
-    val q = (selectCols ++ fr"""WHERE bank = $bankId AND account = $accountId
-              AND transaction_c = $transactionId AND view_c = $viewId LIMIT 1""")
+    val q = (selectCols ++ DoobieUtil.firstRowOf(fr"""WHERE bank = $bankId AND account = $accountId
+              AND transaction_c = $transactionId AND view_c = $viewId"""))
       .query[WhereTagRow].option
     DoobieUtil.runQuery(q)
   }

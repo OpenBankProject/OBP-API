@@ -79,8 +79,8 @@ object MappedKycStatus {
     // Mapper's find(By(mBankId), By(mCustomerId)) took whichever row the database returned first;
     // id ASC pins that to the oldest so a duplicated pair updates deterministically.
     val existingId = DoobieUtil.runQuery(
-      sql"""SELECT id FROM mappedkycstatus
-            WHERE mbankid = $bankId AND mcustomerid = $customerId ORDER BY id ASC LIMIT 1"""
+      DoobieUtil.firstRowOf(sql"""SELECT id FROM mappedkycstatus
+            WHERE mbankid = $bankId AND mcustomerid = $customerId ORDER BY id ASC""")
         .query[Long].option)
     existingId match {
       case Some(id) =>

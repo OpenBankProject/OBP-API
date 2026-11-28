@@ -95,7 +95,7 @@ object DoobieUserCustomerLinkProvider extends UserCustomerLinkProvider {
 
   override def getUserCustomerLinkByCustomerId(customerId: String): Box[UserCustomerLink] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE mcustomerid = $customerId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE mcustomerid = $customerId"))
         .query[(Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -122,7 +122,7 @@ object DoobieUserCustomerLinkProvider extends UserCustomerLinkProvider {
   /** The raw lookup, on an id that has already been resolved. */
   private def getUserCustomerLinkRow(userId: String, customerId: String): Box[UserCustomerLink] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE muserid = $userId AND mcustomerid = $customerId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE muserid = $userId AND mcustomerid = $customerId"))
         .query[(Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))

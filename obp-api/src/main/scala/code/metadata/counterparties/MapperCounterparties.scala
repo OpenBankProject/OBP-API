@@ -434,7 +434,7 @@ object MappedCounterpartyMetadata {
   private def opt(value: String): Option[String] = Option(value)
 
   private def one(condition: Fragment): Box[MappedCounterpartyMetadata] =
-    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+    query(condition ++ DoobieUtil.firstRowOf(fr"ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -668,7 +668,7 @@ object MappedCounterparty {
   private def opt(value: String): Option[String] = Option(value)
 
   private def one(condition: Fragment): Box[MappedCounterparty] =
-    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+    query(condition ++ DoobieUtil.firstRowOf(fr"ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -678,7 +678,7 @@ object MappedCounterparty {
 
   /** Nothing makes the IBAN unique, so the newest row wins. */
   def findNewestBySecondaryRoutingAddress(iban: String): Box[MappedCounterparty] =
-    query(fr"WHERE motheraccountsecondaryroutingaddress = ${opt(iban)} ORDER BY id DESC LIMIT 1")
+    query(DoobieUtil.firstRowOf(fr"WHERE motheraccountsecondaryroutingaddress = ${opt(iban)} ORDER BY id DESC"))
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty

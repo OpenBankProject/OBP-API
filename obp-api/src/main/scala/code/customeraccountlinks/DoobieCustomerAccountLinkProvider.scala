@@ -61,7 +61,7 @@ object DoobieCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
 
   override def getOrCreateCustomerAccountLink(customerId: String, bankId: String, accountId: String, relationshipType: String): Box[CustomerAccountLinkTrait] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE customerid = $customerId AND bankid = $bankId AND accountid = $accountId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE customerid = $customerId AND bankid = $bankId AND accountid = $accountId"))
         .query[Row].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -70,7 +70,7 @@ object DoobieCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
 
   override def getCustomerAccountLinkByCustomerId(customerId: String): Box[CustomerAccountLinkTrait] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE customerid = $customerId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE customerid = $customerId"))
         .query[Row].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -103,7 +103,7 @@ object DoobieCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
 
   override def getCustomerAccountLinkById(customerAccountLinkId: String): Box[CustomerAccountLinkTrait] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE customeraccountlinkid = $customerAccountLinkId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE customeraccountlinkid = $customerAccountLinkId"))
         .query[Row].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -112,7 +112,7 @@ object DoobieCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
 
   override def updateCustomerAccountLinkById(customerAccountLinkId: String, relationshipType: String): Box[CustomerAccountLinkTrait] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE customeraccountlinkid = $customerAccountLinkId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE customeraccountlinkid = $customerAccountLinkId"))
         .query[Row].option
     ) match {
       case Some(r) =>

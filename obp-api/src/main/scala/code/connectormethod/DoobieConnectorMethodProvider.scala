@@ -47,7 +47,7 @@ object DoobieConnectorMethodProvider extends ConnectorMethodProvider {
 
   override def getById(connectorMethodId: String): Box[JsonConnectorMethod] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE connectormethodid = $connectorMethodId LIMIT 1").query[Row].option
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE connectormethodid = $connectorMethodId")).query[Row].option
     ) match {
       case Some(r) => Full(toJson(r))
       case None    => Empty
@@ -55,7 +55,7 @@ object DoobieConnectorMethodProvider extends ConnectorMethodProvider {
 
   override def getByMethodNameWithoutCache(methodName: String): Box[JsonConnectorMethod] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE methodname = $methodName LIMIT 1").query[Row].option
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE methodname = $methodName")).query[Row].option
     ) match {
       case Some(r) => Full(toJson(r))
       case None    => Empty
@@ -99,7 +99,7 @@ object DoobieConnectorMethodProvider extends ConnectorMethodProvider {
   override def update(connectorMethodId: String, connectorMethodBody: String, programmingLang: String,
                       updatedByUserId: Option[String]): Box[JsonConnectorMethod] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE connectormethodid = $connectorMethodId LIMIT 1").query[Row].option
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE connectormethodid = $connectorMethodId")).query[Row].option
     ) match {
       case Some(existing) =>
         tryo {
@@ -141,7 +141,7 @@ object DoobieConnectorMethodProvider extends ConnectorMethodProvider {
 
   def getByIdWithProvenance(connectorMethodId: String): Box[ConnectorMethodWithProvenance] =
     DoobieUtil.runQuery(
-      (selectProvCols ++ fr"WHERE connectormethodid = $connectorMethodId LIMIT 1").query[ProvRow].option
+      (selectProvCols ++ DoobieUtil.firstRowOf(fr"WHERE connectormethodid = $connectorMethodId")).query[ProvRow].option
     ) match {
       case Some(r) => Full(toProv(r))
       case None    => Empty

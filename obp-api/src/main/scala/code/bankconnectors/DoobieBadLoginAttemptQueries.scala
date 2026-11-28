@@ -55,7 +55,7 @@ object DoobieBadLoginAttemptQueries {
 
   def find(provider: String, username: String): Option[BadLoginAttemptRow] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE provider = $provider AND musername = $username LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE provider = $provider AND musername = $username"))
         .query[(String, Option[String], Option[Int], Timestamp)].option
     ).map(rowOf)
 

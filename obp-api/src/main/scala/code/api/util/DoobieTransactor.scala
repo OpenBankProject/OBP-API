@@ -245,13 +245,87 @@ object DoobieUtil extends MdcLoggable {
    */
   def isSqlServer: Boolean = DBUtil.isSqlServer
 
+  /** How a database writes a row limit: LIMIT, or the standard OFFSET ... FETCH that SQL Server and Oracle take. */
+  private[util] sealed trait RowLimitDialect
+  private[util] case object LimitDialect extends RowLimitDialect
+  /** SQL Server: OFFSET ... FETCH, and only after an ORDER BY. */
+  private[util] case object SqlServerFetchDialect extends RowLimitDialect
+  /** Oracle: OFFSET ... FETCH, with or without an ORDER BY. */
+  private[util] case object OracleFetchDialect extends RowLimitDialect
+
+  private def rowLimitDialect: RowLimitDialect =
+    if (isSqlServer) SqlServerFetchDialect else if (DBUtil.isOracle) OracleFetchDialect else LimitDialect
+
   /**
-   * The page clause in the form the database takes. SQL Server writes it as OFFSET ... FETCH and requires an
-   * ORDER BY in front of it; the other databases take LIMIT ... OFFSET.
+   * The page clause in the form the database takes. SQL Server and Oracle write it as OFFSET ... FETCH, and
+   * SQL Server requires an ORDER BY in front of it; the other databases take LIMIT ... OFFSET.
    */
   def pagination(limit: Int, offset: Int): Fragment =
-    if (isSqlServer) fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
-    else fr"LIMIT $limit OFFSET $offset"
+    if (rowLimitDialect == LimitDialect) fr"LIMIT $limit OFFSET $offset"
+    else fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
+
+  /**
+   * Whether `sql` has an ORDER BY of its own, outside any parentheses. SQL Server refuses OFFSET ... FETCH
+   * without one, and refuses a second one, so the row limit has to know.
+   */
+  private[util] def hasTopLevelOrderBy(sql: String): Boolean = {
+    val upper = sql.toUpperCase
+    var depth = 0
+    var found = false
+    var i = 0
+    while (i < upper.length) {
+      upper.charAt(i) match {
+        case '(' => depth += 1
+        case ')' => depth -= 1
+        case 'O' if depth == 0 && upper.startsWith("ORDER BY", i) &&
+          (i == 0 || !Character.isLetterOrDigit(upper.charAt(i - 1))) => found = true
+        case _ =>
+      }
+      i += 1
+    }
+    found
+  }
+
+  private[util] def pageFor(dialect: RowLimitDialect, query: Fragment, limit: Option[Int], offset: Option[Int]): Fragment =
+    if (limit.isEmpty && offset.isEmpty) query
+    else dialect match {
+      case LimitDialect =>
+        query ++ limit.map(n => fr"LIMIT $n").getOrElse(Fragment.empty) ++
+          offset.map(n => fr"OFFSET $n").getOrElse(Fragment.empty)
+      case _ =>
+        // ORDER BY (SELECT NULL) asks for no particular order, which is what LIMIT without ORDER BY means.
+        val order =
+          if (dialect == SqlServerFetchDialect && !hasTopLevelOrderBy(query.internals.sql)) fr"ORDER BY (SELECT NULL)"
+          else Fragment.empty
+        query ++ order ++ fr"OFFSET ${offset.getOrElse(0)} ROWS" ++
+          limit.map(n => fr"FETCH NEXT $n ROWS ONLY").getOrElse(Fragment.empty)
+    }
+
+  /**
+   * `query` with an optional page: LIMIT and OFFSET where the database has them, OFFSET ... FETCH on SQL Server
+   * and Oracle. SQL Server also needs an ORDER BY, so a query without one gets `ORDER BY (SELECT NULL)`.
+   * With neither given, `query` is unchanged.
+   *
+   * The ORDER BY is looked for in `query` itself, so pass the whole statement, or at least the part that
+   * carries its ORDER BY.
+   */
+  def pageOf(query: Fragment, limit: Option[Int], offset: Option[Int]): Fragment =
+    pageFor(rowLimitDialect, query, limit, offset)
+
+  /** `query` restricted to at most `rows` rows; see `pageOf`. */
+  def limitOf(query: Fragment, rows: Int): Fragment = pageFor(rowLimitDialect, query, Some(rows), None)
+
+  /** `query` restricted to its first row; see `pageOf`. Written as a literal 1, as `LIMIT 1` was. */
+  def firstRowOf(query: Fragment): Fragment = firstRowFor(rowLimitDialect, query)
+
+  private[util] def firstRowFor(dialect: RowLimitDialect, query: Fragment): Fragment = dialect match {
+    case LimitDialect => query ++ fr"LIMIT 1"
+    case dialect =>
+      val order =
+        if (dialect == SqlServerFetchDialect && !hasTopLevelOrderBy(query.internals.sql)) fr"ORDER BY (SELECT NULL)"
+        else Fragment.empty
+      query ++ order ++ fr"OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY"
+  }
 
   /**
    * Row locking for a SELECT is a table hint on SQL Server, placed straight after the table name, and a

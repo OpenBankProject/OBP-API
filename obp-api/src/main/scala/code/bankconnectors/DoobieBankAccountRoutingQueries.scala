@@ -34,19 +34,19 @@ object DoobieBankAccountRoutingQueries {
 
   def findByBankAccountScheme(bankId: BankId, accountId: AccountId, scheme: String): Option[BankAccountRoutingRow] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE bankid = ${bankId.value} AND accountid = ${accountId.value} AND accountroutingscheme = $scheme LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE bankid = ${bankId.value} AND accountid = ${accountId.value} AND accountroutingscheme = $scheme"))
         .query[(Option[String], Option[String], Option[String], Option[String])].option
     ).map(rowOf)
 
   def findByBankSchemeAddress(bankId: BankId, scheme: String, address: String): Option[BankAccountRoutingRow] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE bankid = ${bankId.value} AND accountroutingscheme = $scheme AND accountroutingaddress = $address LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE bankid = ${bankId.value} AND accountroutingscheme = $scheme AND accountroutingaddress = $address"))
         .query[(Option[String], Option[String], Option[String], Option[String])].option
     ).map(rowOf)
 
   def findBySchemeAddress(scheme: String, address: String): Option[BankAccountRoutingRow] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE accountroutingscheme = $scheme AND accountroutingaddress = $address LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE accountroutingscheme = $scheme AND accountroutingaddress = $address"))
         .query[(Option[String], Option[String], Option[String], Option[String])].option
     ).map(rowOf)
 

@@ -174,7 +174,7 @@ object MappedPhysicalCard {
     DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
 
   private def one(condition: Fragment): Box[MappedPhysicalCard] =
-    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+    query(condition ++ DoobieUtil.firstRowOf(fr"ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

@@ -85,7 +85,7 @@ object DoobieCrmEventProvider extends CrmEventProvider {
     )
 
   override protected def getEventFromProvider(crmEventId: CrmEventId): Option[CrmEvent] =
-    DoobieUtil.runQuery((selectCols ++ fr"WHERE mcrmeventid = ${crmEventId.value} LIMIT 1").query[Row].option).map(rowOf)
+    DoobieUtil.runQuery((selectCols ++ DoobieUtil.firstRowOf(fr"WHERE mcrmeventid = ${crmEventId.value}")).query[Row].option).map(rowOf)
 
   /**
    * Direct create used by the sandbox importer (LocalMappedConnectorDataImport) and by

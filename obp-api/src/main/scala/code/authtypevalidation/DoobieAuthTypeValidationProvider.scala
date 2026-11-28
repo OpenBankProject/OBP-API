@@ -39,8 +39,8 @@ object DoobieAuthTypeValidationProvider extends AuthenticationTypeValidationProv
   // MappedString handed back null rather than failing the read.
   private def findRow(operationId: String): Option[(String, String)] =
     DoobieUtil.runQuery(
-      sql"""SELECT operationid, allowedauthtypes FROM authenticationtypevalidation
-            WHERE operationid = $operationId LIMIT 1"""
+      DoobieUtil.firstRowOf(sql"""SELECT operationid, allowedauthtypes FROM authenticationtypevalidation
+            WHERE operationid = $operationId""")
         .query[(Option[String], Option[String])].option)
       .map { case (op, types) => (op.orNull, types.orNull) }
 

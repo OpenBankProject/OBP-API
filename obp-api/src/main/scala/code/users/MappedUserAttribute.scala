@@ -112,7 +112,7 @@ object UserAttribute {
   }
 
   def findById(userAttributeId: String): Box[UserAttribute] =
-    query(fr"WHERE userattributeid = $userAttributeId ORDER BY id ASC LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE userattributeid = $userAttributeId ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

@@ -104,14 +104,14 @@ object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider
 
   private def findByUpdateId(userAuthContextUpdateId: String): Option[UserAuthContextUpdateRow] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE muserauthcontextupdateid = $userAuthContextUpdateId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE muserauthcontextupdateid = $userAuthContextUpdateId"))
         .query[(Long, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Timestamp)].option
     ).map(rowOf)
 
   /** The update only if it was requested by the User userId at the bank bankId. */
   override def getUserAuthContextUpdateOfUserAtBank(authContextUpdateId: String, userId: String, bankId: String): Box[UserAuthContextUpdate] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE muserauthcontextupdateid = $authContextUpdateId AND muserid = $userId AND bankid = $bankId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE muserauthcontextupdateid = $authContextUpdateId AND muserid = $userId AND bankid = $bankId"))
         .query[(Long, Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Timestamp)].option
     ).map(rowOf) match {
       case Some(row) => Full(row)

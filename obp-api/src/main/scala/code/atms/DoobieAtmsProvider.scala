@@ -168,14 +168,14 @@ object DoobieAtmsProvider extends AtmsProvider {
 
   override protected def getAtmFromProvider(bankId: BankId, atmId: AtmId): Option[AtmT] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE mbankid = ${nn(bankId.value)} AND matmid = ${nn(atmId.value)} LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE mbankid = ${nn(bankId.value)} AND matmid = ${nn(atmId.value)}"))
         .query[AtmRow].option).map(rowToAtm)
 
   override protected def getAtmsFromProvider(bankId: BankId, queryParams: List[OBPQueryParam]): Option[List[AtmT]] = {
-    val limitFr  = queryParams.collectFirst { case OBPLimit(v)  => fr"LIMIT $v"  }.getOrElse(Fragment.empty)
-    val offsetFr = queryParams.collectFirst { case OBPOffset(v) => fr"OFFSET $v" }.getOrElse(Fragment.empty)
+    val limitFr  = queryParams.collectFirst { case OBPLimit(v)  => v  }
+    val offsetFr = queryParams.collectFirst { case OBPOffset(v) => v }
     Some(DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE mbankid = ${nn(bankId.value)}" ++ limitFr ++ offsetFr)
+      (DoobieUtil.pageOf(selectCols ++ fr"WHERE mbankid = ${nn(bankId.value)}", limitFr, offsetFr))
         .query[AtmRow].to[List]).map(rowToAtm))
   }
 
@@ -252,7 +252,7 @@ object DoobieAtmsProvider extends AtmsProvider {
             $now, $now)""".update.run)
     }
     rowToAtm(DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE mbankid = ${nn(atm.bankId.value)} AND matmid = ${nn(atm.atmId.value)} LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE mbankid = ${nn(atm.bankId.value)} AND matmid = ${nn(atm.atmId.value)}"))
         .query[AtmRow].option)
       .getOrElse(throw new RuntimeException(s"ATM not found after upsert: ${atm.atmId.value}")))
   }
@@ -269,9 +269,9 @@ object DoobieAtmsProvider extends AtmsProvider {
 
   // Mirrors Lift `MappedAtm.findAll()` (no bankId filter); keeps OBP LIMIT/OFFSET handling.
   override def getAllAtms(queryParams: List[OBPQueryParam]): List[AtmT] = {
-    val limitFr  = queryParams.collectFirst { case OBPLimit(v)  => fr"LIMIT $v"  }.getOrElse(Fragment.empty)
-    val offsetFr = queryParams.collectFirst { case OBPOffset(v) => fr"OFFSET $v" }.getOrElse(Fragment.empty)
-    DoobieUtil.runQuery((selectCols ++ limitFr ++ offsetFr).query[AtmRow].to[List]).map(rowToAtm)
+    val limitFr  = queryParams.collectFirst { case OBPLimit(v)  => v  }
+    val offsetFr = queryParams.collectFirst { case OBPOffset(v) => v }
+    DoobieUtil.runQuery((DoobieUtil.pageOf(selectCols, limitFr, offsetFr)).query[AtmRow].to[List]).map(rowToAtm)
   }
 
   // Single-column update helper. Mirrors Lift `find().map(_.mXxx(..).saveMe())`: returns Empty when the

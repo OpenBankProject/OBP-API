@@ -85,9 +85,9 @@ object DynamicEntityIndex {
                 indexKind: String, safeTableName: String, safeColumnName: String,
                 state: String): Unit = {
     val existingId = DoobieUtil.runQuery(
-      sql"""SELECT id FROM dynamicentityindex
+      DoobieUtil.firstRowOf(sql"""SELECT id FROM dynamicentityindex
             WHERE entityname = $entityName AND bankid = $bankId AND fieldname = $fieldName
-            ORDER BY id ASC LIMIT 1"""
+            ORDER BY id ASC""")
         .query[Long].option)
     existingId match {
       case Some(id) =>

@@ -54,7 +54,7 @@ object DoobieApiProductAttributesProvider extends MdcLoggable with ApiProductAtt
 
   override def getApiProductAttributeById(apiProductAttributeId: String): Box[ApiProductAttributeTrait] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE apiproductattributeid = $apiProductAttributeId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE apiproductattributeid = $apiProductAttributeId"))
         .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))

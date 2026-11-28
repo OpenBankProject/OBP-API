@@ -110,7 +110,7 @@ object RoutingScheme {
   }
 
   def findByScheme(scheme: String): Box[RoutingScheme] =
-    query(fr"WHERE scheme = $scheme ORDER BY id ASC LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE scheme = $scheme ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -137,7 +137,7 @@ object RoutingScheme {
 
   def findPage(country: Option[String], category: Option[String], status: Option[String],
                limit: Int, offset: Int): List[RoutingScheme] =
-    query(filters(country, category, status) ++ fr"ORDER BY scheme ASC LIMIT $limit OFFSET $offset")
+    query(DoobieUtil.pageOf(filters(country, category, status) ++ fr"ORDER BY scheme ASC", Some(limit), Some(offset)))
 
   /** Only the supplied fields change; lastupdate is always stamped. */
   def update(scheme: String, addressPattern: Option[String],
@@ -192,7 +192,7 @@ object BankSupportedRoutingScheme {
     query(fr"WHERE bankid = $bankId ORDER BY id ASC")
 
   def find(bankId: String, scheme: String): Box[BankSupportedRoutingScheme] =
-    query(fr"WHERE bankid = $bankId AND scheme = $scheme ORDER BY id ASC LIMIT 1")
+    query(DoobieUtil.firstRowOf(fr"WHERE bankid = $bankId AND scheme = $scheme ORDER BY id ASC"))
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty

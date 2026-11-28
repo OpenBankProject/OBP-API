@@ -55,8 +55,8 @@ object UserInitActionProvider extends MdcLoggable {
   def createOrUpdateInitAction(userId: String, actionName: String, actionValue: String, success: Boolean): Box[UserInitActionTrait] = {
     val now = new Timestamp(System.currentTimeMillis)
     val existing = DoobieUtil.runQuery(
-      sql"""SELECT 1 FROM userinitaction
-            WHERE userid = $userId AND actionname = $actionName AND actionvalue = $actionValue LIMIT 1"""
+      DoobieUtil.firstRowOf(sql"""SELECT 1 FROM userinitaction
+            WHERE userid = $userId AND actionname = $actionName AND actionvalue = $actionValue""")
         .query[Int].option)
 
     if (existing.isDefined) {

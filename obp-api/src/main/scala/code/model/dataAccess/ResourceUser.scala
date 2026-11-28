@@ -154,7 +154,7 @@ object ResourceUser {
   private def opt(value: String): Option[String] = Option(value)
 
   private def one(condition: Fragment): Box[ResourceUser] =
-    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+    query(condition ++ DoobieUtil.firstRowOf(fr"ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -206,10 +206,7 @@ object ResourceUser {
     val where =
       fr"WHERE isdeleted = ${params.isDeleted.getOrElse(false)}" ++
         fr"AND (createdbyconsentid IS NULL OR createdbyconsentid = '')"
-    val paging =
-      params.limit.map(value => fr"LIMIT $value").getOrElse(Fragment.empty) ++
-        params.offset.map(value => fr"OFFSET $value").getOrElse(Fragment.empty)
-    query(where ++ paging)
+    query(DoobieUtil.pageOf(where, params.limit, params.offset))
   }
 
   def insert(row: ResourceUser): ResourceUser = {

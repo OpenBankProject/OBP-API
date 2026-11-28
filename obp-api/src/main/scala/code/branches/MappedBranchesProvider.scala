@@ -256,7 +256,7 @@ object MappedBranch {
     DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
 
   def find(bankId: String, branchId: String): Box[MappedBranch] =
-    query(fr"WHERE mbankid = $bankId AND mbranchid = $branchId ORDER BY id ASC LIMIT 1")
+    query(DoobieUtil.firstRowOf(fr"WHERE mbankid = $bankId AND mbranchid = $branchId ORDER BY id ASC"))
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty
@@ -267,9 +267,9 @@ object MappedBranch {
 
   /** The listing hides soft-deleted branches; limit and offset are applied only when supplied. */
   def findLiveByBankId(bankId: String, queryParams: List[OBPQueryParam]): List[MappedBranch] = {
-    val limit = queryParams.collectFirst { case OBPLimit(value) => fr"LIMIT $value" }.getOrElse(Fragment.empty)
-    val offset = queryParams.collectFirst { case OBPOffset(value) => fr"OFFSET $value" }.getOrElse(Fragment.empty)
-    query(fr"WHERE mbankid = $bankId AND misdeleted = false ORDER BY id ASC" ++ limit ++ offset)
+    val limit = queryParams.collectFirst { case OBPLimit(value) => value }
+    val offset = queryParams.collectFirst { case OBPOffset(value) => value }
+    query(DoobieUtil.pageOf(fr"WHERE mbankid = $bankId AND misdeleted = false ORDER BY id ASC", limit, offset))
   }
 
   def createOrUpdate(

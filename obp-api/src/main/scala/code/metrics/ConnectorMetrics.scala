@@ -107,10 +107,10 @@ object MappedConnectorMetric {
       case OBPOrdering(_, OBPAscending) => fr"ORDER BY date_c ASC, id ASC"
       case OBPOrdering(_, OBPDescending) => fr"ORDER BY date_c DESC, id DESC"
     }.getOrElse(fr"ORDER BY id ASC")
-    val limit = queryParams.collectFirst { case OBPLimit(value) => fr"LIMIT $value" }.getOrElse(Fragment.empty)
-    val offset = queryParams.collectFirst { case OBPOffset(value) => fr"OFFSET $value" }.getOrElse(Fragment.empty)
+    val limit = queryParams.collectFirst { case OBPLimit(value) => value }
+    val offset = queryParams.collectFirst { case OBPOffset(value) => value }
     DoobieUtil.runQuery(
-      (selectColumns ++ where ++ ordering ++ limit ++ offset).query[Row].to[List]).map(fromRow)
+      (DoobieUtil.pageOf(selectColumns ++ where ++ ordering, limit, offset)).query[Row].to[List]).map(fromRow)
   }
 
   def deleteAll(): Unit = {

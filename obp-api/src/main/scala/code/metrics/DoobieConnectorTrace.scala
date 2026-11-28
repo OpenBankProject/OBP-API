@@ -94,10 +94,10 @@ object DoobieConnectorTrace {
       case OBPOrdering(_, OBPDescending) => fr"ORDER BY date_c DESC"
     }.getOrElse(Fragment.empty)
 
-    val limitFr  = queryParams.collectFirst { case OBPLimit(v)  => fr"LIMIT $v"  }.getOrElse(Fragment.empty)
-    val offsetFr = queryParams.collectFirst { case OBPOffset(v) => fr"OFFSET $v" }.getOrElse(Fragment.empty)
+    val limitFr  = queryParams.collectFirst { case OBPLimit(v)  => v  }
+    val offsetFr = queryParams.collectFirst { case OBPOffset(v) => v }
 
     DoobieUtil.runQuery(
-      (selectCols ++ whereFr ++ orderFr ++ limitFr ++ offsetFr).query[ConnectorTraceRow].to[List])
+      (DoobieUtil.pageOf(selectCols ++ whereFr ++ orderFr, limitFr, offsetFr)).query[ConnectorTraceRow].to[List])
   }
 }

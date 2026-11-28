@@ -345,16 +345,16 @@ object MappedTransaction extends MdcLoggable {
     Option(value).map(d => new java.sql.Timestamp(d.getTime))
 
   def find(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[MappedTransaction] =
-    query(fr"""WHERE bank = ${opt(bankId.value)} AND account = ${opt(accountId.value)}
+    query(DoobieUtil.firstRowOf(fr"""WHERE bank = ${opt(bankId.value)} AND account = ${opt(accountId.value)}
                  AND transactionid = ${opt(transactionId.value)}
-               ORDER BY id ASC LIMIT 1""").headOption match {
+               ORDER BY id ASC""")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
 
   /** A transfer is stored once per side, so an id alone can match two rows; the first one wins. */
   def findByTransactionId(transactionId: TransactionId): Box[MappedTransaction] =
-    query(fr"WHERE transactionid = ${opt(transactionId.value)} ORDER BY id ASC LIMIT 1")
+    query(DoobieUtil.firstRowOf(fr"WHERE transactionid = ${opt(transactionId.value)} ORDER BY id ASC"))
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty
@@ -380,10 +380,7 @@ object MappedTransaction extends MdcLoggable {
       case None => Fragment.empty
     }
     // OFFSET without LIMIT is valid and is what StartAt on its own produced.
-    val paging =
-      params.limit.map(value => fr"LIMIT $value").getOrElse(Fragment.empty) ++
-        params.offset.map(value => fr"OFFSET $value").getOrElse(Fragment.empty)
-    query(where ++ ordering ++ paging)
+    query(DoobieUtil.pageOf(where ++ ordering, params.limit, params.offset))
   }
 
   def countByBankAccount(bankId: BankId, accountId: AccountId): Long =

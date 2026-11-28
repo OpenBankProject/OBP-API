@@ -92,7 +92,7 @@ object MappedRegulatedEntity {
   def findAll(): List[MappedRegulatedEntity] = query(fr"ORDER BY id ASC")
 
   def findByEntityId(entityId: String): Box[MappedRegulatedEntity] =
-    query(fr"WHERE entityid = $entityId ORDER BY id ASC LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE entityid = $entityId ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

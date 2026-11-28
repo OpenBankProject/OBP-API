@@ -90,7 +90,7 @@ object MappedAccountWebhook {
   }
 
   def findById(accountWebhookId: String): Box[MappedAccountWebhook] =
-    query(fr"WHERE maccountwebhookid = $accountWebhookId ORDER BY id ASC LIMIT 1")
+    query(DoobieUtil.firstRowOf(fr"WHERE maccountwebhookid = $accountWebhookId ORDER BY id ASC"))
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty
@@ -113,9 +113,9 @@ object MappedAccountWebhook {
     val where =
       if (conditions.isEmpty) Fragment.empty
       else fr"WHERE " ++ conditions.reduce((a, b) => a ++ fr"AND" ++ b)
-    val limit = queryParams.collectFirst { case OBPLimit(value) => fr"LIMIT $value" }.getOrElse(Fragment.empty)
-    val offset = queryParams.collectFirst { case OBPOffset(value) => fr"OFFSET $value" }.getOrElse(Fragment.empty)
-    query(where ++ fr"ORDER BY id ASC" ++ limit ++ offset)
+    val limit = queryParams.collectFirst { case OBPLimit(value) => value }
+    val offset = queryParams.collectFirst { case OBPOffset(value) => value }
+    query(DoobieUtil.pageOf(where ++ fr"ORDER BY id ASC", limit, offset))
   }
 
   /** The delivery path: only active webhooks registered for this account and trigger. */

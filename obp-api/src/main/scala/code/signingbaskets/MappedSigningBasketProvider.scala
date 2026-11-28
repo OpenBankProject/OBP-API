@@ -120,7 +120,7 @@ object MappedSigningBasket {
    * than assuming there is only one. That is what Mapper's find did.
    */
   def findByBasketId(basketId: String): Box[MappedSigningBasket] =
-    query(fr"WHERE basketid = ${Option(basketId)} ORDER BY id ASC LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE basketid = ${Option(basketId)} ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

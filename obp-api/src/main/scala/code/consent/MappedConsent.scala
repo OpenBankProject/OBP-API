@@ -584,7 +584,7 @@ object MappedConsent {
     Option(value).map(d => new java.sql.Date(d.getTime))
 
   private def one(condition: Fragment): Box[MappedConsent] =
-    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+    query(condition ++ DoobieUtil.firstRowOf(fr"ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -710,10 +710,7 @@ object MappedConsent {
         fr"ORDER BY " ++ Fragment.const(column) ++ (if (ascending) fr"ASC" else fr"DESC")
       case None => Fragment.empty
     }
-    val paging =
-      limit.map(value => fr"LIMIT $value").getOrElse(Fragment.empty) ++
-        offset.map(value => fr"OFFSET $value").getOrElse(Fragment.empty)
-    query(listingFilters(status, userId, consentId, consumerId) ++ ordering ++ paging)
+    query(DoobieUtil.pageOf(listingFilters(status, userId, consentId, consumerId) ++ ordering, limit, offset))
   }
 
   def countPage(status: Option[List[String]], userId: Option[String], consentId: Option[String],

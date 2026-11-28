@@ -590,7 +590,7 @@ object Consumer extends MdcLoggable {
     Option(value).map(d => new java.sql.Timestamp(d.getTime))
 
   private def one(condition: Fragment): Box[Consumer] =
-    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+    query(condition ++ DoobieUtil.firstRowOf(fr"ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -649,10 +649,7 @@ object Consumer extends MdcLoggable {
       case Some(false) => fr"ORDER BY createdat DESC"
       case None => Fragment.empty
     }
-    val paging =
-      params.limit.map(value => fr"LIMIT $value").getOrElse(Fragment.empty) ++
-        params.offset.map(value => fr"OFFSET $value").getOrElse(Fragment.empty)
-    query(where ++ ordering ++ paging)
+    query(DoobieUtil.pageOf(where ++ ordering, params.limit, params.offset))
   }
 
   /**
@@ -1018,7 +1015,7 @@ object Token {
     Option(value).map(d => new java.sql.Timestamp(d.getTime))
 
   private def one(condition: Fragment): Box[Token] =
-    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+    query(condition ++ DoobieUtil.firstRowOf(fr"ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

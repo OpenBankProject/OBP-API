@@ -20,8 +20,8 @@ object DoobieNarratives extends Narrative {
     fr"SELECT id, account, narrative, bank, transaction_c FROM mappednarrative"
 
   private def findRow(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Option[NarrativeRow] = {
-    val q = (selectCols ++ fr"""WHERE bank = ${bankId.value} AND account = ${accountId.value}
-              AND transaction_c = ${transactionId.value} LIMIT 1""")
+    val q = (selectCols ++ DoobieUtil.firstRowOf(fr"""WHERE bank = ${bankId.value} AND account = ${accountId.value}
+              AND transaction_c = ${transactionId.value}"""))
       .query[NarrativeRow].option
     DoobieUtil.runQuery(q)
   }

@@ -135,7 +135,7 @@ object DoobieAccountAttributeProvider extends AccountAttributeProvider {
 
   override def getAccountAttributeById(accountAttributeId: String): Future[Box[AccountAttribute]] = Future {
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE maccountattributeid = $accountAttributeId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE maccountattributeid = $accountAttributeId"))
         .query[Row].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -157,7 +157,7 @@ object DoobieAccountAttributeProvider extends AccountAttributeProvider {
     accountAttributeId match {
       case Some(id) => Future {
         DoobieUtil.runQuery(
-          (selectCols ++ fr"WHERE maccountattributeid = $id LIMIT 1")
+          (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE maccountattributeid = $id"))
             .query[Row].option
         ) match {
           case Some(_) =>

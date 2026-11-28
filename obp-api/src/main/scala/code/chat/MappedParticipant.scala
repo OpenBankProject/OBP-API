@@ -95,14 +95,14 @@ object Participant {
   }
 
   def find(chatRoomId: String, userId: String): Box[Participant] =
-    query(fr"WHERE chatroomid = $chatRoomId AND userid = $userId ORDER BY id ASC LIMIT 1")
+    query(DoobieUtil.firstRowOf(fr"WHERE chatroomid = $chatRoomId AND userid = $userId ORDER BY id ASC"))
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty
       }
 
   def findByConsumerId(chatRoomId: String, consumerId: String): Box[Participant] =
-    query(fr"WHERE chatroomid = $chatRoomId AND consumerid = $consumerId ORDER BY id ASC LIMIT 1")
+    query(DoobieUtil.firstRowOf(fr"WHERE chatroomid = $chatRoomId AND consumerid = $consumerId ORDER BY id ASC"))
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty

@@ -77,7 +77,7 @@ object ConsentRequest {
     DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
 
   def findByConsentRequestId(consentRequestId: String): Box[ConsentRequest] =
-    query(fr"WHERE consentrequestid = ${Option(consentRequestId)} LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE consentrequestid = ${Option(consentRequestId)}")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

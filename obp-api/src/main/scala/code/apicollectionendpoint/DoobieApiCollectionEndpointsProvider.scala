@@ -53,8 +53,8 @@ object DoobieApiCollectionEndpointsProvider extends MdcLoggable with ApiCollecti
     operationId: String
   ): Box[ApiCollectionEndpointTrait] =
     DoobieUtil.runQuery(
-      sql"""SELECT apicollectionendpointid, apicollectionid, operationid FROM apicollectionendpoint
-            WHERE apicollectionid = $apiCollectionId AND operationid = $operationId LIMIT 1"""
+      DoobieUtil.firstRowOf(sql"""SELECT apicollectionendpointid, apicollectionid, operationid FROM apicollectionendpoint
+            WHERE apicollectionid = $apiCollectionId AND operationid = $operationId""")
         .query[(Option[String], Option[String], Option[String])].option
     ) match {
       case Some((eid, cid, op)) => Full(ApiCollectionEndpointRow(eid.orNull, cid.orNull, op.orNull))
@@ -70,8 +70,8 @@ object DoobieApiCollectionEndpointsProvider extends MdcLoggable with ApiCollecti
 
   override def getApiCollectionEndpointById(apiCollectionEndpointId: String): Box[ApiCollectionEndpointTrait] =
     DoobieUtil.runQuery(
-      sql"""SELECT apicollectionendpointid, apicollectionid, operationid FROM apicollectionendpoint
-            WHERE apicollectionendpointid = $apiCollectionEndpointId LIMIT 1"""
+      DoobieUtil.firstRowOf(sql"""SELECT apicollectionendpointid, apicollectionid, operationid FROM apicollectionendpoint
+            WHERE apicollectionendpointid = $apiCollectionEndpointId""")
         .query[(Option[String], Option[String], Option[String])].option
     ) match {
       case Some((eid, cid, op)) => Full(ApiCollectionEndpointRow(eid.orNull, cid.orNull, op.orNull))

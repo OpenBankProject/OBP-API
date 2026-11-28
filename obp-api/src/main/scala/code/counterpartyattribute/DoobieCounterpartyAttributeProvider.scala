@@ -57,7 +57,7 @@ object DoobieCounterpartyAttributeProvider extends CounterpartyAttributeProvider
 
   override def getCounterpartyAttributeById(counterpartyAttributeId: String): Future[Box[CounterpartyAttributeTrait]] = Future {
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE counterpartyattributeid = $counterpartyAttributeId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE counterpartyattributeid = $counterpartyAttributeId"))
         .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -77,7 +77,7 @@ object DoobieCounterpartyAttributeProvider extends CounterpartyAttributeProvider
     counterpartyAttributeId match {
       case Some(id) => Future {
         DoobieUtil.runQuery(
-          (selectCols ++ fr"WHERE counterpartyattributeid = $id LIMIT 1")
+          (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE counterpartyattributeid = $id"))
             .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
         ) match {
           case Some(_) =>

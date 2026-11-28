@@ -44,6 +44,10 @@ object DBUtil {
   lazy val isSqlServer: Boolean =
     dbUrl.contains("sqlserver") || APIUtil.getPropsValue("db.driver").exists(_.contains("sqlserver"))
 
+  /** Whether the configured database is Oracle, worked out once for the same reason. */
+  lazy val isOracle: Boolean =
+    dbUrl.startsWith("jdbc:oracle:") || APIUtil.getPropsValue("db.driver").exists(_.contains("oracle"))
+
   /** The endpoint timeout in whole seconds, rounded up, which is the unit JDBC takes. */
   private[code] def queryTimeoutSeconds: Int =
     math.max(1L, (Constant.longEndpointTimeoutInMillis + 999) / 1000).toInt

@@ -60,7 +60,7 @@ object DoobieCardAttributeProvider extends CardAttributeProvider {
 
   override def getCardAttributeById(cardAttributeId: String): Future[Box[CardAttribute]] = Future {
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE mcardattributeid = $cardAttributeId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE mcardattributeid = $cardAttributeId"))
         .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -80,7 +80,7 @@ object DoobieCardAttributeProvider extends CardAttributeProvider {
     cardAttributeId match {
       case Some(id) => Future {
         DoobieUtil.runQuery(
-          (selectCols ++ fr"WHERE mcardattributeid = $id LIMIT 1")
+          (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE mcardattributeid = $id"))
             .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])].option
         ) match {
           case Some(_) =>

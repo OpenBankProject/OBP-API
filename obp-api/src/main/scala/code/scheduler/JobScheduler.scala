@@ -79,7 +79,7 @@ object JobScheduler {
    * currently running or stale locks left by a dead JVM.
    */
   def mostRecent(limit: Int): List[JobScheduler] =
-    query(fr"ORDER BY createdat DESC LIMIT $limit")
+    query(DoobieUtil.limitOf(fr"ORDER BY createdat DESC", limit))
 
   def findAll(): List[JobScheduler] = query(Fragment.empty)
 
@@ -93,13 +93,13 @@ object JobScheduler {
     query(fr"WHERE createdat <= ${new java.sql.Timestamp(cutoff.getTime)}")
 
   def findByName(name: String): Box[JobScheduler] =
-    query(fr"WHERE name = $name LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE name = $name")).headOption match {
       case Some(job) => Full(job)
       case None => Empty
     }
 
   def findByJobId(jobId: String): Box[JobScheduler] =
-    query(fr"WHERE jobid = $jobId LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE jobid = $jobId")).headOption match {
       case Some(job) => Full(job)
       case None => Empty
     }

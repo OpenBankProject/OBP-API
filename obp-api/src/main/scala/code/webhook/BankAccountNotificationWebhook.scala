@@ -82,7 +82,7 @@ object BankAccountNotificationWebhook {
   }
 
   def findById(webhookId: String): Box[BankAccountNotificationWebhook] =
-    query(fr"WHERE webhookid = $webhookId ORDER BY id ASC LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE webhookid = $webhookId ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -94,9 +94,9 @@ object BankAccountNotificationWebhook {
   def findAllFiltered(queryParams: List[OBPQueryParam]): List[BankAccountNotificationWebhook] = {
     val where = queryParams.collectFirst { case OBPUserId(value) => fr"WHERE createdbyuserid = $value" }
       .getOrElse(Fragment.empty)
-    val limit = queryParams.collectFirst { case OBPLimit(value) => fr"LIMIT $value" }.getOrElse(Fragment.empty)
-    val offset = queryParams.collectFirst { case OBPOffset(value) => fr"OFFSET $value" }.getOrElse(Fragment.empty)
-    query(where ++ fr"ORDER BY id ASC" ++ limit ++ offset)
+    val limit = queryParams.collectFirst { case OBPLimit(value) => value }
+    val offset = queryParams.collectFirst { case OBPOffset(value) => value }
+    query(DoobieUtil.pageOf(where ++ fr"ORDER BY id ASC", limit, offset))
   }
 
   /** The delivery path: every bank-level webhook registered for this trigger. */

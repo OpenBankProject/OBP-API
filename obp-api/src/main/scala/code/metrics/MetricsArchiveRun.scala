@@ -131,11 +131,11 @@ object MetricsArchiveRun {
       // deployment. CI runs postgres:16-alpine and H2 never required it, so nothing here goes
       // red - and the scheduler calls recordRun again from inside its own catch, so the second
       // throw escapes runOnce and the table stops being pruned at all.
-      sql"""DELETE FROM metricsarchiverun WHERE id < (
-              SELECT MIN(id) FROM (
-                SELECT id FROM metricsarchiverun ORDER BY id DESC LIMIT $keep
-              ) AS recent
-            )"""
+      (sql"""DELETE FROM metricsarchiverun WHERE id < (
+              SELECT MIN(id) FROM (""" ++
+        DoobieUtil.limitOf(fr"SELECT id FROM metricsarchiverun ORDER BY id DESC", keep) ++
+        fr""") AS recent
+            )""")
         .update.run)
     ()
   }
@@ -146,7 +146,7 @@ object MetricsArchiveRun {
   /** Most recent run by start time, if any. */
   def lastRun: Option[MetricsArchiveRunTrait] =
     DoobieUtil.runQuery(
-      (selectColumns ++ fr"ORDER BY startedat DESC LIMIT 1")
+      (selectColumns ++ DoobieUtil.firstRowOf(fr"ORDER BY startedat DESC"))
         .query[(Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[Long], Option[Int], Option[Int], Option[Boolean], Option[String])]
         .option
     ).map(fromRow)
@@ -154,7 +154,7 @@ object MetricsArchiveRun {
   /** Most recent successful run by start time, if any. */
   def lastSuccessfulRun: Option[MetricsArchiveRunTrait] =
     DoobieUtil.runQuery(
-      (selectColumns ++ fr"WHERE success = true ORDER BY startedat DESC LIMIT 1")
+      (selectColumns ++ DoobieUtil.firstRowOf(fr"WHERE success = true ORDER BY startedat DESC"))
         .query[(Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[Long], Option[Int], Option[Int], Option[Boolean], Option[String])]
         .option
     ).map(fromRow)

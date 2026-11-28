@@ -34,8 +34,8 @@ object DoobieJsonSchemaValidationProvider extends JsonSchemaValidationProvider {
 
   private def findRow(operationId: String): Option[JsonValidation] =
     DoobieUtil.runQuery(
-      sql"""SELECT operationid, jsonschema FROM jsonschemavalidation
-            WHERE operationid = $operationId LIMIT 1"""
+      DoobieUtil.firstRowOf(sql"""SELECT operationid, jsonschema FROM jsonschemavalidation
+            WHERE operationid = $operationId""")
         .query[(Option[String], Option[String])].option
     ).map { case (op, schema) => JsonValidation(op.orNull, schema.orNull) }
 

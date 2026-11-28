@@ -79,8 +79,8 @@ object MapperAccountHolders extends AccountHolders with MdcLoggable {
    * the resulting 500 carries no OBP frame to point at the cause.
    */
   def find(userKey: Long, bankId: String, accountId: String): Box[MapperAccountHolders] =
-    query(fr"""WHERE user_c = $userKey AND accountbankpermalink = ${Option(bankId)}
-               AND accountpermalink = ${Option(accountId)} ORDER BY id ASC LIMIT 1""")
+    query(DoobieUtil.firstRowOf(fr"""WHERE user_c = $userKey AND accountbankpermalink = ${Option(bankId)}
+               AND accountpermalink = ${Option(accountId)} ORDER BY id ASC"""))
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty

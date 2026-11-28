@@ -90,7 +90,7 @@ object DoobieUserAuthContextProvider extends UserAuthContextProvider with MdcLog
 
   private def findOne(userId: String, key: String): Option[UserAuthContextRow] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE muserid = $userId AND mkey = $key LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE muserid = $userId AND mkey = $key"))
         .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Timestamp)].option
     ).map(rowOf)
 
@@ -134,7 +134,7 @@ object DoobieUserAuthContextProvider extends UserAuthContextProvider with MdcLog
   override def deleteUserAuthContextById(userAuthContextId: String): Future[Box[Boolean]] =
     Future {
       DoobieUtil.runQuery(
-        (selectCols ++ fr"WHERE muserauthcontextid = $userAuthContextId LIMIT 1")
+        (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE muserauthcontextid = $userAuthContextId"))
           .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Timestamp)].option
       ) match {
         case Some(_) =>

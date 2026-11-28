@@ -87,7 +87,7 @@ object DynamicGlossaryItem {
 
   /** Lookup is on the lower-cased copy, so it is case insensitive on every database collation. */
   def findByTitle(title: String): Box[DynamicGlossaryItem] =
-    query(fr"WHERE titlelowercase = ${title.toLowerCase} ORDER BY id ASC LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE titlelowercase = ${title.toLowerCase} ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -101,7 +101,7 @@ object DynamicGlossaryItem {
       .getOrElse(Fragment.empty)
     val total = DoobieUtil.runQuery(
       (fr"SELECT count(*) FROM dynamicglossaryitem" ++ where).query[Int].unique)
-    val rows = query(where ++ fr"ORDER BY titlelowercase ASC LIMIT $limit OFFSET $offset")
+    val rows = query(DoobieUtil.pageOf(where ++ fr"ORDER BY titlelowercase ASC", Some(limit), Some(offset)))
     (rows, total)
   }
 

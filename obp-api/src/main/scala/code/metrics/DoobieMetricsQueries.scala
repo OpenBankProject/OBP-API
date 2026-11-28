@@ -212,7 +212,7 @@ object DoobieMetricsQueries {
       ORDER BY count(*) DESC
     """
 
-    val limitClause = if (isSqlServer) fr"" else fr"LIMIT $limit"
+    val limitClause = if (isSqlServer) fr"" else DoobieUtil.limitOf(Fragment.empty, limit)
 
     val fullQuery = baseQuery ++ conditions ++ groupAndOrder ++ limitClause
 
@@ -292,7 +292,7 @@ object DoobieMetricsQueries {
       ORDER BY count(*) DESC
     """
 
-    val limitClause = if (isSqlServer) fr"" else fr"LIMIT $limit"
+    val limitClause = if (isSqlServer) fr"" else DoobieUtil.limitOf(Fragment.empty, limit)
 
     listWithTimeout[(Long, String, String, String)](baseQuery ++ conditions ++ groupAndOrder ++ limitClause).map { rows =>
       rows.map { case (count, consumerId, appName, developerEmail) =>
@@ -383,7 +383,7 @@ object DoobieMetricsQueries {
       ORDER BY count(*) DESC
     """
 
-    val limitClause = if (isSqlServer) fr"" else fr"LIMIT $limit"
+    val limitClause = if (isSqlServer) fr"" else DoobieUtil.limitOf(Fragment.empty, limit)
 
     val fullQuery = baseQuery ++ conditions ++ groupAndOrder ++ limitClause
 
@@ -474,7 +474,7 @@ object DoobieMetricsQueries {
       ORDER BY count(*) DESC
     """
 
-    val limitClause = if (isSqlServer) fr"" else fr"LIMIT $limit"
+    val limitClause = if (isSqlServer) fr"" else DoobieUtil.limitOf(Fragment.empty, limit)
 
     val fullQuery = baseQuery ++ conditions ++ groupAndOrder ++ limitClause
 
@@ -549,7 +549,7 @@ object DoobieMetricsQueries {
       ORDER BY count DESC
     """
 
-    val limitClause = if (isSqlServer) fr"" else fr"LIMIT $limit"
+    val limitClause = if (isSqlServer) fr"" else DoobieUtil.limitOf(Fragment.empty, limit)
 
     val fullQuery = baseQuery ++ conditions ++ groupAndOrder ++ limitClause
 

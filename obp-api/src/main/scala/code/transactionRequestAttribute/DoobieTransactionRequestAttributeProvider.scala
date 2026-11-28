@@ -99,7 +99,7 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
 
   override def getTransactionRequestAttributeById(transactionRequestAttributeId: String): Future[Box[TransactionRequestAttributeTrait]] = Future {
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE transactionrequestattributeid = $transactionRequestAttributeId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE transactionrequestattributeid = $transactionRequestAttributeId"))
         .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -157,7 +157,7 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
     transactionRequestAttributeId match {
       case Some(id) => Future {
         DoobieUtil.runQuery(
-          (selectCols ++ fr"WHERE transactionrequestattributeid = $id LIMIT 1")
+          (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE transactionrequestattributeid = $id"))
             .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
         ) match {
           case Some((_, _, _, _, _, _, existingIsPersonal)) =>

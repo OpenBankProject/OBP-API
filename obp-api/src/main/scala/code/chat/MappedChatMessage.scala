@@ -105,7 +105,7 @@ object ChatMessage {
   }
 
   def findByChatMessageId(chatMessageId: String): Box[ChatMessage] =
-    query(fr"WHERE chatmessageid = $chatMessageId ORDER BY id ASC LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE chatmessageid = $chatMessageId ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -114,7 +114,7 @@ object ChatMessage {
     val from = new java.sql.Timestamp(fromDate.getTime)
     val to = new java.sql.Timestamp(toDate.getTime)
     query(fr"""WHERE chatroomid = $chatRoomId AND createdat >= $from AND createdat <= $to
-               ORDER BY id ASC LIMIT $limit OFFSET $offset""")
+               ORDER BY id ASC""" ++ DoobieUtil.pagination(limit, offset))
   }
 
   def findThreadReplies(threadId: String): List[ChatMessage] =
@@ -122,7 +122,7 @@ object ChatMessage {
 
   def findMentionsForUser(userId: String, limit: Int, offset: Int): List[ChatMessage] =
     query(fr"""WHERE mentioneduserids LIKE ${"%" + userId + "%"}
-               ORDER BY id DESC LIMIT $limit OFFSET $offset""")
+               ORDER BY id DESC""" ++ DoobieUtil.pagination(limit, offset))
 
   def countUnread(chatRoomId: String, userId: String, since: Date): Long = {
     val ts = new java.sql.Timestamp(since.getTime)

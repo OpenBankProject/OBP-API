@@ -21,7 +21,7 @@ object DoobieUserRefreshesProvider extends UserRefreshesProvider {
 
   override def needToRefreshUser(userId: String): Boolean =
     DoobieUtil.runQuery(
-      sql"SELECT updatedat FROM mappeduserrefreshes WHERE muserid = $userId LIMIT 1".query[java.sql.Timestamp].option
+      DoobieUtil.firstRowOf(sql"SELECT updatedat FROM mappeduserrefreshes WHERE muserid = $userId").query[java.sql.Timestamp].option
     ) match {
       case Some(updatedAt) =>
         val userRefreshesInterval = APIUtil.getPropsAsIntValue("refresh_user.interval", 30)

@@ -711,7 +711,7 @@ object MetricArchive extends MetricStore[MetricArchive] {
       row.authType, row.domainApiUrl)
 
   def findByMetricId(metricId: Long): Box[MetricArchive] =
-    query(fr"WHERE metricid = $metricId ORDER BY id ASC LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE metricid = $metricId ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -890,28 +890,25 @@ abstract class MetricStore[A] {
         fr"ORDER BY " ++ Fragment.const(column) ++ (if (ascending) fr"ASC" else fr"DESC")
       case None => Fragment.empty
     }
-    val paging =
-      params.limit.map(value => fr"LIMIT $value").getOrElse(Fragment.empty) ++
-        params.offset.map(value => fr"OFFSET $value").getOrElse(Fragment.empty)
-    query(where ++ ordering ++ paging)
+    query(DoobieUtil.pageOf(where ++ ordering, params.limit, params.offset))
   }
 
   /** The most recent metrics of one user, newest first. */
   def findNewestByUserId(userId: String, limit: Int): List[A] =
-    query(fr"WHERE userid = ${opt(userId)} ORDER BY date_c DESC LIMIT $limit")
+    query(DoobieUtil.limitOf(fr"WHERE userid = ${opt(userId)} ORDER BY date_c DESC", limit))
 
   /** The oldest and newest dates in the table, for the integrity report. */
   def oldestDate(): Option[Date] =
-    query(fr"ORDER BY date_c ASC LIMIT 1").headOption.map(dateOf)
+    query(DoobieUtil.firstRowOf(fr"ORDER BY date_c ASC")).headOption.map(dateOf)
 
   def newestDate(): Option[Date] =
-    query(fr"ORDER BY date_c DESC LIMIT 1").headOption.map(dateOf)
+    query(DoobieUtil.firstRowOf(fr"ORDER BY date_c DESC")).headOption.map(dateOf)
 
   protected def dateOf(row: A): Date
 
   /** Oldest first, for the archiver's candidate window. */
   def findOldestOnOrBefore(date: Date, limit: Int): List[A] =
-    query(fr"WHERE date_c <= ${timestamp(date)} ORDER BY date_c ASC LIMIT $limit")
+    query(DoobieUtil.limitOf(fr"WHERE date_c <= ${timestamp(date)} ORDER BY date_c ASC", limit))
 
   def countOnOrBefore(date: Date): Long =
     DoobieUtil.runQuery(

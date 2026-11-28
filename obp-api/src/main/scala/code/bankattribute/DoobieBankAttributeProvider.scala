@@ -58,7 +58,7 @@ object DoobieBankAttributeProvider extends BankAttributeProviderTrait {
 
   override def getBankAttributeById(bankAttributeId: String): Future[Box[BankAttributeTrait]] = Future {
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE bankattributeid = $bankAttributeId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE bankattributeid = $bankAttributeId"))
         .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -78,7 +78,7 @@ object DoobieBankAttributeProvider extends BankAttributeProviderTrait {
     bankAttributeId match {
       case Some(id) => Future {
         DoobieUtil.runQuery(
-          (selectCols ++ fr"WHERE bankattributeid = $id LIMIT 1")
+          (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE bankattributeid = $id"))
             .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
         ) match {
           case Some(_) =>

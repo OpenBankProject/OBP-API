@@ -108,7 +108,7 @@ object DoobieCustomerAttributeProvider extends CustomerAttributeProvider {
 
   override def getCustomerAttributeById(customerAttributeId: String): Future[Box[CustomerAttribute]] = Future {
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE mcustomerattributeid = $customerAttributeId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE mcustomerattributeid = $customerAttributeId"))
         .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -127,7 +127,7 @@ object DoobieCustomerAttributeProvider extends CustomerAttributeProvider {
     customerAttributeId match {
       case Some(id) => Future {
         DoobieUtil.runQuery(
-          (selectCols ++ fr"WHERE mcustomerattributeid = $id LIMIT 1")
+          (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE mcustomerattributeid = $id"))
             .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])].option
         ) match {
           case Some(_) =>

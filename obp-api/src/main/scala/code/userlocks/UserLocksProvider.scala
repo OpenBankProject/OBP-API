@@ -67,8 +67,8 @@ object UserLocksProvider extends MdcLoggable {
 
   private def findByUserId(userId: String): Option[UserLockRow] =
     DoobieUtil.runQuery(
-      sql"""SELECT userid, typeoflock, lastlockdate FROM userlocks
-            WHERE userid = $userId LIMIT 1"""
+      DoobieUtil.firstRowOf(sql"""SELECT userid, typeoflock, lastlockdate FROM userlocks
+            WHERE userid = $userId""")
         .query[(Option[String], Option[String], Timestamp)].option
     ).map { case (u, t, d) => UserLockRow(u.orNull, t.orNull, new Date(d.getTime)) }
 

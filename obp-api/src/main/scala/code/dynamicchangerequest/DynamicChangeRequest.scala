@@ -122,7 +122,7 @@ object DynamicChangeRequest {
     DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
 
   def findById(dynamicChangeRequestId: String): Box[DynamicChangeRequest] =
-    query(fr"WHERE dynamicchangerequestid = $dynamicChangeRequestId ORDER BY id ASC LIMIT 1")
+    query(DoobieUtil.firstRowOf(fr"WHERE dynamicchangerequestid = $dynamicChangeRequestId ORDER BY id ASC"))
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty

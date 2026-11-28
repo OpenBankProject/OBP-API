@@ -93,7 +93,7 @@ object MappedProduct {
     DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
 
   def find(bankId: String, code: String): Box[MappedProduct] =
-    query(fr"WHERE mbankid = $bankId AND mcode = $code ORDER BY id ASC LIMIT 1")
+    query(DoobieUtil.firstRowOf(fr"WHERE mbankid = $bankId AND mcode = $code ORDER BY id ASC"))
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty

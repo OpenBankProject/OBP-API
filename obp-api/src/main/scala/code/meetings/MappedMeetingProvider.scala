@@ -98,8 +98,8 @@ object MappedMeeting {
     DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
 
   def find(bankId: String, meetingId: String): Box[MappedMeeting] =
-    query(fr"""WHERE m.mbankid = $bankId AND m.mmeetingid = $meetingId
-               ORDER BY m.mwhen DESC, m.id DESC LIMIT 1""").headOption match {
+    query(DoobieUtil.firstRowOf(fr"""WHERE m.mbankid = $bankId AND m.mmeetingid = $meetingId
+               ORDER BY m.mwhen DESC, m.id DESC""")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -127,7 +127,7 @@ object MappedMeeting {
   }
 
   def findByKey(meetingKey: Long): Box[MappedMeeting] =
-    query(fr"WHERE m.id = $meetingKey LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE m.id = $meetingKey")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

@@ -86,7 +86,7 @@ object MappedAccountIdMappingProvider extends AccountIdMappingProvider with MdcL
 
   private def findByReference(accountPlainTextReference: String): Box[AccountId] =
     DoobieUtil.runQuery(
-      sql"SELECT maccountid FROM accountidmapping WHERE maccountplaintextreference = $accountPlainTextReference LIMIT 1"
+      DoobieUtil.firstRowOf(sql"SELECT maccountid FROM accountidmapping WHERE maccountplaintextreference = $accountPlainTextReference")
         .query[String].option
     ) match {
       case Some(id) => Full(AccountId(id))
@@ -95,7 +95,7 @@ object MappedAccountIdMappingProvider extends AccountIdMappingProvider with MdcL
 
   override def getAccountPlainTextReference(accountId: AccountId): Box[String] =
     DoobieUtil.runQuery(
-      sql"SELECT maccountplaintextreference FROM accountidmapping WHERE maccountid = ${accountId.value} LIMIT 1"
+      DoobieUtil.firstRowOf(sql"SELECT maccountplaintextreference FROM accountidmapping WHERE maccountid = ${accountId.value}")
         .query[String].option
     ) match {
       case Some(ref) => Full(ref)

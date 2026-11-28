@@ -84,7 +84,7 @@ object AmqpBankBroker {
 
   def findByBankId(bankId: String): Box[AmqpBankBroker] =
     DoobieUtil.runQuery(
-      (selectColumns ++ fr"WHERE bank_id = $bankId LIMIT 1").query[Row].option
+      (selectColumns ++ DoobieUtil.firstRowOf(fr"WHERE bank_id = $bankId")).query[Row].option
     ) match {
       case Some(row) => Full(fromRow(row))
       case None => Empty

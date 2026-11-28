@@ -86,14 +86,14 @@ object MappedEntitlementRequest {
   }
 
   def find(bankId: String, userId: String, roleName: String): Box[MappedEntitlementRequest] =
-    query(fr"""WHERE mbankid = $bankId AND muserid = $userId AND mrolename = $roleName
-               ORDER BY id ASC LIMIT 1""").headOption match {
+    query(DoobieUtil.firstRowOf(fr"""WHERE mbankid = $bankId AND muserid = $userId AND mrolename = $roleName
+               ORDER BY id ASC""")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
 
   def findById(entitlementRequestId: String): Box[MappedEntitlementRequest] =
-    query(fr"WHERE mentitlementrequestid = $entitlementRequestId ORDER BY id ASC LIMIT 1")
+    query(DoobieUtil.firstRowOf(fr"WHERE mentitlementrequestid = $entitlementRequestId ORDER BY id ASC"))
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty
@@ -125,9 +125,9 @@ object MappedEntitlementRequest {
       case OBPOrdering(_, OBPAscending) => fr"ORDER BY createdat ASC, id ASC"
       case OBPOrdering(_, OBPDescending) => fr"ORDER BY createdat DESC, id DESC"
     }.getOrElse(fr"ORDER BY id ASC")
-    val limit = queryParams.collectFirst { case OBPLimit(value) => fr"LIMIT $value" }.getOrElse(Fragment.empty)
-    val offset = queryParams.collectFirst { case OBPOffset(value) => fr"OFFSET $value" }.getOrElse(Fragment.empty)
-    query(where ++ ordering ++ limit ++ offset)
+    val limit = queryParams.collectFirst { case OBPLimit(value) => value }
+    val offset = queryParams.collectFirst { case OBPOffset(value) => value }
+    query(DoobieUtil.pageOf(where ++ ordering, limit, offset))
   }
 
   def delete(entitlementRequestId: String): Boolean =

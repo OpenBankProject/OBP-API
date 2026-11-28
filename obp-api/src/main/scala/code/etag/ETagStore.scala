@@ -32,8 +32,8 @@ object ETagStore {
 
   def find(eTagResource: String): Option[ETagRow] =
     DoobieUtil.runQuery(
-      sql"""SELECT etagresource, etagvalue, lastupdatedmssinceepoch FROM etag
-            WHERE etagresource = $eTagResource LIMIT 1"""
+      DoobieUtil.firstRowOf(sql"""SELECT etagresource, etagvalue, lastupdatedmssinceepoch FROM etag
+            WHERE etagresource = $eTagResource""")
         .query[(Option[String], Option[String], Option[Long])].option
     ).map { case (r, v, t) => ETagRow(r.orNull, v.orNull, t.getOrElse(0L)) }
 

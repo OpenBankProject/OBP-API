@@ -298,7 +298,7 @@ object ViewDefinition {
   private def opt(value: String): Option[String] = Option(value)
 
   private def one(condition: Fragment): Box[ViewDefinition] =
-    query(condition ++ fr"ORDER BY id_ ASC LIMIT 1").headOption match {
+    query(condition ++ DoobieUtil.firstRowOf(fr"ORDER BY id_ ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

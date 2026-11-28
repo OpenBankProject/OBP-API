@@ -137,7 +137,7 @@ object MappedExpectedChallengeAnswer {
   }
 
   def findByChallengeId(challengeId: String): Box[MappedExpectedChallengeAnswer] =
-    query(fr"WHERE challengeid = $challengeId ORDER BY id ASC LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE challengeid = $challengeId ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

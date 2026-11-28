@@ -43,7 +43,7 @@ object DoobieTransactionTypeProvider extends TransactionTypeProvider {
 
   override protected def getTransactionTypeFromProvider(transactionTypeId: TransactionTypeId): Option[TransactionType] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE mtransactiontypeid = ${transactionTypeId.value} LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE mtransactiontypeid = ${transactionTypeId.value}"))
         .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Long])].option
     ).map(rowToTransactionType)
 

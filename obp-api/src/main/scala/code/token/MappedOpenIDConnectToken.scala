@@ -87,7 +87,7 @@ object OpenIDConnectToken {
   /** The newest token set for a user, or None when they have never logged in via OIDC. */
   def newestByAuthUserPrimaryKey(authUserPrimaryKey: Long): Option[OpenIDConnectToken] =
     DoobieUtil.runQuery(
-      (selectColumns ++ fr"WHERE authuserprimarykey = $authUserPrimaryKey ORDER BY createdat DESC LIMIT 1")
+      (selectColumns ++ DoobieUtil.firstRowOf(fr"WHERE authuserprimarykey = $authUserPrimaryKey ORDER BY createdat DESC"))
         .query[Row].option
     ).map(fromRow)
 

@@ -45,7 +45,7 @@ object DoobieMigrationScriptLogProvider extends MigrationScriptLogProvider with 
 
   private def findOne(name: String, isSuccessful: Boolean): Option[MigrationScriptLogRow] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE name = $name AND issuccessful = $isSuccessful LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE name = $name AND issuccessful = $isSuccessful"))
         .query[(Long, Option[String], Option[String], Option[String], Option[Boolean], Option[Long], Option[Long], Option[String])].option
     ).map(rowOf)
 

@@ -88,7 +88,7 @@ object MethodRouting extends CustomJsonFormats {
     DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
 
   def findByMethodRoutingId(methodRoutingId: String): Box[MethodRouting] =
-    query(fr"WHERE methodroutingid = $methodRoutingId LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE methodroutingid = $methodRoutingId")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

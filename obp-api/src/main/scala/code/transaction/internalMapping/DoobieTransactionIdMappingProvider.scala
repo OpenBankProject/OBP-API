@@ -47,7 +47,7 @@ object DoobieTransactionIdMappingProvider extends TransactionIdMappingProvider w
 
   private def findByReference(transactionPlainTextReference: String): Box[TransactionId] =
     DoobieUtil.runQuery(
-      sql"SELECT transactionid FROM transactionidmapping WHERE transactionplaintextreference = $transactionPlainTextReference LIMIT 1"
+      DoobieUtil.firstRowOf(sql"SELECT transactionid FROM transactionidmapping WHERE transactionplaintextreference = $transactionPlainTextReference")
         .query[String].option
     ) match {
       case Some(id) => Full(TransactionId(id))
@@ -56,7 +56,7 @@ object DoobieTransactionIdMappingProvider extends TransactionIdMappingProvider w
 
   override def getTransactionPlainTextReference(transactionId: TransactionId): Box[String] =
     DoobieUtil.runQuery(
-      sql"SELECT transactionplaintextreference FROM transactionidmapping WHERE transactionid = ${transactionId.value} LIMIT 1"
+      DoobieUtil.firstRowOf(sql"SELECT transactionplaintextreference FROM transactionidmapping WHERE transactionid = ${transactionId.value}")
         .query[String].option
     ) match {
       case Some(ref) => Full(ref)

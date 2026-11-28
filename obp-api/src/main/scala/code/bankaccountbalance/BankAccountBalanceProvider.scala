@@ -101,7 +101,7 @@ object DoobieBankAccountBalanceProvider extends BankAccountBalanceProviderTrait 
     balanceAmount: BigDecimal
   ): Future[Box[BankAccountBalance]] = Future {
     DoobieUtil.runQuery(
-      sql"SELECT accountcurrency FROM mappedbankaccount WHERE theaccountid = ${accountId.value} LIMIT 1"
+      DoobieUtil.firstRowOf(sql"SELECT accountcurrency FROM mappedbankaccount WHERE theaccountid = ${accountId.value}")
         .query[String].option
     ) match {
       case Some(currency) =>

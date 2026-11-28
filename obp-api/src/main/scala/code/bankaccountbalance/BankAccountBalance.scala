@@ -76,8 +76,9 @@ object BankAccountBalance {
    */
   private val selectColumns =
     fr"""SELECT b.balanceid_, b.bankid_, b.accountid_, b.balancetype, b.balanceamount,
-                COALESCE((SELECT a.accountcurrency FROM mappedbankaccount a
-                          WHERE a.theaccountid = b.accountid_ LIMIT 1), 'EUR'),
+                COALESCE((""" ++
+      DoobieUtil.firstRowOf(fr"SELECT a.accountcurrency FROM mappedbankaccount a WHERE a.theaccountid = b.accountid_") ++
+      fr"""), 'EUR'),
                 b.referencedate, b.updatedat
          FROM bankaccountbalance b"""
 
@@ -115,7 +116,7 @@ object BankAccountBalance {
     }
 
   def findByBalanceId(balanceId: String): Box[BankAccountBalance] =
-    query(fr"WHERE b.balanceid_ = $balanceId LIMIT 1").headOption match {
+    query(DoobieUtil.firstRowOf(fr"WHERE b.balanceid_ = $balanceId")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }
@@ -123,7 +124,7 @@ object BankAccountBalance {
   /** The currency of the account this balance belongs to, or "EUR" when the account is unknown. */
   def accountCurrency(accountId: String): String =
     DoobieUtil.runQuery(
-      sql"SELECT accountcurrency FROM mappedbankaccount WHERE theaccountid = $accountId LIMIT 1"
+      DoobieUtil.firstRowOf(sql"SELECT accountcurrency FROM mappedbankaccount WHERE theaccountid = $accountId")
         .query[String].option
     ).getOrElse("EUR")
 

@@ -97,7 +97,7 @@ object DoobieCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
   private def find(bankId: String, accountId: String, viewId: String, counterpartyId: String): Option[Row] =
     DoobieUtil.runQuery(
       (selectCols ++
-        fr"WHERE bankid = $bankId AND accountid = $accountId AND viewid = $viewId AND counterpartyid = $counterpartyId LIMIT 1")
+        DoobieUtil.firstRowOf(fr"WHERE bankid = $bankId AND accountid = $accountId AND viewid = $viewId AND counterpartyid = $counterpartyId"))
         .query[Row].option
     )
 

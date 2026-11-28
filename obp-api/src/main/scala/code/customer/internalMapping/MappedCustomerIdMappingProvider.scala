@@ -81,7 +81,7 @@ object MappedCustomerIdMappingProvider extends CustomerIdMappingProvider with Md
 
   private def findByReference(customerPlainTextReference: String): Box[CustomerId] =
     DoobieUtil.runQuery(
-      sql"SELECT mcustomerid FROM mappedcustomeridmapping WHERE mcustomerplaintextreference = $customerPlainTextReference LIMIT 1"
+      DoobieUtil.firstRowOf(sql"SELECT mcustomerid FROM mappedcustomeridmapping WHERE mcustomerplaintextreference = $customerPlainTextReference")
         .query[String].option
     ) match {
       case Some(id) => Full(CustomerId(id))
@@ -90,7 +90,7 @@ object MappedCustomerIdMappingProvider extends CustomerIdMappingProvider with Md
 
   override def getCustomerPlainTextReference(customerId: CustomerId): Box[String] =
     DoobieUtil.runQuery(
-      sql"SELECT mcustomerplaintextreference FROM mappedcustomeridmapping WHERE mcustomerid = ${customerId.value} LIMIT 1"
+      DoobieUtil.firstRowOf(sql"SELECT mcustomerplaintextreference FROM mappedcustomeridmapping WHERE mcustomerid = ${customerId.value}")
         .query[String].option
     ) match {
       case Some(ref) => Full(ref)

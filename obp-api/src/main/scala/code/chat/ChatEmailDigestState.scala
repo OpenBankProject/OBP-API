@@ -57,8 +57,8 @@ object ChatEmailDigestState {
 
   private def find(userId: String): Box[ChatEmailDigestState] =
     DoobieUtil.runQuery(
-      sql"""SELECT user_id, last_notified_at FROM chat_email_digest_state
-            WHERE user_id = $userId LIMIT 1""".query[Row].option
+      DoobieUtil.firstRowOf(sql"""SELECT user_id, last_notified_at FROM chat_email_digest_state
+            WHERE user_id = $userId""").query[Row].option
     ) match {
       case Some(r) => Full(fromRow(r))
       case None    => Empty

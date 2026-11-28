@@ -613,7 +613,7 @@ object MappedTransactionRequest {
     Option(value).map(d => new java.sql.Date(d.getTime))
 
   private def one(condition: Fragment): Box[MappedTransactionRequest] =
-    query(condition ++ fr"ORDER BY id ASC LIMIT 1").headOption match {
+    query(condition ++ DoobieUtil.firstRowOf(fr"ORDER BY id ASC")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

@@ -70,7 +70,7 @@ object DoobieApiCollectionsProvider extends MdcLoggable with ApiCollectionsProvi
 
   override def getApiCollectionById(apiCollectionId: String): Box[ApiCollectionTrait] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE apicollectionid = $apiCollectionId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE apicollectionid = $apiCollectionId"))
         .query[Row].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -100,7 +100,7 @@ object DoobieApiCollectionsProvider extends MdcLoggable with ApiCollectionsProvi
     apiCollectionName: String
   ): Box[ApiCollectionTrait] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE userid = $userId AND apicollectionname = $apiCollectionName LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE userid = $userId AND apicollectionname = $apiCollectionName"))
         .query[Row].option
     ) match {
       case Some(r) => Full(rowOf(r))

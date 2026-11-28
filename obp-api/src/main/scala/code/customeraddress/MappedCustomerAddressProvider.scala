@@ -82,14 +82,14 @@ object MappedCustomerAddress {
   /** The numeric MAPPEDCUSTOMER key for a public customer id, or None when the customer is absent. */
   private def customerKey(customerId: String): Option[Long] =
     DoobieUtil.runQuery(
-      sql"SELECT id FROM mappedcustomer WHERE mcustomerid = $customerId ORDER BY id ASC LIMIT 1"
+      DoobieUtil.firstRowOf(sql"SELECT id FROM mappedcustomer WHERE mcustomerid = $customerId ORDER BY id ASC")
         .query[Long].option)
 
   def findAllByCustomerId(customerId: String): Option[List[MappedCustomerAddress]] =
     customerKey(customerId).map(key => query(fr"WHERE a.mcustomerid = $key ORDER BY a.id ASC"))
 
   def findById(customerAddressId: String): Box[MappedCustomerAddress] =
-    query(fr"WHERE a.mcustomeraddressid = $customerAddressId ORDER BY a.id ASC LIMIT 1")
+    query(DoobieUtil.firstRowOf(fr"WHERE a.mcustomeraddressid = $customerAddressId ORDER BY a.id ASC"))
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty

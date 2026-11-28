@@ -42,7 +42,7 @@ object DoobieFXRateQueries {
 
   private def findExact(bankId: String, from: String, to: String): Option[FXRateRow] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE mbankid = $bankId AND mfromcurrencycode = $from AND mtocurrencycode = $to LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE mbankid = $bankId AND mfromcurrencycode = $from AND mtocurrencycode = $to"))
         .query[(Option[String], Option[String], Option[String], Option[Double], Option[Double], Timestamp)].option
     ).map(rowOf)
 

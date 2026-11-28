@@ -59,7 +59,7 @@ object DoobieAtmAttributeProvider extends AtmAttributeProviderTrait {
 
   override def getAtmAttributeById(atmAttributeId: String): Future[Box[AtmAttributeTrait]] = Future {
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE atmattributeid = $atmAttributeId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE atmattributeid = $atmAttributeId"))
         .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -80,7 +80,7 @@ object DoobieAtmAttributeProvider extends AtmAttributeProviderTrait {
     atmAttributeId match {
       case Some(id) => Future {
         DoobieUtil.runQuery(
-          (selectCols ++ fr"WHERE atmattributeid = $id LIMIT 1")
+          (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE atmattributeid = $id"))
             .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[Boolean])].option
         ) match {
           case Some(_) =>

@@ -75,8 +75,8 @@ object ApiProductSubscriptionAttribute {
     query(fr"WHERE apiproductsubscriptionid = $apiProductSubscriptionId ORDER BY id ASC")
 
   def findById(apiProductSubscriptionAttributeId: String): Box[ApiProductSubscriptionAttribute] =
-    query(fr"""WHERE apiproductsubscriptionattributeid = $apiProductSubscriptionAttributeId
-               ORDER BY id ASC LIMIT 1""").headOption match {
+    query(DoobieUtil.firstRowOf(fr"""WHERE apiproductsubscriptionattributeid = $apiProductSubscriptionAttributeId
+               ORDER BY id ASC""")).headOption match {
       case Some(row) => Full(row)
       case None => Empty
     }

@@ -80,7 +80,7 @@ object MappedAccountApplication {
   def findAll(): List[MappedAccountApplication] = query(fr"ORDER BY id ASC")
 
   def findById(accountApplicationId: String): Box[MappedAccountApplication] =
-    query(fr"WHERE maccountapplicationid = $accountApplicationId ORDER BY id ASC LIMIT 1")
+    query(DoobieUtil.firstRowOf(fr"WHERE maccountapplicationid = $accountApplicationId ORDER BY id ASC"))
       .headOption match {
         case Some(row) => Full(row)
         case None => Empty

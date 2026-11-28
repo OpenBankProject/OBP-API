@@ -63,14 +63,14 @@ object DoobieCustomerLinkProvider extends CustomerLinkProvider {
               VALUES ($id, $bankId, $customerId, $otherBankId, $otherCustomerId, $relationshipTo, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"""
           .update.run)
       DoobieUtil.runQuery(
-        (selectCols ++ fr"WHERE customerlinkid = $id LIMIT 1")
+        (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE customerlinkid = $id"))
           .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])].unique
       )
     }.map(rowOf)
 
   override def getCustomerLinkById(customerLinkId: String): Box[CustomerLinkTrait] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE customerlinkid = $customerLinkId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE customerlinkid = $customerLinkId"))
         .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])].option
     ) match {
       case Some(r) => Full(rowOf(r))
@@ -95,7 +95,7 @@ object DoobieCustomerLinkProvider extends CustomerLinkProvider {
 
   override def updateCustomerLinkById(customerLinkId: String, relationshipTo: String): Box[CustomerLinkTrait] =
     DoobieUtil.runQuery(
-      (selectCols ++ fr"WHERE customerlinkid = $customerLinkId LIMIT 1")
+      (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE customerlinkid = $customerLinkId"))
         .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])].option
     ) match {
       case Some(_) =>
@@ -104,7 +104,7 @@ object DoobieCustomerLinkProvider extends CustomerLinkProvider {
             sql"UPDATE customerlink SET relationshipto = $relationshipTo, updatedat = CURRENT_TIMESTAMP WHERE customerlinkid = $customerLinkId"
               .update.run)
           DoobieUtil.runQuery(
-            (selectCols ++ fr"WHERE customerlinkid = $customerLinkId LIMIT 1")
+            (selectCols ++ DoobieUtil.firstRowOf(fr"WHERE customerlinkid = $customerLinkId"))
               .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])].unique
           )
         }.map(rowOf)
