@@ -56,15 +56,15 @@ object OracleEmptyStrings {
       } else if (c == '"') {
         val end = sql.indexOf('"', i + 1)
         val stop = if (end < 0) n else end + 1
-        out.append(sql, i, stop); i = stop
+        out.append(sql.substring(i, stop)); i = stop
       } else if (c == '-' && i + 1 < n && sql.charAt(i + 1) == '-') {
         val end = sql.indexOf('\n', i)
         val stop = if (end < 0) n else end
-        out.append(sql, i, stop); i = stop
+        out.append(sql.substring(i, stop)); i = stop
       } else if (c == '/' && i + 1 < n && sql.charAt(i + 1) == '*') {
         val end = sql.indexOf("*/", i + 2)
         val stop = if (end < 0) n else end + 2
-        out.append(sql, i, stop); i = stop
+        out.append(sql.substring(i, stop)); i = stop
       } else {
         out.append(c); i += 1
       }
