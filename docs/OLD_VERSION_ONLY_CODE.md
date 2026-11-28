@@ -377,6 +377,17 @@ Each commented-out endpoint had tests, and the handler that serves the same path
 
 The first compared tests. It listed the HTTP status codes the old scenarios asserted for the old endpoint, and the codes the current scenarios assert for the newer handler. Where an old case had no newer counterpart, the old scenario was ported to `/obp/v5.1.0/`. `OlderHandlersServedByV510Test` covers the twelve handlers that had no test at all. `ReplacedEndpointChecksTest` ports the rest: product attribute ownership, the role and ownership checks of User Auth Context updates, balance visibility, a duplicate account id, a missing counterparty account, consumer or bank, anonymous product and ATM reads, the input checks of card creation and the actions a new view may get. A few newer handlers answer with another status code than the old one, for example 400 instead of 409 for a duplicate account id (see `docs/http_status_conventions.md`), and the tests check what they answer now.
 
+A third pass looked for checks that are still live but had lost their only test. In each case the scenario that asserted the check was commented out with its version. Six were found and ported:
+
+- The user who made a transaction request cannot answer its challenge through a view without the maker-checker bypass. The answer is refused with 400 MakerCheckerSameUser (`v4_0_0/TransactionRequestsTest`).
+- An update of a custom view that does not exist is refused with 400, and a new custom view is created with 201 (`v3_0_0/ViewsTests`). These two scenarios had been commented out only because they listed the views through the v3.0.0 endpoint, which is gone. They now read the views from the provider.
+- A user with CanUpdateConsumerRedirectUrl cannot change the redirect URL of a Consumer another user created. The role is needed even when `consumers_enabled_by_default` is true (`v5_1_0/ConsumerTest`).
+- Create Account refuses an ACCOUNT_ID in the wrong format with 400 InvalidAccountIdFormat (`ReplacedEndpointChecksTest`).
+- Creating, reading or changing a product attribute needs a login and the role for it (`ReplacedEndpointChecksTest`).
+- Reading the other account of a transaction that does not exist returns 400 (`v1_2_1/API1_2_1Test`). This scenario had been commented out, but its endpoint is still served.
+
+The same pass found that v5.0.0 Create Account checked the bank id format against the account id. It now checks the bank id.
+
 The second compared the checks themselves. For each pair, it listed the error messages the old handler could return and the newer one could not. Most differences are the same check with another message, or a check done in a shared function or the connector. Two were real, and both are fixed:
 
 - v4.0.0 Get Product Attribute did not check that the attribute belongs to the bank and product in the path, so a role at one bank read any bank's attribute. Update Product Attribute had the same gap, which upstream fixed at the same time.
