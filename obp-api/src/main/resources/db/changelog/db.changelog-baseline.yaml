@@ -1323,7 +1323,7 @@ databaseChangeLog:
         columns:
         - column:
             name: value
-            type: ${unbounded.varchar.type}
+            type: ${attribute.value.type}
         - column:
             name: bankid
             type: VARCHAR(44)

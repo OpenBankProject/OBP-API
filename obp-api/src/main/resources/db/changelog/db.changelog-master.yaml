@@ -190,6 +190,28 @@ databaseChangeLog:
       name: column.catalog
       value: '(SELECT table_name, column_name, char_length AS character_maximum_length FROM user_tab_columns)'
       dbms: oracle
+  # transactionrequestattribute.value is compared with = in the attribute queries, and Oracle cannot compare a CLOB,
+  # so there it is VARCHAR2(4000). Everywhere else it is the unbounded text the other unbounded columns are.
+  - property:
+      name: attribute.value.type
+      value: VARCHAR
+      dbms: h2
+  - property:
+      name: attribute.value.type
+      value: VARCHAR
+      dbms: postgresql
+  - property:
+      name: attribute.value.type
+      value: LONGTEXT
+      dbms: mysql,mariadb
+  - property:
+      name: attribute.value.type
+      value: NVARCHAR(MAX)
+      dbms: mssql
+  - property:
+      name: attribute.value.type
+      value: VARCHAR2(4000)
+      dbms: oracle
   # Binary content has no portable spelling either: Liquibase's BLOB is an oid reference on Postgres,
   # which a plain bytea value cannot be written to.
   - property:
