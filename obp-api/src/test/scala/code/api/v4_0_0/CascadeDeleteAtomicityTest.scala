@@ -56,6 +56,10 @@ import org.scalatest.Tag
  */
 class CascadeDeleteAtomicityTest extends V400ServerSetup {
 
+  // A table-level FOREIGN KEY, because MySQL parses a column-level REFERENCES and ignores it. Oracle has no BIGINT.
+  private val bigintType = if (code.api.util.DBUtil.isOracle) "NUMBER(19)" else "BIGINT"
+
+
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object DeleteAccountCascade extends Tag(nameOf(Implementations4_0_0.deleteAccountCascade))
   object DeleteBankCascade extends Tag(nameOf(Implementations4_0_0.deleteBankCascade))
@@ -136,7 +140,7 @@ class CascadeDeleteAtomicityTest extends V400ServerSetup {
       // A row that still refers to the account, so deleting the account itself, the last step, fails. On H2 (and
       // MySQL, SQL Server, Oracle) the deletes before it stay in the transaction; Postgres aborts the whole one.
       val table = "mappedbankaccount"
-      runSql(s"CREATE TABLE cascade_atomicity_blocker (account_pk BIGINT REFERENCES $table(id))")
+      runSql(s"CREATE TABLE cascade_atomicity_blocker (account_pk ${bigintType}, FOREIGN KEY (account_pk) REFERENCES $table(id))")
       try {
         runSql(s"INSERT INTO cascade_atomicity_blocker (account_pk) VALUES ($accountPk)")
 
@@ -162,7 +166,7 @@ class CascadeDeleteAtomicityTest extends V400ServerSetup {
       // A row that still refers to the customer, so deleting the customer itself, the last step, fails. The attributes
       // are deleted by an earlier step: they must be back after the failure.
       val table = "mappedcustomer"
-      runSql(s"CREATE TABLE cascade_customer_atomicity_blocker (customer_pk BIGINT REFERENCES $table(id))")
+      runSql(s"CREATE TABLE cascade_customer_atomicity_blocker (customer_pk ${bigintType}, FOREIGN KEY (customer_pk) REFERENCES $table(id))")
       try {
         runSql(s"INSERT INTO cascade_customer_atomicity_blocker (customer_pk) VALUES ($customerPk)")
 
