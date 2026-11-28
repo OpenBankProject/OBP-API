@@ -378,11 +378,25 @@ class MigratedTablesExistTest extends ServerSetup {
               JOIN pg_namespace n ON n.oid = c.relnamespace
               WHERE n.nspname = 'public'""" ++ unique)
           .query[(String, String)].to[List]).toSet
-    } else {
+    } else if (DoobieUtil.dbUrl.startsWith("jdbc:h2:")) {
       val unique = if (uniqueOnly) fr"WHERE index_type_name = 'UNIQUE INDEX'" else Fragment.empty
       DoobieUtil.runQuery(
         (fr"SELECT upper(table_name), upper(index_name) FROM information_schema.indexes" ++ unique)
           .query[(String, String)].to[List]).toSet
+    } else {
+      // MySQL, MariaDB, SQL Server and Oracle each keep this in a catalogue of their own; the JDBC
+      // metadata reads all of them the same way.
+      DoobieUtil.runQuery(doobie.free.connection.raw { conn =>
+        val md = conn.getMetaData
+        val (catalog, schema) = (conn.getCatalog, conn.getSchema)
+        def rows[A](rs: java.sql.ResultSet)(f: java.sql.ResultSet => A): List[A] =
+          try Iterator.continually(rs).takeWhile(_.next()).map(f).toList finally rs.close()
+        val tables = rows(md.getTables(catalog, schema, "%", Array("TABLE")))(_.getString("TABLE_NAME"))
+        tables.flatMap { table =>
+          rows(md.getIndexInfo(catalog, schema, table, uniqueOnly, true))(r => Option(r.getString("INDEX_NAME")))
+            .flatten.map(index => table.toUpperCase -> index.toUpperCase)
+        }.toSet
+      })
     }
 
   /** Postgres cuts an identifier at 63 bytes; NAMEDATALEN is 64 and the last byte is the NUL. */
