@@ -69,7 +69,7 @@ object MigrationOfMetricArchiveTable {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """
-                    |ALTER TABLE metricarchive ALTER COLUMN correlationid varchar(256);
+                    |ALTER TABLE metricarchive ALTER COLUMN correlationid nvarchar(256);
                     |""".stripMargin
               case _ =>
                 () =>

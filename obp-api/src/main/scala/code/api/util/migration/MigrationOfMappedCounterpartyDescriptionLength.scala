@@ -57,7 +57,7 @@ object MigrationOfMappedCounterpartyDescriptionLength {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """
-                    |ALTER TABLE MappedCounterparty ALTER COLUMN mDescription varchar(2000);
+                    |ALTER TABLE MappedCounterparty ALTER COLUMN mDescription nvarchar(2000);
                     |""".stripMargin
               case _ =>
                 () =>

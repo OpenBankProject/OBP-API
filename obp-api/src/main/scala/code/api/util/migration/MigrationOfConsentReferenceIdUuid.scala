@@ -121,7 +121,7 @@ object MigrationOfConsentReferenceIdUuid {
               |    DROP INDEX mappedconsent_consent_reference_id ON mappedconsent;
               |  IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'uq_mappedconsent_consent_reference_id' AND parent_object_id = OBJECT_ID('mappedconsent'))
               |    ALTER TABLE mappedconsent DROP CONSTRAINT uq_mappedconsent_consent_reference_id;
-              |  ALTER TABLE mappedconsent ALTER COLUMN consent_reference_id VARCHAR(36) NOT NULL;
+              |  ALTER TABLE mappedconsent ALTER COLUMN consent_reference_id nvarchar(36) NOT NULL;
               |END""".stripMargin
           } else {
             "ALTER TABLE mappedconsent ALTER COLUMN consent_reference_id SET NOT NULL;"
@@ -139,7 +139,7 @@ object MigrationOfConsentReferenceIdUuid {
           // 6. Widen consent_item.consent_reference_id from BIGINT to VARCHAR(36).
           val alterConsentItem = if (isMssql) {
             """IF EXISTS (SELECT 1 FROM sys.columns c JOIN sys.types t ON c.user_type_id = t.user_type_id WHERE c.object_id = OBJECT_ID('consent_item') AND c.name = 'consent_reference_id' AND t.name NOT IN ('varchar', 'nvarchar'))
-              |  ALTER TABLE consent_item ALTER COLUMN consent_reference_id VARCHAR(36);""".stripMargin
+              |  ALTER TABLE consent_item ALTER COLUMN consent_reference_id nvarchar(36);""".stripMargin
           } else {
             "ALTER TABLE consent_item ALTER COLUMN consent_reference_id TYPE VARCHAR(36) USING consent_reference_id::text;"
           }

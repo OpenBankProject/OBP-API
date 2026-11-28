@@ -59,12 +59,12 @@ object MigrationOfMappedTransactionRequestFieldsLength {
                 () =>
                   s"""
                     |-- Currency fields: support longer currency names (e.g., "lovelace")
-                    |ALTER TABLE MappedTransactionRequest ALTER COLUMN mCharge_Currency varchar(16);
-                    |ALTER TABLE MappedTransactionRequest ALTER COLUMN mBody_Value_Currency varchar(16);
+                    |ALTER TABLE MappedTransactionRequest ALTER COLUMN mCharge_Currency nvarchar(16);
+                    |ALTER TABLE MappedTransactionRequest ALTER COLUMN mBody_Value_Currency nvarchar(16);
                     |
                     |-- Account routing fields: support Cardano addresses (108 characters)
-                    |ALTER TABLE MappedTransactionRequest ALTER COLUMN mTo_AccountId varchar(128);
-                    |ALTER TABLE MappedTransactionRequest ALTER COLUMN mOtherAccountRoutingAddress varchar(128);
+                    |ALTER TABLE MappedTransactionRequest ALTER COLUMN mTo_AccountId nvarchar(128);
+                    |ALTER TABLE MappedTransactionRequest ALTER COLUMN mOtherAccountRoutingAddress nvarchar(128);
                     |""".stripMargin
               case _ =>
                 () =>

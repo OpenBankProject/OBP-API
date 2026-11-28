@@ -55,7 +55,7 @@ object MigrationOfCustomerAttributes {
           DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
-                () => "ALTER TABLE mappedcustomerattribute ALTER COLUMN mvalue varchar(2000);"
+                () => "ALTER TABLE mappedcustomerattribute ALTER COLUMN mvalue nvarchar(2000);"
               case Full(dbDriver) if dbDriver.contains("com.mysql.cj.jdbc.Driver") => // MySQL
                 () => "ALTER TABLE mappedcustomerattribute MODIFY COLUMN mvalue varchar(2000);"
               case _ =>

@@ -57,7 +57,7 @@ object MigrationOfTransactionRequestChallengeChallengeTypeLength {
           DbFunction.maybeWrite(true) {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
-                  () => "ALTER TABLE mappedtransactionrequest ALTER COLUMN mChallenge_ChallengeType varchar(100);"
+                  () => "ALTER TABLE mappedtransactionrequest ALTER COLUMN mChallenge_ChallengeType nvarchar(100);"
                 case _ =>
                   () => "ALTER TABLE mappedtransactionrequest ALTER COLUMN mChallenge_ChallengeType type varchar(100);"
               }

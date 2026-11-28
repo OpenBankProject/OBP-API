@@ -54,7 +54,7 @@ object MigrationOfUserAttributeNameFieldLength {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """
-                    |ALTER TABLE UserAttribute ALTER COLUMN name varchar(255);
+                    |ALTER TABLE UserAttribute ALTER COLUMN name nvarchar(255);
                     |""".stripMargin
               case _ =>
                 () =>

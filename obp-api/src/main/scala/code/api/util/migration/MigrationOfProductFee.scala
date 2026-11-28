@@ -53,7 +53,7 @@ object MigrationOfProductFee {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """
-                    |ALTER TABLE ProductFee ALTER COLUMN name varchar(100);
+                    |ALTER TABLE ProductFee ALTER COLUMN name nvarchar(100);
                     |""".stripMargin
               case _ =>
                 () =>

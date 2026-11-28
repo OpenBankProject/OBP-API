@@ -49,7 +49,7 @@ object MigrationOfTransactionRequestAttributeValueType {
                 () =>
                   """
                     |-- Open Corridor promise evidence (preimage JSON) exceeds varchar(255)
-                    |ALTER TABLE transactionrequestattribute ALTER COLUMN value VARCHAR(MAX);
+                    |ALTER TABLE transactionrequestattribute ALTER COLUMN value nvarchar(MAX);
                     |""".stripMargin
               case _ =>
                 () =>

@@ -50,7 +50,7 @@ object MigrationOfConsentRequestConsumerIdFieldLength {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """
-                    |ALTER TABLE consentrequest ALTER COLUMN consumerid varchar(250);
+                    |ALTER TABLE consentrequest ALTER COLUMN consumerid nvarchar(250);
                     |""".stripMargin
               case _ =>
                 () =>

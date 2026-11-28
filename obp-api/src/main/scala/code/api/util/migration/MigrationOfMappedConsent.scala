@@ -104,7 +104,7 @@ object MigrationOfMappedConsent {
   // Widen mappedconsent.mjsonwebtoken to TEXT (projected by v_consent — see helper).
   def alterColumnJsonWebToken(name: String): Boolean =
     alterMappedConsentColumnUnderConsentView(name,
-      if (isMssql) "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken text;"
+      if (isMssql) "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken NVARCHAR(MAX);"
       else if (isMysql) "ALTER TABLE mappedconsent MODIFY COLUMN mjsonwebtoken TEXT;"
       else "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken type text;")
 
@@ -121,7 +121,7 @@ object MigrationOfMappedConsent {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
-                  """ALTER TABLE mappedconsent ALTER COLUMN mchallenge varchar(50);
+                  """ALTER TABLE mappedconsent ALTER COLUMN mchallenge nvarchar(50);
                     |""".stripMargin
               case Full(dbDriver) if dbDriver.contains("com.mysql.cj.jdbc.Driver") => // MySQL
                 () =>
@@ -161,14 +161,14 @@ object MigrationOfMappedConsent {
   // This migration widens mConsumerId to match the Consumer model. mconsumerid is projected by v_consent.
   def alterColumnConsumerIdLength(name: String): Boolean =
     alterMappedConsentColumnUnderConsentView(name,
-      if (isMssql) "ALTER TABLE mappedconsent ALTER COLUMN mconsumerid varchar(250);"
+      if (isMssql) "ALTER TABLE mappedconsent ALTER COLUMN mconsumerid nvarchar(250);"
       else if (isMysql) "ALTER TABLE mappedconsent MODIFY COLUMN mconsumerid varchar(250);"
       else "ALTER TABLE mappedconsent ALTER COLUMN mconsumerid TYPE character varying(250);")
 
   // mstatus is projected by v_consent.
   def alterColumnStatus(name: String): Boolean =
     alterMappedConsentColumnUnderConsentView(name,
-      if (isMssql) "ALTER TABLE mappedconsent ALTER COLUMN mstatus varchar(40);"
+      if (isMssql) "ALTER TABLE mappedconsent ALTER COLUMN mstatus nvarchar(40);"
       else if (isMysql) "ALTER TABLE mappedconsent MODIFY COLUMN mstatus varchar(40);"
       else "ALTER TABLE mappedconsent ALTER COLUMN mstatus type varchar(40);")
 }

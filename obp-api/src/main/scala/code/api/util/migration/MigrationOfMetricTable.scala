@@ -65,7 +65,7 @@ object MigrationOfMetricTable {
 
         // 2. Widen metric.correlationid to 256.
         val alterMetricSql = DbFunction.maybeWrite(true) { () =>
-          if (isSqlServer) "ALTER TABLE metric ALTER COLUMN correlationid varchar(256);"
+          if (isSqlServer) "ALTER TABLE metric ALTER COLUMN correlationid nvarchar(256);"
           else "ALTER TABLE metric ALTER COLUMN correlationid TYPE character varying(256);"
         }
 

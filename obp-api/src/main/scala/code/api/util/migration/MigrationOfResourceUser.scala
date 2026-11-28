@@ -103,7 +103,7 @@ object MigrationOfResourceUser {
               APIUtil.getPropsValue("db.driver") match    {
                 case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                   () =>
-                    """ALTER TABLE resourceuser ALTER COLUMN email varchar(100);
+                    """ALTER TABLE resourceuser ALTER COLUMN email nvarchar(100);
                       |""".stripMargin
                 case _ =>
                   () =>

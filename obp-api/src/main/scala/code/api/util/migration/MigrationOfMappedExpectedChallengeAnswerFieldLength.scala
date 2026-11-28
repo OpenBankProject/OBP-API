@@ -55,7 +55,7 @@ object MigrationOfMappedExpectedChallengeAnswerFieldLength {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """
-                    |ALTER TABLE ExpectedChallengeAnswer ALTER COLUMN ChallengeType varchar(100);
+                    |ALTER TABLE ExpectedChallengeAnswer ALTER COLUMN ChallengeType nvarchar(100);
                     |""".stripMargin
               case _ =>
                 () =>

@@ -146,7 +146,7 @@ object MigrationOfConsumer {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
                   """
-                    |ALTER TABLE consumer ALTER COLUMN aud VARCHAR(MAX) NULL;
+                    |ALTER TABLE consumer ALTER COLUMN aud nvarchar(MAX) NULL;
                     |""".stripMargin
               case _ =>
                 () =>
