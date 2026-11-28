@@ -255,6 +255,9 @@ databaseChangeLog:
   # MySQL's own copies of the indexes it cannot build as the others do; see that file.
   - include:
       file: db/changelog/db.changelog-mysql.yaml
+  # Oracle's own corrections; see that file.
+  - include:
+      file: db/changelog/db.changelog-oracle.yaml
   - include:
       file: db/changelog/db.changelog-oidc-views.yaml
   - include:

@@ -48,6 +48,7 @@ SCHEMA_CHANGELOGS = [
     CHANGELOG_DIR / "db.changelog-develop-merge-4a.yaml",
     CHANGELOG_DIR / "db.changelog-develop-merge-4b.yaml",
     CHANGELOG_DIR / "db.changelog-mysql.yaml",
+    CHANGELOG_DIR / "db.changelog-oracle.yaml",
 ]
 
 
@@ -130,6 +131,12 @@ def main():
         sql_index = re.search(r"^\s*sql: CREATE (?:UNIQUE )?INDEX (\S+) ON ", body, re.M)
         adds_column = "- addColumn:" in body
         widens_column = "- modifyDataType:" in body
+        renames_column = "- renameColumn:" in body
+        if renames_column and not (creates_table or creates_index or sql_index or adds_column or widens_column):
+            # A rename is safe to skip only when the old name is gone, which only the catalogue can say.
+            if "onFail: MARK_RAN" not in body or not re.search(r"^\s*- sqlCheck:$", body, re.M):
+                problems.append(f"{cs_id}: renameColumn needs an onFail: MARK_RAN sqlCheck that finds the old name")
+            continue
         if not (creates_table or creates_index or sql_index or adds_column or widens_column):
             problems.append(f"{cs_id}: none of createTable / createIndex / addColumn - this check "
                             f"does not know what precondition it needs; teach it, do not skip it")
