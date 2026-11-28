@@ -799,9 +799,15 @@ abstract class MetricStore[A] {
 
   // The live table selects a typed NULL in the metricId slot so both tables read through the same
   // row type.
+  // MySQL casts to SIGNED and Oracle has no BIGINT; the others take BIGINT.
+  private def nullLong: String =
+    if (code.api.util.DBUtil.isMySql) "CAST(NULL AS SIGNED)"
+    else if (code.api.util.DBUtil.isOracle) "CAST(NULL AS NUMBER(19))"
+    else "CAST(NULL AS BIGINT)"
+
   private lazy val selectColumns: Fragment =
     Fragment.const(
-      List("id", if (hasMetricId) "metricid" else "CAST(NULL AS BIGINT)", "userid", "url",
+      List("id", if (hasMetricId) "metricid" else nullLong, "userid", "url",
         "date_c", "duration", "username", "appname", "developeremail", "consumerid",
         "implementedbypartialfunction", "implementedinversion", "verb", "httpcode",
         "correlationid", "responsebody", "sourceip", "targetip", "forwarded_for", "apiinstanceid",
