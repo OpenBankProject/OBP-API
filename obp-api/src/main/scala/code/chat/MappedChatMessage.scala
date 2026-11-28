@@ -97,7 +97,7 @@ object ChatMessage {
             (chatmessageid, chatroomid, senderuserid, senderconsumerid, content, messagetype,
              mentioneduserids, replytomessageid, threadid, isdeleted, createdat, updatedat)
             VALUES ($chatMessageId, $chatRoomId, $senderUserId, $senderConsumerId, $content,
-             $messageType, ${mentionedUserIds.mkString(",")}, $replyToMessageId, $threadId, false,
+             $messageType, ${mentionedUserIds.mkString(",")}, $replyToMessageId, $threadId, ${false},
              $now, $now)"""
         .update.run)
     ChatMessage(chatMessageId, chatRoomId, senderUserId, senderConsumerId, content, messageType,

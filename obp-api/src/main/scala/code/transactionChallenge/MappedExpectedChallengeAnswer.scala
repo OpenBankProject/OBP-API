@@ -128,7 +128,7 @@ object MappedExpectedChallengeAnswer {
              attemptcounter, challengepurpose, challengecontexthash, challengecontextstructure,
              createdat, updatedat)
             VALUES ($challengeId, $challengeType, $transactionRequestId, $expectedAnswer,
-             $expectedUserId, $salt, false, $scaMethod, $scaStatus, $consentId, $basketId,
+             $expectedUserId, $salt, ${false}, $scaMethod, $scaStatus, $consentId, $basketId,
              $authenticationMethodId, 0, $challengePurpose, $challengeContextHash,
              $challengeContextStructure, $now, $now)"""
         .update.run)

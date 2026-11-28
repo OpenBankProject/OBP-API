@@ -143,7 +143,7 @@ object AbacRule {
 
   def setApproved(abacRuleId: String, hash: String, makeActive: Boolean = true): Boolean =
     DoobieUtil.runUpdate(
-      sql"""UPDATE abacrule SET approvedhash = ${Option(hash)}, isactive = CASE WHEN $makeActive THEN true ELSE isactive END
+      sql"""UPDATE abacrule SET approvedhash = ${Option(hash)}, isactive = CASE WHEN $makeActive = ${true} THEN ${true} ELSE isactive END
             WHERE abacruleid = $abacRuleId""".update.run) == 1
 
   def setActive(abacRuleId: String, active: Boolean): Boolean =

@@ -110,7 +110,7 @@ object StandingOrder {
              amountcurrency, whenfrequency, whendetail, datesigned, datestarts, dateexpires, active,
              createdat, updatedat)
             VALUES ($standingOrderId, $bankId, $accountId, $customerId, $userId, $counterpartyId,
-             $smallestUnits, $amountCurrency, $whenFrequency, ${Option(whenDetail)}, $signed, $starts, $expires, true,
+             $smallestUnits, $amountCurrency, $whenFrequency, ${Option(whenDetail)}, $signed, $starts, $expires, ${true},
              $now, $now)"""
         .update.run)
     StandingOrder(standingOrderId, bankId, accountId, customerId, userId, counterpartyId,

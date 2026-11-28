@@ -97,7 +97,7 @@ object DirectDebit {
             (directdebitid, bankid, accountid, customerid, userid, counterpartyid, datesigned,
              datestarts, dateexpires, active, createdat, updatedat)
             VALUES ($directDebitId, $bankId, $accountId, $customerId, $userId, $counterpartyId,
-             $signed, $starts, $expires, true, $now, $now)"""
+             $signed, $starts, $expires, ${true}, $now, $now)"""
         .update.run)
     DirectDebit(directDebitId, bankId, accountId, customerId, userId, counterpartyId, dateSigned,
       null, dateStarts, dateExpires.orNull, active = true)

@@ -791,7 +791,7 @@ object MappedConsent {
              mstatusupdatedatetime, mnote, consent_reference_id, createdat, updatedat)
             VALUES (${opt(consentId)}, ${opt(userId)}, $secret, ${opt(status)},
              ${opt(challenge)}, ${opt(salt)}, '', '',
-             ${opt(consumerId)}, ${opt(apiStandard)}, false, ${date(validUntil)}, 0, 0, false,
+             ${opt(consumerId)}, ${opt(apiStandard)}, ${false}, ${date(validUntil)}, 0, 0, ${false},
              ${timestamp(statusUpdateDateTime)}, '', $consentReferenceId, $now, $now)"""
         .update.run)
     findByConsentId(consentId)

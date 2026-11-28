@@ -105,7 +105,7 @@ object ChatRoom {
              isarchived, lastmessageat, lastmessagepreview, lastmessagesenderusername,
              createdat, updatedat)
             VALUES ($chatRoomId, $bankId, $name, $description, $joiningKey, $createdByUserId,
-             $isOpenRoom, false, NULL, '', '', $now, $now)"""
+             $isOpenRoom, ${false}, NULL, '', '', $now, $now)"""
         .update.run)
     ChatRoom(chatRoomId, bankId, name, description, joiningKey, createdByUserId, isOpenRoom,
       isArchived = false, None, "", "", now, now)

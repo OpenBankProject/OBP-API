@@ -88,7 +88,7 @@ object Participant {
             (participantid, chatroomid, userid, consumerid, permissions, webhookurl, joinedat,
              lastreadat, ismuted)
             VALUES ($participantId, $chatRoomId, $userId, $consumerId, ${permissions.mkString(",")},
-             $webhookUrl, $now, $now, false)"""
+             $webhookUrl, $now, $now, ${false})"""
         .update.run)
     Participant(participantId, chatRoomId, userId, consumerId, permissions, webhookUrl, now, now,
       isMuted = false)

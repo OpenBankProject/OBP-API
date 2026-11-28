@@ -213,7 +213,7 @@ object DynamicMessageDoc {
     DoobieUtil.runUpdate(
       sql"""UPDATE dynamicmessagedoc
               SET methodbodyhash = ${Option(hash)}, approvedhash = ${Option(hash)},
-                  isactive = CASE WHEN $makeActive THEN true ELSE isactive END, updatedat = $now
+                  isactive = CASE WHEN $makeActive = ${true} THEN ${true} ELSE isactive END, updatedat = $now
             WHERE dynamicmessagedocid = $dynamicmessagedocid""".update.run) == 1
   }
 

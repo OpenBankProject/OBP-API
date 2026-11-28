@@ -154,7 +154,7 @@ object DoobieConnectorMethodProvider extends ConnectorMethodProvider {
     DoobieUtil.runUpdate(
       sql"""UPDATE connectormethod
               SET methodbodyhash = ${Option(hash)}, approvedhash = ${Option(hash)},
-                  isactive = CASE WHEN $makeActive THEN true ELSE isactive END, updatedat = $now
+                  isactive = CASE WHEN $makeActive = ${true} THEN ${true} ELSE isactive END, updatedat = $now
             WHERE connectormethodid = $connectorMethodId""".update.run) == 1
   }
 
