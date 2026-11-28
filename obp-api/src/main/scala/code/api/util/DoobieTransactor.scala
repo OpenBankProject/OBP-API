@@ -253,6 +253,12 @@ object DoobieUtil extends MdcLoggable {
   /** Oracle: OFFSET ... FETCH, with or without an ORDER BY. */
   private[util] case object OracleFetchDialect extends RowLimitDialect
 
+  /**
+   * A space before every clause these helpers append. `sql"..."` adds none after its last parameter, and
+   * PostgreSQL 16 refuses a parameter followed directly by a word (`$1LIMIT`).
+   */
+  private val gap: Fragment = Fragment.const0(" ")
+
   private def rowLimitDialect: RowLimitDialect =
     if (isSqlServer) SqlServerFetchDialect else if (DBUtil.isOracle) OracleFetchDialect else LimitDialect
 
@@ -261,8 +267,8 @@ object DoobieUtil extends MdcLoggable {
    * SQL Server requires an ORDER BY in front of it; the other databases take LIMIT ... OFFSET.
    */
   def pagination(limit: Int, offset: Int): Fragment =
-    if (rowLimitDialect == LimitDialect) fr"LIMIT $limit OFFSET $offset"
-    else fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
+    if (rowLimitDialect == LimitDialect) gap ++ fr"LIMIT $limit OFFSET $offset"
+    else gap ++ fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
 
   /**
    * Whether `sql` has an ORDER BY of its own, outside any parentheses. SQL Server refuses OFFSET ... FETCH
@@ -290,14 +296,14 @@ object DoobieUtil extends MdcLoggable {
     if (limit.isEmpty && offset.isEmpty) query
     else dialect match {
       case LimitDialect =>
-        query ++ limit.map(n => fr"LIMIT $n").getOrElse(Fragment.empty) ++
+        query ++ gap ++ limit.map(n => fr"LIMIT $n").getOrElse(Fragment.empty) ++
           offset.map(n => fr"OFFSET $n").getOrElse(Fragment.empty)
       case _ =>
         // ORDER BY (SELECT NULL) asks for no particular order, which is what LIMIT without ORDER BY means.
         val order =
           if (dialect == SqlServerFetchDialect && !hasTopLevelOrderBy(query.internals.sql)) fr"ORDER BY (SELECT NULL)"
           else Fragment.empty
-        query ++ order ++ fr"OFFSET ${offset.getOrElse(0)} ROWS" ++
+        query ++ gap ++ order ++ fr"OFFSET ${offset.getOrElse(0)} ROWS" ++
           limit.map(n => fr"FETCH NEXT $n ROWS ONLY").getOrElse(Fragment.empty)
     }
 
@@ -319,12 +325,12 @@ object DoobieUtil extends MdcLoggable {
   def firstRowOf(query: Fragment): Fragment = firstRowFor(rowLimitDialect, query)
 
   private[util] def firstRowFor(dialect: RowLimitDialect, query: Fragment): Fragment = dialect match {
-    case LimitDialect => query ++ fr"LIMIT 1"
+    case LimitDialect => query ++ gap ++ fr"LIMIT 1"
     case dialect =>
       val order =
         if (dialect == SqlServerFetchDialect && !hasTopLevelOrderBy(query.internals.sql)) fr"ORDER BY (SELECT NULL)"
         else Fragment.empty
-      query ++ order ++ fr"OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY"
+      query ++ gap ++ order ++ fr"OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY"
   }
 
   /**
