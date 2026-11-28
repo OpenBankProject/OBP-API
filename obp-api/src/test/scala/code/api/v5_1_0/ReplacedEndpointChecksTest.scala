@@ -42,6 +42,7 @@ import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.productattribute.ProductAttributeX
 import code.scope.Scope
+import code.setup.APIResponse
 import code.usercustomerlinks.UserCustomerLink
 import code.views.Views
 import com.openbankproject.commons.model._
@@ -139,6 +140,30 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
       val response = makeGetRequest(attributePath(attribute.productAttributeId).GET <@ (user1))
       response.code should equal(200)
       response.body.extract[ProductAttributeResponseJsonV400].product_attribute_id should equal(attribute.productAttributeId)
+    }
+
+    // user3 is given no role in this suite, so the role check is not passed by a role another scenario granted.
+    scenario("creating, reading or changing an attribute needs a login and the role for it", VersionOfApi) {
+      val attribute = attributeAt(bankId, "PRODUCT_CODE", "role-checked attribute")
+      val createPath = v5_1_0_Request / "banks" / bankId / "products" / "PRODUCT_CODE" / "attribute"
+      val body = write(SwaggerDefinitionsJSON.productAttributeJsonV400)
+      val calls: List[(String, Option[(Consumer, Token)] => APIResponse, ApiRole)] = List(
+        ("create", u => makePostRequest(createPath.POST <@ (u), body), ApiRole.canCreateProductAttribute),
+        ("read", u => makeGetRequest(attributePath(attribute.productAttributeId).GET <@ (u)), ApiRole.canGetProductAttribute),
+        ("change", u => makePutRequest(attributePath(attribute.productAttributeId).PUT <@ (u), body), ApiRole.canUpdateProductAttribute))
+
+      calls.foreach { case (action, call, role) =>
+        Then(s"$action without a login is refused with 401")
+        val anonymous = call(None)
+        anonymous.code should equal(401)
+        messageOf(anonymous.body) should equal(AuthenticatedUserIsRequired)
+
+        Then(s"$action without $role is refused with 403")
+        val withoutRole = call(user3)
+        withoutRole.code should equal(403)
+        messageOf(withoutRole.body) should startWith(UserHasMissingRoles)
+        messageOf(withoutRole.body) should include(role.toString)
+      }
     }
   }
 
