@@ -79,6 +79,49 @@ databaseChangeLog:
       name: unbounded.varchar.type
       value: CLOB
       dbms: oracle
+  # The OIDC views compare booleans and cast one column, and neither has a portable spelling. Postgres and H2
+  # compare a BOOLEAN with `true`; SQL Server, MySQL and Oracle store it as a number and need `1`. Postgres and
+  # H2 keep the text the views were created with, so their checksums do not move.
+  - property:
+      name: boolean.true
+      value: 'true'
+      dbms: h2
+  - property:
+      name: boolean.true
+      value: 'true'
+      dbms: postgresql
+  - property:
+      name: boolean.true
+      value: '1'
+      dbms: mysql
+  - property:
+      name: boolean.true
+      value: '1'
+      dbms: mssql
+  - property:
+      name: boolean.true
+      value: '1'
+      dbms: oracle
+  - property:
+      name: oidc.username.column
+      value: 'au.username::text'
+      dbms: h2
+  - property:
+      name: oidc.username.column
+      value: 'au.username::text'
+      dbms: postgresql
+  - property:
+      name: oidc.username.column
+      value: 'au.username'
+      dbms: mysql
+  - property:
+      name: oidc.username.column
+      value: 'au.username'
+      dbms: mssql
+  - property:
+      name: oidc.username.column
+      value: 'au.username'
+      dbms: oracle
   # Binary content has no portable spelling either: Liquibase's BLOB is an oid reference on Postgres,
   # which a plain bytea value cannot be written to.
   - property:

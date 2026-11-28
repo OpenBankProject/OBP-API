@@ -94,7 +94,11 @@ databaseChangeLog:
       contextFilter: oidc-views
       comment: >-
         Drops the retired account-access view, which the legacy migration script still creates when migration_scripts are on.
+      # A precondition rather than dropView's ifExists, which Oracle does not accept.
+      preConditions:
+        - onFail: MARK_RAN
+        - viewExists:
+            viewName: v_account_access_with_views
       changes:
         - dropView:
             viewName: v_account_access_with_views
-            ifExists: true
