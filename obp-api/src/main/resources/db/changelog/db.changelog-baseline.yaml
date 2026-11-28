@@ -66,10 +66,10 @@ databaseChangeLog:
             type: VARCHAR(32)
         - column:
             name: mservices
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: mnotes
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: mminimumwithdrawal
             type: VARCHAR(255)
@@ -138,16 +138,16 @@ databaseChangeLog:
             type: VARCHAR(1)
         - column:
             name: msupportedlanguages
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: maccessibilityfeatures
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: msupportedcurrencies
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: mlocationcategories
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: mbranchidentification
             type: VARCHAR(255)
@@ -211,7 +211,7 @@ databaseChangeLog:
         columns:
         - column:
             name: jsonschema
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: operationid
             type: VARCHAR(200)
@@ -374,7 +374,7 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: methodbody
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: lang
             type: VARCHAR(50)
@@ -1323,7 +1323,7 @@ databaseChangeLog:
         columns:
         - column:
             name: value
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: bankid
             type: VARCHAR(44)
@@ -5187,10 +5187,10 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: legaltext
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: description
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: validfrom
             type: TIMESTAMP
@@ -5252,7 +5252,7 @@ databaseChangeLog:
             type: VARCHAR(50)
         - column:
             name: conditions
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: linkedviewid
             type: VARCHAR(255)
@@ -5273,10 +5273,10 @@ databaseChangeLog:
             type: TIMESTAMP
         - column:
             name: provisiondescription
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: signatoryrequirements
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: linkedchallengetype
             type: VARCHAR(255)
@@ -5305,7 +5305,7 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: description
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: panelid
             type: VARCHAR(255)
@@ -5314,7 +5314,7 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: userids
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: createdat
             type: TIMESTAMP
@@ -5424,7 +5424,7 @@ databaseChangeLog:
             type: VARCHAR(36)
         - column:
             name: payload
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: consumerid
             type: VARCHAR(250)
@@ -5832,7 +5832,7 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: mdetails
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: mcharge_currency
             type: VARCHAR(16)
@@ -6094,7 +6094,7 @@ databaseChangeLog:
             type: VARCHAR(64)
         - column:
             name: responsebody
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: userid
             type: VARCHAR(44)
@@ -6179,7 +6179,7 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: responsebody
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: userid
             type: VARCHAR(44)
@@ -6246,7 +6246,7 @@ databaseChangeLog:
             type: TIMESTAMP
         - column:
             name: mjsonwebtoken
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: mconsentid
             type: VARCHAR(36)
@@ -6285,10 +6285,10 @@ databaseChangeLog:
             type: TIMESTAMP
         - column:
             name: mnote
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: mjsonwebtokenpayload
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: mrecurringindicator
             type: BOOLEAN
@@ -6462,10 +6462,10 @@ databaseChangeLog:
             type: BOOLEAN
         - column:
             name: cangrantaccesstoviews_
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: canrevokeaccesstoviews_
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         tableName: viewdefinition
 - changeSet:
     id: create-table-token
@@ -6557,7 +6557,7 @@ databaseChangeLog:
             type: VARCHAR(250)
         - column:
             name: aud
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: logourl
             type: VARCHAR(250)
@@ -6619,7 +6619,7 @@ databaseChangeLog:
             type: VARCHAR(250)
         - column:
             name: description
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         tableName: consumer
 - changeSet:
     id: create-table-resourceuser
@@ -7067,10 +7067,10 @@ databaseChangeLog:
             type: VARCHAR(64)
         - column:
             name: inboundmessage
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: outboundmessage
-            type: VARCHAR
+            type: ${unbounded.varchar.type}
         - column:
             name: url
             type: VARCHAR(2000)

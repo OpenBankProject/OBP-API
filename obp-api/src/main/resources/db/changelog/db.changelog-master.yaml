@@ -56,6 +56,29 @@ databaseChangeLog:
       name: text.type
       value: CLOB
       dbms: oracle
+  # A VARCHAR with no length is unbounded on Postgres and H2, where the baseline was generated. MySQL refuses
+  # it, and SQL Server reads it as VARCHAR(1), so every value longer than one character fails to insert.
+  # Postgres and H2 keep the spelling they were created with, so their checksums do not move.
+  - property:
+      name: unbounded.varchar.type
+      value: VARCHAR
+      dbms: h2
+  - property:
+      name: unbounded.varchar.type
+      value: VARCHAR
+      dbms: postgresql
+  - property:
+      name: unbounded.varchar.type
+      value: LONGTEXT
+      dbms: mysql
+  - property:
+      name: unbounded.varchar.type
+      value: NVARCHAR(MAX)
+      dbms: mssql
+  - property:
+      name: unbounded.varchar.type
+      value: CLOB
+      dbms: oracle
   # Binary content has no portable spelling either: Liquibase's BLOB is an oid reference on Postgres,
   # which a plain bytea value cannot be written to.
   - property:
