@@ -756,8 +756,8 @@ class AgentDelegationTest extends ServerSetup {
       ).openOrThrowException("expected the counterparty to be created")
       import doobie.implicits._
       DoobieUtil.runQuery(
-        sql"""SELECT mcreatedbyuserid, mcreatedbyonbehalfofuserid FROM mappedcounterparty
-              WHERE mname = $name ORDER BY id ASC LIMIT 1"""
+        DoobieUtil.firstRowOf(sql"""SELECT mcreatedbyuserid, mcreatedbyonbehalfofuserid FROM mappedcounterparty
+              WHERE mname = $name ORDER BY id ASC""")
           .query[(Option[String], Option[String])].option)
         .map { case (createdBy, onBehalfOf) => StoredCounterparty(createdBy, onBehalfOf) }
         .getOrElse(fail("expected the counterparty row to have been written"))

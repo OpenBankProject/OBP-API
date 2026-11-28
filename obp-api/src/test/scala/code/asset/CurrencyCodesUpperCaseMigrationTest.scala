@@ -37,8 +37,7 @@ class CurrencyCodesUpperCaseMigrationTest extends ServerSetup {
    * the column, and the scenario about it has nothing to run against.
    */
   private def currencyTableExists: Boolean =
-    DoobieUtil.runQuery(
-      sql"SELECT COUNT(*) FROM information_schema.tables WHERE LOWER(table_name) = 'mappedcurrency'".query[Long].unique) > 0
+    code.api.util.migration.Migration.DbFunction.tableExistsByName("mappedcurrency")
 
   private def currencyCodesLike(code: String): List[String] =
     DoobieUtil.runQuery(sql"SELECT mcurrencycode FROM mappedcurrency".query[Option[String]].to[List])

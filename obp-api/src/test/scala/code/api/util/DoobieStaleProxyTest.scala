@@ -62,7 +62,12 @@ class DoobieStaleProxyTest extends ServerSetup {
       RequestScopeConnection.currentProxy.set(proxy)
       try {
         val st = real.createStatement()
-        st.execute("CREATE TABLE IF NOT EXISTS doobie_scope_probe (v INT)")
+        // Existence from the metadata of this connection: SQL Server takes no CREATE TABLE IF NOT EXISTS.
+        val probeExists = List("doobie_scope_probe", "DOOBIE_SCOPE_PROBE").exists { name =>
+          val rs = real.getMetaData.getTables(real.getCatalog, null, name, null)
+          try rs.next() finally rs.close()
+        }
+        if (!probeExists) st.execute("CREATE TABLE doobie_scope_probe (v INT)")
         st.execute("DELETE FROM doobie_scope_probe")
         st.execute("INSERT INTO doobie_scope_probe VALUES (42)")
         st.close()

@@ -20,11 +20,9 @@ import doobie.implicits._
  */
 class ConsentItemSchemaTest extends ServerSetup {
 
+  // JDBC metadata rather than information_schema, which Oracle does not have.
   private def columnExists(column: String): Boolean =
-    DoobieUtil.runQuery(
-      sql"""SELECT COUNT(*) FROM information_schema.columns
-            WHERE UPPER(table_name) = 'CONSENT_ITEM' AND UPPER(column_name) = UPPER($column)"""
-        .query[Int].unique) > 0
+    code.api.util.migration.Migration.DbFunction.columnExistsByName("consent_item", column)
 
   Feature("consent_item schema") {
 

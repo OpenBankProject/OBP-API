@@ -42,7 +42,7 @@ class DoobieUtilDialectTest extends ServerSetup {
 
     scenario("The page clause is the form the database under test takes") {
       val rendered = DoobieUtil.pagination(2, 1).internals.sql.trim
-      if (DBUtil.isSqlServer) rendered shouldBe "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+      if (DBUtil.isSqlServer || DBUtil.isOracle) rendered shouldBe "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
       else rendered shouldBe "LIMIT ? OFFSET ?"
     }
 
