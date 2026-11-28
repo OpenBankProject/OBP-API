@@ -171,9 +171,10 @@ def main():
                 problems.append(f"{cs_id}: modifyDataType needs a sqlCheck precondition that "
                                 f"detects the OLD type (tableExists/columnExists cannot - the "
                                 f"column is there either way)")
-            elif "information_schema" not in body:
-                problems.append(f"{cs_id}: the sqlCheck does not read information_schema, so it "
-                                f"cannot be testing the column's current type")
+            elif "information_schema" not in body and "${column.catalog}" not in body:
+                # ${column.catalog} is information_schema.columns, or user_tab_columns on Oracle.
+                problems.append(f"{cs_id}: the sqlCheck does not read information_schema (or "
+                                f"${{column.catalog}}), so it cannot be testing the column's current type")
         elif adds_column:
             # A column cannot be checked with tableExists - the table is there either way. The
             # precondition has to name one of the columns the changeset adds, so a database that
