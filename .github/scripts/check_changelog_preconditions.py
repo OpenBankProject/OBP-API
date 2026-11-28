@@ -47,6 +47,7 @@ SCHEMA_CHANGELOGS = [
     CHANGELOG_DIR / "db.changelog-develop-merge-3.yaml",
     CHANGELOG_DIR / "db.changelog-develop-merge-4a.yaml",
     CHANGELOG_DIR / "db.changelog-develop-merge-4b.yaml",
+    CHANGELOG_DIR / "db.changelog-mysql.yaml",
 ]
 
 
@@ -124,9 +125,12 @@ def main():
         checked += 1
         creates_table = "- createTable:" in body
         creates_index = "- createIndex:" in body
+        # A raw `CREATE INDEX` is how db.changelog-mysql.yaml gives a column a prefix length, which
+        # createIndex cannot express. It needs the same guard, naming the index the SQL creates.
+        sql_index = re.search(r"^\s*sql: CREATE (?:UNIQUE )?INDEX (\S+) ON ", body, re.M)
         adds_column = "- addColumn:" in body
         widens_column = "- modifyDataType:" in body
-        if not (creates_table or creates_index or adds_column or widens_column):
+        if not (creates_table or creates_index or sql_index or adds_column or widens_column):
             problems.append(f"{cs_id}: none of createTable / createIndex / addColumn - this check "
                             f"does not know what precondition it needs; teach it, do not skip it")
             continue
@@ -141,7 +145,13 @@ def main():
                             f"is ABSENT")
 
         table = re.search(r"^\s*tableName: (\S+)$", body, re.M)
-        if creates_index:
+        if sql_index and not creates_index:
+            if not re.search(r"^\s*- indexExists:$", body, re.M):
+                problems.append(f"{cs_id}: CREATE INDEX needs an indexExists precondition")
+            elif f"indexName: {sql_index.group(1)}" not in body:
+                problems.append(f"{cs_id}: the precondition names an index other than "
+                                f"{sql_index.group(1)}")
+        elif creates_index:
             index = re.search(r"^\s*indexName: (\S+)$", body, re.M)
             if not re.search(r"^\s*- indexExists:$", body, re.M):
                 problems.append(f"{cs_id}: createIndex needs an indexExists precondition")

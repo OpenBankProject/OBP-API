@@ -162,6 +162,9 @@ databaseChangeLog:
       file: db/changelog/db.changelog-develop-merge-4a.yaml
   - include:
       file: db/changelog/db.changelog-develop-merge-4b.yaml
+  # MySQL's own copies of the indexes it cannot build as the others do; see that file.
+  - include:
+      file: db/changelog/db.changelog-mysql.yaml
   - include:
       file: db/changelog/db.changelog-oidc-views.yaml
   - include:

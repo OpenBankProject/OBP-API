@@ -188,6 +188,8 @@ databaseChangeLog:
   - changeSet:
       id: create-indexes-consumer_account_access
       author: obp
+      # MySQL caps an index key at 3072 bytes; db.changelog-mysql.yaml builds this one there.
+      dbms: '!mysql'
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -312,6 +314,8 @@ databaseChangeLog:
   - changeSet:
       id: create-indexes-dynamic_entity_webhook
       author: obp
+      # MySQL caps an index key at 3072 bytes; db.changelog-mysql.yaml builds this one there.
+      dbms: '!mysql'
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -1291,6 +1295,8 @@ databaseChangeLog:
   - changeSet:
       id: create-index-dynamicdataaccess_bankid_entityname_dynamicdataid_userid
       author: obp
+      # MySQL caps an index key at 3072 bytes; db.changelog-mysql.yaml builds this one there.
+      dbms: '!mysql'
       preConditions:
         - onFail: MARK_RAN
         - not:

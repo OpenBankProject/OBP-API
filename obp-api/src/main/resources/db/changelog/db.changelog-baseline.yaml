@@ -7504,6 +7504,8 @@ databaseChangeLog:
 - changeSet:
     id: create-index-etag_etagresource
     author: obp
+    # MySQL caps an index key at 3072 bytes; db.changelog-mysql.yaml builds this one there.
+    dbms: '!mysql'
     preConditions:
       - onFail: MARK_RAN
       - not:
@@ -7680,6 +7682,8 @@ databaseChangeLog:
 - changeSet:
     id: create-index-mappeduserauthcontext_muserid_mkey_createdat
     author: obp
+    # MySQL caps an index key at 3072 bytes; db.changelog-mysql.yaml builds this one there.
+    dbms: '!mysql'
     preConditions:
       - onFail: MARK_RAN
       - not:
@@ -8385,6 +8389,8 @@ databaseChangeLog:
 - changeSet:
     id: create-index-counterpartylimit_bankid_accountid_viewid_counterpartyid
     author: obp
+    # MySQL caps an index key at 3072 bytes; db.changelog-mysql.yaml builds this one there.
+    dbms: '!mysql'
     preConditions:
       - onFail: MARK_RAN
       - not:
@@ -10568,6 +10574,8 @@ databaseChangeLog:
 - changeSet:
     id: create-index-viewpermission_bank_id_account_id_view_id_permission
     author: obp
+    # MySQL caps an index key at 3072 bytes; db.changelog-mysql.yaml builds this one there.
+    dbms: '!mysql'
     preConditions:
       - onFail: MARK_RAN
       - not:
@@ -10623,6 +10631,8 @@ databaseChangeLog:
 - changeSet:
     id: create-index-accountaccess_bank_id_account_id_view_id_user_fk_consumer_id
     author: obp
+    # MySQL caps an index key at 3072 bytes; db.changelog-mysql.yaml builds this one there.
+    dbms: '!mysql'
     preConditions:
       - onFail: MARK_RAN
       - not:
@@ -11159,6 +11169,8 @@ databaseChangeLog:
 - changeSet:
     id: create-index-metricarchive_url
     author: obp
+    # MySQL caps an index key at 3072 bytes; db.changelog-mysql.yaml builds this one there.
+    dbms: '!mysql'
     preConditions:
       - onFail: MARK_RAN
       - not:
