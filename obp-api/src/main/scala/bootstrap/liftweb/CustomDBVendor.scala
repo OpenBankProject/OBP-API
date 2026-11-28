@@ -93,7 +93,11 @@ class CustomDBVendor(driverName: String,
     // Every connection taken from the pool, whichever way it is taken (Lift Mapper, Doobie, the
     // request transaction), passes through here, so DatabaseConnectionHoldWatch sees them all.
     val ds: HikariDataSource = new HikariDataSource(config) {
-      override def getConnection(): Connection = DatabaseConnectionHoldWatch.watch(super.getConnection())
+      override def getConnection(): Connection = {
+        val connection = DatabaseConnectionHoldWatch.watch(super.getConnection())
+        // Oracle reads '' as NULL; OracleEmptyStrings keeps the two apart, as every other database does.
+        if (code.api.util.DBUtil.isOracle) code.api.util.OracleEmptyStrings.wrap(connection) else connection
+      }
     }
     DatabaseConnectionHoldWatch.pool = Some(ds)
   }
