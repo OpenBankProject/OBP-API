@@ -156,7 +156,7 @@ databaseChangeLog:
             - sqlCheck:
                 expectedResult: 0
                 sql: >-
-                  SELECT COUNT(*) FROM information_schema.columns
+                  SELECT COUNT(*) FROM ${column.catalog}
                   WHERE LOWER(table_name) = 'dynamicresourcedoc'
                   AND LOWER(column_name) IN ('description', 'tags', 'roles_c')
                   AND character_maximum_length = 255

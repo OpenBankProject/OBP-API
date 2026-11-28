@@ -145,6 +145,51 @@ databaseChangeLog:
       name: timestamp.type
       value: TIMESTAMP
       dbms: oracle
+  # Oracle cannot alter a VARCHAR2 column into a CLOB, so the six dynamicresourcedoc text columns that later
+  # changesets widen to ${text.type} are created as CLOB there in the first place, and the widenings, finding
+  # no column left at 255, mark themselves run. Elsewhere they start at VARCHAR(255) as before.
+  - property:
+      name: dynamicresourcedoc.text.type
+      value: VARCHAR(255)
+      dbms: h2
+  - property:
+      name: dynamicresourcedoc.text.type
+      value: VARCHAR(255)
+      dbms: postgresql
+  - property:
+      name: dynamicresourcedoc.text.type
+      value: VARCHAR(255)
+      dbms: mysql
+  - property:
+      name: dynamicresourcedoc.text.type
+      value: VARCHAR(255)
+      dbms: mssql
+  - property:
+      name: dynamicresourcedoc.text.type
+      value: CLOB
+      dbms: oracle
+  # The width preconditions read the column catalogue. Oracle has no information_schema; user_tab_columns holds
+  # the same facts for the schema the application logs into, under other names.
+  - property:
+      name: column.catalog
+      value: information_schema.columns
+      dbms: h2
+  - property:
+      name: column.catalog
+      value: information_schema.columns
+      dbms: postgresql
+  - property:
+      name: column.catalog
+      value: information_schema.columns
+      dbms: mysql
+  - property:
+      name: column.catalog
+      value: information_schema.columns
+      dbms: mssql
+  - property:
+      name: column.catalog
+      value: '(SELECT table_name, column_name, char_length AS character_maximum_length FROM user_tab_columns)'
+      dbms: oracle
   # Binary content has no portable spelling either: Liquibase's BLOB is an oid reference on Postgres,
   # which a plain bytea value cannot be written to.
   - property:

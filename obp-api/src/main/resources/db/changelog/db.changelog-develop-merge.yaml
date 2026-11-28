@@ -112,7 +112,7 @@ databaseChangeLog:
             - sqlCheck:
                 expectedResult: 0
                 sql: >-
-                  SELECT COUNT(*) FROM information_schema.columns
+                  SELECT COUNT(*) FROM ${column.catalog}
                   WHERE LOWER(table_name) = 'dynamicresourcedoc'
                   AND LOWER(column_name) IN
                     ('examplerequestbody', 'successresponsebody', 'errorresponsebodies')

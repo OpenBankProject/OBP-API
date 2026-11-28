@@ -4896,13 +4896,13 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: examplerequestbody
-            type: VARCHAR(255)
+            type: ${dynamicresourcedoc.text.type}
         - column:
             name: tags
-            type: VARCHAR(255)
+            type: ${dynamicresourcedoc.text.type}
         - column:
             name: roles_c
-            type: VARCHAR(255)
+            type: ${dynamicresourcedoc.text.type}
         - column:
             name: methodbody
             type: ${text.type}
@@ -4911,7 +4911,7 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: description
-            type: VARCHAR(255)
+            type: ${dynamicresourcedoc.text.type}
         - column:
             name: dynamicresourcedocid
             type: VARCHAR(44)
@@ -4920,10 +4920,10 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: successresponsebody
-            type: VARCHAR(255)
+            type: ${dynamicresourcedoc.text.type}
         - column:
             name: errorresponsebodies
-            type: VARCHAR(255)
+            type: ${dynamicresourcedoc.text.type}
         - column:
             autoIncrement: true
             constraints:
