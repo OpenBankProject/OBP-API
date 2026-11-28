@@ -185,13 +185,19 @@ object MigrationOfCurrencyCodesUpperCase extends MdcLoggable {
       } else {
         // SQL Server compares strings with trailing spaces ignored, whatever the collation, so `'EUR '`
         // equals `'EUR'`. The byte length tells them apart. The binary collation makes the case count.
+        // MySQL and MariaDB compare without regard to case and, in their default collations, to trailing spaces;
+        // BINARY compares the bytes, so both count.
         val needsChange = if (code.api.util.DBUtil.isSqlServer) {
           s"($column COLLATE Latin1_General_BIN <> UPPER(TRIM($column)) OR DATALENGTH($column) <> DATALENGTH(TRIM($column)))"
+        } else if (code.api.util.DBUtil.isMySql) {
+          s"BINARY $column <> BINARY UPPER(TRIM($column))"
         } else {
           s"$column <> UPPER(TRIM($column))"
         }
         val twinExists = if (code.api.util.DBUtil.isSqlServer) {
           s"EXISTS (SELECT 1 FROM $table twin WHERE twin.$column COLLATE Latin1_General_BIN = UPPER(TRIM($table.$column)) AND DATALENGTH(twin.$column) = DATALENGTH(TRIM($table.$column)))"
+        } else if (code.api.util.DBUtil.isMySql) {
+          s"EXISTS (SELECT 1 FROM $table twin WHERE BINARY twin.$column = BINARY UPPER(TRIM($table.$column)))"
         } else {
           s"EXISTS (SELECT 1 FROM $table twin WHERE twin.$column = UPPER(TRIM($table.$column)))"
         }
