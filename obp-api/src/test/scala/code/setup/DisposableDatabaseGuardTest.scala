@@ -34,6 +34,23 @@ class DisposableDatabaseGuardTest extends AnyFlatSpec with Matchers {
     isDisposable("jdbc:postgresql://localhost:5432/obp_test_only") should equal(true)
   }
 
+  it should "read the database name out of a SQL Server url" in {
+    // SQL Server names the database in a `;databaseName=` property rather than in the path, so a
+    // guard that only reads the path refused the CI database and the whole SQL Server run aborted.
+    isDisposable("jdbc:sqlserver://localhost:1433;databaseName=obp_test_only;encrypt=false") should
+      equal(true)
+    isDisposable("jdbc:sqlserver://localhost:1433;encrypt=false;DatabaseName=obp_suite_shard_2") should
+      equal(true)
+    isDisposable("jdbc:sqlserver://localhost:1433;databaseName=obp-mapped;encrypt=false") should
+      equal(false)
+    isDisposable("jdbc:sqlserver://localhost:1433;encrypt=false") should equal(false)
+  }
+
+  it should "read the database name out of a MySQL url" in {
+    isDisposable("jdbc:mysql://localhost:3306/obp_suite_shard_1?useSSL=false") should equal(true)
+    isDisposable("jdbc:mysql://localhost:3306/obp-mapped?useSSL=false") should equal(false)
+  }
+
   it should "refuse every database that exists on this machine for real" in {
     // These are the databases actually present on the developer machine this was written on.
     // If the whitelist ever widens enough to admit one of them, this fails.

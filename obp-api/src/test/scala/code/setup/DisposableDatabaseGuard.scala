@@ -31,8 +31,19 @@ import code.api.util.DBUtil
  */
 object DisposableDatabaseGuard {
 
-  /** Postgres/other JDBC URLs end in the database name, possibly with `?params`. */
-  private val JdbcDatabaseName = """^jdbc:[a-z0-9]+://[^/]+/([^/?;]+).*$""".r
+  /** Postgres/MySQL JDBC URLs end in the database name, possibly with `?params`. */
+  private val PathDatabaseName = """^jdbc:[a-z0-9]+://[^/;]+/([^/?;]+).*$""".r
+
+  /** SQL Server names the database in a `;databaseName=` property instead of in the path. */
+  private val SqlServerDatabaseName = """(?i)^jdbc:sqlserver://.*;databasename=([^;]+).*$""".r
+
+  private object JdbcDatabaseName {
+    def unapply(url: String): Option[String] = url match {
+      case SqlServerDatabaseName(name) => Some(name)
+      case PathDatabaseName(name)      => Some(name)
+      case _                           => None
+    }
+  }
 
   private val AllowedDatabaseName =
     """^(obp_suite_[a-z0-9_]+|obp_liquibase_migration_test|obp_test_only)$""".r
