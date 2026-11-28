@@ -295,51 +295,53 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     Branches.branchesProvider.default.set(Branches.buildOne)
   }
 
-  Feature("Getting bank branches") {
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Getting bank branches") {
 
-    Scenario("We try to get bank branches for a bank without a data license for branch information") {
+    // scenario("We try to get bank branches for a bank without a data license for branch information") {
 
-      When("We make a request v1.4.0")
-      val request = (v1_4Request / "banks" / BankWithoutLicense.value / "branches").GET <@(user1)
-      val response = makeGetRequest(request)
+      // When("We make a request v1.4.0")
+      // val request = (v1_4Request / "banks" / BankWithoutLicense.value / "branches").GET <@(user1)
+      // val response = makeGetRequest(request)
 
-      Then("We should get a 200")
-      response.code should equal(200)
+      // Then("We should get a 200")
+      // response.code should equal(200)
 
-    }
+    // }
 
-    Scenario("We try to get bank branches for a bank with a data license for branch information") {
-      When("We make a request")
-      val request = (v1_4Request / "banks" / BankWithLicense.value / "branches").GET <@(user1)
-      val response = makeGetRequest(request)
+    // scenario("We try to get bank branches for a bank with a data license for branch information") {
+      // When("We make a request")
+      // val request = (v1_4Request / "banks" / BankWithLicense.value / "branches").GET <@(user1)
+      // val response = makeGetRequest(request)
 
-      Then("We should get a 200")
-      response.code should equal(200)
+      // Then("We should get a 200")
+      // response.code should equal(200)
 
-      And("We should get the right json format containing a list of Branches")
-      val wholeResponseBody = response.body
-      val responseBodyOpt = wholeResponseBody.extractOpt[BranchesJson]
-      responseBodyOpt.isDefined should equal(true)
+      // And("We should get the right json format containing a list of Branches")
+      // val wholeResponseBody = response.body
+      // val responseBodyOpt = wholeResponseBody.extractOpt[BranchesJson]
+      // responseBodyOpt.isDefined should equal(true)
 
-      val responseBody = responseBodyOpt.get
+      // val responseBody = responseBodyOpt.get
 
-      And("We should get the right branches")
-      val branches = responseBody.branches
+      // And("We should get the right branches")
+      // val branches = responseBody.branches
 
-      // Order of branches in the list is arbitrary
-      branches.size should equal(3)
-      val first = branches(0)
-      if(first.id == fakeBranch1.branchId.value) {
-        verifySameData(fakeBranch1, first)
-        verifySameData(fakeBranch2, branches(1))
-      } else if (first.id == fakeBranch2.branchId.value) {
-        verifySameData(fakeBranch2, first)
-        verifySameData(fakeBranch1, branches(1))
-      } else {
-        fail("incorrect branches")
-      }
+      // // Order of branches in the list is arbitrary
+      // branches.size should equal(3)
+      // val first = branches(0)
+      // if(first.id == fakeBranch1.branchId.value) {
+        // verifySameData(fakeBranch1, first)
+        // verifySameData(fakeBranch2, branches(1))
+      // } else if (first.id == fakeBranch2.branchId.value) {
+        // verifySameData(fakeBranch2, first)
+        // verifySameData(fakeBranch1, branches(1))
+      // } else {
+        // fail("incorrect branches")
+      // }
 
-    }
-  }
+    // }
+  // }
 
 }

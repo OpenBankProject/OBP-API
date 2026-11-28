@@ -107,67 +107,69 @@ object Http4s500 {
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(root),
-      "GET",
-      "/root",
-      "Get API Info (root)",
-      """Returns information about:
-      |
-      |* API version
-      |* Hosted by information
-      |* Hosted at information
-      |* Energy source information
-      |* Git Commit""",
-      EmptyBody,
-      apiInfoJson400,
-      List(
-        UnknownError,
-        MandatoryPropertyIsNotSet
-      ),
-      apiTagApi :: Nil,
-      http4sPartialFunction = Some(root)
-    )
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(root),
+      // "GET",
+      // "/root",
+      // "Get API Info (root)",
+      // """Returns information about:
+      // |
+      // |* API version
+      // |* Hosted by information
+      // |* Hosted at information
+      // |* Energy source information
+      // |* Git Commit""",
+      // EmptyBody,
+      // apiInfoJson400,
+      // List(
+        // UnknownError,
+        // MandatoryPropertyIsNotSet
+      // ),
+      // apiTagApi :: Nil,
+      // http4sPartialFunction = Some(root)
+    // )
 
-    lazy val root: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "root" =>
-        val responseJson = convertAnyToJsonString(
-          JSONFactory400.getApiInfoJSON(ApiVersion.v5_0_0, versionStatus)
-        )
-        Ok(responseJson)
-    }
+    // lazy val root: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "root" =>
+        // val responseJson = convertAnyToJsonString(
+          // JSONFactory400.getApiInfoJSON(ApiVersion.v5_0_0, versionStatus)
+        // )
+        // Ok(responseJson)
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getBanks),
-      "GET",
-      "/banks",
-      "Get Banks",
-      """Get banks on this API instance
-        |Returns a list of banks supported on this server:
-        |
-        |* ID used as parameter in URLs
-        |* Short and full name of bank
-        |* Logo URL
-        |* Website""",
-      EmptyBody,
-      banksJSON,
-      List(
-        UnknownError
-      ),
-      apiTagBank :: Nil,
-      http4sPartialFunction = Some(getBanks)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getBanks),
+      // "GET",
+      // "/banks",
+      // "Get Banks",
+      // """Get banks on this API instance
+        // |Returns a list of banks supported on this server:
+        // |
+        // |* ID used as parameter in URLs
+        // |* Short and full name of bank
+        // |* Logo URL
+        // |* Website""",
+      // EmptyBody,
+      // banksJSON,
+      // List(
+        // UnknownError
+      // ),
+      // apiTagBank :: Nil,
+      // http4sPartialFunction = Some(getBanks)
+    // )
 
-    lazy val getBanks: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" =>
-        EndpointHelpers.executeAndRespond(req) { implicit cc =>
-          for {
-            (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
-          } yield JSONFactory400.createBanksJsonWithRoutingRules(banks)
-        }
-    }
+    // lazy val getBanks: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" =>
+        // EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          // for {
+            // (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
+          // } yield JSONFactory400.createBanksJsonWithRoutingRules(banks)
+        // }
+    // }
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion,
@@ -625,7 +627,7 @@ object Http4s500 {
             // per-consent shadow, and an account held by it strands when the consent dies.
             userIdAccountOwner = createAccountJson.user_id.getOrElse(cc.onBehalfOfUserId)
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountId.value) }
-            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(accountId.value) }
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bankId.value) }
             (postedOrLoggedInUser, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
             // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
             _ <- Helper.booleanToFuture(
@@ -2372,8 +2374,8 @@ object Http4s500 {
     // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given the docs in this same order.
     lazy val routesInOrder: List[Http4sHandler] = List(
-      root,
-      getBanks,
+      // root,
+      // getBanks,
       getBank,
       createBank,
       updateBank,

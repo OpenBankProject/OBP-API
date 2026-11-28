@@ -76,7 +76,7 @@ class TransactionRequestAttributesTest extends V400ServerSetup {
       Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
         When("We make a request v4.0.0")
         lazy val transactionRequest = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1)
-        lazy val transactionRequestId = transactionRequest.id
+        lazy val transactionRequestId = transactionRequest.transaction_request_id
 
         val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "transaction-requests" / transactionRequestId / "attribute").POST
         val response400 = makePostRequest(request400, write(postTransactionRequestAttributeJsonV400))
@@ -93,7 +93,7 @@ class TransactionRequestAttributesTest extends V400ServerSetup {
     } else {
       Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
         lazy val transactionRequest = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1)
-        lazy val transactionRequestId = transactionRequest.id
+        lazy val transactionRequestId = transactionRequest.transaction_request_id
 
         When("We make a request v4.0.0")
         val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "transaction-requests" / transactionRequestId / "attribute").POST <@ (user1)
@@ -117,7 +117,7 @@ class TransactionRequestAttributesTest extends V400ServerSetup {
         lazy val putTransactionRequestAttributeJsonV400 = SwaggerDefinitionsJSON.transactionRequestAttributeJsonV400.copy(name = "test")
         lazy val view = bankAccount.views_available.map(_.id).headOption.getOrElse(Constant.SYSTEM_OWNER_VIEW_ID)
         lazy val transactionRequest = randomTransactionRequestViaEndpoint(bankId, bankAccount.id, view, user1)
-        lazy val transactionRequestId = transactionRequest.id
+        lazy val transactionRequestId = transactionRequest.transaction_request_id
 
 
         When("We make a request v4.0.0")
@@ -147,7 +147,7 @@ class TransactionRequestAttributesTest extends V400ServerSetup {
       Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
         When("We make a request v4.0.0")
         lazy val transactionRequest = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1)
-        lazy val transactionRequestId = transactionRequest.id
+        lazy val transactionRequestId = transactionRequest.transaction_request_id
         val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "transaction-requests" / transactionRequestId / "attributes" / "transactionRequestAttributeId").PUT
         val response400 = makePutRequest(request400, write(putTransactionRequestAttributeJsonV400))
         Then("We should get a 401")
@@ -163,7 +163,7 @@ class TransactionRequestAttributesTest extends V400ServerSetup {
     } else {
       Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
         lazy val transactionRequest = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1)
-        lazy val transactionRequestId = transactionRequest.id
+        lazy val transactionRequestId = transactionRequest.transaction_request_id
         When("We make a request v4.0.0")
         val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "transaction-requests" / transactionRequestId / "attributes" / "transactionRequestAttributeId").PUT <@ (user1)
         val response400 = makePutRequest(request400, write(putTransactionRequestAttributeJsonV400))
@@ -180,7 +180,7 @@ class TransactionRequestAttributesTest extends V400ServerSetup {
     } else {
       Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
         lazy val transactionRequest = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1)
-        lazy val transactionRequestId = transactionRequest.id
+        lazy val transactionRequestId = transactionRequest.transaction_request_id
         When("We make a request v4.0.0")
         val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "transaction-requests" / transactionRequestId / "attribute").POST <@ (user1)
         val response400 = makePostRequest(request400, write(putTransactionRequestAttributeJsonV400))
@@ -207,7 +207,7 @@ class TransactionRequestAttributesTest extends V400ServerSetup {
     } else {
       Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
         lazy val transactionRequest = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1)
-        lazy val transactionRequestId = transactionRequest.id
+        lazy val transactionRequestId = transactionRequest.transaction_request_id
 
         When("We make a request v4.0.0")
         val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / accountId / "transaction-requests" / transactionRequestId / "attributes" / "transactionRequestAttributeId").PUT <@ (user1)
@@ -234,7 +234,7 @@ class TransactionRequestAttributesTest extends V400ServerSetup {
       Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
 
         lazy val transactionRequest = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1)
-        lazy val transactionRequestId = transactionRequest.id
+        lazy val transactionRequestId = transactionRequest.transaction_request_id
 
         Then("We grant the role to the user1")
         Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canUpdateTransactionRequestAttributeAtOneBank.toString())
@@ -260,7 +260,7 @@ class TransactionRequestAttributesTest extends V400ServerSetup {
       Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
 
         lazy val transactionRequest = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1)
-        lazy val transactionRequestId = transactionRequest.id
+        lazy val transactionRequestId = transactionRequest.transaction_request_id
 
         When("We make a request v4.0.0")
         Then("we create the Transaction Request Attribute ")
@@ -290,7 +290,7 @@ class TransactionRequestAttributesTest extends V400ServerSetup {
       Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
 
         lazy val transactionRequest = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1)
-        lazy val transactionRequestId = transactionRequest.id
+        lazy val transactionRequestId = transactionRequest.transaction_request_id
 
         Then("we create the Transaction Request Attribute ")
         val transactionRequestAttributeId = createTransactionRequestAttributeEndpoint(bankId, accountId, transactionRequestId, user1)

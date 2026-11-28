@@ -284,15 +284,17 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
       currentUserNewStyle.username shouldBe USERNAME
       
-      When("when we use the token to get current user and it should work - Old Style")
-      val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
-      val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
-      And("We should get a 200")
-      responseCurrentUserOldStyle.code should equal(200)
-      val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
-      currentUserOldStyle.username shouldBe USERNAME
+      // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+      // v2.0.0 getCurrentUser is commented out (see docs/OLD_VERSION_ONLY_CODE.md), so the Old Style check is too.
+      // When("when we use the token to get current user and it should work - Old Style")
+      // val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
+      // val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
+      // And("We should get a 200")
+      // responseCurrentUserOldStyle.code should equal(200)
+      // val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
+      // currentUserOldStyle.username shouldBe USERNAME
 
-      currentUserNewStyle.username shouldBe currentUserOldStyle.username
+      // currentUserNewStyle.username shouldBe currentUserOldStyle.username
     }
     
     Scenario("Login with correct everything!", ApiEndpoint1, VersionOfApi) {
@@ -339,15 +341,17 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
       currentUserNewStyle.username shouldBe USERNAME
       
-      When("when we use the token to get current user and it should work - Old Style")
-      val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
-      val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
-      And("We should get a 200")
-      responseCurrentUserOldStyle.code should equal(200)
-      val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
-      currentUserOldStyle.username shouldBe USERNAME
+      // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+      // v2.0.0 getCurrentUser is commented out (see docs/OLD_VERSION_ONLY_CODE.md), so the Old Style check is too.
+      // When("when we use the token to get current user and it should work - Old Style")
+      // val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
+      // val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
+      // And("We should get a 200")
+      // responseCurrentUserOldStyle.code should equal(200)
+      // val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
+      // currentUserOldStyle.username shouldBe USERNAME
 
-      currentUserNewStyle.username shouldBe currentUserOldStyle.username
+      // currentUserNewStyle.username shouldBe currentUserOldStyle.username
     } 
     
     Scenario("Login with correct everything and use props local_identity_provider", ApiEndpoint1, VersionOfApi) {
@@ -394,15 +398,17 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
       val currentUserNewStyle = responseCurrentUserNewStyle.body.extract[UserJsonV300]
       currentUserNewStyle.username shouldBe USERNAME
       
-      When("when we use the token to get current user and it should work - Old Style")
-      val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
-      val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
-      And("We should get a 200")
-      responseCurrentUserOldStyle.code should equal(200)
-      val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
-      currentUserOldStyle.username shouldBe USERNAME
+      // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+      // v2.0.0 getCurrentUser is commented out (see docs/OLD_VERSION_ONLY_CODE.md), so the Old Style check is too.
+      // When("when we use the token to get current user and it should work - Old Style")
+      // val requestCurrentUserOldStyle = baseRequest / "obp" / "v2.0.0" / "users" / "current"
+      // val responseCurrentUserOldStyle = makeGetRequest(requestCurrentUserOldStyle, validHeadersWithToken)
+      // And("We should get a 200")
+      // responseCurrentUserOldStyle.code should equal(200)
+      // val currentUserOldStyle = responseCurrentUserOldStyle.body.extract[UserJsonV300]
+      // currentUserOldStyle.username shouldBe USERNAME
 
-      currentUserNewStyle.username shouldBe currentUserOldStyle.username
+      // currentUserNewStyle.username shouldBe currentUserOldStyle.username
     }
 
     Scenario("Login with correct everything but the user is locked", ApiEndpoint1, VersionOfApi) {

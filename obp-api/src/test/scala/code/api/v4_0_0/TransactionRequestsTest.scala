@@ -282,7 +282,9 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
       /**
         * Get all Transaction Requests. - V400
         */
-      var getTransReqRequest = (v4_0_0_Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
+      // getTransactionRequests of v4.0.0 and below is commented out, so the requests are listed
+      // through v5.1.0, which names the list transaction_requests and the id transaction_request_id.
+      var getTransReqRequest = (v5_1_0_Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
         SYSTEM_OWNER_VIEW_ID / "transaction-requests").GET <@ (user1)
 
       def makeGetTransReqRequest = makeGetRequest(getTransReqRequest, List(("from_date", APIUtil.epochTimeString),("to_date", APIUtil.DefaultToDateString)))
@@ -292,26 +294,26 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         (getTransactionRequestResponse.code) should equal(200)
 
         And("We should have a new transaction id in response body")
-        (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "id").values.toString should not equal ("")
+        (getTransactionRequestResponse.body \ "transaction_requests" \ "transaction_request_id").values.toString should not equal ("")
 
         if (withChellenge) {
           And("We should have the INITIATED status in response body")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(List(TransactionRequestStatus.INITIATED.toString))
+          (getTransactionRequestResponse.body \ "transaction_requests" \ "status").extract[List[String]] should equal(List(TransactionRequestStatus.INITIATED.toString))
 
           And("Challenge should be not null, this is the no challenge scenario")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "challenge").children.size should not equal (0)
+          (getTransactionRequestResponse.body \ "transaction_requests" \ "challenge").children.size should not equal (0)
 
           And("We should have be null value for TransactionIds")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "transaction_ids").children.headOption.map(_.values.toString).getOrElse("List()") should equal("List()")
+          (getTransactionRequestResponse.body \ "transaction_requests" \ "transaction_ids").children.headOption.map(_.values.toString).getOrElse("List()") should equal("List()")
         } else {
           And("We should have the COMPLETED status in response body")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(List(TransactionRequestStatus.COMPLETED.toString))
+          (getTransactionRequestResponse.body \ "transaction_requests" \ "status").extract[List[String]] should equal(List(TransactionRequestStatus.COMPLETED.toString))
 
           And("Challenge should be null, this is the no challenge scenario")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "challenge").children.headOption.map(_.children.size).getOrElse(0) should equal(0)
+          (getTransactionRequestResponse.body \ "transaction_requests" \ "challenge").children.headOption.map(_.children.size).getOrElse(0) should equal(0)
 
           And("We should have a new TransactionIds value")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "transaction_ids").values.toString should not equal ("")
+          (getTransactionRequestResponse.body \ "transaction_requests" \ "transaction_ids").values.toString should not equal ("")
         }
 
       }
@@ -722,7 +724,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         And("the transaction request it saved is marked FAILED, not INITIATED")
         val getTransReqResponse = helper.makeGetTransReqRequest
         getTransReqResponse.code should equal(200)
-        (getTransReqResponse.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(
+        (getTransReqResponse.body \ "transaction_requests" \ "status").extract[List[String]] should equal(
           List(TransactionRequestStatus.FAILED.toString))
 
         And("the account balance is unchanged")
@@ -749,7 +751,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         val response = helper.makeCreateTransReqRequestCounterparty
         response.code should equal(400)
         response.body.extract[ErrorMessage].message should include(extractErrorMessageCode(ChallengeRecipientNotFound))
-        (helper.makeGetTransReqRequest.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(
+        (helper.makeGetTransReqRequest.body \ "transaction_requests" \ "status").extract[List[String]] should equal(
           List(TransactionRequestStatus.FAILED.toString))
       }
     }
@@ -767,7 +769,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         val response = helper.makeCreateTransReqRequestCounterparty
         response.code should equal(400)
         response.body.extract[ErrorMessage].message should include("OBP-35060")
-        (helper.makeGetTransReqRequest.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(
+        (helper.makeGetTransReqRequest.body \ "transaction_requests" \ "status").extract[List[String]] should equal(
           List(TransactionRequestStatus.FAILED.toString))
       }
     }
@@ -1087,6 +1089,37 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
         Then("we need check the account amount info")
         helper.checkBankAccountBalance(true)
+      }
+    }
+
+    // Ported from the v2.1.0 scenario of the same name, which is commented out with that version.
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("The maker answers their own challenge on a view without the maker-checker bypass", ApiEndpoint1, ApiEndpoint2) {}
+    } else {
+      scenario("The maker answers their own challenge on a view without the maker-checker bypass", ApiEndpoint1, ApiEndpoint2) {
+        val helper = defaultSetup(SEPA.toString)
+        helper.setCurrencyAndAmt("EUR", "EUR", "9000.00")
+        helper.bodyValue = AmountOfMoneyJsonV121("EUR", "9000.00")
+        helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
+        val createTransactionRequestResponse = helper.makeCreateTransReqRequestSEPA
+        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
+
+        Given("a custom view that may add transaction requests but not bypass maker-checker, granted to user1")
+        val fromAccountId = helper.getFromAccount.accountId
+        val view = createCustomRandomView(helper.bankId, fromAccountId)
+        code.views.system.ViewPermission.resetViewPermissions(view, List(CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT))
+        code.views.Views.views.vend.grantAccessToCustomView(
+          BankIdAccountIdViewId(helper.bankId, fromAccountId, view.viewId), resourceUser1)
+
+        When("user1, who made the request, answers the challenge through that view")
+        val answerThroughView = (v4_0_0_Request / "banks" / helper.bankId.value / "accounts" / fromAccountId.value /
+          view.viewId.value / "transaction-request-types" / SEPA.toString / "transaction-requests" / helper.transRequestId / "challenge").POST <@ (user1)
+        val response = makePostRequest(answerThroughView, write(ChallengeAnswerJson400(id = helper.challengeId, answer = "123")))
+
+        Then("the answer is refused with MakerCheckerSameUser and the request is not paid")
+        response.code should equal(400)
+        (response.body \ "message").extract[String] should include(MakerCheckerSameUser)
+        helper.checkBankAccountBalance(false)
       }
     }
 
@@ -2008,7 +2041,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
     Scenario("We will call the endpoint WITHOUT user credentials", ApiEndpoint1, VersionOfApi) {
 
-      val transactionRequestId = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1).id
+      val transactionRequestId = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1).transaction_request_id
 
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId / view / "transaction-requests" / transactionRequestId).GET
@@ -2020,7 +2053,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
     Scenario("We will call the endpoint WITH user credentials", ApiEndpoint1, VersionOfApi) {
 
-      val transactionRequestId = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1).id
+      val transactionRequestId = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1).transaction_request_id
 
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts"/ accountId / view / "transaction-requests" / transactionRequestId).GET <@ (user1)

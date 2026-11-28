@@ -53,10 +53,11 @@ trait V310ServerSetup extends ServerSetupWithTestData with DefaultUsers {
 
   def randomBankId : String = {
     def getBanksInfo : APIResponse  = {
-      val request = v3_1_0_Request / "banks"
+      // getBanks of v5.0.0 and below is commented out, so the bank list comes from v5.1.0.
+      val request = v510Request / "banks"
       makeGetRequest(request)
     }
-    val banksJson = getBanksInfo.body.extract[BanksJSON]
+    val banksJson = getBanksInfo.body.extract[code.api.v4_0_0.BanksJson400]
 
     logger.trace(s"banksJson.banks.size is ${banksJson.banks.size}")
     val randomPosition = nextInt(banksJson.banks.size)
@@ -81,11 +82,15 @@ trait V310ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   }
 
   def randomViewPermalink(bankId: String, account: AccountJSON) : String = {
-    val request = v3_1_0_Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
+    // getViewsForBankAccount of v4.0.0 and below is commented out; v5.1.0 serves the path with the
+    // v5.0.0 handler, whose views have another shape, so only id and is_public are read.
+    val request = v510Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
     val reply = makeGetRequest(request)
-    val possibleViewsPermalinks = reply.body.extract[ViewsJsonV300].views.filterNot(_.is_public==true)
+    val possibleViewsPermalinks = (reply.body \ "views").children
+      .filterNot(v => (v \ "is_public").extractOpt[Boolean].contains(true))
+      .map(v => (v \ "id").extract[String])
     val randomPosition = nextInt(possibleViewsPermalinks.size)
-    possibleViewsPermalinks(randomPosition).id
+    possibleViewsPermalinks(randomPosition)
   }
 
   def getTransactions(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)], params: List[(String, String)] = Nil): APIResponse = {
@@ -99,14 +104,43 @@ trait V310ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     transactionsJson(randomPosition)
   }
 
+  // v3.1.0 addCardForBank is commented out, so cards are created through v5.1.0 (the v5.0.0 handler),
+  // whose body adds a brand. Returns the card id.
+  def createCardViaKeptVersion(bankId: String, json: CreatePhysicalCardJsonV310): String = {
+    val body = code.api.v5_0_0.CreatePhysicalCardJsonV500(
+      card_number = json.card_number, card_type = json.card_type, name_on_card = json.name_on_card,
+      issue_number = json.issue_number, serial_number = json.serial_number,
+      valid_from_date = json.valid_from_date, expires_date = json.expires_date, enabled = json.enabled,
+      technology = json.technology, networks = json.networks, allows = json.allows,
+      account_id = json.account_id, replacement = json.replacement, pin_reset = json.pin_reset,
+      collected = json.collected, posted = json.posted, customer_id = json.customer_id, brand = "Visa")
+    val response = makePostRequest((v510Request / "management" / "banks" / bankId / "cards").POST <@ (user1), write(body))
+    response.code should equal(201)
+    (response.body \ "card_id").extract[String]
+  }
+
+  // v3.1.0 createProduct is commented out, and no kept version stores category, family,
+  // super_family or details. So the product is created through the connector, with every
+  // v3.1.0 field, and returned in the v3.1.0 shape.
   def createProduct(bankId: String, code: String, json: PostPutProductJsonV310) = {
-    val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateProduct.toString)
-    When("We try to create a product v3.1.0")
-    val request310 = (v3_1_0_Request / "banks" / bankId / "products" / code).PUT <@ (user1)
-    val response310 = makePutRequest(request310, write(json))
-    Then("We should get a 201")
-    response310.code should equal(201)
-    val product = response310.body.extract[ProductJsonV310]
+    val (created, _) = scala.concurrent.Await.result(
+      _root_.code.api.util.NewStyle.function.createOrUpdateProduct(
+        bankId = bankId,
+        code = code,
+        parentProductCode = Some(json.parent_product_code).filter(_.nonEmpty),
+        name = json.name,
+        category = json.category,
+        family = json.family,
+        superFamily = json.super_family,
+        moreInfoUrl = json.more_info_url,
+        termsAndConditionsUrl = null,
+        details = json.details,
+        description = json.description,
+        metaLicenceId = json.meta.license.id,
+        metaLicenceName = json.meta.license.name,
+        callContext = None),
+      scala.concurrent.duration.Duration(30, "seconds"))
+    val product = JSONFactory310.createProductJson(created)
     product.code shouldBe code
     product.parent_product_code shouldBe json.parent_product_code
     product.bank_id shouldBe bankId
@@ -117,7 +151,6 @@ trait V310ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     product.more_info_url shouldBe json.more_info_url
     product.details shouldBe json.details
     product.description shouldBe json.description
-    Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     product
   }
 

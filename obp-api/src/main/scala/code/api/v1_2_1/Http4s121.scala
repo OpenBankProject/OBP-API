@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v1_2_1
 
 import org.json4s._
-import cats.data.{Kleisli, OptionT}
+import cats.data.OptionT
 import cats.effect._
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -93,6 +93,8 @@ object Http4s121 {
     """.stripMargin
 
   object Implementations1_2_1 {
+    private val CouldNotSaveThePrivilege = "could not save the privilege"
+    private val UserHasNoAccessToOwnerView = "user does not have access to owner view on account"
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
@@ -117,17 +119,19 @@ object Http4s121 {
       new AccountsJSON(accJson)
     }
 
-    private def publicBankAccountsListToJson(bankAccounts: List[BankAccount], publicViews: List[View]) = {
-      val accJson = bankAccounts.map { account =>
-        val viewsAvailable =
-          publicViews
-            .filter(v => v.bankId == account.bankId && v.accountId == account.accountId && v.isPublic)
-            .map(v => JSONFactory.createViewJSON(v))
-            .distinct
-        JSONFactory.createAccountJSON(account, viewsAvailable)
-      }
-      new AccountsJSON(accJson)
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+    // private def publicBankAccountsListToJson(bankAccounts: List[BankAccount], publicViews: List[View]) = {
+      // val accJson = bankAccounts.map { account =>
+        // val viewsAvailable =
+          // publicViews
+            // .filter(v => v.bankId == account.bankId && v.accountId == account.accountId && v.isPublic)
+            // .map(v => JSONFactory.createViewJSON(v))
+            // .distinct
+        // JSONFactory.createAccountJSON(account, viewsAvailable)
+      // }
+      // new AccountsJSON(accJson)
+    // }
 
     private def checkIfLocationPossible(lat: Double, lon: Double): Boolean =
       scala.math.abs(lat) <= 90 && scala.math.abs(lon) <= 180
@@ -149,130 +153,138 @@ object Http4s121 {
 
     // ─── root ───────────────────────────────────────────────────────────────
 
-    val root: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "root" =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
-          Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v1_2_1, "STABLE"))
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val root: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "root" =>
+        // EndpointHelpers.executeAndRespond(req) { cc =>
+          // Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v1_2_1, "STABLE"))
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(root),
-      "GET",
-      "/root",
-      "Get API Info (root)",
-      """Returns information about:
-        |
-        |* API version
-        |* Hosted by information
-        |* Git Commit""",
-      EmptyBody,
-      apiInfoJSON,
-      List(UnknownError, MandatoryPropertyIsNotSet),
-      apiTagApi :: Nil,
-      http4sPartialFunction = Some(root)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(root),
+      // "GET",
+      // "/root",
+      // "Get API Info (root)",
+      // """Returns information about:
+        // |
+        // |* API version
+        // |* Hosted by information
+        // |* Git Commit""",
+      // EmptyBody,
+      // apiInfoJSON,
+      // List(UnknownError, MandatoryPropertyIsNotSet),
+      // apiTagApi :: Nil,
+      // http4sPartialFunction = Some(root)
+    // )
 
     // ─── getBanks ────────────────────────────────────────────────────────────
 
-    val getBanks: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
-          for {
-            (banks, _) <- NewStyle.function.getBanks(Some(cc))
-          } yield {
-            val banksJSON = banks.map(b => JSONFactory.createBankJSON(b))
-            new BanksJSON(banksJSON)
-          }
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getBanks: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" =>
+        // EndpointHelpers.executeAndRespond(req) { cc =>
+          // for {
+            // (banks, _) <- NewStyle.function.getBanks(Some(cc))
+          // } yield {
+            // val banksJSON = banks.map(b => JSONFactory.createBankJSON(b))
+            // new BanksJSON(banksJSON)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getBanks),
-      "GET",
-      "/banks",
-      "Get Banks",
-      """Get banks on this API instance
-        |Returns a list of banks supported on this server:
-        |
-        |* ID used as parameter in URLs
-        |* Short and full name of bank
-        |* Logo URL
-        |* Website""",
-      EmptyBody,
-      banksJSON,
-      List(UnknownError),
-      apiTagBank :: apiTagPsd2 :: apiTagOldStyle :: Nil,
-      http4sPartialFunction = Some(getBanks)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getBanks),
+      // "GET",
+      // "/banks",
+      // "Get Banks",
+      // """Get banks on this API instance
+        // |Returns a list of banks supported on this server:
+        // |
+        // |* ID used as parameter in URLs
+        // |* Short and full name of bank
+        // |* Logo URL
+        // |* Website""",
+      // EmptyBody,
+      // banksJSON,
+      // List(UnknownError),
+      // apiTagBank :: apiTagPsd2 :: apiTagOldStyle :: Nil,
+      // http4sPartialFunction = Some(getBanks)
+    // )
 
     // ─── bankById ────────────────────────────────────────────────────────────
 
     // bankById runs outside ResourceDocMiddleware so it can return 400 (not 464) for unknown bank,
     // preserving the v1.2.1 Lift behavior.  Builds its own CallContext via Http4sCallContextBuilder.
-    val bankById: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / bankId =>
-        Http4sCallContextBuilder.fromRequest(req, implementedInApiVersion.apiShortVersion).flatMap { cc =>
-          val reqWithCc = req.withAttribute(callContextKey, cc)
-          EndpointHelpers.executeAndRespond(reqWithCc) { _ =>
-            Future {
-              unboxFullOrFail(BankX(BankId(bankId), Some(cc)), Some(cc), BankNotFound, 400)
-            }.map { case (bank, _) => JSONFactory.createBankJSON(bank) }
-          }
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val bankById: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / bankId =>
+        // Http4sCallContextBuilder.fromRequest(req, implementedInApiVersion.apiShortVersion).flatMap { cc =>
+          // val reqWithCc = req.withAttribute(callContextKey, cc)
+          // EndpointHelpers.executeAndRespond(reqWithCc) { _ =>
+            // Future {
+              // unboxFullOrFail(BankX(BankId(bankId), Some(cc)), Some(cc), BankNotFound, 400)
+            // }.map { case (bank, _) => JSONFactory.createBankJSON(bank) }
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(bankById),
-      "GET",
-      "/banks/BANK_ID",
-      "Get Bank",
-      """Get the bank specified by BANK_ID
-        |Returns information about a single bank specified by BANK_ID including:
-        |
-        |* Short and full name of bank
-        |* Logo URL
-        |* Website""",
-      EmptyBody,
-      bankJSON,
-      List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
-      apiTagBank :: apiTagPsd2 :: apiTagOldStyle :: Nil,
-      http4sPartialFunction = Some(bankById)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(bankById),
+      // "GET",
+      // "/banks/BANK_ID",
+      // "Get Bank",
+      // """Get the bank specified by BANK_ID
+        // |Returns information about a single bank specified by BANK_ID including:
+        // |
+        // |* Short and full name of bank
+        // |* Logo URL
+        // |* Website""",
+      // EmptyBody,
+      // bankJSON,
+      // List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
+      // apiTagBank :: apiTagPsd2 :: apiTagOldStyle :: Nil,
+      // http4sPartialFunction = Some(bankById)
+    // )
 
     // ─── getPrivateAccountsAllBanks ──────────────────────────────────────────
 
-    val getPrivateAccountsAllBanks: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "accounts" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          Future {
-            val (privateViewsUserCanAccess, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccess(user)
-            val availablePrivateAccounts = BankAccountX.privateAccounts(privateAccountAccess)
-            privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccess)
-          }
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getPrivateAccountsAllBanks: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "accounts" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // Future {
+            // val (privateViewsUserCanAccess, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccess(user)
+            // val availablePrivateAccounts = BankAccountX.privateAccounts(privateAccountAccess)
+            // privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccess)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getPrivateAccountsAllBanks),
-      "GET",
-      "/accounts",
-      "Get accounts at all banks (Private, inc views)",
-      s"""Returns the list of accounts at that the user has access to at all banks.
-         |For each account the API returns the account ID and the available views.
-         |
-         |${userAuthenticationMessage(true)}
-         |""".stripMargin,
-      EmptyBody,
-      accountJSON,
-      List(AuthenticatedUserIsRequired, UnknownError),
-      apiTagAccount :: apiTagPsd2 :: apiTagOldStyle :: Nil,
-      http4sPartialFunction = Some(getPrivateAccountsAllBanks)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getPrivateAccountsAllBanks),
+      // "GET",
+      // "/accounts",
+      // "Get accounts at all banks (Private, inc views)",
+      // s"""Returns the list of accounts at that the user has access to at all banks.
+         // |For each account the API returns the account ID and the available views.
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |""".stripMargin,
+      // EmptyBody,
+      // accountJSON,
+      // List(AuthenticatedUserIsRequired, UnknownError),
+      // apiTagAccount :: apiTagPsd2 :: apiTagOldStyle :: Nil,
+      // http4sPartialFunction = Some(getPrivateAccountsAllBanks)
+    // )
 
     // ─── privateAccountsAllBanks ─────────────────────────────────────────────
 
@@ -306,413 +318,431 @@ object Http4s121 {
 
     // ─── publicAccountsAllBanks ──────────────────────────────────────────────
 
-    val publicAccountsAllBanks: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "accounts" / "public" =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
-          Future {
-            val (publicViews, publicAccountAccess) = Views.views.vend.publicViews
-            val publicAccounts = BankAccountX.publicAccounts(publicAccountAccess)
-            publicBankAccountsListToJson(publicAccounts, publicViews)
-          }
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val publicAccountsAllBanks: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "accounts" / "public" =>
+        // EndpointHelpers.executeAndRespond(req) { cc =>
+          // Future {
+            // val (publicViews, publicAccountAccess) = Views.views.vend.publicViews
+            // val publicAccounts = BankAccountX.publicAccounts(publicAccountAccess)
+            // publicBankAccountsListToJson(publicAccounts, publicViews)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(publicAccountsAllBanks),
-      "GET",
-      "/accounts/public",
-      "Get public accounts at all banks (Anonymous access)",
-      """
-      |Returns the list of private accounts the user has access to at all banks.
-      |For each account the API returns the ID and the available views. 
-      |Authentication via OAuth is required.
-      |
-      |""".stripMargin,
-      EmptyBody,
-      accountJSON,
-      List(UnknownError),
-      apiTagAccount :: apiTagOldStyle :: Nil,
-      http4sPartialFunction = Some(publicAccountsAllBanks)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(publicAccountsAllBanks),
+      // "GET",
+      // "/accounts/public",
+      // "Get public accounts at all banks (Anonymous access)",
+      // """
+      // |Returns the list of private accounts the user has access to at all banks.
+      // |For each account the API returns the ID and the available views. 
+      // |Authentication via OAuth is required.
+      // |
+      // |""".stripMargin,
+      // EmptyBody,
+      // accountJSON,
+      // List(UnknownError),
+      // apiTagAccount :: apiTagOldStyle :: Nil,
+      // http4sPartialFunction = Some(publicAccountsAllBanks)
+    // )
 
     // ─── getPrivateAccountsAtOneBank ─────────────────────────────────────────
 
-    val getPrivateAccountsAtOneBank: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" =>
-        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
-          Future {
-            val (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(user, bank.bankId)
-            val availablePrivateAccounts = toBankExtended(bank).privateAccounts(privateAccountAccess)
-            privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank)
-          }
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getPrivateAccountsAtOneBank: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" =>
+        // EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
+          // Future {
+            // val (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(user, bank.bankId)
+            // val availablePrivateAccounts = toBankExtended(bank).privateAccounts(privateAccountAccess)
+            // privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getPrivateAccountsAtOneBank),
-      "GET",
-      "/banks/BANK_ID/accounts",
-      "Get accounts at bank (Private)",
-      s"""Returns the list of accounts at BANK_ID that the user has access to.
-         |For each account the API returns the account ID and the available views.
-         |
-         |${userAuthenticationMessage(true)}
-         |""".stripMargin,
-      EmptyBody,
-      accountJSON,
-      List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
-      apiTagAccount :: apiTagOldStyle :: Nil,
-      http4sPartialFunction = Some(getPrivateAccountsAtOneBank)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getPrivateAccountsAtOneBank),
+      // "GET",
+      // "/banks/BANK_ID/accounts",
+      // "Get accounts at bank (Private)",
+      // s"""Returns the list of accounts at BANK_ID that the user has access to.
+         // |For each account the API returns the account ID and the available views.
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |""".stripMargin,
+      // EmptyBody,
+      // accountJSON,
+      // List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
+      // apiTagAccount :: apiTagOldStyle :: Nil,
+      // http4sPartialFunction = Some(getPrivateAccountsAtOneBank)
+    // )
 
     // ─── privateAccountsAtOneBank ────────────────────────────────────────────
 
-    val privateAccountsAtOneBank: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / "private" =>
-        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
-          Future {
-            val (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(user, bank.bankId)
-            val availablePrivateAccounts = toBankExtended(bank).privateAccounts(privateAccountAccess)
-            privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank)
-          }
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val privateAccountsAtOneBank: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / "private" =>
+        // EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
+          // Future {
+            // val (privateViewsUserCanAccessAtOneBank, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccessAtBank(user, bank.bankId)
+            // val availablePrivateAccounts = toBankExtended(bank).privateAccounts(privateAccountAccess)
+            // privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(privateAccountsAtOneBank),
-      "GET",
-      "/banks/BANK_ID/accounts/private",
-      "Get private accounts at one bank",
-      s"""Returns the list of private accounts at BANK_ID that the user has access to.
-         |For each account the API returns the ID and the available views.
-         |
-         |${userAuthenticationMessage(true)}
-         |""".stripMargin,
-      EmptyBody,
-      accountJSON,
-      List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
-      List(apiTagAccount, apiTagPsd2, apiTagOldStyle),
-      http4sPartialFunction = Some(privateAccountsAtOneBank)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(privateAccountsAtOneBank),
+      // "GET",
+      // "/banks/BANK_ID/accounts/private",
+      // "Get private accounts at one bank",
+      // s"""Returns the list of private accounts at BANK_ID that the user has access to.
+         // |For each account the API returns the ID and the available views.
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |""".stripMargin,
+      // EmptyBody,
+      // accountJSON,
+      // List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
+      // List(apiTagAccount, apiTagPsd2, apiTagOldStyle),
+      // http4sPartialFunction = Some(privateAccountsAtOneBank)
+    // )
 
     // ─── publicAccountsAtOneBank ─────────────────────────────────────────────
 
-    val publicAccountsAtOneBank: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / "public" =>
-        EndpointHelpers.withBank(req) { (bank, cc) =>
-          Future {
-            val (publicViewsForBank, publicAccountAccess) = Views.views.vend.publicViewsForBank(bank.bankId)
-            val publicAccounts = toBankExtended(bank).publicAccounts(publicAccountAccess)
-            publicBankAccountsListToJson(publicAccounts, publicViewsForBank)
-          }
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val publicAccountsAtOneBank: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / "public" =>
+        // EndpointHelpers.withBank(req) { (bank, cc) =>
+          // Future {
+            // val (publicViewsForBank, publicAccountAccess) = Views.views.vend.publicViewsForBank(bank.bankId)
+            // val publicAccounts = toBankExtended(bank).publicAccounts(publicAccountAccess)
+            // publicBankAccountsListToJson(publicAccounts, publicViewsForBank)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(publicAccountsAtOneBank),
-      "GET",
-      "/banks/BANK_ID/accounts/public",
-      "Get public accounts at one bank (Anonymous access)",
-      """Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
-        |
-        |Authentication via OAuth is not required.""".stripMargin,
-      EmptyBody,
-      accountJSON,
-      List(UnknownError, BankNotFound),
-      apiTagAccountPublic :: apiTagAccount :: apiTagPublicData :: apiTagOldStyle :: Nil,
-      http4sPartialFunction = Some(publicAccountsAtOneBank)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(publicAccountsAtOneBank),
+      // "GET",
+      // "/banks/BANK_ID/accounts/public",
+      // "Get public accounts at one bank (Anonymous access)",
+      // """Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
+        // |
+        // |Authentication via OAuth is not required.""".stripMargin,
+      // EmptyBody,
+      // accountJSON,
+      // List(UnknownError, BankNotFound),
+      // apiTagAccountPublic :: apiTagAccount :: apiTagPublicData :: apiTagOldStyle :: Nil,
+      // http4sPartialFunction = Some(publicAccountsAtOneBank)
+    // )
 
     // ─── accountById ─────────────────────────────────────────────────────────
 
-    val accountById: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "account" =>
-        EndpointHelpers.withView(req) { (user, account, view, cc) =>
-          for {
-            availableViews <- Future(Views.views.vend.privateViewsUserCanAccessForAccount(user, BankIdAccountId(account.bankId, account.accountId)))
-            moderatedAccount <- Future(account.moderatedBankAccount(view, BankIdAccountId(account.bankId, account.accountId), Full(user), Some(cc))) map {
-              unboxFullOrFail(_, Some(cc), BankAccountNotFound)
-            }
-          } yield {
-            val viewsAvailable = availableViews.map(JSONFactory.createViewJSON)
-            JSONFactory.createBankAccountJSON(moderatedAccount, viewsAvailable)
-          }
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val accountById: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "account" =>
+        // EndpointHelpers.withView(req) { (user, account, view, cc) =>
+          // for {
+            // availableViews <- Future(Views.views.vend.privateViewsUserCanAccessForAccount(user, BankIdAccountId(account.bankId, account.accountId)))
+            // moderatedAccount <- Future(account.moderatedBankAccount(view, BankIdAccountId(account.bankId, account.accountId), Full(user), Some(cc))) map {
+              // unboxFullOrFail(_, Some(cc), BankAccountNotFound)
+            // }
+          // } yield {
+            // val viewsAvailable = availableViews.map(JSONFactory.createViewJSON)
+            // JSONFactory.createBankAccountJSON(moderatedAccount, viewsAvailable)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(accountById),
-      "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
-      "Get account by id",
-      s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
-      |
-      |* Number
-      |* Owners
-      |* Type
-      |* Balance
-      |* IBAN
-      |* Available views
-      |
-      |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
-      |
-      |${userAuthenticationMessage(false)}
-      |
-      |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
-      |
-      |""".stripMargin,
-      EmptyBody,
-      moderatedAccountJSON,
-      List(AuthenticatedUserIsRequired, UnknownError, BankAccountNotFound),
-      apiTagAccount :: apiTagOldStyle :: Nil,
-      http4sPartialFunction = Some(accountById)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(accountById),
+      // "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+      // "Get account by id",
+      // s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+      // |
+      // |* Number
+      // |* Owners
+      // |* Type
+      // |* Balance
+      // |* IBAN
+      // |* Available views
+      // |
+      // |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+      // |
+      // |${userAuthenticationMessage(false)}
+      // |
+      // |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+      // |
+      // |""".stripMargin,
+      // EmptyBody,
+      // moderatedAccountJSON,
+      // List(AuthenticatedUserIsRequired, UnknownError, BankAccountNotFound),
+      // apiTagAccount :: apiTagOldStyle :: Nil,
+      // http4sPartialFunction = Some(accountById)
+    // )
 
     // ─── updateAccountLabel ──────────────────────────────────────────────────
 
-    val updateAccountLabel: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId =>
-        EndpointHelpers.executeFuture(req) {
-          val cc = req.callContext
-          val bodyStr = cc.httpBody.getOrElse("")
-          for {
-            user <- cc.user match {
-              case Full(u) => Future.successful(u)
-              case _ => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
-            }
-            json <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[UpdateAccountJSON]
-            }
-            (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(bankId), AccountId(accountId), Some(cc))
-            permission <- NewStyle.function.permission(account.bankId, account.accountId, user, callContext)
-            anyViewContainsPermission = permission.views.map(_.allowed_actions.exists(_ == CAN_UPDATE_BANK_ACCOUNT_LABEL)).find(_ == true).getOrElse(false)
-            _ <- Helper.booleanToFuture(
-              s"${ViewDoesNotPermitAccess} You need the `${CAN_UPDATE_BANK_ACCOUNT_LABEL}` permission on any your views",
-              cc = callContext
-            )(anyViewContainsPermission)
-            _ <- Connector.connector.vend.updateAccountLabel(BankId(bankId), AccountId(accountId), json.label, callContext) map { i =>
-              unboxFullOrFail(i._1, i._2, s"$UpdateBankAccountLabelError Current BankId is $bankId and Current AccountId is $accountId", 404)
-            }
-          } yield successMessage
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val updateAccountLabel: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId =>
+        // EndpointHelpers.executeFuture(req) {
+          // val cc = req.callContext
+          // val bodyStr = cc.httpBody.getOrElse("")
+          // for {
+            // user <- cc.user match {
+              // case Full(u) => Future.successful(u)
+              // case _ => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
+            // }
+            // json <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              // com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[UpdateAccountJSON]
+            // }
+            // (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(bankId), AccountId(accountId), Some(cc))
+            // permission <- NewStyle.function.permission(account.bankId, account.accountId, user, callContext)
+            // anyViewContainsPermission = permission.views.map(_.allowed_actions.exists(_ == CAN_UPDATE_BANK_ACCOUNT_LABEL)).find(_ == true).getOrElse(false)
+            // _ <- Helper.booleanToFuture(
+              // s"${ViewDoesNotPermitAccess} You need the `${CAN_UPDATE_BANK_ACCOUNT_LABEL}` permission on any your views",
+              // cc = callContext
+            // )(anyViewContainsPermission)
+            // _ <- Connector.connector.vend.updateAccountLabel(BankId(bankId), AccountId(accountId), json.label, callContext) map { i =>
+              // unboxFullOrFail(i._1, i._2, s"$UpdateBankAccountLabelError Current BankId is $bankId and Current AccountId is $accountId", 404)
+            // }
+          // } yield successMessage
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(updateAccountLabel),
-      "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID",
-      "Update Account Label",
-      s"""Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account'
-         |
-         |${userAuthenticationMessage(true)}
-         |""".stripMargin,
-      updateAccountJSON,
-      successMessage,
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired, UnknownError, BankAccountNotFound, "user does not have access to owner view on account"),
-      List(apiTagAccount),
-      http4sPartialFunction = Some(updateAccountLabel)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(updateAccountLabel),
+      // "POST",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID",
+      // "Update Account Label",
+      // s"""Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account'
+         // |
+         // |${userAuthenticationMessage(true)}
+         // |""".stripMargin,
+      // updateAccountJSON,
+      // successMessage,
+      // List(InvalidJsonFormat, AuthenticatedUserIsRequired, UnknownError, BankAccountNotFound, "user does not have access to owner view on account"),
+      // List(apiTagAccount),
+      // http4sPartialFunction = Some(updateAccountLabel)
+    // )
 
     // ─── getViewsForBankAccount ───────────────────────────────────────────────
 
-    val getViewsForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" =>
-        EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
-          for {
-            permission <- Future(Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)) map {
-              unboxFullOrFail(_, Some(cc), BankAccountNotFound)
-            }
-            anyViewContainsPermission = permission.views.map(_.allowed_actions.exists(_ == CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT)).find(_ == true).getOrElse(false)
-            _ <- Helper.booleanToFuture(
-              s"${ViewDoesNotPermitAccess} You need the `${CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT}` permission on any your views",
-              cc = Some(cc)
-            )(anyViewContainsPermission)
-            views <- Future(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
-          } yield JSONFactory.createViewsJSON(views)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getViewsForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" =>
+        // EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
+          // for {
+            // permission <- Future(Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)) map {
+              // unboxFullOrFail(_, Some(cc), BankAccountNotFound)
+            // }
+            // anyViewContainsPermission = permission.views.map(_.allowed_actions.exists(_ == CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT)).find(_ == true).getOrElse(false)
+            // _ <- Helper.booleanToFuture(
+              // s"${ViewDoesNotPermitAccess} You need the `${CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT}` permission on any your views",
+              // cc = Some(cc)
+            // )(anyViewContainsPermission)
+            // views <- Future(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
+          // } yield JSONFactory.createViewsJSON(views)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getViewsForBankAccount),
-      "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Get Views for Account",
-      s"""#Views
-      |
-      |
-      |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
-      |
-      |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
-      |
-      |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
-      |
-      |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
-      |
-      |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
-      |
-      |**Metadata:**
-      |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
-      |
-      |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
-      |
-      |# All
-      |*Optional*
-      |
-      |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
-      |
-      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
-      EmptyBody,
-      viewsJSONV121,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "user does not have owner access"),
-      List(apiTagView, apiTagAccount, apiTagOldStyle),
-      http4sPartialFunction = Some(getViewsForBankAccount)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getViewsForBankAccount),
+      // "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
+      // "Get Views for Account",
+      // s"""#Views
+      // |
+      // |
+      // |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
+      // |
+      // |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
+      // |
+      // |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
+      // |
+      // |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
+      // |
+      // |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
+      // |
+      // |**Metadata:**
+      // |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
+      // |
+      // |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
+      // |
+      // |# All
+      // |*Optional*
+      // |
+      // |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
+      // |
+      // |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      // EmptyBody,
+      // viewsJSONV121,
+      // List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "user does not have owner access"),
+      // List(apiTagView, apiTagAccount, apiTagOldStyle),
+      // http4sPartialFunction = Some(getViewsForBankAccount)
+    // )
 
     // ─── createViewForBankAccount ─────────────────────────────────────────────
 
-    val createViewForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" =>
-        EndpointHelpers.executeFutureCreated(req) {
-          val cc = req.callContext
-          val bodyStr = cc.httpBody.getOrElse("")
-          for {
-            user <- cc.user match {
-              case Full(u) => Future.successful(u)
-              case _ => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
-            }
-            (rawAccountBox, _) <- Connector.connector.vend.checkBankAccountExists(BankId(bankId), AccountId(accountId), Some(cc))
-            account <- Future { unboxFullOrFail(rawAccountBox, Some(cc), s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId") }
-            createViewJsonV121 <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[CreateViewJsonV121]
-            }
-            _ <- Helper.booleanToFuture(InvalidCustomViewFormat + s"Current view_name (${createViewJsonV121.name})", cc = Some(cc)) {
-              isValidCustomViewName(createViewJsonV121.name)
-            }
-            createViewJson = CreateViewJson(
-              createViewJsonV121.name, createViewJsonV121.description,
-              metadata_view = "",
-              createViewJsonV121.is_public, createViewJsonV121.which_alias_to_use,
-              createViewJsonV121.hide_metadata_if_alias_used, createViewJsonV121.allowed_actions
-            )
-            anyViewContainsPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)
-              .map(_.views.map(_.allowed_actions.exists(_ == CAN_CREATE_CUSTOM_VIEW))).getOrElse(Nil).find(_ == true).getOrElse(false)
-            _ <- Helper.booleanToFuture(
-              s"${CreateCustomViewError} You need the `${CAN_CREATE_CUSTOM_VIEW}` permission on any your views",
-              cc = Some(cc)
-            )(anyViewContainsPermission)
-            // the new view may only get actions the caller has on one of their views
-            callerActions = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)
-              .map(_.views.flatMap(_.allowed_actions)).getOrElse(Nil).toSet
-            _ <- Helper.booleanToFuture(
-              s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${createViewJsonV121.allowed_actions})",
-              failCode = 403, cc = Some(cc)
-            )(createViewJsonV121.allowed_actions.toSet.subsetOf(callerActions))
-            view <- Future(Views.views.vend.createCustomView(BankIdAccountId(account.bankId, account.accountId), createViewJson)) map {
-              unboxFullOrFail(_, Some(cc), CreateCustomViewError)
-            }
-          } yield JSONFactory.createViewJSON(view)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createViewForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" =>
+        // EndpointHelpers.executeFutureCreated(req) {
+          // val cc = req.callContext
+          // val bodyStr = cc.httpBody.getOrElse("")
+          // for {
+            // user <- cc.user match {
+              // case Full(u) => Future.successful(u)
+              // case _ => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
+            // }
+            // (rawAccountBox, _) <- Connector.connector.vend.checkBankAccountExists(BankId(bankId), AccountId(accountId), Some(cc))
+            // account <- Future { unboxFullOrFail(rawAccountBox, Some(cc), s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId") }
+            // createViewJsonV121 <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              // com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[CreateViewJsonV121]
+            // }
+            // _ <- Helper.booleanToFuture(InvalidCustomViewFormat + s"Current view_name (${createViewJsonV121.name})", cc = Some(cc)) {
+              // isValidCustomViewName(createViewJsonV121.name)
+            // }
+            // createViewJson = CreateViewJson(
+              // createViewJsonV121.name, createViewJsonV121.description,
+              // metadata_view = "",
+              // createViewJsonV121.is_public, createViewJsonV121.which_alias_to_use,
+              // createViewJsonV121.hide_metadata_if_alias_used, createViewJsonV121.allowed_actions
+            // )
+            // anyViewContainsPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)
+              // .map(_.views.map(_.allowed_actions.exists(_ == CAN_CREATE_CUSTOM_VIEW))).getOrElse(Nil).find(_ == true).getOrElse(false)
+            // _ <- Helper.booleanToFuture(
+              // s"${CreateCustomViewError} You need the `${CAN_CREATE_CUSTOM_VIEW}` permission on any your views",
+              // cc = Some(cc)
+            // )(anyViewContainsPermission)
+            // // the new view may only get actions the caller has on one of their views
+            // callerActions = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)
+              // .map(_.views.flatMap(_.allowed_actions)).getOrElse(Nil).toSet
+            // _ <- Helper.booleanToFuture(
+              // s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${createViewJsonV121.allowed_actions})",
+              // failCode = 403, cc = Some(cc)
+            // )(createViewJsonV121.allowed_actions.toSet.subsetOf(callerActions))
+            // view <- Future(Views.views.vend.createCustomView(BankIdAccountId(account.bankId, account.accountId), createViewJson)) map {
+              // unboxFullOrFail(_, Some(cc), CreateCustomViewError)
+            // }
+          // } yield JSONFactory.createViewJSON(view)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(createViewForBankAccount),
-      "POST",
-      "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/views",
-      "Create View",
-      s"""#Create a view on bank account
-      |
-      | ${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
-      | The 'alias' field in the JSON can take one of three values:
-      |
-      | * _public_: to use the public alias if there is one specified for the other account.
-      | * _private_: to use the private alias if there is one specified for the other account.
-      |
-      | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
-      |
-      | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
-      |
-      | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
-      createViewJsonV121,
-      viewJSONV121,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, SourceViewHasLessPermission, UnknownError, "user does not have owner access"),
-      List(apiTagAccount, apiTagView, apiTagOldStyle),
-      http4sPartialFunction = Some(createViewForBankAccount)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(createViewForBankAccount),
+      // "POST",
+      // "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/views",
+      // "Create View",
+      // s"""#Create a view on bank account
+      // |
+      // | ${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
+      // | The 'alias' field in the JSON can take one of three values:
+      // |
+      // | * _public_: to use the public alias if there is one specified for the other account.
+      // | * _private_: to use the private alias if there is one specified for the other account.
+      // |
+      // | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+      // |
+      // | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+      // |
+      // | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
+      // createViewJsonV121,
+      // viewJSONV121,
+      // List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, SourceViewHasLessPermission, UnknownError, "user does not have owner access"),
+      // List(apiTagAccount, apiTagView, apiTagOldStyle),
+      // http4sPartialFunction = Some(createViewForBankAccount)
+    // )
 
     // ─── updateViewForBankAccount ─────────────────────────────────────────────
 
-    val updateViewForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId =>
-        EndpointHelpers.executeFutureWithBody[UpdateViewJsonV121, ViewJSONV121](req) { (updateJsonV121, cc) =>
-          for {
-            user <- cc.user match {
-              case Full(u) => Future.successful(u)
-              case _ => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
-            }
-            (rawAccountBox, _) <- Connector.connector.vend.checkBankAccountExists(BankId(bankId), AccountId(accountId), Some(cc))
-            account <- Future { unboxFullOrFail(rawAccountBox, Some(cc), s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId") }
-            _ <- Helper.booleanToFuture(InvalidCustomViewFormat + s"Current view_id ($viewId)", cc = Some(cc)) {
-              viewId.startsWith("_")
-            }
-            view <- Future(Views.views.vend.customView(ViewId(viewId), BankIdAccountId(account.bankId, account.accountId))) map {
-              unboxFullOrFail(_, Some(cc), ViewNotFound)
-            }
-            _ <- Helper.booleanToFuture(SystemViewsCanNotBeModified, cc = Some(cc))(!view.isSystem)
-            updateViewJson = UpdateViewJSON(
-              description = updateJsonV121.description,
-              metadata_view = view.metadataView,
-              is_public = updateJsonV121.is_public,
-              which_alias_to_use = updateJsonV121.which_alias_to_use,
-              hide_metadata_if_alias_used = updateJsonV121.hide_metadata_if_alias_used,
-              allowed_actions = updateJsonV121.allowed_actions
-            )
-            anyViewContainsPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)
-              .map(_.views.map(_.allowed_actions.exists(_ == CAN_UPDATE_CUSTOM_VIEW))).getOrElse(Nil).find(_ == true).getOrElse(false)
-            _ <- Helper.booleanToFuture(
-              s"${CreateCustomViewError} You need the `${CAN_UPDATE_CUSTOM_VIEW}` permission on any your views",
-              cc = Some(cc)
-            )(anyViewContainsPermission)
-            // the view may only get actions the caller already has on one of their views of this account, else they grant themselves more (as v5.1.0 does)
-            callerActions = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)
-              .map(_.views.flatMap(_.allowed_actions)).getOrElse(Nil).toSet
-            _ <- Helper.booleanToFuture(
-              s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${updateJsonV121.allowed_actions})",
-              failCode = 403, cc = Some(cc)
-            )(updateJsonV121.allowed_actions.toSet.subsetOf(callerActions))
-            updatedView <- Future(Views.views.vend.updateCustomView(BankIdAccountId(account.bankId, account.accountId), ViewId(viewId), updateViewJson)) map {
-              unboxFullOrFail(_, Some(cc), CreateCustomViewError)
-            }
-          } yield JSONFactory.createViewJSON(updatedView)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val updateViewForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ PUT -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId =>
+        // EndpointHelpers.executeFutureWithBody[UpdateViewJsonV121, ViewJSONV121](req) { (updateJsonV121, cc) =>
+          // for {
+            // user <- cc.user match {
+              // case Full(u) => Future.successful(u)
+              // case _ => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
+            // }
+            // (rawAccountBox, _) <- Connector.connector.vend.checkBankAccountExists(BankId(bankId), AccountId(accountId), Some(cc))
+            // account <- Future { unboxFullOrFail(rawAccountBox, Some(cc), s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId") }
+            // _ <- Helper.booleanToFuture(InvalidCustomViewFormat + s"Current view_id ($viewId)", cc = Some(cc)) {
+              // viewId.startsWith("_")
+            // }
+            // view <- Future(Views.views.vend.customView(ViewId(viewId), BankIdAccountId(account.bankId, account.accountId))) map {
+              // unboxFullOrFail(_, Some(cc), ViewNotFound)
+            // }
+            // _ <- Helper.booleanToFuture(SystemViewsCanNotBeModified, cc = Some(cc))(!view.isSystem)
+            // updateViewJson = UpdateViewJSON(
+              // description = updateJsonV121.description,
+              // metadata_view = view.metadataView,
+              // is_public = updateJsonV121.is_public,
+              // which_alias_to_use = updateJsonV121.which_alias_to_use,
+              // hide_metadata_if_alias_used = updateJsonV121.hide_metadata_if_alias_used,
+              // allowed_actions = updateJsonV121.allowed_actions
+            // )
+            // anyViewContainsPermission = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)
+              // .map(_.views.map(_.allowed_actions.exists(_ == CAN_UPDATE_CUSTOM_VIEW))).getOrElse(Nil).find(_ == true).getOrElse(false)
+            // _ <- Helper.booleanToFuture(
+              // s"${CreateCustomViewError} You need the `${CAN_UPDATE_CUSTOM_VIEW}` permission on any your views",
+              // cc = Some(cc)
+            // )(anyViewContainsPermission)
+            // // the view may only get actions the caller already has on one of their views of this account, else they grant themselves more (as v5.1.0 does)
+            // callerActions = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)
+              // .map(_.views.flatMap(_.allowed_actions)).getOrElse(Nil).toSet
+            // _ <- Helper.booleanToFuture(
+              // s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${updateJsonV121.allowed_actions})",
+              // failCode = 403, cc = Some(cc)
+            // )(updateJsonV121.allowed_actions.toSet.subsetOf(callerActions))
+            // updatedView <- Future(Views.views.vend.updateCustomView(BankIdAccountId(account.bankId, account.accountId), ViewId(viewId), updateViewJson)) map {
+              // unboxFullOrFail(_, Some(cc), CreateCustomViewError)
+            // }
+          // } yield JSONFactory.createViewJSON(updatedView)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(updateViewForBankAccount),
-      "PUT",
-      "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/views/CUSTOM_VIEW_ID",
-      "Update View",
-      s"""Update an existing view on a bank account
-      |
-      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
-      |
-      |The json sent is the same as during view creation (above), with one difference: the 'name' field
-      |of a view is not editable (it is only set when a view is created)""",
-      updateViewJsonV121,
-      viewJSONV121,
-      // SourceViewHasLessPermission: the body asks for actions none of the caller's views on the account has
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, ViewNotFound, SourceViewHasLessPermission, UnknownError, "user does not have owner access"),
-      List(apiTagAccount, apiTagView, apiTagOldStyle),
-      http4sPartialFunction = Some(updateViewForBankAccount)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(updateViewForBankAccount),
+      // "PUT",
+      // "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/views/CUSTOM_VIEW_ID",
+      // "Update View",
+      // s"""Update an existing view on a bank account
+      // |
+      // |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
+      // |
+      // |The json sent is the same as during view creation (above), with one difference: the 'name' field
+      // |of a view is not editable (it is only set when a view is created)""",
+      // updateViewJsonV121,
+      // viewJSONV121,
+      // // SourceViewHasLessPermission: the body asks for actions none of the caller's views on the account has
+      // List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, ViewNotFound, SourceViewHasLessPermission, UnknownError, "user does not have owner access"),
+      // List(apiTagAccount, apiTagView, apiTagOldStyle),
+      // http4sPartialFunction = Some(updateViewForBankAccount)
+    // )
 
     // ─── deleteViewForBankAccount ─────────────────────────────────────────────
 
@@ -751,76 +781,80 @@ object Http4s121 {
 
     // ─── getPermissionsForBankAccount ─────────────────────────────────────────
 
-    val getPermissionsForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "permissions" =>
-        EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
-          val permissionBox = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)
-          val anyViewContainsPermission = permissionBox.map(_.views.map(_.allowed_actions.exists(_ == CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ALL_USERS))).getOrElse(Nil).find(_ == true).getOrElse(false)
-          for {
-            _ <- Helper.booleanToFuture(
-              s"${CreateCustomViewError} You need the `${CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ALL_USERS}` permission on any your views",
-              cc = Some(cc)
-            )(anyViewContainsPermission)
-            permissions = Views.views.vend.permissions(BankIdAccountId(account.bankId, account.accountId))
-          } yield JSONFactory.createPermissionsJSON(permissions)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getPermissionsForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "permissions" =>
+        // EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
+          // val permissionBox = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), user)
+          // val anyViewContainsPermission = permissionBox.map(_.views.map(_.allowed_actions.exists(_ == CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ALL_USERS))).getOrElse(Nil).find(_ == true).getOrElse(false)
+          // for {
+            // _ <- Helper.booleanToFuture(
+              // s"${CreateCustomViewError} You need the `${CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ALL_USERS}` permission on any your views",
+              // cc = Some(cc)
+            // )(anyViewContainsPermission)
+            // permissions = Views.views.vend.permissions(BankIdAccountId(account.bankId, account.accountId))
+          // } yield JSONFactory.createPermissionsJSON(permissions)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getPermissionsForBankAccount),
-      "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
-      "Get access",
-      s"""Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
-      |
-      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
-      EmptyBody,
-      permissionsJSON,
-      List(AuthenticatedUserIsRequired, UnknownError),
-      List(apiTagView, apiTagAccount, apiTagEntitlement, apiTagOldStyle),
-      http4sPartialFunction = Some(getPermissionsForBankAccount)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getPermissionsForBankAccount),
+      // "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
+      // "Get access",
+      // s"""Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
+      // |
+      // |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      // EmptyBody,
+      // permissionsJSON,
+      // List(AuthenticatedUserIsRequired, UnknownError),
+      // List(apiTagView, apiTagAccount, apiTagEntitlement, apiTagOldStyle),
+      // http4sPartialFunction = Some(getPermissionsForBankAccount)
+    // )
 
     // ─── getPermissionForUserForBankAccount ───────────────────────────────────
 
-    val getPermissionForUserForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "permissions" / provider / providerId =>
-        EndpointHelpers.withBankAccount(req) { (loggedInUser, account, cc) =>
-          val loggedInUserPermissionBox = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), loggedInUser)
-          val anyViewContainsPermission = loggedInUserPermissionBox.map(_.views.map(_.allowed_actions.exists(_ == CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ONE_USER)))
-            .getOrElse(Nil).find(_ == true).getOrElse(false)
-          for {
-            _ <- Helper.booleanToFuture(
-              s"${CreateCustomViewError} You need the `${CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ONE_USER}` permission on any your views",
-              cc = Some(cc)
-            )(anyViewContainsPermission)
-            userFromURL <- Future(UserX.findByProviderId(provider, providerId)) map {
-              unboxFullOrFail(_, Some(cc), UserNotFoundByProviderAndProvideId)
-            }
-            permission <- Future(Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), userFromURL)) map {
-              unboxFullOrFail(_, Some(cc), UnknownError)
-            }
-          } yield JSONFactory.createViewsJSON(permission.views)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getPermissionForUserForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "permissions" / provider / providerId =>
+        // EndpointHelpers.withBankAccount(req) { (loggedInUser, account, cc) =>
+          // val loggedInUserPermissionBox = Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), loggedInUser)
+          // val anyViewContainsPermission = loggedInUserPermissionBox.map(_.views.map(_.allowed_actions.exists(_ == CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ONE_USER)))
+            // .getOrElse(Nil).find(_ == true).getOrElse(false)
+          // for {
+            // _ <- Helper.booleanToFuture(
+              // s"${CreateCustomViewError} You need the `${CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ONE_USER}` permission on any your views",
+              // cc = Some(cc)
+            // )(anyViewContainsPermission)
+            // userFromURL <- Future(UserX.findByProviderId(provider, providerId)) map {
+              // unboxFullOrFail(_, Some(cc), UserNotFoundByProviderAndProvideId)
+            // }
+            // permission <- Future(Views.views.vend.permission(BankIdAccountId(account.bankId, account.accountId), userFromURL)) map {
+              // unboxFullOrFail(_, Some(cc), UnknownError)
+            // }
+          // } yield JSONFactory.createViewsJSON(permission.views)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getPermissionForUserForBankAccount),
-      "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
-      "Get access for specific user",
-      s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to.
-      |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
-      |
-      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
-      EmptyBody,
-      viewsJSONV121,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "user does not have access to owner view on account"),
-      List(apiTagAccount, apiTagView, apiTagEntitlement, apiTagOldStyle),
-      http4sPartialFunction = Some(getPermissionForUserForBankAccount)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getPermissionForUserForBankAccount),
+      // "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
+      // "Get access for specific user",
+      // s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to.
+      // |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+      // |
+      // |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      // EmptyBody,
+      // viewsJSONV121,
+      // List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "user does not have access to owner view on account"),
+      // List(apiTagAccount, apiTagView, apiTagEntitlement, apiTagOldStyle),
+      // http4sPartialFunction = Some(getPermissionForUserForBankAccount)
+    // )
 
     // ─── addPermissionForUserForBankAccountForMultipleViews ───────────────────
 
@@ -863,7 +897,7 @@ object Http4s121 {
       |The User needs to have access to the owner view.""",
       viewIdsJson,
       viewsJSONV121,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "wrong format JSON", "could not save the privilege", "user does not have access to owner view on account"),
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "wrong format JSON", CouldNotSaveThePrivilege, UserHasNoAccessToOwnerView),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
       http4sPartialFunction = Some(addPermissionForUserForBankAccountForMultipleViews)
     )
@@ -902,7 +936,7 @@ object Http4s121 {
       EmptyBody,
       // No Json body required
       viewJSONV121,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, UserLacksPermissionCanGrantAccessToViewForTargetAccount, "could not save the privilege", "user does not have access to owner view on account"),
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, UserLacksPermissionCanGrantAccessToViewForTargetAccount, CouldNotSaveThePrivilege, UserHasNoAccessToOwnerView),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
       http4sPartialFunction = Some(addPermissionForUserForBankAccountForOneView)
     )
@@ -938,7 +972,7 @@ object Http4s121 {
       |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, CannotRevokeOwnAccountAccess, "could not save the privilege", "user does not have access to owner view on account", UnknownError),
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, CannotRevokeOwnAccountAccess, CouldNotSaveThePrivilege, UserHasNoAccessToOwnerView, UnknownError),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagEntitlement, apiTagOwnerRequired),
       http4sPartialFunction = Some(removePermissionForUserForBankAccountForOneView)
     )
@@ -975,66 +1009,70 @@ object Http4s121 {
       EmptyBody,
       EmptyBody,
       // UserLacksPermissionCanRevokeAccessToViewForTargetAccount: the caller cannot revoke one of the views the target user holds
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, CannotRevokeOwnAccountAccess, UserLacksPermissionCanRevokeAccessToViewForTargetAccount, UnknownError, "user does not have access to owner view on account"),
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, CannotRevokeOwnAccountAccess, UserLacksPermissionCanRevokeAccessToViewForTargetAccount, UnknownError, UserHasNoAccessToOwnerView),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
       http4sPartialFunction = Some(removePermissionForUserForBankAccountForAllViews)
     )
 
     // ─── getOtherAccountsForBankAccount ──────────────────────────────────────
 
-    val getOtherAccountsForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" =>
-        EndpointHelpers.withView(req) { (user, account, view, cc) =>
-          for {
-            (otherBankAccounts, _) <- NewStyle.function.moderatedOtherBankAccounts(account, view, Full(user), Some(cc))
-          } yield JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getOtherAccountsForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" =>
+        // EndpointHelpers.withView(req) { (user, account, view, cc) =>
+          // for {
+            // (otherBankAccounts, _) <- NewStyle.function.moderatedOtherBankAccounts(account, view, Full(user), Some(cc))
+          // } yield JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getOtherAccountsForBankAccount),
-      "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
-      "Get Other Accounts of one Account",
-      s"""Returns data about all the other accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
-         |${userAuthenticationMessage(false)}
-         |Authentication is required if the view VIEW_ID is not public.""",
-      EmptyBody,
-      otherAccountsJSON,
-      List(BankAccountNotFound, UnknownError),
-      List(apiTagCounterparty, apiTagAccount, apiTagPsd2, apiTagOldStyle),
-      http4sPartialFunction = Some(getOtherAccountsForBankAccount)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getOtherAccountsForBankAccount),
+      // "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
+      // "Get Other Accounts of one Account",
+      // s"""Returns data about all the other accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
+         // |${userAuthenticationMessage(false)}
+         // |Authentication is required if the view VIEW_ID is not public.""",
+      // EmptyBody,
+      // otherAccountsJSON,
+      // List(BankAccountNotFound, UnknownError),
+      // List(apiTagCounterparty, apiTagAccount, apiTagPsd2, apiTagOldStyle),
+      // http4sPartialFunction = Some(getOtherAccountsForBankAccount)
+    // )
 
     // ─── getOtherAccountByIdForBankAccount ───────────────────────────────────
 
-    val getOtherAccountByIdForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId =>
-        EndpointHelpers.withView(req) { (user, account, view, cc) =>
-          for {
-            (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
-          } yield JSONFactory.createOtherBankAccount(otherBankAccount)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getOtherAccountByIdForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "other_accounts" / otherAccountId =>
+        // EndpointHelpers.withView(req) { (user, account, view, cc) =>
+          // for {
+            // (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
+          // } yield JSONFactory.createOtherBankAccount(otherBankAccount)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getOtherAccountByIdForBankAccount),
-      "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
-      "Get Other Account by Id",
-      s"""Returns data about the Other Account that has shared at least one transaction with ACCOUNT_ID at BANK_ID.
-      |${userAuthenticationMessage(true)}
-      |Authentication is required if the view is not public.""",
-      EmptyBody,
-      otherAccountJSON,
-      List(
-        $AuthenticatedUserIsRequired,
-        BankAccountNotFound, UnknownError),
-      List(apiTagCounterparty, apiTagAccount),
-      http4sPartialFunction = Some(getOtherAccountByIdForBankAccount)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getOtherAccountByIdForBankAccount),
+      // "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
+      // "Get Other Account by Id",
+      // s"""Returns data about the Other Account that has shared at least one transaction with ACCOUNT_ID at BANK_ID.
+      // |${userAuthenticationMessage(true)}
+      // |Authentication is required if the view is not public.""",
+      // EmptyBody,
+      // otherAccountJSON,
+      // List(
+        // $AuthenticatedUserIsRequired,
+        // BankAccountNotFound, UnknownError),
+      // List(apiTagCounterparty, apiTagAccount),
+      // http4sPartialFunction = Some(getOtherAccountByIdForBankAccount)
+    // )
 
     // ─── getOtherAccountMetadata ──────────────────────────────────────────────
 
@@ -1847,72 +1885,76 @@ object Http4s121 {
 
     // ─── getTransactionsForBankAccount ───────────────────────────────────────
 
-    val getTransactionsForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / viewId / "transactions" =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
-          val httpParams: List[HTTPParam] = req.headers.headers.toList.map(h => HTTPParam(h.name.toString, h.value))
-          for {
-            (rawAccountBox, callContext) <- Connector.connector.vend.checkBankAccountExists(BankId(bankId), AccountId(accountId), Some(cc))
-            account <- Future { unboxFullOrFail(rawAccountBox, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId") }
-            view <- ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), cc.user.toOption, callContext)
-            (bank, callContext2) <- NewStyle.function.getBank(BankId(bankId), callContext)
-            (params, callContext3) <- createQueriesByHttpParamsFuture(httpParams, callContext2)
-            (transactions, _) <- account.getModeratedTransactionsFuture(bank, cc.user, view, callContext3, params) map {
-              unboxFullOrFail(_, callContext3, GetTransactionsException)
-            }
-          } yield JSONFactory.createTransactionsJSON(transactions)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getTransactionsForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / viewId / "transactions" =>
+        // EndpointHelpers.executeAndRespond(req) { cc =>
+          // val httpParams: List[HTTPParam] = req.headers.headers.toList.map(h => HTTPParam(h.name.toString, h.value))
+          // for {
+            // (rawAccountBox, callContext) <- Connector.connector.vend.checkBankAccountExists(BankId(bankId), AccountId(accountId), Some(cc))
+            // account <- Future { unboxFullOrFail(rawAccountBox, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId") }
+            // view <- ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), cc.user.toOption, callContext)
+            // (bank, callContext2) <- NewStyle.function.getBank(BankId(bankId), callContext)
+            // (params, callContext3) <- createQueriesByHttpParamsFuture(httpParams, callContext2)
+            // (transactions, _) <- account.getModeratedTransactionsFuture(bank, cc.user, view, callContext3, params) map {
+              // unboxFullOrFail(_, callContext3, GetTransactionsException)
+            // }
+          // } yield JSONFactory.createTransactionsJSON(transactions)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getTransactionsForBankAccount), "GET",
-      "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/TRANSACTIONS_VIEW_ID/transactions",
-      "Get Transactions for Account (Full)",
-      s"""Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
-      |
-      |Authentication via OAuth is required if the view is not public.
-      |
-      |${urlParametersDocument(true, true)}
-      |
-      |""",
-      EmptyBody, transactionsJSON,
-      List(BankAccountNotFound, UnknownError),
-      List(apiTagTransaction, apiTagAccount, apiTagPsd2, apiTagOldStyle),
-      http4sPartialFunction = Some(getTransactionsForBankAccount)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getTransactionsForBankAccount), "GET",
+      // "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/TRANSACTIONS_VIEW_ID/transactions",
+      // "Get Transactions for Account (Full)",
+      // s"""Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+      // |
+      // |Authentication via OAuth is required if the view is not public.
+      // |
+      // |${urlParametersDocument(true, true)}
+      // |
+      // |""",
+      // EmptyBody, transactionsJSON,
+      // List(BankAccountNotFound, UnknownError),
+      // List(apiTagTransaction, apiTagAccount, apiTagPsd2, apiTagOldStyle),
+      // http4sPartialFunction = Some(getTransactionsForBankAccount)
+    // )
 
     // ─── getTransactionByIdForBankAccount ─────────────────────────────────────
 
-    val getTransactionByIdForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "transaction" =>
-        EndpointHelpers.executeAndRespond(req) { cc =>
-          for {
-            (rawAccountBox, callContext) <- Connector.connector.vend.checkBankAccountExists(BankId(bankId), AccountId(accountId), Some(cc))
-            account <- Future { unboxFullOrFail(rawAccountBox, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId") }
-            view <- ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), cc.user.toOption, callContext)
-            (moderatedTransaction, _) <- account.moderatedTransactionFuture(TransactionId(transactionId), view, cc.user, callContext) map {
-              unboxFullOrFail(_, callContext, GetTransactionsException)
-            }
-          } yield JSONFactory.createTransactionJSON(moderatedTransaction)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getTransactionByIdForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "transaction" =>
+        // EndpointHelpers.executeAndRespond(req) { cc =>
+          // for {
+            // (rawAccountBox, callContext) <- Connector.connector.vend.checkBankAccountExists(BankId(bankId), AccountId(accountId), Some(cc))
+            // account <- Future { unboxFullOrFail(rawAccountBox, callContext, s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId") }
+            // view <- ViewNewStyle.checkViewAccessAndReturnView(ViewId(viewId), BankIdAccountId(BankId(bankId), AccountId(accountId)), cc.user.toOption, callContext)
+            // (moderatedTransaction, _) <- account.moderatedTransactionFuture(TransactionId(transactionId), view, cc.user, callContext) map {
+              // unboxFullOrFail(_, callContext, GetTransactionsException)
+            // }
+          // } yield JSONFactory.createTransactionJSON(moderatedTransaction)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getTransactionByIdForBankAccount), "GET",
-      "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/TRANSACTIONS_VIEW_ID/transactions/TRANSACTION_ID/transaction",
-      "Get Transaction by Id",
-      s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
-      |
-      |${userAuthenticationMessage(false)}
-      |Authentication is required if the view is not public.
-      |
-      |
-      |""",
-      EmptyBody, transactionJSON,
-      List(BankAccountNotFound, UnknownError),
-      List(apiTagTransaction, apiTagPsd2, apiTagOldStyle),
-      http4sPartialFunction = Some(getTransactionByIdForBankAccount)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getTransactionByIdForBankAccount), "GET",
+      // "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/TRANSACTIONS_VIEW_ID/transactions/TRANSACTION_ID/transaction",
+      // "Get Transaction by Id",
+      // s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+      // |
+      // |${userAuthenticationMessage(false)}
+      // |Authentication is required if the view is not public.
+      // |
+      // |
+      // |""",
+      // EmptyBody, transactionJSON,
+      // List(BankAccountNotFound, UnknownError),
+      // List(apiTagTransaction, apiTagPsd2, apiTagOldStyle),
+      // http4sPartialFunction = Some(getTransactionByIdForBankAccount)
+    // )
 
     // ─── getTransactionNarrative ──────────────────────────────────────────────
 
@@ -2651,29 +2693,29 @@ object Http4s121 {
     // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given the docs in this same order.
     lazy val routesInOrder: List[Http4sHandler] = List(
-      root,
-      getBanks,
-      // bankById is intentionally absent — it runs outside middleware (see allRoutesWithMiddleware)
-      getPrivateAccountsAllBanks,
+      // root,
+      // getBanks,
+      // bankById is commented out: v5.0.0 and v6.0.0 getBank serve GET /banks/BANK_ID.
+      // getPrivateAccountsAllBanks,
       privateAccountsAllBanks,
-      publicAccountsAllBanks,
-      getPrivateAccountsAtOneBank,
-      privateAccountsAtOneBank,
-      publicAccountsAtOneBank,
-      accountById,
-      updateAccountLabel,
-      getViewsForBankAccount,
-      createViewForBankAccount,
-      updateViewForBankAccount,
+      // publicAccountsAllBanks,
+      // getPrivateAccountsAtOneBank,
+      // privateAccountsAtOneBank,
+      // publicAccountsAtOneBank,
+      // accountById,
+      // updateAccountLabel,
+      // getViewsForBankAccount,
+      // createViewForBankAccount,
+      // updateViewForBankAccount,
       deleteViewForBankAccount,
-      getPermissionsForBankAccount,
-      getPermissionForUserForBankAccount,
+      // getPermissionsForBankAccount,
+      // getPermissionForUserForBankAccount,
       addPermissionForUserForBankAccountForMultipleViews,
       addPermissionForUserForBankAccountForOneView,
       removePermissionForUserForBankAccountForOneView,
       removePermissionForUserForBankAccountForAllViews,
-      getOtherAccountsForBankAccount,
-      getOtherAccountByIdForBankAccount,
+      // getOtherAccountsForBankAccount,
+      // getOtherAccountByIdForBankAccount,
       getOtherAccountMetadata,
       getCounterpartyPublicAlias,
       addCounterpartyPublicAlias,
@@ -2701,8 +2743,8 @@ object Http4s121 {
       addCounterpartyPhysicalLocation,
       updateCounterpartyPhysicalLocation,
       deleteCounterpartyPhysicalLocation,
-      getTransactionsForBankAccount,
-      getTransactionByIdForBankAccount,
+      // getTransactionsForBankAccount,
+      // getTransactionByIdForBankAccount,
       getTransactionNarrative,
       addTransactionNarrative,
       updateTransactionNarrative,
@@ -2723,17 +2765,21 @@ object Http4s121 {
       getOtherAccountForTransaction
     )
 
-    lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder, outsideTheChain = List(bankById))
+    lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)
 
     lazy val allRoutes: HttpRoutes[IO] = Http4sRoute.chain(routesInOrder)
 
-    lazy val allRoutesWithMiddleware: HttpRoutes[IO] = {
-      val middlewareWrapped = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
-      // bankById runs before middleware so it can return 400 (not 404) for unknown bank
-      Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-        bankById.run(req).orElse(middlewareWrapped.run(req))
-      }
-    }
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] =
+      ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // bankById ran before the middleware so it could return 400 (not 404) for an unknown bank.
+    // It is commented out, so the middleware now serves every v1.2.1 route:
+    // lazy val allRoutesWithMiddleware: HttpRoutes[IO] = {
+    //   val middlewareWrapped = ResourceDocMiddleware.apply(orderedResourceDocs, routes => IdempotencyMiddleware(routes))
+    //   Kleisli[HttpF, Request[IO], Response[IO]] { req =>
+    //     bankById.run(req).orElse(middlewareWrapped.run(req))
+    //   }
+    // }
   }
 
   lazy val wrappedRoutesV121Services: HttpRoutes[IO] = Implementations1_2_1.allRoutesWithMiddleware

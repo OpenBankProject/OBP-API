@@ -40,6 +40,7 @@ import code.setup.DefaultUsers
 import org.json4s.native.Serialization.write
 
 class EntitlementTests extends V200ServerSetup with DefaultUsers {
+  private val weMakeTheRequest = "We make the request"
 
    override def beforeAll(): Unit = {
      super.beforeAll()
@@ -51,41 +52,47 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
 
   Feature("Assuring that endpoint getEntitlements works as expected - v2.0.0") {
 
-    Scenario("We try to get entitlements without login - getEntitlements") {
-      When("We make the request")
-      val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET
-      val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 401")
-      responseGet.code should equal(401)
-      And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
-      responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.AuthenticatedUserIsRequired)
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+    // scenario("We try to get entitlements without login - getEntitlements") {
+      // When("We make the request")
+      // val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET
+      // val responseGet = makeGetRequest(requestGet)
+      // Then("We should get a 401")
+      // responseGet.code should equal(401)
+      // And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
+      // responseGet.body.extract[ErrorMessage].message should equal (ErrorMessages.AuthenticatedUserIsRequired)
 
-    }
+    // }
 
-    Scenario("We try to get entitlements without roles - getEntitlements") {
-      When("We make the request")
-      val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
-      val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 403")
-      responseGet.code should equal(403)
-      And("We should get a message: " + s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
-      responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+    // scenario("We try to get entitlements without roles - getEntitlements") {
+      // When("We make the request")
+      // val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
+      // val responseGet = makeGetRequest(requestGet)
+      // Then("We should get a 403")
+      // responseGet.code should equal(403)
+      // And("We should get a message: " + s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
+      // responseGet.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
+    // }
 
-    Scenario("We try to get entitlements with roles - getEntitlements") {
-      When("We add required entitlement")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementsForAnyUserAtAnyBank.toString)
-      And("We make the request")
-      val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
-      val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 200")
-      responseGet.code should equal(200)
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+    // scenario("We try to get entitlements with roles - getEntitlements") {
+      // When("We add required entitlement")
+      // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementsForAnyUserAtAnyBank.toString)
+      // And("We make the request")
+      // val requestGet = (v2_0Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
+      // val responseGet = makeGetRequest(requestGet)
+      // Then("We should get a 200")
+      // responseGet.code should equal(200)
+    // }
 
     Scenario("We try to delete some entitlement - deleteEntitlement") {
       When("We add required entitlement")
       val ent = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString).openOrThrowException(attemptedToOpenAnEmptyBox)
-      And("We make the request")
+      And(weMakeTheRequest)
       val requestDelete = (v2_0Request / "users" / resourceUser1.userId / "entitlement" / ent.entitlementId).DELETE <@ (user1)
       And("We grant the role to the user")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canDeleteEntitlementAtAnyBank.toString)
@@ -96,7 +103,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
 
     Scenario("We try to create entitlement - addEntitlement-canCreateEntitlementAtOneBank") {
       val requestBody = SwaggerDefinitionsJSON.createEntitlementJSON
-      And("We make the request")
+      And(weMakeTheRequest)
       val requestPost = (v2_0Request / "users" / resourceUser1.userId / "entitlements").POST <@ (user1)
       And("We grant the role to the user")
       val responsePost = makePostRequest(requestPost , write(requestBody))
@@ -123,7 +130,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
 
     Scenario("We try to create entitlement - addEntitlement-canCreateEntitlementAtAnyBank") {
       val requestBody = SwaggerDefinitionsJSON.createEntitlementJSON.copy(bank_id = testBankId1.value)
-      And("We make the request")
+      And(weMakeTheRequest)
       val requestPost = (v2_0Request / "users" / resourceUser1.userId / "entitlements").POST <@ (user1)
       And("We grant the role to the user")
       val responsePost = makePostRequest(requestPost , write(requestBody))

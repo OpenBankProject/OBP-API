@@ -61,8 +61,8 @@ class ProductTest extends V500ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v5_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_0_0.createProduct))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getProduct))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getProducts))
+  object ApiEndpoint2 extends Tag("getProduct")
+  object ApiEndpoint3 extends Tag("getProducts")
 
   lazy val testBankId = randomBankId
   lazy val parentPutProductJsonV500: PutProductJsonV500 = SwaggerDefinitionsJSON.putProductJsonV500.copy(parent_product_code ="")

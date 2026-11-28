@@ -54,10 +54,15 @@ class AccountNumberAcrossVersionsTest extends V600ServerSetup with DefaultUsers 
 
   object AcrossVersions extends Tag("AccountNumberAcrossVersions")
 
-  private val versionsBeforeV600 = List("v1.2.1", "v1.3.0", "v1.4.0", "v2.0.0", "v2.1.0", "v2.2.0", "v3.0.0", "v3.1.0", "v4.0.0", "v5.0.0", "v5.1.0")
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: the v1.2.1 to v3.1.0 handlers of these two paths are only reachable from OBP versions below v5.1.0,
+  // so those prefixes answer 404 for them. See docs/OLD_VERSION_ONLY_CODE.md.
+  // private val versionsBeforeV600 = List("v1.2.1", "v1.3.0", "v1.4.0", "v2.0.0", "v2.1.0", "v2.2.0", "v3.0.0", "v3.1.0", "v4.0.0", "v5.0.0", "v5.1.0")
+  // // Get Account by Id (Core) exists from v2.0.0.
+  // private val coreVersions = (versionsBeforeV600 ++ versionsFromV600).filterNot(v => Set("v1.2.1", "v1.3.0", "v1.4.0").contains(v))
+  private val versionsBeforeV600 = List("v4.0.0", "v5.0.0", "v5.1.0")
   private val versionsFromV600 = List("v6.0.0", "v7.0.0")
-  // Get Account by Id (Core) exists from v2.0.0.
-  private val coreVersions = (versionsBeforeV600 ++ versionsFromV600).filterNot(v => Set("v1.2.1", "v1.3.0", "v1.4.0").contains(v))
+  private val coreVersions = versionsBeforeV600 ++ versionsFromV600
 
   private def newNumber(): String = "8" + (1 to 9).map(_ => scala.util.Random.nextInt(10)).mkString
 

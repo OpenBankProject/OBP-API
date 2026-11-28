@@ -61,9 +61,11 @@ class VersionResourceDocsNonEmptyTest extends ServerSetup {
 
     Scenario("each version registers more than a token handful") {
       // A floor, not a count: this fails when a version stops registering, not when one is added.
+      // v1.3.0 keeps only the two endpoints that a kept version still reaches; the others are commented out.
+      val floors = Map("v1.3.0" -> 2).withDefaultValue(3)
       versions.foreach { case (name, size) =>
         withClue(s"$name registered only $size resource docs: ") {
-          size should be >= 3
+          size should be >= floors(name)
         }
       }
     }

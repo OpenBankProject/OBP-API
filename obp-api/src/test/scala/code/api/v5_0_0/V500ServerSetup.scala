@@ -53,7 +53,8 @@ trait V500ServerSetup extends ServerSetupWithTestData with DefaultUsers {
 
   def randomBankId : String = {
     def getBanksInfo : APIResponse  = {
-      val request = v5_0_0_Request / "banks"
+      // getBanks of v5.0.0 and below is commented out, so the bank list comes from v5.1.0.
+      val request = baseRequest / "obp" / "v5.1.0" / "banks"
       makeGetRequest(request)
     }
     val banksJson = getBanksInfo.body.extract[BanksJson400]

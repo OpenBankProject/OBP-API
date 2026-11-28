@@ -59,7 +59,7 @@ class CustomerAttributesTest extends V400ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.updateCustomerAttribute))
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getCustomerAttributes))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getCustomerAttributeById))
-  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getCustomersByAttributes))
+  object ApiEndpoint5 extends Tag("getCustomersByAttributes")
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.deleteCustomerAttribute))
   
 
@@ -340,94 +340,98 @@ class CustomerAttributesTest extends V400ServerSetup {
         responseWithId.body.extract[CustomerAttributeResponseJsonV300].`type` equals(postCustomerAttributeJsonV400.`type`) should be (true)
       }
     }
-  Feature(s"test $ApiEndpoint5 version $VersionOfApi ") {
-    Scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature(s"test $ApiEndpoint5 version $VersionOfApi ") {
+    // scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
 
-      val bankId = randomBankId
-      val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      // val bankId = randomBankId
+      // val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
+      // val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
-      Then("we create the Customer Attribute ")
-      createAndGetCustomerAttributeIdViaEndpoint(bankId:String, customerId:String, user1)
+      // Then("we create the Customer Attribute ")
+      // createAndGetCustomerAttributeIdViaEndpoint(bankId:String, customerId:String, user1)
 
-      Then("We grant the role to the user1")
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canGetCustomersAtOneBank.toString)
+      // Then("We grant the role to the user1")
+      // Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canGetCustomersAtOneBank.toString)
 
-      Then(s"We can the $ApiEndpoint5")
+      // Then(s"We can the $ApiEndpoint5")
 
-      val requestGetCustomersByAttributes = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1)
-      val responseGetCustomersByAttributes = makeGetRequest(requestGetCustomersByAttributes)
+      // val requestGetCustomersByAttributes = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1)
+      // val responseGetCustomersByAttributes = makeGetRequest(requestGetCustomersByAttributes)
 
-      responseGetCustomersByAttributes.code should be (200)
-      val response: ListResult[List[CustomerWithAttributesJsonV310]] = responseGetCustomersByAttributes.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
-      response.results.head.customer_attributes.head.name should be (customerAttributeNameExample.value)
-      response.results.head.customer_attributes.head.value should be (customerAttributeValueExample.value)
-    }
-  }
+      // responseGetCustomersByAttributes.code should be (200)
+      // val response: ListResult[List[CustomerWithAttributesJsonV310]] = responseGetCustomersByAttributes.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
+      // response.results.head.customer_attributes.head.name should be (customerAttributeNameExample.value)
+      // response.results.head.customer_attributes.head.value should be (customerAttributeValueExample.value)
+    // }
+  // }
 
-  Feature(s"test $ApiEndpoint5 version $VersionOfApi test the query parameters") {
-    Scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature(s"test $ApiEndpoint5 version $VersionOfApi test the query parameters") {
+    // scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
 
-      val bankId = randomBankId
-      val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
+      // val bankId = randomBankId
+      // val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
-      Then("we create the Customer Attribute ")
-      createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1)
+      // Then("we create the Customer Attribute ")
+      // createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1)
 
-      Then("We grant the role to the user1")
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canGetCustomersAtOneBank.toString)
+      // Then("We grant the role to the user1")
+      // Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canGetCustomersAtOneBank.toString)
 
-      Then(s"We can the $ApiEndpoint5 with proper parameters")
-      val requestGetCustomersByAttributesWithParameter = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("SPECIAL_TAX_NUMBER", "123456789")))
-      val responseGetCustomersByAttributesWithParameter = makeGetRequest(requestGetCustomersByAttributesWithParameter)
+      // Then(s"We can the $ApiEndpoint5 with proper parameters")
+      // val requestGetCustomersByAttributesWithParameter = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("SPECIAL_TAX_NUMBER", "123456789")))
+      // val responseGetCustomersByAttributesWithParameter = makeGetRequest(requestGetCustomersByAttributesWithParameter)
 
-      responseGetCustomersByAttributesWithParameter.code should be(200)
-      val response = responseGetCustomersByAttributesWithParameter.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
-      response.results.head.customer_attributes.head.name should be(customerAttributeNameExample.value)
-      response.results.head.customer_attributes.head.value should be(customerAttributeValueExample.value)
+      // responseGetCustomersByAttributesWithParameter.code should be(200)
+      // val response = responseGetCustomersByAttributesWithParameter.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
+      // response.results.head.customer_attributes.head.name should be(customerAttributeNameExample.value)
+      // response.results.head.customer_attributes.head.value should be(customerAttributeValueExample.value)
 
-      Then(s"We can the $ApiEndpoint5 with wrong parameters")
-      val requestGetCustomersByAttributesWithParameter2 = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("SPECIAL_TAX_NUMBER", "1234567891")))
-      val responseGetCustomersByAttributesWithParameter2 = makeGetRequest(requestGetCustomersByAttributesWithParameter2)
+      // Then(s"We can the $ApiEndpoint5 with wrong parameters")
+      // val requestGetCustomersByAttributesWithParameter2 = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("SPECIAL_TAX_NUMBER", "1234567891")))
+      // val responseGetCustomersByAttributesWithParameter2 = makeGetRequest(requestGetCustomersByAttributesWithParameter2)
 
-      responseGetCustomersByAttributesWithParameter2.code should be(200)
-      val response2 = responseGetCustomersByAttributesWithParameter2.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
-      response2.results.length should be(0)
+      // responseGetCustomersByAttributesWithParameter2.code should be(200)
+      // val response2 = responseGetCustomersByAttributesWithParameter2.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
+      // response2.results.length should be(0)
 
-      Then(s"We can the $ApiEndpoint5 with wrong parameters")
-      val requestGetCustomersByAttributesWithParameter3 = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("SPECIAL_TAX_NUMBER1", "1234567891")))
-      val responseGetCustomersByAttributesWithParameter3 = makeGetRequest(requestGetCustomersByAttributesWithParameter3)
+      // Then(s"We can the $ApiEndpoint5 with wrong parameters")
+      // val requestGetCustomersByAttributesWithParameter3 = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("SPECIAL_TAX_NUMBER1", "1234567891")))
+      // val responseGetCustomersByAttributesWithParameter3 = makeGetRequest(requestGetCustomersByAttributesWithParameter3)
 
-      responseGetCustomersByAttributesWithParameter3.code should be(200)
-      val response3 = responseGetCustomersByAttributesWithParameter3.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
-      response3.results.length should be(0)
+      // responseGetCustomersByAttributesWithParameter3.code should be(200)
+      // val response3 = responseGetCustomersByAttributesWithParameter3.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
+      // response3.results.length should be(0)
 
-      Then("we create more Customer Attribute ")
-      val postCustomerAttributeJsonV4001 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name = "Tax", value = "tax123")
-      val postCustomerAttributeJsonV4002 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name = "Hause", value = "1230")
-      createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1, Some(postCustomerAttributeJsonV4001))
-      createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1, Some(postCustomerAttributeJsonV4002))
+      // Then("we create more Customer Attribute ")
+      // val postCustomerAttributeJsonV4001 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name = "Tax", value = "tax123")
+      // val postCustomerAttributeJsonV4002 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name = "Hause", value = "1230")
+      // createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1, Some(postCustomerAttributeJsonV4001))
+      // createAndGetCustomerAttributeIdViaEndpoint(bankId: String, customerId: String, user1, Some(postCustomerAttributeJsonV4002))
 
-      Then(s"We can the $ApiEndpoint5 with proper parameters")
-      val requestGetCustomersByAttributesWithParameter4 = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("Tax", "tax123"), ("Hause", "1230")))
-      val responseGetCustomersByAttributesWithParameter4 = makeGetRequest(requestGetCustomersByAttributesWithParameter4)
+      // Then(s"We can the $ApiEndpoint5 with proper parameters")
+      // val requestGetCustomersByAttributesWithParameter4 = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("Tax", "tax123"), ("Hause", "1230")))
+      // val responseGetCustomersByAttributesWithParameter4 = makeGetRequest(requestGetCustomersByAttributesWithParameter4)
 
-      responseGetCustomersByAttributesWithParameter4.code should be(200)
-      val response4 = responseGetCustomersByAttributesWithParameter4.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
-      response4.results.head.customer_attributes.head.name should be(customerAttributeNameExample.value)
-      response4.results.head.customer_attributes.head.value should be(customerAttributeValueExample.value)
-      response4.results.length should be(2)
+      // responseGetCustomersByAttributesWithParameter4.code should be(200)
+      // val response4 = responseGetCustomersByAttributesWithParameter4.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
+      // response4.results.head.customer_attributes.head.name should be(customerAttributeNameExample.value)
+      // response4.results.head.customer_attributes.head.value should be(customerAttributeValueExample.value)
+      // response4.results.length should be(2)
 
 
-      Then(s"We can the $ApiEndpoint5 with proper parameters")
-      val requestGetCustomersByAttributesWithParameter5 = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("Tax", "123tax"), ("Hause", "1230")))
-      val responseGetCustomersByAttributesWithParameter5 = makeGetRequest(requestGetCustomersByAttributesWithParameter5)
+      // Then(s"We can the $ApiEndpoint5 with proper parameters")
+      // val requestGetCustomersByAttributesWithParameter5 = (v4_0_0_Request / "banks" / bankId / "customers").GET <@ (user1) <<? (List(("Tax", "123tax"), ("Hause", "1230")))
+      // val responseGetCustomersByAttributesWithParameter5 = makeGetRequest(requestGetCustomersByAttributesWithParameter5)
 
-      responseGetCustomersByAttributesWithParameter5.code should be(200)
-      val response5 = responseGetCustomersByAttributesWithParameter5.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
-      response5.results.length should be(1)
-    }
-  }
+      // responseGetCustomersByAttributesWithParameter5.code should be(200)
+      // val response5 = responseGetCustomersByAttributesWithParameter5.body.extract[ListResult[List[CustomerWithAttributesJsonV310]]]
+      // response5.results.length should be(1)
+    // }
+  // }
   
   Feature(s"test $ApiEndpoint6 version $VersionOfApi will enforce proper entitlements") {
       Scenario("We will call the endpoint", ApiEndpoint6, VersionOfApi) {

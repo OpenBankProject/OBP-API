@@ -481,10 +481,12 @@ class RateLimitsTest extends V600ServerSetup {
     FallthroughCase("v7.0.0", List("banks"), "v6.0.0 through the v7.0.0 -> v6.0.0 bridge", Some("v6.0.0")),
     FallthroughCase("v5.1.0", List("users", "current"), "v3.0.0 through the v5.1.0 -> v5.0.0 -> v4.0.0 -> v3.1.0 -> v3.0.0 bridges, after the v7.0.0 and v6.0.0 groups passed it on", Some("v5.0.0")),
     FallthroughCase("v4.0.0", List("users", "current"), "v3.0.0 through the v4.0.0 -> v3.1.0 -> v3.0.0 bridges, after nine groups (v7.0.0 down to Berlin Group and UK) passed it on", None),
-    FallthroughCase("v3.0.0", List("users", "current"), "v3.0.0 itself, after eleven groups passed it on", None),
-    FallthroughCase("v2.2.0", List("users", "current"), "v2.0.0 through the v2.2.0 -> v2.1.0 -> v2.0.0 bridges", None),
-    FallthroughCase("v2.0.0", List("banks"), "v1.2.1 through the v2.0.0 -> v1.4.0 -> v1.3.0 -> v1.2.1 bridges", None),
-    FallthroughCase("v1.2.1", List("banks"), "v1.2.1 itself, the last OBP group in the chain", None)
+    FallthroughCase("v3.0.0", List("users", "current"), "v3.0.0 itself, after eleven groups passed it on", None)
+    // The handlers these cases reached (v2.0.0 getCurrentUser, getBanks of v1.2.1) are commented out,
+    // see docs/OLD_VERSION_ONLY_CODE.md:
+    // FallthroughCase("v2.2.0", List("users", "current"), "v2.0.0 through the v2.2.0 -> v2.1.0 -> v2.0.0 bridges", None),
+    // FallthroughCase("v2.0.0", List("banks"), "v1.2.1 through the v2.0.0 -> v1.4.0 -> v1.3.0 -> v1.2.1 bridges", None),
+    // FallthroughCase("v1.2.1", List("banks"), "v1.2.1 itself, the last OBP group in the chain", None)
   )
 
   def requestFor(c: FallthroughCase): OBPReq =

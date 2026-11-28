@@ -48,39 +48,42 @@ class GetAdapterInfoTest extends V310ServerSetup with DefaultUsers {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.getAdapterInfo))
+  object ApiEndpoint extends Tag("getAdapterInfo")
 
-  Feature("Get Adapter Info v3.1.0") {
-    Scenario(s"$AuthenticatedUserIsRequired error case", ApiEndpoint, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "adapter").GET
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 401")
-      response310.code should equal(401)
-      And("error should be " + AuthenticatedUserIsRequired)
-      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
-    }
-    Scenario(s"$UserHasMissingRoles error case", ApiEndpoint, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "adapter").GET <@ (user1)
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 403")
-      response310.code should equal(403)
-      And("error should be " + UserHasMissingRoles + canGetAdapterInfo)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + canGetAdapterInfo)
-    }
-    Scenario("We will try to get adapter info", ApiEndpoint, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetAdapterInfo.toString)
-      When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "adapter").GET <@ (user1)
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 200")
-      response310.code should equal(200)
-      Then("We should get a 200")
-      response310.code should equal(200)
-      response310.body.extract[AdapterInfoJsonV300].name should equal("LocalMappedConnector")
-    }
-  }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Get Adapter Info v3.1.0")
+  // {
+    // scenario(s"$AuthenticatedUserIsRequired error case", ApiEndpoint, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val request310 = (v3_1_0_Request / "adapter").GET
+      // val response310 = makeGetRequest(request310)
+      // Then("We should get a 401")
+      // response310.code should equal(401)
+      // And("error should be " + AuthenticatedUserIsRequired)
+      // response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+    // }
+    // scenario(s"$UserHasMissingRoles error case", ApiEndpoint, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val request310 = (v3_1_0_Request / "adapter").GET <@ (user1)
+      // val response310 = makeGetRequest(request310)
+      // Then("We should get a 403")
+      // response310.code should equal(403)
+      // And("error should be " + UserHasMissingRoles + canGetAdapterInfo)
+      // response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + canGetAdapterInfo)
+    // }
+    // scenario("We will try to get adapter info", ApiEndpoint, VersionOfApi) {
+      // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetAdapterInfo.toString)
+      // When("We make a request v3.1.0")
+      // val request310 = (v3_1_0_Request / "adapter").GET <@ (user1)
+      // val response310 = makeGetRequest(request310)
+      // Then("We should get a 200")
+      // response310.code should equal(200)
+      // Then("We should get a 200")
+      // response310.code should equal(200)
+      // response310.body.extract[AdapterInfoJsonV300].name should equal("LocalMappedConnector")
+    // }
+  // }
 
 
 }

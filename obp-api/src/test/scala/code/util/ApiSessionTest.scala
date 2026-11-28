@@ -65,8 +65,7 @@ class ApiSessionTest extends AnyFeatureSpec with Matchers with GivenWhenThen wit
     // same value through toLight — CallContext may have more fields, but overlapping names
     // must never diverge. Reflection over the case-class fields keeps this true for fields
     // added in the future without anyone remembering to extend this test.
-    Scenario("every same-named field survives toLight unchanged")
-    {
+    Scenario("every same-named field survives toLight unchanged") {
       val principal = ResourceUser(userId = "principal-user-id", name = "principal-name")
 
       // Populate every shared-name field with a distinctive, non-default value so a wrong
@@ -131,8 +130,7 @@ class ApiSessionTest extends AnyFeatureSpec with Matchers with GivenWhenThen wit
     // the resolved on-behalf-of user. Under a consent the authenticated user is the consent
     // user; the on-behalf-of user stays on the context as consenter/consentCreator and is
     // resolved at read time via the consent table, never baked into stored rows.
-    Scenario("userId and userName carry the AUTHENTICATED user, even when consenter and consentCreator are set")
-    {
+    Scenario("userId and userName carry the AUTHENTICATED user, even when consenter and consentCreator are set") {
       val principal = ResourceUser(userId = "principal-user-id", name = "principal-name")
       val human = ResourceUser(userId = "human-user-id", name = "human-name")
 
@@ -149,8 +147,7 @@ class ApiSessionTest extends AnyFeatureSpec with Matchers with GivenWhenThen wit
       light.partialFunctionName should be("")
     }
 
-    Scenario("without consent context, userId is simply the authenticated user")
-    {
+    Scenario("without consent context, userId is simply the authenticated user") {
       val user = ResourceUser(userId = "plain-user-id", name = "plain-name")
       val light = CallContext(user = Full(user)).toLight
       light.userId should be(Some("plain-user-id"))

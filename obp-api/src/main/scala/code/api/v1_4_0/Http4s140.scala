@@ -69,35 +69,37 @@ object Http4s140 {
 
     // ─── root ─────────────────────────────────────────────────────────────────
 
-    val root: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v1_4_0, versionStatus))
-        }
-      case req @ GET -> `prefixPath` / "root" =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v1_4_0, versionStatus))
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val root: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v1_4_0, versionStatus))
+        // }
+      // case req @ GET -> `prefixPath` / "root" =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory.getApiInfoJSON(ApiVersion.v1_4_0, versionStatus))
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(root),
-      "GET",
-      "/root",
-      "Get API Info (root)",
-      """Returns information about:
-        |
-        |* API version
-        |* Hosted by information
-        |* Git Commit""",
-      EmptyBody,
-      apiInfoJSON,
-      List(UnknownError, MandatoryPropertyIsNotSet),
-      apiTagApi :: Nil,
-      None,
-      http4sPartialFunction = Some(root)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(root),
+      // "GET",
+      // "/root",
+      // "Get API Info (root)",
+      // """Returns information about:
+        // |
+        // |* API version
+        // |* Hosted by information
+        // |* Git Commit""",
+      // EmptyBody,
+      // apiInfoJSON,
+      // List(UnknownError, MandatoryPropertyIsNotSet),
+      // apiTagApi :: Nil,
+      // None,
+      // http4sPartialFunction = Some(root)
+    // )
 
     // ─── getCustomer ──────────────────────────────────────────────────────────
 
@@ -201,127 +203,133 @@ object Http4s140 {
 
     private val getBranchesIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getBranchesIsPublic", true)
 
-    val getBranches: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "branches" =>
-        EndpointHelpers.withBank(req) { (bank, cc) =>
-          for {
-            httpParams         <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
-            branches <- Future {
-              Branches.branchesProvider.vend.getBranches(bank.bankId, obpQueryParams)
-                .getOrElse(throw new RuntimeException("No branches available. License may not be set."))
-            }
-          } yield JSONFactory1_4_0.createBranchesJson(branches)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getBranches: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "branches" =>
+        // EndpointHelpers.withBank(req) { (bank, cc) =>
+          // for {
+            // httpParams         <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            // (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            // branches <- Future {
+              // Branches.branchesProvider.vend.getBranches(bank.bankId, obpQueryParams)
+                // .getOrElse(throw new RuntimeException("No branches available. License may not be set."))
+            // }
+          // } yield JSONFactory1_4_0.createBranchesJson(branches)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getBranches),
-      "GET",
-      "/banks/BANK_ID/branches",
-      "Get Bank Branches",
-      s"""Returns information about branches for a single bank specified by BANK_ID including:
-        |
-        |* Name
-        |* Address
-        |* Geo Location
-        |* License the data under this endpoint is released under
-        |
-        ${urlParametersDocument(false, false)}
-        |
-        |You can use the url query parameters *limit* and *offset* for pagination
-        |
-        |${userAuthenticationMessage(!getBranchesIsPublic)}""".stripMargin,
-      EmptyBody,
-      branchesJson,
-      List(AuthenticatedUserIsRequired, BankNotFound, "No branches available. License may not be set.", UnknownError),
-      List(apiTagBranch, apiTagOldStyle),
-      None,
-      http4sPartialFunction = Some(getBranches)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getBranches),
+      // "GET",
+      // "/banks/BANK_ID/branches",
+      // "Get Bank Branches",
+      // s"""Returns information about branches for a single bank specified by BANK_ID including:
+        // |
+        // |* Name
+        // |* Address
+        // |* Geo Location
+        // |* License the data under this endpoint is released under
+        // |
+        // ${urlParametersDocument(false, false)}
+        // |
+        // |You can use the url query parameters *limit* and *offset* for pagination
+        // |
+        // |${userAuthenticationMessage(!getBranchesIsPublic)}""".stripMargin,
+      // EmptyBody,
+      // branchesJson,
+      // List(AuthenticatedUserIsRequired, BankNotFound, "No branches available. License may not be set.", UnknownError),
+      // List(apiTagBranch, apiTagOldStyle),
+      // None,
+      // http4sPartialFunction = Some(getBranches)
+    // )
 
     // ─── getAtms ──────────────────────────────────────────────────────────────
 
     private val getAtmsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getAtmsIsPublic", true)
 
-    val getAtms: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "atms" =>
-        EndpointHelpers.withBank(req) { (bank, cc) =>
-          for {
-            httpParams         <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
-            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
-            atms <- Future {
-              Atms.atmsProvider.vend.getAtms(bank.bankId, obpQueryParams)
-                .getOrElse(throw new RuntimeException("No ATMs available. License may not be set."))
-            }
-          } yield JSONFactory1_4_0.createAtmsJson(atms)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getAtms: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "atms" =>
+        // EndpointHelpers.withBank(req) { (bank, cc) =>
+          // for {
+            // httpParams         <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
+            // (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            // atms <- Future {
+              // Atms.atmsProvider.vend.getAtms(bank.bankId, obpQueryParams)
+                // .getOrElse(throw new RuntimeException("No ATMs available. License may not be set."))
+            // }
+          // } yield JSONFactory1_4_0.createAtmsJson(atms)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getAtms),
-      "GET",
-      "/banks/BANK_ID/atms",
-      "Get Bank ATMS",
-      s"""Returns information about ATMs for a single bank specified by BANK_ID including:
-         |
-         |* Address
-         |* Geo Location
-         |* License the data under this endpoint is released under
-         |
-         |${urlParametersDocument(false, false)}
-         |
-         |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
-      EmptyBody,
-      atmsJson,
-      List(AuthenticatedUserIsRequired, BankNotFound, "No ATMs available. License may not be set.", UnknownError),
-      List(apiTagBank, apiTagOldStyle),
-      None,
-      http4sPartialFunction = Some(getAtms)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getAtms),
+      // "GET",
+      // "/banks/BANK_ID/atms",
+      // "Get Bank ATMS",
+      // s"""Returns information about ATMs for a single bank specified by BANK_ID including:
+         // |
+         // |* Address
+         // |* Geo Location
+         // |* License the data under this endpoint is released under
+         // |
+         // |${urlParametersDocument(false, false)}
+         // |
+         // |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
+      // EmptyBody,
+      // atmsJson,
+      // List(AuthenticatedUserIsRequired, BankNotFound, "No ATMs available. License may not be set.", UnknownError),
+      // List(apiTagBank, apiTagOldStyle),
+      // None,
+      // http4sPartialFunction = Some(getAtms)
+    // )
 
     // ─── getProducts ──────────────────────────────────────────────────────────
 
     private val getProductsIsPublic = APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
 
-    val getProducts: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "products" =>
-        EndpointHelpers.withBank(req) { (bank, cc) =>
-          Future {
-            val products = Products.productsProvider.vend.getProducts(bank.bankId)
-              .getOrElse(throw new RuntimeException("No products available. License may not be set."))
-            JSONFactory1_4_0.createProductsJson(products)
-          }
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getProducts: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "products" =>
+        // EndpointHelpers.withBank(req) { (bank, cc) =>
+          // Future {
+            // val products = Products.productsProvider.vend.getProducts(bank.bankId)
+              // .getOrElse(throw new RuntimeException("No products available. License may not be set."))
+            // JSONFactory1_4_0.createProductsJson(products)
+          // }
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion,
-      nameOf(getProducts),
-      "GET",
-      "/banks/BANK_ID/products",
-      "Get Bank Products",
-      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
-        |
-        |* Name
-        |* Code
-        |* Category
-        |* Family
-        |* Super Family
-        |* More info URL
-        |* Description
-        |* Terms and Conditions
-        |* License the data under this endpoint is released under
-        |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
-      EmptyBody,
-      productsJson,
-      List(AuthenticatedUserIsRequired, BankNotFound, "No products available.", "License may not be set.", UnknownError),
-      List(apiTagBank, apiTagOldStyle),
-      None,
-      http4sPartialFunction = Some(getProducts)
-    )
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion,
+      // nameOf(getProducts),
+      // "GET",
+      // "/banks/BANK_ID/products",
+      // "Get Bank Products",
+      // s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
+        // |
+        // |* Name
+        // |* Code
+        // |* Category
+        // |* Family
+        // |* Super Family
+        // |* More info URL
+        // |* Description
+        // |* Terms and Conditions
+        // |* License the data under this endpoint is released under
+        // |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      // EmptyBody,
+      // productsJson,
+      // List(AuthenticatedUserIsRequired, BankNotFound, "No products available.", "License may not be set.", UnknownError),
+      // List(apiTagBank, apiTagOldStyle),
+      // None,
+      // http4sPartialFunction = Some(getProducts)
+    // )
 
     // ─── getCrmEvents ─────────────────────────────────────────────────────────
 
@@ -511,13 +519,13 @@ object Http4s140 {
     // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given the docs in this same order.
     lazy val routesInOrder: List[Http4sHandler] = List(
-      root,
+      // root,
       getCustomer,
       getCustomersMessages,
       addCustomerMessage,
-      getBranches,
-      getAtms,
-      getProducts,
+      // getBranches,
+      // getAtms,
+      // getProducts,
       getCrmEvents,
       getTransactionRequestTypes,
       addCustomer

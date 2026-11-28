@@ -89,13 +89,14 @@ object Http4sResourceDocAggregation {
       nameOf(Http4s121.Implementations1_2_1.removePermissionForUserForBankAccountForAllViews) ::
       nameOf(Http4s121.Implementations1_2_1.addPermissionForUserForBankAccountForOneView) ::
       nameOf(Http4s121.Implementations1_2_1.removePermissionForUserForBankAccountForOneView) ::
-      nameOf(Http4s310.Implementations3_1_0.createAccount) ::
+      "createAccount" ::  // v3.1.0 createAccount is commented out, so it is named by string.
       nameOf(Http4s310.Implementations3_1_0.revokeConsent) ::
       Nil
 
   /** Moved from OBPAPI5_1_0.excludeEndpoints. */
   lazy val excludeEndpointsV510: List[String] =
-    nameOf(Http4s300.Implementations3_0_0.getUserByUsername) ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V510.
+    // v3.0.0 getUserByUsername is commented out, so it is named by string.
+    "getUserByUsername" ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V510.
       nameOf(Http4s310.Implementations3_1_0.getBadLoginStatus) ::
       nameOf(Http4s310.Implementations3_1_0.unlockUser) ::
       nameOf(Http4s400.Implementations4_0_0.lockUser) ::
@@ -107,7 +108,7 @@ object Http4sResourceDocAggregation {
 
   /** Moved from OBPAPI6_0_0.excludeEndpoints. */
   lazy val excludeEndpointsV600: List[String] =
-    nameOf(Http4s300.Implementations3_0_0.getUserByUsername) ::
+    "getUserByUsername" ::
       nameOf(Http4s310.Implementations3_1_0.getBadLoginStatus) ::
       nameOf(Http4s310.Implementations3_1_0.unlockUser) ::
       nameOf(Http4s400.Implementations4_0_0.lockUser) ::

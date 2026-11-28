@@ -61,108 +61,215 @@ class ProductTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createProduct))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getProduct))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getProducts))
+  object ApiEndpoint1 extends Tag("createProduct")
+  object ApiEndpoint2 extends Tag("getProduct")
+  object ApiEndpoint3 extends Tag("getProducts")
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.getProductTree))
   
   
   lazy val postProductAttributeJson = productAttributeJson
   lazy val putProductAttributeJson = productAttributeJson.copy(name = "updated product")
   lazy val createProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attribute")
-  lazy val getProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
-  lazy val updateProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // lazy val getProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // lazy val updateProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
   lazy val deleteProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
 
   lazy val testBankId = randomBankId
   lazy val parentPostPutProductJsonV310: PostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(parent_product_code ="")
-  def createProduct(code: String, json: PostPutProductJsonV310) = {
-    When("We try to create a product v3.1.0")
-    val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
-    val response310 = makePutRequest(request310, write(json))
-    Then("We should get a 201")
-    response310.code should equal(201)
-    val product = response310.body.extract[ProductJsonV310]
-    product.code shouldBe code
-    product.parent_product_code shouldBe json.parent_product_code
-    product.bank_id shouldBe testBankId
-    product.name shouldBe json.name
-    product.category shouldBe json.category
-    product.super_family shouldBe json.super_family
-    product.family shouldBe json.family
-    product.more_info_url shouldBe json.more_info_url
-    product.details shouldBe json.details
-    product.description shouldBe json.description
-    product
-  }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def createProduct(code: String, json: PostPutProductJsonV310) = {
+    // When("We try to create a product v3.1.0")
+    // val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
+    // val response310 = makePutRequest(request310, write(json))
+    // Then("We should get a 201")
+    // response310.code should equal(201)
+    // val product = response310.body.extract[ProductJsonV310]
+    // product.code shouldBe code
+    // product.parent_product_code shouldBe json.parent_product_code
+    // product.bank_id shouldBe testBankId
+    // product.name shouldBe json.name
+    // product.category shouldBe json.category
+    // product.super_family shouldBe json.super_family
+    // product.family shouldBe json.family
+    // product.more_info_url shouldBe json.more_info_url
+    // product.details shouldBe json.details
+    // product.description shouldBe json.description
+    // product
+  // }
   
-  Feature("Create Product v3.1.0") {
-    Scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / "CODE").PUT
-      val response310 = makePutRequest(request310, write(parentPostPutProductJsonV310))
-      Then("We should get a 401")
-      response310.code should equal(401)
-      And("error should be " + AuthenticatedUserIsRequired)
-      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Create Product v3.1.0") {
+    // scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / "CODE").PUT
+      // val response310 = makePutRequest(request310, write(parentPostPutProductJsonV310))
+      // Then("We should get a 401")
+      // response310.code should equal(401)
+      // And("error should be " + AuthenticatedUserIsRequired)
+      // response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+    // }
+    // scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / "CODE").PUT <@(user1)
+      // val response310 = makePutRequest(request310, write(parentPostPutProductJsonV310))
+      // Then("We should get a 403")
+      // response310.code should equal(403)
+      // val createProductEntitlements = canCreateProduct :: canCreateProductAtAnyBank ::  Nil
+      // val createProductEntitlementsRequiredText = UserHasMissingRoles + createProductEntitlements.mkString(" or ")
+      // And("error should be " + createProductEntitlementsRequiredText)
+      // response310.body.extract[ErrorMessage].message should equal (createProductEntitlementsRequiredText)
+    // }
+    // scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
+
+      // // Create an grandparent
+      // val grandparent: ProductJsonV310 = createProduct(code = "GRANDPARENT_CODE", json = parentPostPutProductJsonV310)
+
+      // // Create an parent
+      // val product: ProductJsonV310 = createProduct(code = "PARENT_CODE", json = parentPostPutProductJsonV310.copy(parent_product_code = grandparent.code))
+
+      // // Get
+      // val requestGet310 = (v3_1_0_Request / "banks" / product.bank_id / "products" / product.code ).GET <@(user1)
+      // val responseGet310 = makeGetRequest(requestGet310)
+      // Then("We should get a 200")
+      // responseGet310.code should equal(200)
+      // val product1 = responseGet310.body.extract[ProductJsonV310]
+
+      // // Create an child
+      // val childPostPutProductJsonV310 = parentPostPutProductJsonV310.copy(parent_product_code = product.code)
+      // createProduct(code = "PRODUCT_CODE", json = childPostPutProductJsonV310)
+
+      // // Get
+      // val requestGetAll310 = (v3_1_0_Request / "banks" / product.bank_id / "products").GET <@(user1)
+      // val responseGetAll310 = makeGetRequest(requestGetAll310)
+      // Then("We should get a 200")
+      // responseGetAll310.code should equal(200)
+      // val products: ProductsJsonV310 = responseGetAll310.body.extract[ProductsJsonV310]
+      // products.products.size shouldBe 3
+
+      // // Get tree
+      // val requestGetTree310 = (v3_1_0_Request / "banks" / product.bank_id / "product-tree" / "PRODUCT_CODE").GET <@(user1)
+      // val responseGetTree310 = makeGetRequest(requestGetTree310)
+      // Then("We should get a 200")
+      // responseGetTree310.code should equal(200)
+      // val productTree: ProductTreeJsonV310 = responseGetTree310.body.extract[ProductTreeJsonV310]
+    // }
+    // scenario("We get the product tree of products that are their own or each other's parent", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
+
+      // // CYCLE_A -> CYCLE_B -> CYCLE_A: create both, then point CYCLE_A at CYCLE_B
+      // createProduct(code = "CYCLE_A", json = parentPostPutProductJsonV310)
+      // createProduct(code = "CYCLE_B", json = parentPostPutProductJsonV310.copy(parent_product_code = "CYCLE_A"))
+      // createProduct(code = "CYCLE_A", json = parentPostPutProductJsonV310.copy(parent_product_code = "CYCLE_B"))
+
+      // When("We get the tree of CYCLE_A")
+      // val responseCycle = makeGetRequest((v3_1_0_Request / "banks" / testBankId / "product-tree" / "CYCLE_A").GET <@(user1))
+      // Then("We should get a 200 with each product once, and the nesting ending at the repeat")
+      // responseCycle.code should equal(200)
+      // val cycleTree = responseCycle.body.extract[ProductTreeJsonV310]
+      // cycleTree.code shouldBe "CYCLE_A"
+      // cycleTree.parent_product.map(_.code) shouldBe Some("CYCLE_B")
+      // cycleTree.parent_product.flatMap(_.parent_product) shouldBe None
+
+      // // SELF_PARENT -> SELF_PARENT
+      // createProduct(code = "SELF_PARENT", json = parentPostPutProductJsonV310)
+      // createProduct(code = "SELF_PARENT", json = parentPostPutProductJsonV310.copy(parent_product_code = "SELF_PARENT"))
+
+      // When("We get the tree of SELF_PARENT")
+      // val responseSelf = makeGetRequest((v3_1_0_Request / "banks" / testBankId / "product-tree" / "SELF_PARENT").GET <@(user1))
+      // Then("We should get a 200 with the product and no parent")
+      // responseSelf.code should equal(200)
+      // val selfTree = responseSelf.body.extract[ProductTreeJsonV310]
+      // selfTree.code shouldBe "SELF_PARENT"
+      // selfTree.parent_product shouldBe None
+    // }
+    // scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
+
+      // When("We need to first create the products ")
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
+      // createProduct(code = "PRODUCT_CODE", json = parentPostPutProductJsonV310)
+      
+      
+      // When("we grant the CanCreateProductAttribute role")
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProductAttribute.toString)
+      
+      // When("We make a create Product request v3.1.0")
+      // val requestCreate310 = createProductAttributeEndpoint.POST <@(user1)
+      // val responseCreate310 = makePostRequest(requestCreate310, write(postProductAttributeJson))
+      // Then("We should get a 201")
+      // responseCreate310.code should equal(201)
+      // val createdProduct = responseCreate310.body.extract[ProductAttributeResponseJson]
+      
+
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanGetProductAttribute.toString)
+      // val requestGet310 = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / createdProduct.product_attribute_id).GET <@(user1)
+      // val responseGet310 = makeGetRequest(requestGet310)
+      // Then("We should get a 200")
+      // responseGet310.code should equal(200)
+      // val gottenProduct = responseGet310.body.extract[ProductAttributeResponseJson]
+
+      // createdProduct shouldBe gottenProduct
+      
+      // val requestGetAll310 = (v3_1_0_Request / "banks" / testBankId / "products").GET <@(user1)
+      // val responseGetAll310 = makeGetRequest(requestGetAll310)
+      // Then("We should get a 200")
+      // responseGetAll310.code should equal(200)
+      // val products: ProductsJsonV310 = responseGetAll310.body.extract[ProductsJsonV310]
+      // products.products.head.code should be ("PRODUCT_CODE")
+
+
+      // val requestGetAllParameter1 = (v3_1_0_Request / "banks" / testBankId / "products").GET <@(user1)<<? (List(("OVERDRAFT_START_DATE","2012-04-23")))
+      // val responseGetAllParameter1= makeGetRequest(requestGetAllParameter1)
+      // Then("We should get a 200")
+      // responseGetAllParameter1.code should equal(200)
+      // val productsParameter1: ProductsJsonV310 = responseGetAllParameter1.body.extract[ProductsJsonV310]
+      // productsParameter1.products.head.code should be ("PRODUCT_CODE")
+
+
+      // val requestGetAllParameter2 = (v3_1_0_Request / "banks" / testBankId / "products").GET <@(user1)<<? (List(("OVERDRAFT_START_DATE1","2012-04-23")))
+      // val responseGetAllParameter2= makeGetRequest(requestGetAllParameter2)
+      // Then("We should get a 200")
+      // responseGetAllParameter2.code should equal(200)
+      // val productsParameter2: ProductsJsonV310 = responseGetAllParameter2.body.extract[ProductsJsonV310]
+      // productsParameter2.products.length should be (0)
+    // }
+  // }
+
+
+
+  private val productTreePath = "product-tree"
+
+  Feature("Get Product Tree v3.1.0 (the products are created through the connector)") {
+    Scenario("We get the product tree of a child product", ApiEndpoint4, VersionOfApi) {
+      val grandparent = createProduct(testBankId, "TREE_GRANDPARENT", parentPostPutProductJsonV310)
+      val parent = createProduct(testBankId, "TREE_PARENT", parentPostPutProductJsonV310.copy(parent_product_code = grandparent.code))
+      createProduct(testBankId, "TREE_CHILD", parentPostPutProductJsonV310.copy(parent_product_code = parent.code))
+
+      When("We get the tree of TREE_CHILD")
+      val response = makeGetRequest((v3_1_0_Request / "banks" / testBankId / productTreePath / "TREE_CHILD").GET <@(user1))
+      Then("We should get a 200 with the parent and the grandparent nested")
+      response.code should equal(200)
+      val tree = response.body.extract[ProductTreeJsonV310]
+      tree.code shouldBe "TREE_CHILD"
+      tree.parent_product.map(_.code) shouldBe Some("TREE_PARENT")
+      tree.parent_product.flatMap(_.parent_product).map(_.code) shouldBe Some("TREE_GRANDPARENT")
     }
-    Scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / "CODE").PUT <@(user1)
-      val response310 = makePutRequest(request310, write(parentPostPutProductJsonV310))
-      Then("We should get a 403")
-      response310.code should equal(403)
-      val createProductEntitlements = canCreateProduct :: canCreateProductAtAnyBank ::  Nil
-      val createProductEntitlementsRequiredText = UserHasMissingRoles + createProductEntitlements.mkString(" or ")
-      And("error should be " + createProductEntitlementsRequiredText)
-      response310.body.extract[ErrorMessage].message should equal (createProductEntitlementsRequiredText)
-    }
-    Scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
 
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
-
-      // Create an grandparent
-      val grandparent: ProductJsonV310 = createProduct(code = "GRANDPARENT_CODE", json = parentPostPutProductJsonV310)
-
-      // Create an parent
-      val product: ProductJsonV310 = createProduct(code = "PARENT_CODE", json = parentPostPutProductJsonV310.copy(parent_product_code = grandparent.code))
-
-      // Get
-      val requestGet310 = (v3_1_0_Request / "banks" / product.bank_id / "products" / product.code ).GET <@(user1)
-      val responseGet310 = makeGetRequest(requestGet310)
-      Then("We should get a 200")
-      responseGet310.code should equal(200)
-      val product1 = responseGet310.body.extract[ProductJsonV310]
-
-      // Create an child
-      val childPostPutProductJsonV310 = parentPostPutProductJsonV310.copy(parent_product_code = product.code)
-      createProduct(code = "PRODUCT_CODE", json = childPostPutProductJsonV310)
-
-      // Get
-      val requestGetAll310 = (v3_1_0_Request / "banks" / product.bank_id / "products").GET <@(user1)
-      val responseGetAll310 = makeGetRequest(requestGetAll310)
-      Then("We should get a 200")
-      responseGetAll310.code should equal(200)
-      val products: ProductsJsonV310 = responseGetAll310.body.extract[ProductsJsonV310]
-      products.products.size shouldBe 3
-
-      // Get tree
-      val requestGetTree310 = (v3_1_0_Request / "banks" / product.bank_id / "product-tree" / "PRODUCT_CODE").GET <@(user1)
-      val responseGetTree310 = makeGetRequest(requestGetTree310)
-      Then("We should get a 200")
-      responseGetTree310.code should equal(200)
-      val productTree: ProductTreeJsonV310 = responseGetTree310.body.extract[ProductTreeJsonV310]
-    }
-    Scenario("We get the product tree of products that are their own or each other's parent", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
-
+    scenario("We get the product tree of products that are their own or each other's parent", ApiEndpoint4, VersionOfApi) {
       // CYCLE_A -> CYCLE_B -> CYCLE_A: create both, then point CYCLE_A at CYCLE_B
-      createProduct(code = "CYCLE_A", json = parentPostPutProductJsonV310)
-      createProduct(code = "CYCLE_B", json = parentPostPutProductJsonV310.copy(parent_product_code = "CYCLE_A"))
-      createProduct(code = "CYCLE_A", json = parentPostPutProductJsonV310.copy(parent_product_code = "CYCLE_B"))
+      createProduct(testBankId, "CYCLE_A", parentPostPutProductJsonV310)
+      createProduct(testBankId, "CYCLE_B", parentPostPutProductJsonV310.copy(parent_product_code = "CYCLE_A"))
+      createProduct(testBankId, "CYCLE_A", parentPostPutProductJsonV310.copy(parent_product_code = "CYCLE_B"))
 
       When("We get the tree of CYCLE_A")
-      val responseCycle = makeGetRequest((v3_1_0_Request / "banks" / testBankId / "product-tree" / "CYCLE_A").GET <@(user1))
+      val responseCycle = makeGetRequest((v3_1_0_Request / "banks" / testBankId / productTreePath / "CYCLE_A").GET <@(user1))
       Then("We should get a 200 with each product once, and the nesting ending at the repeat")
       responseCycle.code should equal(200)
       val cycleTree = responseCycle.body.extract[ProductTreeJsonV310]
@@ -171,68 +278,17 @@ class ProductTest extends V310ServerSetup {
       cycleTree.parent_product.flatMap(_.parent_product) shouldBe None
 
       // SELF_PARENT -> SELF_PARENT
-      createProduct(code = "SELF_PARENT", json = parentPostPutProductJsonV310)
-      createProduct(code = "SELF_PARENT", json = parentPostPutProductJsonV310.copy(parent_product_code = "SELF_PARENT"))
+      createProduct(testBankId, "SELF_PARENT", parentPostPutProductJsonV310)
+      createProduct(testBankId, "SELF_PARENT", parentPostPutProductJsonV310.copy(parent_product_code = "SELF_PARENT"))
 
       When("We get the tree of SELF_PARENT")
-      val responseSelf = makeGetRequest((v3_1_0_Request / "banks" / testBankId / "product-tree" / "SELF_PARENT").GET <@(user1))
+      val responseSelf = makeGetRequest((v3_1_0_Request / "banks" / testBankId / productTreePath / "SELF_PARENT").GET <@(user1))
       Then("We should get a 200 with the product and no parent")
       responseSelf.code should equal(200)
       val selfTree = responseSelf.body.extract[ProductTreeJsonV310]
       selfTree.code shouldBe "SELF_PARENT"
       selfTree.parent_product shouldBe None
     }
-    Scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
-
-      When("We need to first create the products ")
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
-      createProduct(code = "PRODUCT_CODE", json = parentPostPutProductJsonV310)
-      
-      
-      When("we grant the CanCreateProductAttribute role")
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProductAttribute.toString)
-      
-      When("We make a create Product request v3.1.0")
-      val requestCreate310 = createProductAttributeEndpoint.POST <@(user1)
-      val responseCreate310 = makePostRequest(requestCreate310, write(postProductAttributeJson))
-      Then("We should get a 201")
-      responseCreate310.code should equal(201)
-      val createdProduct = responseCreate310.body.extract[ProductAttributeResponseJson]
-      
-
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanGetProductAttribute.toString)
-      val requestGet310 = (v3_1_0_Request / "banks" / testBankId / "products" / "PRODUCT_CODE" / "attributes" / createdProduct.product_attribute_id).GET <@(user1)
-      val responseGet310 = makeGetRequest(requestGet310)
-      Then("We should get a 200")
-      responseGet310.code should equal(200)
-      val gottenProduct = responseGet310.body.extract[ProductAttributeResponseJson]
-
-      createdProduct shouldBe gottenProduct
-      
-      val requestGetAll310 = (v3_1_0_Request / "banks" / testBankId / "products").GET <@(user1)
-      val responseGetAll310 = makeGetRequest(requestGetAll310)
-      Then("We should get a 200")
-      responseGetAll310.code should equal(200)
-      val products: ProductsJsonV310 = responseGetAll310.body.extract[ProductsJsonV310]
-      products.products.head.code should be ("PRODUCT_CODE")
-
-
-      val requestGetAllParameter1 = (v3_1_0_Request / "banks" / testBankId / "products").GET <@(user1)<<? (List(("OVERDRAFT_START_DATE","2012-04-23")))
-      val responseGetAllParameter1= makeGetRequest(requestGetAllParameter1)
-      Then("We should get a 200")
-      responseGetAllParameter1.code should equal(200)
-      val productsParameter1: ProductsJsonV310 = responseGetAllParameter1.body.extract[ProductsJsonV310]
-      productsParameter1.products.head.code should be ("PRODUCT_CODE")
-
-
-      val requestGetAllParameter2 = (v3_1_0_Request / "banks" / testBankId / "products").GET <@(user1)<<? (List(("OVERDRAFT_START_DATE1","2012-04-23")))
-      val responseGetAllParameter2= makeGetRequest(requestGetAllParameter2)
-      Then("We should get a 200")
-      responseGetAllParameter2.code should equal(200)
-      val productsParameter2: ProductsJsonV310 = responseGetAllParameter2.body.extract[ProductsJsonV310]
-      productsParameter2.products.length should be (0)
-    }
   }
-
 
 }

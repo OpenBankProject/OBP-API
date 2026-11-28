@@ -112,14 +112,39 @@ trait V510ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     reply.body.extract[ViewJsonV300]
   }
   
-  def createAtmAtBank(bankId: String): AtmJsonV400 = {
-    val postAtmJson = SwaggerDefinitionsJSON.atmJsonV400.copy(bank_id = bankId)
+  // v4.0.0 createAtm is commented out, so the ATM is created with v5.1.0 createAtm.
+  def createAtmAtBank(bankId: String): code.api.v5_1_0.AtmJsonV510 = {
+    val postAtmJson = SwaggerDefinitionsJSON.postAtmJsonV510.copy(bank_id = bankId)
     val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateAtmAtAnyBank.toString)
-    val requestCreateAtm = (v4_0_0_Request / "banks" / bankId / "atms").POST <@ (user1)
+    val requestCreateAtm = (v5_1_0_Request / "banks" / bankId / "atms").POST <@ (user1)
     val responseCreateAtm = makePostRequest(requestCreateAtm, write(postAtmJson))
-    val responseBodyCreateAtm = responseCreateAtm.body.extract[AtmJsonV400]
-    responseBodyCreateAtm should be (postAtmJson)
     responseCreateAtm.code should be (201)
+    val responseBodyCreateAtm = responseCreateAtm.body.extract[code.api.v5_1_0.AtmJsonV510]
+    responseBodyCreateAtm.bank_id should be (bankId)
+    responseBodyCreateAtm.name should be (postAtmJson.name)
+    responseBodyCreateAtm.address should be (postAtmJson.address)
+    responseBodyCreateAtm.location should be (postAtmJson.location)
+    responseBodyCreateAtm.meta should be (postAtmJson.meta)
+    List(responseBodyCreateAtm.monday, responseBodyCreateAtm.tuesday, responseBodyCreateAtm.wednesday,
+      responseBodyCreateAtm.thursday, responseBodyCreateAtm.friday, responseBodyCreateAtm.saturday,
+      responseBodyCreateAtm.sunday) should be (List(postAtmJson.monday, postAtmJson.tuesday,
+      postAtmJson.wednesday, postAtmJson.thursday, postAtmJson.friday, postAtmJson.saturday, postAtmJson.sunday))
+    responseBodyCreateAtm.is_accessible should be (postAtmJson.is_accessible)
+    responseBodyCreateAtm.located_at should be (postAtmJson.located_at)
+    responseBodyCreateAtm.more_info should be (postAtmJson.more_info)
+    responseBodyCreateAtm.has_deposit_capability should be (postAtmJson.has_deposit_capability)
+    responseBodyCreateAtm.supported_languages should be (postAtmJson.supported_languages)
+    responseBodyCreateAtm.services should be (postAtmJson.services)
+    responseBodyCreateAtm.accessibility_features should be (postAtmJson.accessibility_features)
+    responseBodyCreateAtm.supported_currencies should be (postAtmJson.supported_currencies)
+    responseBodyCreateAtm.notes should be (postAtmJson.notes)
+    responseBodyCreateAtm.location_categories should be (postAtmJson.location_categories)
+    responseBodyCreateAtm.minimum_withdrawal should be (postAtmJson.minimum_withdrawal)
+    responseBodyCreateAtm.branch_identification should be (postAtmJson.branch_identification)
+    responseBodyCreateAtm.site_identification should be (postAtmJson.site_identification)
+    responseBodyCreateAtm.site_name should be (postAtmJson.site_name)
+    responseBodyCreateAtm.cash_withdrawal_national_fee should be (postAtmJson.cash_withdrawal_national_fee)
+    responseBodyCreateAtm.cash_withdrawal_international_fee should be (postAtmJson.cash_withdrawal_international_fee)
     Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     responseBodyCreateAtm
   }
