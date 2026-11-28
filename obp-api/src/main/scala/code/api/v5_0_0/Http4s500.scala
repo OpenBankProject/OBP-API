@@ -628,7 +628,7 @@ object Http4s500 {
             // per-consent shadow, and an account held by it strands when the consent dies.
             userIdAccountOwner = createAccountJson.user_id.getOrElse(cc.onBehalfOfUserId)
             _ <- Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountId.value) }
-            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(accountId.value) }
+            _ <- Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bankId.value) }
             (postedOrLoggedInUser, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
             // Explicit target: fail loud rather than redirect (see the entitlement endpoints).
             _ <- Helper.booleanToFuture(
