@@ -1092,6 +1092,37 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
       }
     }
 
+    // Ported from the v2.1.0 scenario of the same name, which is commented out with that version.
+    if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
+      ignore("The maker answers their own challenge on a view without the maker-checker bypass", ApiEndpoint1, ApiEndpoint2) {}
+    } else {
+      scenario("The maker answers their own challenge on a view without the maker-checker bypass", ApiEndpoint1, ApiEndpoint2) {
+        val helper = defaultSetup(SEPA.toString)
+        helper.setCurrencyAndAmt("EUR", "EUR", "9000.00")
+        helper.bodyValue = AmountOfMoneyJsonV121("EUR", "9000.00")
+        helper.transactionRequestBodySEPA = helper.transactionRequestBodySEPA.copy(helper.bodyValue)
+        val createTransactionRequestResponse = helper.makeCreateTransReqRequestSEPA
+        helper.checkAllCreateTransReqResBodyField(createTransactionRequestResponse, true)
+
+        Given("a custom view that may add transaction requests but not bypass maker-checker, granted to user1")
+        val fromAccountId = helper.getFromAccount.accountId
+        val view = createCustomRandomView(helper.bankId, fromAccountId)
+        code.views.system.ViewPermission.resetViewPermissions(view, List(CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT))
+        code.views.Views.views.vend.grantAccessToCustomView(
+          BankIdAccountIdViewId(helper.bankId, fromAccountId, view.viewId), resourceUser1)
+
+        When("user1, who made the request, answers the challenge through that view")
+        val answerThroughView = (v4_0_0_Request / "banks" / helper.bankId.value / "accounts" / fromAccountId.value /
+          view.viewId.value / "transaction-request-types" / SEPA.toString / "transaction-requests" / helper.transRequestId / "challenge").POST <@ (user1)
+        val response = makePostRequest(answerThroughView, write(ChallengeAnswerJson400(id = helper.challengeId, answer = "123")))
+
+        Then("the answer is refused with MakerCheckerSameUser and the request is not paid")
+        response.code should equal(400)
+        (response.body \ "message").extract[String] should include(MakerCheckerSameUser)
+        helper.checkBankAccountBalance(false)
+      }
+    }
+
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, With FX ", ApiEndpoint1) {}
     } else {
