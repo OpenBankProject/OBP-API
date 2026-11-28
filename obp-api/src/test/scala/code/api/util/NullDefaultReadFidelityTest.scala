@@ -75,7 +75,7 @@ class NullDefaultReadFidelityTest extends ServerSetup {
                createdbyuserinvitationid, isdeleted, lastusedlocale, isnaturalperson,
                principaluserid)
               VALUES ($userId, ${userId + "@example.com"}, $userId, 'test', $userId, '', '', '',
-                      false, 'en_GB', NULL, '')""".update.run)
+                      ${false}, 'en_GB', NULL, '')""".update.run)
 
       ResourceUser.findByUserId(userId) match {
         // isNaturalPerson was removed upstream with the natural-person feature; the row

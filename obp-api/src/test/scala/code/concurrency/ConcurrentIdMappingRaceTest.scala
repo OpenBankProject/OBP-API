@@ -38,7 +38,7 @@ class ConcurrentIdMappingRaceTest extends ServerSetup {
   private def insertRaw(accountId: String, reference: String): Unit = {
     DoobieUtil.runUpdate(
       sql"""INSERT INTO accountidmapping (maccountid, maccountplaintextreference, createdat, updatedat)
-            VALUES ($accountId, $reference, NOW(), NOW())"""
+            VALUES ($accountId, $reference, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"""
         .update.run)
     ()
   }

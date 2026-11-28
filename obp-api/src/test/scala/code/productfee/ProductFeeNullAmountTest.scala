@@ -40,7 +40,7 @@ class ProductFeeNullAmountTest extends ServerSetup {
         sql"""INSERT INTO productfee
               (productfeeid, bankid, productcode, name, isactive, moreinfo, currency, amount,
                frequency, type_c)
-              VALUES (${"fee_" + suffix}, $bankId, $productCode, ${"fee " + suffix}, true,
+              VALUES (${"fee_" + suffix}, $bankId, $productCode, ${"fee " + suffix}, ${true},
                'a fee row whose amount predates the column', 'EUR', NULL, 'MONTHLY', 'FIXED')"""
           .update.run)
 

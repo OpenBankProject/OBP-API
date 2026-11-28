@@ -37,7 +37,7 @@ class ConsumerNullCallLimitTest extends ServerSetup {
               (consumerid, key_c, secret, azp, sub, isactive, name, description, developeremail,
                persecondcalllimit, perminutecalllimit, perhourcalllimit, perdaycalllimit,
                perweekcalllimit, permonthcalllimit)
-              VALUES (${"cid_" + key}, $key, 'secret', ${"azp_" + key}, ${"sub_" + key}, true,
+              VALUES (${"cid_" + key}, $key, 'secret', ${"azp_" + key}, ${"sub_" + key}, ${true},
                ${"name " + key}, 'a consumer whose limit columns predate the columns',
                'someone@example.com', NULL, NULL, NULL, NULL, NULL, NULL)"""
           .update.run)

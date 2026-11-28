@@ -42,7 +42,7 @@ class ConsumerNullCreatedByUserIdTest extends ServerSetup {
         sql"""INSERT INTO consumer
               (consumerid, key_c, secret, azp, sub, isactive, name, description, developeremail,
                createdbyuserid)
-              VALUES (${"cid_" + key}, $key, 'secret', ${"azp_" + key}, ${"sub_" + key}, true,
+              VALUES (${"cid_" + key}, $key, 'secret', ${"azp_" + key}, ${"sub_" + key}, ${true},
                ${"name " + key}, 'a consumer with no recorded creator',
                'someone@example.com', NULL)"""
           .update.run)
@@ -66,7 +66,7 @@ class ConsumerNullCreatedByUserIdTest extends ServerSetup {
         sql"""INSERT INTO consumer
               (consumerid, key_c, secret, azp, sub, isactive, name, description, developeremail,
                createdbyuserid)
-              VALUES (${"cid_" + key}, $key, 'secret', ${"azp_" + key}, ${"sub_" + key}, true,
+              VALUES (${"cid_" + key}, $key, 'secret', ${"azp_" + key}, ${"sub_" + key}, ${true},
                ${"name " + key}, 'a consumer with no recorded creator',
                'someone@example.com', NULL)"""
           .update.run)

@@ -71,7 +71,7 @@ class NullableColumnReadTest extends ServerSetup {
     Scenario("api collections: description was added with no backfill") {
       DoobieUtil.runUpdate(
         sql"""INSERT INTO apicollection (apicollectionid, userid, apicollectionname, issharable)
-              VALUES ('coll-null-1', 'user-null-1', 'my-collection', true)""".update.run)
+              VALUES ('coll-null-1', 'user-null-1', 'my-collection', ${true})""".update.run)
 
       val collections = DoobieApiCollectionsProvider.getApiCollectionsByUserId("user-null-1")
 
