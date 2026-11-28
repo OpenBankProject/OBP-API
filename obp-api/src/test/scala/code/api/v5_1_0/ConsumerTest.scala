@@ -29,9 +29,11 @@ import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages.{InvalidJsonFormat, AuthenticatedUserIsRequired, ApplicationNotIdentified}
+import code.api.util.ErrorMessages.{InvalidJsonFormat, AuthenticatedUserIsRequired, ApplicationNotIdentified, UserHasMissingRoles, UserNoPermissionUpdateConsumer}
+import code.api.v2_1_0.ConsumerRedirectUrlJSON
 import code.api.v3_1_0.ConsumerJsonV310
 import code.api.v5_1_0.Http4s510.Implementations5_1_0
+import code.consumer.Consumers
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
@@ -289,6 +291,51 @@ class ConsumerTest extends V510ServerSetup {
       Then("The Consumer is created but stays disabled until an admin enables it")
       response.code should equal(201)
       response.body.extract[ConsumerJsonOnlyForPostResponseV510].enabled shouldBe false
+    }
+  }
+
+  // Ported from v2.1.0 UpdateConsumerRedirectUrlTest, which is commented out with that version.
+  feature("Only the user who created a Consumer can change its redirect URL") {
+    val newRedirectUrl = "x-com.tesobe.helloobp.ios://callback"
+
+    def consumerCreatedByUser1(): String = {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateConsumer.toString)
+      val created = makePostRequest((v5_1_0_Request / "management" / "consumers").POST <@ (user1),
+        write(SwaggerDefinitionsJSON.createConsumerRequestJsonV510.copy(app_name = "redirect" + java.util.UUID.randomUUID.toString)))
+      created.code should equal(201)
+      created.body.extract[ConsumerJsonV510].consumer_id
+    }
+
+    def redirectUrlRequest(consumerId: String) =
+      v5_1_0_Request / "management" / "consumers" / consumerId / "consumer" / "redirect_url"
+
+    scenario("a user with the role cannot change the redirect URL of a Consumer another user created", UpdateConsumerRedirectURL, VersionOfApi) {
+      val consumerId = consumerCreatedByUser1()
+      val redirectUrlBefore = Consumers.consumers.vend.getConsumerByConsumerId(consumerId)
+        .openOrThrowException("the test consumer is gone").redirectURL.get
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, canUpdateConsumerRedirectUrl.toString)
+
+      When("user2 changes the redirect URL of user1's Consumer")
+      val response = makePutRequest(redirectUrlRequest(consumerId).PUT <@ (user2), write(ConsumerRedirectUrlJSON(newRedirectUrl)))
+
+      Then("the change is refused and the redirect URL stays as it was")
+      response.code should equal(400)
+      (response.body \ "message").extract[String] should include(UserNoPermissionUpdateConsumer)
+      Consumers.consumers.vend.getConsumerByConsumerId(consumerId)
+        .openOrThrowException("the test consumer is gone").redirectURL.get should equal(redirectUrlBefore)
+    }
+
+    scenario("the role is needed even when consumers are enabled by default", UpdateConsumerRedirectURL, VersionOfApi) {
+      // The role used to be checked only when consumers_enabled_by_default was false.
+      val consumerId = consumerCreatedByUser1()
+      setPropsValues("consumers_enabled_by_default" -> "true")
+
+      When("user1, the creator, changes the redirect URL without the role")
+      val response = makePutRequest(redirectUrlRequest(consumerId).PUT <@ (user1), write(ConsumerRedirectUrlJSON(newRedirectUrl)))
+
+      Then("the change is refused with UserHasMissingRoles")
+      response.code should equal(403)
+      (response.body \ "message").extract[String] should equal(UserHasMissingRoles + canUpdateConsumerRedirectUrl)
     }
   }
 
