@@ -51,6 +51,19 @@ class DisposableDatabaseGuardTest extends AnyFlatSpec with Matchers {
     isDisposable("jdbc:mysql://localhost:3306/obp-mapped?useSSL=false") should equal(false)
   }
 
+  it should "judge an Oracle url by the schema it logs into, not the service it names" in {
+    // On Oracle the tables live in the user's schema, and FREEPDB1 is the whole server's service.
+    import DisposableDatabaseGuard.isDisposableFor
+    val url = "jdbc:oracle:thin:@//localhost:1521/FREEPDB1"
+    isDisposableFor(url, Some("obp_suite_oracle")) should equal(true)
+    isDisposableFor(url, Some("OBP_SUITE_ORACLE")) should equal(true)
+    isDisposableFor(url, Some("system")) should equal(false)
+    isDisposableFor(url, None) should equal(false)
+    isDisposableFor("jdbc:oracle:thin:obp_suite_oracle/secret@//localhost:1521/FREEPDB1", None) should
+      equal(true)
+    isDisposable(url) should equal(false)
+  }
+
   it should "refuse every database that exists on this machine for real" in {
     // These are the databases actually present on the developer machine this was written on.
     // If the whitelist ever widens enough to admit one of them, this fails.

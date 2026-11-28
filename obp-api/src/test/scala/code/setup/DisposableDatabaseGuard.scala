@@ -48,9 +48,24 @@ object DisposableDatabaseGuard {
   private val AllowedDatabaseName =
     """^(obp_suite_[a-z0-9_]+|obp_liquibase_migration_test|obp_test_only)$""".r
 
+  /** The user named inside an Oracle url, as in `jdbc:oracle:thin:user/password@//host/service`. */
+  private val OracleUrlUser = """^jdbc:oracle:thin:([^/@]+)/.*@.*$""".r
+
   /** True when this URL names a database it is safe to empty and drop. */
-  def isDisposable(url: String): Boolean = url match {
+  def isDisposable(url: String): Boolean = isDisposableFor(url, None)
+
+  /**
+   * As `isDisposable`, with the user the connection logs in as. On Oracle the tables live in that
+   * user's schema, and the url names only the server's service, so the user is what is judged.
+   */
+  def isDisposableFor(url: String, user: Option[String]): Boolean = url match {
     case u if u.startsWith("jdbc:h2:mem:") => true
+    case u if u.startsWith("jdbc:oracle:") =>
+      val schema = u match {
+        case OracleUrlUser(name) => Some(name)
+        case _                   => user
+      }
+      schema.exists(s => AllowedDatabaseName.matches(s.toLowerCase))
     case JdbcDatabaseName(name)            => AllowedDatabaseName.matches(name)
     case _                                 => false
   }
@@ -80,7 +95,8 @@ object DisposableDatabaseGuard {
 
   def assertDisposable(): Unit = {
     val url = resolvedDbUrl
-    if (!isDisposable(url)) {
+    val user = code.api.util.APIUtil.getPropsValue("db.user").toOption
+    if (!isDisposableFor(url, user)) {
       // stderr and stdout: whichever the runner captures, this has to be the thing that is read.
       val message =
         s"""
@@ -98,6 +114,7 @@ object DisposableDatabaseGuard {
            |  .../obp_suite_<name>             a per-shard database for a Postgres run
            |  .../obp_liquibase_migration_test PostgresMigrationTest's own database
            |  .../obp_test_only                what scripts/create_test_db.sh creates
+           |  jdbc:oracle:... as obp_suite_<name> or obp_test_only, the schema's user
            |
            |Set db.url in test.default.props, or OBP_DB_URL in the environment, to
            |one of those. Nothing has been written to the database named above.
