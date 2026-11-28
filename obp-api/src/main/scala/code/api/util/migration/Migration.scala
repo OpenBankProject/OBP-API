@@ -192,6 +192,7 @@ object Migration extends MdcLoggable {
       // (MappedMetric._dbTableNameLC and friends) that no longer exists on this branch,
       // and Schemifier - their other half - creates nothing here (ToSchemify.models = Nil).
       dropFastFirehoseAccountsViews(startedBeforeSchemifier)
+      dropAccountAccessWithViewsView(startedBeforeSchemifier)
       renameDynamicEntityRoles()
       renameDynamicEntityDefinitionRoles()
       upperCaseStoredCurrencyCodes()

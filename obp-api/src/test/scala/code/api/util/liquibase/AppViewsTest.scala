@@ -27,7 +27,23 @@ import org.scalatest.matchers.should.Matchers
  */
 class AppViewsTest extends AnyFlatSpec with Matchers {
 
-  private val views = List("v_consent", "v_account_access_with_views")
+  private val views = List("v_consent")
+
+  /**
+   * Retired: DoobieAccountAccessViewQueries now does the join itself. A view left behind on these
+   * columns stops Postgres from changing their types, so the changelog must drop it, including on a
+   * database where a legacy MigrationOf* script has just created it again.
+   */
+  private val retiredViews = List("v_account_access_with_views")
+
+  private def viewNames(c: java.sql.Connection): Set[String] = {
+    val st = c.createStatement()
+    try {
+      val rs = st.executeQuery(
+        "SELECT LOWER(table_name) FROM information_schema.views WHERE table_schema = 'PUBLIC'")
+      Iterator.continually(rs).takeWhile(_.next()).map(_.getString(1)).toSet
+    } finally st.close()
+  }
 
   private def dataSourceFor(name: String): DataSource = {
     val ds = new org.h2.jdbcx.JdbcDataSource()
@@ -56,17 +72,17 @@ class AppViewsTest extends AnyFlatSpec with Matchers {
       LiquibaseSchemaSetup.createOidcViews(dataSourceFor(db))
 
       withConnection(db) { c =>
-        val st = c.createStatement()
-        try {
-          val rs = st.executeQuery(
-            "SELECT LOWER(table_name) FROM information_schema.views WHERE table_schema = 'PUBLIC'")
-          val found = Iterator.continually(rs).takeWhile(_.next()).map(_.getString(1)).toSet
-          views.foreach { v =>
-            withClue(s"$v is missing - the request path that selects from it 500s. Found: $found ") {
-              found should contain(v)
-            }
+        val found = viewNames(c)
+        views.foreach { v =>
+          withClue(s"$v is missing - the request path that selects from it 500s. Found: $found ") {
+            found should contain(v)
           }
-        } finally st.close()
+        }
+        retiredViews.foreach { v =>
+          withClue(s"$v is retired and must not be created. Found: $found ") {
+            found should not contain v
+          }
+        }
       }
 
       // Not merely present: selectable, which is what says the columns underneath still match. A
@@ -77,6 +93,38 @@ class AppViewsTest extends AnyFlatSpec with Matchers {
           try {
             noException should be thrownBy st.executeQuery(s"SELECT * FROM $v")
           } finally st.close()
+        }
+      }
+    } finally {
+      withConnection(db) { c =>
+        val st = c.createStatement(); try st.execute("DROP ALL OBJECTS") finally st.close()
+      }
+    }
+  }
+
+  it should "drop the retired account-access view that a legacy migration script created" in {
+    val db = "app_views_retired"
+    withConnection(db) { c =>
+      val st = c.createStatement(); try st.execute("DROP ALL OBJECTS") finally st.close()
+    }
+    try {
+      LiquibaseSchemaSetup.bringUpToDate(dataSourceFor(db))
+      // What MigrationOfAccountAccessWithViewsView leaves behind when migration_scripts are on: it
+      // runs between the two Liquibase passes.
+      withConnection(db) { c =>
+        val st = c.createStatement()
+        try st.execute(
+          "CREATE VIEW v_account_access_with_views AS SELECT aa.id AS account_access_id FROM accountaccess aa")
+        finally st.close()
+      }
+      LiquibaseSchemaSetup.createOidcViews(dataSourceFor(db))
+
+      withConnection(db) { c =>
+        val found = viewNames(c)
+        retiredViews.foreach { v =>
+          withClue(s"$v must be dropped by the changelog. Found: $found ") {
+            found should not contain v
+          }
         }
       }
     } finally {

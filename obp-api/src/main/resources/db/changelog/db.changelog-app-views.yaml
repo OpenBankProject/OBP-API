@@ -1,7 +1,8 @@
-# The two SQL views the application's own request paths read.
+# The SQL view the application's own request paths read, and the retired one it drops.
 #
-# DoobieConsentQueries selects FROM v_consent and DoobieAccountAccessViewQueries selects FROM
-# v_account_access_with_views. Neither had anything in the changelog creating it: both were left to
+# DoobieConsentQueries selects FROM v_consent. DoobieAccountAccessViewQueries used to select FROM
+# v_account_access_with_views and now does that join itself. Neither had anything in the changelog
+# creating it: both were left to
 # MigrationOfConsentView / MigrationOfAccountAccessWithViewsView, which run only when BOTH
 # `migration_scripts.enabled` and `migration_scripts.execute_all` are true. Those default to false
 # and ship commented out in sample.props.template, so a deployment made from the shipped template
@@ -82,61 +83,18 @@ databaseChangeLog:
                   jwt_expires_at                    AS jwt_expires_at
               FROM mappedconsent
 
+  # v_account_access_with_views is retired: DoobieAccountAccessViewQueries does the join itself and
+  # nothing selects from the view. Left in place it would block the type change of any column it
+  # names (Postgres: "cannot alter type of a column used by a view or rule"), so it is dropped here,
+  # in this second pass, after MigrationOfAccountAccessWithViewsView may have created it again.
   - changeSet:
-      id: create-view-v_account_access_with_views
+      id: drop-view-v_account_access_with_views
       author: obp
-      runOnChange: true
+      runAlways: true
       contextFilter: oidc-views
       comment: >-
-        Read by DoobieAccountAccessViewQueries. Joins each account-access row to its user and to the view definition it names - system views match on view_id alone, custom views additionally on bank and account.
+        Drops the retired account-access view, which the legacy migration script still creates when migration_scripts are on.
       changes:
-        - sql:
-            sql: DROP VIEW IF EXISTS v_account_access_with_views
-        - createView:
+        - dropView:
             viewName: v_account_access_with_views
-            selectQuery: |-
-              SELECT
-                  aa.id              AS account_access_id,
-                  aa.bank_id         AS bank_id,
-                  aa.account_id      AS account_id,
-                  aa.view_id         AS view_id,
-                  aa.consumer_id     AS consumer_id,
-                  ru.userid_         AS user_id,
-                  ru.name_           AS username,
-                  ru.email           AS email,
-                  ru.provider_       AS provider,
-                  ru.id              AS resource_user_primary_key,
-                  vd.name_           AS view_name,
-                  vd.description_    AS view_description,
-                  vd.metadataview_   AS metadata_view,
-                  vd.issystem_       AS is_system,
-                  vd.ispublic_       AS is_public,
-                  vd.isfirehose_     AS is_firehose
-              FROM accountaccess aa
-              JOIN resourceuser ru ON ru.id = aa.user_fk
-              JOIN viewdefinition vd ON vd.issystem_ = true
-                                    AND vd.view_id = aa.view_id
-              UNION ALL
-              SELECT
-                  aa.id              AS account_access_id,
-                  aa.bank_id         AS bank_id,
-                  aa.account_id      AS account_id,
-                  aa.view_id         AS view_id,
-                  aa.consumer_id     AS consumer_id,
-                  ru.userid_         AS user_id,
-                  ru.name_           AS username,
-                  ru.email           AS email,
-                  ru.provider_       AS provider,
-                  ru.id              AS resource_user_primary_key,
-                  vd.name_           AS view_name,
-                  vd.description_    AS view_description,
-                  vd.metadataview_   AS metadata_view,
-                  vd.issystem_       AS is_system,
-                  vd.ispublic_       AS is_public,
-                  vd.isfirehose_     AS is_firehose
-              FROM accountaccess aa
-              JOIN resourceuser ru ON ru.id = aa.user_fk
-              JOIN viewdefinition vd ON vd.issystem_ = false
-                                    AND vd.bank_id = aa.bank_id
-                                    AND vd.account_id = aa.account_id
-                                    AND vd.view_id = aa.view_id
+            ifExists: true
