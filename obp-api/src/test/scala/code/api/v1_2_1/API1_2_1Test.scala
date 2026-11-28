@@ -6767,20 +6767,18 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       reply.body.extract[ErrorMessage].message contains (UserNoPermissionAccessView) shouldBe (true)
     }
 
-    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
-    // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
-    // scenario("we will not get get the other bank account of a random transaction because the transaction does not exist", API1_2_1, GetTransactionAccount){
-      // Given("We will use an access token")
-      // val bankId = randomBank
-      // val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      // val view = randomCustomViewPermalink(bankId, bankAccount)
-      // When("the request is sent")
-      // val reply = getTheCounterparty(bankId, bankAccount.id, view, randomString(5), user1)
-      // Then("we should get a 400 code")
-      // reply.code should equal (400)
-      // And("we should get an error message")
-      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    // }
+    scenario("we will not get get the other bank account of a random transaction because the transaction does not exist", API1_2_1, GetTransactionAccount){
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomCustomViewPermalink(bankId, bankAccount)
+      When("the request is sent")
+      val reply = getTheCounterpartyOfOneTransaction(bankId, bankAccount.id, view, randomString(5), user1)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    }
   }
 
   // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
