@@ -85,12 +85,14 @@ runs:
           # from 30 to over 50 minutes on SQL Server depending on the runner, so it gets 75 minutes.
           echo "TEST_TIMEOUT_SECONDS=4500" >> "$GITHUB_ENV"
         elif [ "$DB_CHOICE" = "postgres" ]; then
-          docker run -d --name postgres -p 5432:5432 \
-            -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=obp_test \
-            "$POSTGRES_IMAGE"
-          wait_until_ready postgres 2 docker exec postgres pg_isready -U postgres
+          # The test job already runs a postgres service on 5432 for PostgresMigrationTest, so a
+          # second container cannot bind the port. The shards use that server, in a database of
+          # their own whose name DisposableDatabaseGuard accepts.
+          PSQL=(docker run --rm --network host -e PGPASSWORD=postgres "$POSTGRES_IMAGE" psql -h localhost -U postgres -v ON_ERROR_STOP=1)
+          wait_until_ready postgres 2 "${PSQL[@]}" -c 'SELECT 1'
+          "${PSQL[@]}" -c "CREATE DATABASE obp_test_only"
           echo "TEST_DB_DRIVER=org.postgresql.Driver" >> "$GITHUB_ENV"
-          echo "TEST_DB_URL=jdbc:postgresql://localhost:5432/obp_test?user=postgres&password=password" >> "$GITHUB_ENV"
+          echo "TEST_DB_URL=jdbc:postgresql://localhost:5432/obp_test_only?user=postgres&password=postgres" >> "$GITHUB_ENV"
           echo "TEST_TIMEOUT_SECONDS=4500" >> "$GITHUB_ENV"
         else
           echo "Running with the default H2 in-memory database; no container is started."
