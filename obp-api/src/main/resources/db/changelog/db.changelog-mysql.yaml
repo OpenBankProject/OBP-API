@@ -14,7 +14,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-etag_etagresource
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -27,7 +27,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-mappeduserauthcontext_muserid_mkey_createdat
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -40,7 +40,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-counterpartylimit_bankid_accountid_viewid_counterpartyid
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -53,7 +53,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-viewpermission_bank_id_account_id_view_id_permission
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -66,7 +66,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-accountaccess_bank_id_account_id_view_id_user_fk_consumer_id
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -79,7 +79,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-metricarchive_url
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -92,7 +92,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-consumer_account_access_bank_id_account_id
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -105,7 +105,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-consumer_account_access_consumer_account_access_id
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -118,7 +118,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-consumer_account_access_consumer_id_bank_id_account_id_view_id
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -131,7 +131,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-dynamic_entity_webhook_bank_id_entity_name
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -144,7 +144,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-dynamic_entity_webhook_dynamic_entity_id_url
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -157,7 +157,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-dynamic_entity_webhook_webhook_id
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -170,7 +170,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-dynamicdataaccess_bankid_entityname_dynamicdataid_userid
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:
@@ -183,7 +183,7 @@ databaseChangeLog:
   - changeSet:
       id: mysql-create-index-dynamicdataorganisationaccess_bankid_entityname_dynamicdataid_o
       author: obp
-      dbms: mysql
+      dbms: mysql,mariadb
       preConditions:
         - onFail: MARK_RAN
         - not:

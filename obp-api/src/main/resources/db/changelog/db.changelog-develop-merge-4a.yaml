@@ -170,7 +170,7 @@ databaseChangeLog:
       id: create-index-dynamicdataorganisationaccess_bankid_entityname_dynamicdataid_organisationid
       author: obp
       # MySQL caps an index key at 3072 bytes; db.changelog-mysql.yaml builds this one there.
-      dbms: '!mysql'
+      dbms: '!mysql,!mariadb'
       preConditions:
         - onFail: MARK_RAN
         - not:

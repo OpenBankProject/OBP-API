@@ -47,7 +47,7 @@ databaseChangeLog:
   - property:
       name: text.type
       value: LONGTEXT
-      dbms: mysql
+      dbms: mysql,mariadb
   - property:
       name: text.type
       value: NVARCHAR(MAX)
@@ -70,7 +70,7 @@ databaseChangeLog:
   - property:
       name: unbounded.varchar.type
       value: LONGTEXT
-      dbms: mysql
+      dbms: mysql,mariadb
   - property:
       name: unbounded.varchar.type
       value: NVARCHAR(MAX)
@@ -93,7 +93,7 @@ databaseChangeLog:
   - property:
       name: boolean.true
       value: '1'
-      dbms: mysql
+      dbms: mysql,mariadb
   - property:
       name: boolean.true
       value: '1'
@@ -113,7 +113,7 @@ databaseChangeLog:
   - property:
       name: oidc.username.column
       value: 'au.username'
-      dbms: mysql
+      dbms: mysql,mariadb
   - property:
       name: oidc.username.column
       value: 'au.username'
@@ -136,7 +136,7 @@ databaseChangeLog:
   - property:
       name: timestamp.type
       value: DATETIME(6)
-      dbms: mysql
+      dbms: mysql,mariadb
   - property:
       name: timestamp.type
       value: TIMESTAMP
@@ -159,7 +159,7 @@ databaseChangeLog:
   - property:
       name: dynamicresourcedoc.text.type
       value: VARCHAR(255)
-      dbms: mysql
+      dbms: mysql,mariadb
   - property:
       name: dynamicresourcedoc.text.type
       value: VARCHAR(255)
@@ -181,7 +181,7 @@ databaseChangeLog:
   - property:
       name: column.catalog
       value: information_schema.columns
-      dbms: mysql
+      dbms: mysql,mariadb
   - property:
       name: column.catalog
       value: information_schema.columns
@@ -203,7 +203,7 @@ databaseChangeLog:
   - property:
       name: blob.type
       value: LONGBLOB
-      dbms: mysql
+      dbms: mysql,mariadb
   - property:
       name: blob.type
       value: VARBINARY(MAX)
