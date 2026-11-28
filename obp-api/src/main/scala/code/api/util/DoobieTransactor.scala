@@ -328,6 +328,28 @@ object DoobieUtil extends MdcLoggable {
   }
 
   /**
+   * String concatenation of `parts`. SQL Server and MySQL spell it CONCAT(...) - on MySQL `||` is a logical OR -
+   * and SQL Server's result is widened to NVARCHAR(MAX) so a long concatenation is not cut short. The others
+   * take `||`.
+   */
+  def concat(parts: Fragment*): Fragment =
+    if (isSqlServer) fr"CAST(CONCAT(" ++ parts.reduce(_ ++ fr"," ++ _) ++ fr") AS NVARCHAR(MAX))"
+    else if (DBUtil.isMySql) fr"CONCAT(" ++ parts.reduce(_ ++ fr"," ++ _) ++ fr")"
+    else parts.reduce(_ ++ fr"||" ++ _)
+
+  /**
+   * The values of `expr` across a group joined by `separator`: string_agg on Postgres, H2 and SQL Server,
+   * GROUP_CONCAT on MySQL and LISTAGG on Oracle. No order is asked for, as string_agg without ORDER BY.
+   */
+  def stringAgg(expr: Fragment, separator: String): Fragment = {
+    // A literal, not a bound parameter: MySQL's SEPARATOR and Oracle's LISTAGG delimiter take only a constant.
+    val sep = Fragment.const("'" + separator.replace("'", "''") + "'")
+    if (DBUtil.isMySql) fr"GROUP_CONCAT(" ++ expr ++ fr"SEPARATOR" ++ sep ++ fr")"
+    else if (DBUtil.isOracle) fr"LISTAGG(" ++ expr ++ fr"," ++ sep ++ fr") WITHIN GROUP (ORDER BY NULL)"
+    else fr"string_agg(" ++ expr ++ fr"," ++ sep ++ fr")"
+  }
+
+  /**
    * Row locking for a SELECT is a table hint on SQL Server, placed straight after the table name, and a
    * FOR UPDATE suffix elsewhere. Use `lockHint` after the table and `forUpdate` at the end of the statement;
    * exactly one of the two is empty on any database.

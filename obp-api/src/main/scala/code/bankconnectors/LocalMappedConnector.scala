@@ -1381,23 +1381,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       maps
     }
 
-    val ownersConcat = if (code.api.util.DBUtil.isSqlServer) {
-      fr"CAST(CONCAT('user_id:', resourceuser.userid_, ',provider:', resourceuser.provider_, ',user_name:', resourceuser.name_) AS NVARCHAR(MAX))"
-    } else {
-      fr"'user_id:' || resourceuser.userid_ || ',provider:' || resourceuser.provider_ || ',user_name:' || resourceuser.name_"
-    }
+    val ownersConcat = DoobieUtil.concat(fr"'user_id:'", fr"resourceuser.userid_", fr"',provider:'", fr"resourceuser.provider_", fr"',user_name:'", fr"resourceuser.name_")
 
-    val routingConcat = if (code.api.util.DBUtil.isSqlServer) {
-      fr"CAST(CONCAT('bank_id:', bankaccountrouting.bankid, ',account_id:', bankaccountrouting.accountid) AS NVARCHAR(MAX))"
-    } else {
-      fr"'bank_id:' || bankaccountrouting.bankid || ',account_id:' || bankaccountrouting.accountid"
-    }
+    val routingConcat = DoobieUtil.concat(fr"'bank_id:'", fr"bankaccountrouting.bankid", fr"',account_id:'", fr"bankaccountrouting.accountid")
 
-    val attrConcat = if (code.api.util.DBUtil.isSqlServer) {
-      fr"CAST(CONCAT('type:', mappedaccountattribute.mtype, ',code:', mappedaccountattribute.mcode, ',value:', mappedaccountattribute.mvalue) AS NVARCHAR(MAX))"
-    } else {
-      fr"'type:' || mappedaccountattribute.mtype || ',code:' || mappedaccountattribute.mcode || ',value:' || mappedaccountattribute.mvalue"
-    }
+    val attrConcat = DoobieUtil.concat(fr"'type:'", fr"mappedaccountattribute.mtype", fr"',code:'", fr"mappedaccountattribute.mcode", fr"',value:'", fr"mappedaccountattribute.mvalue")
 
     val pagination = DoobieUtil.pagination(limit, offset)
 
@@ -1408,8 +1396,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
            mappedbankaccount.accountlabel as account_label,
            mappedbankaccount.accountnumber as account_number,
            (select
-               string_agg(""" ++ ownersConcat ++ fr""",
-                '::') as owners
+               """ ++ DoobieUtil.stringAgg(ownersConcat, "::") ++ fr""" as owners
             from resourceuser
             where
                resourceuser.id = mapperaccountholders.user_c
@@ -1418,16 +1405,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
            mappedbankaccount.accountcurrency as account_currency ,
            mappedbankaccount.accountbalance as account_balance,
            (select
-               string_agg(""" ++ routingConcat ++ fr""",
-                   '::'
-                   ) as account_routings
+               """ ++ DoobieUtil.stringAgg(routingConcat, "::") ++ fr""" as account_routings
                from bankaccountrouting
                where
                      bankaccountrouting.accountid = mappedbankaccount.theaccountid
             ),
            (select
-               string_agg(""" ++ attrConcat ++ fr""",
-                   '::') as account_attributes
+               """ ++ DoobieUtil.stringAgg(attrConcat, "::") ++ fr""" as account_attributes
            from mappedaccountattribute
            where
                 mappedaccountattribute.maccountid = mappedbankaccount.theaccountid
@@ -1518,17 +1502,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       maps
     }
 
-    val routingConcat = if (code.api.util.DBUtil.isSqlServer) {
-      fr"CAST(CONCAT('scheme:', bankaccountrouting.accountroutingscheme, ',address:', bankaccountrouting.accountroutingaddress) AS NVARCHAR(MAX))"
-    } else {
-      fr"'scheme:' || bankaccountrouting.accountroutingscheme || ',address:' || bankaccountrouting.accountroutingaddress"
-    }
+    val routingConcat = DoobieUtil.concat(fr"'scheme:'", fr"bankaccountrouting.accountroutingscheme", fr"',address:'", fr"bankaccountrouting.accountroutingaddress")
 
-    val attrConcat = if (code.api.util.DBUtil.isSqlServer) {
-      fr"CAST(CONCAT('type:', mappedaccountattribute.mtype, ',code:', mappedaccountattribute.mcode, ',value:', mappedaccountattribute.mvalue) AS NVARCHAR(MAX))"
-    } else {
-      fr"'type:' || mappedaccountattribute.mtype || ',code:' || mappedaccountattribute.mcode || ',value:' || mappedaccountattribute.mvalue"
-    }
+    val attrConcat = DoobieUtil.concat(fr"'type:'", fr"mappedaccountattribute.mtype", fr"',code:'", fr"mappedaccountattribute.mcode", fr"',value:'", fr"mappedaccountattribute.mvalue")
 
     val pagination = DoobieUtil.pagination(limit, offset)
 
@@ -1541,17 +1517,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
            mappedbankaccount.kind as kind,
            mappedbankaccount.mbranchid as branch_id,
            (select
-               string_agg(""" ++ routingConcat ++ fr""",
-                   '::'
-                   ) as account_routings
+               """ ++ DoobieUtil.stringAgg(routingConcat, "::") ++ fr""" as account_routings
                from bankaccountrouting
                where
                      bankaccountrouting.accountid = mappedbankaccount.theaccountid
                  and bankaccountrouting.bankid = mappedbankaccount.bank
             ),
            (select
-               string_agg(""" ++ attrConcat ++ fr""",
-                   '::') as account_attributes
+               """ ++ DoobieUtil.stringAgg(attrConcat, "::") ++ fr""" as account_attributes
            from mappedaccountattribute
            where
                 mappedaccountattribute.maccountid = mappedbankaccount.theaccountid
