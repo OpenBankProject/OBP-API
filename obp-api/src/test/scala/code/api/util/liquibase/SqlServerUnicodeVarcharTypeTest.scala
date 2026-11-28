@@ -28,4 +28,11 @@ class SqlServerUnicodeVarcharTypeTest extends AnyFlatSpec with Matchers {
     }
     rendered("VARCHAR(255)", new OracleDatabase()) should include("varchar2")
   }
+
+  "DOUBLE" should "be BINARY_DOUBLE on Oracle, which stores a double exactly, and DOUBLE elsewhere" in {
+    rendered("DOUBLE", new OracleDatabase()) should equal("binary_double")
+    List(new PostgresDatabase(), new H2Database(), new MySQLDatabase(), new MSSQLDatabase()).foreach { db =>
+      withClue(db.getShortName) { rendered("DOUBLE", db) should not include "binary_double" }
+    }
+  }
 }
