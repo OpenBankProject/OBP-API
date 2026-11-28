@@ -16,6 +16,9 @@ on:
           - sqlserver
           - sqlserver2017
           - postgres
+          - mysql
+          - mariadb
+          - oracle
 
 env:
   DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION }}
@@ -151,7 +154,7 @@ jobs:
   test:
     needs: compile
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ (inputs.database == 'sqlserver' || inputs.database == 'sqlserver2017' || inputs.database == 'postgres' || contains(github.event.pull_request.labels.*.name, 'test-sqlserver') || contains(github.event.pull_request.labels.*.name, 'test-postgres') || contains(github.event.head_commit.message, '[test-sqlserver]') || contains(github.event.head_commit.message, '[test-postgres]')) && 90 || 35 }}
+    timeout-minutes: ${{ (inputs.database == 'sqlserver' || inputs.database == 'sqlserver2017' || inputs.database == 'postgres' || inputs.database == 'mysql' || inputs.database == 'mariadb' || inputs.database == 'oracle' || contains(github.event.pull_request.labels.*.name, 'test-sqlserver') || contains(github.event.pull_request.labels.*.name, 'test-postgres') || contains(github.event.head_commit.message, '[test-sqlserver]') || contains(github.event.head_commit.message, '[test-postgres]')) && 90 || 35 }}
     strategy:
       fail-fast: false
       matrix:
@@ -359,6 +362,11 @@ jobs:
             echo "Configuring $TEST_DB connection properties..."
             echo "db.driver=$TEST_DB_DRIVER" >> obp-api/src/main/resources/props/test.default.props
             echo "db.url=$TEST_DB_URL" >> obp-api/src/main/resources/props/test.default.props
+            # Oracle takes the user and password as properties rather than in the url.
+            if [ -n "$TEST_DB_USER" ]; then
+              echo "db.user=$TEST_DB_USER" >> obp-api/src/main/resources/props/test.default.props
+              echo "db.password=$TEST_DB_PASSWORD" >> obp-api/src/main/resources/props/test.default.props
+            fi
           else
             echo "Using default H2 database."
           fi
