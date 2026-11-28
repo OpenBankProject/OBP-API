@@ -126,15 +126,16 @@ object MetricsArchiveRun {
    */
   def pruneToMostRecent(keep: Int): Unit = {
     DoobieUtil.runUpdate(
-      // `AS recent` is not decoration: PostgreSQL required an alias on a FROM sub-select until
+      // The alias `recent` is not decoration: PostgreSQL required an alias on a FROM sub-select until
       // version 16, so without it this statement is a syntax error on every PG 15 or older
       // deployment. CI runs postgres:16-alpine and H2 never required it, so nothing here goes
       // red - and the scheduler calls recordRun again from inside its own catch, so the second
-      // throw escapes runOnce and the table stops being pruned at all.
+      // throw escapes runOnce and the table stops being pruned at all. It is written without AS,
+      // which Oracle refuses before a table alias.
       (sql"""DELETE FROM metricsarchiverun WHERE id < (
               SELECT MIN(id) FROM (""" ++
         DoobieUtil.limitOf(fr"SELECT id FROM metricsarchiverun ORDER BY id DESC", keep) ++
-        fr""") AS recent
+        fr""") recent
             )""")
         .update.run)
     ()
