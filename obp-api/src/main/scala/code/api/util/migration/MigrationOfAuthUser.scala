@@ -44,8 +44,21 @@ object MigrationOfAuthUser {
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
+  /**
+   * All five columns already as wide as this migration makes them, which they are on any table the changelog
+   * built. Re-running the SQL Server arm there is not a no-op: it drops the unique index on (username, provider)
+   * and recreates it as a plain one, so two users could then share a username at one provider.
+   */
+  private def alreadyWide: Boolean =
+    List("username", "provider", "firstname", "lastname", "email")
+      .forall(column => DbFunction.columnMaxLength("authuser", column).exists(_ >= 100))
+
   def alterColumnUsernameProviderEmailFirstnameAndLastname(name: String): Boolean = {
     DbFunction.tableExistsByName("authuser") match {
+      case true if alreadyWide =>
+        val now = System.currentTimeMillis()
+        saveLog(name, APIUtil.gitCommit, true, now, now, "authuser columns are already 100 wide; nothing to do")
+        true
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -59,11 +72,11 @@ object MigrationOfAuthUser {
                   s"""
                     |${Helper.dropIndexIfExists(dbDriver,"authUser", "authuser_username_provider")}
                     |
-                    |ALTER TABLE authuser ALTER COLUMN username varchar(100);
-                    |ALTER TABLE authuser ALTER COLUMN provider varchar(100);
-                    |ALTER TABLE authuser ALTER COLUMN firstname varchar(100);
-                    |ALTER TABLE authuser ALTER COLUMN lastname varchar(100);
-                    |ALTER TABLE authuser ALTER COLUMN email varchar(100);
+                    |ALTER TABLE authuser ALTER COLUMN username nvarchar(100);
+                    |ALTER TABLE authuser ALTER COLUMN provider nvarchar(100);
+                    |ALTER TABLE authuser ALTER COLUMN firstname nvarchar(100);
+                    |ALTER TABLE authuser ALTER COLUMN lastname nvarchar(100);
+                    |ALTER TABLE authuser ALTER COLUMN email nvarchar(100);
                     |
                     |${Helper.createIndexIfNotExists(dbDriver,"authUser", "authuser_username_provider")}
                     |""".stripMargin

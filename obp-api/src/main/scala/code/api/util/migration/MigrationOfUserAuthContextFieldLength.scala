@@ -49,8 +49,20 @@ object MigrationOfUserAuthContextFieldLength {
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
+  /**
+   * Both columns already as wide as this migration makes them, which they are on any table the changelog built.
+   * Re-running the SQL Server arm there is not a no-op: it drops the changelog's unique index, recreates it as a
+   * plain one, and turns the NVARCHAR columns back into VARCHAR.
+   */
+  private def alreadyWide: Boolean =
+    List("mkey", "mvalue").forall(column => DbFunction.columnMaxLength(tableName, column).exists(_ >= 4000))
+
   def alterColumnKeyAndValueLength(name: String): Boolean = {
     DbFunction.tableExistsByName(tableName) match {
+      case true if alreadyWide =>
+        val now = System.currentTimeMillis()
+        saveLog(name, APIUtil.gitCommit, true, now, now, s"$tableName.mkey and mvalue are already 4000 wide; nothing to do")
+        true
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -64,8 +76,8 @@ object MigrationOfUserAuthContextFieldLength {
                   s"""
                     |${Helper.dropIndexIfExists(dbDriver,"mappeduserauthcontext", "mappeduserauthcontext_muserid_mkey_createdat")}
                     |
-                    |ALTER TABLE MappedUserAuthContext ALTER COLUMN mKey varchar(4000);
-                    |ALTER TABLE MappedUserAuthContext ALTER COLUMN mValue varchar(4000);
+                    |ALTER TABLE MappedUserAuthContext ALTER COLUMN mKey nvarchar(4000);
+                    |ALTER TABLE MappedUserAuthContext ALTER COLUMN mValue nvarchar(4000);
                     |
                     |${Helper.createIndexIfNotExists(dbDriver, "mappeduserauthcontext", "mappeduserauthcontext_muserid_mkey_createdat")}
                     |
