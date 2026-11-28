@@ -12,7 +12,7 @@ databaseChangeLog:
         columns:
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbankid
             type: VARCHAR(44)
@@ -87,7 +87,7 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mname
             type: VARCHAR(255)
@@ -237,7 +237,7 @@ databaseChangeLog:
         columns:
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbankid
             type: VARCHAR(44)
@@ -255,7 +255,7 @@ databaseChangeLog:
             type: VARCHAR(64)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mcustomerfee_currency
             type: VARCHAR(3)
@@ -342,7 +342,7 @@ databaseChangeLog:
             type: VARCHAR(36)
         - column:
             name: lastlockdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: typeoflock
             type: VARCHAR(100)
@@ -403,10 +403,10 @@ databaseChangeLog:
             type: VARCHAR(100)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: operationid
             type: VARCHAR(100)
@@ -435,10 +435,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: apicollectionid
             type: VARCHAR(100)
@@ -473,10 +473,10 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: consentid
             type: VARCHAR(44)
@@ -517,10 +517,10 @@ databaseChangeLog:
             type: VARCHAR(4000)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: muserauthcontextid
             type: VARCHAR(36)
@@ -555,10 +555,10 @@ databaseChangeLog:
             type: VARCHAR(100)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: userid
             type: VARCHAR(36)
@@ -590,10 +590,10 @@ databaseChangeLog:
             type: VARCHAR(36)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: maccountplaintextreference
             type: VARCHAR(255)
@@ -622,10 +622,10 @@ databaseChangeLog:
             type: VARCHAR(36)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: transactionplaintextreference
             type: VARCHAR(255)
@@ -651,10 +651,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbankid
             type: VARCHAR(50)
@@ -689,10 +689,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: accountlabel
             type: VARCHAR(255)
@@ -739,10 +739,10 @@ databaseChangeLog:
             type: VARCHAR(2000)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             autoIncrement: true
             constraints:
@@ -770,7 +770,7 @@ databaseChangeLog:
             type: VARCHAR(100)
         - column:
             name: mlastfailuredate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbadattemptssincelastsuccessorreset
             type: INTEGER
@@ -799,10 +799,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bankid
             type: VARCHAR(44)
@@ -849,7 +849,7 @@ databaseChangeLog:
             type: DOUBLE
         - column:
             name: meffectivedate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: minverseconversionvalue
             type: DOUBLE
@@ -887,10 +887,10 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: remark
             type: VARCHAR(1024)
@@ -931,10 +931,10 @@ databaseChangeLog:
             type: VARCHAR(2000)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bankid
             type: VARCHAR(44)
@@ -1372,10 +1372,10 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mcustomerid
             type: BIGINT
@@ -1402,10 +1402,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bankid
             type: VARCHAR(255)
@@ -1458,10 +1458,10 @@ databaseChangeLog:
             type: numeric(16, 10)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             constraints:
               nullable: false
@@ -1525,10 +1525,10 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bankid
             type: VARCHAR(255)
@@ -1563,10 +1563,10 @@ databaseChangeLog:
             type: BOOLEAN
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: muserid
             type: VARCHAR(44)
@@ -1575,7 +1575,7 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: mdateinserted
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: musercustomerlinkid
             type: VARCHAR(36)
@@ -1610,10 +1610,10 @@ databaseChangeLog:
             type: VARCHAR(32)
         - column:
             name: mscheduleddate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mactualdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mresult
             type: VARCHAR(32)
@@ -1622,10 +1622,10 @@ databaseChangeLog:
             type: VARCHAR(64)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbankid
             type: VARCHAR(44)
@@ -1663,10 +1663,10 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             autoIncrement: true
             constraints:
@@ -1728,10 +1728,10 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: creationdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: expiresat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             autoIncrement: true
             constraints:
@@ -1760,13 +1760,13 @@ databaseChangeLog:
             type: VARCHAR(36)
         - column:
             name: startedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: apiinstanceid
             type: VARCHAR(100)
         - column:
             name: endedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: durationms
             type: BIGINT
@@ -1813,7 +1813,7 @@ databaseChangeLog:
             type: VARCHAR(64)
         - column:
             name: accrued_at
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: transaction_request_id
             type: VARCHAR(64)
@@ -1872,10 +1872,10 @@ databaseChangeLog:
             type: VARCHAR(32)
         - column:
             name: creationdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: lastattemptdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: transactionrequestid
             type: VARCHAR(64)
@@ -1930,10 +1930,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bankid
             type: VARCHAR(255)
@@ -1992,10 +1992,10 @@ databaseChangeLog:
             type: VARCHAR(32)
         - column:
             name: creationdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: lastupdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: name
             type: VARCHAR(255)
@@ -2021,10 +2021,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bankid
             type: VARCHAR(50)
@@ -2080,10 +2080,10 @@ databaseChangeLog:
             type: VARCHAR(100)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: name
             type: VARCHAR(100)
@@ -2109,10 +2109,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bankid
             type: VARCHAR(255)
@@ -2171,10 +2171,10 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bankid
             type: VARCHAR(44)
@@ -2251,10 +2251,10 @@ databaseChangeLog:
             type: BOOLEAN
         - column:
             name: created_at
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updated_at
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             autoIncrement: true
             constraints:
@@ -2354,10 +2354,10 @@ databaseChangeLog:
             type: ${text.type}
         - column:
             name: created_at
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updated_at
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: metadata_json
             type: ${text.type}
@@ -2386,10 +2386,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: userid
             type: VARCHAR(255)
@@ -2445,10 +2445,10 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bankid
             type: VARCHAR(255)
@@ -2542,10 +2542,10 @@ databaseChangeLog:
             type: ${text.type}
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bankid
             type: VARCHAR(44)
@@ -2674,16 +2674,16 @@ databaseChangeLog:
             type: VARCHAR(64)
         - column:
             name: mdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mok
             type: BOOLEAN
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbankid
             type: VARCHAR(44)
@@ -2727,13 +2727,13 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: mdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbankid
             type: VARCHAR(44)
@@ -2783,13 +2783,13 @@ databaseChangeLog:
             type: VARCHAR(50)
         - column:
             name: mdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mstaffname
             type: VARCHAR(64)
@@ -2839,19 +2839,19 @@ databaseChangeLog:
             type: VARCHAR(50)
         - column:
             name: missuedate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: missueplace
             type: VARCHAR(512)
         - column:
             name: mexpirydate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbankid
             type: VARCHAR(44)
@@ -2883,10 +2883,10 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mcustomernumber
             type: VARCHAR(64)
@@ -2898,10 +2898,10 @@ databaseChangeLog:
             type: VARCHAR(64)
         - column:
             name: mdateadded
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mdateactivated
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             autoIncrement: true
             constraints:
@@ -2927,10 +2927,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bankid
             type: VARCHAR(255)
@@ -2954,7 +2954,7 @@ databaseChangeLog:
             type: BOOLEAN
         - column:
             name: lastmessageat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: lastmessagepreview
             type: VARCHAR(100)
@@ -2986,10 +2986,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: chatmessageid
             type: VARCHAR(36)
@@ -3057,10 +3057,10 @@ databaseChangeLog:
             type: VARCHAR(1024)
         - column:
             name: joinedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: lastreadat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: ismuted
             type: BOOLEAN
@@ -3089,10 +3089,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: userid
             type: VARCHAR(36)
@@ -3127,10 +3127,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mcollectioncode
             type: VARCHAR(50)
@@ -3159,10 +3159,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mcollectioncode
             type: VARCHAR(50)
@@ -3191,10 +3191,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: userid
             type: VARCHAR(44)
@@ -3206,13 +3206,13 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: datesigned
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: datestarts
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: dateexpires
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: active
             type: BOOLEAN
@@ -3224,7 +3224,7 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: datecancelled
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: directdebitid
             type: VARCHAR(44)
@@ -3274,10 +3274,10 @@ databaseChangeLog:
             type: BOOLEAN
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbankid
             type: VARCHAR(44)
@@ -3318,10 +3318,10 @@ databaseChangeLog:
             type: VARCHAR(64)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bankid
             type: VARCHAR(44)
@@ -3365,10 +3365,10 @@ databaseChangeLog:
             type: VARCHAR(64)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdbyuserid
             type: VARCHAR(44)
@@ -3400,10 +3400,10 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbankid
             type: VARCHAR(44)
@@ -3435,10 +3435,10 @@ databaseChangeLog:
             type: VARCHAR(36)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mcode
             type: VARCHAR(50)
@@ -3482,10 +3482,10 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mline1
             type: VARCHAR(255)
@@ -3538,10 +3538,10 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbankid
             type: VARCHAR(44)
@@ -3576,7 +3576,7 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: mdateofbirth
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             autoIncrement: true
             constraints:
@@ -3664,10 +3664,10 @@ databaseChangeLog:
             type: VARCHAR(2000)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: transactionrequestid
             type: VARCHAR(36)
@@ -3708,10 +3708,10 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: userid
             type: VARCHAR(36)
@@ -3823,10 +3823,10 @@ databaseChangeLog:
             type: VARCHAR(512)
         - column:
             name: creationdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: lastupdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: status
             type: VARCHAR(16)
@@ -3890,10 +3890,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdbyuserid
             type: VARCHAR(255)
@@ -4040,7 +4040,7 @@ databaseChangeLog:
             type: VARCHAR(36)
         - column:
             name: mwhen
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mcustomeruserid
             type: BIGINT
@@ -4070,10 +4070,10 @@ databaseChangeLog:
             type: VARCHAR(100)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbankid
             type: VARCHAR(44)
@@ -4152,10 +4152,10 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: customer
             type: BIGINT
@@ -4187,7 +4187,7 @@ databaseChangeLog:
             type: VARCHAR(50)
         - column:
             name: mreplacementdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mreplacementreason
             type: VARCHAR(255)
@@ -4196,13 +4196,13 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: mcollected
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: maccount
             type: BIGINT
         - column:
             name: mposted
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mallows
             type: VARCHAR(255)
@@ -4229,10 +4229,10 @@ databaseChangeLog:
             type: BOOLEAN
         - column:
             name: mexpires
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mvalidfrom
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mserialnumber
             type: VARCHAR(50)
@@ -4276,7 +4276,7 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: mreplacementdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mreplacementreason
             type: VARCHAR(255)
@@ -4302,10 +4302,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: debittransactionid
             type: VARCHAR(44)
@@ -4355,10 +4355,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: dynamicendpointid
             type: VARCHAR(36)
@@ -4422,7 +4422,7 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: date_c
-            type: TIMESTAMP
+            type: ${timestamp.type}
         tableName: mappedconnectormetric
 - changeSet:
     id: create-table-mappedentitlement
@@ -4443,13 +4443,13 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: muserid
             type: VARCHAR(44)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mentitlementid
             type: VARCHAR(36)
@@ -4514,10 +4514,10 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: fromdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: todate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: apiname
             type: VARCHAR(250)
@@ -4529,10 +4529,10 @@ databaseChangeLog:
             type: VARCHAR(36)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             autoIncrement: true
             constraints:
@@ -4996,7 +4996,7 @@ databaseChangeLog:
             type: VARCHAR(36)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: entityname
             type: VARCHAR(255)
@@ -5023,7 +5023,7 @@ databaseChangeLog:
             type: BOOLEAN
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: personalrequiresrole
             type: BOOLEAN
@@ -5096,10 +5096,10 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: extradata
             type: VARCHAR(1024)
@@ -5134,7 +5134,7 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: view_id
             type: VARCHAR(44)
@@ -5149,7 +5149,7 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             autoIncrement: true
             constraints:
@@ -5193,10 +5193,10 @@ databaseChangeLog:
             type: ${unbounded.varchar.type}
         - column:
             name: validfrom
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: validto
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updatedbyuserid
             type: VARCHAR(255)
@@ -5205,7 +5205,7 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: status
             type: VARCHAR(50)
@@ -5214,7 +5214,7 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             autoIncrement: true
             constraints:
@@ -5267,10 +5267,10 @@ databaseChangeLog:
             type: INTEGER
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: provisiondescription
             type: ${unbounded.varchar.type}
@@ -5317,10 +5317,10 @@ databaseChangeLog:
             type: ${unbounded.varchar.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             autoIncrement: true
             constraints:
@@ -5430,10 +5430,10 @@ databaseChangeLog:
             type: VARCHAR(250)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             autoIncrement: true
             constraints:
@@ -5456,10 +5456,10 @@ databaseChangeLog:
         columns:
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mdescription
             type: VARCHAR(2000)
@@ -5548,10 +5548,10 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: publicalias
             type: VARCHAR(64)
@@ -5595,10 +5595,10 @@ databaseChangeLog:
         columns:
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: geolongitude
             type: DOUBLE
@@ -5618,7 +5618,7 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: date_c
-            type: TIMESTAMP
+            type: ${timestamp.type}
         tableName: mappedcounterpartywheretag
 - changeSet:
     id: create-table-mappedbank
@@ -5657,10 +5657,10 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: national_identifier
             type: VARCHAR(255)
@@ -5701,16 +5701,16 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: tstartdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: tfinishdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: counterpartyiban
             type: VARCHAR(100)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: transactionuuid
             type: VARCHAR(36)
@@ -5722,7 +5722,7 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: counterpartyaccountholder
             type: VARCHAR(255)
@@ -5802,13 +5802,13 @@ databaseChangeLog:
             type: VARCHAR(32)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: muserid
             type: VARCHAR(100)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mstatus
             type: VARCHAR(32)
@@ -5963,7 +5963,7 @@ databaseChangeLog:
         columns:
         - column:
             name: mlastokdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbank
             type: VARCHAR(44)
@@ -5984,7 +5984,7 @@ databaseChangeLog:
             type: VARCHAR(200)
         - column:
             name: mdateofbirth
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mdependents
             type: INTEGER
@@ -6020,13 +6020,13 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mfaceimagetime
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mfaceimageurl
             type: VARCHAR(2000)
@@ -6134,7 +6134,7 @@ databaseChangeLog:
             type: VARCHAR(64)
         - column:
             name: date_c
-            type: TIMESTAMP
+            type: ${timestamp.type}
         tableName: metric
 - changeSet:
     id: create-table-metricarchive
@@ -6219,7 +6219,7 @@ databaseChangeLog:
             type: VARCHAR(64)
         - column:
             name: date_c
-            type: TIMESTAMP
+            type: ${timestamp.type}
         tableName: metricarchive
 - changeSet:
     id: create-table-mappedconsent
@@ -6237,13 +6237,13 @@ databaseChangeLog:
             type: VARCHAR(36)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: muserid
             type: VARCHAR(36)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mjsonwebtoken
             type: ${unbounded.varchar.type}
@@ -6282,7 +6282,7 @@ databaseChangeLog:
             type: VARCHAR(50)
         - column:
             name: jwt_expires_at
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mnote
             type: ${unbounded.varchar.type}
@@ -6297,22 +6297,22 @@ databaseChangeLog:
             type: INTEGER
         - column:
             name: musessofartodaycounterupdatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mcombinedserviceindicator
             type: BOOLEAN
         - column:
             name: mexpirationdatetime
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mtransactionfromdatetime
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mtransactiontodatetime
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mstatusupdatedatetime
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: consent_reference_id
             type: VARCHAR(36)
@@ -6347,7 +6347,7 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: accountlastupdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: accountbalance
             type: BIGINT
@@ -6356,7 +6356,7 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bank
             type: VARCHAR(44)
@@ -6368,7 +6368,7 @@ databaseChangeLog:
             type: VARCHAR(128)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: accountrulescheme1
             type: VARCHAR(10)
@@ -6412,7 +6412,7 @@ databaseChangeLog:
             type: VARCHAR(64)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: name_
             type: VARCHAR(125)
@@ -6421,7 +6421,7 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: description_
             type: VARCHAR(255)
@@ -6483,10 +6483,10 @@ databaseChangeLog:
             type: VARCHAR(10)
         - column:
             name: expirationdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: insertdate
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: callbackurl
             type: VARCHAR(250)
@@ -6548,7 +6548,7 @@ databaseChangeLog:
             type: VARCHAR(250)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: company
             type: VARCHAR(100)
@@ -6563,7 +6563,7 @@ databaseChangeLog:
             type: VARCHAR(250)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: secret
             type: VARCHAR(250)
@@ -6722,13 +6722,13 @@ databaseChangeLog:
             type: VARCHAR(100)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: uniqueid
             type: VARCHAR(32)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: superuser
             type: BOOLEAN
@@ -6761,7 +6761,7 @@ databaseChangeLog:
         columns:
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: apiid
             type: VARCHAR(36)
@@ -6779,7 +6779,7 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: transaction_c
             type: VARCHAR(44)
@@ -6796,7 +6796,7 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: date_c
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: account
             type: VARCHAR(64)
@@ -6814,7 +6814,7 @@ databaseChangeLog:
         columns:
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: tagid
             type: VARCHAR(36)
@@ -6823,7 +6823,7 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bank
             type: VARCHAR(44)
@@ -6846,7 +6846,7 @@ databaseChangeLog:
             type: VARCHAR(20)
         - column:
             name: date_c
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: account
             type: VARCHAR(64)
@@ -6864,13 +6864,13 @@ databaseChangeLog:
         columns:
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: transaction_c
             type: VARCHAR(44)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bank
             type: VARCHAR(44)
@@ -6899,7 +6899,7 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: date_c
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: account
             type: VARCHAR(64)
@@ -6958,7 +6958,7 @@ databaseChangeLog:
         columns:
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: transaction_c
             type: VARCHAR(44)
@@ -6967,7 +6967,7 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: narrative
             type: VARCHAR(2000)
@@ -6999,13 +6999,13 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: bank
             type: VARCHAR(44)
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: geolongitude
             type: DOUBLE
@@ -7028,7 +7028,7 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: date_c
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: account
             type: VARCHAR(64)
@@ -7087,7 +7087,7 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: date_c
-            type: TIMESTAMP
+            type: ${timestamp.type}
         tableName: connector_trace
 - changeSet:
     id: create-table-mappedtransactionrequesttypecharge
@@ -7111,10 +7111,10 @@ databaseChangeLog:
             type: VARCHAR(255)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: mbankid
             type: VARCHAR(44)
@@ -7161,10 +7161,10 @@ databaseChangeLog:
             type: VARCHAR(50)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: muserauthcontextupdateid
             type: VARCHAR(36)
@@ -7207,7 +7207,7 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: timestamp_c
-            type: TIMESTAMP
+            type: ${timestamp.type}
         tableName: nonce
 - changeSet:
     id: create-table-openidconnecttoken
@@ -7243,10 +7243,10 @@ databaseChangeLog:
             type: BIGINT
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             autoIncrement: true
             constraints:
@@ -7275,10 +7275,10 @@ databaseChangeLog:
             type: VARCHAR(50)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: userid
             type: VARCHAR(44)
@@ -7302,13 +7302,13 @@ databaseChangeLog:
             type: VARCHAR(50)
         - column:
             name: datesigned
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: datestarts
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: dateexpires
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: active
             type: BOOLEAN
@@ -7317,7 +7317,7 @@ databaseChangeLog:
             type: VARCHAR(44)
         - column:
             name: datecancelled
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             autoIncrement: true
             constraints:
@@ -7352,10 +7352,10 @@ databaseChangeLog:
             type: VARCHAR(2048)
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: transactionrequestid
             type: VARCHAR(44)
@@ -11960,10 +11960,10 @@ databaseChangeLog:
         columns:
         - column:
             name: updatedat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: createdat
-            type: TIMESTAMP
+            type: ${timestamp.type}
         - column:
             name: accountid_
             type: VARCHAR(36)

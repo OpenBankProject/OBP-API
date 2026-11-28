@@ -25,7 +25,7 @@ databaseChangeLog:
             columns:
               - column: {name: mobilephonenumber, type: VARCHAR(50)}
               - column: {name: mobilephonenumberisvalidated, type: BOOLEAN}
-              - column: {name: mobilephonenumbervalidateddate, type: TIMESTAMP}
+              - column: {name: mobilephonenumbervalidateddate, type: '${timestamp.type}'}
 
   - changeSet:
       id: add-auth-type-metric

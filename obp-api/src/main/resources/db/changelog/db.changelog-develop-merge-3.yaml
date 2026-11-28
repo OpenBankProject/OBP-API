@@ -33,7 +33,7 @@ databaseChangeLog:
               - column: {name: created_by_on_behalf_of_user_id, type: VARCHAR(255)}
               - column: {name: consent_reference_id, type: VARCHAR(255)}
               - column: {name: bank_id, type: VARCHAR(255)}
-              - column: {name: created_at, type: TIMESTAMP}
+              - column: {name: created_at, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-indexes-account_creation
@@ -73,8 +73,8 @@ databaseChangeLog:
                   autoIncrement: true
                   constraints: {primaryKey: true, nullable: false}
               - column: {name: createdbyuserid, type: VARCHAR(255)}
-              - column: {name: creationdate, type: TIMESTAMP}
-              - column: {name: lastupdate, type: TIMESTAMP}
+              - column: {name: creationdate, type: '${timestamp.type}'}
+              - column: {name: lastupdate, type: '${timestamp.type}'}
               - column: {name: assetcode, type: VARCHAR(10)}
               - column: {name: assetid, type: VARCHAR(36)}
               - column: {name: issuerbankid, type: VARCHAR(255)}
@@ -137,7 +137,7 @@ databaseChangeLog:
               - column: {name: fromstatus, type: VARCHAR(16)}
               - column: {name: tostatus, type: VARCHAR(16)}
               - column: {name: changedbyuserid, type: VARCHAR(255)}
-              - column: {name: changedat, type: TIMESTAMP}
+              - column: {name: changedat, type: '${timestamp.type}'}
               - column: {name: assetid, type: VARCHAR(36)}
               - column: {name: reason, type: "${text.type}"}
 
@@ -181,8 +181,8 @@ databaseChangeLog:
               - column: {name: view_id, type: VARCHAR(255)}
               - column: {name: bank_id, type: VARCHAR(255)}
               - column: {name: granted_by_user_id, type: VARCHAR(255)}
-              - column: {name: created_at, type: TIMESTAMP}
-              - column: {name: updated_at, type: TIMESTAMP}
+              - column: {name: created_at, type: '${timestamp.type}'}
+              - column: {name: updated_at, type: '${timestamp.type}'}
               - column: {name: consumer_account_access_id, type: VARCHAR(36)}
 
   - changeSet:
@@ -241,11 +241,11 @@ databaseChangeLog:
               - column: {name: created_by_user_id, type: VARCHAR(255)}
               - column: {name: description, type: VARCHAR(2000)}
               - column: {name: bank_id, type: VARCHAR(255)}
-              - column: {name: created_at, type: TIMESTAMP}
+              - column: {name: created_at, type: '${timestamp.type}'}
               - column: {name: domain_api_id, type: VARCHAR(36)}
               - column: {name: base_path, type: VARCHAR(255)}
               - column: {name: is_publicly_discoverable, type: BOOLEAN}
-              - column: {name: updated_at, type: TIMESTAMP}
+              - column: {name: updated_at, type: '${timestamp.type}'}
               - column: {name: title, type: VARCHAR(255)}
               - column: {name: version, type: VARCHAR(50)}
 
@@ -308,8 +308,8 @@ databaseChangeLog:
               - column: {name: deactivated_reason, type: VARCHAR(64)}
               - column: {name: bank_id, type: VARCHAR(255)}
               - column: {name: dynamic_entity_id, type: VARCHAR(255)}
-              - column: {name: created_at, type: TIMESTAMP}
-              - column: {name: updated_at, type: TIMESTAMP}
+              - column: {name: created_at, type: '${timestamp.type}'}
+              - column: {name: updated_at, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-indexes-dynamic_entity_webhook
@@ -365,7 +365,7 @@ databaseChangeLog:
               - column: {name: fileid, type: VARCHAR(36)}
               - column: {name: bankid, type: VARCHAR(255)}
               - column: {name: userid, type: VARCHAR(255)}
-              - column: {name: scanstatusupdatedat, type: TIMESTAMP}
+              - column: {name: scanstatusupdatedat, type: '${timestamp.type}'}
               - column: {name: scanstatusupdatedbyuserid, type: VARCHAR(255)}
               - column: {name: sha256, type: VARCHAR(64)}
               - column: {name: sizeinbytes, type: BIGINT}
@@ -373,7 +373,7 @@ databaseChangeLog:
               - column: {name: filename, type: VARCHAR(255)}
               - column: {name: onbehalfofuserid, type: VARCHAR(255)}
               - column: {name: ispublic, type: BOOLEAN}
-              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
               - column: {name: ispersonal, type: BOOLEAN}
               - column: {name: scanstatus, type: VARCHAR(20)}
               - column: {name: scanstatusreason, type: VARCHAR(1000)}
@@ -422,7 +422,7 @@ databaseChangeLog:
                   constraints: {primaryKey: true, nullable: false}
               - column: {name: fileid, type: VARCHAR(36)}
               - column: {name: onbehalfofuserid, type: VARCHAR(255)}
-              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
               - column: {name: granteeuserid, type: VARCHAR(255)}
               - column: {name: grantedbyuserid, type: VARCHAR(255)}
 
@@ -472,7 +472,7 @@ databaseChangeLog:
               - column: {name: bankid, type: VARCHAR(255)}
               - column: {name: userid, type: VARCHAR(255)}
               - column: {name: onbehalfofuserid, type: VARCHAR(255)}
-              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
               - column: {name: fileattachmentid, type: VARCHAR(36)}
               - column: {name: recordtype, type: VARCHAR(255)}
               - column: {name: recordid, type: VARCHAR(255)}
@@ -567,11 +567,11 @@ databaseChangeLog:
                   type: BIGINT
                   autoIncrement: true
                   constraints: {primaryKey: true, nullable: false}
-              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
               - column: {name: createdbyuserid, type: VARCHAR(44)}
               - column: {name: groupid, type: VARCHAR(44)}
               - column: {name: userid, type: VARCHAR(44)}
-              - column: {name: updatedat, type: TIMESTAMP}
+              - column: {name: updatedat, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-indexes-groupmembership
@@ -619,10 +619,10 @@ databaseChangeLog:
               - column: {name: platform_app_id, type: VARCHAR(36)}
               - column: {name: label, type: VARCHAR(100)}
               - column: {name: marked_by_user_id, type: VARCHAR(255)}
-              - column: {name: declared_at, type: TIMESTAMP}
+              - column: {name: declared_at, type: '${timestamp.type}'}
               - column: {name: declared_version, type: VARCHAR(100)}
-              - column: {name: created_at, type: TIMESTAMP}
-              - column: {name: updated_at, type: TIMESTAMP}
+              - column: {name: created_at, type: '${timestamp.type}'}
+              - column: {name: updated_at, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-indexes-platform_app
@@ -706,7 +706,7 @@ databaseChangeLog:
               - column: {name: resourcetype, type: VARCHAR(64)}
               - column: {name: retentionarchiveid, type: VARCHAR(36)}
               - column: {name: resourceid, type: VARCHAR(255)}
-              - column: {name: deleteafter, type: TIMESTAMP}
+              - column: {name: deleteafter, type: '${timestamp.type}'}
               - column: {name: retentionrunid, type: VARCHAR(36)}
               - column: {name: owneruserid, type: VARCHAR(255)}
               - column: {name: parentresourcetype, type: VARCHAR(64)}
@@ -714,7 +714,7 @@ databaseChangeLog:
               - column: {name: jsoncopy, type: "${text.type}"}
               - column: {name: hascontent, type: BOOLEAN}
               - column: {name: contentsizeinbytes, type: BIGINT}
-              - column: {name: archivedat, type: TIMESTAMP}
+              - column: {name: archivedat, type: '${timestamp.type}'}
               - column: {name: bankid, type: VARCHAR(255)}
 
   - changeSet:
@@ -813,9 +813,9 @@ databaseChangeLog:
               - column: {name: resourcetype, type: VARCHAR(64)}
               - column: {name: resourceid, type: VARCHAR(255)}
               - column: {name: placedbyuserid, type: VARCHAR(255)}
-              - column: {name: placedat, type: TIMESTAMP}
+              - column: {name: placedat, type: '${timestamp.type}'}
               - column: {name: releasedbyuserid, type: VARCHAR(255)}
-              - column: {name: releasedat, type: TIMESTAMP}
+              - column: {name: releasedat, type: '${timestamp.type}'}
               - column: {name: bankid, type: VARCHAR(255)}
               - column: {name: retentionholdid, type: VARCHAR(36)}
               - column: {name: reason, type: "${text.type}"}
@@ -863,7 +863,7 @@ databaseChangeLog:
                   autoIncrement: true
                   constraints: {primaryKey: true, nullable: false}
               - column: {name: enabled, type: BOOLEAN}
-              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
               - column: {name: cascade_c, type: BOOLEAN}
               - column: {name: entityname, type: VARCHAR(255)}
               - column: {name: createdbyuserid, type: VARCHAR(255)}
@@ -877,7 +877,7 @@ databaseChangeLog:
               - column: {name: archivedays, type: INTEGER}
               - column: {name: requiresapproval, type: BOOLEAN}
               - column: {name: bankid, type: VARCHAR(255)}
-              - column: {name: updatedat, type: TIMESTAMP}
+              - column: {name: updatedat, type: '${timestamp.type}'}
               - column: {name: action, type: VARCHAR(32)}
               - column: {name: name, type: VARCHAR(255)}
 
@@ -924,7 +924,7 @@ databaseChangeLog:
                   constraints: {primaryKey: true, nullable: false}
               - column: {name: retentionpolicyid, type: VARCHAR(36)}
               - column: {name: retentionrunid, type: VARCHAR(36)}
-              - column: {name: requestedat, type: TIMESTAMP}
+              - column: {name: requestedat, type: '${timestamp.type}'}
               - column: {name: requestedbyuserid, type: VARCHAR(255)}
               - column: {name: approvedbyuserid, type: VARCHAR(255)}
               - column: {name: approvaldecision, type: VARCHAR(16)}
@@ -938,8 +938,8 @@ databaseChangeLog:
               - column: {name: message, type: "${text.type}"}
               - column: {name: bankid, type: VARCHAR(255)}
               - column: {name: mode_c, type: VARCHAR(16)}
-              - column: {name: startedat, type: TIMESTAMP}
-              - column: {name: endedat, type: TIMESTAMP}
+              - column: {name: startedat, type: '${timestamp.type}'}
+              - column: {name: endedat, type: '${timestamp.type}'}
               - column: {name: status, type: VARCHAR(16)}
 
   - changeSet:
@@ -1001,7 +1001,7 @@ databaseChangeLog:
               - column: {name: parentresourceid, type: VARCHAR(255)}
               - column: {name: bankid, type: VARCHAR(255)}
               - column: {name: retentionrunitemid, type: VARCHAR(36)}
-              - column: {name: disposedat, type: TIMESTAMP}
+              - column: {name: disposedat, type: '${timestamp.type}'}
               - column: {name: action, type: VARCHAR(32)}
 
   - changeSet:
@@ -1054,7 +1054,7 @@ databaseChangeLog:
                   constraints: {primaryKey: true, nullable: false}
               - column: {name: createdbyuserid, type: VARCHAR(255)}
               - column: {name: bankid, type: VARCHAR(255)}
-              - column: {name: createdat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-indexes-selfservicebank
@@ -1097,8 +1097,8 @@ databaseChangeLog:
               - column: {name: website, type: VARCHAR(1024)}
               - column: {name: logourl, type: VARCHAR(1024)}
               - column: {name: visibility, type: VARCHAR(32)}
-              - column: {name: creationdate, type: TIMESTAMP}
-              - column: {name: lastupdate, type: TIMESTAMP}
+              - column: {name: creationdate, type: '${timestamp.type}'}
+              - column: {name: lastupdate, type: '${timestamp.type}'}
               - column: {name: status, type: VARCHAR(32)}
               - column: {name: name, type: VARCHAR(255)}
 
@@ -1137,8 +1137,8 @@ databaseChangeLog:
         - addColumn:
             tableName: dynamicdata
             columns:
-              - column: {name: createdat, type: TIMESTAMP}
-              - column: {name: updatedat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
+              - column: {name: updatedat, type: '${timestamp.type}'}
               - column: {name: createdbyuserid, type: VARCHAR(255)}
               - column: {name: createdbyonbehalfofuserid, type: VARCHAR(255)}
               - column: {name: updatedbyuserid, type: VARCHAR(255)}

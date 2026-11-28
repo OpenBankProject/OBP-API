@@ -122,6 +122,29 @@ databaseChangeLog:
       name: oidc.username.column
       value: 'au.username'
       dbms: oracle
+  # MySQL's TIMESTAMP holds only 1970 to 2038, and the application writes dates outside that range (a
+  # customer's face-image time defaults to 1100-01-01). DATETIME(6) holds them at microsecond precision. The
+  # other databases keep TIMESTAMP, so their checksums do not move.
+  - property:
+      name: timestamp.type
+      value: TIMESTAMP
+      dbms: h2
+  - property:
+      name: timestamp.type
+      value: TIMESTAMP
+      dbms: postgresql
+  - property:
+      name: timestamp.type
+      value: DATETIME(6)
+      dbms: mysql
+  - property:
+      name: timestamp.type
+      value: TIMESTAMP
+      dbms: mssql
+  - property:
+      name: timestamp.type
+      value: TIMESTAMP
+      dbms: oracle
   # Binary content has no portable spelling either: Liquibase's BLOB is an oid reference on Postgres,
   # which a plain bytea value cannot be written to.
   - property:

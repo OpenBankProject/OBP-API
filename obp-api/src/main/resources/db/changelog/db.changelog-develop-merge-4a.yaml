@@ -38,8 +38,8 @@ databaseChangeLog:
               - column: {name: website, type: VARCHAR(1024)}
               - column: {name: status, type: VARCHAR(32)}
               - column: {name: createdbyuserid, type: VARCHAR(36)}
-              - column: {name: creationdate, type: TIMESTAMP}
-              - column: {name: lastupdate, type: TIMESTAMP}
+              - column: {name: creationdate, type: '${timestamp.type}'}
+              - column: {name: lastupdate, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-index-obporganisation_organisationid
@@ -99,7 +99,7 @@ databaseChangeLog:
               - column: {name: userid, type: VARCHAR(36)}
               - column: {name: memberrole, type: VARCHAR(32)}
               - column: {name: createdbyuserid, type: VARCHAR(36)}
-              - column: {name: creationdate, type: TIMESTAMP}
+              - column: {name: creationdate, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-index-obporganisationmember_organisationid_userid

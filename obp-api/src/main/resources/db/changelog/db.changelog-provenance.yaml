@@ -28,8 +28,8 @@ databaseChangeLog:
               - column: {name: createdbyuserid, type: VARCHAR(255)}
               - column: {name: updatedbyuserid, type: VARCHAR(255)}
               - column: {name: methodbodyhash, type: VARCHAR(64)}
-              - column: {name: createdat, type: TIMESTAMP}
-              - column: {name: updatedat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
+              - column: {name: updatedat, type: '${timestamp.type}'}
 
   - changeSet:
       id: add-provenance-columns-dynamicmessagedoc
@@ -47,8 +47,8 @@ databaseChangeLog:
               - column: {name: createdbyuserid, type: VARCHAR(255)}
               - column: {name: updatedbyuserid, type: VARCHAR(255)}
               - column: {name: methodbodyhash, type: VARCHAR(64)}
-              - column: {name: createdat, type: TIMESTAMP}
-              - column: {name: updatedat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
+              - column: {name: updatedat, type: '${timestamp.type}'}
 
   - changeSet:
       id: add-provenance-columns-connectormethod
@@ -70,8 +70,8 @@ databaseChangeLog:
               - column: {name: createdbyuserid, type: VARCHAR(255)}
               - column: {name: updatedbyuserid, type: VARCHAR(255)}
               - column: {name: methodbodyhash, type: VARCHAR(64)}
-              - column: {name: createdat, type: TIMESTAMP}
-              - column: {name: updatedat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
+              - column: {name: updatedat, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-table-chat-email-digest-state
@@ -96,7 +96,7 @@ databaseChangeLog:
                   autoIncrement: true
                   constraints: {primaryKey: true, nullable: false}
               - column: {name: user_id, type: VARCHAR(36)}
-              - column: {name: last_notified_at, type: TIMESTAMP}
+              - column: {name: last_notified_at, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-index-chat-email-digest-state-user-id

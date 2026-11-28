@@ -105,10 +105,10 @@ databaseChangeLog:
               - column: {name: businessjustification, type: "${text.type}"}
               - column: {name: checkeruserid, type: VARCHAR(255)}
               - column: {name: checkercomment, type: "${text.type}"}
-              - column: {name: actionedat, type: TIMESTAMP}
-              - column: {name: expiresat, type: TIMESTAMP}
-              - column: {name: createdat, type: TIMESTAMP}
-              - column: {name: updatedat, type: TIMESTAMP}
+              - column: {name: actionedat, type: '${timestamp.type}'}
+              - column: {name: expiresat, type: '${timestamp.type}'}
+              - column: {name: createdat, type: '${timestamp.type}'}
+              - column: {name: updatedat, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-indexes-dynamicchangerequest
@@ -238,12 +238,12 @@ databaseChangeLog:
               # Consumer.consumerid is VARCHAR(250); mirror it so any existing id fits.
               - column: {name: consumerid, type: VARCHAR(250)}
               - column: {name: status, type: VARCHAR(20)}
-              - column: {name: startdate, type: TIMESTAMP}
-              - column: {name: enddate, type: TIMESTAMP}
+              - column: {name: startdate, type: '${timestamp.type}'}
+              - column: {name: enddate, type: '${timestamp.type}'}
               - column: {name: createdbyuserid, type: VARCHAR(36)}
               - column: {name: ratelimitingid, type: VARCHAR(50)}
-              - column: {name: createdat, type: TIMESTAMP}
-              - column: {name: updatedat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
+              - column: {name: updatedat, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-indexes-apiproductsubscription
@@ -295,8 +295,8 @@ databaseChangeLog:
                   constraints: {primaryKey: true, nullable: false}
               - column: {name: apiproductsubscriptionid, type: VARCHAR(50)}
               - column: {name: scopeid, type: VARCHAR(50)}
-              - column: {name: createdat, type: TIMESTAMP}
-              - column: {name: updatedat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
+              - column: {name: updatedat, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-indexes-apiproductsubscriptionscope
@@ -341,8 +341,8 @@ databaseChangeLog:
               - column: {name: type_c, type: VARCHAR(50)}
               - column: {name: value, type: VARCHAR(2000)}
               - column: {name: isactive, type: BOOLEAN}
-              - column: {name: createdat, type: TIMESTAMP}
-              - column: {name: updatedat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
+              - column: {name: updatedat, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-indexes-apiproductsubscriptionattribute
@@ -395,8 +395,8 @@ databaseChangeLog:
               - column: {name: description, type: "${text.type}"}
               - column: {name: overridesstaticitem, type: BOOLEAN, defaultValueBoolean: false}
               - column: {name: createdbyuserid, type: VARCHAR(255)}
-              - column: {name: creationdate, type: TIMESTAMP}
-              - column: {name: lastupdate, type: TIMESTAMP}
+              - column: {name: creationdate, type: '${timestamp.type}'}
+              - column: {name: lastupdate, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-indexes-dynamicglossaryitem

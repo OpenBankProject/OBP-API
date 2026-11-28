@@ -32,8 +32,8 @@ databaseChangeLog:
               - column: {name: bankid, type: VARCHAR(255)}
               - column: {name: scheme, type: VARCHAR(64)}
               - column: {name: address, type: VARCHAR(255)}
-              - column: {name: createdat, type: TIMESTAMP}
-              - column: {name: updatedat, type: TIMESTAMP}
+              - column: {name: createdat, type: '${timestamp.type}'}
+              - column: {name: updatedat, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-indexes-mappedbankrouting
@@ -85,7 +85,7 @@ databaseChangeLog:
               - column: {name: country, type: VARCHAR(8)}
               - column: {name: currencies, type: VARCHAR(255)}
               - column: {name: rates, type: "${text.type}"}
-              - column: {name: last_confirmed, type: TIMESTAMP}
+              - column: {name: last_confirmed, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-indexes-onwardroute
@@ -130,7 +130,7 @@ databaseChangeLog:
               - column: {name: last_hash, type: VARCHAR(64)}
               - column: {name: started_by_user_id, type: VARCHAR(255)}
               - column: {name: started_by_on_behalf_of_user_id, type: VARCHAR(255)}
-              - column: {name: started_at, type: TIMESTAMP}
+              - column: {name: started_at, type: '${timestamp.type}'}
 
   - changeSet:
       id: create-indexes-dynamic_entity_audit_chain
