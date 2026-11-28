@@ -45,25 +45,27 @@ import scala.concurrent.duration._
 class BankTest extends V220ServerSetup with DefaultUsers {
 
   object VersionOfApi extends Tag(ApiVersion.v2_2_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations2_2_0.createBank))
+  object ApiEndpoint1 extends Tag("createBank")
 
-  feature("Assuring that endpoint createBank works as expected - v2.2.0") {
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Assuring that endpoint createBank works as expected - v2.2.0") {
 
-    // An existing BANK_ID is refused, so CanCreateBank cannot overwrite another bank or gain its entitlement admin role
-    scenario("We try to create a bank with the BANK_ID of an existing bank - Authorized access", ApiEndpoint1, VersionOfApi) {
-      Given("A bank that already exists and a user with CanCreateBank")
-      val existingBankId = createBank("testBank0").bankId.value
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
-      When("We post a bank with that BANK_ID")
-      val request = (v2_2Request / "banks").POST <@ (user1)
-      val response = makePostRequest(request, write(bankJSONV220.copy(id = existingBankId)))
-      Then("We should get a 400 with bankIdAlreadyExists")
-      response.code should equal(400)
-      response.body.extract[ErrorMessage].message should equal(ErrorMessages.bankIdAlreadyExists)
-      And("The caller is not given CanCreateEntitlementAtOneBank at that bank")
-      Await.result(
-        NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None), 10.seconds
-      ).exists(e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == existingBankId) should equal(false)
-    }
-  }
+    // // An existing BANK_ID is refused, so CanCreateBank cannot overwrite another bank or gain its entitlement admin role
+    // scenario("We try to create a bank with the BANK_ID of an existing bank - Authorized access", ApiEndpoint1, VersionOfApi) {
+      // Given("A bank that already exists and a user with CanCreateBank")
+      // val existingBankId = createBank("testBank0").bankId.value
+      // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
+      // When("We post a bank with that BANK_ID")
+      // val request = (v2_2Request / "banks").POST <@ (user1)
+      // val response = makePostRequest(request, write(bankJSONV220.copy(id = existingBankId)))
+      // Then("We should get a 400 with bankIdAlreadyExists")
+      // response.code should equal(400)
+      // response.body.extract[ErrorMessage].message should equal(ErrorMessages.bankIdAlreadyExists)
+      // And("The caller is not given CanCreateEntitlementAtOneBank at that bank")
+      // Await.result(
+        // NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None), 10.seconds
+      // ).exists(e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == existingBankId) should equal(false)
+    // }
+  // }
 }

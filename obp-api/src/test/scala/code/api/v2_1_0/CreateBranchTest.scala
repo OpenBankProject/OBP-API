@@ -47,174 +47,178 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
     super.afterAll()
   }
 
-  feature("Assuring that endpoint 'Update Branch' works as expected - v2.1.0") {
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Assuring that endpoint 'Update Branch' works as expected - v2.1.0") {
 
-    scenario("Update branch successfully ") {
+    // scenario("Update branch successfully ") {
 
-      Given("The Bank_ID and Branch_ID")
-      val testBank = createBank("testBankId")
-      val bankId = testBank.bankId
-      val branchId = BranchId("1234")
+      // Given("The Bank_ID and Branch_ID")
+      // val testBank = createBank("testBankId")
+      // val bankId = testBank.bankId
+      // val branchId = BranchId("1234")
 
-      Then("We add entitlement to user1")
-      addEntitlement(bankId.value, resourceUser1.userId, CanUpdateBranch.toString)
-      val hasEntitlement = APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canUpdateBranch)
-      hasEntitlement should equal(true)
+      // Then("We add entitlement to user1")
+      // addEntitlement(bankId.value, resourceUser1.userId, CanUpdateBranch.toString)
+      // val hasEntitlement = APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canUpdateBranch)
+      // hasEntitlement should equal(true)
 
-      When("We make the request Update Branch for an account")
-      val customerPutJSON = BranchJsonPutV210(
-        testBank.bankId.value, "OBP",
-        AddressJsonV140("VALTATIE 8", "", "", "AKAA", "", "", "DE"),
-        LocationJsonV140(1.2, 2.1),
-        MetaJsonV140(LicenseJsonV140("", "")),
-        LobbyStringJson(""),
-        DriveUpStringJson("")
-      )
-      var requestPut = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
-      var responsePut = makePutRequest(requestPut, write(customerPutJSON))
+      // When("We make the request Update Branch for an account")
+      // val customerPutJSON = BranchJsonPutV210(
+        // testBank.bankId.value, "OBP",
+        // AddressJsonV140("VALTATIE 8", "", "", "AKAA", "", "", "DE"),
+        // LocationJsonV140(1.2, 2.1),
+        // MetaJsonV140(LicenseJsonV140("", "")),
+        // LobbyStringJson(""),
+        // DriveUpStringJson("")
+      // )
+      // var requestPut = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
+      // var responsePut = makePutRequest(requestPut, write(customerPutJSON))
 
-      Then("We should get a 201 and check all the fields")
-      responsePut.code should equal(201)
+      // Then("We should get a 201 and check all the fields")
+      // responsePut.code should equal(201)
 
-      var nameResponse = (responsePut.body \ "name" ) match {
-        case JString(i) => i
-        case _ => ""
-      }
-      nameResponse should equal("OBP")
-    }
+      // var nameResponse = (responsePut.body \ "name" ) match {
+        // case JString(i) => i
+        // case _ => ""
+      // }
+      // nameResponse should equal("OBP")
+    // }
 
-    scenario("Update the same data, the data will be updated") {
-      Given("The user ower access and BankAccount")
-      val testBank = createBank("testBankId")
-      val bankId = testBank.bankId
-      val branchId = BranchId("1234")
+    // scenario("Update the same data, the data will be updated") {
+      // Given("The user ower access and BankAccount")
+      // val testBank = createBank("testBankId")
+      // val bankId = testBank.bankId
+      // val branchId = BranchId("1234")
 
-      Then("We add entitlement to user1")
-      val customerPutJSON = BranchJsonPutV210(
-        testBank.bankId.value, "OBP",
-        AddressJsonV140("VALTATIE 8", "", "", "AKAA", "", "", "DE"),
-        LocationJsonV140(1.2, 2.1),
-        MetaJsonV140(LicenseJsonV140("", "")),
-        LobbyStringJson(""),
-        DriveUpStringJson("")
-      )
-      addEntitlement(bankId.value, resourceUser1.userId, CanUpdateBranch.toString)
-      val hasEntitlement = APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canUpdateBranch)
-      hasEntitlement should equal(true)
+      // Then("We add entitlement to user1")
+      // val customerPutJSON = BranchJsonPutV210(
+        // testBank.bankId.value, "OBP",
+        // AddressJsonV140("VALTATIE 8", "", "", "AKAA", "", "", "DE"),
+        // LocationJsonV140(1.2, 2.1),
+        // MetaJsonV140(LicenseJsonV140("", "")),
+        // LobbyStringJson(""),
+        // DriveUpStringJson("")
+      // )
+      // addEntitlement(bankId.value, resourceUser1.userId, CanUpdateBranch.toString)
+      // val hasEntitlement = APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canUpdateBranch)
+      // hasEntitlement should equal(true)
 
-      When("We make the request Update Branch for an account")
-      var requestPut = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
-      var responsePut = makePutRequest(requestPut, write(customerPutJSON))
+      // When("We make the request Update Branch for an account")
+      // var requestPut = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
+      // var responsePut = makePutRequest(requestPut, write(customerPutJSON))
 
 
-      val customerPutJSON2 = customerPutJSON.copy(name="OBP1")
-      Then("We make the request Update Branch again, with the same data")
-      requestPut = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
-      responsePut = makePutRequest(requestPut, write(customerPutJSON2))
+      // val customerPutJSON2 = customerPutJSON.copy(name="OBP1")
+      // Then("We make the request Update Branch again, with the same data")
+      // requestPut = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
+      // responsePut = makePutRequest(requestPut, write(customerPutJSON2))
 
-      Then("We should get a 201 and check all the fields")
-      responsePut.code should equal(201)
+      // Then("We should get a 201 and check all the fields")
+      // responsePut.code should equal(201)
 
-      var nameResponse = (responsePut.body \ "name" ) match {
-        case JString(i) => i
-        case _ => ""
-      }
-      nameResponse should equal("OBP1")
-    }
-  }
+      // var nameResponse = (responsePut.body \ "name" ) match {
+        // case JString(i) => i
+        // case _ => ""
+      // }
+      // nameResponse should equal("OBP1")
+    // }
+  // }
 
-  feature("Assuring that endpoint 'Create Branch' works as expected - v2.1.0") {
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Assuring that endpoint 'Create Branch' works as expected - v2.1.0") {
 
  
 
-    scenario("Create branch successfully ") {
+    // scenario("Create branch successfully ") {
 
-      Given("The user ower access and BankAccount")
-      val testBank = createBank("testBankId")
-      val bankId = testBank.bankId
+      // Given("The user ower access and BankAccount")
+      // val testBank = createBank("testBankId")
+      // val bankId = testBank.bankId
 
-      Then("We add entitlement to user1")
-      val customerPostJSON = BranchJsonPostV210(
-        "123",
-        bankId.value,
-        "OBP",
-        AddressJsonV140("VALTATIE 8", "", "", "AKAA", "", "", "DE"),
-        LocationJsonV140(1.2, 2.1),
-        MetaJsonV140(LicenseJsonV140("", "")),
-        LobbyStringJson(""),
-        DriveUpStringJson("")
-      )
-      addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
-      val hasEntitlement = APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canCreateBranch)
-      hasEntitlement should equal(true)
-
-
-      When("We make the request Update Branch for an account")
-      val requestPost = (v2_1Request / "banks" / bankId.value / "branches").POST <@ (user1)
-      val responsePost = makePostRequest(requestPost, write(customerPostJSON))
-
-      Then("We should get a 201 and check all the fields")
-      responsePost.code should equal(201)
-
-      var nameResponse = (responsePost.body \ "name" ) match {
-        case JString(i) => i
-        case _ => ""
-      }
-      nameResponse should equal("OBP")
-
-    }
-
-    scenario("Create the same data again, the data will be updated") {
-      Given("The user ower access and BankAccount")
-      val testBank = createBank("testBankId")
-      val bankId = testBank.bankId
-      val accountId = AccountId("__acc1")
-      val branchId = BranchId("1234")
+      // Then("We add entitlement to user1")
+      // val customerPostJSON = BranchJsonPostV210(
+        // "123",
+        // bankId.value,
+        // "OBP",
+        // AddressJsonV140("VALTATIE 8", "", "", "AKAA", "", "", "DE"),
+        // LocationJsonV140(1.2, 2.1),
+        // MetaJsonV140(LicenseJsonV140("", "")),
+        // LobbyStringJson(""),
+        // DriveUpStringJson("")
+      // )
+      // addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
+      // val hasEntitlement = APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canCreateBranch)
+      // hasEntitlement should equal(true)
 
 
-      Then("We add `CanCreateBranch`entitlement to user1")
-      val customerPostJSON = BranchJsonPostV210(
-        "123",
-        bankId.value,
-        "OBP",
-        AddressJsonV140("VALTATIE 8", "", "", "AKAA", "", "", "DE"),
-        LocationJsonV140(1.2, 2.1),
-        MetaJsonV140(LicenseJsonV140("", "")),
-        LobbyStringJson(""),
-        DriveUpStringJson("")
-      )
-      addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
-      val hasEntitlement = APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canCreateBranch)
-      hasEntitlement should equal(true)
+      // When("We make the request Update Branch for an account")
+      // val requestPost = (v2_1Request / "banks" / bankId.value / "branches").POST <@ (user1)
+      // val responsePost = makePostRequest(requestPost, write(customerPostJSON))
 
-      When("We make the request Update Branch for an account")
-      var requestPost = (v2_1Request / "banks" / bankId.value / "branches").POST <@ (user1)
-      var responsePost = makePostRequest(requestPost, write(customerPostJSON))
+      // Then("We should get a 201 and check all the fields")
+      // responsePost.code should equal(201)
 
-      Then("We should get a 201 and check all the fields")
-      responsePost.code should equal(201)
+      // var nameResponse = (responsePost.body \ "name" ) match {
+        // case JString(i) => i
+        // case _ => ""
+      // }
+      // nameResponse should equal("OBP")
 
-      val customerPostJSON2 = customerPostJSON.copy(name="OBP1")
-      Then("We make the request Update Branch again, with the same data")
-      Then("We add `CanCreateBranch`entitlement to user1")
+    // }
+
+    // scenario("Create the same data again, the data will be updated") {
+      // Given("The user ower access and BankAccount")
+      // val testBank = createBank("testBankId")
+      // val bankId = testBank.bankId
+      // val accountId = AccountId("__acc1")
+      // val branchId = BranchId("1234")
+
+
+      // Then("We add `CanCreateBranch`entitlement to user1")
+      // val customerPostJSON = BranchJsonPostV210(
+        // "123",
+        // bankId.value,
+        // "OBP",
+        // AddressJsonV140("VALTATIE 8", "", "", "AKAA", "", "", "DE"),
+        // LocationJsonV140(1.2, 2.1),
+        // MetaJsonV140(LicenseJsonV140("", "")),
+        // LobbyStringJson(""),
+        // DriveUpStringJson("")
+      // )
+      // addEntitlement(bankId.value, resourceUser1.userId, CanCreateBranch.toString)
+      // val hasEntitlement = APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canCreateBranch)
+      // hasEntitlement should equal(true)
+
+      // When("We make the request Update Branch for an account")
+      // var requestPost = (v2_1Request / "banks" / bankId.value / "branches").POST <@ (user1)
+      // var responsePost = makePostRequest(requestPost, write(customerPostJSON))
+
+      // Then("We should get a 201 and check all the fields")
+      // responsePost.code should equal(201)
+
+      // val customerPostJSON2 = customerPostJSON.copy(name="OBP1")
+      // Then("We make the request Update Branch again, with the same data")
+      // Then("We add `CanCreateBranch`entitlement to user1")
       
-      addEntitlement(bankId.value, resourceUser1.userId, CanUpdateBranch.toString)
-      val hasCanUpdateBranchEntitlement = APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canUpdateBranch)
-      hasCanUpdateBranchEntitlement should equal(true)
+      // addEntitlement(bankId.value, resourceUser1.userId, CanUpdateBranch.toString)
+      // val hasCanUpdateBranchEntitlement = APIUtil.hasEntitlement(bankId.value, resourceUser1.userId, ApiRole.canUpdateBranch)
+      // hasCanUpdateBranchEntitlement should equal(true)
       
-      requestPost = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
-      responsePost = makePutRequest(requestPost, write(customerPostJSON2))
+      // requestPost = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
+      // responsePost = makePutRequest(requestPost, write(customerPostJSON2))
 
-      Then("We should get a 201 and check all the fields")
-      responsePost.code should equal(201)
+      // Then("We should get a 201 and check all the fields")
+      // responsePost.code should equal(201)
 
-      var nameResponse = (responsePost.body \ "name" ) match {
-        case JString(i) => i
-        case _ => ""
-      }
-      nameResponse should equal("OBP1")
-    }
-  }
+      // var nameResponse = (responsePost.body \ "name" ) match {
+        // case JString(i) => i
+        // case _ => ""
+      // }
+      // nameResponse should equal("OBP1")
+    // }
+  // }
 
 
 }

@@ -57,7 +57,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
    */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
 
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.createCustomer))
+  object ApiEndpoint1 extends Tag("createCustomer")
 
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getCustomerAttributeById))
 
@@ -93,7 +93,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
     scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
-      val request310 = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ user1
+      val request310 = (v5_1_0_Request / "banks" / bankId / "customers").POST <@ user1
       val response310 = makePostRequest(request310, "", List(("Force-Error", "OBP-20006")))
       Then("We should get a 403")
       response310.code should equal(403)
@@ -239,7 +239,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     scenario(s"We will call the endpoint $ApiEndpoint1 with Force-Error have wrong format header", VersionOfApi) {
       addEntitlement(canCreateCustomer, bankId)
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ (user1)
+      val request = (v5_1_0_Request / "banks" / bankId / "customers").POST <@ (user1)
       val response = makePostRequest(request, "", List(("Force-Error" -> "OBP-xxxx")))
       Then("We should get a 400")
       response.code should equal(400)
@@ -252,7 +252,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     scenario(s"We will call the endpoint $ApiEndpoint1 with Force-Error header value not support by current endpoint", VersionOfApi) {
       addEntitlement(canCreateCustomer, bankId)
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ (user1)
+      val request = (v5_1_0_Request / "banks" / bankId / "customers").POST <@ (user1)
       val response = makePostRequest(request, "", List(("Force-Error", "OBP-20009")))
       Then("We should get a 400")
       response.code should equal(400)
@@ -265,7 +265,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     scenario(s"We will call the endpoint $ApiEndpoint1 with Response-Code header value is not Int", VersionOfApi) {
       addEntitlement(canCreateCustomer, bankId)
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ (user1)
+      val request = (v5_1_0_Request / "banks" / bankId / "customers").POST <@ (user1)
       val response = makePostRequest(request, "", List(("Force-Error", "OBP-20006"), ("Response-Code", "not_integer")))
       Then("We should get a 400")
       response.code should equal(400)
@@ -278,7 +278,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     scenario(s"We will call the endpoint $ApiEndpoint1 with correct Force-Error header value", VersionOfApi) {
       addEntitlement(canCreateCustomer, bankId)
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ (user1)
+      val request = (v5_1_0_Request / "banks" / bankId / "customers").POST <@ (user1)
       val response = makePostRequest(request, "", List(("Force-Error", "OBP-20006")))
       Then("We should get a 403")
       response.code should equal(403)
@@ -293,7 +293,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     scenario(s"We will call the endpoint $ApiEndpoint1 with correct Force-Error header value and Response-Code value", VersionOfApi) {
       addEntitlement(canCreateCustomer, bankId)
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ (user1)
+      val request = (v5_1_0_Request / "banks" / bankId / "customers").POST <@ (user1)
       val response = makePostRequest(request, "", List(("Force-Error", "OBP-20006"), ("Response-Code", "444")))
       Then("We should get a 444")
       response.code should equal(444)
@@ -309,7 +309,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       setPropsValues("enable.force_error"->"false")
       addEntitlement(canCreateCustomer, bankId)
       When("We make a request v4.0.0")
-      val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ (user1)
+      val request = (v5_1_0_Request / "banks" / bankId / "customers").POST <@ (user1)
       val response = makePostRequest(request, "", List(("Force-Error", "OBP-20006")))
       Then("We should not get a 403")
       response.code should not equal(403)

@@ -111,7 +111,8 @@ class gateWayloginTest extends ServerSetup with BeforeAndAfter with DefaultUsers
   val validJwt = ("Authorization", ("GatewayLogin token=%s").format(jwt))
   val missingParameterToken = ("Authorization", ("GatewayLogin wrong_parameter_name=%s").format(jwt))
 
-  def gatewayLoginRequest = baseRequest / "obp" / "v3.0.0" / "users"
+  // v3.0.0 getUsers is commented out (see docs/OLD_VERSION_ONLY_CODE.md); v4.0.0 getUsers serves the same path.
+  def gatewayLoginRequest = baseRequest / "obp" / "v4.0.0" / "users"
   def gatewayLoginNonBlockingRequest = baseRequest / "obp" / "v3.0.0" / "users" / "current" / "customers"
 
   feature("GatewayLogin in a BLOCKING way") {

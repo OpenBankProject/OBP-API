@@ -60,8 +60,8 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_0_0.createAccount))
   //We need this endpoint to test the result 
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.corePrivateAccountsAllBanks))
-  object ApiEndpoint5 extends Tag(nameOf(Implementations2_0_0.getPrivateAccountsAtOneBank))
-  object ApiEndpoint6 extends Tag(nameOf(Implementations3_0_0.getPrivateAccountById))
+  object ApiEndpoint5 extends Tag("getPrivateAccountsAtOneBank")
+  object ApiEndpoint6 extends Tag("getPrivateAccountById")
 
   lazy val testBankId = testBankId1
   lazy val putCreateAccountJSONV310 = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
@@ -123,10 +123,11 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
       responseApiEndpoint5.body.extract[List[BasicAccountJSON]].toList.toString() contains(account.account_id) should be (true)
 
 
-      val requestGetApiEndpoint3 = (v5_0_0_Request / "banks" / testBankId.value / "balances").GET <@ (user1)
+      // getBankAccountsBalances of v5.0.0 and below is commented out, so the balances are read through v5.1.0.
+      val requestGetApiEndpoint3 = (baseRequest / "obp" / "v5.1.0" / "banks" / testBankId.value / "balances").GET <@ (user1)
       val responseGetApiEndpoint3 = makeGetRequest(requestGetApiEndpoint3)
       responseGetApiEndpoint3.code should equal(200)
-      responseGetApiEndpoint3.body.extract[AccountsBalancesJsonV400].accounts.map(_.account_id) contains(account.account_id) should be (true)
+      (responseGetApiEndpoint3.body \\ "account_id").toString contains(account.account_id) should be (true)
       
       
       Then(s"We make a request $VersionOfApi but with other user")

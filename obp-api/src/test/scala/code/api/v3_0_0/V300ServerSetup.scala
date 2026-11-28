@@ -60,11 +60,12 @@ trait V300ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def randomBankId : String = {
   
     def getBanksInfo : APIResponse  = {
-      val request = v3_0Request / "banks" //TODO, how can we know which endpoint it called? Although it is V300, but this endpoint called V121-getBanks
+      // getBanks of v5.0.0 and below is commented out, so the bank list comes from v5.1.0.
+      val request = baseRequest / "obp" / "v5.1.0" / "banks"
       makeGetRequest(request)
     }
     
-    val banksJson = getBanksInfo.body.extract[BanksJSON] //TODO, how to make this map automatically.
+    val banksJson = getBanksInfo.body.extract[code.api.v4_0_0.BanksJson400]
     val randomPosition = nextInt(banksJson.banks.size)
     val bank = banksJson.banks(randomPosition)
     bank.id
@@ -88,11 +89,15 @@ trait V300ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   }
 
   def randomViewPermalink(bankId: String, account: AccountJSON) : String = {
-    val request = v3_0Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
+    // getViewsForBankAccount of v4.0.0 and below is commented out; v5.1.0 serves the path with the
+    // v5.0.0 handler, whose views have another shape, so only id and is_public are read.
+    val request = baseRequest / "obp" / "v5.1.0" / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token1)
     val reply = makeGetRequest(request)
-    val possibleViewsPermalinks = reply.body.extract[ViewsJsonV300].views.filterNot(_.is_public==true)
+    val possibleViewsPermalinks = (reply.body \ "views").children
+      .filterNot(v => (v \ "is_public").extractOpt[Boolean].contains(true))
+      .map(v => (v \ "id").extract[String])
     val randomPosition = nextInt(possibleViewsPermalinks.size)
-    possibleViewsPermalinks(randomPosition).id
+    possibleViewsPermalinks(randomPosition)
   }
 
   def getTransactions(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)], params: List[(String, String)] = Nil): APIResponse = {

@@ -37,8 +37,9 @@ import code.api.v1_2_1.{APIInfoJSON, PermissionJSON, PermissionsJSON}
 import code.api.v2_2_0.{ViewJSONV220, ViewsJSONV220}
 import code.api.v3_0_0.Http4s300.Implementations3_0_0
 import code.setup.APIResponse
+import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, CreateViewJson, UpdateViewJSON, ViewId}
 import net.liftweb.util.Helpers._
 import org.scalatest.Tag
 
@@ -48,7 +49,7 @@ class ViewsTests extends V300ServerSetup {
 
   object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_0_0.getPermissionForUserForBankAccount))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations3_0_0.getViewsForBankAccount))
+  object ApiEndpoint2 extends Tag("getViewsForBankAccount")
   object ApiEndpoint3 extends Tag(nameOf(Implementations3_0_0.createViewForBankAccount))
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.updateViewForBankAccount))
   
@@ -58,10 +59,12 @@ class ViewsTests extends V300ServerSetup {
   //System view, owner
   val postBodySystemViewJson = createViewJsonV300.copy(name=SYSTEM_OWNER_VIEW_ID).copy(metadata_view = SYSTEM_OWNER_VIEW_ID).toCreateViewJson
   
-  def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-    val request = v3_0Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
-    makeGetRequest(request)
-  }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def getAccountViews(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    // val request = v3_0Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumerAndToken)
+    // makeGetRequest(request)
+  // }
 
   def postView(bankId: String, accountId: String, view: CreateViewJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v3_0Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
@@ -92,60 +95,64 @@ class ViewsTests extends V300ServerSetup {
   }
   
 /************************ the tests ************************/
-  feature("/root"){
-    scenario("The root of the API") {
-      Given("Nothing, this one always is working ")
-      val httpResponse = getAPIInfo
-      Then("we should get a 200 ok code")
-      httpResponse.code should equal (200)
-      val apiInfo = httpResponse.body.extract[APIInfoJSON]
-      apiInfo.version should equal ("v3.0.0")
-    }
-  }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("/root"){
+    // scenario("The root of the API") {
+      // Given("Nothing, this one always is working ")
+      // val httpResponse = getAPIInfo
+      // Then("we should get a 200 ok code")
+      // httpResponse.code should equal (200)
+      // val apiInfo = httpResponse.body.extract[APIInfoJSON]
+      // apiInfo.version should equal ("v3.0.0")
+    // }
+  // }
 
-  feature(s"$ApiEndpoint2 -getViewsForBankAccount - V300"){
-    scenario("All requirements") {
-      Given("The BANK_ID, ACCOUNT_ID and Login User")
-      val bankId = randomBankId
-      val bankAccountId = randomPrivateAccountId(bankId)
-      val loginedUser= user1
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature(s"$ApiEndpoint2 -getViewsForBankAccount - V300"){
+    // scenario("All requirements") {
+      // Given("The BANK_ID, ACCOUNT_ID and Login User")
+      // val bankId = randomBankId
+      // val bankAccountId = randomPrivateAccountId(bankId)
+      // val loginedUser= user1
       
-      When("The request is sent")
-      val httpResponse = getAccountViews(bankId, bankAccountId, loginedUser)
+      // When("The request is sent")
+      // val httpResponse = getAccountViews(bankId, bankAccountId, loginedUser)
       
-      Then("we should get a 200 ok code and the right json body")
-      httpResponse.code should equal (200)
-      val viewJsonV300 = httpResponse.body.extract[ViewsJsonV300]
-      //Note: as to new system view stuff, now the default account should both have some system view accesses and custom view accesses.
-      viewJsonV300.views.filter(_.is_system).length >0  should be (true)
-      viewJsonV300.views.filter(!_.is_system).length >0  should be (true)
-    }
+      // Then("we should get a 200 ok code and the right json body")
+      // httpResponse.code should equal (200)
+      // val viewJsonV300 = httpResponse.body.extract[ViewsJsonV300]
+      // //Note: as to new system view stuff, now the default account should both have some system view accesses and custom view accesses.
+      // viewJsonV300.views.filter(_.is_system).length >0  should be (true)
+      // viewJsonV300.views.filter(!_.is_system).length >0  should be (true)
+    // }
 
-    scenario("no Auth") {
-      Given("BANK_ID, ACCOUNT_ID, but no Login User")
-      val bankId = randomBankId
-      val bankAccountId = randomPrivateAccountId(bankId)
-      When("the request is sent")
-      val reply = getAccountViews(bankId, bankAccountId, None)
-      Then("we should get a 401 code")
-      reply.code should equal (401)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
+    // scenario("no Auth") {
+      // Given("BANK_ID, ACCOUNT_ID, but no Login User")
+      // val bankId = randomBankId
+      // val bankAccountId = randomPrivateAccountId(bankId)
+      // When("the request is sent")
+      // val reply = getAccountViews(bankId, bankAccountId, None)
+      // Then("we should get a 401 code")
+      // reply.code should equal (401)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
 
-    scenario("No Views") {
-      Given("BANK_ID, ACCOUNT_ID, Login User but no views")
-      val bankId = randomBankId
-      val bankAccountId = randomPrivateAccountId(bankId)
-      val loginUserNoRoles = user3
-      When("the request is sent")
-      val reply = getAccountViews(bankId, bankAccountId, user3)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
-      And("we should get an error message")
-      reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
-    }
-  }
+    // scenario("No Views") {
+      // Given("BANK_ID, ACCOUNT_ID, Login User but no views")
+      // val bankId = randomBankId
+      // val bankAccountId = randomPrivateAccountId(bankId)
+      // val loginUserNoRoles = user3
+      // When("the request is sent")
+      // val reply = getAccountViews(bankId, bankAccountId, user3)
+      // Then("we should get a 400 code")
+      // reply.code should equal (400)
+      // And("we should get an error message")
+      // reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
+    // }
+  // }
   
   feature(s"$ApiEndpoint3 -createViewForBankAccount - V300"){
     scenario("all requirements") {
@@ -154,16 +161,18 @@ class ViewsTests extends V300ServerSetup {
       val bankAccountId = randomPrivateAccountId(bankId)
       val postViewBody = postBodyViewJson
       val loginedUser = user1
-      val viewsBefore = getAccountViews(bankId, bankAccountId, loginedUser).body.extract[ViewsJsonV300].views
+      // The views are counted through the provider: the v3.0.0 list-views endpoint is commented out.
+      def customViewCount = Views.views.vend.availableViewsForAccount(
+        BankIdAccountId(BankId(bankId), AccountId(bankAccountId))).size
+      val viewsBefore = customViewCount
 
       When("the request is sent")
       val reply = postView(bankId, bankAccountId, postViewBody, loginedUser)
       Then("we should get a 201 code")
       reply.code should equal (201)
-      reply.body.extract[ViewJSONV220]
+      reply.body.extract[ViewJsonV300]
       And("we should get a new view")
-      val viewsAfter = getAccountViews(bankId, bankAccountId, loginedUser).body.extract[ViewsJsonV300].views
-      viewsBefore.size should equal (viewsAfter.size -1)
+      customViewCount should equal (viewsBefore + 1)
     }
 
     scenario("no Auth") {
@@ -291,10 +300,7 @@ class ViewsTests extends V300ServerSetup {
 
       Given("a view does not exist")
       val nonExistantViewId = "asdfasdfasdfasdfasdf"
-      val getReply = getAccountViews(bankId, bankAccountId, user1)
-      getReply.code should equal (200)
-      val views : ViewsJSONV220 = getReply.body.extract[ViewsJSONV220]
-      views.views.foreach(v => v.id should not equal(nonExistantViewId))
+      Views.views.vend.customView(ViewId(nonExistantViewId), BankIdAccountId(BankId(bankId), AccountId(bankAccountId))).isDefined should equal (false)
 
       When("we try to update that view")
       val reply = putView(bankId, bankAccountId, nonExistantViewId, someViewUpdateJson(), user1)

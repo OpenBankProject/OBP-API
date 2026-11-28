@@ -66,7 +66,7 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.getCustomersAtAnyBank))
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getCustomersMinimalAtAnyBank))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.createCustomer))
+  object ApiEndpoint3 extends Tag("createCustomer")
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getCustomersByCustomerPhoneNumber))
 
   val customerNumberJson = PostCustomerNumberJsonV310(customer_number = "123")
@@ -145,52 +145,56 @@ class CustomerTest extends V400ServerSetup  with PropsReset{
   }
   
 
-  feature(s"Create Customer $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
-      When(s"We make a request $VersionOfApi")
-      val request = (v4_0_0_Request / "banks" / bankId / "customers").POST
-      val response = makePostRequest(request, write(postCustomerJson))
-      Then("We should get a 401")
-      response.code should equal(401)
-      And("error should be " + AuthenticatedUserIsRequired)
-      response.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
-    }
-  }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature(s"Create Customer $VersionOfApi - Unauthorized access") {
+    // scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+      // When(s"We make a request $VersionOfApi")
+      // val request = (v4_0_0_Request / "banks" / bankId / "customers").POST
+      // val response = makePostRequest(request, write(postCustomerJson))
+      // Then("We should get a 401")
+      // response.code should equal(401)
+      // And("error should be " + AuthenticatedUserIsRequired)
+      // response.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+    // }
+  // }
 
-  feature(s"Create Customer $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
-      When(s"We make a request $VersionOfApi")
-      val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
-      val response = makePostRequest(request, write(postCustomerJson))
-      Then("We should get a 403")
-      response.code should equal(403)
-      val errorMsg = UserHasMissingRoles + canCreateCustomer + " or " + canCreateCustomerAtAnyBank
-      And("error should be " + errorMsg)
-      val errorMessage = response.body.extract[ErrorMessage].message
-      errorMessage contains (UserHasMissingRoles) should be (true)
-      errorMessage contains (canCreateCustomerAtAnyBank.toString()) should be (true)
-    }
-    scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint3, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
-      When(s"We make a request $VersionOfApi")
-      val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
-      val response = makePostRequest(request, write(postCustomerJson))
-      Then("We should get a 201")
-      response.code should equal(201)
-      val infoPost = response.body.extract[CustomerJsonV310]
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature(s"Create Customer $VersionOfApi - Authorized access") {
+    // scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
+      // When(s"We make a request $VersionOfApi")
+      // val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      // val response = makePostRequest(request, write(postCustomerJson))
+      // Then("We should get a 403")
+      // response.code should equal(403)
+      // val errorMsg = UserHasMissingRoles + canCreateCustomer + " or " + canCreateCustomerAtAnyBank
+      // And("error should be " + errorMsg)
+      // val errorMessage = response.body.extract[ErrorMessage].message
+      // errorMessage contains (UserHasMissingRoles) should be (true)
+      // errorMessage contains (canCreateCustomerAtAnyBank.toString()) should be (true)
+    // }
+    // scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint3, VersionOfApi) {
+      // Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
+      // When(s"We make a request $VersionOfApi")
+      // val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      // val response = makePostRequest(request, write(postCustomerJson))
+      // Then("We should get a 201")
+      // response.code should equal(201)
+      // val infoPost = response.body.extract[CustomerJsonV310]
 
-      When("We make the request: Get Customer specified by CUSTOMER_ID")
-      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
-      val requestGet = (v4_0_0_Request / "banks" / bankId / "customers" / infoPost.customer_id).GET <@ (user1)
-      val responseGet = makeGetRequest(requestGet)
-      Then("We should get a 200")
-      responseGet.code should equal(200)
-      And("We should get the right information back")
-      val infoGet = responseGet.body.extract[CustomerJsonV310]
-      And("POST feedback and GET feedback must be the same")
-      infoGet should equal(infoPost)
-    }
-  }
+      // When("We make the request: Get Customer specified by CUSTOMER_ID")
+      // Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
+      // val requestGet = (v4_0_0_Request / "banks" / bankId / "customers" / infoPost.customer_id).GET <@ (user1)
+      // val responseGet = makeGetRequest(requestGet)
+      // Then("We should get a 200")
+      // responseGet.code should equal(200)
+      // And("We should get the right information back")
+      // val infoGet = responseGet.body.extract[CustomerJsonV310]
+      // And("POST feedback and GET feedback must be the same")
+      // infoGet should equal(infoPost)
+    // }
+  // }
 
 
   feature(s"$ApiEndpoint4 $VersionOfApi - Unauthorized access") {

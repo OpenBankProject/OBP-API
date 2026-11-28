@@ -37,26 +37,28 @@ class RootAndBanksTest extends V500ServerSetup {
 
   object VersionOfApi extends Tag(ApiVersion.v5_0_0.toString)
 
-  feature(s"V500 public read endpoints - $VersionOfApi") {
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature(s"V500 public read endpoints - $VersionOfApi") {
 
-    scenario("GET /root returns API info", VersionOfApi) {
-      val request = (v5_0_0_Request / "root").GET
-      val response = makeGetRequest(request)
-      response.code should equal(200)
-      val apiInfo = response.body.extract[APIInfoJson400]
-      apiInfo.version.nonEmpty shouldBe true
-      apiInfo.version_status.nonEmpty shouldBe true
-      apiInfo.git_commit.nonEmpty shouldBe true
-      apiInfo.connector.nonEmpty shouldBe true
-    }
+    // scenario("GET /root returns API info", VersionOfApi) {
+      // val request = (v5_0_0_Request / "root").GET
+      // val response = makeGetRequest(request)
+      // response.code should equal(200)
+      // val apiInfo = response.body.extract[APIInfoJson400]
+      // apiInfo.version.nonEmpty shouldBe true
+      // apiInfo.version_status.nonEmpty shouldBe true
+      // apiInfo.git_commit.nonEmpty shouldBe true
+      // apiInfo.connector.nonEmpty shouldBe true
+    // }
 
-    scenario("GET /banks returns banks list", VersionOfApi) {
-      val request = (v5_0_0_Request / "banks").GET
-      val response = makeGetRequest(request)
-      response.code should equal(200)
-      val banks = response.body.extract[BanksJson400]
-      banks.banks.nonEmpty shouldBe true
-    }
-  }
+    // scenario("GET /banks returns banks list", VersionOfApi) {
+      // val request = (v5_0_0_Request / "banks").GET
+      // val response = makeGetRequest(request)
+      // response.code should equal(200)
+      // val banks = response.body.extract[BanksJson400]
+      // banks.banks.nonEmpty shouldBe true
+    // }
+  // }
 }
 

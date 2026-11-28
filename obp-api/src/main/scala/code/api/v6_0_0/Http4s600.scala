@@ -9563,7 +9563,7 @@ object Http4s600 {
         | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-System).
         |
         |""".stripMargin,
-        createViewJsonV300,
+        createViewJsonV300WithAllActions,
         viewJsonV300,
         List(
           AuthenticatedUserIsRequired,

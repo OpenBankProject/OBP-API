@@ -124,7 +124,7 @@ class CustomerMessageTest extends V400ServerSetup {
       val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateCustomer.toString)
       When(s"We make a request $VersionOfApi")
-      val request = (v4_0_0_Request / "banks" / testBankId / "customers").POST <@(user1)
+      val request = (baseRequest / "obp" / "v5.1.0" / "banks" / testBankId / "customers").POST <@(user1)
       val response = makePostRequest(request, write(postCustomerJson))
       Then("We should get a 201")
       response.code should equal(201)

@@ -151,7 +151,7 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
       val futures = (1 to 10).map { _ =>
         Future {
           scala.concurrent.blocking {
-            makeHttp4sGetRequest("/obp/v5.0.0/root")
+            makeHttp4sGetRequest("/obp/v5.1.0/root")
           }
         }
       }
@@ -226,30 +226,34 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
 
   feature("HTTP4S v5.0.0 Native Endpoints") {
 
-    scenario("GET /obp/v5.0.0/root returns API info", Http4sServerIntegrationTag) {
-      When("We request the root endpoint")
-      val (status, body) = makeHttp4sGetRequest("/obp/v5.0.0/root")
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+    // scenario("GET /obp/v5.0.0/root returns API info", Http4sServerIntegrationTag) {
+      // When("We request the root endpoint")
+      // val (status, body) = makeHttp4sGetRequest("/obp/v5.0.0/root")
 
-      Then("We should get a 200 response")
-      status should equal(200)
+      // Then("We should get a 200 response")
+      // status should equal(200)
 
-      And("Response should contain version info")
-      val json = parse(body)
-      (json \ "version").extract[String] should equal("v5.0.0")
-      (json \ "git_commit") should not equal JObject(Nil)
-    }
+      // And("Response should contain version info")
+      // val json = parse(body)
+      // (json \ "version").extract[String] should equal("v5.0.0")
+      // (json \ "git_commit") should not equal JObject(Nil)
+    // }
 
-    scenario("GET /obp/v5.0.0/banks returns banks list", Http4sServerIntegrationTag) {
-      When("We request banks list")
-      val (status, body) = makeHttp4sGetRequest("/obp/v5.0.0/banks")
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+    // scenario("GET /obp/v5.0.0/banks returns banks list", Http4sServerIntegrationTag) {
+      // When("We request banks list")
+      // val (status, body) = makeHttp4sGetRequest("/obp/v5.0.0/banks")
 
-      Then("We should get a 200 response")
-      status should equal(200)
+      // Then("We should get a 200 response")
+      // status should equal(200)
 
-      And("Response should contain banks array")
-      val json = parse(body)
-      json \ "banks" should not equal JObject(Nil)
-    }
+      // And("Response should contain banks array")
+      // val json = parse(body)
+      // json \ "banks" should not equal JObject(Nil)
+    // }
 
     scenario("GET /obp/v5.0.0/banks/BANK_ID returns specific bank", Http4sServerIntegrationTag) {
       When("We request a specific bank")
@@ -389,7 +393,7 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
   feature("HTTP4S standard response headers") {
 
     val requests = List(
-      ("an old API version", "/obp/v1.2.1/root", 200),
+      ("an older API version", "/obp/v5.1.0/root", 200),
       ("a current API version", "/obp/v6.0.0/root", 200),
       ("an unknown path (JSON 404)", "/obp/v6.0.0/this-does-not-exist", 404),
       ("an unauthenticated call to an endpoint that needs a User (401)", "/obp/v6.0.0/users/current", 401),

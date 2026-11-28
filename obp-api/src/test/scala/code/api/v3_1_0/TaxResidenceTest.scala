@@ -116,7 +116,7 @@ class TaxResidenceTest extends V310ServerSetup {
     scenario("We will call the endpoint with the proper Role " + canCreateTaxResidence + " and an existing customer", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
-      val requestCustomer310 = (v3_1_0_Request / "banks" / bankId / "customers").POST <@(user1)
+      val requestCustomer310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
       val responseCustomer310 = makePostRequest(requestCustomer310, write(postCustomerJson))
       Then("We should get a 201")
       responseCustomer310.code should equal(201)
@@ -160,7 +160,7 @@ class TaxResidenceTest extends V310ServerSetup {
       val bankB = testBankId2.value
       Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, CanCreateTaxResidence.toString)
       Entitlement.entitlement.vend.addEntitlement(bankB, resourceUser1.userId, CanCreateCustomer.toString)
-      val customer = makePostRequest((v3_1_0_Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
+      val customer = makePostRequest((v510Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
       customer.code should equal(201)
       val customerAtB = customer.body.extract[CustomerJsonV310].customer_id
       When("We add a tax residence to bank B's customer through bank A's path")
@@ -205,7 +205,7 @@ class TaxResidenceTest extends V310ServerSetup {
       val bankB = testBankId2.value
       Entitlement.entitlement.vend.addEntitlement(bankA, resourceUser1.userId, CanGetTaxResidence.toString)
       Entitlement.entitlement.vend.addEntitlement(bankB, resourceUser1.userId, CanCreateCustomer.toString)
-      val customer = makePostRequest((v3_1_0_Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
+      val customer = makePostRequest((v510Request / "banks" / bankB / "customers").POST <@(user1), write(postCustomerJson))
       customer.code should equal(201)
       val customerAtB = customer.body.extract[CustomerJsonV310].customer_id
       When("We read bank B's customer's tax residences through bank A's path")
@@ -249,7 +249,7 @@ class TaxResidenceTest extends V310ServerSetup {
     def customerWithTaxResidence(bank: String): (String, String) = {
       Entitlement.entitlement.vend.addEntitlement(bank, resourceUser1.userId, CanCreateCustomer.toString)
       Entitlement.entitlement.vend.addEntitlement(bank, resourceUser1.userId, CanCreateTaxResidence.toString)
-      val customer = makePostRequest((v3_1_0_Request / "banks" / bank / "customers").POST <@(user1), write(postCustomerJson))
+      val customer = makePostRequest((v510Request / "banks" / bank / "customers").POST <@(user1), write(postCustomerJson))
       customer.code should equal(201)
       val customerId = customer.body.extract[CustomerJsonV310].customer_id
       val taxResidence = makePostRequest((v3_1_0_Request / "banks" / bank / "customers" / customerId / "tax-residence").POST <@(user1), write(postTaxResidenceJson))

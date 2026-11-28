@@ -37,7 +37,7 @@ import code.api.v1_2_1.TransactionJSON
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0.TransactionRequestWithChargeJSONs210
 import code.api.v2_2_0.CounterpartyWithMetadataJson
-import code.api.v3_0_0.{NewModeratedCoreAccountJsonV300, TransactionJsonV300}
+import code.api.v3_0_0.TransactionJsonV300
 import code.api.v3_0_0.Http4s300.Implementations3_0_0
 import code.api.v3_1_0.Http4s310.Implementations3_1_0
 import code.api.v2_2_0.Http4s220.Implementations2_2_0
@@ -65,12 +65,12 @@ class TransactionTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getTransactionRequests))
+  object ApiEndpoint1 extends Tag("getTransactionRequests")
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.saveHistoricalTransaction))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations3_0_0.getCoreAccountById))
+  object ApiEndpoint3 extends Tag("getCoreAccountById")
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_1_0.getTransactionByIdForBankAccount))
   //Use this endpoint to prepare the data.
-  object ApiEndpoint5 extends Tag(nameOf(Implementations2_2_0.createCounterparty))
+  object ApiEndpoint5 extends Tag("createCounterparty")
 
   val bankId1 = testBankId1.value
   val bankId2 = testBankId2.value
@@ -82,6 +82,24 @@ class TransactionTest extends V310ServerSetup {
     value = AmountOfMoneyJsonV121("EUR","1000")
   )
   
+
+  // v2.2.0 createCounterparty is commented out, so counterparties are created through the provider,
+  // from the same example body the endpoint was given.
+  private def createCounterpartyViaProvider(thisBankId: String, thisAccountId: String, otherBankId: String, otherAccountId: String): String = {
+    val json = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address = otherBankId, other_account_routing_address = otherAccountId)
+    code.metadata.counterparties.Counterparties.counterparties.vend.createCounterparty(
+      createdByUserId = resourceUser1.userId, thisBankId = thisBankId, thisAccountId = thisAccountId,
+      thisViewId = SYSTEM_OWNER_VIEW_ID, name = APIUtil.generateUUID(),
+      otherAccountRoutingScheme = json.other_account_routing_scheme, otherAccountRoutingAddress = json.other_account_routing_address,
+      otherBankRoutingScheme = json.other_bank_routing_scheme, otherBankRoutingAddress = json.other_bank_routing_address,
+      otherBranchRoutingScheme = json.other_branch_routing_scheme, otherBranchRoutingAddress = json.other_branch_routing_address,
+      isBeneficiary = json.is_beneficiary,
+      otherAccountSecondaryRoutingScheme = json.other_account_secondary_routing_scheme,
+      otherAccountSecondaryRoutingAddress = json.other_account_secondary_routing_address,
+      description = json.description, currency = "EUR", bespoke = Nil
+    ).openOrThrowException("expected the counterparty to be created").counterpartyId
+  }
+
   feature("Get Transaction by Id - v3.1.0")
   {
     scenario("We will Get Transaction by Id - user is NOT logged in", ApiEndpoint1, VersionOfApi) {
@@ -177,15 +195,15 @@ class TransactionTest extends V310ServerSetup {
       
       //Before call saveHistoricalTransaction, we need store the balance for both account:
       //ApiEndpoint3
-      val requestGetAccount1 = (v3_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1 = (v510Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1 = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1.code should equal(200)
-      val accountI1Balance = httpResponseGetAccount1.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI1Balance = (httpResponseGetAccount1.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2 = (v3_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2 = (v510Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2 = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2.code should equal(200)
-      val accountI2Balance= httpResponseGetAccount2.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI2Balance= (httpResponseGetAccount2.body \ "balance" \ "amount").extract[String]
       
       
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateHistoricalTransaction.toString)
@@ -200,15 +218,15 @@ class TransactionTest extends V310ServerSetup {
       responseJson.description should be(postJsonAccount.description)
       responseJson.transaction_id.length > 0 should be (true)
 
-      val requestGetAccount1After = (v3_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1After = (v510Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1After = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1After.code should equal(200)
-      val accountI1BalanceAfter = httpResponseGetAccount1After.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI1BalanceAfter = (httpResponseGetAccount1After.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2After = (v3_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2After = (v510Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2After = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2After.code should equal(200)
-      val accountI2BalanceAfter= httpResponseGetAccount2After.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI2BalanceAfter= (httpResponseGetAccount2After.body \ "balance" \ "amount").extract[String]
 
       (BigDecimal(accountI1BalanceAfter) - BigDecimal(accountI1Balance)) should be (BigDecimal(-1000)) 
       (BigDecimal(accountI2BalanceAfter) - BigDecimal(accountI2Balance)) should be (BigDecimal(1000)) 
@@ -230,30 +248,23 @@ class TransactionTest extends V310ServerSetup {
 
       //Before call saveHistoricalTransaction, we need store the balance for both account:
       //ApiEndpoint3
-      val requestGetAccount1 = (v3_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1 = (v510Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1 = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1.code should equal(200)
-      val accountI1Balance = httpResponseGetAccount1.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI1Balance = (httpResponseGetAccount1.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2 = (v3_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2 = (v510Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2 = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2.code should equal(200)
-      val accountI2Balance= httpResponseGetAccount2.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI2Balance= (httpResponseGetAccount2.body \ "balance" \ "amount").extract[String]
 
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateHistoricalTransaction.toString)
 
 
-      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId2,other_account_routing_address=bankAccountId2)
-
-      When(s"We make the request Create counterparty for an account $ApiEndpoint5")
-      val requestPost = (v3_1_0_Request / "banks" / bankId1 / "accounts" / bankAccountId1 / SYSTEM_OWNER_VIEW_ID / "counterparties" ).POST <@ (user1)
-      val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
-
-      Then("We should get a 201 and check all the fields")
-      responsePost.code should equal(201)
-
-      val counterpartyId = responsePost.body.extract[CounterpartyWithMetadataJson].counterparty_id
+      // v2.2.0 createCounterparty is commented out, so the counterparty is created through the
+      // provider. Only its id is used.
+      val counterpartyId = createCounterpartyViaProvider(bankId1, bankAccountId1, bankId2, bankAccountId2)
       
       
       val postJsonCounterparty = SwaggerDefinitionsJSON.postHistoricalTransactionJson.copy(
@@ -273,15 +284,15 @@ class TransactionTest extends V310ServerSetup {
       responseJson.description should be(postJsonAccount.description)
       responseJson.transaction_id.length > 0 should be (true)
 
-      val requestGetAccount1After = (v3_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1After = (v510Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1After = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1After.code should equal(200)
-      val accountI1BalanceAfter = httpResponseGetAccount1After.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI1BalanceAfter = (httpResponseGetAccount1After.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2After = (v3_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2After = (v510Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2After = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2After.code should equal(200)
-      val accountI2BalanceAfter= httpResponseGetAccount2After.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI2BalanceAfter= (httpResponseGetAccount2After.body \ "balance" \ "amount").extract[String]
 
       (BigDecimal(accountI1BalanceAfter) - BigDecimal(accountI1Balance)) should be (BigDecimal(-1000))
       (BigDecimal(accountI2BalanceAfter) - BigDecimal(accountI2Balance)) should be (BigDecimal(1000))
@@ -302,30 +313,21 @@ class TransactionTest extends V310ServerSetup {
 
       //Before call saveHistoricalTransaction, we need store the balance for both account:
       //ApiEndpoint3
-      val requestGetAccount1 = (v3_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1 = (v510Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1 = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1.code should equal(200)
-      val accountI1Balance = httpResponseGetAccount1.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI1Balance = (httpResponseGetAccount1.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2 = (v3_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2 = (v510Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2 = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2.code should equal(200)
-      val accountI2Balance= httpResponseGetAccount2.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI2Balance= (httpResponseGetAccount2.body \ "balance" \ "amount").extract[String]
 
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateHistoricalTransaction.toString)
 
 
-      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId1,other_account_routing_address=bankAccountId1)
-
-      When(s"We make the request Create counterparty for an account $ApiEndpoint5")
-      val requestPost = (v3_1_0_Request / "banks" / bankId2 / "accounts" / bankAccountId2 / SYSTEM_OWNER_VIEW_ID / "counterparties" ).POST <@ (user1)
-      val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
-
-      Then("We should get a 201 and check all the fields")
-      responsePost.code should equal(201)
-
-      val counterpartyId = responsePost.body.extract[CounterpartyWithMetadataJson].counterparty_id
+      val counterpartyId = createCounterpartyViaProvider(bankId2, bankAccountId2, bankId1, bankAccountId1)
 
 
       val postJsonCounterparty = SwaggerDefinitionsJSON.postHistoricalTransactionJson.copy(
@@ -345,15 +347,15 @@ class TransactionTest extends V310ServerSetup {
       responseJson.description should be(postJsonAccount.description)
       responseJson.transaction_id.length > 0 should be (true)
 
-      val requestGetAccount1After = (v3_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1After = (v510Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1After = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1After.code should equal(200)
-      val accountI1BalanceAfter = httpResponseGetAccount1After.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI1BalanceAfter = (httpResponseGetAccount1After.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2After = (v3_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2After = (v510Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2After = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2After.code should equal(200)
-      val accountI2BalanceAfter= httpResponseGetAccount2After.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI2BalanceAfter= (httpResponseGetAccount2After.body \ "balance" \ "amount").extract[String]
 
       (BigDecimal(accountI1BalanceAfter) - BigDecimal(accountI1Balance)) should be (BigDecimal(-1000))
       (BigDecimal(accountI2BalanceAfter) - BigDecimal(accountI2Balance)) should be (BigDecimal(1000))
@@ -374,43 +376,25 @@ class TransactionTest extends V310ServerSetup {
 
       //Before call saveHistoricalTransaction, we need store the balance for both account:
       //ApiEndpoint3
-      val requestGetAccount1 = (v3_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1 = (v510Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1 = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1.code should equal(200)
-      val accountI1Balance = httpResponseGetAccount1.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI1Balance = (httpResponseGetAccount1.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2 = (v3_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2 = (v510Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2 = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2.code should equal(200)
-      val accountI2Balance= httpResponseGetAccount2.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI2Balance= (httpResponseGetAccount2.body \ "balance" \ "amount").extract[String]
 
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateHistoricalTransaction.toString)
 
 
-      val counterpartyPostJsonFrom = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId1,other_account_routing_address=bankAccountId1)
-
-      When(s"We make the request Create counterparty for an account $ApiEndpoint5")
-      val requestPostFrom = (v3_1_0_Request / "banks" / bankId1 / "accounts" / bankAccountId1 / SYSTEM_OWNER_VIEW_ID / "counterparties" ).POST <@ (user1)
-      val responsePostFrom = makePostRequest(requestPostFrom, write(counterpartyPostJsonFrom))
-
-      Then("We should get a 201 and check all the fields")
-      responsePostFrom.code should equal(201)
-
-      val counterpartyIdFrom = responsePostFrom.body.extract[CounterpartyWithMetadataJson].counterparty_id
+      val counterpartyIdFrom = createCounterpartyViaProvider(bankId1, bankAccountId1, bankId1, bankAccountId1)
       
       
 
-      val counterpartyPostJsonTo = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId2,other_account_routing_address=bankAccountId2)
-
-      When(s"We make the request Create counterparty for an account $ApiEndpoint5")
-      val requestPostTo = (v3_1_0_Request / "banks" / bankId2 / "accounts" / bankAccountId2 / SYSTEM_OWNER_VIEW_ID / "counterparties" ).POST <@ (user1)
-      val responsePostTo = makePostRequest(requestPostTo, write(counterpartyPostJsonTo))
-
-      Then("We should get a 201 and check all the fields")
-      responsePostTo.code should equal(201)
-
-      val counterpartyIdTo = responsePostTo.body.extract[CounterpartyWithMetadataJson].counterparty_id
+      val counterpartyIdTo = createCounterpartyViaProvider(bankId2, bankAccountId2, bankId2, bankAccountId2)
 
 
       val postJsonCounterparty = SwaggerDefinitionsJSON.postHistoricalTransactionJson.copy(
@@ -429,15 +413,15 @@ class TransactionTest extends V310ServerSetup {
       responseJson.description should be(postJsonAccount.description)
       responseJson.transaction_id.length > 0 should be (true)
 
-      val requestGetAccount1After = (v3_1_0_Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
+      val requestGetAccount1After = (v510Request /"my" / "banks" / bankId1/ "accounts" / bankAccountId1 / "account").GET <@ (user1)
       val httpResponseGetAccount1After = makeGetRequest(requestGetAccount1)
       httpResponseGetAccount1After.code should equal(200)
-      val accountI1BalanceAfter = httpResponseGetAccount1After.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI1BalanceAfter = (httpResponseGetAccount1After.body \ "balance" \ "amount").extract[String]
 
-      val requestGetAccount2After = (v3_1_0_Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
+      val requestGetAccount2After = (v510Request /"my" / "banks" / bankId2/ "accounts" / bankAccountId2 / "account").GET <@ (user1)
       val httpResponseGetAccount2After = makeGetRequest(requestGetAccount2)
       httpResponseGetAccount2After.code should equal(200)
-      val accountI2BalanceAfter= httpResponseGetAccount2After.body.extract[NewModeratedCoreAccountJsonV300].balance.amount
+      val accountI2BalanceAfter= (httpResponseGetAccount2After.body \ "balance" \ "amount").extract[String]
 
       (BigDecimal(accountI1BalanceAfter) - BigDecimal(accountI1Balance)) should be (BigDecimal(-1000))
       (BigDecimal(accountI2BalanceAfter) - BigDecimal(accountI2Balance)) should be (BigDecimal(1000))
@@ -459,16 +443,9 @@ class TransactionTest extends V310ServerSetup {
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateHistoricalTransaction.toString)
 
-      val counterpartyPostJSON = SwaggerDefinitionsJSON.postCounterpartyJSON.copy(other_bank_routing_address=bankId2,other_account_routing_address=bankAccountId2)
-
-      When(s"We make the request Create counterparty for an account $ApiEndpoint5")
-      val requestPost = (v3_1_0_Request / "banks" / bankId1 / "accounts" / bankAccountId1 / SYSTEM_OWNER_VIEW_ID / "counterparties" ).POST <@ (user1)
-      val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
-
-      Then("We should get a 201 and check all the fields")
-      responsePost.code should equal(201)
-
-      val counterpartyId = responsePost.body.extract[CounterpartyWithMetadataJson].counterparty_id
+      // v2.2.0 createCounterparty is commented out, so the counterparty is created through the
+      // provider. Only its id is used.
+      val counterpartyId = createCounterpartyViaProvider(bankId1, bankAccountId1, bankId2, bankAccountId2)
       val request310 = (v3_1_0_Request / "management" / "historical" / "transactions")<@(user1)
       
       

@@ -46,33 +46,35 @@ class ConsumerTest extends V310ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getConsumer))
+  object ApiEndpoint1 extends Tag("getConsumer")
   object ApiEndpoint2 extends Tag(nameOf(Implementations3_1_0.getConsumersForCurrentUser))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations3_1_0.getConsumers))
-  feature("Get Consumer by CONSUMER_ID - v3.1.0")
-  {
-    scenario("We will Get Consumer by CONSUMER_ID without a proper Role " + canGetConsumers, ApiEndpoint1, VersionOfApi) {
-      When("We make a request v3.1.0 without a Role " + canGetConsumers)
-      val request310 = (v3_1_0_Request / "management" / "consumers" / "non existing CONSUMER_ID").GET <@(user1)
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 403")
-      response310.code should equal(403)
-      And("error should be " + UserHasMissingRoles + CanGetConsumers)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetConsumers)
-    }
-    scenario("We will Get Consumer by CONSUMER_ID with a proper Role " + canGetConsumers, ApiEndpoint1, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetConsumers.toString)
-      When("We make a request v3.1.0")
-      val consumerId = "non existing CONSUMER_ID"
-      val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId).GET <@(user1)
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 404")
-      response310.code should equal(404)
-      val errorMessage = s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId"
-      And("error should be " + errorMessage)
-      response310.body.extract[ErrorMessage].message should equal (errorMessage)
-    }
-  }
+  object ApiEndpoint3 extends Tag("getConsumers")
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Get Consumer by CONSUMER_ID - v3.1.0")
+  // {
+    // scenario("We will Get Consumer by CONSUMER_ID without a proper Role " + canGetConsumers, ApiEndpoint1, VersionOfApi) {
+      // When("We make a request v3.1.0 without a Role " + canGetConsumers)
+      // val request310 = (v3_1_0_Request / "management" / "consumers" / "non existing CONSUMER_ID").GET <@(user1)
+      // val response310 = makeGetRequest(request310)
+      // Then("We should get a 403")
+      // response310.code should equal(403)
+      // And("error should be " + UserHasMissingRoles + CanGetConsumers)
+      // response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetConsumers)
+    // }
+    // scenario("We will Get Consumer by CONSUMER_ID with a proper Role " + canGetConsumers, ApiEndpoint1, VersionOfApi) {
+      // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetConsumers.toString)
+      // When("We make a request v3.1.0")
+      // val consumerId = "non existing CONSUMER_ID"
+      // val request310 = (v3_1_0_Request / "management" / "consumers" / consumerId).GET <@(user1)
+      // val response310 = makeGetRequest(request310)
+      // Then("We should get a 404")
+      // response310.code should equal(404)
+      // val errorMessage = s"$ConsumerNotFoundByConsumerId Current ConsumerId is $consumerId"
+      // And("error should be " + errorMessage)
+      // response310.body.extract[ErrorMessage].message should equal (errorMessage)
+    // }
+  // }
   feature("Get Consumers for current user - v3.1.0")
   {
     scenario("We will Get Consumers for current user - NOT logged in", ApiEndpoint2, VersionOfApi) {
@@ -93,34 +95,36 @@ class ConsumerTest extends V310ServerSetup {
       response310.body.extract[ConsumersJsonV310]
     }
   }
-  feature("Get Consumers - v3.1.0")
-  {
-    scenario("We will Get Consumers - User NOT logged in", ApiEndpoint3, VersionOfApi) {
-      When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "management" / "consumers").GET
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 401")
-      response310.code should equal(401)
-      And("error should be " + AuthenticatedUserIsRequired)
-      response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
-    }
-    scenario("We will Get Consumers without a proper Role " + canGetConsumers, ApiEndpoint3, VersionOfApi) {
-      When("We make a request v3.1.0 without a Role " + canGetConsumers)
-      val request310 = (v3_1_0_Request / "management" / "consumers").GET <@(user1)
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 403")
-      response310.code should equal(403)
-      And("error should be " + UserHasMissingRoles + CanGetConsumers)
-      response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetConsumers)
-    }
-    scenario("We will Get Consumers with a proper Role " + canGetConsumers, ApiEndpoint3, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetConsumers.toString)
-      When("We make a request v3.1.0")
-      val request310 = (v3_1_0_Request / "management" / "consumers").GET <@(user1)
-      val response310 = makeGetRequest(request310)
-      Then("We should get a 200")
-      response310.code should equal(200)
-      response310.body.extract[ConsumersJson]
-    }
-  }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Get Consumers - v3.1.0")
+  // {
+    // scenario("We will Get Consumers - User NOT logged in", ApiEndpoint3, VersionOfApi) {
+      // When("We make a request v3.1.0")
+      // val request310 = (v3_1_0_Request / "management" / "consumers").GET
+      // val response310 = makeGetRequest(request310)
+      // Then("We should get a 401")
+      // response310.code should equal(401)
+      // And("error should be " + AuthenticatedUserIsRequired)
+      // response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+    // }
+    // scenario("We will Get Consumers without a proper Role " + canGetConsumers, ApiEndpoint3, VersionOfApi) {
+      // When("We make a request v3.1.0 without a Role " + canGetConsumers)
+      // val request310 = (v3_1_0_Request / "management" / "consumers").GET <@(user1)
+      // val response310 = makeGetRequest(request310)
+      // Then("We should get a 403")
+      // response310.code should equal(403)
+      // And("error should be " + UserHasMissingRoles + CanGetConsumers)
+      // response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + CanGetConsumers)
+    // }
+    // scenario("We will Get Consumers with a proper Role " + canGetConsumers, ApiEndpoint3, VersionOfApi) {
+      // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetConsumers.toString)
+      // When("We make a request v3.1.0")
+      // val request310 = (v3_1_0_Request / "management" / "consumers").GET <@(user1)
+      // val response310 = makeGetRequest(request310)
+      // Then("We should get a 200")
+      // response310.code should equal(200)
+      // response310.body.extract[ConsumersJson]
+    // }
+  // }
 }

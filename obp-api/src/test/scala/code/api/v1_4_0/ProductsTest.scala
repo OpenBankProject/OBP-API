@@ -125,48 +125,50 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
     Products.productsProvider.default.set(Products.buildOne)
   }
 
-  feature("Getting bank products") {
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Getting bank products") {
 
-    scenario("We try to get products for a bank without a data license for product information") {
-      When("We make a request")
-      val request = (v1_4Request / "banks" / BankWithoutLicense.value / "products").GET <@(user1)
-      val response = makeGetRequest(request)
+    // scenario("We try to get products for a bank without a data license for product information") {
+      // When("We make a request")
+      // val request = (v1_4Request / "banks" / BankWithoutLicense.value / "products").GET <@(user1)
+      // val response = makeGetRequest(request)
 
-      Then("We should get a 200")
-      response.code should equal(200)
+      // Then("We should get a 200")
+      // response.code should equal(200)
 
-    }
+    // }
 
-    scenario("We try to get products for a bank with a data license for product information") {
-      When("We make a request")
-      val request = (v1_4Request / "banks" / BankWithLicense.value / "products").GET <@(user1)
-      val response = makeGetRequest(request)
+    // scenario("We try to get products for a bank with a data license for product information") {
+      // When("We make a request")
+      // val request = (v1_4Request / "banks" / BankWithLicense.value / "products").GET <@(user1)
+      // val response = makeGetRequest(request)
 
-      Then("We should get a 200")
-      response.code should equal(200)
+      // Then("We should get a 200")
+      // response.code should equal(200)
 
-      And("We should get the right json format containing a list of products")
-      val wholeResponseBody = response.body
-      val responseBodyOpt = wholeResponseBody.extractOpt[ProductsJson]
-      responseBodyOpt.isDefined should equal(true)
+      // And("We should get the right json format containing a list of products")
+      // val wholeResponseBody = response.body
+      // val responseBodyOpt = wholeResponseBody.extractOpt[ProductsJson]
+      // responseBodyOpt.isDefined should equal(true)
 
-      val responseBody = responseBodyOpt.get
+      // val responseBody = responseBodyOpt.get
 
-      And("We should get the right products")
-      val products = responseBody.products
+      // And("We should get the right products")
+      // val products = responseBody.products
 
-      // Order of Products in the list is arbitrary
-      products.size should equal(3)
-      val first = products(0)
-      if (first.code == fakeProduct1.code.value) {
-        verifySameData(fakeProduct1, first)
-        verifySameData(fakeProduct2, products(1))
-      } else if (first.code == fakeProduct2.code.value) {
-        verifySameData(fakeProduct2, first)
-        verifySameData(fakeProduct1, products(1))
-      } else {
-        fail("Incorrect products")
-      }
-    }
-  }
+      // // Order of Products in the list is arbitrary
+      // products.size should equal(3)
+      // val first = products(0)
+      // if (first.code == fakeProduct1.code.value) {
+        // verifySameData(fakeProduct1, first)
+        // verifySameData(fakeProduct2, products(1))
+      // } else if (first.code == fakeProduct2.code.value) {
+        // verifySameData(fakeProduct2, first)
+        // verifySameData(fakeProduct1, products(1))
+      // } else {
+        // fail("Incorrect products")
+      // }
+    // }
+  // }
 }

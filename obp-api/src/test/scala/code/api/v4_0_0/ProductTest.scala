@@ -63,165 +63,169 @@ class ProductTest extends V400ServerSetup {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.createProduct))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getProduct))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.getProducts))
+  object ApiEndpoint1 extends Tag("createProduct")
+  object ApiEndpoint2 extends Tag("getProduct")
+  object ApiEndpoint3 extends Tag("getProducts")
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.updateProductAttribute))
 
   lazy val testBankId = randomBankId
   lazy val parentPutProductJsonV400: PutProductJsonV400 = SwaggerDefinitionsJSON.putProductJsonV400.copy(parent_product_code ="")
-  def createProduct(code: String, json: PutProductJsonV400) = {
-    When("We try to create a product v4.0.0")
-    val request400 = (v4_0_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
-    val response400 = makePutRequest(request400, write(json))
-    Then("We should get a 201")
-    response400.code should equal(201)
-    val product = response400.body.extract[ProductJsonV400]
-    product.product_code shouldBe code
-    product.parent_product_code shouldBe json.parent_product_code
-    product.bank_id shouldBe testBankId
-    product.name shouldBe json.name
-    product.more_info_url shouldBe json.more_info_url
-    product.terms_and_conditions_url shouldBe json.terms_and_conditions_url
-    product.description shouldBe json.description
-    product
-  }
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+  // def createProduct(code: String, json: PutProductJsonV400) = {
+    // When("We try to create a product v4.0.0")
+    // val request400 = (v4_0_0_Request / "banks" / testBankId / "products" / code).PUT <@ (user1)
+    // val response400 = makePutRequest(request400, write(json))
+    // Then("We should get a 201")
+    // response400.code should equal(201)
+    // val product = response400.body.extract[ProductJsonV400]
+    // product.product_code shouldBe code
+    // product.parent_product_code shouldBe json.parent_product_code
+    // product.bank_id shouldBe testBankId
+    // product.name shouldBe json.name
+    // product.more_info_url shouldBe json.more_info_url
+    // product.terms_and_conditions_url shouldBe json.terms_and_conditions_url
+    // product.description shouldBe json.description
+    // product
+  // }
   
-  feature("Create Product v4.0.0") {
-    scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
-      When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "banks" / testBankId / "products" / "CODE").PUT
-      val response400 = makePutRequest(request400, write(parentPutProductJsonV400))
-      Then("We should get a 401")
-      response400.code should equal(401)
-      And("error should be " + AuthenticatedUserIsRequired)
-      response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
-    }
-    scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
-      When("We make a request v4.0.0")
-      val request400 = (v4_0_0_Request / "banks" / testBankId / "products" / "CODE").PUT <@(user1)
-      val response400 = makePutRequest(request400, write(parentPutProductJsonV400))
-      Then("We should get a 403")
-      response400.code should equal(403)
-      val createProductEntitlements = canCreateProduct :: canCreateProductAtAnyBank ::  Nil
-      val createProductEntitlementsRequiredText = UserHasMissingRoles + createProductEntitlements.mkString(" or ")
-      And("error should be " + createProductEntitlementsRequiredText)
-      response400.body.extract[ErrorMessage].message contains (createProductEntitlementsRequiredText) should be (true)
-    }
-    scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Create Product v4.0.0") {
+    // scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+      // When("We make a request v4.0.0")
+      // val request400 = (v4_0_0_Request / "banks" / testBankId / "products" / "CODE").PUT
+      // val response400 = makePutRequest(request400, write(parentPutProductJsonV400))
+      // Then("We should get a 401")
+      // response400.code should equal(401)
+      // And("error should be " + AuthenticatedUserIsRequired)
+      // response400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+    // }
+    // scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+      // When("We make a request v4.0.0")
+      // val request400 = (v4_0_0_Request / "banks" / testBankId / "products" / "CODE").PUT <@(user1)
+      // val response400 = makePutRequest(request400, write(parentPutProductJsonV400))
+      // Then("We should get a 403")
+      // response400.code should equal(403)
+      // val createProductEntitlements = canCreateProduct :: canCreateProductAtAnyBank ::  Nil
+      // val createProductEntitlementsRequiredText = UserHasMissingRoles + createProductEntitlements.mkString(" or ")
+      // And("error should be " + createProductEntitlementsRequiredText)
+      // response400.body.extract[ErrorMessage].message contains (createProductEntitlementsRequiredText) should be (true)
+    // }
+    // scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
 
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
 
-      // Create an grandparent
-      val grandparent: ProductJsonV400 = createProduct(code = "GRANDPARENT_CODE", json = parentPutProductJsonV400)
+      // // Create an grandparent
+      // val grandparent: ProductJsonV400 = createProduct(code = "GRANDPARENT_CODE", json = parentPutProductJsonV400)
 
-      // Create an parent
-      val product: ProductJsonV400 = createProduct(code = "PARENT_CODE", json = parentPutProductJsonV400.copy(parent_product_code = grandparent.product_code))
+      // // Create an parent
+      // val product: ProductJsonV400 = createProduct(code = "PARENT_CODE", json = parentPutProductJsonV400.copy(parent_product_code = grandparent.product_code))
 
-      // Get
-      val requestGet400 = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code ).GET <@(user1)
-      val responseGet400 = makeGetRequest(requestGet400)
-      Then("We should get a 200")
-      responseGet400.code should equal(200)
-      val product1 = responseGet400.body.extract[ProductJsonV400]
+      // // Get
+      // val requestGet400 = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code ).GET <@(user1)
+      // val responseGet400 = makeGetRequest(requestGet400)
+      // Then("We should get a 200")
+      // responseGet400.code should equal(200)
+      // val product1 = responseGet400.body.extract[ProductJsonV400]
 
-      // Create an child
-      val childPutProductJsonV400 = parentPutProductJsonV400.copy(parent_product_code = product.product_code)
-      createProduct(code = "PRODUCT_CODE", json = childPutProductJsonV400)
+      // // Create an child
+      // val childPutProductJsonV400 = parentPutProductJsonV400.copy(parent_product_code = product.product_code)
+      // createProduct(code = "PRODUCT_CODE", json = childPutProductJsonV400)
 
-      // Get
-      val requestGetAll400 = (v4_0_0_Request / "banks" / product.bank_id / "products").GET <@(user1)
-      val responseGetAll400 = makeGetRequest(requestGetAll400)
-      Then("We should get a 200")
-      responseGetAll400.code should equal(200)
-      val products: ProductsJsonV400 = responseGetAll400.body.extract[ProductsJsonV400]
-      products.products.size shouldBe 3
+      // // Get
+      // val requestGetAll400 = (v4_0_0_Request / "banks" / product.bank_id / "products").GET <@(user1)
+      // val responseGetAll400 = makeGetRequest(requestGetAll400)
+      // Then("We should get a 200")
+      // responseGetAll400.code should equal(200)
+      // val products: ProductsJsonV400 = responseGetAll400.body.extract[ProductsJsonV400]
+      // products.products.size shouldBe 3
 
-    }
-    // with apiOptions.getProductsIsPublic=false the product refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
-    scenario("We will call the Get Product endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
-      val product: ProductJsonV400 = createProduct(code = "ANONYMOUS_GET_CODE", json = parentPutProductJsonV400)
-      When("We get the product with no authentication")
-      val requestGet400 = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code).GET
-      val responseGet400 = makeGetRequest(requestGet400)
-      if (code.api.util.APIUtil.getProductsIsPublic) {
-        Then("We should get a 200")
-        responseGet400.code should equal(200)
-      } else {
-        Then("We should get a 401")
-        responseGet400.code should equal(401)
-        And("error should be " + AuthenticatedUserIsRequired)
-        responseGet400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
-      }
-    }
-    // with apiOptions.getProductsIsPublic=false the product list refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
-    scenario("We will call the Get Products endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
-      When("We get the products with no authentication")
-      val requestGetAll400 = (v4_0_0_Request / "banks" / testBankId / "products").GET
-      val responseGetAll400 = makeGetRequest(requestGetAll400)
-      if (code.api.util.APIUtil.getProductsIsPublic) {
-        Then("We should get a 200")
-        responseGetAll400.code should equal(200)
-      } else {
-        Then("We should get a 401")
-        responseGetAll400.code should equal(401)
-        And("error should be " + AuthenticatedUserIsRequired)
-        responseGetAll400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
-      }
-    }
-    scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
+    // }
+    // // with apiOptions.getProductsIsPublic=false the product refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
+    // scenario("We will call the Get Product endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
+      // val product: ProductJsonV400 = createProduct(code = "ANONYMOUS_GET_CODE", json = parentPutProductJsonV400)
+      // When("We get the product with no authentication")
+      // val requestGet400 = (v4_0_0_Request / "banks" / product.bank_id / "products" / product.product_code).GET
+      // val responseGet400 = makeGetRequest(requestGet400)
+      // if (code.api.util.APIUtil.getProductsIsPublic) {
+        // Then("We should get a 200")
+        // responseGet400.code should equal(200)
+      // } else {
+        // Then("We should get a 401")
+        // responseGet400.code should equal(401)
+        // And("error should be " + AuthenticatedUserIsRequired)
+        // responseGet400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+      // }
+    // }
+    // // with apiOptions.getProductsIsPublic=false the product list refuses anonymous callers with 401; the prop is read once at startup, so this JVM sees only one branch
+    // scenario("We will call the Get Products endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+      // When("We get the products with no authentication")
+      // val requestGetAll400 = (v4_0_0_Request / "banks" / testBankId / "products").GET
+      // val responseGetAll400 = makeGetRequest(requestGetAll400)
+      // if (code.api.util.APIUtil.getProductsIsPublic) {
+        // Then("We should get a 200")
+        // responseGetAll400.code should equal(200)
+      // } else {
+        // Then("We should get a 401")
+        // responseGetAll400.code should equal(401)
+        // And("error should be " + AuthenticatedUserIsRequired)
+        // responseGetAll400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
+      // }
+    // }
+    // scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
 
-      When("We need to first create the products ")
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
-      createProduct(code = "PRODUCT_CODE", json = parentPutProductJsonV400)
+      // When("We need to first create the products ")
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
+      // createProduct(code = "PRODUCT_CODE", json = parentPutProductJsonV400)
       
       
-      When("we grant the CanCreateProductAttribute role")
-      Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProductAttribute.toString)
+      // When("we grant the CanCreateProductAttribute role")
+      // Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProductAttribute.toString)
       
-      val requestGetAll400 = (v4_0_0_Request / "banks" / testBankId / "products").GET <@(user1)
-      val responseGetAll400 = makeGetRequest(requestGetAll400)
-      Then("We should get a 200")
-      responseGetAll400.code should equal(200)
-      val products: ProductsJsonV400 = responseGetAll400.body.extract[ProductsJsonV400]
-      products.products.head.product_code should be ("PRODUCT_CODE")
+      // val requestGetAll400 = (v4_0_0_Request / "banks" / testBankId / "products").GET <@(user1)
+      // val responseGetAll400 = makeGetRequest(requestGetAll400)
+      // Then("We should get a 200")
+      // responseGetAll400.code should equal(200)
+      // val products: ProductsJsonV400 = responseGetAll400.body.extract[ProductsJsonV400]
+      // products.products.head.product_code should be ("PRODUCT_CODE")
 
-    }
+    // }
 
-    scenario("Filtering getProducts by attribute returns only this bank's products, even when another bank uses the same product code", ApiEndpoint3, VersionOfApi) {
-      val sharedCode = "SHARED_" + java.util.UUID.randomUUID().toString.take(8)
-      val otherBankId = "other-bank-" + java.util.UUID.randomUUID().toString.take(8)
-      val attributeName = "filter_test_" + java.util.UUID.randomUUID().toString.take(8)
+    // scenario("Filtering getProducts by attribute returns only this bank's products, even when another bank uses the same product code", ApiEndpoint3, VersionOfApi) {
+      // val sharedCode = "SHARED_" + java.util.UUID.randomUUID().toString.take(8)
+      // val otherBankId = "other-bank-" + java.util.UUID.randomUUID().toString.take(8)
+      // val attributeName = "filter_test_" + java.util.UUID.randomUUID().toString.take(8)
 
-      Given("A product with the same code at this bank and at another bank")
-      List(testBankId, otherBankId).foreach { bankId =>
-        code.products.MappedProduct.create
-          .mBankId(bankId)
-          .mCode(sharedCode)
-          .mName(s"Product $sharedCode at $bankId")
-          .saveMe()
-      }
+      // Given("A product with the same code at this bank and at another bank")
+      // List(testBankId, otherBankId).foreach { bankId =>
+        // code.products.MappedProduct.create
+          // .mBankId(bankId)
+          // .mCode(sharedCode)
+          // .mName(s"Product $sharedCode at $bankId")
+          // .saveMe()
+      // }
 
-      And("Only this bank's product has the attribute being filtered on")
-      code.productAttributeattribute.MappedProductAttribute.create
-        .mBankId(testBankId)
-        .mCode(sharedCode)
-        .mName(attributeName)
-        .mType("STRING")
-        .mValue("yes")
-        .saveMe()
+      // And("Only this bank's product has the attribute being filtered on")
+      // code.productAttributeattribute.MappedProductAttribute.create
+        // .mBankId(testBankId)
+        // .mCode(sharedCode)
+        // .mName(attributeName)
+        // .mType("STRING")
+        // .mValue("yes")
+        // .saveMe()
 
-      When("We get this bank's products filtered by that attribute")
-      val request400 = (v4_0_0_Request / "banks" / testBankId / "products").GET <@(user1) <<? List(attributeName -> "yes")
-      val response400 = makeGetRequest(request400)
+      // When("We get this bank's products filtered by that attribute")
+      // val request400 = (v4_0_0_Request / "banks" / testBankId / "products").GET <@(user1) <<? List(attributeName -> "yes")
+      // val response400 = makeGetRequest(request400)
 
-      Then("We should get a 200 with this bank's product only")
-      response400.code should equal(200)
-      val products = response400.body.extract[ProductsJsonV400].products
-      products.map(product => (product.bank_id, product.product_code)) should equal(List((testBankId, sharedCode)))
-    }
-  }
+      // Then("We should get a 200 with this bank's product only")
+      // response400.code should equal(200)
+      // val products = response400.body.extract[ProductsJsonV400].products
+      // products.map(product => (product.bank_id, product.product_code)) should equal(List((testBankId, sharedCode)))
+    // }
+  // }
 
   feature("Update Product Attribute v4.0.0") {
     scenario("We will call the Update endpoint with an attribute of another bank or another product", ApiEndpoint4, VersionOfApi) {

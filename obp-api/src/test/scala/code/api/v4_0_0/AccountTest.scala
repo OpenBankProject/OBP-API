@@ -463,16 +463,18 @@ class AccountTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test ${ApiEndpoint3.name}") {
-    scenario("We will test ${ApiEndpoint3.name}", ApiEndpoint3, VersionOfApi) {
-      Given("The test bank and test accounts")
-      val requestGet = (v4_0_0_Request / "banks" / testBankId.value / "balances").GET <@ (user1)
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature(s"test ${ApiEndpoint3.name}") {
+    // scenario("We will test ${ApiEndpoint3.name}", ApiEndpoint3, VersionOfApi) {
+      // Given("The test bank and test accounts")
+      // val requestGet = (v4_0_0_Request / "banks" / testBankId.value / "balances").GET <@ (user1)
 
-      val responseGet = makeGetRequest(requestGet)
-      responseGet.code should equal(200)
-      responseGet.body.extract[AccountsBalancesJsonV400].accounts.size > 0 should be (true)
-    }
-  }
+      // val responseGet = makeGetRequest(requestGet)
+      // responseGet.code should equal(200)
+      // responseGet.body.extract[AccountsBalancesJsonV400].accounts.size > 0 should be (true)
+    // }
+  // }
   
   feature(s"test ${ApiEndpoint7.name}") {
     scenario(s"We will test ${ApiEndpoint7.name}", ApiEndpoint7, VersionOfApi) {

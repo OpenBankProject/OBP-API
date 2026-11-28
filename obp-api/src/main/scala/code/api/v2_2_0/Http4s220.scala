@@ -83,211 +83,223 @@ object Http4s220 {
 
     // ─── root ─────────────────────────────────────────────────────────────────
 
-    val root: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory121.getApiInfoJSON(ApiVersion.v2_2_0, versionStatus))
-        }
-      case req @ GET -> `prefixPath` / "root" =>
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(JSONFactory121.getApiInfoJSON(ApiVersion.v2_2_0, versionStatus))
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val root: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory121.getApiInfoJSON(ApiVersion.v2_2_0, versionStatus))
+        // }
+      // case req @ GET -> `prefixPath` / "root" =>
+        // EndpointHelpers.executeAndRespond(req) { _ =>
+          // Future.successful(JSONFactory121.getApiInfoJSON(ApiVersion.v2_2_0, versionStatus))
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(root), "GET", "/root",
-      "Get API Info (root)",
-      """Returns information about:
-        |
-        |* API version
-        |* Hosted by information
-        |* Git Commit""",
-      EmptyBody, apiInfoJSON,
-      List(UnknownError, MandatoryPropertyIsNotSet), apiTagApi :: Nil, None,
-      http4sPartialFunction = Some(root))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(root), "GET", "/root",
+      // "Get API Info (root)",
+      // """Returns information about:
+        // |
+        // |* API version
+        // |* Hosted by information
+        // |* Git Commit""",
+      // EmptyBody, apiInfoJSON,
+      // List(UnknownError, MandatoryPropertyIsNotSet), apiTagApi :: Nil, None,
+      // http4sPartialFunction = Some(root))
 
     // ─── getViewsForBankAccount ───────────────────────────────────────────────
 
-    val getViewsForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" =>
-        EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
-          for {
-            permission <- NewStyle.function.permission(account.bankId, account.accountId, user, Some(cc))
-            anyCanSee = permission.views
-              .map(_.allowed_actions.exists(_ == CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT))
-              .contains(true)
-            _ <- code.util.Helper.booleanToFuture(
-              s"${ViewDoesNotPermitAccess} You need the `${CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT}` permission on any your views",
-              cc = Some(cc)) { anyCanSee }
-            views <- Future(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
-          } yield JSONFactory220.createViewsJSON(views)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getViewsForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" =>
+        // EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
+          // for {
+            // permission <- NewStyle.function.permission(account.bankId, account.accountId, user, Some(cc))
+            // anyCanSee = permission.views
+              // .map(_.allowed_actions.exists(_ == CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT))
+              // .contains(true)
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"${ViewDoesNotPermitAccess} You need the `${CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT}` permission on any your views",
+              // cc = Some(cc)) { anyCanSee }
+            // views <- Future(Views.views.vend.availableViewsForAccount(BankIdAccountId(account.bankId, account.accountId)))
+          // } yield JSONFactory220.createViewsJSON(views)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getViewsForBankAccount), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Get Views for Account",
-      s"""#Views
-      |
-      |
-      |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. 
-      |Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
-      |
-      |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
-      |
-      |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
-      |
-      |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
-      |
-      |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
-      |
-      |**Metadata:**
-      |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
-      |
-      |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
-      |
-      |# All
-      |*Optional*
-      |
-      |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
-      |
-      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
-      EmptyBody, viewsJSONV220,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
-      List(apiTagView, apiTagAccount), None,
-      http4sPartialFunction = Some(getViewsForBankAccount))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getViewsForBankAccount), "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
+      // "Get Views for Account",
+      // s"""#Views
+      // |
+      // |
+      // |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. 
+      // |Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
+      // |
+      // |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
+      // |
+      // |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
+      // |
+      // |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
+      // |
+      // |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
+      // |
+      // |**Metadata:**
+      // |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
+      // |
+      // |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
+      // |
+      // |# All
+      // |*Optional*
+      // |
+      // |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
+      // |
+      // |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      // EmptyBody, viewsJSONV220,
+      // List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
+      // List(apiTagView, apiTagAccount), None,
+      // http4sPartialFunction = Some(getViewsForBankAccount))
 
     // ─── createViewForBankAccount ─────────────────────────────────────────────
 
-    val createViewForBankAccount: Http4sRoute = Http4sRoute {
-      // VIEW_ACCOUNT_ID (non-standard name) bypasses middleware account-existence check so the
-      // handler can return 400 (not 404) for a missing account, matching Lift behaviour.
-      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "views" =>
-        EndpointHelpers.withUserAndBankCreated(req) { (user, bank, cc) =>
-          for {
-            (rawBox, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, AccountId(accountIdStr), Some(cc))
-            account     <- Future(unboxFullOrFail(rawBox, Some(cc), BankAccountNotFound))
-            result      <- createViewImpl(user, account, cc.httpBody.getOrElse(""), cc)
-          } yield result
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createViewForBankAccount: Http4sRoute = Http4sRoute {
+      // // VIEW_ACCOUNT_ID (non-standard name) bypasses middleware account-existence check so the
+      // // handler can return 400 (not 404) for a missing account, matching Lift behaviour.
+      // case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "views" =>
+        // EndpointHelpers.withUserAndBankCreated(req) { (user, bank, cc) =>
+          // for {
+            // (rawBox, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, AccountId(accountIdStr), Some(cc))
+            // account     <- Future(unboxFullOrFail(rawBox, Some(cc), BankAccountNotFound))
+            // result      <- createViewImpl(user, account, cc.httpBody.getOrElse(""), cc)
+          // } yield result
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(createViewForBankAccount), "POST",
-      "/banks/BANK_ID/accounts/VIEW_ACCOUNT_ID/views",
-      "Create View",
-      s"""#Create a view on bank account
-      |
-      | ${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
-      | The 'alias' field in the JSON can take one of three values:
-      |
-      | * _public_: to use the public alias if there is one specified for the other account.
-      | * _private_: to use the private alias if there is one specified for the other account.
-      |
-      | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
-      |
-      | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
-      |
-      | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
-      |
-      | You should use a leading _ (underscore) for the view name because other view names may become reserved by OBP internally
-      | """,
-      createViewJsonV121, viewJSONV220,
-      // SourceViewHasLessPermission: the body asks for actions none of the caller's views on the account has
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, SourceViewHasLessPermission, UnknownError),
-      List(apiTagAccount, apiTagView, apiTagOldStyle), None,
-      http4sPartialFunction = Some(createViewForBankAccount))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(createViewForBankAccount), "POST",
+      // "/banks/BANK_ID/accounts/VIEW_ACCOUNT_ID/views",
+      // "Create View",
+      // s"""#Create a view on bank account
+      // |
+      // | ${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
+      // | The 'alias' field in the JSON can take one of three values:
+      // |
+      // | * _public_: to use the public alias if there is one specified for the other account.
+      // | * _private_: to use the private alias if there is one specified for the other account.
+      // |
+      // | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+      // |
+      // | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+      // |
+      // | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+      // |
+      // | You should use a leading _ (underscore) for the view name because other view names may become reserved by OBP internally
+      // | """,
+      // createViewJsonV121, viewJSONV220,
+      // // SourceViewHasLessPermission: the body asks for actions none of the caller's views on the account has
+      // List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, SourceViewHasLessPermission, UnknownError),
+      // List(apiTagAccount, apiTagView, apiTagOldStyle), None,
+      // http4sPartialFunction = Some(createViewForBankAccount))
 
-    private def createViewImpl(user: User, account: BankAccount, body: String, cc: CallContext): Future[ViewJSONV220] = {
-      for {
-        createBodyJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-          com.openbankproject.commons.util.JsonAliases.parse(body).extract[CreateViewJsonV121]
-        }
-        _ <- code.util.Helper.booleanToFuture(
-          s"$InvalidCustomViewFormat Current view_name (${createBodyJson.name})", cc = Some(cc)) {
-          isValidCustomViewName(createBodyJson.name)
-        }
-        permission <- NewStyle.function.permission(account.bankId, account.accountId, user, Some(cc))
-        anyCanCreate = permission.views.map(_.allowed_actions.exists(_ == CAN_CREATE_CUSTOM_VIEW)).contains(true)
-        _ <- code.util.Helper.booleanToFuture(
-          s"${CreateCustomViewError} You need the `${CAN_CREATE_CUSTOM_VIEW}` permission on any your views",
-          cc = Some(cc)) { anyCanCreate }
-        // the new view may only get actions the caller already has on one of their views of this account, else they create a view with more and grant it to themselves (as Update View and v5.1.0 check)
-        callerActions = permission.views.flatMap(_.allowed_actions).toSet
-        _ <- code.util.Helper.booleanToFuture(
-          s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${createBodyJson.allowed_actions})",
-          failCode = 403, cc = Some(cc)) { createBodyJson.allowed_actions.toSet.subsetOf(callerActions) }
-        createViewJson = CreateViewJson(
-          createBodyJson.name,
-          createBodyJson.description,
-          metadata_view = "",
-          createBodyJson.is_public,
-          createBodyJson.which_alias_to_use,
-          createBodyJson.hide_metadata_if_alias_used,
-          createBodyJson.allowed_actions
-        )
-        (view, _) <- ViewNewStyle.createCustomView(BankIdAccountId(account.bankId, account.accountId), createViewJson, Some(cc))
-      } yield JSONFactory220.createViewJSON(view)
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+    // private def createViewImpl(user: User, account: BankAccount, body: String, cc: CallContext): Future[ViewJSONV220] = {
+      // for {
+        // createBodyJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+          // com.openbankproject.commons.util.JsonAliases.parse(body).extract[CreateViewJsonV121]
+        // }
+        // _ <- code.util.Helper.booleanToFuture(
+          // s"$InvalidCustomViewFormat Current view_name (${createBodyJson.name})", cc = Some(cc)) {
+          // isValidCustomViewName(createBodyJson.name)
+        // }
+        // permission <- NewStyle.function.permission(account.bankId, account.accountId, user, Some(cc))
+        // anyCanCreate = permission.views.map(_.allowed_actions.exists(_ == CAN_CREATE_CUSTOM_VIEW)).contains(true)
+        // _ <- code.util.Helper.booleanToFuture(
+          // s"${CreateCustomViewError} You need the `${CAN_CREATE_CUSTOM_VIEW}` permission on any your views",
+          // cc = Some(cc)) { anyCanCreate }
+        // // the new view may only get actions the caller already has on one of their views of this account, else they create a view with more and grant it to themselves (as Update View and v5.1.0 check)
+        // callerActions = permission.views.flatMap(_.allowed_actions).toSet
+        // _ <- code.util.Helper.booleanToFuture(
+          // s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${createBodyJson.allowed_actions})",
+          // failCode = 403, cc = Some(cc)) { createBodyJson.allowed_actions.toSet.subsetOf(callerActions) }
+        // createViewJson = CreateViewJson(
+          // createBodyJson.name,
+          // createBodyJson.description,
+          // metadata_view = "",
+          // createBodyJson.is_public,
+          // createBodyJson.which_alias_to_use,
+          // createBodyJson.hide_metadata_if_alias_used,
+          // createBodyJson.allowed_actions
+        // )
+        // (view, _) <- ViewNewStyle.createCustomView(BankIdAccountId(account.bankId, account.accountId), createViewJson, Some(cc))
+      // } yield JSONFactory220.createViewJSON(view)
+    // }
 
     // ─── updateViewForBankAccount ─────────────────────────────────────────────
 
-    val updateViewForBankAccount: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" / viewIdStr =>
-        EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
-          updateViewImpl(user, account, ViewId(viewIdStr), cc.httpBody.getOrElse(""), cc)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val updateViewForBankAccount: Http4sRoute = Http4sRoute {
+      // case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" / viewIdStr =>
+        // EndpointHelpers.withBankAccount(req) { (user, account, cc) =>
+          // updateViewImpl(user, account, ViewId(viewIdStr), cc.httpBody.getOrElse(""), cc)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(updateViewForBankAccount), "PUT",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/UPD_VIEW_ID",
-      "Update View",
-      s"""Update an existing view on a bank account
-      |
-      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
-      |
-      |The json sent is the same as during view creation (above), with one difference: the 'name' field
-      |of a view is not editable (it is only set when a view is created)""",
-      updateViewJsonV121, viewJSONV220,
-      // SourceViewHasLessPermission: the body asks for actions none of the caller's views on the account has
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, SourceViewHasLessPermission, UnknownError),
-      List(apiTagAccount, apiTagView, apiTagOldStyle), None,
-      http4sPartialFunction = Some(updateViewForBankAccount))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(updateViewForBankAccount), "PUT",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/views/UPD_VIEW_ID",
+      // "Update View",
+      // s"""Update an existing view on a bank account
+      // |
+      // |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
+      // |
+      // |The json sent is the same as during view creation (above), with one difference: the 'name' field
+      // |of a view is not editable (it is only set when a view is created)""",
+      // updateViewJsonV121, viewJSONV220,
+      // // SourceViewHasLessPermission: the body asks for actions none of the caller's views on the account has
+      // List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, SourceViewHasLessPermission, UnknownError),
+      // List(apiTagAccount, apiTagView, apiTagOldStyle), None,
+      // http4sPartialFunction = Some(updateViewForBankAccount))
 
-    private def updateViewImpl(user: User, account: BankAccount, viewId: ViewId, body: String, cc: CallContext): Future[ViewJSONV220] = {
-      for {
-        updateBodyJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-          com.openbankproject.commons.util.JsonAliases.parse(body).extract[UpdateViewJsonV121]
-        }
-        _ <- code.util.Helper.booleanToFuture(
-          s"$InvalidCustomViewFormat Current view_name (${viewId.value})", cc = Some(cc)) {
-          viewId.value.startsWith("_")
-        }
-        view <- ViewNewStyle.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(user), Some(cc))
-        _ <- code.util.Helper.booleanToFuture(SystemViewsCanNotBeModified, cc = Some(cc)) { !view.isSystem }
-        permission <- NewStyle.function.permission(account.bankId, account.accountId, user, Some(cc))
-        anyCanUpdate = permission.views.map(_.allowed_actions.exists(_ == CAN_UPDATE_CUSTOM_VIEW)).contains(true)
-        _ <- code.util.Helper.booleanToFuture(
-          s"${CreateCustomViewError} You need the `${CAN_UPDATE_CUSTOM_VIEW}` permission on any your views",
-          cc = Some(cc)) { anyCanUpdate }
-        // the view may only get actions the caller already has on one of their views of this account, else they grant themselves more (as v5.1.0 does)
-        callerActions = permission.views.flatMap(_.allowed_actions).toSet
-        _ <- code.util.Helper.booleanToFuture(
-          s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${updateBodyJson.allowed_actions})",
-          failCode = 403, cc = Some(cc)) { updateBodyJson.allowed_actions.toSet.subsetOf(callerActions) }
-        updateViewJson = UpdateViewJSON(
-          description                = updateBodyJson.description,
-          metadata_view              = view.metadataView,
-          is_public                  = updateBodyJson.is_public,
-          which_alias_to_use         = updateBodyJson.which_alias_to_use,
-          hide_metadata_if_alias_used = updateBodyJson.hide_metadata_if_alias_used,
-          allowed_actions            = updateBodyJson.allowed_actions
-        )
-        (updatedView, _) <- ViewNewStyle.updateCustomView(BankIdAccountId(account.bankId, account.accountId), viewId, updateViewJson, Some(cc))
-      } yield JSONFactory220.createViewJSON(updatedView)
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+    // private def updateViewImpl(user: User, account: BankAccount, viewId: ViewId, body: String, cc: CallContext): Future[ViewJSONV220] = {
+      // for {
+        // updateBodyJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+          // com.openbankproject.commons.util.JsonAliases.parse(body).extract[UpdateViewJsonV121]
+        // }
+        // _ <- code.util.Helper.booleanToFuture(
+          // s"$InvalidCustomViewFormat Current view_name (${viewId.value})", cc = Some(cc)) {
+          // viewId.value.startsWith("_")
+        // }
+        // view <- ViewNewStyle.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, account.accountId), Some(user), Some(cc))
+        // _ <- code.util.Helper.booleanToFuture(SystemViewsCanNotBeModified, cc = Some(cc)) { !view.isSystem }
+        // permission <- NewStyle.function.permission(account.bankId, account.accountId, user, Some(cc))
+        // anyCanUpdate = permission.views.map(_.allowed_actions.exists(_ == CAN_UPDATE_CUSTOM_VIEW)).contains(true)
+        // _ <- code.util.Helper.booleanToFuture(
+          // s"${CreateCustomViewError} You need the `${CAN_UPDATE_CUSTOM_VIEW}` permission on any your views",
+          // cc = Some(cc)) { anyCanUpdate }
+        // // the view may only get actions the caller already has on one of their views of this account, else they grant themselves more (as v5.1.0 does)
+        // callerActions = permission.views.flatMap(_.allowed_actions).toSet
+        // _ <- code.util.Helper.booleanToFuture(
+          // s"$SourceViewHasLessPermission Current permissions of your views ($callerActions), target view permissions (${updateBodyJson.allowed_actions})",
+          // failCode = 403, cc = Some(cc)) { updateBodyJson.allowed_actions.toSet.subsetOf(callerActions) }
+        // updateViewJson = UpdateViewJSON(
+          // description                = updateBodyJson.description,
+          // metadata_view              = view.metadataView,
+          // is_public                  = updateBodyJson.is_public,
+          // which_alias_to_use         = updateBodyJson.which_alias_to_use,
+          // hide_metadata_if_alias_used = updateBodyJson.hide_metadata_if_alias_used,
+          // allowed_actions            = updateBodyJson.allowed_actions
+        // )
+        // (updatedView, _) <- ViewNewStyle.updateCustomView(BankIdAccountId(account.bankId, account.accountId), viewId, updateViewJson, Some(cc))
+      // } yield JSONFactory220.createViewJSON(updatedView)
+    // }
 
     // ─── getCurrentFxRate ─────────────────────────────────────────────────────
 
@@ -359,72 +371,76 @@ object Http4s220 {
 
     // ─── getExplicitCounterpartiesForAccount ──────────────────────────────────
 
-    val getExplicitCounterpartiesForAccount: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" =>
-        EndpointHelpers.withView(req) { (user, account, view, cc) =>
-          for {
-            _ <- code.util.Helper.booleanToFuture(
-              s"${NoViewPermission} You need the `${CAN_GET_COUNTERPARTY}` permission on the View(${view.viewId.value})",
-              cc = Some(cc)) {
-              ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_GET_COUNTERPARTY)
-            }
-            (counterparties, _) <- NewStyle.function.getCounterparties(account.bankId, account.accountId, view.viewId, Some(cc))
-            _ <- code.util.Helper.booleanToFuture(CreateOrUpdateCounterpartyMetadataError, 400, cc = Some(cc)) {
-              counterparties.forall { cp =>
-                Counterparties.counterparties.vend
-                  .getOrCreateMetadata(account.bankId, account.accountId, cp.counterpartyId, cp.name)
-                  .isDefined
-              }
-            }
-          } yield JSONFactory220.createCounterpartiesJSON(counterparties)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getExplicitCounterpartiesForAccount: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" =>
+        // EndpointHelpers.withView(req) { (user, account, view, cc) =>
+          // for {
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"${NoViewPermission} You need the `${CAN_GET_COUNTERPARTY}` permission on the View(${view.viewId.value})",
+              // cc = Some(cc)) {
+              // ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_GET_COUNTERPARTY)
+            // }
+            // (counterparties, _) <- NewStyle.function.getCounterparties(account.bankId, account.accountId, view.viewId, Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(CreateOrUpdateCounterpartyMetadataError, 400, cc = Some(cc)) {
+              // counterparties.forall { cp =>
+                // Counterparties.counterparties.vend
+                  // .getOrCreateMetadata(account.bankId, account.accountId, cp.counterpartyId, cp.name)
+                  // .isDefined
+              // }
+            // }
+          // } yield JSONFactory220.createCounterpartiesJSON(counterparties)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getExplicitCounterpartiesForAccount), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
-      "Get Counterparties (Explicit)",
-      s"""This endpoints gets the explicit Counterparties on an Account / View.
-      |
-      |For a general introduction to Counterparties in OBP, see ${Glossary.getGlossaryItemLink("Counterparties")}
-      |
-      |${userAuthenticationMessage(true)}
-      |""".stripMargin,
-      EmptyBody, counterpartiesJsonV220,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, ViewNotFound, NoViewPermission,
-        UserNoPermissionAccessView, UnknownError),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount, apiTagPsd2), None,
-      http4sPartialFunction = Some(getExplicitCounterpartiesForAccount))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getExplicitCounterpartiesForAccount), "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
+      // "Get Counterparties (Explicit)",
+      // s"""This endpoints gets the explicit Counterparties on an Account / View.
+      // |
+      // |For a general introduction to Counterparties in OBP, see ${Glossary.getGlossaryItemLink("Counterparties")}
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |""".stripMargin,
+      // EmptyBody, counterpartiesJsonV220,
+      // List(AuthenticatedUserIsRequired, BankAccountNotFound, ViewNotFound, NoViewPermission,
+        // UserNoPermissionAccessView, UnknownError),
+      // List(apiTagCounterparty, apiTagPSD2PIS, apiTagAccount, apiTagPsd2), None,
+      // http4sPartialFunction = Some(getExplicitCounterpartiesForAccount))
 
     // ─── getExplicitCounterpartyById ──────────────────────────────────────────
 
-    val getExplicitCounterpartyById: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" / _ =>
-        EndpointHelpers.withCounterparty(req) { (_, account, view, counterparty, cc) =>
-          for {
-            _ <- code.util.Helper.booleanToFuture(
-              s"${NoViewPermission} You need the `${CAN_GET_COUNTERPARTY}` permission on the View(${view.viewId.value})",
-              cc = Some(cc)) {
-              ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_GET_COUNTERPARTY)
-            }
-            counterpartyMetadata <- NewStyle.function.getMetadata(
-              account.bankId, account.accountId, counterparty.counterpartyId, Some(cc))
-          } yield JSONFactory220.createCounterpartyWithMetadataJSON(counterparty, counterpartyMetadata)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val getExplicitCounterpartyById: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" / _ =>
+        // EndpointHelpers.withCounterparty(req) { (_, account, view, counterparty, cc) =>
+          // for {
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"${NoViewPermission} You need the `${CAN_GET_COUNTERPARTY}` permission on the View(${view.viewId.value})",
+              // cc = Some(cc)) {
+              // ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_GET_COUNTERPARTY)
+            // }
+            // counterpartyMetadata <- NewStyle.function.getMetadata(
+              // account.bankId, account.accountId, counterparty.counterpartyId, Some(cc))
+          // } yield JSONFactory220.createCounterpartyWithMetadataJSON(counterparty, counterpartyMetadata)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(getExplicitCounterpartyById), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
-      "Get Counterparty by Counterparty Id (Explicit)",
-      s"""Information returned about the Counterparty specified by COUNTERPARTY_ID:
-      |
-      |${userAuthenticationMessage(true)}
-      |""".stripMargin,
-      EmptyBody, counterpartyWithMetadataJson,
-      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData, apiTagPsd2), None,
-      http4sPartialFunction = Some(getExplicitCounterpartyById))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(getExplicitCounterpartyById), "GET",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
+      // "Get Counterparty by Counterparty Id (Explicit)",
+      // s"""Information returned about the Counterparty specified by COUNTERPARTY_ID:
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |""".stripMargin,
+      // EmptyBody, counterpartyWithMetadataJson,
+      // List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      // List(apiTagCounterparty, apiTagPSD2PIS, apiTagCounterpartyMetaData, apiTagPsd2), None,
+      // http4sPartialFunction = Some(getExplicitCounterpartyById))
 
     // ─── getMessageDocs ───────────────────────────────────────────────────────
 
@@ -462,135 +478,141 @@ object Http4s220 {
 
     // ─── createBank ───────────────────────────────────────────────────────────
 
-    val createBank: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" =>
-        EndpointHelpers.withUserAndBodyCreated[BankJSONV220, BankJSONV220](req) { (user, bank, cc) =>
-          val checkShort = APIUtil.checkShortString(bank.id)
-          for {
-            _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidJsonFormat Min length of BANK_ID should be 5 characters.", cc = Some(cc)) {
-              bank.id.length > 5
-            }
-            _ <- code.util.Helper.booleanToFuture(s"$checkShort.", cc = Some(cc)) { checkShort.isEmpty }
-            _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidJsonFormat BANK_ID can not contain `::::` characters", cc = Some(cc)) {
-              !`checkIfContains::::` (bank.id)
-            }
-            consumer <- Future { unboxFullOrFail(cc.consumer, Some(cc), InvalidConsumerCredentials) }
-            _ <- Future {
-              unboxFullOrFail(
-                NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.get.toString, canCreateBank, Some(cc)),
-                Some(cc), UserHasMissingRoles + canCreateBank)
-            }
-            // Refuse an existing BANK_ID (as v5.0.0 / v6.0.0 do): createOrUpdateBank would overwrite that
-            // bank and the grants below would make the caller entitlement admin at a bank they did not create.
-            (banks, _) <- NewStyle.function.getBanks(Some(cc))
-            _ <- code.util.Helper.booleanToFuture(bankIdAlreadyExists, cc = Some(cc)) {
-              !banks.exists(_.bankId.value == bank.id)
-            }
-            (success, _) <- NewStyle.function.createOrUpdateBank(
-              bank.id, bank.full_name, bank.short_name, bank.logo_url, bank.website_url,
-              bank.swift_bic, bank.national_identifier,
-              bank.bank_routing.scheme, bank.bank_routing.address, Some(cc)
-            )
-            // Creator grants target the HUMAN (see v6.0.0 createBank): under a Consent the
-            // authenticated user is a per-consent shadow, and roles granted to it are stranded.
-            humanUserId = cc.onBehalfOfUserId
-            entitlements <- Future {
-              unboxFullOrFail(
-                code.entitlement.Entitlement.entitlement.vend.getEntitlementsByUserId(humanUserId),
-                Some(cc), UnknownError)
-            }
-            _ <- Future {
-              val bankEntitlements = entitlements.filter(_.bankId == bank.id)
-              if (!bankEntitlements.exists(_.roleName == canCreateEntitlementAtOneBank.toString()))
-                code.entitlement.Entitlement.entitlement.vend.addEntitlement(bank.id, humanUserId, canCreateEntitlementAtOneBank.toString(), grantedByUserId = Some(user.userId))
-              if (!bankEntitlements.exists(_.roleName == canReadDynamicResourceDocsAtOneBank.toString()))
-                code.entitlement.Entitlement.entitlement.vend.addEntitlement(bank.id, humanUserId, canReadDynamicResourceDocsAtOneBank.toString(), grantedByUserId = Some(user.userId))
-            }
-          } yield JSONFactory220.createBankJSON(success)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createBank: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" =>
+        // EndpointHelpers.withUserAndBodyCreated[BankJSONV220, BankJSONV220](req) { (user, bank, cc) =>
+          // val checkShort = APIUtil.checkShortString(bank.id)
+          // for {
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$InvalidJsonFormat Min length of BANK_ID should be 5 characters.", cc = Some(cc)) {
+              // bank.id.length > 5
+            // }
+            // _ <- code.util.Helper.booleanToFuture(s"$checkShort.", cc = Some(cc)) { checkShort.isEmpty }
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$InvalidJsonFormat BANK_ID can not contain `::::` characters", cc = Some(cc)) {
+              // !`checkIfContains::::` (bank.id)
+            // }
+            // consumer <- Future { unboxFullOrFail(cc.consumer, Some(cc), InvalidConsumerCredentials) }
+            // _ <- Future {
+              // unboxFullOrFail(
+                // NewStyle.function.hasEntitlementAndScope("", user.userId, consumer.id.get.toString, canCreateBank, Some(cc)),
+                // Some(cc), UserHasMissingRoles + canCreateBank)
+            // }
+            // // Refuse an existing BANK_ID (as v5.0.0 / v6.0.0 do): createOrUpdateBank would overwrite that
+            // // bank and the grants below would make the caller entitlement admin at a bank they did not create.
+            // (banks, _) <- NewStyle.function.getBanks(Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(bankIdAlreadyExists, cc = Some(cc)) {
+              // !banks.exists(_.bankId.value == bank.id)
+            // }
+            // (success, _) <- NewStyle.function.createOrUpdateBank(
+              // bank.id, bank.full_name, bank.short_name, bank.logo_url, bank.website_url,
+              // bank.swift_bic, bank.national_identifier,
+              // bank.bank_routing.scheme, bank.bank_routing.address, Some(cc)
+            // )
+            // // Creator grants target the HUMAN (see v6.0.0 createBank): under a Consent the
+            // // authenticated user is a per-consent shadow, and roles granted to it are stranded.
+            // humanUserId = cc.onBehalfOfUserId
+            // entitlements <- Future {
+              // unboxFullOrFail(
+                // code.entitlement.Entitlement.entitlement.vend.getEntitlementsByUserId(humanUserId),
+                // Some(cc), UnknownError)
+            // }
+            // _ <- Future {
+              // val bankEntitlements = entitlements.filter(_.bankId == bank.id)
+              // if (!bankEntitlements.exists(_.roleName == canCreateEntitlementAtOneBank.toString()))
+                // code.entitlement.Entitlement.entitlement.vend.addEntitlement(bank.id, humanUserId, canCreateEntitlementAtOneBank.toString(), grantedByUserId = Some(user.userId))
+              // if (!bankEntitlements.exists(_.roleName == canReadDynamicResourceDocsAtOneBank.toString()))
+                // code.entitlement.Entitlement.entitlement.vend.addEntitlement(bank.id, humanUserId, canReadDynamicResourceDocsAtOneBank.toString(), grantedByUserId = Some(user.userId))
+            // }
+          // } yield JSONFactory220.createBankJSON(success)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(createBank), "POST",
-      "/banks",
-      "Create Bank",
-      s"""Create a new bank (Authenticated access).
-         |${userAuthenticationMessage(true)}""",
-      bankJSONV220, bankJSONV220,
-      // bankIdAlreadyExists: the BANK_ID in the body is already taken (400)
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired, InsufficientAuthorisationToCreateBank, bankIdAlreadyExists, UnknownError),
-      List(apiTagBank, apiTagOldStyle),
-      Some(List(canCreateBank)),
-      http4sPartialFunction = Some(createBank))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(createBank), "POST",
+      // "/banks",
+      // "Create Bank",
+      // s"""Create a new bank (Authenticated access).
+         // |${userAuthenticationMessage(true)}""",
+      // bankJSONV220, bankJSONV220,
+      // // bankIdAlreadyExists: the BANK_ID in the body is already taken (400)
+      // List(InvalidJsonFormat, AuthenticatedUserIsRequired, InsufficientAuthorisationToCreateBank, bankIdAlreadyExists, UnknownError),
+      // List(apiTagBank, apiTagOldStyle),
+      // Some(List(canCreateBank)),
+      // http4sPartialFunction = Some(createBank))
 
     // ─── createBranch ─────────────────────────────────────────────────────────
 
-    val createBranch: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / _ / "branches" =>
-        EndpointHelpers.withUserAndBankAndBodyCreated[BranchJsonV220, BranchJsonV220](req) { (user, bank, body, cc) =>
-          for {
-            _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body", failCode = 400, cc = Some(cc)) {
-              body.bank_id == bank.bankId.value
-            }
-            _ <- Future {
-              NewStyle.function.hasAllEntitlements(bank.bankId.value, user.userId, canCreateBranch :: Nil, canCreateBranchAtAnyBank :: Nil, Some(cc))
-            } map { unboxFullOrFail(_, Some(cc), s"$InsufficientAuthorisationToCreateBranch") }
-            branch <- NewStyle.function.tryons(CouldNotTransformJsonToInternalModel + " Branch", 400, Some(cc)) {
-              JSONFactory220.transformV220ToBranch(body).head
-            }
-            (success, _) <- NewStyle.function.createOrUpdateBranch(branch, Some(cc))
-          } yield JSONFactory220.createBranchJson(success)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createBranch: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / _ / "branches" =>
+        // EndpointHelpers.withUserAndBankAndBodyCreated[BranchJsonV220, BranchJsonV220](req) { (user, bank, body, cc) =>
+          // for {
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body", failCode = 400, cc = Some(cc)) {
+              // body.bank_id == bank.bankId.value
+            // }
+            // _ <- Future {
+              // NewStyle.function.hasAllEntitlements(bank.bankId.value, user.userId, canCreateBranch :: Nil, canCreateBranchAtAnyBank :: Nil, Some(cc))
+            // } map { unboxFullOrFail(_, Some(cc), s"$InsufficientAuthorisationToCreateBranch") }
+            // branch <- NewStyle.function.tryons(CouldNotTransformJsonToInternalModel + " Branch", 400, Some(cc)) {
+              // JSONFactory220.transformV220ToBranch(body).head
+            // }
+            // (success, _) <- NewStyle.function.createOrUpdateBranch(branch, Some(cc))
+          // } yield JSONFactory220.createBranchJson(success)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(createBranch), "POST",
-      "/banks/BANK_ID/branches",
-      "Create Branch",
-      s"""Create Branch for the Bank.
-         |
-         |${userAuthenticationMessage(true)}""",
-      branchJsonV220, branchJsonV220,
-      List(AuthenticatedUserIsRequired, BankNotFound, InsufficientAuthorisationToCreateBranch, UnknownError),
-      List(apiTagBranch, apiTagOpenData),
-      Some(List(canCreateBranch, canCreateBranchAtAnyBank)),
-      http4sPartialFunction = Some(createBranch))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(createBranch), "POST",
+      // "/banks/BANK_ID/branches",
+      // "Create Branch",
+      // s"""Create Branch for the Bank.
+         // |
+         // |${userAuthenticationMessage(true)}""",
+      // branchJsonV220, branchJsonV220,
+      // List(AuthenticatedUserIsRequired, BankNotFound, InsufficientAuthorisationToCreateBranch, UnknownError),
+      // List(apiTagBranch, apiTagOpenData),
+      // Some(List(canCreateBranch, canCreateBranchAtAnyBank)),
+      // http4sPartialFunction = Some(createBranch))
 
     // ─── createAtm ────────────────────────────────────────────────────────────
 
-    val createAtm: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / _ / "atms" =>
-        EndpointHelpers.withUserAndBankAndBodyCreated[AtmJsonV220, AtmJsonV220](req) { (user, bank, body, cc) =>
-          for {
-            _ <- NewStyle.function.hasAtLeastOneEntitlement(createAtmEntitlementsRequiredText)(
-              bank.bankId.value, user.userId, createAtmEntitlements, Some(cc))
-            _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body", 400, cc = Some(cc)) {
-              body.bank_id == bank.bankId.value
-            }
-            atm <- NewStyle.function.tryons(CouldNotTransformJsonToInternalModel + " Atm", 400, Some(cc)) {
-              JSONFactory220.transformToAtmFromV220(body).head
-            }
-            (createdAtm, _) <- NewStyle.function.createOrUpdateAtm(atm, Some(cc))
-          } yield JSONFactory220.createAtmJson(createdAtm)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createAtm: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / _ / "atms" =>
+        // EndpointHelpers.withUserAndBankAndBodyCreated[AtmJsonV220, AtmJsonV220](req) { (user, bank, body, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasAtLeastOneEntitlement(createAtmEntitlementsRequiredText)(
+              // bank.bankId.value, user.userId, createAtmEntitlements, Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body", 400, cc = Some(cc)) {
+              // body.bank_id == bank.bankId.value
+            // }
+            // atm <- NewStyle.function.tryons(CouldNotTransformJsonToInternalModel + " Atm", 400, Some(cc)) {
+              // JSONFactory220.transformToAtmFromV220(body).head
+            // }
+            // (createdAtm, _) <- NewStyle.function.createOrUpdateAtm(atm, Some(cc))
+          // } yield JSONFactory220.createAtmJson(createdAtm)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(createAtm), "POST",
-      "/banks/BANK_ID/atms",
-      "Create ATM",
-      s"""Create ATM for the Bank.
-          |
-          |${userAuthenticationMessage(true)}""",
-      atmJsonV220, atmJsonV220,
-      List(AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
-      List(apiTagATM),
-      Some(List(canCreateAtm, canCreateAtmAtAnyBank)),
-      http4sPartialFunction = Some(createAtm))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(createAtm), "POST",
+      // "/banks/BANK_ID/atms",
+      // "Create ATM",
+      // s"""Create ATM for the Bank.
+          // |
+          // |${userAuthenticationMessage(true)}""",
+      // atmJsonV220, atmJsonV220,
+      // List(AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
+      // List(apiTagATM),
+      // Some(List(canCreateAtm, canCreateAtmAtAnyBank)),
+      // http4sPartialFunction = Some(createAtm))
 
     // ─── createProduct ────────────────────────────────────────────────────────
 
@@ -694,100 +716,104 @@ object Http4s220 {
 
     // ─── createAccount ────────────────────────────────────────────────────────
 
-    val createAccount: Http4sRoute = Http4sRoute {
-      case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr =>
-        EndpointHelpers.withUserAndBankAndBody[CreateAccountJSONV220, CreateAccountJSONV220](req) { (user, bank, body, cc) =>
-          for {
-            _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) {
-              isValidID(accountIdStr)
-            }
-            _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bank.bankId.value) }
-            accountId = AccountId(accountIdStr)
-            // An existing ACCOUNT_ID must be refused: creating it again would return the existing account
-            // and make the caller one of its holders.
-            (existingAccount, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, accountId, Some(cc))
-            _ <- code.util.Helper.booleanToFuture(AccountIdAlreadyExists, failCode = 409, cc = Some(cc)) { existingAccount.isEmpty }
-            loggedInUserId = user.userId
-            // Implicit owner resolves to the HUMAN: under a Consent the caller is the
-            // per-consent shadow, and an account held by it strands when the consent dies.
-            userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.onBehalfOfUserId
-            (postedOrLoggedInUser, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
-            // Explicit target: a consent user named in user_id is refused, so no account is held by an agent identity.
-            _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
-              failCode = 400, cc = Some(cc))(!postedOrLoggedInUser.isConsentUser)
-            _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
-                 else code.util.Helper.booleanToFuture(
-                   s"$UserHasMissingRoles $canCreateAccount", failCode = 403, cc = Some(cc)) {
-                   APIUtil.hasEntitlement(bank.bankId.value, loggedInUserId, canCreateAccount)
-                 }
-            _ <- code.util.Helper.booleanToFuture(InitialBalanceMustBeZero, cc = Some(cc)) {
-              BigDecimal(body.balance.amount) == 0
-            }
-            _ <- code.util.Helper.booleanToFuture(InvalidISOCurrencyCode, cc = Some(cc)) {
-              isValidCurrencyISOCode(body.balance.currency)
-            }
-            (bankAccount, _) <- NewStyle.function.createBankAccount(
-              bank.bankId, accountId, body.`type`, body.label,
-              body.balance.currency, BigDecimal(body.balance.amount),
-              postedOrLoggedInUser.name, body.branch_id,
-              List(AccountRouting(body.account_routing.scheme, body.account_routing.address)),
-              Some(cc)
-            )
-            _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bank.bankId, accountId, postedOrLoggedInUser, Some(cc))
-          } yield JSONFactory220.createAccountJSON(userIdAccountOwner, bankAccount)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createAccount: Http4sRoute = Http4sRoute {
+      // case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr =>
+        // EndpointHelpers.withUserAndBankAndBody[CreateAccountJSONV220, CreateAccountJSONV220](req) { (user, bank, body, cc) =>
+          // for {
+            // _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) {
+              // isValidID(accountIdStr)
+            // }
+            // _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bank.bankId.value) }
+            // accountId = AccountId(accountIdStr)
+            // // An existing ACCOUNT_ID must be refused: creating it again would return the existing account
+            // // and make the caller one of its holders.
+            // (existingAccount, _) <- Connector.connector.vend.checkBankAccountExists(bank.bankId, accountId, Some(cc))
+            // _ <- code.util.Helper.booleanToFuture(AccountIdAlreadyExists, failCode = 409, cc = Some(cc)) { existingAccount.isEmpty }
+            // loggedInUserId = user.userId
+            // // Implicit owner resolves to the HUMAN: under a Consent the caller is the
+            // // per-consent shadow, and an account held by it strands when the consent dies.
+            // userIdAccountOwner = if (body.user_id.nonEmpty) body.user_id else cc.onBehalfOfUserId
+            // (postedOrLoggedInUser, _) <- NewStyle.function.findByUserId(userIdAccountOwner, Some(cc))
+            // // Explicit target: a consent user named in user_id is refused, so no account is held by an agent identity.
+            // _ <- code.util.Helper.booleanToFuture(
+              // s"$InvalidUserId user_id names a consent user (an agent identity minted by a Consent). Accounts are held by humans - use the granting user's USER_ID.",
+              // failCode = 400, cc = Some(cc))(!postedOrLoggedInUser.isConsentUser)
+            // _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
+                 // else code.util.Helper.booleanToFuture(
+                   // s"$UserHasMissingRoles $canCreateAccount", failCode = 403, cc = Some(cc)) {
+                   // APIUtil.hasEntitlement(bank.bankId.value, loggedInUserId, canCreateAccount)
+                 // }
+            // _ <- code.util.Helper.booleanToFuture(InitialBalanceMustBeZero, cc = Some(cc)) {
+              // BigDecimal(body.balance.amount) == 0
+            // }
+            // _ <- code.util.Helper.booleanToFuture(InvalidISOCurrencyCode, cc = Some(cc)) {
+              // isValidCurrencyISOCode(body.balance.currency)
+            // }
+            // (bankAccount, _) <- NewStyle.function.createBankAccount(
+              // bank.bankId, accountId, body.`type`, body.label,
+              // body.balance.currency, BigDecimal(body.balance.amount),
+              // postedOrLoggedInUser.name, body.branch_id,
+              // List(AccountRouting(body.account_routing.scheme, body.account_routing.address)),
+              // Some(cc)
+            // )
+            // _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bank.bankId, accountId, postedOrLoggedInUser, Some(cc))
+          // } yield JSONFactory220.createAccountJSON(userIdAccountOwner, bankAccount)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(createAccount), "PUT",
-      "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
-      "Create Account",
-      """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
-      |
-      |
-      |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.
-      |
-      |If USER_ID is not specified the account will be owned by the logged in User.
-      |
-      |The type field should be a product_code from Product.
-      |
-      |Note: The Amount must be zero.""".stripMargin,
-      createAccountJSONV220, createAccountJSONV220,
-      List(InvalidJsonFormat, BankNotFound, AuthenticatedUserIsRequired, InvalidUserId,
-        InvalidAccountIdFormat, InvalidBankIdFormat, UserNotFoundById, UserHasMissingRoles,
-        InvalidAccountBalanceAmount, InvalidAccountInitialBalance, InitialBalanceMustBeZero,
-        InvalidAccountBalanceCurrency, AccountIdAlreadyExists, UnknownError),
-      List(apiTagAccount, apiTagOnboarding),
-      None,
-      http4sPartialFunction = Some(createAccount))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(createAccount), "PUT",
+      // "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
+      // "Create Account",
+      // """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
+      // |
+      // |
+      // |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.
+      // |
+      // |If USER_ID is not specified the account will be owned by the logged in User.
+      // |
+      // |The type field should be a product_code from Product.
+      // |
+      // |Note: The Amount must be zero.""".stripMargin,
+      // createAccountJSONV220, createAccountJSONV220,
+      // List(InvalidJsonFormat, BankNotFound, AuthenticatedUserIsRequired, InvalidUserId,
+        // InvalidAccountIdFormat, InvalidBankIdFormat, UserNotFoundById, UserHasMissingRoles,
+        // InvalidAccountBalanceAmount, InvalidAccountInitialBalance, InitialBalanceMustBeZero,
+        // InvalidAccountBalanceCurrency, AccountIdAlreadyExists, UnknownError),
+      // List(apiTagAccount, apiTagOnboarding),
+      // None,
+      // http4sPartialFunction = Some(createAccount))
 
     // ─── config ───────────────────────────────────────────────────────────────
 
-    val config: Http4sRoute = Http4sRoute {
-      case req @ GET -> `prefixPath` / "config" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, canGetConfig, Some(cc))
-          } yield JSONFactory220.getConfigInfoJSON()
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val config: Http4sRoute = Http4sRoute {
+      // case req @ GET -> `prefixPath` / "config" =>
+        // EndpointHelpers.withUser(req) { (user, cc) =>
+          // for {
+            // _ <- NewStyle.function.hasEntitlement("", user.userId, canGetConfig, Some(cc))
+          // } yield JSONFactory220.getConfigInfoJSON()
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(config), "GET",
-      "/config",
-      "Get API Configuration",
-      """Returns information about:
-      |
-      |* API Config
-      |* Akka ports
-      |* Elastic search ports
-      |* Cached function """,
-      EmptyBody, configurationJSON,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagApi :: Nil,
-      Some(List(canGetConfig)),
-      http4sPartialFunction = Some(config))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(config), "GET",
+      // "/config",
+      // "Get API Configuration",
+      // """Returns information about:
+      // |
+      // |* API Config
+      // |* Akka ports
+      // |* Elastic search ports
+      // |* Cached function """,
+      // EmptyBody, configurationJSON,
+      // List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      // apiTagApi :: Nil,
+      // Some(List(canGetConfig)),
+      // http4sPartialFunction = Some(config))
 
     // ─── getConnectorMetrics ──────────────────────────────────────────────────
 
@@ -844,258 +870,264 @@ object Http4s220 {
 
     // ─── createConsumer ───────────────────────────────────────────────────────
 
-    val createConsumer: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "management" / "consumers" =>
-        EndpointHelpers.withUserAndBodyCreated[ConsumerPostJSON, ConsumerJson](req) { (user, body, cc) =>
-          for {
-            _ <- Future {
-              unboxFullOrFail(
-                NewStyle.function.ownEntitlement("", user.userId, canCreateConsumer, Some(cc)),
-                Some(cc), UserHasMissingRoles + canCreateConsumer)
-            }
-            _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(body.redirect_url, Some(cc))
-            consumer <- Future {
-              Consumers.consumers.vend.createConsumer(
-                Some(generateUUID()), Some(generateUUID()),
-                Some(body.enabled),
-                Some(body.app_name), None,
-                Some(body.description),
-                Some(body.developer_email),
-                Some(body.redirect_url),
-                Some(user.userId),
-                Some(body.clientCertificate),
-                None, None
-              ).getOrElse(throw new RuntimeException(UnknownError))
-            }
-          } yield JSONFactory220.createConsumerJSON(consumer)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createConsumer: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "management" / "consumers" =>
+        // EndpointHelpers.withUserAndBodyCreated[ConsumerPostJSON, ConsumerJson](req) { (user, body, cc) =>
+          // for {
+            // _ <- Future {
+              // unboxFullOrFail(
+                // NewStyle.function.ownEntitlement("", user.userId, canCreateConsumer, Some(cc)),
+                // Some(cc), UserHasMissingRoles + canCreateConsumer)
+            // }
+            // _ <- code.api.util.RedirectUrlValidation.checkRedirectUrls(body.redirect_url, Some(cc))
+            // consumer <- Future {
+              // Consumers.consumers.vend.createConsumer(
+                // Some(generateUUID()), Some(generateUUID()),
+                // Some(body.enabled),
+                // Some(body.app_name), None,
+                // Some(body.description),
+                // Some(body.developer_email),
+                // Some(body.redirect_url),
+                // Some(user.userId),
+                // Some(body.clientCertificate),
+                // None, None
+              // ).getOrElse(throw new RuntimeException(UnknownError))
+            // }
+          // } yield JSONFactory220.createConsumerJSON(consumer)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(createConsumer), "POST",
-      "/management/consumers",
-      "Post a Consumer",
-      s"""Create a Consumer (Authenticated access).
-       |
-      |""",
-      ConsumerPostJSON(
-        "Test",
-        "Test",
-        "Description",
-        "some@email.com",
-        "https://app.example.com/callback",
-        "createdby",
-        true,
-        new Date(),
-        """-----BEGIN CERTIFICATE-----
-          |client_certificate_content
-          |-----END CERTIFICATE-----""".stripMargin
-      ),
-      ConsumerPostJSON(
-        "Some app name",
-        "App type",
-        "Description",
-        "some.email@example.com",
-        "https://app.example.com/callback",
-        "Created by UUID",
-        true,
-        new Date(),
-        """-----BEGIN CERTIFICATE-----
-          |client_certificate_content
-          |-----END CERTIFICATE-----""".stripMargin
-      ),
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
-      List(apiTagConsumer, apiTagOldStyle),
-      Some(List(canCreateConsumer)),
-      http4sPartialFunction = Some(createConsumer))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(createConsumer), "POST",
+      // "/management/consumers",
+      // "Post a Consumer",
+      // s"""Create a Consumer (Authenticated access).
+       // |
+      // |""",
+      // ConsumerPostJSON(
+        // "Test",
+        // "Test",
+        // "Description",
+        // "some@email.com",
+        // "https://app.example.com/callback",
+        // "createdby",
+        // true,
+        // new Date(),
+        // """-----BEGIN CERTIFICATE-----
+          // |client_certificate_content
+          // |-----END CERTIFICATE-----""".stripMargin
+      // ),
+      // ConsumerPostJSON(
+        // "Some app name",
+        // "App type",
+        // "Description",
+        // "some.email@example.com",
+        // "https://app.example.com/callback",
+        // "Created by UUID",
+        // true,
+        // new Date(),
+        // """-----BEGIN CERTIFICATE-----
+          // |client_certificate_content
+          // |-----END CERTIFICATE-----""".stripMargin
+      // ),
+      // List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, InvalidRedirectUrl, RedirectUrlHostNotAllowed, UnknownError),
+      // List(apiTagConsumer, apiTagOldStyle),
+      // Some(List(canCreateConsumer)),
+      // http4sPartialFunction = Some(createConsumer))
 
     // ─── createCounterparty ───────────────────────────────────────────────────
 
-    val createCounterparty: Http4sRoute = Http4sRoute {
-      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" =>
-        EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
-          createCounterpartyImpl(user, account, view, cc.httpBody.getOrElse(""), cc)
-        }
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only OBP versions below v5.1.0 can reach this endpoint. See docs/OLD_VERSION_ONLY_CODE.md.
+    // val createCounterparty: Http4sRoute = Http4sRoute {
+      // case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" =>
+        // EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
+          // createCounterpartyImpl(user, account, view, cc.httpBody.getOrElse(""), cc)
+        // }
+    // }
 
-    resourceDocs += ResourceDoc(
-      implementedInApiVersion, nameOf(createCounterparty), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
-      "Create Counterparty (Explicit)",
-      s"""Create Counterparty (Explicit) for an Account.
-      |
-      |In OBP, there are two types of Counterparty.
-      |
-      |* Explicit Counterparties (those here) which we create explicitly and are used in COUNTERPARTY Transaction Requests
-      |
-      |* Implicit Counterparties (AKA Other Accounts) which are generated automatically from the other sides of Transactions.
-      |
-       |Explicit Counterparties are created for the account / view
-      |They are how the user of the view (e.g. account owner) refers to the other side of the transaction
-      |
-      |name : the human readable name (e.g. Piano teacher, Miss Nipa)
-      |
-      |description : the human readable name (e.g. Piano teacher, Miss Nipa)
-      |
-      |bank_routing_scheme : eg: bankId or bankCode or any other strings
-      |
-      |bank_routing_address : eg: `gh.29.uk`, must be valid sandbox bankIds
-      |
-      |account_routing_scheme : eg: AccountId or AccountNumber or any other strings
-      |
-      |account_routing_address : eg: `1d65db7c-a7b2-4839-af41-95`, must be valid accountIds
-      |
-      |other_account_secondary_routing_scheme : eg: IBan or any other strings
-      |
-      |other_account_secondary_routing_address : if it is an IBAN, it should be unique for each counterparty. 
-      |
-      |other_branch_routing_scheme : eg: branchId or any other strings or you can leave it empty, not useful in sandbox mode.
-      |
-      |other_branch_routing_address : eg: `branch-id-123` or you can leave it empty, not useful in sandbox mode.
-      |
-      |is_beneficiary : must be set to `true` in order to send payments to this counterparty
-      |
-      |bespoke: It supports a list of key-value, you can add it to the counterparty.
-      |
-      |bespoke.key : any info-key you want to add to this counterparty
-      | 
-      |bespoke.value : any info-value you want to add to this counterparty
-      |
-      |The view specified by VIEW_ID must have the canAddCounterparty permission
-      |
-      |A minimal example for TransactionRequestType == COUNTERPARTY
-      | {
-      |  "name": "Tesobe1",
-      |  "description": "Good Company",
-      |  "other_bank_routing_scheme": "OBP",
-      |  "other_bank_routing_address": "gh.29.uk",
-      |  "other_account_routing_scheme": "OBP",
-      |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-      |  "is_beneficiary": true,
-      |  "other_account_secondary_routing_scheme": "",
-      |  "other_account_secondary_routing_address": "",
-      |  "other_branch_routing_scheme": "",
-      |  "other_branch_routing_address": "",
-      |  "bespoke": []
-      |}
-      |
-      | 
-      |A minimal example for TransactionRequestType == SEPA
-      | 
-      | {
-      |  "name": "Tesobe2",
-      |  "description": "Good Company",
-      |  "other_bank_routing_scheme": "OBP",
-      |  "other_bank_routing_address": "gh.29.uk",
-      |  "other_account_routing_scheme": "OBP",
-      |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
-      |  "other_account_secondary_routing_scheme": "IBAN",
-      |  "other_account_secondary_routing_address": "DE89 3704 0044 0532 0130 00",
-      |  "is_beneficiary": true,
-      |  "other_branch_routing_scheme": "",
-      |  "other_branch_routing_address": "",
-      |  "bespoke": []
-      |}
-      |
-      |${userAuthenticationMessage(true)}
-      |
-      |""".stripMargin,
-      postCounterpartyJSON, counterpartyWithMetadataJson,
-      List(AuthenticatedUserIsRequired, InvalidAccountIdFormat, InvalidBankIdFormat, BankNotFound,
-        AccountNotFound, InvalidJsonFormat, ViewNotFound, CounterpartyAlreadyExists, UnknownError),
-      List(apiTagCounterparty, apiTagAccount), None,
-      http4sPartialFunction = Some(createCounterparty))
+    // resourceDocs += ResourceDoc(
+      // implementedInApiVersion, nameOf(createCounterparty), "POST",
+      // "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
+      // "Create Counterparty (Explicit)",
+      // s"""Create Counterparty (Explicit) for an Account.
+      // |
+      // |In OBP, there are two types of Counterparty.
+      // |
+      // |* Explicit Counterparties (those here) which we create explicitly and are used in COUNTERPARTY Transaction Requests
+      // |
+      // |* Implicit Counterparties (AKA Other Accounts) which are generated automatically from the other sides of Transactions.
+      // |
+       // |Explicit Counterparties are created for the account / view
+      // |They are how the user of the view (e.g. account owner) refers to the other side of the transaction
+      // |
+      // |name : the human readable name (e.g. Piano teacher, Miss Nipa)
+      // |
+      // |description : the human readable name (e.g. Piano teacher, Miss Nipa)
+      // |
+      // |bank_routing_scheme : eg: bankId or bankCode or any other strings
+      // |
+      // |bank_routing_address : eg: `gh.29.uk`, must be valid sandbox bankIds
+      // |
+      // |account_routing_scheme : eg: AccountId or AccountNumber or any other strings
+      // |
+      // |account_routing_address : eg: `1d65db7c-a7b2-4839-af41-95`, must be valid accountIds
+      // |
+      // |other_account_secondary_routing_scheme : eg: IBan or any other strings
+      // |
+      // |other_account_secondary_routing_address : if it is an IBAN, it should be unique for each counterparty. 
+      // |
+      // |other_branch_routing_scheme : eg: branchId or any other strings or you can leave it empty, not useful in sandbox mode.
+      // |
+      // |other_branch_routing_address : eg: `branch-id-123` or you can leave it empty, not useful in sandbox mode.
+      // |
+      // |is_beneficiary : must be set to `true` in order to send payments to this counterparty
+      // |
+      // |bespoke: It supports a list of key-value, you can add it to the counterparty.
+      // |
+      // |bespoke.key : any info-key you want to add to this counterparty
+      // | 
+      // |bespoke.value : any info-value you want to add to this counterparty
+      // |
+      // |The view specified by VIEW_ID must have the canAddCounterparty permission
+      // |
+      // |A minimal example for TransactionRequestType == COUNTERPARTY
+      // | {
+      // |  "name": "Tesobe1",
+      // |  "description": "Good Company",
+      // |  "other_bank_routing_scheme": "OBP",
+      // |  "other_bank_routing_address": "gh.29.uk",
+      // |  "other_account_routing_scheme": "OBP",
+      // |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+      // |  "is_beneficiary": true,
+      // |  "other_account_secondary_routing_scheme": "",
+      // |  "other_account_secondary_routing_address": "",
+      // |  "other_branch_routing_scheme": "",
+      // |  "other_branch_routing_address": "",
+      // |  "bespoke": []
+      // |}
+      // |
+      // | 
+      // |A minimal example for TransactionRequestType == SEPA
+      // | 
+      // | {
+      // |  "name": "Tesobe2",
+      // |  "description": "Good Company",
+      // |  "other_bank_routing_scheme": "OBP",
+      // |  "other_bank_routing_address": "gh.29.uk",
+      // |  "other_account_routing_scheme": "OBP",
+      // |  "other_account_routing_address": "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+      // |  "other_account_secondary_routing_scheme": "IBAN",
+      // |  "other_account_secondary_routing_address": "DE89 3704 0044 0532 0130 00",
+      // |  "is_beneficiary": true,
+      // |  "other_branch_routing_scheme": "",
+      // |  "other_branch_routing_address": "",
+      // |  "bespoke": []
+      // |}
+      // |
+      // |${userAuthenticationMessage(true)}
+      // |
+      // |""".stripMargin,
+      // postCounterpartyJSON, counterpartyWithMetadataJson,
+      // List(AuthenticatedUserIsRequired, InvalidAccountIdFormat, InvalidBankIdFormat, BankNotFound,
+        // AccountNotFound, InvalidJsonFormat, ViewNotFound, CounterpartyAlreadyExists, UnknownError),
+      // List(apiTagCounterparty, apiTagAccount), None,
+      // http4sPartialFunction = Some(createCounterparty))
 
-    private def createCounterpartyImpl(
-      user: User, account: BankAccount, view: View, body: String, cc: CallContext
-    ): Future[CounterpartyWithMetadataJson] = {
-      for {
-        _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(account.accountId.value) }
-        _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(account.bankId.value) }
-        postJson <- NewStyle.function.tryons(
-          s"$InvalidJsonFormat The Json body should be the $PostCounterpartyJSON", 400, Some(cc)) {
-          com.openbankproject.commons.util.JsonAliases.parse(body).extract[PostCounterpartyJSON]
-        }
-        _ <- code.util.Helper.booleanToFuture(
-          s"${NoViewPermission} You need the `${CAN_ADD_COUNTERPARTY}` permission on the View(${view.viewId.value})",
-          cc = Some(cc)) {
-          ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_ADD_COUNTERPARTY)
-        }
-        (existingCp, _) <- Connector.connector.vend.checkCounterpartyExists(
-          postJson.name, account.bankId.value, account.accountId.value, view.viewId.value, Some(cc))
-        _ <- code.util.Helper.booleanToFuture(
-          CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
-            s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${account.bankId.value}) and ACCOUNT_ID(${account.accountId.value}) and VIEW_ID(${view.viewId.value})"),
-          cc = Some(cc)) { existingCp.isEmpty }
-        _ <- code.util.Helper.booleanToFuture(
-          s"$InvalidValueLength. The maximum length of `description` field is ${code.metadata.counterparties.MappedCounterparty.mDescription.maxLen}",
-          cc = Some(cc)) { postJson.description.length <= 36 }
-        (_, _) <- if (postJson.other_bank_routing_scheme.equalsIgnoreCase("OBP") && postJson.other_account_routing_scheme.equalsIgnoreCase("OBP"))
-                    for {
-                      (_, c) <- NewStyle.function.getBank(BankId(postJson.other_bank_routing_address), Some(cc))
-                      r      <- NewStyle.function.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address), c)
-                    } yield r
-                  else if (postJson.other_bank_routing_scheme.equalsIgnoreCase("OBP") && postJson.other_account_secondary_routing_scheme.equalsIgnoreCase("OBP"))
-                    for {
-                      (_, c) <- NewStyle.function.getBank(BankId(postJson.other_bank_routing_address), Some(cc))
-                      r      <- NewStyle.function.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_secondary_routing_address), c)
-                    } yield r
-                  else if (postJson.other_bank_routing_scheme.equalsIgnoreCase("ACCOUNT_NUMBER") || postJson.other_bank_routing_scheme.equalsIgnoreCase("ACCOUNT_NO"))
-                    NewStyle.function.getBankAccountByNumber(
-                      if (postJson.other_bank_routing_address.isEmpty) None else Some(BankId(postJson.other_bank_routing_address)),
-                      postJson.other_bank_routing_address, Some(cc))
-                  else Future.successful((Full(()), Some(cc)))
-        otherAccountRoutingScheme = if (postJson.other_account_routing_scheme.equalsIgnoreCase("AccountNo"))
-                                      "ACCOUNT_NUMBER"
-                                    else StringHelpers.snakify(postJson.other_account_routing_scheme).toUpperCase
-        (counterparty, _) <- NewStyle.function.createCounterparty(
-          name                              = postJson.name,
-          description                       = postJson.description,
-          currency                          = "",
-          createdByUserId                   = user.userId,
-          thisBankId                        = account.bankId.value,
-          thisAccountId                     = account.accountId.value,
-          thisViewId                        = view.viewId.value,
-          otherAccountRoutingScheme         = otherAccountRoutingScheme,
-          otherAccountRoutingAddress        = postJson.other_account_routing_address,
-          otherAccountSecondaryRoutingScheme = postJson.other_account_secondary_routing_scheme,
-          otherAccountSecondaryRoutingAddress = postJson.other_account_secondary_routing_address,
-          otherBankRoutingScheme            = postJson.other_bank_routing_scheme,
-          otherBankRoutingAddress           = postJson.other_bank_routing_address,
-          otherBranchRoutingScheme          = postJson.other_branch_routing_scheme,
-          otherBranchRoutingAddress         = postJson.other_branch_routing_address,
-          isBeneficiary                     = postJson.is_beneficiary,
-          bespoke                           = postJson.bespoke.map(b => CounterpartyBespoke(b.key, b.value)),
-          callContext                       = Some(cc)
-        )
-        (counterpartyMetadata, _) <- NewStyle.function.getOrCreateMetadata(
-          account.bankId, account.accountId, counterparty.counterpartyId, postJson.name, Some(cc))
-      } yield JSONFactory220.createCounterpartyWithMetadataJSON(counterparty, counterpartyMetadata)
-    }
+    // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+    // Commented out: only code that OBP versions below v5.1.0 reach used this. See docs/OLD_VERSION_ONLY_CODE.md.
+    // private def createCounterpartyImpl(
+      // user: User, account: BankAccount, view: View, body: String, cc: CallContext
+    // ): Future[CounterpartyWithMetadataJson] = {
+      // for {
+        // _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(account.accountId.value) }
+        // _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(account.bankId.value) }
+        // postJson <- NewStyle.function.tryons(
+          // s"$InvalidJsonFormat The Json body should be the $PostCounterpartyJSON", 400, Some(cc)) {
+          // com.openbankproject.commons.util.JsonAliases.parse(body).extract[PostCounterpartyJSON]
+        // }
+        // _ <- code.util.Helper.booleanToFuture(
+          // s"${NoViewPermission} You need the `${CAN_ADD_COUNTERPARTY}` permission on the View(${view.viewId.value})",
+          // cc = Some(cc)) {
+          // ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_ADD_COUNTERPARTY)
+        // }
+        // (existingCp, _) <- Connector.connector.vend.checkCounterpartyExists(
+          // postJson.name, account.bankId.value, account.accountId.value, view.viewId.value, Some(cc))
+        // _ <- code.util.Helper.booleanToFuture(
+          // CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
+            // s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${account.bankId.value}) and ACCOUNT_ID(${account.accountId.value}) and VIEW_ID(${view.viewId.value})"),
+          // cc = Some(cc)) { existingCp.isEmpty }
+        // _ <- code.util.Helper.booleanToFuture(
+          // s"$InvalidValueLength. The maximum length of `description` field is ${code.metadata.counterparties.MappedCounterparty.mDescription.maxLen}",
+          // cc = Some(cc)) { postJson.description.length <= 36 }
+        // (_, _) <- if (postJson.other_bank_routing_scheme.equalsIgnoreCase("OBP") && postJson.other_account_routing_scheme.equalsIgnoreCase("OBP"))
+                    // for {
+                      // (_, c) <- NewStyle.function.getBank(BankId(postJson.other_bank_routing_address), Some(cc))
+                      // r      <- NewStyle.function.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address), c)
+                    // } yield r
+                  // else if (postJson.other_bank_routing_scheme.equalsIgnoreCase("OBP") && postJson.other_account_secondary_routing_scheme.equalsIgnoreCase("OBP"))
+                    // for {
+                      // (_, c) <- NewStyle.function.getBank(BankId(postJson.other_bank_routing_address), Some(cc))
+                      // r      <- NewStyle.function.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_secondary_routing_address), c)
+                    // } yield r
+                  // else if (postJson.other_bank_routing_scheme.equalsIgnoreCase("ACCOUNT_NUMBER") || postJson.other_bank_routing_scheme.equalsIgnoreCase("ACCOUNT_NO"))
+                    // NewStyle.function.getBankAccountByNumber(
+                      // if (postJson.other_bank_routing_address.isEmpty) None else Some(BankId(postJson.other_bank_routing_address)),
+                      // postJson.other_bank_routing_address, Some(cc))
+                  // else Future.successful((Full(()), Some(cc)))
+        // otherAccountRoutingScheme = if (postJson.other_account_routing_scheme.equalsIgnoreCase("AccountNo"))
+                                      // "ACCOUNT_NUMBER"
+                                    // else StringHelpers.snakify(postJson.other_account_routing_scheme).toUpperCase
+        // (counterparty, _) <- NewStyle.function.createCounterparty(
+          // name                              = postJson.name,
+          // description                       = postJson.description,
+          // currency                          = "",
+          // createdByUserId                   = user.userId,
+          // thisBankId                        = account.bankId.value,
+          // thisAccountId                     = account.accountId.value,
+          // thisViewId                        = view.viewId.value,
+          // otherAccountRoutingScheme         = otherAccountRoutingScheme,
+          // otherAccountRoutingAddress        = postJson.other_account_routing_address,
+          // otherAccountSecondaryRoutingScheme = postJson.other_account_secondary_routing_scheme,
+          // otherAccountSecondaryRoutingAddress = postJson.other_account_secondary_routing_address,
+          // otherBankRoutingScheme            = postJson.other_bank_routing_scheme,
+          // otherBankRoutingAddress           = postJson.other_bank_routing_address,
+          // otherBranchRoutingScheme          = postJson.other_branch_routing_scheme,
+          // otherBranchRoutingAddress         = postJson.other_branch_routing_address,
+          // isBeneficiary                     = postJson.is_beneficiary,
+          // bespoke                           = postJson.bespoke.map(b => CounterpartyBespoke(b.key, b.value)),
+          // callContext                       = Some(cc)
+        // )
+        // (counterpartyMetadata, _) <- NewStyle.function.getOrCreateMetadata(
+          // account.bankId, account.accountId, counterparty.counterpartyId, postJson.name, Some(cc))
+      // } yield JSONFactory220.createCounterpartyWithMetadataJSON(counterparty, counterpartyMetadata)
+    // }
 
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
     // The routes in the order they are tried. ResourceDocMiddleware selects the doc of the first
     // route that serves a request, so it is given the docs in this same order.
     lazy val routesInOrder: List[Http4sHandler] = List(
-      root,
-      getViewsForBankAccount,
-      createViewForBankAccount,
-      updateViewForBankAccount,
+      // root,
+      // getViewsForBankAccount,
+      // createViewForBankAccount,
+      // updateViewForBankAccount,
       getCurrentFxRate,
-      getExplicitCounterpartiesForAccount,
-      getExplicitCounterpartyById,
+      // getExplicitCounterpartiesForAccount,
+      // getExplicitCounterpartyById,
       getMessageDocs,
-      createBank,
-      createBranch,
-      createAtm,
+      // createBank,
+      // createBranch,
+      // createAtm,
       createProduct,
       createFx,
-      createAccount,
-      config,
+      // createAccount,
+      // config,
       getConnectorMetrics,
-      createConsumer,
-      createCounterparty
+      // createConsumer,
+      // createCounterparty
     )
 
     lazy val orderedResourceDocs: ArrayBuffer[ResourceDoc] = ResourceDocMatcher.orderByRoutes(resourceDocs, routesInOrder)

@@ -47,8 +47,8 @@ class AccountTest extends V300ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v3_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_0_0.corePrivateAccountsAllBanks))
-  object ApiEndpoint2 extends Tag(nameOf(Implementations3_0_0.getFirehoseAccountsAtOneBank))
-  object ApiEndpoint3 extends Tag(nameOf(Implementations3_0_0.getCoreAccountById))
+  object ApiEndpoint2 extends Tag("getFirehoseAccountsAtOneBank")
+  object ApiEndpoint3 extends Tag("getCoreAccountById")
   
   // Need test endpoints -- /my/accounts - corePrivateAccountsAllBanks - V300
   def getCorePrivateAccountsAllBanksV300(consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
@@ -70,34 +70,38 @@ class AccountTest extends V300ServerSetup {
     }
   
   }
-  feature("Assuring that entitlement requirements are checked for account(s) related endpoints") {
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature("Assuring that entitlement requirements are checked for account(s) related endpoints") {
 
-    scenario("We try to get firehose accounts without required role " + CanUseAccountFirehoseAtAnyBank, VersionOfApi, ApiEndpoint2){
+    // scenario("We try to get firehose accounts without required role " + CanUseAccountFirehoseAtAnyBank, VersionOfApi, ApiEndpoint2){
 
-      When("We have to find it by endpoint getFirehoseAccountsAtOneBank")
-      val requestGet = (v3_0Request / "banks" / "BANK_ID" / "firehose" / "accounts" / "views" / "VIEW_ID").GET <@ (user1)
-      val responseGet = makeGetRequest(requestGet)
+      // When("We have to find it by endpoint getFirehoseAccountsAtOneBank")
+      // val requestGet = (v3_0Request / "banks" / "BANK_ID" / "firehose" / "accounts" / "views" / "VIEW_ID").GET <@ (user1)
+      // val responseGet = makeGetRequest(requestGet)
 
-      And("We should get a 400")
-      responseGet.code should equal(400)
-      responseGet.body.extract[ErrorMessage].message contains AccountFirehoseNotAllowedOnThisInstance should be (true)
-    }}
+      // And("We should get a 400")
+      // responseGet.code should equal(400)
+      // responseGet.body.extract[ErrorMessage].message contains AccountFirehoseNotAllowedOnThisInstance should be (true)
+    // }}
 
 
-  feature(s"test $ApiEndpoint3") {
-    scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1) {
-      Given("We prepare the accounts in V300ServerSetup, just check the response")
+  // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
+  // Commented out: every scenario here only exercised endpoints that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
+  // feature(s"test $ApiEndpoint3") {
+    // scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1) {
+      // Given("We prepare the accounts in V300ServerSetup, just check the response")
 
-      When("We send the request")
-      val requestGet = (v3_0Request /"my" / "banks" / testBankId1.value/ "accounts" / testAccountId1.value / "account").GET <@ (user1)
-      val httpResponse = makeGetRequest(requestGet)
+      // When("We send the request")
+      // val requestGet = (v3_0Request /"my" / "banks" / testBankId1.value/ "accounts" / testAccountId1.value / "account").GET <@ (user1)
+      // val httpResponse = makeGetRequest(requestGet)
 
-      Then("We should get a 200 and check the response body")
-      httpResponse.code should equal(200)
-      val newModeratedCoreAccountJsonV300 = httpResponse.body.extract[NewModeratedCoreAccountJsonV300]
-      newModeratedCoreAccountJsonV300.views_basic.length >= 1 should be (true)
+      // Then("We should get a 200 and check the response body")
+      // httpResponse.code should equal(200)
+      // val newModeratedCoreAccountJsonV300 = httpResponse.body.extract[NewModeratedCoreAccountJsonV300]
+      // newModeratedCoreAccountJsonV300.views_basic.length >= 1 should be (true)
 
-    }
-  }
+    // }
+  // }
   
   }
