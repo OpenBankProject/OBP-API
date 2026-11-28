@@ -69,6 +69,15 @@ object MigrationOfConsentReferenceIdUuid {
       saveLog(name, commitId, true, startDate, endDate, "H2 detected — fresh schema already has the new column shape; nothing to migrate.")
       return true
     }
+    // A table the changelog built already has the column and its unique index. The steps below are for a
+    // database that predates the column; on SQL Server they would drop that index and enforce uniqueness
+    // with a constraint of another name instead.
+    if (DbFunction.columnExistsByName("mappedconsent", "consent_reference_id") &&
+        DbFunction.indexExistsByName("mappedconsent", "mappedconsent_consent_reference_id")) {
+      val now = System.currentTimeMillis()
+      saveLog(name, APIUtil.gitCommit, true, now, now, "mappedconsent.consent_reference_id and its unique index are already there; nothing to migrate.")
+      return true
+    }
     DbFunction.tableExistsByName("mappedconsent") match {
       case true =>
         val startDate = System.currentTimeMillis()
