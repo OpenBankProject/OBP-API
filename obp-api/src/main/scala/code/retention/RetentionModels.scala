@@ -28,66 +28,155 @@ package code.retention
 
 import java.util.Date
 
-import code.util.MappedUUID
-import net.liftweb.mapper._
+import code.api.util.DoobieUtil
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 
 /*
  * The tables of data retention. See RETENTION_PLAN.md at the repository root for the model.
  *
- * Naming: these are DB entities, so no class starts with `Mapped` and no column object starts with
- * `m` + uppercase (see MappedClassNameTest). None of them adds a column to an existing table.
+ * Each store below replaces the Lift Mapper entity upstream wrote for its table (retentionpolicy,
+ * retentionarchive, retentionarchivecontent, retentionhold, retentionrun, retentionrunitem), and keeps
+ * its behaviour: every column is read through Option, and a NULL comes back as the Mapper field gave
+ * it (a string as null, or as the default its accessor applied; a flag as false; a number as the
+ * field's default). An optional value is still written as the empty string (-1 for ArchiveDays), as
+ * upstream wrote it, so the rows are the same rows.
+ *
+ * Naming: these are DB entities, so no class starts with `Mapped` (see MappedClassNameTest). None of
+ * them adds a column to an existing table.
  */
+
+/** Small helpers the six stores share. */
+private[retention] object RetentionSql {
+  def readDate(value: Option[java.sql.Timestamp]): Date = value.map(t => new Date(t.getTime)).orNull
+  def readOptionalDate(value: Option[java.sql.Timestamp]): Option[Date] = value.map(t => new Date(t.getTime))
+  def ts(date: Date): Option[java.sql.Timestamp] = Option(date).map(d => new java.sql.Timestamp(d.getTime))
+  def where(conditions: List[Fragment]): Fragment =
+    if (conditions.isEmpty) Fragment.empty else fr"WHERE" ++ conditions.reduce((a, b) => a ++ fr"AND" ++ b)
+  def first[A](rows: List[A]): Box[A] = rows.headOption match {
+    case Some(row) => Full(row)
+    case None => Empty
+  }
+}
+
+import code.retention.RetentionSql._
 
 /**
  * One retention policy: how long one kind of resource of one space (a bank, or SYS) stays live, and
  * what happens to it then.
  *
- * ArchiveDays holds -1 when the policy has no archive stage, because Mapper has no nullable int; the
- * readers below turn that back into None.
+ * The archivedays column holds -1 when the policy has no archive stage, as upstream stored it
+ * (Mapper had no nullable int); it is read back as None.
+ *
+ * `id` is -1 on a policy not yet saved, as Mapper's IdPK was.
  */
-class RetentionPolicy extends LongKeyedMapper[RetentionPolicy] with IdPK with CreatedUpdated {
-  def getSingleton = RetentionPolicy
+case class RetentionPolicy(
+  id: Long,
+  retentionPolicyId: String,
+  bankId: String,
+  name: String,
+  description: String,
+  resourceType: String,
+  entityName: Option[String],
+  dateBasis: String,
+  condition: Option[RetentionCondition],
+  retainDays: Int,
+  archiveDays: Option[Int],
+  action: String,
+  cascade: Boolean,
+  requiresApproval: Boolean,
+  enabled: Boolean,
+  createdByUserId: String,
+  createdAt: Date,
+  updatedAt: Date
+)
 
-  object RetentionPolicyId extends MappedUUID(this)
-  object BankId extends MappedString(this, 255)
-  object Name extends MappedString(this, 255)
-  object Description extends MappedText(this)
-  object ResourceType extends MappedString(this, 64)
-  object EntityName extends MappedString(this, 255)
-  object DateBasis extends MappedString(this, 255)
-  object ConditionField extends MappedString(this, 255)
-  object ConditionValue extends MappedString(this, 2000)
-  object RetainDays extends MappedInt(this)
-  object ArchiveDays extends MappedInt(this) {
-    override def defaultValue = -1
+object RetentionPolicy {
+
+  private val selectColumns =
+    fr"""SELECT id, retentionpolicyid, bankid, name, description, resourcetype, entityname, datebasis,
+                conditionfield, conditionvalue, retaindays, archivedays, action, cascade_c, requiresapproval,
+                enabled, createdbyuserid, createdat, updatedat
+         FROM retentionpolicy"""
+
+  private type Row = (Long, Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[Int], Option[Int], Option[String],
+    Option[Boolean], Option[Boolean], Option[Boolean], Option[String], Option[java.sql.Timestamp],
+    Option[java.sql.Timestamp])
+
+  private def fromRow(row: Row): RetentionPolicy = row match {
+    case (id, retentionPolicyId, bankId, name, description, resourceType, entityName, dateBasis, conditionField,
+          conditionValue, retainDays, archiveDays, action, cascade, requiresApproval, enabled, createdByUserId,
+          createdAt, updatedAt) =>
+      RetentionPolicy(id, retentionPolicyId.orNull, bankId.orNull, name.getOrElse(""), description.getOrElse(""),
+        resourceType.orNull, entityName.filter(_.nonEmpty), dateBasis.orNull,
+        conditionField.filter(_.nonEmpty).map(field => RetentionCondition(field, conditionValue.getOrElse(""))),
+        retainDays.getOrElse(0), Some(archiveDays.getOrElse(-1)).filter(_ >= 0), action.orNull,
+        cascade.getOrElse(false), requiresApproval.getOrElse(false), enabled.getOrElse(false),
+        createdByUserId.getOrElse(""), readDate(createdAt), readDate(updatedAt))
   }
-  object Action extends MappedString(this, 32)
-  object Cascade extends MappedBoolean(this)
-  object RequiresApproval extends MappedBoolean(this)
-  object Enabled extends MappedBoolean(this)
-  object CreatedByUserId extends MappedString(this, 255)
 
-  def retentionPolicyId: String = RetentionPolicyId.get
-  def bankId: String = BankId.get
-  def name: String = Option(Name.get).getOrElse("")
-  def description: String = Option(Description.get).getOrElse("")
-  def resourceType: String = ResourceType.get
-  def entityName: Option[String] = Option(EntityName.get).filter(_.nonEmpty)
-  def dateBasis: String = DateBasis.get
-  def condition: Option[RetentionCondition] =
-    Option(ConditionField.get).filter(_.nonEmpty).map(field => RetentionCondition(field, Option(ConditionValue.get).getOrElse("")))
-  def retainDays: Int = RetainDays.get
-  def archiveDays: Option[Int] = Option(ArchiveDays.get).filter(_ >= 0)
-  def action: String = Action.get
-  def cascade: Boolean = Cascade.get
-  def requiresApproval: Boolean = RequiresApproval.get
-  def enabled: Boolean = Enabled.get
-  def createdByUserId: String = Option(CreatedByUserId.get).getOrElse("")
-}
+  private def query(condition: Fragment): List[RetentionPolicy] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
 
-object RetentionPolicy extends RetentionPolicy with LongKeyedMetaMapper[RetentionPolicy] {
-  override def dbIndexes: List[BaseIndex[RetentionPolicy]] =
-    UniqueIndex(RetentionPolicyId) :: Index(BankId) :: super.dbIndexes
+  /** A policy not yet saved, with its id, space and creator set; `save` inserts it. */
+  def newPolicy(retentionPolicyId: String, bankId: String, createdByUserId: String): RetentionPolicy =
+    RetentionPolicy(-1L, retentionPolicyId, bankId, "", "", "", None, "", None, 0, None, "", false, false, false,
+      createdByUserId, null, null)
+
+  /** The policy with this id in this space. An id of another space is not found. */
+  def find(bankId: String, retentionPolicyId: String): Box[RetentionPolicy] =
+    first(query(fr"WHERE bankid = ${Option(bankId)} AND retentionpolicyid = ${Option(retentionPolicyId)} ORDER BY id ASC"))
+
+  /** The policies of a space, oldest first. */
+  def findAllByBankId(bankId: String): List[RetentionPolicy] =
+    query(fr"WHERE bankid = ${Option(bankId)} ORDER BY id ASC")
+
+  def findAllEnabled(): List[RetentionPolicy] =
+    query(fr"WHERE enabled = ${true} ORDER BY id ASC")
+
+  /** The policy with this id, in whichever space it is. */
+  def findAllByRetentionPolicyId(retentionPolicyId: String): List[RetentionPolicy] =
+    query(fr"WHERE retentionpolicyid = ${Option(retentionPolicyId)} ORDER BY id ASC")
+
+  /**
+   * Insert a policy not yet saved, or write every field of a saved one. Both stamp updatedat, and an
+   * insert createdat too, as Mapper's CreatedUpdated did.
+   */
+  def save(p: RetentionPolicy): RetentionPolicy = {
+    val stamp = new Date()
+    if (p.id < 0) {
+      val id = DoobieUtil.runUpdate(
+        sql"""INSERT INTO retentionpolicy (retentionpolicyid, bankid, name, description, resourcetype, entityname,
+                datebasis, conditionfield, conditionvalue, retaindays, archivedays, action, cascade_c,
+                requiresapproval, enabled, createdbyuserid, createdat, updatedat)
+              VALUES (${Option(p.retentionPolicyId)}, ${Option(p.bankId)}, ${Option(p.name)}, ${Option(p.description)},
+                ${Option(p.resourceType)}, ${p.entityName.getOrElse("")}, ${Option(p.dateBasis)},
+                ${p.condition.map(_.field).getOrElse("")}, ${p.condition.map(_.value).getOrElse("")}, ${p.retainDays},
+                ${p.archiveDays.getOrElse(-1)}, ${Option(p.action)}, ${p.cascade}, ${p.requiresApproval}, ${p.enabled},
+                ${Option(p.createdByUserId)}, ${ts(stamp)}, ${ts(stamp)})"""
+          .update.withUniqueGeneratedKeys[Long]("id"))
+      p.copy(id = id, createdAt = stamp, updatedAt = stamp)
+    } else {
+      DoobieUtil.runUpdate(
+        sql"""UPDATE retentionpolicy SET retentionpolicyid = ${Option(p.retentionPolicyId)}, bankid = ${Option(p.bankId)},
+                name = ${Option(p.name)}, description = ${Option(p.description)},
+                resourcetype = ${Option(p.resourceType)}, entityname = ${p.entityName.getOrElse("")},
+                datebasis = ${Option(p.dateBasis)}, conditionfield = ${p.condition.map(_.field).getOrElse("")},
+                conditionvalue = ${p.condition.map(_.value).getOrElse("")}, retaindays = ${p.retainDays},
+                archivedays = ${p.archiveDays.getOrElse(-1)}, action = ${Option(p.action)}, cascade_c = ${p.cascade},
+                requiresapproval = ${p.requiresApproval}, enabled = ${p.enabled},
+                createdbyuserid = ${Option(p.createdByUserId)}, updatedat = ${ts(stamp)}
+              WHERE id = ${p.id}""".update.run)
+      p.copy(updatedAt = stamp)
+    }
+  }
+
+  /** Deletes the one row, by its primary key, as Mapper's delete_! did. */
+  def delete(p: RetentionPolicy): Boolean =
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionpolicy WHERE id = ${p.id}".update.run) > 0
 }
 
 /** A simple condition on a resource: the field `field` must have the value `value`. */
@@ -98,71 +187,159 @@ case class RetentionCondition(field: String, value: String)
  * reachable only through the retention archive endpoints. It stays here until DeleteAfter, and is
  * then deleted. A file's bytes are kept apart, in RetentionArchiveContent, so that listing the
  * archive never loads them.
+ *
+ * `ownerUserId` is the owner of the archived resource, as it was stored on the resource. Copied, never
+ * the caller.
  */
-class RetentionArchive extends LongKeyedMapper[RetentionArchive] with IdPK {
-  def getSingleton = RetentionArchive
+case class RetentionArchive(
+  id: Long,
+  retentionArchiveId: String,
+  retentionPolicyId: Option[String],
+  retentionRunId: String,
+  bankId: String,
+  resourceType: String,
+  resourceId: String,
+  entityName: Option[String],
+  ownerUserId: Option[String],
+  parentResourceType: Option[String],
+  parentResourceId: Option[String],
+  jsonCopy: String,
+  hasContent: Boolean,
+  contentSizeInBytes: Long,
+  archivedAt: Date,
+  deleteAfter: Option[Date]
+)
 
-  object RetentionArchiveId extends MappedUUID(this)
-  object RetentionPolicyId extends MappedString(this, 36)
-  object RetentionRunId extends MappedString(this, 36)
-  object BankId extends MappedString(this, 255)
-  object ResourceType extends MappedString(this, 64)
-  object ResourceId extends MappedString(this, 255)
-  object EntityName extends MappedString(this, 255)
-  /** The owner of the archived resource, as it was stored on the resource. Copied, never the caller. */
-  object OwnerUserId extends MappedString(this, 255)
-  object ParentResourceType extends MappedString(this, 64)
-  object ParentResourceId extends MappedString(this, 255)
-  object JsonCopy extends MappedText(this)
-  object HasContent extends MappedBoolean(this)
-  object ContentSizeInBytes extends MappedLong(this)
-  object ArchivedAt extends MappedDateTime(this)
-  object DeleteAfter extends MappedDateTime(this)
+object RetentionArchive {
 
-  def retentionArchiveId: String = RetentionArchiveId.get
-  def retentionPolicyId: Option[String] = Option(RetentionPolicyId.get).filter(_.nonEmpty)
-  def retentionRunId: String = Option(RetentionRunId.get).getOrElse("")
-  def bankId: String = BankId.get
-  def resourceType: String = ResourceType.get
-  def resourceId: String = ResourceId.get
-  def entityName: Option[String] = Option(EntityName.get).filter(_.nonEmpty)
-  def ownerUserId: Option[String] = Option(OwnerUserId.get).filter(_.nonEmpty)
-  def parentResourceType: Option[String] = Option(ParentResourceType.get).filter(_.nonEmpty)
-  def parentResourceId: Option[String] = Option(ParentResourceId.get).filter(_.nonEmpty)
-  def jsonCopy: String = Option(JsonCopy.get).getOrElse("{}")
-  def hasContent: Boolean = HasContent.get
-  def contentSizeInBytes: Long = ContentSizeInBytes.get
-  def archivedAt: Date = ArchivedAt.get
-  def deleteAfter: Option[Date] = Option(DeleteAfter.get)
-}
+  private val selectColumns =
+    fr"""SELECT id, retentionarchiveid, retentionpolicyid, retentionrunid, bankid, resourcetype, resourceid,
+                entityname, owneruserid, parentresourcetype, parentresourceid, jsoncopy, hascontent,
+                contentsizeinbytes, archivedat, deleteafter
+         FROM retentionarchive"""
 
-object RetentionArchive extends RetentionArchive with LongKeyedMetaMapper[RetentionArchive] {
-  override def dbIndexes: List[BaseIndex[RetentionArchive]] =
-    UniqueIndex(RetentionArchiveId) ::
-    Index(BankId, ResourceType, ResourceId) ::
-    Index(RetentionPolicyId) ::
-    Index(DeleteAfter) ::
-    super.dbIndexes
+  private type Row = (Long, Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[Boolean], Option[Long], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+
+  private def fromRow(row: Row): RetentionArchive = row match {
+    case (id, retentionArchiveId, retentionPolicyId, retentionRunId, bankId, resourceType, resourceId, entityName,
+          ownerUserId, parentResourceType, parentResourceId, jsonCopy, hasContent, contentSizeInBytes, archivedAt,
+          deleteAfter) =>
+      RetentionArchive(id, retentionArchiveId.orNull, retentionPolicyId.filter(_.nonEmpty), retentionRunId.getOrElse(""),
+        bankId.orNull, resourceType.orNull, resourceId.orNull, entityName.filter(_.nonEmpty),
+        ownerUserId.filter(_.nonEmpty), parentResourceType.filter(_.nonEmpty), parentResourceId.filter(_.nonEmpty),
+        jsonCopy.getOrElse("{}"), hasContent.getOrElse(false), contentSizeInBytes.getOrElse(0L), readDate(archivedAt),
+        readOptionalDate(deleteAfter))
+  }
+
+  private def query(condition: Fragment): List[RetentionArchive] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  private def due(now: Date): Fragment = fr"deleteafter <= ${ts(now)}"
+
+  def insert(a: RetentionArchive): RetentionArchive = {
+    val id = DoobieUtil.runUpdate(
+      sql"""INSERT INTO retentionarchive (retentionarchiveid, retentionpolicyid, retentionrunid, bankid, resourcetype,
+              resourceid, entityname, owneruserid, parentresourcetype, parentresourceid, jsoncopy, hascontent,
+              contentsizeinbytes, archivedat, deleteafter)
+            VALUES (${Option(a.retentionArchiveId)}, ${a.retentionPolicyId.getOrElse("")}, ${Option(a.retentionRunId)},
+              ${Option(a.bankId)}, ${Option(a.resourceType)}, ${Option(a.resourceId)}, ${a.entityName.getOrElse("")},
+              ${a.ownerUserId.getOrElse("")}, ${a.parentResourceType.getOrElse("")}, ${a.parentResourceId.getOrElse("")},
+              ${Option(a.jsonCopy)}, ${a.hasContent}, ${a.contentSizeInBytes}, ${ts(a.archivedAt)},
+              ${a.deleteAfter.flatMap(ts)})"""
+        .update.withUniqueGeneratedKeys[Long]("id"))
+    a.copy(id = id)
+  }
+
+  /** The entry with this id in this space. An id of another space is not found. */
+  def find(bankId: String, retentionArchiveId: String): Box[RetentionArchive] =
+    first(query(fr"WHERE bankid = ${Option(bankId)} AND retentionarchiveid = ${Option(retentionArchiveId)} ORDER BY id ASC"))
+
+  /** One page of a space's archive, newest first; each filter given matches its column exactly. */
+  def findPage(bankId: String, resourceType: Option[String], resourceId: Option[String], entityName: Option[String],
+               ownerUserId: Option[String], retentionPolicyId: Option[String], retentionRunId: Option[String],
+               limit: Int, offset: Int): List[RetentionArchive] =
+    query(where(List(
+      Some(fr"bankid = ${Option(bankId)}"),
+      resourceType.map(v => fr"resourcetype = ${Option(v)}"),
+      resourceId.map(v => fr"resourceid = ${Option(v)}"),
+      entityName.map(v => fr"entityname = ${Option(v)}"),
+      ownerUserId.map(v => fr"owneruserid = ${Option(v)}"),
+      retentionPolicyId.map(v => fr"retentionpolicyid = ${Option(v)}"),
+      retentionRunId.map(v => fr"retentionrunid = ${Option(v)}")
+    ).flatten) ++ fr"ORDER BY id DESC" ++ DoobieUtil.pagination(limit, offset))
+
+  /** How many entries this policy archived whose archive period has ended by `now`. */
+  def countDueOfPolicy(retentionPolicyId: String, now: Date): Long =
+    DoobieUtil.runQuery((fr"SELECT COUNT(*) FROM retentionarchive" ++
+      where(List(fr"retentionpolicyid = ${Option(retentionPolicyId)}", due(now)))).query[Long].unique)
+
+  /** Up to `limit` entries this policy archived whose archive period has ended, the earliest due first. */
+  def findDueOfPolicy(retentionPolicyId: String, now: Date, limit: Int): List[RetentionArchive] =
+    query(where(List(fr"retentionpolicyid = ${Option(retentionPolicyId)}", due(now))) ++
+      fr"ORDER BY deleteafter ASC, id ASC" ++ DoobieUtil.pagination(limit, 0))
+
+  /** Up to `limit` entries of a space whose archive period has ended, the earliest due first. */
+  def findDueOfBank(bankId: String, now: Date, limit: Int): List[RetentionArchive] =
+    query(where(List(fr"bankid = ${Option(bankId)}", due(now))) ++
+      fr"ORDER BY deleteafter ASC, id ASC" ++ DoobieUtil.pagination(limit, 0))
+
+  /** The spaces of up to `limit` entries whose archive period has ended, each space once. */
+  def findDueBankIds(now: Date, limit: Int): List[String] =
+    DoobieUtil.runQuery((fr"SELECT bankid FROM retentionarchive" ++ where(List(due(now))) ++
+      fr"ORDER BY id ASC" ++ DoobieUtil.pagination(limit, 0)).query[Option[String]].to[List]).map(_.orNull).distinct
+
+  def countAll(): Long =
+    DoobieUtil.runQuery(sql"SELECT COUNT(*) FROM retentionarchive".query[Long].unique)
+
+  def countByBankId(bankId: String): Long =
+    DoobieUtil.runQuery(sql"SELECT COUNT(*) FROM retentionarchive WHERE bankid = ${Option(bankId)}".query[Long].unique)
+
+  def countByRetentionPolicyId(retentionPolicyId: String): Long =
+    DoobieUtil.runQuery(
+      sql"SELECT COUNT(*) FROM retentionarchive WHERE retentionpolicyid = ${Option(retentionPolicyId)}".query[Long].unique)
+
+  /** Deletes the one row, by its primary key, as Mapper's delete_! did. */
+  def delete(a: RetentionArchive): Boolean =
+    DoobieUtil.runUpdate(sql"DELETE FROM retentionarchive WHERE id = ${a.id}".update.run) > 0
 }
 
 /**
  * The bytes of an archived file, one row per RetentionArchive row that has content. They are kept
- * Base64 encoded in a text column rather than in a MappedBinary: Lift maps a binary column to a
- * one-byte BINARY on H2, which the test databases use, while a text column holds any size on every
- * database OBP supports.
+ * Base64 encoded in a text column rather than in a binary one, as upstream chose: Lift maps a binary
+ * column to a one-byte BINARY on H2, which the test databases use, while a text column holds any size
+ * on every database OBP supports.
  */
-class RetentionArchiveContent extends LongKeyedMapper[RetentionArchiveContent] with IdPK {
-  def getSingleton = RetentionArchiveContent
-
-  object RetentionArchiveId extends MappedString(this, 36)
-  object ContentBase64 extends MappedText(this)
-
+case class RetentionArchiveContent(id: Long, retentionArchiveId: String, contentBase64: String) {
   def content: Option[Array[Byte]] =
-    Option(ContentBase64.get).flatMap(text => scala.util.Try(java.util.Base64.getDecoder.decode(text)).toOption)
+    Option(contentBase64).flatMap(text => scala.util.Try(java.util.Base64.getDecoder.decode(text)).toOption)
 }
 
-object RetentionArchiveContent extends RetentionArchiveContent with LongKeyedMetaMapper[RetentionArchiveContent] {
-  override def dbIndexes: List[BaseIndex[RetentionArchiveContent]] = UniqueIndex(RetentionArchiveId) :: super.dbIndexes
+object RetentionArchiveContent {
+
+  def insert(retentionArchiveId: String, bytes: Array[Byte]): RetentionArchiveContent = {
+    val base64 = java.util.Base64.getEncoder.encodeToString(bytes)
+    val id = DoobieUtil.runUpdate(
+      sql"""INSERT INTO retentionarchivecontent (retentionarchiveid, contentbase64)
+            VALUES (${Option(retentionArchiveId)}, ${Option(base64)})"""
+        .update.withUniqueGeneratedKeys[Long]("id"))
+    RetentionArchiveContent(id, retentionArchiveId, base64)
+  }
+
+  def findByRetentionArchiveId(retentionArchiveId: String): Box[RetentionArchiveContent] =
+    first(DoobieUtil.runQuery(
+      sql"""SELECT id, retentionarchiveid, contentbase64 FROM retentionarchivecontent
+            WHERE retentionarchiveid = ${Option(retentionArchiveId)} ORDER BY id ASC"""
+        .query[(Long, Option[String], Option[String])].to[List])
+      .map { case (id, archiveId, content) => RetentionArchiveContent(id, archiveId.orNull, content.orNull) })
+
+  /** Always true, like Mapper's bulkDelete_!!. */
+  def deleteByRetentionArchiveId(retentionArchiveId: String): Boolean = {
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM retentionarchivecontent WHERE retentionarchiveid = ${Option(retentionArchiveId)}".update.run)
+    true
+  }
 }
 
 /**
@@ -170,124 +347,266 @@ object RetentionArchiveContent extends RetentionArchiveContent with LongKeyedMet
  * deletes what it names. It names either one resource (ResourceId), or, for dynamic entity records,
  * every record of one dynamic entity of the space (EntityName with no ResourceId).
  */
-class RetentionHold extends LongKeyedMapper[RetentionHold] with IdPK {
-  def getSingleton = RetentionHold
-
-  object RetentionHoldId extends MappedUUID(this)
-  object BankId extends MappedString(this, 255)
-  object ResourceType extends MappedString(this, 64)
-  object ResourceId extends MappedString(this, 255)
-  object EntityName extends MappedString(this, 255)
-  object Reason extends MappedText(this)
-  object PlacedByUserId extends MappedString(this, 255)
-  object PlacedAt extends MappedDateTime(this)
-  object ReleasedByUserId extends MappedString(this, 255)
-  object ReleasedAt extends MappedDateTime(this)
-
-  def retentionHoldId: String = RetentionHoldId.get
-  def bankId: String = BankId.get
-  def resourceType: String = ResourceType.get
-  def resourceId: Option[String] = Option(ResourceId.get).filter(_.nonEmpty)
-  def entityName: Option[String] = Option(EntityName.get).filter(_.nonEmpty)
-  def reason: String = Option(Reason.get).getOrElse("")
-  def placedByUserId: String = Option(PlacedByUserId.get).getOrElse("")
-  def placedAt: Date = PlacedAt.get
-  def releasedByUserId: Option[String] = Option(ReleasedByUserId.get).filter(_.nonEmpty)
-  def releasedAt: Option[Date] = Option(ReleasedAt.get)
+case class RetentionHold(
+  id: Long,
+  retentionHoldId: String,
+  bankId: String,
+  resourceType: String,
+  resourceId: Option[String],
+  entityName: Option[String],
+  reason: String,
+  placedByUserId: String,
+  placedAt: Date,
+  releasedByUserId: Option[String],
+  releasedAt: Option[Date]
+) {
   def isActive: Boolean = releasedAt.isEmpty
 }
 
-object RetentionHold extends RetentionHold with LongKeyedMetaMapper[RetentionHold] {
-  override def dbIndexes: List[BaseIndex[RetentionHold]] =
-    UniqueIndex(RetentionHoldId) :: Index(BankId, ResourceType) :: super.dbIndexes
+object RetentionHold {
+
+  private val selectColumns =
+    fr"""SELECT id, retentionholdid, bankid, resourcetype, resourceid, entityname, reason, placedbyuserid, placedat,
+                releasedbyuserid, releasedat
+         FROM retentionhold"""
+
+  private type Row = (Long, Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[java.sql.Timestamp], Option[String], Option[java.sql.Timestamp])
+
+  private def fromRow(row: Row): RetentionHold = row match {
+    case (id, retentionHoldId, bankId, resourceType, resourceId, entityName, reason, placedByUserId, placedAt,
+          releasedByUserId, releasedAt) =>
+      RetentionHold(id, retentionHoldId.orNull, bankId.orNull, resourceType.orNull, resourceId.filter(_.nonEmpty),
+        entityName.filter(_.nonEmpty), reason.getOrElse(""), placedByUserId.getOrElse(""), readDate(placedAt),
+        releasedByUserId.filter(_.nonEmpty), readOptionalDate(releasedAt))
+  }
+
+  private def query(condition: Fragment): List[RetentionHold] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  def insert(h: RetentionHold): RetentionHold = {
+    val id = DoobieUtil.runUpdate(
+      sql"""INSERT INTO retentionhold (retentionholdid, bankid, resourcetype, resourceid, entityname, reason,
+              placedbyuserid, placedat, releasedbyuserid, releasedat)
+            VALUES (${Option(h.retentionHoldId)}, ${Option(h.bankId)}, ${Option(h.resourceType)},
+              ${h.resourceId.getOrElse("")}, ${h.entityName.getOrElse("")}, ${Option(h.reason)},
+              ${Option(h.placedByUserId)}, ${ts(h.placedAt)}, ${h.releasedByUserId.getOrElse("")},
+              ${h.releasedAt.flatMap(ts)})"""
+        .update.withUniqueGeneratedKeys[Long]("id"))
+    h.copy(id = id)
+  }
+
+  /** The hold with this id in this space. An id of another space is not found. */
+  def find(bankId: String, retentionHoldId: String): Box[RetentionHold] =
+    first(query(fr"WHERE bankid = ${Option(bankId)} AND retentionholdid = ${Option(retentionHoldId)} ORDER BY id ASC"))
+
+  /** The holds of a space that have not been released. */
+  def findAllActive(bankId: String): List[RetentionHold] =
+    query(fr"WHERE bankid = ${Option(bankId)} AND releasedat IS NULL ORDER BY id ASC")
+
+  /** One page of a space's holds, newest first, released ones included unless `isActive` says otherwise. */
+  def findPage(bankId: String, resourceType: Option[String], resourceId: Option[String], isActive: Option[Boolean],
+               limit: Int, offset: Int): List[RetentionHold] =
+    query(where(List(
+      Some(fr"bankid = ${Option(bankId)}"),
+      resourceType.map(v => fr"resourcetype = ${Option(v)}"),
+      resourceId.map(v => fr"resourceid = ${Option(v)}"),
+      isActive.map(active => if (active) fr"releasedat IS NULL" else fr"releasedat IS NOT NULL")
+    ).flatten) ++ fr"ORDER BY id DESC" ++ DoobieUtil.pagination(limit, offset))
+
+  /** Release the hold: it is kept, with who released it and when. */
+  def release(h: RetentionHold, releasedByUserId: String, releasedAt: Date): RetentionHold = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE retentionhold SET releasedbyuserid = ${Option(releasedByUserId)}, releasedat = ${ts(releasedAt)}
+            WHERE id = ${h.id}""".update.run)
+    h.copy(releasedByUserId = Option(releasedByUserId).filter(_.nonEmpty), releasedAt = Option(releasedAt))
+  }
 }
 
 /**
  * One run of a policy: a preview (counts only) or an execution. An execution of a policy that
  * requires approval starts as pending and runs when a second, different user approves it.
+ *
+ * `id` is -1 on a run not yet inserted, as Mapper's IdPK was.
  */
-class RetentionRun extends LongKeyedMapper[RetentionRun] with IdPK {
-  def getSingleton = RetentionRun
+case class RetentionRun(
+  id: Long,
+  retentionRunId: String,
+  retentionPolicyId: Option[String],
+  bankId: String,
+  mode: String,
+  status: String,
+  requestedByUserId: String,
+  approvedByUserId: Option[String],
+  approvalDecision: Option[String],
+  approvalComment: Option[String],
+  matchedCount: Int,
+  archivedCount: Int,
+  anonymisedCount: Int,
+  deletedCount: Int,
+  heldCount: Int,
+  failedCount: Int,
+  requestedAt: Date,
+  startedAt: Option[Date],
+  endedAt: Option[Date],
+  message: String
+)
 
-  object RetentionRunId extends MappedUUID(this)
-  object RetentionPolicyId extends MappedString(this, 36)
-  object BankId extends MappedString(this, 255)
-  object Mode extends MappedString(this, 16)
-  object Status extends MappedString(this, 16)
-  object RequestedByUserId extends MappedString(this, 255)
-  object ApprovedByUserId extends MappedString(this, 255)
-  object ApprovalDecision extends MappedString(this, 16)
-  object ApprovalComment extends MappedText(this)
-  object MatchedCount extends MappedInt(this)
-  object ArchivedCount extends MappedInt(this)
-  object AnonymisedCount extends MappedInt(this)
-  object DeletedCount extends MappedInt(this)
-  object HeldCount extends MappedInt(this)
-  object FailedCount extends MappedInt(this)
-  object RequestedAt extends MappedDateTime(this)
-  object StartedAt extends MappedDateTime(this)
-  object EndedAt extends MappedDateTime(this)
-  object Message extends MappedText(this)
+object RetentionRun {
 
-  def retentionRunId: String = RetentionRunId.get
-  def retentionPolicyId: Option[String] = Option(RetentionPolicyId.get).filter(_.nonEmpty)
-  def bankId: String = BankId.get
-  def mode: String = Mode.get
-  def status: String = Status.get
-  def requestedByUserId: String = Option(RequestedByUserId.get).getOrElse("")
-  def approvedByUserId: Option[String] = Option(ApprovedByUserId.get).filter(_.nonEmpty)
-  def approvalDecision: Option[String] = Option(ApprovalDecision.get).filter(_.nonEmpty)
-  def approvalComment: Option[String] = Option(ApprovalComment.get).filter(_.nonEmpty)
-  def requestedAt: Date = RequestedAt.get
-  def startedAt: Option[Date] = Option(StartedAt.get)
-  def endedAt: Option[Date] = Option(EndedAt.get)
-  def message: String = Option(Message.get).getOrElse("")
-}
+  private val selectColumns =
+    fr"""SELECT id, retentionrunid, retentionpolicyid, bankid, mode_c, status, requestedbyuserid, approvedbyuserid,
+                approvaldecision, approvalcomment, matchedcount, archivedcount, anonymisedcount, deletedcount,
+                heldcount, failedcount, requestedat, startedat, endedat, message
+         FROM retentionrun"""
 
-object RetentionRun extends RetentionRun with LongKeyedMetaMapper[RetentionRun] {
-  override def dbIndexes: List[BaseIndex[RetentionRun]] =
-    UniqueIndex(RetentionRunId) :: Index(BankId, RequestedAt) :: Index(RetentionPolicyId, Status) :: super.dbIndexes
+  private type Row = (Long, Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[Int], Option[Int], Option[Int],
+    Option[Int], Option[Int], Option[Int], Option[java.sql.Timestamp], Option[java.sql.Timestamp],
+    Option[java.sql.Timestamp], Option[String])
+
+  private def fromRow(row: Row): RetentionRun = row match {
+    case (id, retentionRunId, retentionPolicyId, bankId, mode, status, requestedByUserId, approvedByUserId,
+          approvalDecision, approvalComment, matchedCount, archivedCount, anonymisedCount, deletedCount, heldCount,
+          failedCount, requestedAt, startedAt, endedAt, message) =>
+      RetentionRun(id, retentionRunId.orNull, retentionPolicyId.filter(_.nonEmpty), bankId.orNull, mode.orNull,
+        status.orNull, requestedByUserId.getOrElse(""), approvedByUserId.filter(_.nonEmpty),
+        approvalDecision.filter(_.nonEmpty), approvalComment.filter(_.nonEmpty), matchedCount.getOrElse(0),
+        archivedCount.getOrElse(0), anonymisedCount.getOrElse(0), deletedCount.getOrElse(0), heldCount.getOrElse(0),
+        failedCount.getOrElse(0), readDate(requestedAt), readOptionalDate(startedAt), readOptionalDate(endedAt),
+        message.getOrElse(""))
+  }
+
+  private def query(condition: Fragment): List[RetentionRun] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  def insert(r: RetentionRun): RetentionRun = {
+    val id = DoobieUtil.runUpdate(
+      sql"""INSERT INTO retentionrun (retentionrunid, retentionpolicyid, bankid, mode_c, status, requestedbyuserid,
+              approvedbyuserid, approvaldecision, approvalcomment, matchedcount, archivedcount, anonymisedcount,
+              deletedcount, heldcount, failedcount, requestedat, startedat, endedat, message)
+            VALUES (${Option(r.retentionRunId)}, ${r.retentionPolicyId.getOrElse("")}, ${Option(r.bankId)},
+              ${Option(r.mode)}, ${Option(r.status)}, ${Option(r.requestedByUserId)}, ${r.approvedByUserId.getOrElse("")},
+              ${r.approvalDecision.getOrElse("")}, ${r.approvalComment.getOrElse("")}, ${r.matchedCount},
+              ${r.archivedCount}, ${r.anonymisedCount}, ${r.deletedCount}, ${r.heldCount}, ${r.failedCount},
+              ${ts(r.requestedAt)}, ${r.startedAt.flatMap(ts)}, ${r.endedAt.flatMap(ts)}, ${Option(r.message)})"""
+        .update.withUniqueGeneratedKeys[Long]("id"))
+    r.copy(id = id)
+  }
+
+  /** Write every field of a run already inserted. */
+  def save(r: RetentionRun): RetentionRun = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE retentionrun SET retentionrunid = ${Option(r.retentionRunId)},
+              retentionpolicyid = ${r.retentionPolicyId.getOrElse("")}, bankid = ${Option(r.bankId)},
+              mode_c = ${Option(r.mode)}, status = ${Option(r.status)},
+              requestedbyuserid = ${Option(r.requestedByUserId)}, approvedbyuserid = ${r.approvedByUserId.getOrElse("")},
+              approvaldecision = ${r.approvalDecision.getOrElse("")}, approvalcomment = ${r.approvalComment.getOrElse("")},
+              matchedcount = ${r.matchedCount}, archivedcount = ${r.archivedCount},
+              anonymisedcount = ${r.anonymisedCount}, deletedcount = ${r.deletedCount}, heldcount = ${r.heldCount},
+              failedcount = ${r.failedCount}, requestedat = ${ts(r.requestedAt)}, startedat = ${r.startedAt.flatMap(ts)},
+              endedat = ${r.endedAt.flatMap(ts)}, message = ${Option(r.message)}
+            WHERE id = ${r.id}""".update.run)
+    r
+  }
+
+  /** The run with this id in this space. An id of another space is not found. */
+  def find(bankId: String, retentionRunId: String): Box[RetentionRun] =
+    first(query(fr"WHERE bankid = ${Option(bankId)} AND retentionrunid = ${Option(retentionRunId)} ORDER BY id ASC"))
+
+  /** One page of a space's runs, newest first. */
+  def findPage(bankId: String, retentionPolicyId: Option[String], status: Option[String], limit: Int,
+               offset: Int): List[RetentionRun] =
+    query(where(List(
+      Some(fr"bankid = ${Option(bankId)}"),
+      retentionPolicyId.map(v => fr"retentionpolicyid = ${Option(v)}"),
+      status.map(v => fr"status = ${Option(v)}")
+    ).flatten) ++ fr"ORDER BY id DESC" ++ DoobieUtil.pagination(limit, offset))
+
+  def findAllByRetentionPolicyId(retentionPolicyId: String): List[RetentionRun] =
+    query(fr"WHERE retentionpolicyid = ${Option(retentionPolicyId)} ORDER BY id ASC")
+
+  def findAllByRetentionPolicyIdAndStatus(retentionPolicyId: String, status: String): List[RetentionRun] =
+    query(fr"WHERE retentionpolicyid = ${Option(retentionPolicyId)} AND status = ${Option(status)} ORDER BY id ASC")
+
+  def existsByRetentionPolicyIdAndStatus(retentionPolicyId: String, status: String): Boolean =
+    DoobieUtil.runQuery(
+      sql"""SELECT COUNT(*) FROM retentionrun
+            WHERE retentionpolicyid = ${Option(retentionPolicyId)} AND status = ${Option(status)}"""
+        .query[Long].unique) > 0
+
+  /** Is there a run of this policy with this status that started after `startedAfter`? */
+  def existsStartedAfter(retentionPolicyId: String, status: String, startedAfter: Date): Boolean =
+    DoobieUtil.runQuery(
+      sql"""SELECT COUNT(*) FROM retentionrun
+            WHERE retentionpolicyid = ${Option(retentionPolicyId)} AND status = ${Option(status)}
+              AND startedat > ${ts(startedAfter)}"""
+        .query[Long].unique) > 0
+
+  def countByBankId(bankId: String): Long =
+    DoobieUtil.runQuery(sql"SELECT COUNT(*) FROM retentionrun WHERE bankid = ${Option(bankId)}".query[Long].unique)
 }
 
 /**
  * The disposal register: one row per resource a run archived, anonymised or deleted, and per
  * archived resource later deleted from the archive. It holds identifiers only, never content, so it
  * can be kept after the resource itself is gone.
+ *
+ * `ownerUserId` is the owner of the disposed resource, as it was stored on the resource. Copied, never
+ * the caller.
  */
-class RetentionRunItem extends LongKeyedMapper[RetentionRunItem] with IdPK {
-  def getSingleton = RetentionRunItem
+case class RetentionRunItem(
+  id: Long,
+  retentionRunItemId: String,
+  retentionRunId: String,
+  retentionPolicyId: Option[String],
+  bankId: String,
+  resourceType: String,
+  resourceId: String,
+  entityName: Option[String],
+  ownerUserId: Option[String],
+  action: String,
+  parentResourceType: Option[String],
+  parentResourceId: Option[String],
+  retentionArchiveId: Option[String],
+  disposedAt: Date
+)
 
-  object RetentionRunItemId extends MappedUUID(this)
-  object RetentionRunId extends MappedString(this, 36)
-  object RetentionPolicyId extends MappedString(this, 36)
-  object BankId extends MappedString(this, 255)
-  object ResourceType extends MappedString(this, 64)
-  object ResourceId extends MappedString(this, 255)
-  object EntityName extends MappedString(this, 255)
-  /** The owner of the disposed resource, as it was stored on the resource. Copied, never the caller. */
-  object OwnerUserId extends MappedString(this, 255)
-  object Action extends MappedString(this, 32)
-  object ParentResourceType extends MappedString(this, 64)
-  object ParentResourceId extends MappedString(this, 255)
-  object RetentionArchiveId extends MappedString(this, 36)
-  object DisposedAt extends MappedDateTime(this)
+object RetentionRunItem {
 
-  def retentionRunItemId: String = RetentionRunItemId.get
-  def retentionRunId: String = RetentionRunId.get
-  def retentionPolicyId: Option[String] = Option(RetentionPolicyId.get).filter(_.nonEmpty)
-  def bankId: String = BankId.get
-  def resourceType: String = ResourceType.get
-  def resourceId: String = ResourceId.get
-  def entityName: Option[String] = Option(EntityName.get).filter(_.nonEmpty)
-  def ownerUserId: Option[String] = Option(OwnerUserId.get).filter(_.nonEmpty)
-  def action: String = Action.get
-  def parentResourceType: Option[String] = Option(ParentResourceType.get).filter(_.nonEmpty)
-  def parentResourceId: Option[String] = Option(ParentResourceId.get).filter(_.nonEmpty)
-  def retentionArchiveId: Option[String] = Option(RetentionArchiveId.get).filter(_.nonEmpty)
-  def disposedAt: Date = DisposedAt.get
-}
+  private val selectColumns =
+    fr"""SELECT id, retentionrunitemid, retentionrunid, retentionpolicyid, bankid, resourcetype, resourceid,
+                entityname, owneruserid, action, parentresourcetype, parentresourceid, retentionarchiveid, disposedat
+         FROM retentionrunitem"""
 
-object RetentionRunItem extends RetentionRunItem with LongKeyedMetaMapper[RetentionRunItem] {
-  override def dbIndexes: List[BaseIndex[RetentionRunItem]] =
-    UniqueIndex(RetentionRunItemId) :: Index(RetentionRunId) :: Index(BankId, ResourceType, ResourceId) :: super.dbIndexes
+  private type Row = (Long, Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[java.sql.Timestamp])
+
+  private def fromRow(row: Row): RetentionRunItem = row match {
+    case (id, retentionRunItemId, retentionRunId, retentionPolicyId, bankId, resourceType, resourceId, entityName,
+          ownerUserId, action, parentResourceType, parentResourceId, retentionArchiveId, disposedAt) =>
+      RetentionRunItem(id, retentionRunItemId.orNull, retentionRunId.orNull, retentionPolicyId.filter(_.nonEmpty),
+        bankId.orNull, resourceType.orNull, resourceId.orNull, entityName.filter(_.nonEmpty),
+        ownerUserId.filter(_.nonEmpty), action.orNull, parentResourceType.filter(_.nonEmpty),
+        parentResourceId.filter(_.nonEmpty), retentionArchiveId.filter(_.nonEmpty), readDate(disposedAt))
+  }
+
+  def insert(i: RetentionRunItem): RetentionRunItem = {
+    val id = DoobieUtil.runUpdate(
+      sql"""INSERT INTO retentionrunitem (retentionrunitemid, retentionrunid, retentionpolicyid, bankid, resourcetype,
+              resourceid, entityname, owneruserid, action, parentresourcetype, parentresourceid, retentionarchiveid,
+              disposedat)
+            VALUES (${Option(i.retentionRunItemId)}, ${Option(i.retentionRunId)}, ${i.retentionPolicyId.getOrElse("")},
+              ${Option(i.bankId)}, ${Option(i.resourceType)}, ${Option(i.resourceId)}, ${i.entityName.getOrElse("")},
+              ${i.ownerUserId.getOrElse("")}, ${Option(i.action)}, ${i.parentResourceType.getOrElse("")},
+              ${i.parentResourceId.getOrElse("")}, ${i.retentionArchiveId.getOrElse("")}, ${ts(i.disposedAt)})"""
+        .update.withUniqueGeneratedKeys[Long]("id"))
+    i.copy(id = id)
+  }
+
+  /** One page of one run's register, in the order the resources were disposed of. */
+  def findPageByRetentionRunId(retentionRunId: String, limit: Int, offset: Int): List[RetentionRunItem] =
+    DoobieUtil.runQuery((selectColumns ++ fr"WHERE retentionrunid = ${Option(retentionRunId)} ORDER BY id ASC" ++
+      DoobieUtil.pagination(limit, offset)).query[Row].to[List]).map(fromRow)
 }

@@ -34,9 +34,11 @@ import com.openbankproject.commons.util.ApiShortVersions
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.JsonAST.JObject
 import org.http4s._
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
+import org.scalatest.{GivenWhenThen, Tag}
 
 import scala.collection.mutable.ArrayBuffer
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Unit tests for ResourceDocMatcher's path parameter extraction and CallContext wiring.
@@ -45,7 +47,7 @@ import scala.collection.mutable.ArrayBuffer
  * ResourceDocRealCatalogSelectionTest); once the doc is known, the middleware reads BANK_ID, ACCOUNT_ID,
  * VIEW_ID and COUNTERPARTY_ID from the positions the doc's template gives them.
  */
-class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThen {
+class ResourceDocMatcherTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
   
   object ResourceDocMatcherTag extends Tag("ResourceDocMatcher")
   private val v700 = ApiShortVersions.`v7.0.0`.toString
@@ -72,16 +74,16 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     )
   }
   
-  feature("ResourceDocMatcher - path parameter extraction") {
+  Feature("ResourceDocMatcher - path parameter extraction") {
 
-    scenario("BANK_ID is read from its position", ResourceDocMatcherTag) {
+    Scenario("BANK_ID is read from its position", ResourceDocMatcherTag) {
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/accounts", "getAccounts")
       val params = ResourceDocMatcher.extractPathParams(Uri.Path.unsafeFromString(s"$base/banks/gh.29.uk/accounts"), resourceDoc)
 
       params should equal(Map("BANK_ID" -> "gh.29.uk"))
     }
 
-    scenario("BANK_ID and ACCOUNT_ID are read from their positions", ResourceDocMatcherTag) {
+    Scenario("BANK_ID and ACCOUNT_ID are read from their positions", ResourceDocMatcherTag) {
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/account", "getAccount")
       val params = ResourceDocMatcher.extractPathParams(
         Uri.Path.unsafeFromString(s"$base/banks/gh.29.uk/accounts/8ca8a7e4/account"), resourceDoc)
@@ -89,7 +91,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       params should equal(Map("BANK_ID" -> "gh.29.uk", "ACCOUNT_ID" -> "8ca8a7e4"))
     }
 
-    scenario("VIEW_ID is read wherever the template puts it", ResourceDocMatcherTag) {
+    Scenario("VIEW_ID is read wherever the template puts it", ResourceDocMatcherTag) {
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions", "getTransactions")
       val params = ResourceDocMatcher.extractPathParams(
         Uri.Path.unsafeFromString(s"$base/banks/gh.29.uk/accounts/8ca8a7e4/owner/transactions"), resourceDoc)
@@ -97,7 +99,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       params should equal(Map("BANK_ID" -> "gh.29.uk", "ACCOUNT_ID" -> "8ca8a7e4", "VIEW_ID" -> "owner"))
     }
 
-    scenario("COUNTERPARTY_ID is read from its position", ResourceDocMatcherTag) {
+    Scenario("COUNTERPARTY_ID is read from its position", ResourceDocMatcherTag) {
       val resourceDoc = createResourceDoc(
         "GET", "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID", "getCounterparty")
       val params = ResourceDocMatcher.extractPathParams(
@@ -106,7 +108,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       params.get("COUNTERPARTY_ID") should be(Some("cp1"))
     }
 
-    scenario("Any other capitalised word in a template is documentation, not a parameter", ResourceDocMatcherTag) {
+    Scenario("Any other capitalised word in a template is documentation, not a parameter", ResourceDocMatcherTag) {
       val resourceDoc = createResourceDoc(
         "POST", "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/SEPA/transaction-requests", "createTransactionRequestSepa")
       val params = ResourceDocMatcher.extractPathParams(
@@ -116,9 +118,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     }
   }
 
-  feature("ResourceDocMatcher - Path parameter extraction edge cases") {
+  Feature("ResourceDocMatcher - Path parameter extraction edge cases") {
     
-    scenario("Extract parameters from path with no variables", ResourceDocMatcherTag) {
+    Scenario("Extract parameters from path with no variables", ResourceDocMatcherTag) {
       Given("A ResourceDoc with no path variables")
       val resourceDoc = createResourceDoc("GET", "/banks", "getBanks")
       
@@ -130,7 +132,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       params should be(empty)
     }
     
-    scenario("Extract parameters with special characters in values", ResourceDocMatcherTag) {
+    Scenario("Extract parameters with special characters in values", ResourceDocMatcherTag) {
       Given("A ResourceDoc with BANK_ID")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID", "getBank")
       
@@ -143,7 +145,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       params("BANK_ID") should equal("gh.29.de-test_bank")
     }
     
-    scenario("Return empty map when path doesn't match template", ResourceDocMatcherTag) {
+    Scenario("Return empty map when path doesn't match template", ResourceDocMatcherTag) {
       Given("A ResourceDoc for /banks/BANK_ID")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID", "getBank")
       
@@ -156,9 +158,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     }
   }
   
-  feature("ResourceDocMatcher - attachToCallContext") {
+  Feature("ResourceDocMatcher - attachToCallContext") {
     
-    scenario("Attach ResourceDoc to CallContext", ResourceDocMatcherTag) {
+    Scenario("Attach ResourceDoc to CallContext", ResourceDocMatcherTag) {
       Given("A CallContext and a matched ResourceDoc")
       val resourceDoc = createResourceDoc("GET", "/banks", "getBanks")
       val callContext = code.api.util.CallContext(
@@ -173,7 +175,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       updatedContext.resourceDocument.get should equal(resourceDoc)
     }
     
-    scenario("Attach ResourceDoc sets operationId", ResourceDocMatcherTag) {
+    Scenario("Attach ResourceDoc sets operationId", ResourceDocMatcherTag) {
       Given("A CallContext and a matched ResourceDoc")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID", "getBank")
       val callContext = code.api.util.CallContext(
@@ -188,7 +190,7 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       updatedContext.operationId.get should equal(resourceDoc.operationId)
     }
     
-    scenario("Preserve other CallContext fields when attaching ResourceDoc", ResourceDocMatcherTag) {
+    Scenario("Preserve other CallContext fields when attaching ResourceDoc", ResourceDocMatcherTag) {
       Given("A CallContext with existing fields")
       val resourceDoc = createResourceDoc("GET", "/banks", "getBanks")
       val originalContext = code.api.util.CallContext(
@@ -209,9 +211,9 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     }
   }
   
-  feature("ResourceDocMatcher - path parameters of a path with an empty segment") {
+  Feature("ResourceDocMatcher - path parameters of a path with an empty segment") {
 
-    scenario("An empty segment is read by position, so the parameters of the other segments keep their place", ResourceDocMatcherTag) {
+    Scenario("An empty segment is read by position, so the parameters of the other segments keep their place", ResourceDocMatcherTag) {
       Given("a doc with a placeholder between BANK_ID and ACCOUNT_ID, and a request that leaves the placeholder empty")
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/api-products/API_PRODUCT_CODE/accounts/ACCOUNT_ID", "getProductAccount")
       val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.uk/api-products//accounts/8ca8a7e4")
@@ -223,21 +225,21 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
       params should equal(Map("BANK_ID" -> "gh.29.uk", "ACCOUNT_ID" -> "8ca8a7e4"))
     }
 
-    scenario("An empty BANK_ID segment is an empty BANK_ID, not a missing one", ResourceDocMatcherTag) {
+    Scenario("An empty BANK_ID segment is an empty BANK_ID, not a missing one", ResourceDocMatcherTag) {
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/accounts", "getAccounts")
       val path = Uri.Path.unsafeFromString(s"$base/banks//accounts")
 
       ResourceDocMatcher.extractPathParams(path, resourceDoc).get("BANK_ID") should be(Some(""))
     }
 
-    scenario("A path whose segment count differs from the template still yields nothing", ResourceDocMatcherTag) {
+    Scenario("A path whose segment count differs from the template still yields nothing", ResourceDocMatcherTag) {
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID/accounts", "getAccounts")
       val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.uk/accounts/extra")
 
       ResourceDocMatcher.extractPathParams(path, resourceDoc) should be(Map.empty)
     }
 
-    scenario("A trailing slash does not change the parameters of the doc it was matched with", ResourceDocMatcherTag) {
+    Scenario("A trailing slash does not change the parameters of the doc it was matched with", ResourceDocMatcherTag) {
       val resourceDoc = createResourceDoc("GET", "/banks/BANK_ID", "getBank")
       val path = Uri.Path.unsafeFromString(s"$base/banks/gh.29.uk/")
 

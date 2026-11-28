@@ -12,7 +12,7 @@ import org.scalatest.{BeforeAndAfterAll, Suite}
 trait RestoresSeededAssetRegistry extends BeforeAndAfterAll { this: Suite =>
   override def afterAll(): Unit = {
     try {
-      Asset.bulkDelete_!!()
+      Asset.deleteAll()
       AssetSeed.run()
       AssetLookup.invalidate()
     } finally super.afterAll()

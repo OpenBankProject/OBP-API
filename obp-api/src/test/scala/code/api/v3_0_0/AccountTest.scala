@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_0_0
 
 import com.openbankproject.commons.model.ErrorMessage
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanUseAccountFirehoseAtAnyBank
 import com.openbankproject.commons.util.ApiVersion
@@ -56,8 +57,8 @@ class AccountTest extends V300ServerSetup {
     makeGetRequest(request)
   }
   
-  feature("/my/accounts - corePrivateAccountsAllBanks -V300") {
-    scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1) {
+  Feature("/my/accounts - corePrivateAccountsAllBanks -V300") {
+    Scenario("prepare all the need parameters", VersionOfApi, ApiEndpoint1) {
       Given("We prepare the accounts in V300ServerSetup, just check the response")
       
       When("We send the request")

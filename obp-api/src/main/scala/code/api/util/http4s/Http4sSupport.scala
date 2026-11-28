@@ -207,7 +207,7 @@ object Http4sRequestAttributes {
     // Not fired as a background fiber: response waits for metric to be written,
     // matching v6 behaviour and avoiding unbounded concurrent H2 write contention.
     private def recordMetric(responseBody: Any, response: Response[IO])(implicit cc: CallContext): IO[Unit] =
-      IO(WriteMetricUtil.recordConsumerLastCall(cc.consumer.map(_.consumerId.get).toOption, cc.startTime)) >>
+      IO(WriteMetricUtil.recordConsumerLastCall(cc.consumer.map(_.consumerId).toOption, cc.startTime)) >>
       (if (!code.metrics.MetricsProps.writeMetrics) IO.unit
       else IO.blocking {
         val endTime = new Date()
@@ -227,7 +227,7 @@ object Http4sRequestAttributes {
      */
     def recordMetricFor(response: Response[IO])(implicit cc: CallContext): IO[Response[IO]] =
       if (!code.metrics.MetricsProps.writeMetrics)
-        IO(WriteMetricUtil.recordConsumerLastCall(cc.consumer.map(_.consumerId.get).toOption, cc.startTime)).as(response)
+        IO(WriteMetricUtil.recordConsumerLastCall(cc.consumer.map(_.consumerId).toOption, cc.startTime)).as(response)
       else response.bodyText.compile.string.flatMap { text =>
         val body: Any = scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(text)).getOrElse(text)
         recordMetric(body, response)

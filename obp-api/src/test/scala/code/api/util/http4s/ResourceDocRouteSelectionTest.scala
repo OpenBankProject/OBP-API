@@ -35,7 +35,9 @@ import com.openbankproject.commons.util.ApiVersion
 import org.http4s._
 import org.http4s.dsl.io._
 import org.json4s.JsonAST.JObject
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
+import org.scalatest.{GivenWhenThen, Tag}
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -46,7 +48,7 @@ import scala.collection.mutable.ArrayBuffer
  * the request, not by matching the request URL against the doc's template. The doc that is
  * selected is therefore always the doc of the route that will run.
  */
-class ResourceDocRouteSelectionTest extends FeatureSpec with Matchers with GivenWhenThen {
+class ResourceDocRouteSelectionTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   object ResourceDocRouteSelectionTag extends Tag("ResourceDocRouteSelection")
 

@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
 */
 package code.api.v6_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetAnyUser
 import code.api.util.ErrorMessages.UserHasMissingRoles
@@ -53,7 +54,7 @@ class UserLookupApplicationAccessTest extends V600ServerSetup {
 
   /** Runs `f` while testConsumer2 (application2's Consumer) holds the Scope CanGetAnyUser. */
   private def withScope(f: => Unit): Unit = {
-    val scope = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, CanGetAnyUser.toString)
+    val scope = Scope.scope.vend.addScope("", testConsumer2.id.toString, CanGetAnyUser.toString)
     try f finally Scope.scope.vend.deleteScope(scope)
   }
 
@@ -80,7 +81,7 @@ class UserLookupApplicationAccessTest extends V600ServerSetup {
     scenario("an application whose Consumer is not a Platform App does not get its Scope", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       withScope {
         makeGetRequest(byUserId <@ (application2)).code should equal(200) // fixtures mark it as a Platform App
-        val consumerId = testConsumer2.consumerId.get
+        val consumerId = testConsumer2.consumerId
         code.platformapp.PlatformApps.platformAppProvider.vend.deletePlatformApp(consumerId)
         try {
           // The token itself, without application2, which would mark the Consumer again

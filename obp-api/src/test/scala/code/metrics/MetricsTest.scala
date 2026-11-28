@@ -90,9 +90,9 @@ class MetricsTest extends ServerSetup with WipeMetrics {
     date1.compareTo(date2) should equal(0)
   }
 
-  feature("API Metrics") {
+  Feature("API Metrics") {
 
-    scenario("We save a new API metric") {
+    Scenario("We save a new API metric") {
       metrics.saveMetric(testUserId,testUrl1, day1, -1L, testUserName, testAppName,
                          testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
                          testVersion, testVerb, None, getCorrelationId(), testResponseBody, testSourceIp , testTargetIp, testForwardedFor, testApiInstanceId, null, null, null, null)
@@ -106,11 +106,11 @@ class MetricsTest extends ServerSetup with WipeMetrics {
       metricsForUrl.size should equal(1)
 
       val metric = metricsForUrl(0)
-      shouldBeEqual(metric.getDate, day1)
+      shouldBeEqual(metric.getDate(), day1)
       metric.getUrl() should equal(testUrl1)
     }
 
-    scenario("The source address and the hops are stored and read back") {
+    Scenario("The source address and the hops are stored and read back") {
       metrics.saveMetric(testUserId, testUrl1, day1, -1L, testUserName, testAppName,
                          testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
                          testVersion, testVerb, None, getCorrelationId(), testResponseBody, "203.0.113.9", testTargetIp, testForwardedFor, testApiInstanceId, null, null, null, null)
@@ -121,7 +121,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
       metric.getForwardedFor() should equal(testForwardedFor)
     }
 
-    scenario("A value longer than its column is cut to fit, so it does not lose the other metrics of the flush") {
+    Scenario("A value longer than its column is cut to fit, so it does not lose the other metrics of the flush") {
       // A caller can send any X-Forwarded-For or X-Forwarded-Host. Before values were cut to fit,
       // one such value failed the whole batch insert and every metric in the flush was lost.
       val longChain = List.fill(100)("198.51.100.42").mkString(", ")
@@ -136,12 +136,12 @@ class MetricsTest extends ServerSetup with WipeMetrics {
 
       val byUrl = metrics.getAllMetrics(List(OBPLimit(limit4))).groupBy(_.getUrl())
       byUrl.keys.size should equal(2)
-      byUrl(testUrl1).head.getForwardedFor() should equal(longChain.take(MappedMetric.forwardedFor.maxLen))
-      byUrl(testUrl1).head.getTargetIp() should equal(longHost.take(MappedMetric.targetIp.maxLen))
+      byUrl(testUrl1).head.getForwardedFor() should equal(longChain.take(code.metrics.MetricColumnWidths.forwardedFor))
+      byUrl(testUrl1).head.getTargetIp() should equal(longHost.take(code.metrics.MetricColumnWidths.targetIp))
       byUrl(testUrl2).head.getForwardedFor() should equal(testForwardedFor)
     }
 
-    scenario("Group all metrics by url") {
+    Scenario("Group all metrics by url") {
       metrics.saveMetric(testUserId, testUrl1, day1, -1L, testUserName, testAppName,
                          testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
                          testVersion, testVerb, None, getCorrelationId(), testResponseBody, testSourceIp , testTargetIp, testForwardedFor, testApiInstanceId, null, null, null, null)
@@ -171,7 +171,7 @@ class MetricsTest extends ServerSetup with WipeMetrics {
       url2Metrics.count(m => dateEqual(m.getDate(), day2)) should equal(1)
     }
 
-    scenario("Group all metrics by day") {
+    Scenario("Group all metrics by day") {
       metrics.saveMetric(testUserId, testUrl1, day1, -1L, testUserName, testAppName,
                          testDeveloperEmail, testConsumerId, testImplementedByPartialFunction,
                          testVersion, testVerb, None, getCorrelationId(), testResponseBody, testSourceIp , testTargetIp, testForwardedFor, testApiInstanceId, null, null, null, null)

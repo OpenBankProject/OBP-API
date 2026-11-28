@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v6_0_0
 
+import org.json4s.jvalue2monadic
 import code.DynamicData.{DynamicDataAccessProvider, DynamicDataProvider}
 import code.api.dynamic.entity.helper.DynamicEntitySpace
 import code.api.dynamic.entity.projection.{IndexingCapabilities, ProjectionProvisioner}
@@ -78,7 +79,7 @@ class DynamicEntityJoinPlanIntegrationTest extends V600ServerSetup {
   /** The parent entity's shared records, ordered by `name` so assertions can be positional. */
   private def page(entity: String): List[JObject] =
     DynamicDataProvider.connectorMethodProvider.vend.getAllDataJson(None, entity, None, isPersonalEntity = false)
-      .sortBy(r => (r \ "name").values.toString)
+      .sortBy(r => (r \ "name").values.toString: String)
 
   private def column(records: List[JObject], field: String): List[JValue] = records.map(_ \ field)
 

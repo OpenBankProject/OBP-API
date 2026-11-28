@@ -8,7 +8,6 @@ import code.api.util.ErrorMessages.DynamicResourceDocUrlAmbiguous
 import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityProvider}
 import code.dynamicResourceDoc.{DynamicResourceDoc, DynamicResourceDocProvider}
 import net.liftweb.common.Full
-import net.liftweb.mapper.By
 import code.entitlement.Entitlement
 import com.openbankproject.commons.model.ErrorMessage
 import net.liftweb.util.StringHelpers
@@ -108,8 +107,10 @@ class DynamicResourceDocSpaceUrlTest extends V400ServerSetup {
       create(Some(bankB)) shouldBe true
 
       Then("a system level doc is stored with the SYS bank id, not NULL, and reads back as the system space")
-      val stored = DynamicResourceDoc.findAll(By(DynamicResourceDoc.RequestUrl, url), By(DynamicResourceDoc.RequestVerb, "GET"))
-      stored.map(_.BankId.get).sorted shouldBe List(bankA, "SYS").sorted
+      import doobie.implicits._
+      val stored = code.api.util.DoobieUtil.runQuery(
+        sql"SELECT bankid FROM dynamicresourcedoc WHERE requesturl = $url AND requestverb = 'GET'".query[String].to[List])
+      stored.sorted shouldBe List(bankA, "SYS").sorted
       DynamicResourceDocProvider.provider.vend.getByVerbAndUrl(None, "GET", url).map(_.bankId) shouldBe Full(None)
 
       And("so the database itself refuses a second system level doc at the same verb and URL")

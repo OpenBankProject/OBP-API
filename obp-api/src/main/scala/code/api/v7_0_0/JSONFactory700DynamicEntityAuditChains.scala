@@ -122,21 +122,21 @@ object JSONFactory700DynamicEntityAuditChains {
     )
 
   def createEntryJson(entry: DynamicEntityAuditEntry): DynamicEntityAuditEntryJsonV700 = {
-    val dataJson = Option(entry.DataJson.get)
+    val dataJson = entry.dataJson
     DynamicEntityAuditEntryJsonV700(
-      sequence = entry.Sequence.get,
-      operation = entry.Operation.get,
-      record_id = Option(entry.RecordId.get).getOrElse(""),
-      owner_user_id = Option(entry.OwnerUserId.get).getOrElse(""),
+      sequence = entry.sequence,
+      operation = entry.operation,
+      record_id = Option(entry.recordId).getOrElse(""),
+      owner_user_id = Option(entry.ownerUserId).getOrElse(""),
       data = dataJson.flatMap(text => Try(JsonAliases.parse(text)).toOption),
-      data_hash = Option(entry.DataHash.get).getOrElse(""),
+      data_hash = Option(entry.dataHash).getOrElse(""),
       data_json = dataJson,
-      user_id = Option(entry.UserId.get).getOrElse(""),
-      on_behalf_of_user_id = Option(entry.OnBehalfOfUserId.get).getOrElse(""),
-      recorded_at = new Date(entry.RecordedAtMillis.get),
-      recorded_at_epoch_millis = entry.RecordedAtMillis.get,
-      previous_hash = entry.PreviousHash.get,
-      hash = entry.Hash.get
+      user_id = Option(entry.userId).getOrElse(""),
+      on_behalf_of_user_id = Option(entry.onBehalfOfUserId).getOrElse(""),
+      recorded_at = new Date(entry.recordedAtMillis),
+      recorded_at_epoch_millis = entry.recordedAtMillis,
+      previous_hash = entry.previousHash,
+      hash = entry.hash
     )
   }
 

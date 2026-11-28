@@ -35,10 +35,12 @@ import doobie.implicits._
  */
 case class AccountAccessWithViewRow(
   accountAccessId: Long,
-  bankId: String,
-  accountId: String,
-  viewId: String,
-  consumerId: String,
+  // Nullable columns of accountaccess, read through Option so one legacy row cannot fail the whole
+  // query; the accessors below hand back null for a missing value, as the Mapper reader did.
+  bankIdOption: Option[String],
+  accountIdOption: Option[String],
+  viewIdOption: Option[String],
+  consumerIdOption: Option[String],
   userId: String,
   username: String,
   email: Option[String],
@@ -50,7 +52,12 @@ case class AccountAccessWithViewRow(
   isSystem: Boolean,
   isPublic: Boolean,
   isFirehose: Boolean
-)
+) {
+  def bankId: String = bankIdOption.orNull
+  def accountId: String = accountIdOption.orNull
+  def viewId: String = viewIdOption.orNull
+  def consumerId: String = consumerIdOption.orNull
+}
 
 /**
  * Doobie queries that read account access together with its user and view definition.

@@ -50,7 +50,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
      super.afterAll()
    }
 
-  feature("Assuring that endpoint getEntitlements works as expected - v2.0.0") {
+  Feature("Assuring that endpoint getEntitlements works as expected - v2.0.0") {
 
     // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
@@ -89,7 +89,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       // responseGet.code should equal(200)
     // }
 
-    scenario("We try to delete some entitlement - deleteEntitlement") {
+    Scenario("We try to delete some entitlement - deleteEntitlement") {
       When("We add required entitlement")
       val ent = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAnyUser.toString).openOrThrowException(attemptedToOpenAnEmptyBox)
       And(weMakeTheRequest)
@@ -101,7 +101,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       responseDelete.code should equal(204)
     }
 
-    scenario("We try to create entitlement - addEntitlement-canCreateEntitlementAtOneBank") {
+    Scenario("We try to create entitlement - addEntitlement-canCreateEntitlementAtOneBank") {
       val requestBody = SwaggerDefinitionsJSON.createEntitlementJSON
       And(weMakeTheRequest)
       val requestPost = (v2_0Request / "users" / resourceUser1.userId / "entitlements").POST <@ (user1)
@@ -128,7 +128,7 @@ class EntitlementTests extends V200ServerSetup with DefaultUsers {
       responsePost3.body.extract[EntitlementJSON].bank_id should equal(testBankId1.value) 
     }
 
-    scenario("We try to create entitlement - addEntitlement-canCreateEntitlementAtAnyBank") {
+    Scenario("We try to create entitlement - addEntitlement-canCreateEntitlementAtAnyBank") {
       val requestBody = SwaggerDefinitionsJSON.createEntitlementJSON.copy(bank_id = testBankId1.value)
       And(weMakeTheRequest)
       val requestPost = (v2_0Request / "users" / resourceUser1.userId / "entitlements").POST <@ (user1)

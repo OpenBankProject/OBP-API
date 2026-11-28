@@ -97,8 +97,8 @@ class OAuth2UserResolutionTest extends ServerSetup with DefaultUsers {
 
     scenario("a person who signed up with the client id as username does not become the app's user") {
       val clientId = freshClientId()
-      AuthUser.create.email(s"$clientId@example.com").username(clientId).password(TestPasswordConfig.VALID_PASSWORD)
-        .validated(true).firstName("x").lastName("y").saveMe()
+      AuthUser(email = s"$clientId@example.com", username = clientId, validated = true, firstName = "x", lastName = "y")
+        .withPassword(TestPasswordConfig.VALID_PASSWORD).saveMe()
       val person = Users.users.vend.getUserByProviderId(local, clientId).openOrThrowException("sign-up made no user")
       val user = resolve(appToken(clientId))
       user.userId should not equal person.userId

@@ -27,19 +27,21 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v4_0_0
 
+import org.json4s.jvalue2monadic
+import org.json4s.jvalue2extractable
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ErrorMessages._
 import code.api.util.migration.MigrationOfAccountNumbers
 import code.api.v3_1_0.CreateAccountResponseJsonV310
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, DoobieBankAccountRoutingQueries}
 import code.entitlement.Entitlement
-import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
+import code.model.dataAccess.MappedBankAccount
 import code.setup.DefaultUsers
 import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, ErrorMessage}
+import doobie.implicits._
 import net.liftweb.common.Full
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
@@ -76,8 +78,8 @@ class AccountNumberAssignmentTest extends V400ServerSetup with DefaultUsers {
     account.account_routings.filter(r => code.api.util.RoutingRules.isAccountNumberScheme(r.scheme))
 
   private def numberFieldOf(accountId: String): String =
-    MappedBankAccount.find(By(MappedBankAccount.bank, testBankId1.value), By(MappedBankAccount.theAccountId, accountId))
-      .map(_.accountNumber.get).openOr("")
+    MappedBankAccount.find(testBankId1.value, accountId)
+      .map(_.accountNumber).openOr("")
 
   private def findByNumber(scheme: String, number: String) =
     Connector.connector.vend.getBankAccountByRoutingLegacy(Some(testBankId1), scheme, number, None).map(_._1.accountId.value)
@@ -188,11 +190,11 @@ class AccountNumberAssignmentTest extends V400ServerSetup with DefaultUsers {
 
     def storedAccount(number: String) = {
       val account = createAccountRelevantResource(Some(resourceUser1), testBankId1, AccountId("acc-" + randomString(8).toLowerCase), "EUR")
-      MappedBankAccount.find(By(MappedBankAccount.bank, testBankId1.value), By(MappedBankAccount.theAccountId, account.accountId.value))
-        .openOrThrowException("account not stored").accountNumber(number).saveMe()
+      MappedBankAccount.update(testBankId1.value, account.accountId.value, List(fr"accountnumber = ${Option(number)}"))
+        .openOrThrowException("account not stored")
     }
     def storeRouting(accountId: String, scheme: String, address: String) =
-      BankAccountRouting.create.BankId(testBankId1.value).AccountId(accountId).AccountRoutingScheme(scheme).AccountRoutingAddress(address).saveMe()
+      DoobieBankAccountRoutingQueries.create(testBankId1, AccountId(accountId), scheme, address)
 
     scenario("The routing's number is copied into the account number field where they differ, and nowhere else", AccountNumbers) {
       val differing = storedAccount("4831907265"); val routed = newNumber()

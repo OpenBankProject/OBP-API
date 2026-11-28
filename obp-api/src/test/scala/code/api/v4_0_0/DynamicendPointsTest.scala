@@ -71,9 +71,9 @@ class DynamicEndpointsTest extends V400ServerSetup {
 
   val postDynamicEndpointSwagger = ExampleValue.dynamicEndpointSwagger
 
-  feature(s"test $ApiEndpoint9, $ApiEndpoint10, $ApiEndpoint11, $ApiEndpoint12 version $VersionOfApi") {
+  Feature(s"test $ApiEndpoint9, $ApiEndpoint10, $ApiEndpoint11, $ApiEndpoint12 version $VersionOfApi") {
 
-    scenario(s"If we create one entity for system, we should not allow to create the bank level as the same entity," +
+    Scenario(s"If we create one entity for system, we should not allow to create the bank level as the same entity," +
       s" otherwise it will break the roles", ApiEndpoint1,ApiEndpoint9, VersionOfApi) {
       When("We make a request v4.0.0")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateDynamicEndpoint.toString)
@@ -93,7 +93,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
 //      responseWithRole.body.toString contains(DynamicEndpointExists) should be (true)
     }
 
-    scenario(s"added the test case api-with-examples.json", ApiEndpoint1,VersionOfApi) {
+    Scenario(s"added the test case api-with-examples.json", ApiEndpoint1,VersionOfApi) {
 //      https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/api-with-examples.json
       val openApi301= """{
                         |  "openapi": "3.0.0",
@@ -275,7 +275,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       
     }
 
-    scenario(s"added the test case callback-example.json", ApiEndpoint1,VersionOfApi) {
+    Scenario(s"added the test case callback-example.json", ApiEndpoint1,VersionOfApi) {
       // https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/callback-example.json
       val openApi301= """{
                         |  "openapi": "3.0.0",
@@ -375,7 +375,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       
     }
 
-    scenario(s"added the test case link-example.json", ApiEndpoint1,VersionOfApi) {
+    Scenario(s"added the test case link-example.json", ApiEndpoint1,VersionOfApi) {
       // https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/link-example.json
       val openApi301= """{
                         |  "openapi": "3.0.0",
@@ -714,7 +714,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       
     }
 
-    scenario(s"added the test case petstore-expanded.json", ApiEndpoint1,VersionOfApi) {
+    Scenario(s"added the test case petstore-expanded.json", ApiEndpoint1,VersionOfApi) {
       // https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/petstore-expanded.json
       val openApi301= """{
                         |  "openapi": "3.0.0",
@@ -972,7 +972,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       
     }
 
-    scenario(s"added the test case petstore.json", ApiEndpoint1,VersionOfApi) {
+    Scenario(s"added the test case petstore.json", ApiEndpoint1,VersionOfApi) {
       // https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/petstore.json
       val openApi301= """{
                         |  "openapi": "3.0.0",
@@ -1165,7 +1165,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       
     }
 
-    scenario(s"added the test case uspto.json", ApiEndpoint1,VersionOfApi) {
+    Scenario(s"added the test case uspto.json", ApiEndpoint1,VersionOfApi) {
       //      https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/uspto.json
       val openApi301= """{
                         |  "openapi": "3.0.1",
@@ -1433,7 +1433,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       
     }
 
-    scenario(s"$ApiEndpoint9 $ApiEndpoint10 $ApiEndpoint11 $ApiEndpoint12 test the bank level role", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"$ApiEndpoint9 $ApiEndpoint10 $ApiEndpoint11 $ApiEndpoint12 test the bank level role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, canCreateBankLevelDynamicEndpoint.toString)
       val request = (v4_0_0_Request / "management" /"banks"/testBankId1.value/ "dynamic-endpoints").POST<@ (user1)
@@ -1498,7 +1498,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       
     }
   
-    scenario(s"$ApiEndpoint9 test the bank level role", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"$ApiEndpoint9 test the bank level role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, canCreateBankLevelDynamicEndpoint.toString)
       val request = (v4_0_0_Request / "management" /"banks"/testBankId1.value/ "dynamic-endpoints").POST<@ (user1)
@@ -1538,7 +1538,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
 
     }
 
-    scenario(s" $ApiEndpoint9 the the system level role", ApiEndpoint1, VersionOfApi) {
+    Scenario(s" $ApiEndpoint9 the the system level role", ApiEndpoint1, VersionOfApi) {
       Then("We grant the role to the user1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateDynamicEndpoint.toString)
       When("We make a request v4.0.0")
@@ -1566,8 +1566,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
   }
   
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
 
       When("We make a request v4.0.0")
@@ -1579,8 +1579,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access- missing role") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access- missing role") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
 
       When("We make a request v4.0.0")
@@ -1592,8 +1592,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access - with role - should be success!") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access - with role - should be success!") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
 
@@ -1615,8 +1615,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "dynamic-endpoints").GET
       val response400 = makeGetRequest(request400)
@@ -1626,8 +1626,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access- missing role") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access- missing role") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "dynamic-endpoints").GET<@ (user1)
       val response = makeGetRequest(request)
@@ -1637,8 +1637,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - should be success!") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - should be success!") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
 
@@ -1675,8 +1675,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "dynamic-endpoints"/ "some-id").GET
       val response400 = makeGetRequest(request400)
@@ -1686,8 +1686,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - authorized access- missing role") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - authorized access- missing role") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "dynamic-endpoints" /"some-id").GET<@ (user1)
       val response = makeGetRequest(request)
@@ -1697,8 +1697,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - authorized access - with role - should be success!") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - authorized access - with role - should be success!") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
 
@@ -1739,8 +1739,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint4 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
+  Feature(s"test $ApiEndpoint4 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "dynamic-endpoints"/ "some-id").DELETE
       val response400 = makeDeleteRequest(request400)
@@ -1750,8 +1750,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint4 version $VersionOfApi - authorized access- missing role") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint4, VersionOfApi) {
+  Feature(s"test $ApiEndpoint4 version $VersionOfApi - authorized access- missing role") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "dynamic-endpoints" /"some-id").DELETE<@ (user1)
       val response = makeDeleteRequest(request)
@@ -1761,8 +1761,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint4 version $VersionOfApi - authorized access - with role - should be success!") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint4, VersionOfApi) {
+  Feature(s"test $ApiEndpoint4 version $VersionOfApi - authorized access - with role - should be success!") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
       val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
 
@@ -1807,8 +1807,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint5 and $ApiEndpoint6 version $VersionOfApi - authorized access - should be success!") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
+  Feature(s"test $ApiEndpoint5 and $ApiEndpoint6 version $VersionOfApi - authorized access - should be success!") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
       When("We make a request v4.0.0")
       val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
 
@@ -1860,8 +1860,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint7 version $VersionOfApi - - Unauthorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint7, VersionOfApi) {
+  Feature(s"test $ApiEndpoint7 version $VersionOfApi - - Unauthorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint7, VersionOfApi) {
       When("We make a request v4.0.0")
       val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
 
@@ -1894,8 +1894,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
   }
 
 
-  feature(s"test $ApiEndpoint7 version $VersionOfApi - authorized access - missing role!") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint7, VersionOfApi) {
+  Feature(s"test $ApiEndpoint7 version $VersionOfApi - authorized access - missing role!") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint7, VersionOfApi) {
       When("We make a request v4.0.0")
       val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
 
@@ -1928,8 +1928,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint7 version $VersionOfApi - authorized access - with role - should be success!") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint7, VersionOfApi) {
+  Feature(s"test $ApiEndpoint7 version $VersionOfApi - authorized access - with role - should be success!") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint7, VersionOfApi) {
       When("We make a request v4.0.0")
       val postDynamicEndpointRequestBodyExample = ExampleValue.dynamicEndpointRequestBodyExample
 
@@ -1970,7 +1970,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
 
     }
 
-    scenario("We will call the endpoint with user credentials - OpenAPI3.0", ApiEndpoint7, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials - OpenAPI3.0", ApiEndpoint7, VersionOfApi) {
       When("We make a request v4.0.0")
       //  OpenAPI3.0 
       //  https://github.com/OAI/OpenAPI-Specification/edit/main/examples/v3.0/uspto.json
@@ -2255,7 +2255,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       responseWithRolePut.body.toString contains dynamicEndpointHostJson.host should be (true)
     }
 
-    scenario("We will call the endpoint with user credentials - OpenAPI3.0 no host in json", ApiEndpoint7, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials - OpenAPI3.0 no host in json", ApiEndpoint7, VersionOfApi) {
       When("We make a request v4.0.0")
       //no host case: https://github.com/OAI/OpenAPI-Specification/blob/main/examples/v3.0/api-with-examples.json
       val openApiV301NoHost = """{
@@ -2455,8 +2455,8 @@ class DynamicEndpointsTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 and $ApiEndpoint8 version $VersionOfApi - authorized access - with role - should be success!") {
-    scenario("we test new endpoints - system level", ApiEndpoint8, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 and $ApiEndpoint8 version $VersionOfApi - authorized access - with role - should be success!") {
+    Scenario("we test new endpoints - system level", ApiEndpoint8, VersionOfApi) {
       When("We make a request v4.0.0")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateDynamicEndpoint.toString)
       val request = (v4_0_0_Request / "management" / "dynamic-endpoints").POST<@ (user1)
@@ -2512,7 +2512,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
 
     }
 
-    scenario("we test new endpoints - bank level", ApiEndpoint8, VersionOfApi) {
+    Scenario("we test new endpoints - bank level", ApiEndpoint8, VersionOfApi) {
       When("We make a request v4.0.0 with the role canCreateDynamicEndpoint")
 
       Then("First test the system Level role")

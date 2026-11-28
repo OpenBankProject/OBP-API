@@ -38,20 +38,22 @@ import code.api.util.ApiRole.CanDeleteAccountCascade
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
-import code.cardattribute.MappedCardAttribute
+import code.cardattribute.DoobieCardAttributeProvider
 import code.cards.MappedPhysicalCard
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.model.dataAccess.MappedBankAccount
 import code.views.system.AccountAccess
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankId, ErrorMessage}
+import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankId, CardAttribute, ErrorMessage}
+import com.openbankproject.commons.model.enums.CardAttributeType
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 import java.util.concurrent.TimeUnit
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 class DeleteAccountCascadeTest extends V400ServerSetup {
 
@@ -68,12 +70,30 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
   private val deleteAtFirstBank = "We delete the account at the first bank with the cascading endpoint"
 
   lazy val bankId = randomBankId
+
+  /** A card on the account with this primary key, holding only what the scenarios set; returns its card id. */
+  private def insertCard(bank: BankId, accountKey: Long): String =
+    MappedPhysicalCard.insert(
+      cardId = APIUtil.generateUUID(), bankId = bank.value, bankCardNumber = randomString(16), cardType = "",
+      nameOnCard = "", issueNumber = "", serialNumber = randomString(10), validFrom = new java.util.Date(),
+      expires = new java.util.Date(), enabled = false, cancelled = false, onHotList = false, technology = "",
+      networks = "", allows = "", accountKey = accountKey, replacementDate = None, replacementReason = None,
+      collected = None, posted = None, customerId = "", cvv = "", brand = ""
+    ).cardId
+
+  private def insertCardAttribute(bank: BankId, cardId: String, name: String, value: String): Unit =
+    Await.result(DoobieCardAttributeProvider.createOrUpdateCardAttribute(
+      Some(bank), Some(cardId), None, name, CardAttributeType.STRING, value), Duration.Inf)
+      .openOrThrowException("the card attribute must be created")
+
+  private def cardAttributesOf(cardId: String): List[CardAttribute] =
+    Await.result(DoobieCardAttributeProvider.getCardAttributesFromProvider(cardId), Duration.Inf).openOr(Nil)
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
   lazy val addAccountJson = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
 
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId / 
         "accounts" / bankAccount.id).DELETE
@@ -83,8 +103,8 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "cascading" / "banks" / bankId /
         "accounts" / bankAccount.id).DELETE <@(user1)
@@ -96,8 +116,8 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       errorMessage contains (CanDeleteAccountCascade.toString()) should be (true)
     }
   }
-  feature(s"test $ApiEndpoint1 - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       When("We grant the role")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canCreateAccount.toString)
       And("We make a request v4.0.0")
@@ -184,19 +204,11 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       createAccountRelevantResource(Some(resourceUser1), otherBankId, accountId, "EUR")
 
       def addCard(bank: BankId): String = {
-        val account = MappedBankAccount.find(
-          By(MappedBankAccount.bank, bank.value),
-          By(MappedBankAccount.theAccountId, accountId.value)
-        ).openOrThrowException("test account not found")
-        MappedPhysicalCard.create
-          .mBankId(bank.value)
-          .mAccount(account.id.get)
-          .mBankCardNumber(randomString(16))
-          .mSerialNumber(randomString(10))
-          .saveMe()
-          .mCardId.get
+        val account = MappedBankAccount.find(bank.value, accountId.value)
+          .openOrThrowException("test account not found")
+        insertCard(bank, account.accountPrimaryKey)
       }
-      def cardExists(cardId: String): Boolean = MappedPhysicalCard.find(By(MappedPhysicalCard.mCardId, cardId)).isDefined
+      def cardExists(cardId: String): Boolean = MappedPhysicalCard.findAll().exists(_.cardId == cardId)
       val card = addCard(bankId)
       val otherBankCard = addCard(otherBankId)
 
@@ -227,37 +239,17 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       createAccountRelevantResource(Some(resourceUser1), otherBankId, accountId, "EUR")
 
       def addCardWithAttribute(bank: BankId): String = {
-        val account = MappedBankAccount.find(
-          By(MappedBankAccount.bank, bank.value),
-          By(MappedBankAccount.theAccountId, accountId.value)
-        ).openOrThrowException("test account not found")
-        val cardId = MappedPhysicalCard.create
-          .mBankId(bank.value)
-          .mAccount(account.id.get)
-          .mBankCardNumber(randomString(16))
-          .mSerialNumber(randomString(10))
-          .saveMe()
-          .mCardId.get
-        MappedCardAttribute.create
-          .mBankId(bank.value)
-          .mCardId(cardId)
-          .mName("TAX_NUMBER")
-          .mType("STRING")
-          .mValue("123")
-          .saveMe()
+        val account = MappedBankAccount.find(bank.value, accountId.value)
+          .openOrThrowException("test account not found")
+        val cardId = insertCard(bank, account.accountPrimaryKey)
+        insertCardAttribute(bank, cardId, "TAX_NUMBER", "123")
         cardId
       }
-      def attributesOf(cardId: String) = MappedCardAttribute.findAll(By(MappedCardAttribute.mCardId, cardId))
+      def attributesOf(cardId: String) = cardAttributesOf(cardId)
       val card = addCardWithAttribute(bankId)
       val otherBankCard = addCardWithAttribute(otherBankId)
       // an attribute that another bank posted for this card id is not the deleted account's data
-      MappedCardAttribute.create
-        .mBankId(otherBankId.value)
-        .mCardId(card)
-        .mName("OTHER_BANK")
-        .mType("STRING")
-        .mValue("1")
-        .saveMe()
+      insertCardAttribute(otherBankId, card, "OTHER_BANK", "1")
 
       When(deleteAtFirstBank)
       Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
@@ -269,7 +261,7 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
       response.code should equal(200)
 
       And("The deleted account's card has no attributes left and the other bank's card keeps its attribute")
-      attributesOf(card).map(_.mBankId.get) should equal(List(otherBankId.value))
+      attributesOf(card).flatMap(_.bankId.map(_.value)) should equal(List(otherBankId.value))
       attributesOf(otherBankCard) should have size 1
     }
   }
@@ -287,10 +279,8 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
 
       And("The other bank's account owner has an entitlement at the first bank")
       Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser2.userId, ApiRole.canCreateAccount.toString)
-      def otherOwnerEntitlements: Long = MappedEntitlement.count(
-        By(MappedEntitlement.mBankId, bankId.value),
-        By(MappedEntitlement.mUserId, resourceUser2.userId)
-      )
+      def otherOwnerEntitlements: Long =
+        MappedEntitlement.findAllByBankId(bankId.value).count(_.userId == resourceUser2.userId).toLong
       otherOwnerEntitlements should equal(1L)
 
       When(deleteAtFirstBank)
@@ -308,16 +298,11 @@ class DeleteAccountCascadeTest extends V400ServerSetup {
   }
 
   private def accountHolders(bankId: String, accountId: String): List[MapperAccountHolders] =
-    MapperAccountHolders.findAll(
-      By(MapperAccountHolders.accountBankPermalink, bankId),
-      By(MapperAccountHolders.accountPermalink, accountId)
-    )
+    MapperAccountHolders.findAll()
+      .filter(holder => holder.accountBankPermalink == bankId && holder.accountPermalink == accountId)
 
   private def accountAccess(bankId: String, accountId: String): List[AccountAccess] =
-    AccountAccess.findAll(
-      By(AccountAccess.bank_id, bankId),
-      By(AccountAccess.account_id, accountId)
-    )
+    AccountAccess.findAllByBankIdAccountId(BankId(bankId), AccountId(accountId))
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - account holders") {
     scenario("Deleting an account removes its holders, so a later refresh of the former holder grants no views on it", ApiEndpoint1, VersionOfApi) {

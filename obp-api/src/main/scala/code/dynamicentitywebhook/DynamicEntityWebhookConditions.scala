@@ -30,6 +30,7 @@ package code.dynamicentitywebhook
 import code.dynamicEntity.DynamicEntityT
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import org.json4s._
+import org.json4s.jvalue2monadic
 
 import scala.util.Try
 

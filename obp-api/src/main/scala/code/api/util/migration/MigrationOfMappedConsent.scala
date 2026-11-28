@@ -34,7 +34,6 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.consent.MappedConsent
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfMappedConsent {
@@ -61,7 +60,7 @@ object MigrationOfMappedConsent {
    * Mirrors MigrationOfConsentReferenceIdUuid's drop→alter→recreate pattern.
    */
   private def alterMappedConsentColumnUnderConsentView(name: String, alterSql: => String): Boolean = {
-    DbFunction.tableExists(MappedConsent) match {
+    DbFunction.tableExistsByName("mappedconsent") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -70,9 +69,9 @@ object MigrationOfMappedConsent {
 
         try {
           // 1. Drop v_consent — it projects the column, blocking the in-place retype.
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => "DROP VIEW IF EXISTS v_consent;")).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => "DROP VIEW IF EXISTS v_consent;")).append("\n")
           // 2. Run the (dialect-specific) column retype.
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => alterSql)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => alterSql)).append("\n")
           // 3. Recreate v_consent from its canonical definition (don't depend on a later, possibly-skipped migration).
           MigrationOfConsentView.addConsentView(name + "_view_rebuild")
           isSuccessful = true
@@ -96,7 +95,7 @@ object MigrationOfMappedConsent {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedConsent._dbTableNameLC} table does not exist""".stripMargin
+          s"""mappedconsent table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
@@ -105,24 +104,24 @@ object MigrationOfMappedConsent {
   // Widen mappedconsent.mjsonwebtoken to TEXT (projected by v_consent — see helper).
   def alterColumnJsonWebToken(name: String): Boolean =
     alterMappedConsentColumnUnderConsentView(name,
-      if (isMssql) "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken text;"
+      if (isMssql) "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken NVARCHAR(MAX);"
       else if (isMysql) "ALTER TABLE mappedconsent MODIFY COLUMN mjsonwebtoken TEXT;"
       else "ALTER TABLE mappedconsent ALTER COLUMN mjsonwebtoken type text;")
 
   def alterColumnChallenge(name: String): Boolean = {
     // mchallenge is NOT projected by v_consent, so this retype is not blocked by the view.
-    DbFunction.tableExists(MappedConsent) match {
+    DbFunction.tableExistsByName("mappedconsent") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match    {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
-                  """ALTER TABLE mappedconsent ALTER COLUMN mchallenge varchar(50);
+                  """ALTER TABLE mappedconsent ALTER COLUMN mchallenge nvarchar(50);
                     |""".stripMargin
               case Full(dbDriver) if dbDriver.contains("com.mysql.cj.jdbc.Driver") => // MySQL
                 () =>
@@ -151,7 +150,7 @@ object MigrationOfMappedConsent {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedConsent._dbTableNameLC} table does not exist""".stripMargin
+          s"""mappedconsent table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
@@ -162,14 +161,14 @@ object MigrationOfMappedConsent {
   // This migration widens mConsumerId to match the Consumer model. mconsumerid is projected by v_consent.
   def alterColumnConsumerIdLength(name: String): Boolean =
     alterMappedConsentColumnUnderConsentView(name,
-      if (isMssql) "ALTER TABLE mappedconsent ALTER COLUMN mconsumerid varchar(250);"
+      if (isMssql) "ALTER TABLE mappedconsent ALTER COLUMN mconsumerid nvarchar(250);"
       else if (isMysql) "ALTER TABLE mappedconsent MODIFY COLUMN mconsumerid varchar(250);"
       else "ALTER TABLE mappedconsent ALTER COLUMN mconsumerid TYPE character varying(250);")
 
   // mstatus is projected by v_consent.
   def alterColumnStatus(name: String): Boolean =
     alterMappedConsentColumnUnderConsentView(name,
-      if (isMssql) "ALTER TABLE mappedconsent ALTER COLUMN mstatus varchar(40);"
+      if (isMssql) "ALTER TABLE mappedconsent ALTER COLUMN mstatus nvarchar(40);"
       else if (isMysql) "ALTER TABLE mappedconsent MODIFY COLUMN mstatus varchar(40);"
       else "ALTER TABLE mappedconsent ALTER COLUMN mstatus type varchar(40);")
 }

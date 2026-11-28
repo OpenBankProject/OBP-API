@@ -12,7 +12,7 @@ import code.setup.ServerSetup
  */
 class FxConvertTest extends ServerSetup with RestoresSeededAssetRegistry {
   private def seedRegistry(): Unit = {
-    Asset.bulkDelete_!!()
+    Asset.deleteAll()
     AssetSeed.run()
     AssetLookup.invalidate()
   }

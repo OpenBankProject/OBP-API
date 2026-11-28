@@ -45,9 +45,9 @@ import code.api.util.APIUtil
  */
 class ConcurrentProviderRaceTest extends ConcurrentRaceSetup {
 
-  feature("In-memory counter atomicity under concurrency") {
+  Feature("In-memory counter atomicity under concurrency") {
 
-    scenario("AA: N concurrent incrementFutureCounter calls must each land", ConcurrencyRace) {
+    Scenario("AA: N concurrent incrementFutureCounter calls must each land", ConcurrencyRace) {
       Given("a fresh service-counter key")
       val serviceName = "__conc_future_counter_aa"
       APIUtil.serviceNameCountersMap.remove(serviceName)

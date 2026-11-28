@@ -31,7 +31,9 @@ import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.util.CustomJsonFormats
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Covers the JSON Schema made from an endpoint's example body (createTypedBody).
@@ -40,7 +42,7 @@ import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
  * JvalueCaseClass. The schema made from such a body must describe the JSON itself. It must not
  * describe the JvalueCaseClass, whose one field, jvalueToCaseclass, is not part of the API.
  */
-class JSONFactory1_4_0TypedBodyTest extends FeatureSpec
+class JSONFactory1_4_0TypedBodyTest extends AnyFeatureSpec
   with GivenWhenThen
   with Matchers
   with CustomJsonFormats {

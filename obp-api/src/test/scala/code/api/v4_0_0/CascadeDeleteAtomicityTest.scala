@@ -34,18 +34,19 @@ import code.api.util.ApiRole
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.api.v3_1_0.CreateAccountResponseJsonV310
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
+import code.api.util.DoobieUtil
 import code.customer.MappedCustomer
-import code.customerattribute.MappedCustomerAttribute
 import code.entitlement.Entitlement
 import code.methodrouting.{MethodRouting, MethodRoutingCommons, MethodRoutingProvider}
 import code.model.dataAccess.{MappedBank, MappedBankAccount}
 import code.views.system.AccountAccess
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage}
+import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankId, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
+import doobie.implicits._
 import net.liftweb.db.DB
-import net.liftweb.mapper.By
 import net.liftweb.util.DefaultConnectionIdentifier
+import org.json4s.jvalue2extractable
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
@@ -54,6 +55,10 @@ import org.scalatest.Tag
  * it had already deleted in place.
  */
 class CascadeDeleteAtomicityTest extends V400ServerSetup {
+
+  // A table-level FOREIGN KEY, because MySQL parses a column-level REFERENCES and ignores it. Oracle has no BIGINT.
+  private val bigintType = if (code.api.util.DBUtil.isOracle) "NUMBER(19)" else "BIGINT"
+
 
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object DeleteAccountCascade extends Tag(nameOf(Implementations4_0_0.deleteAccountCascade))
@@ -73,10 +78,10 @@ class CascadeDeleteAtomicityTest extends V400ServerSetup {
   }
 
   private def accountExists(bankId: String, accountId: String): Boolean =
-    MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, accountId)).isDefined
+    MappedBankAccount.find(bankId, accountId).isDefined
 
   private def accessRows(bankId: String, accountId: String): Int =
-    AccountAccess.count(By(AccountAccess.bank_id, bankId), By(AccountAccess.account_id, accountId)).toInt
+    AccountAccess.findAllByBankIdAccountId(BankId(bankId), AccountId(accountId)).size
 
   /** The account cascade lists the account's transactions through the connector; one that cannot fails the step. */
   private def withTransactionsUnreadable[T](block: => T): T = {
@@ -120,7 +125,7 @@ class CascadeDeleteAtomicityTest extends V400ServerSetup {
       }
 
       response.code should equal(400)
-      MappedBank.find(By(MappedBank.permalink, bankId)).isDefined should equal(true)
+      MappedBank.findByBankId(BankId(bankId)).isDefined should equal(true)
       accountExists(bankId, accountId) should equal(true)
       accessRows(bankId, accountId) should equal(accessBefore)
     }
@@ -129,13 +134,13 @@ class CascadeDeleteAtomicityTest extends V400ServerSetup {
       val bankId = randomBankId
       val accountId = createAccountWithSecondViewer(bankId)
       val accessBefore = accessRows(bankId, accountId)
-      val accountPk = MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, accountId))
-        .openOrThrowException("expected the account").id.get
+      val accountPk = MappedBankAccount.find(bankId, accountId)
+        .openOrThrowException("expected the account").accountPrimaryKey
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteAccountCascade.toString)
       // A row that still refers to the account, so deleting the account itself, the last step, fails. On H2 (and
       // MySQL, SQL Server, Oracle) the deletes before it stay in the transaction; Postgres aborts the whole one.
-      val table = MappedBankAccount.dbTableName
-      runSql(s"CREATE TABLE cascade_atomicity_blocker (account_pk BIGINT REFERENCES $table(id))")
+      val table = "mappedbankaccount"
+      runSql(s"CREATE TABLE cascade_atomicity_blocker (account_pk ${bigintType}, FOREIGN KEY (account_pk) REFERENCES $table(id))")
       try {
         runSql(s"INSERT INTO cascade_atomicity_blocker (account_pk) VALUES ($accountPk)")
 
@@ -152,15 +157,16 @@ class CascadeDeleteAtomicityTest extends V400ServerSetup {
       val bankId = randomBankId
       val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
       createAndGetCustomerAttributeIdViaEndpoint(bankId, customerId, user1)
-      def attributes = MappedCustomerAttribute.count(By(MappedCustomerAttribute.mCustomerId, customerId))
+      def attributes = DoobieUtil.runQuery(
+        sql"SELECT COUNT(*) FROM mappedcustomerattribute WHERE mcustomerid = ${Option(customerId)}".query[Long].unique)
       val attributesBefore = attributes
       attributesBefore should be >= 1L
-      val customerPk = MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)).openOrThrowException("expected the customer").id.get
+      val customerPk = MappedCustomer.findByCustomerId(customerId).openOrThrowException("expected the customer").customerPrimaryKey
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.canDeleteCustomerCascade.toString)
       // A row that still refers to the customer, so deleting the customer itself, the last step, fails. The attributes
       // are deleted by an earlier step: they must be back after the failure.
-      val table = MappedCustomer.dbTableName
-      runSql(s"CREATE TABLE cascade_customer_atomicity_blocker (customer_pk BIGINT REFERENCES $table(id))")
+      val table = "mappedcustomer"
+      runSql(s"CREATE TABLE cascade_customer_atomicity_blocker (customer_pk ${bigintType}, FOREIGN KEY (customer_pk) REFERENCES $table(id))")
       try {
         runSql(s"INSERT INTO cascade_customer_atomicity_blocker (customer_pk) VALUES ($customerPk)")
 
@@ -168,7 +174,7 @@ class CascadeDeleteAtomicityTest extends V400ServerSetup {
           (v4_0_0_Request / "management" / "cascading" / "banks" / bankId / "customers" / customerId).DELETE <@ (user1))
 
         response.code should not equal 200
-        MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)).isDefined should equal(true)
+        MappedCustomer.findByCustomerId(customerId).isDefined should equal(true)
         attributes should equal(attributesBefore)
       } finally runSql("DROP TABLE cascade_customer_atomicity_blocker")
     }

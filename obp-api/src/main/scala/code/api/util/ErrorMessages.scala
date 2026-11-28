@@ -1180,6 +1180,7 @@ object ErrorMessages {
   val UnderConstructionError = "OBP-50018: Under Construction Error."
   val DatabaseConnectionClosedError = "OBP-50019: Cannot connect to the OBP database."
   val DynamicCodeExecutionDisabled = "OBP-50020: User-generated dynamic code execution is disabled on this API instance. Set allow_user_generated_scala_code=true to enable."
+  val DynamicCodeExecutionUnsandboxed = "OBP-50021: User-generated dynamic code execution is enabled, but this JVM cannot enforce the sandbox (SecurityManager was removed in JDK 24, JEP 486), so dynamic code runs with unrestricted file, network and reflection access. Set allow_user_generated_scala_code_without_sandbox=true to accept that risk explicitly, or run on a JVM where the sandbox can be installed."
 
 
   // Connector Data Exceptions (OBP-502XX)
@@ -1412,12 +1413,16 @@ object ErrorMessages {
     import scala.meta._
     val source: Source = new java.io.File("src/main/scala/code/api/util/ErrorMessages.scala").parse[Source].get
 
+    // scalameta 4.13.6 (_3) moved Tree#collect from a plain method to the standalone
+    // scala.meta.contrib.TreeOps.collect function - the extension available via
+    // scala.meta.contrib._ only provides collectFirst/descendants/ancestors, not collect.
+    import scala.meta.contrib.TreeOps
     // A message may be a plain string ("OBP-..."), an interpolated one (s"OBP-...") or a triple-quoted one
     // ("""OBP-..."""). All three are checked; the number is the OBP-NNNNN at the start, without its quotes.
     val messageNumberAtStart = """^s?(?:"{3}|")(OBP-[0-9]+)""".r
-    val listOfMessaegeNumbers = source.collect {
+    val listOfMessaegeNumbers = TreeOps.collect(source) {
       case obj: Defn.Object if obj.name.value == "ErrorMessages" =>
-        obj.collect {
+        TreeOps.collect(obj) {
           case v: Defn.Val if messageNumberAtStart.findFirstMatchIn(v.rhs.syntax).isDefined =>
             "\"" + messageNumberAtStart.findFirstMatchIn(v.rhs.syntax).get.group(1)
         }

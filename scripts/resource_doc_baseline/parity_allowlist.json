@@ -1109,7 +1109,7 @@
       "field": "exampleRequestBody",
       "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
       "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
-      "http4s_digest": "575436f8f568222b34c4814c0313738383819afe1477d4c8b311a143cd7c108f"
+      "http4s_digest": "ace4e0cbfac4471fe60d8719343ff35ae8e5e421311d2640f4e81d6fe73ad362"
     },
     {
       "version": "v6_0_0",
@@ -1125,7 +1125,7 @@
       "field": "exampleRequestBody",
       "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
       "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
-      "http4s_digest": "575436f8f568222b34c4814c0313738383819afe1477d4c8b311a143cd7c108f"
+      "http4s_digest": "ace4e0cbfac4471fe60d8719343ff35ae8e5e421311d2640f4e81d6fe73ad362"
     },
     {
       "version": "v6_0_0",
@@ -1141,7 +1141,7 @@
       "field": "exampleRequestBody",
       "reason": "Same schema-example enrichment pattern as createBankLevelDynamicEntity",
       "lift_digest": "8969bb6fdf996b8d7a6a205194943443da49e6818f337dcb362319e8ad3f7ba4",
-      "http4s_digest": "575436f8f568222b34c4814c0313738383819afe1477d4c8b311a143cd7c108f"
+      "http4s_digest": "ace4e0cbfac4471fe60d8719343ff35ae8e5e421311d2640f4e81d6fe73ad362"
     },
     {
       "version": "v6_0_0",

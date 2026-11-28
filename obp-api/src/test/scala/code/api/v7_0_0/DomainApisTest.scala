@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v7_0_0
 
+import org.json4s.jvalue2monadic
+import org.json4s.jvalue2extractable
 import code.DynamicData.DynamicDataProvider
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON

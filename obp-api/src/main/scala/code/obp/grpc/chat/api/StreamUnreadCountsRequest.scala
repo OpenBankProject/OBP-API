@@ -7,66 +7,65 @@ package code.obp.grpc.chat.api
 
 @SerialVersionUID(0L)
 final case class StreamUnreadCountsRequest(
-    ) extends scalapb.GeneratedMessage with scalapb.Message[StreamUnreadCountsRequest] with scalapb.lenses.Updatable[StreamUnreadCountsRequest] {
+    unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[StreamUnreadCountsRequest] {
     @transient
-    private[this] var __serializedSizeCachedValue: _root_.scala.Int = 0
-    private[this] def __computeSerializedValue(): _root_.scala.Int = {
+    private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
+    private[this] def __computeSerializedSize(): _root_.scala.Int = {
       var __size = 0
+      __size += unknownFields.serializedSize
       __size
     }
-    final override def serializedSize: _root_.scala.Int = {
-      var read = __serializedSizeCachedValue
-      if (read == 0) {
-        read = __computeSerializedValue()
-        __serializedSizeCachedValue = read
+    override def serializedSize: _root_.scala.Int = {
+      var __size = __serializedSizeMemoized
+      if (__size == 0) {
+        __size = __computeSerializedSize() + 1
+        __serializedSizeMemoized = __size
       }
-      read
+      __size - 1
+      
     }
     def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
+      unknownFields.writeTo(_output__)
     }
-    def mergeFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.chat.api.StreamUnreadCountsRequest = {
-      var _done__ = false
-      while (!_done__) {
-        val _tag__ = _input__.readTag()
-        _tag__ match {
-          case 0 => _done__ = true
-          case tag => _input__.skipField(tag)
-        }
-      }
-      code.obp.grpc.chat.api.StreamUnreadCountsRequest(
-      )
-    }
-    def getFieldByNumber(__fieldNumber: _root_.scala.Int): scala.Any = {
-      (__fieldNumber: @_root_.scala.unchecked) match {
-        case _ => throw new MatchError(__fieldNumber)
-      }
-    }
-    def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-      require(__field.containingMessage eq companion.scalaDescriptor)
-      (__field.number: @_root_.scala.unchecked) match {
-        case _ => throw new MatchError(__field)
-      }
-    }
+    def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+    def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+    def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = throw new MatchError(__fieldNumber)
+    def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = throw new MatchError(__field)
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.chat.api.StreamUnreadCountsRequest
+    def companion: code.obp.grpc.chat.api.StreamUnreadCountsRequest.type = code.obp.grpc.chat.api.StreamUnreadCountsRequest
+    // @@protoc_insertion_point(GeneratedMessage[code.obp.grpc.chat.g1.StreamUnreadCountsRequest])
 }
 
 object StreamUnreadCountsRequest extends scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.StreamUnreadCountsRequest] {
   implicit def messageCompanion: scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.StreamUnreadCountsRequest] = this
-  def fromFieldsMap(__fieldsMap: scala.collection.immutable.Map[_root_.com.google.protobuf.Descriptors.FieldDescriptor, scala.Any]): code.obp.grpc.chat.api.StreamUnreadCountsRequest = {
-    require(__fieldsMap.keys.forall(_.getContainingType() == javaDescriptor), "FieldDescriptor does not match message type.")
+  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): code.obp.grpc.chat.api.StreamUnreadCountsRequest = {
+    var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
+    var _done__ = false
+    while (!_done__) {
+      val _tag__ = _input__.readTag()
+      _tag__ match {
+        case 0 => _done__ = true
+        case tag =>
+          if (_unknownFields__ == null) {
+            _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
+          }
+          _unknownFields__.parseField(tag, _input__)
+      }
+    }
     code.obp.grpc.chat.api.StreamUnreadCountsRequest(
+        unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
     )
   }
   implicit def messageReads: _root_.scalapb.descriptors.Reads[code.obp.grpc.chat.api.StreamUnreadCountsRequest] = _root_.scalapb.descriptors.Reads{
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-      require(__fieldsMap.keys.forall(_.containingMessage == scalaDescriptor), "FieldDescriptor does not match message type.")
+      _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
       code.obp.grpc.chat.api.StreamUnreadCountsRequest(
       )
     case _ => throw new RuntimeException("Expected PMessage")
   }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ChatProto.javaDescriptor.getMessageTypes.get(3)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = throw new UnsupportedOperationException("scalaDescriptor not available")
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = ChatProto.javaDescriptor.getMessageTypes().get(6)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = ChatProto.scalaDescriptor.messages(6)
   def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
   lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
@@ -74,4 +73,8 @@ object StreamUnreadCountsRequest extends scalapb.GeneratedMessageCompanion[code.
   )
   implicit class StreamUnreadCountsRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, code.obp.grpc.chat.api.StreamUnreadCountsRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, code.obp.grpc.chat.api.StreamUnreadCountsRequest](_l) {
   }
+  def of(
+  ): _root_.code.obp.grpc.chat.api.StreamUnreadCountsRequest = _root_.code.obp.grpc.chat.api.StreamUnreadCountsRequest(
+  )
+  // @@protoc_insertion_point(GeneratedMessageCompanion[code.obp.grpc.chat.g1.StreamUnreadCountsRequest])
 }

@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v6_0_0
 
+import org.json4s.jvalue2extractable
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 

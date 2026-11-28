@@ -30,7 +30,6 @@ import code.api.Constant.ALL_CONSUMERS
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
 import com.openbankproject.commons.model.{AccountId, BankId, ViewId}
-import net.liftweb.mapper.By
 
 import java.util.UUID
 
@@ -64,9 +63,9 @@ import java.util.UUID
  */
 class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
 
-  feature("Concurrent view-permission mutation must stay graceful and consistent") {
+  Feature("Concurrent view-permission mutation must stay graceful and consistent") {
 
-    scenario("N: concurrent getOrCreateCustomPublicView must not throw and leave exactly one view", ConcurrencyRace) {
+    Scenario("N: concurrent getOrCreateCustomPublicView must not throw and leave exactly one view", ConcurrencyRace) {
       Given("allow_public_views=true and an account with no _public view yet")
       setPropsValues("allow_public_views" -> "true")
       val bank      = createBank("__conc-pubview-bank")
@@ -74,11 +73,8 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
       val accountId = AccountId("__conc_pubview_acc")
       createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
 
-      def viewCount: Long = ViewDefinition.count(
-        By(ViewDefinition.bank_id, bankId.value),
-        By(ViewDefinition.account_id, accountId.value),
-        By(ViewDefinition.view_id, "_public") // CUSTOM_PUBLIC_VIEW_ID
-      )
+      def viewCount: Long = ViewDefinition.countByBankAccountView(
+        bankId.value, accountId.value, "_public") // CUSTOM_PUBLIC_VIEW_ID
       val before = viewCount
       val n      = 2
 
@@ -100,7 +96,7 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("O: concurrent resetViewPermissions on one view must not throw and must leave one row per permission", ConcurrencyRace) {
+    Scenario("O: concurrent resetViewPermissions on one view must not throw and must leave one row per permission", ConcurrencyRace) {
       Given("a dedicated custom view with a known permission set")
       val bank      = createBank("__conc-viewperm-bank")
       val bankId    = bank.bankId
@@ -109,19 +105,18 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
 
       // A dedicated custom view row so the (bank,account,view) key is isolated from real test views.
       val viewIdStr = "__conc_o_view_" + UUID.randomUUID.toString.take(8)
-      val view: ViewDefinition = ViewDefinition.create
-        .isSystem_(false)
-        .isFirehose_(false)
-        .bank_id(bankId.value)
-        .account_id(accountId.value)
-        .view_id(viewIdStr)
-        .name_("conc-o-view")
-        .description_("conc-o")
-        .isPublic_(false)
-        .usePrivateAliasIfOneExists_(false)
-        .usePublicAliasIfOneExists_(false)
-        .hideOtherAccountMetadataIfAlias_(false)
-        .saveMe()
+      val view: ViewDefinition = ViewDefinition.insert(ViewDefinition(
+        isSystem_ = false,
+        isFirehose_ = false,
+        bank_id = bankId.value,
+        account_id = accountId.value,
+        view_id = viewIdStr,
+        name_ = "conc-o-view",
+        description_ = "conc-o",
+        isPublic_ = false,
+        usePrivateAliasIfOneExists_ = false,
+        usePublicAliasIfOneExists_ = false,
+        hideOtherAccountMetadataIfAlias_ = false))
 
       val permissionNames = List(
         "can_see_transaction_amount",
@@ -129,11 +124,8 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
         "can_see_transaction_description"
       )
 
-      def permCount: Long = ViewPermission.count(
-        By(ViewPermission.bank_id, bankId.value),
-        By(ViewPermission.account_id, accountId.value),
-        By(ViewPermission.view_id, viewIdStr)
-      )
+      def permCount: Long =
+        ViewPermission.count(Some(bankId.value), Some(accountId.value), viewIdStr)
 
       val n = 2
 
@@ -155,7 +147,7 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("R: removeCustomView's empty-check then delete must not orphan a concurrent grant", ConcurrencyRace) {
+    Scenario("R: removeCustomView's empty-check then delete must not orphan a concurrent grant", ConcurrencyRace) {
       Given("a custom view with no AccountAccess, so removeCustomView's emptiness guard would pass")
       val bank      = createBank("__conc-orphan-bank")
       val bankId    = bank.bankId
@@ -163,33 +155,27 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
       createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
 
       val viewIdStr = "__conc_r_view_" + UUID.randomUUID.toString.take(8)
-      val view: ViewDefinition = ViewDefinition.create
-        .isSystem_(false)
-        .isFirehose_(false)
-        .bank_id(bankId.value)
-        .account_id(accountId.value)
-        .view_id(viewIdStr)
-        .name_("conc-r-view")
-        .description_("conc-r")
-        .isPublic_(false)
-        .usePrivateAliasIfOneExists_(false)
-        .usePublicAliasIfOneExists_(false)
-        .hideOtherAccountMetadataIfAlias_(false)
-        .saveMe()
+      val view: ViewDefinition = ViewDefinition.insert(ViewDefinition(
+        isSystem_ = false,
+        isFirehose_ = false,
+        bank_id = bankId.value,
+        account_id = accountId.value,
+        view_id = viewIdStr,
+        name_ = "conc-r-view",
+        description_ = "conc-r",
+        isPublic_ = false,
+        usePrivateAliasIfOneExists_ = false,
+        usePublicAliasIfOneExists_ = false,
+        hideOtherAccountMetadataIfAlias_ = false))
 
       // removeCustomView (MapperViews.scala:502-517): (1) checks AccountAccess for the view is empty,
       // (2) then deletes the view. The two steps are not atomic and there is no transaction, so a grant
       // committing an AccountAccess in the window orphans a permission row. Replay that window deterministically.
       When("the emptiness check passes, then a concurrent grant commits an AccountAccess, then the view is deleted")
       val checkSawEmpty = AccountAccess.findAllByBankIdAccountIdViewId(bankId, accountId, ViewId(viewIdStr)).isEmpty
-      AccountAccess.create
-        .user_fk(resourceUser1.userPrimaryKey.value)
-        .bank_id(bankId.value)
-        .account_id(accountId.value)
-        .view_id(viewIdStr)
-        .consumer_id(ALL_CONSUMERS)
-        .saveMe()
-      view.delete_!
+      AccountAccess.insert(resourceUser1.userPrimaryKey.value, bankId.value, accountId.value,
+        viewIdStr, ALL_CONSUMERS)
+      ViewDefinition.delete(view)
 
       Then("no AccountAccess may reference the now-deleted view (no orphaned permission row)")
       val orphans = AccountAccess.findAllByBankIdAccountIdViewId(bankId, accountId, ViewId(viewIdStr))

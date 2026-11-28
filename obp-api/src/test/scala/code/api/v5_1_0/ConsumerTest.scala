@@ -59,8 +59,8 @@ class ConsumerTest extends V510ServerSetup {
   object GetConsumer extends Tag(nameOf(Implementations5_1_0.getConsumer))
   object CreateMyConsumer extends Tag(nameOf(Implementations5_1_0.createMyConsumer))
 
-  feature("Test all error cases ") {
-    scenario("We test the authentication errors", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, UpdateConsumerCertificate,  VersionOfApi) {
+  Feature("Test all error cases ") {
+    Scenario("We test the authentication errors", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, UpdateConsumerCertificate,  VersionOfApi) {
       When("We make a request v5.1.0")
       lazy val createConsumerRequestJson = SwaggerDefinitionsJSON.createConsumerRequestJsonV510
       val requestApiEndpoint1 = (v5_1_0_Request / "management" / "consumers").POST
@@ -109,7 +109,7 @@ class ConsumerTest extends V510ServerSetup {
       responseApiEndpoint5.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
     }
 
-    scenario("We test the missing roles errors", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, UpdateConsumerCertificate, VersionOfApi) {
+    Scenario("We test the missing roles errors", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, UpdateConsumerCertificate, VersionOfApi) {
       When("We make a request v5.1.0")
 
       lazy val wrongJsonForTesting = SwaggerDefinitionsJSON.routing
@@ -153,7 +153,7 @@ class ConsumerTest extends V510ServerSetup {
       responseApiEndpoint5.body.toString contains (s"$canGetConsumers") should be(true)
     }
 
-    scenario("We added the proper roles, but wrong json", UpdateConsumerName, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL,  VersionOfApi) {
+    Scenario("We added the proper roles, but wrong json", UpdateConsumerName, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL,  VersionOfApi) {
       When("we first grant the missing roles:")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateConsumer.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateConsumerLogoUrl.toString)
@@ -193,8 +193,8 @@ class ConsumerTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test all successful cases") {
-    scenario("we create, update and get consumers", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, VersionOfApi) {
+  Feature(s"test all successful cases") {
+    Scenario("we create, update and get consumers", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, VersionOfApi) {
 
       When("we first grant the missing roles:")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateConsumer.toString)
@@ -312,7 +312,7 @@ class ConsumerTest extends V510ServerSetup {
     scenario("a user with the role cannot change the redirect URL of a Consumer another user created", UpdateConsumerRedirectURL, VersionOfApi) {
       val consumerId = consumerCreatedByUser1()
       val redirectUrlBefore = Consumers.consumers.vend.getConsumerByConsumerId(consumerId)
-        .openOrThrowException("the test consumer is gone").redirectURL.get
+        .openOrThrowException("the test consumer is gone").redirectURL
       Entitlement.entitlement.vend.addEntitlement("", resourceUser2.userId, canUpdateConsumerRedirectUrl.toString)
 
       When("user2 changes the redirect URL of user1's Consumer")
@@ -322,7 +322,7 @@ class ConsumerTest extends V510ServerSetup {
       response.code should equal(400)
       (response.body \ "message").extract[String] should include(UserNoPermissionUpdateConsumer)
       Consumers.consumers.vend.getConsumerByConsumerId(consumerId)
-        .openOrThrowException("the test consumer is gone").redirectURL.get should equal(redirectUrlBefore)
+        .openOrThrowException("the test consumer is gone").redirectURL should equal(redirectUrlBefore)
     }
 
     scenario("the role is needed even when consumers are enabled by default", UpdateConsumerRedirectURL, VersionOfApi) {

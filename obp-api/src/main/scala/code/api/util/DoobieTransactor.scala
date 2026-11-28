@@ -127,9 +127,32 @@ object DoobieUtil extends MdcLoggable {
    *  the fallback transactor commits at transact end, releasing any lock immediately. */
   def hasRequestScopeConnection: Boolean = currentRequestConnection.isDefined
 
+  /**
+   * A proxy is stale once the request that created it has committed and closed the real
+   * connection underneath. It can still be sitting in the thread-local: a task submitted late in
+   * that request runs afterwards, on a thread that still carries the proxy.
+   *
+   * Using a stale proxy throws "Connection is closed" from HikariCP's closed-connection stub,
+   * which surfaces as a 500 on a request that is otherwise fine. It only happens when one
+   * request's async tail overlaps the next, so it looks like flakiness in whichever suite was
+   * running at the time.
+   *
+   * RequestAwareConnectionManager.newConnection applies the same check on the Lift side; this is
+   * the Doobie half of it. A proxy that throws from isClosed() counts as closed - there is no
+   * reading of that where the connection is safe to use.
+   */
+  private def isUsable(conn: java.sql.Connection): Boolean =
+    try !conn.isClosed
+    catch {
+      case e: Exception =>
+        logger.warn(s"DoobieUtil: isClosed() threw on the request proxy, treating it as closed: " +
+          s"${e.getClass.getName}: ${e.getMessage}")
+        false
+    }
+
   private def currentRequestConnection: Option[java.sql.Connection] = {
     // 1. Primary: the http4s RequestScopeConnection proxy from Alibaba TTL
-    Option(code.api.util.http4s.RequestScopeConnection.currentProxy.get()).orElse {
+    Option(code.api.util.http4s.RequestScopeConnection.currentProxy.get()).filter(isUsable).orElse {
       // 2. Fallback: Lift Mapper's DB.currentConnection (only Full inside an open DB.use scope)
       DB.currentConnection match {
         case Full(superConn) =>
@@ -222,13 +245,115 @@ object DoobieUtil extends MdcLoggable {
    */
   def isSqlServer: Boolean = DBUtil.isSqlServer
 
+  /** How a database writes a row limit: LIMIT, or the standard OFFSET ... FETCH that SQL Server and Oracle take. */
+  private[util] sealed trait RowLimitDialect
+  private[util] case object LimitDialect extends RowLimitDialect
+  /** SQL Server: OFFSET ... FETCH, and only after an ORDER BY. */
+  private[util] case object SqlServerFetchDialect extends RowLimitDialect
+  /** Oracle: OFFSET ... FETCH, with or without an ORDER BY. */
+  private[util] case object OracleFetchDialect extends RowLimitDialect
+
   /**
-   * The page clause in the form the database takes. SQL Server writes it as OFFSET ... FETCH and requires an
-   * ORDER BY in front of it; the other databases take LIMIT ... OFFSET.
+   * A space before every clause these helpers append. `sql"..."` adds none after its last parameter, and
+   * PostgreSQL 16 refuses a parameter followed directly by a word (`$1LIMIT`).
+   */
+  private val gap: Fragment = Fragment.const0(" ")
+
+  private def rowLimitDialect: RowLimitDialect =
+    if (isSqlServer) SqlServerFetchDialect else if (DBUtil.isOracle) OracleFetchDialect else LimitDialect
+
+  /**
+   * The page clause in the form the database takes. SQL Server and Oracle write it as OFFSET ... FETCH, and
+   * SQL Server requires an ORDER BY in front of it; the other databases take LIMIT ... OFFSET.
    */
   def pagination(limit: Int, offset: Int): Fragment =
-    if (isSqlServer) fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
-    else fr"LIMIT $limit OFFSET $offset"
+    if (rowLimitDialect == LimitDialect) gap ++ fr"LIMIT $limit OFFSET $offset"
+    else gap ++ fr"OFFSET $offset ROWS FETCH NEXT $limit ROWS ONLY"
+
+  /**
+   * Whether `sql` has an ORDER BY of its own, outside any parentheses. SQL Server refuses OFFSET ... FETCH
+   * without one, and refuses a second one, so the row limit has to know.
+   */
+  private[util] def hasTopLevelOrderBy(sql: String): Boolean = {
+    val upper = sql.toUpperCase
+    var depth = 0
+    var found = false
+    var i = 0
+    while (i < upper.length) {
+      upper.charAt(i) match {
+        case '(' => depth += 1
+        case ')' => depth -= 1
+        case 'O' if depth == 0 && upper.startsWith("ORDER BY", i) &&
+          (i == 0 || !Character.isLetterOrDigit(upper.charAt(i - 1))) => found = true
+        case _ =>
+      }
+      i += 1
+    }
+    found
+  }
+
+  private[util] def pageFor(dialect: RowLimitDialect, query: Fragment, limit: Option[Int], offset: Option[Int]): Fragment =
+    if (limit.isEmpty && offset.isEmpty) query
+    else dialect match {
+      case LimitDialect =>
+        query ++ gap ++ limit.map(n => fr"LIMIT $n").getOrElse(Fragment.empty) ++
+          offset.map(n => fr"OFFSET $n").getOrElse(Fragment.empty)
+      case _ =>
+        // ORDER BY (SELECT NULL) asks for no particular order, which is what LIMIT without ORDER BY means.
+        val order =
+          if (dialect == SqlServerFetchDialect && !hasTopLevelOrderBy(query.internals.sql)) fr"ORDER BY (SELECT NULL)"
+          else Fragment.empty
+        query ++ gap ++ order ++ fr"OFFSET ${offset.getOrElse(0)} ROWS" ++
+          limit.map(n => fr"FETCH NEXT $n ROWS ONLY").getOrElse(Fragment.empty)
+    }
+
+  /**
+   * `query` with an optional page: LIMIT and OFFSET where the database has them, OFFSET ... FETCH on SQL Server
+   * and Oracle. SQL Server also needs an ORDER BY, so a query without one gets `ORDER BY (SELECT NULL)`.
+   * With neither given, `query` is unchanged.
+   *
+   * The ORDER BY is looked for in `query` itself, so pass the whole statement, or at least the part that
+   * carries its ORDER BY.
+   */
+  def pageOf(query: Fragment, limit: Option[Int], offset: Option[Int]): Fragment =
+    pageFor(rowLimitDialect, query, limit, offset)
+
+  /** `query` restricted to at most `rows` rows; see `pageOf`. */
+  def limitOf(query: Fragment, rows: Int): Fragment = pageFor(rowLimitDialect, query, Some(rows), None)
+
+  /** `query` restricted to its first row; see `pageOf`. Written as a literal 1, as `LIMIT 1` was. */
+  def firstRowOf(query: Fragment): Fragment = firstRowFor(rowLimitDialect, query)
+
+  private[util] def firstRowFor(dialect: RowLimitDialect, query: Fragment): Fragment = dialect match {
+    case LimitDialect => query ++ gap ++ fr"LIMIT 1"
+    case dialect =>
+      val order =
+        if (dialect == SqlServerFetchDialect && !hasTopLevelOrderBy(query.internals.sql)) fr"ORDER BY (SELECT NULL)"
+        else Fragment.empty
+      query ++ gap ++ order ++ fr"OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY"
+  }
+
+  /**
+   * String concatenation of `parts`. SQL Server and MySQL spell it CONCAT(...) - on MySQL `||` is a logical OR -
+   * and SQL Server's result is widened to NVARCHAR(MAX) so a long concatenation is not cut short. The others
+   * take `||`.
+   */
+  def concat(parts: Fragment*): Fragment =
+    if (isSqlServer) fr"CAST(CONCAT(" ++ parts.reduce(_ ++ fr"," ++ _) ++ fr") AS NVARCHAR(MAX))"
+    else if (DBUtil.isMySql) fr"CONCAT(" ++ parts.reduce(_ ++ fr"," ++ _) ++ fr")"
+    else parts.reduce(_ ++ fr"||" ++ _)
+
+  /**
+   * The values of `expr` across a group joined by `separator`: string_agg on Postgres, H2 and SQL Server,
+   * GROUP_CONCAT on MySQL and LISTAGG on Oracle. No order is asked for, as string_agg without ORDER BY.
+   */
+  def stringAgg(expr: Fragment, separator: String): Fragment = {
+    // A literal, not a bound parameter: MySQL's SEPARATOR and Oracle's LISTAGG delimiter take only a constant.
+    val sep = Fragment.const("'" + separator.replace("'", "''") + "'")
+    if (DBUtil.isMySql) fr"GROUP_CONCAT(" ++ expr ++ fr"SEPARATOR" ++ sep ++ fr")"
+    else if (DBUtil.isOracle) fr"LISTAGG(" ++ expr ++ fr"," ++ sep ++ fr") WITHIN GROUP (ORDER BY NULL)"
+    else fr"string_agg(" ++ expr ++ fr"," ++ sep ++ fr")"
+  }
 
   /**
    * Row locking for a SELECT is a table hint on SQL Server, placed straight after the table name, and a

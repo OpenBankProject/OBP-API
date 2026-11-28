@@ -2,7 +2,6 @@ package code.asset
 
 import code.setup.ServerSetup
 import code.util.Helper
-import net.liftweb.mapper.By
 
 /**
  * This class tests the asset registry's seed and the rules the registry enforces on every row.
@@ -19,7 +18,7 @@ import net.liftweb.mapper.By
 class AssetSeedTest extends ServerSetup with RestoresSeededAssetRegistry {
 
   private def emptyRegistryAndSeed(): (Int, Int, Int) = {
-    Asset.bulkDelete_!!()
+    Asset.deleteAll()
     AssetSeed.run()
   }
 
@@ -81,13 +80,13 @@ class AssetSeedTest extends ServerSetup with RestoresSeededAssetRegistry {
       inserted shouldBe 0
       alreadyPresent shouldBe AssetSeed.entries.size
       failed shouldBe 0
-      Asset.count shouldBe AssetSeed.entries.size
+      Asset.count() shouldBe AssetSeed.entries.size
     }
 
     scenario("A run never changes an asset that is already there") {
       emptyRegistryAndSeed()
-      Asset.find(By(Asset.AssetCode, "XTS")).openOrThrowException("XTS was seeded")
-        .Status(AssetStatuses.SUSPENDED).Name("Changed by this deployment").saveMe()
+      Asset.update(Asset.findByAssetCode("XTS").openOrThrowException("XTS was seeded")
+        .copy(status = AssetStatuses.SUSPENDED, name = "Changed by this deployment"))
 
       AssetSeed.run()
 
@@ -106,13 +105,13 @@ class AssetSeedTest extends ServerSetup with RestoresSeededAssetRegistry {
     }
 
     scenario("A code is stored upper case") {
-      Asset.bulkDelete_!!()
+      Asset.deleteAll()
       Assets.createAsset("tokenab", AssetTypes.DEPOSIT_TOKEN, "Token AB", 2, Some("bank-a"), AssetStatuses.ACTIVE, "user-1")
         .map(_.assetCode).toOption shouldBe Some("TOKENAB")
     }
 
     scenario("Assets that break the registry's rules are refused") {
-      Asset.bulkDelete_!!()
+      Asset.deleteAll()
       def create(code: String, assetType: String, decimalPlaces: Int, issuer: Option[String], status: String = AssetStatuses.ACTIVE) =
         Assets.createAsset(code, assetType, "Name", decimalPlaces, issuer, status, "user-1")
 
@@ -125,16 +124,16 @@ class AssetSeedTest extends ServerSetup with RestoresSeededAssetRegistry {
       create("ABCD", AssetTypes.DEPOSIT_TOKEN, 2, None).isDefined shouldBe false            // issued type needs an issuer
       create("ABCD", AssetTypes.FIAT, 2, Some("bank-a")).isDefined shouldBe false           // fiat has no issuer
       create("ABCD", AssetTypes.CRYPTO, 2, None, status = "FROZEN").isDefined shouldBe false
-      Asset.count shouldBe 0
+      Asset.count() shouldBe 0
 
       create("ABCD", AssetTypes.CRYPTO, 18, None).isDefined shouldBe true
     }
 
     scenario("A code can only be registered once, whatever its case") {
-      Asset.bulkDelete_!!()
+      Asset.deleteAll()
       Assets.createAsset("ABCD", AssetTypes.CRYPTO, "First", 2, None, AssetStatuses.ACTIVE, "user-1").isDefined shouldBe true
       Assets.createAsset("abcd", AssetTypes.CRYPTO, "Second", 2, None, AssetStatuses.ACTIVE, "user-1").isDefined shouldBe false
-      Asset.count shouldBe 1
+      Asset.count() shouldBe 1
     }
   }
 }

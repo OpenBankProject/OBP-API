@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_0_0
 
 import com.openbankproject.commons.model.ErrorMessage
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanUseAccountFirehoseAtAnyBank
 import code.api.util.ErrorMessages.{AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles}
@@ -49,8 +50,8 @@ class TransactionsTest extends V300ServerSetup {
   object GetTransactions extends Tag(nameOf(Implementations3_0_0.getTransactionsForBankAccount))
   object GetTransactionsWithParams extends Tag(nameOf(Implementations3_0_0.getCoreTransactionsForBankAccount))
   
-  feature("Get Transactions for Account (Full)") {
-    scenario("Success Full case") {
+  Feature("Get Transactions for Account (Full)") {
+    Scenario("Success Full case") {
       When("We prepare the input data")
       val bankId = randomBankId
       val accountId = randomPrivateAccountId(bankId)
@@ -65,8 +66,8 @@ class TransactionsTest extends V300ServerSetup {
     }
   }
 
-  feature("Get Transactions for Account (Core)") {
-    scenario("Success Full case") {
+  Feature("Get Transactions for Account (Core)") {
+    Scenario("Success Full case") {
       When("We prepare the input data")
       val bankId = randomBankId
       val accountId = randomPrivateAccountId(bankId)
@@ -85,13 +86,13 @@ class TransactionsTest extends V300ServerSetup {
 
 
 
-  feature("transactions with params"){
+  Feature("transactions with params"){
     import java.util.{Calendar, Date}
 
     val defaultFormat = APIUtil.DateWithMsFormat
     val rollbackFormat = APIUtil.DateWithMsRollbackFormat
 
-    scenario("we don't get transactions due to wrong value for sort_direction parameter", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we don't get transactions due to wrong value for sort_direction parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -104,7 +105,7 @@ class TransactionsTest extends V300ServerSetup {
       And("error should be " + ErrorMessages.FilterSortDirectionError)
       reply.body.extract[ErrorMessage].message contains  (ErrorMessages.FilterSortDirectionError)
     }
-    scenario("we get all the transactions sorted by ASC", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we get all the transactions sorted by ASC", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -121,7 +122,7 @@ class TransactionsTest extends V300ServerSetup {
       val transaction2 = transactions.transactions(1)
       transaction1.details.completed.before(transaction2.details.completed) should equal(true)
     }
-    scenario("we get all the transactions sorted by asc", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we get all the transactions sorted by asc", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -138,7 +139,7 @@ class TransactionsTest extends V300ServerSetup {
       val transaction2 = transactions.transactions(1)
       transaction1.details.completed.before(transaction2.details.completed) should equal(true)
     }
-    scenario("we get all the transactions sorted by DESC", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we get all the transactions sorted by DESC", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -155,7 +156,7 @@ class TransactionsTest extends V300ServerSetup {
       val transaction2 = transactions.transactions(1)
       transaction1.details.completed.before(transaction2.details.completed) should equal(false)
     }
-    scenario("we get all the transactions sorted by desc", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we get all the transactions sorted by desc", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -173,7 +174,7 @@ class TransactionsTest extends V300ServerSetup {
       transaction1.details.completed.before(transaction2.details.completed) should equal(false)
 
     }
-    scenario("we don't get transactions due to wrong value (not a number) for limit parameter", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we don't get transactions due to wrong value (not a number) for limit parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -186,7 +187,7 @@ class TransactionsTest extends V300ServerSetup {
       And("error should be " + ErrorMessages.FilterLimitError)
       reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterLimitError)
     }
-    scenario("we don't get transactions due to wrong value (0) for limit parameter", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we don't get transactions due to wrong value (0) for limit parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -199,7 +200,7 @@ class TransactionsTest extends V300ServerSetup {
       And("error should be " + ErrorMessages.FilterLimitError)
       reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterLimitError)
     }
-    scenario("we don't get transactions due to wrong value (-100) for limit parameter", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we don't get transactions due to wrong value (-100) for limit parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -212,7 +213,7 @@ class TransactionsTest extends V300ServerSetup {
       And("error should be " + ErrorMessages.FilterLimitError)
       reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterLimitError)
     }
-    scenario("we get only 5 transactions due to the limit parameter value", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we get only 5 transactions due to the limit parameter value", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -226,7 +227,7 @@ class TransactionsTest extends V300ServerSetup {
       And("transactions size should be equal to 5")
       transactions.transactions.size should equal (5)
     }
-    scenario("we don't get transactions due to wrong value for from_date parameter", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we don't get transactions due to wrong value for from_date parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -239,7 +240,7 @@ class TransactionsTest extends V300ServerSetup {
       And("error should be " + ErrorMessages.FilterDateFormatError)
       reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterDateFormatError)
     }
-    scenario("we get transactions from a previous date with the right format", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we get transactions from a previous date with the right format", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -259,7 +260,7 @@ class TransactionsTest extends V300ServerSetup {
       val transactions = reply.body.extract[TransactionsJsonV300]
       transactions.transactions.size should not equal (0)
     }
-    scenario("we get transactions from a previous date (from_date) with the fallback format", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we get transactions from a previous date (from_date) with the fallback format", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -279,7 +280,7 @@ class TransactionsTest extends V300ServerSetup {
       val transactions = reply.body.extract[TransactionsJsonV300]
       transactions.transactions.size should not equal (0)
     }
-    scenario("we don't get transactions from a date in the future", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we don't get transactions from a date in the future", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -299,7 +300,7 @@ class TransactionsTest extends V300ServerSetup {
       val transactions = reply.body.extract[TransactionsJsonV300]
       transactions.transactions.size should equal (0)
     }
-    scenario("we don't get transactions due to wrong value for to_date parameter", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we don't get transactions due to wrong value for to_date parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -312,7 +313,7 @@ class TransactionsTest extends V300ServerSetup {
       And("error should be " + ErrorMessages.FilterDateFormatError)
       reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterDateFormatError)
     }
-    scenario("we get transactions from a previous (to_date) date with the right format", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we get transactions from a previous (to_date) date with the right format", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -328,7 +329,7 @@ class TransactionsTest extends V300ServerSetup {
       val transactions = reply.body.extract[TransactionsJsonV300]
       transactions.transactions.size should not equal (0)
     }
-    scenario("we get transactions from a previous date with the fallback format", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we get transactions from a previous date with the fallback format", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -344,7 +345,7 @@ class TransactionsTest extends V300ServerSetup {
       val transactions = reply.body.extract[TransactionsJsonV300]
       transactions.transactions.size should not equal (0)
     }
-    scenario("we don't get transactions from a date in the past", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we don't get transactions from a date in the past", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -364,7 +365,7 @@ class TransactionsTest extends V300ServerSetup {
       val transactions = reply.body.extract[TransactionsJsonV300]
       transactions.transactions.size should equal (0)
     }
-    scenario("we don't get transactions due to wrong value (not a number) for offset parameter", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we don't get transactions due to wrong value (not a number) for offset parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -377,7 +378,7 @@ class TransactionsTest extends V300ServerSetup {
       And("error should be " + ErrorMessages.FilterOffersetError)
       reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterOffersetError)
     }
-    scenario("we don't get transactions due to the (2000) for offset parameter", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we don't get transactions due to the (2000) for offset parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -391,7 +392,7 @@ class TransactionsTest extends V300ServerSetup {
       val transactions = reply.body.extract[TransactionsJsonV300]
       transactions.transactions.size should equal (0)
     }
-    scenario("we don't get transactions due to wrong value (-100) for offset parameter", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we don't get transactions due to wrong value (-100) for offset parameter", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -404,7 +405,7 @@ class TransactionsTest extends V300ServerSetup {
       And("error should be " + ErrorMessages.FilterOffersetError)
       reply.body.extract[ErrorMessage].message contains (ErrorMessages.FilterOffersetError)
     }
-    scenario("we get only 5 transactions due to the offset parameter value", API300, GetTransactions, GetTransactionsWithParams) {
+    Scenario("we get only 5 transactions due to the offset parameter value", API300, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -420,9 +421,9 @@ class TransactionsTest extends V300ServerSetup {
     }
   }
 
-  feature("Assuring that entitlement requirements are checked for transaction(s) related endpoints") {
+  Feature("Assuring that entitlement requirements are checked for transaction(s) related endpoints") {
 
-    scenario("We try to get firehose transactions without required role " + CanUseAccountFirehoseAtAnyBank){
+    Scenario("We try to get firehose transactions without required role " + CanUseAccountFirehoseAtAnyBank){
 
       When("We have to find it by endpoint getFirehoseTransactionsForBankAccount")
       val requestGet = (v3_0Request / "banks" / "BANK_ID" / "firehose" / "accounts" /  "AccountId(accountId)" / "views" / "ViewId(viewId)" / "transactions").GET <@ (user1)

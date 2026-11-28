@@ -65,7 +65,7 @@ class AtmsTest extends V400ServerSetup {
   val bankId = testBankId1;
   val postAtmJson = SwaggerDefinitionsJSON.atmJsonV400.copy(bank_id= testBankId1.value)
 
-  feature("Test Create/Update -- error cases ") {
+  Feature("Test Create/Update -- error cases ") {
     // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
     // Commented out: this scenario only exercises an endpoint that only OBP versions below v5.1.0 could reach. See docs/OLD_VERSION_ONLY_CODE.md.
     // scenario("Create-error cases", ApiEndpoint1,ApiEndpoint8, VersionOfApi) {
@@ -344,8 +344,8 @@ class AtmsTest extends V400ServerSetup {
     (response.body \ "id").extract[String]
   }
 
-  feature("Update the fields of an ATM") {
-    scenario("We update the supported currencies", ApiEndpoint1, VersionOfApi) {
+  Feature("Update the fields of an ATM") {
+    Scenario("We update the supported currencies", ApiEndpoint1, VersionOfApi) {
       val json = SwaggerDefinitionsJSON.supportedCurrenciesJson
       val atmId = createAtmViaKeptVersion()
       Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
@@ -354,7 +354,7 @@ class AtmsTest extends V400ServerSetup {
       response.body.extract[AtmSupportedCurrenciesJson].supported_currencies should be (json.supported_currencies)
     }
 
-    scenario("We update the accessibility features", ApiEndpoint4, VersionOfApi) {
+    Scenario("We update the accessibility features", ApiEndpoint4, VersionOfApi) {
       val json = SwaggerDefinitionsJSON.accessibilityFeaturesJson
       val atmId = createAtmViaKeptVersion()
       Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
@@ -363,7 +363,7 @@ class AtmsTest extends V400ServerSetup {
       response.body.extract[AtmAccessibilityFeaturesJson].accessibility_features should be (json.accessibility_features)
     }
 
-    scenario("We update the supported languages", ApiEndpoint3, VersionOfApi) {
+    Scenario("We update the supported languages", ApiEndpoint3, VersionOfApi) {
       val json = SwaggerDefinitionsJSON.supportedLanguagesJson
       val atmId = createAtmViaKeptVersion()
       Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)
@@ -372,7 +372,7 @@ class AtmsTest extends V400ServerSetup {
       response.body.extract[AtmSupportedLanguagesJson].supported_languages should be (json.supported_languages)
     }
 
-    scenario("We update the services", ApiEndpoint5, VersionOfApi) {
+    Scenario("We update the services", ApiEndpoint5, VersionOfApi) {
       val json = SwaggerDefinitionsJSON.atmServicesJson
       val atmId = createAtmViaKeptVersion()
       Entitlement.entitlement.vend.addEntitlement(bankId.value, resourceUser1.userId, ApiRole.CanUpdateAtm.toString)

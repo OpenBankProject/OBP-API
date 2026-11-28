@@ -2,6 +2,14 @@ syntax = "proto3";
 package code.obp.grpc.logcache.g1;
 
 import "google/protobuf/timestamp.proto";
+import "scalapb/scalapb.proto";
+
+// Pins the Scala package onto the checked-in location (previously hand-written
+// there) - see chat.proto for the full rationale. Wire names are unchanged.
+option (scalapb.options) = {
+  package_name: "code.obp.grpc.logcache.api"
+  flat_package: true
+};
 
 // Log level. Wire format: varint int32. Mirrors RedisLogger.LogLevel.
 // ALL is the aggregate firehose — gated by canGetSystemLogCacheAll entitlement.

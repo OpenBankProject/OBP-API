@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v6_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.cache.Caching
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateRateLimits, CanGetRateLimits, CanUpdateRateLimits}
@@ -39,7 +40,6 @@ import code.entitlement.Entitlement
 import code.ratelimiting.RateLimiting
 import code.setup.OBPReq
 import com.openbankproject.commons.model.ErrorMessage
-import net.liftweb.mapper.By
 import org.json4s.native.Serialization.write
 
 import java.util.Date
@@ -50,7 +50,7 @@ import java.util.Date
  */
 class LegacyCallLimitsPutTest extends V600ServerSetup {
 
-  lazy val consumerId: String = Consumers.consumers.vend.getConsumerByConsumerKey(consumer3.key).map(_.consumerId.get).getOrElse("")
+  lazy val consumerId: String = Consumers.consumers.vend.getConsumerByConsumerKey(consumer3.key).map(_.consumerId).getOrElse("")
 
   // THIS-CODE-IS-COMMENTED-OUT-BECAUSE-IT-IS-UNREACHABLE-IN-OBP-BEFORE-OBPv5.1.0
   // Commented out: v3.1.0 callsLimit is only reachable from OBP versions below v5.1.0. See docs/OLD_VERSION_ONLY_CODE.md.
@@ -76,7 +76,7 @@ class LegacyCallLimitsPutTest extends V600ServerSetup {
   }
 
   private def storedPerHourLimits: List[Long] =
-    RateLimiting.findAll(By(RateLimiting.ConsumerId, consumerId)).map(_.perHourCallLimit).sorted
+    RateLimiting.findAllByConsumerId(consumerId).map(_.perHourCallLimit).sorted
 
   private def activePerHourLimit: Long = {
     Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetRateLimits.toString)
@@ -86,7 +86,7 @@ class LegacyCallLimitsPutTest extends V600ServerSetup {
   }
 
   private def startClean(): Unit = {
-    RateLimiting.bulkDelete_!!(By(RateLimiting.ConsumerId, consumerId))
+    RateLimiting.findAllByConsumerId(consumerId).foreach(row => RateLimiting.delete(row.rateLimitingId))
     Caching.invalidateRateLimitCache(consumerId)
     Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateRateLimits.toString)
   }
@@ -125,9 +125,8 @@ class LegacyCallLimitsPutTest extends V600ServerSetup {
     scenario("changes a consumer's only rate limit that an older version stored with empty scope fields") {
       startClean()
       // As v4.0.0 stored a body that sent "" for api_name, api_version and bank_id.
-      RateLimiting.create.ConsumerId(consumerId).FromDate(from).ToDate(to).BankId("").ApiVersion("").ApiName("")
-        .PerSecondCallLimit(-1).PerMinuteCallLimit(-1).PerHourCallLimit(1000).PerDayCallLimit(-1)
-        .PerWeekCallLimit(-1).PerMonthCallLimit(-1).saveMe()
+      RateLimiting.insertWithLimits(consumerId, from, to, apiVersion = Some(""), apiName = Some(""), bankId = Some(""),
+        perSecond = -1, perMinute = -1, perHour = 1000, perDay = -1, perWeek = -1, perMonth = -1)
 
       makePutRequest(callLimitsPath(v4_0_0_Request).PUT <@ (user1), write(v400Body("100"))).code should equal(200)
 
@@ -154,7 +153,7 @@ class LegacyCallLimitsPutTest extends V600ServerSetup {
 
       val blank = makePutRequest(callLimitsPath(v4_0_0_Request).PUT <@ (user1), write(v400Body("100").copy(api_name = Some(" "))))
       blank.code should equal(200)
-      RateLimiting.findAll(By(RateLimiting.ConsumerId, consumerId)).map(_.apiName) should equal(List(None))
+      RateLimiting.findAllByConsumerId(consumerId).map(_.apiName) should equal(List(None))
     }
   }
 }

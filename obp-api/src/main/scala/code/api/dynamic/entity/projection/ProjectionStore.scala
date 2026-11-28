@@ -44,33 +44,33 @@ import doobie.implicits._
 object ProjectionStore {
 
   // Real DB identifiers of the canonical blob table (Lift-mapped).
-  val blobTable: String       = DynamicData.dbTableName
-  val idColumn: String        = DynamicData.DynamicDataId.dbColumnName
-  val jsonColumn: String      = DynamicData.DataJson.dbColumnName
-  val entityNameColumn: String = DynamicData.DynamicEntityName.dbColumnName
-  val bankIdColumn: String    = DynamicData.BankId.dbColumnName
-  val userIdColumn: String    = DynamicData.UserId.dbColumnName
-  val personalColumn: String  = DynamicData.IsPersonalEntity.dbColumnName
+  val blobTable: String       = DynamicData.tableName
+  val idColumn: String        = DynamicData.idColumnName
+  val jsonColumn: String      = DynamicData.jsonColumnName
+  val entityNameColumn: String = DynamicData.entityNameColumnName
+  val bankIdColumn: String    = DynamicData.bankIdColumnName
+  val userIdColumn: String    = DynamicData.userIdColumnName
+  val personalColumn: String  = DynamicData.personalColumnName
 
-  // Row-level access ACL table (Lift-mapped), for user-scoped EXISTS / NOT EXISTS join evaluation:
+  // Row-level access ACL table, for user-scoped EXISTS / NOT EXISTS join evaluation:
   // a join onto a row-level child counts only child rows the caller can read.
-  val aclTable: String         = code.DynamicData.DynamicDataAccess.dbTableName
-  val aclDataIdColumn: String  = code.DynamicData.DynamicDataAccess.DynamicDataId.dbColumnName
-  val aclUserIdColumn: String  = code.DynamicData.DynamicDataAccess.UserId.dbColumnName
-  val aclCanReadColumn: String = code.DynamicData.DynamicDataAccess.CanRead.dbColumnName
+  val aclTable: String         = code.DynamicData.DynamicDataAccess.tableName
+  val aclDataIdColumn: String  = code.DynamicData.DynamicDataAccess.dataIdColumn
+  val aclUserIdColumn: String  = code.DynamicData.DynamicDataAccess.userIdColumn
+  val aclCanReadColumn: String = code.DynamicData.DynamicDataAccess.canReadColumn
 
   // Grants to Organisations, and the membership tables they are checked against: a join onto a row-level
   // child also counts child rows granted to an active Organisation the caller belongs to.
-  val organisationAclTable: String          = code.DynamicData.DynamicDataOrganisationAccess.dbTableName
-  val organisationAclDataIdColumn: String   = code.DynamicData.DynamicDataOrganisationAccess.DynamicDataId.dbColumnName
-  val organisationAclOrgIdColumn: String    = code.DynamicData.DynamicDataOrganisationAccess.OrganisationId.dbColumnName
-  val organisationAclCanReadColumn: String  = code.DynamicData.DynamicDataOrganisationAccess.CanRead.dbColumnName
-  val organisationTable: String             = code.organisation.Organisation.dbTableName
-  val organisationIdColumn: String          = code.organisation.Organisation.OrganisationId.dbColumnName
-  val organisationStatusColumn: String      = code.organisation.Organisation.Status.dbColumnName
-  val organisationMemberTable: String       = code.organisation.OrganisationMember.dbTableName
-  val organisationMemberOrgIdColumn: String = code.organisation.OrganisationMember.OrganisationId.dbColumnName
-  val organisationMemberUserIdColumn: String = code.organisation.OrganisationMember.UserId.dbColumnName
+  val organisationAclTable: String          = code.DynamicData.DynamicDataOrganisationAccess.tableName
+  val organisationAclDataIdColumn: String   = code.DynamicData.DynamicDataOrganisationAccess.dataIdColumn
+  val organisationAclOrgIdColumn: String    = code.DynamicData.DynamicDataOrganisationAccess.organisationIdColumn
+  val organisationAclCanReadColumn: String  = code.DynamicData.DynamicDataOrganisationAccess.canReadColumn
+  val organisationTable: String             = code.organisation.Organisation.tableName
+  val organisationIdColumn: String          = code.organisation.Organisation.organisationIdColumn
+  val organisationStatusColumn: String      = code.organisation.Organisation.statusColumn
+  val organisationMemberTable: String       = code.organisation.OrganisationMember.tableName
+  val organisationMemberOrgIdColumn: String = code.organisation.OrganisationMember.organisationIdColumn
+  val organisationMemberUserIdColumn: String = code.organisation.OrganisationMember.userIdColumn
 
   /** One indexed field's value for a record: safe column, SQL type, coerced text (None => NULL). */
   case class ColumnValue(safeColumn: String, sqlType: String, value: Option[String])

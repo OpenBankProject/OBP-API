@@ -52,10 +52,10 @@ class EndpointAccessRuleTest extends V600ServerSetup {
   private val role = ApiRole.canGetAnyUser
   private def ownUserId(c: code.model.Consumer): String = {
     tokenApplication2 // creates the Consumer's own client-credentials user
-    Users.users.vend.getUserByProviderId(code.api.OAuth2Login.OBPOIDC.clientCredentialsProvider, c.key.get)
+    Users.users.vend.getUserByProviderId(code.api.OAuth2Login.OBPOIDC.clientCredentialsProvider, c.key)
       .map(_.userId).openOrThrowException("the application's own user should exist")
   }
-  private def consumerPk(c: code.model.Consumer): String = c.id.get.toString
+  private def consumerPk(c: code.model.Consumer): String = c.id.toString
   private def allowed(userId: String, c: code.model.Consumer): Boolean =
     handleAccessControlRegardingEntitlementsAndScopes("", userId, consumerPk(c), List(role))
 
@@ -103,7 +103,7 @@ class EndpointAccessRuleTest extends V600ServerSetup {
 
     scenario("a Consumer that is not a Platform App does not get its Scope", VersionOfApi) {
       val appUser = ownUserId(testConsumer2)
-      PlatformApps.platformAppProvider.vend.deletePlatformApp(testConsumer2.consumerId.get)
+      PlatformApps.platformAppProvider.vend.deletePlatformApp(testConsumer2.consumerId)
       Scope.scope.vend.addScope("", consumerPk(testConsumer2), role.toString)
       allowed(appUser, testConsumer2) shouldBe false
       ensurePlatformApp(testConsumer2)

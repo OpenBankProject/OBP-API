@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v7_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateCustomer, CanCreateUserCustomerLink, CanSendEmailToCustomerAtOneBank}
 import code.api.v2_0_0.CreateUserCustomerLinkJson
@@ -50,7 +51,7 @@ class CustomerOnboardingTest extends V600ServerSetup {
   private lazy val bankId = testBankId2.value
 
   private def withScopes[T](roles: String*)(f: => T): T = {
-    val added = roles.map(role => Scope.scope.vend.addScope(bankId, testConsumer2.id.get.toString, role))
+    val added = roles.map(role => Scope.scope.vend.addScope(bankId, testConsumer2.id.toString, role))
     try f finally added.foreach(Scope.scope.vend.deleteScope)
   }
 

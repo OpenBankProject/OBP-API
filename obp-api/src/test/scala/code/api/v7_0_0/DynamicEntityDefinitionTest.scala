@@ -219,7 +219,7 @@ class DynamicEntityDefinitionTest extends ServerSetupWithTestData {
 
         Given("testConsumer2 holds the Get and Update Roles as Scopes at SYS")
         val scopes = List(canGetDynamicEntityDefinitions, canUpdateDynamicEntityDefinition).map(role =>
-          Scope.scope.vend.addScope(SYS, testConsumer2.id.get.toString, role.toString))
+          Scope.scope.vend.addScope(SYS, testConsumer2.id.toString, role.toString))
         try {
           When("user2, a person, lists them again through testConsumer2")
           Then("the Consumer's Scope is not theirs to use")

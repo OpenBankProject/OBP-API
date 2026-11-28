@@ -29,7 +29,6 @@ package code.organisation
 
 import code.model.Consumer
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.mapper.{By, ByList}
 
 import scala.concurrent.Future
 
@@ -44,13 +43,13 @@ object ConsumerOwnership {
 
   /** The Organisation a Consumer belongs to, if any. */
   def organisationIdOf(consumer: Consumer): Option[String] =
-    Option(consumer.organisationId.get).map(_.trim).filter(_.nonEmpty)
+    Option(consumer.organisationId).map(_.trim).filter(_.nonEmpty)
 
   /** True if the User may act for the Consumer: see the description of this object. */
   def canActFor(consumer: Consumer, userId: String): Boolean =
     organisationIdOf(consumer) match {
       case Some(organisationId) => isActiveMember(organisationId, userId)
-      case None => Option(consumer.createdByUserId.get).contains(userId)
+      case None => Option(consumer.createdByUserId).contains(userId)
     }
 
   /** True if the User is an admin of the Consumer's active Organisation. */
@@ -69,15 +68,15 @@ object ConsumerOwnership {
 
   /** The Consumers the User may act for: their personal ones, and those of their active Organisations. */
   def consumersFor(userId: String): Future[List[Consumer]] = Future {
-    val created = Consumer.findAll(By(Consumer.createdByUserId, userId)).filter(organisationIdOf(_).isEmpty)
+    val created = Consumer.findAllByCreatedByUserId(userId).filter(organisationIdOf(_).isEmpty)
     val organisationIds = Organisations.getOrganisationsOfUser(userId)
       .collect { case (organisation, _) if organisation.status == Organisations.StatusActive => organisation.organisationId }
     val ofOrganisations =
-      if (organisationIds.isEmpty) Nil else Consumer.findAll(ByList(Consumer.organisationId, organisationIds))
-    (created ++ ofOrganisations).groupBy(_.consumerId.get).values.map(_.head).toList.sortBy(_.name.get.toLowerCase)
+      if (organisationIds.isEmpty) Nil else Consumer.findAllByOrganisationIds(organisationIds)
+    (created ++ ofOrganisations).groupBy(_.consumerId).values.map(_.head).toList.sortBy(_.name.toLowerCase)
   }
 
   /** The number of Consumers that belong to the Organisation. */
   def consumerCount(organisationId: String): Long =
-    Consumer.count(By(Consumer.organisationId, organisationId))
+    Consumer.countByOrganisationId(organisationId)
 }

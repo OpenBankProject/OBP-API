@@ -66,8 +66,8 @@ class CustomerMessageTest extends V400ServerSetup {
   lazy val createMessageJsonV400: CreateMessageJsonV400 = SwaggerDefinitionsJSON.createMessageJsonV400
   
   
-  feature("Create Customer Message v4.0.0") {
-    scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Create Customer Message v4.0.0") {
+    Scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId / "customers"/ "testCustomerId" / "messages").POST
       val response400 = makePostRequest(request400, write(createMessageJsonV400))
@@ -84,7 +84,7 @@ class CustomerMessageTest extends V400ServerSetup {
       responseGet400.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
     
-    scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / testBankId / "customers"/ "testCustomerId" / "messages").POST <@(user1)
       val response400 = makePostRequest(request400, write(createMessageJsonV400))
@@ -101,7 +101,7 @@ class CustomerMessageTest extends V400ServerSetup {
     }
     
     
-    scenario("We will call the Add endpoint with user credentials and role but no customerId", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the Add endpoint with user credentials and role but no customerId", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
 
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, canCreateCustomerMessage.toString)
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, canGetCustomerMessages.toString)
@@ -118,7 +118,7 @@ class CustomerMessageTest extends V400ServerSetup {
       
     }
      
-    scenario("We will call the Add endpoint with user credentials and role with proper customerId", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the Add endpoint with user credentials and role with proper customerId", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
 
       //1st: Prepare the customer 
       val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310

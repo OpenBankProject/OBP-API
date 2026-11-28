@@ -70,9 +70,8 @@ class FundsAvailableTest extends V310ServerSetup {
     view.viewId.value
   }
 
-  feature("Check available funds v3.1.0 - Unauthorized access")
-  {
-    scenario("We will check available without user credentials", ApiEndpoint, VersionOfApi) {
+  Feature("Check available funds v3.1.0 - Unauthorized access") {
+    Scenario("We will check available without user credentials", ApiEndpoint, VersionOfApi) {
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
       val view = randomViewPermalink(bankId, bankAccount)
@@ -86,9 +85,8 @@ class FundsAvailableTest extends V310ServerSetup {
     }
   }
 
-  feature("Check available funds v3.1.0 - Authorized access")
-  {
-    scenario("We will check available funds without params", ApiEndpoint, VersionOfApi) {
+  Feature("Check available funds v3.1.0 - Authorized access") {
+    Scenario("We will check available funds without params", ApiEndpoint, VersionOfApi) {
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
 
@@ -114,7 +112,7 @@ class FundsAvailableTest extends V310ServerSetup {
       response310_ccy.body.extract[ErrorMessage].message should startWith (MissingQueryParams)
     }
 
-    scenario("We will check available funds and params", ApiEndpoint, VersionOfApi) {
+    Scenario("We will check available funds and params", ApiEndpoint, VersionOfApi) {
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
 

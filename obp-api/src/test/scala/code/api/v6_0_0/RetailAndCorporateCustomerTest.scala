@@ -105,9 +105,9 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
     response.body.extract[CustomerJsonV600]
   }
 
-  feature(s"$ApiEndpoint1 - Create Retail Customer $VersionOfApi") {
+  Feature(s"$ApiEndpoint1 - Create Retail Customer $VersionOfApi") {
     
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi without user credentials")
       val postJson = PostRetailCustomerJsonV600(
         legal_name = "Test Customer",
@@ -121,7 +121,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the endpoint without the proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint without the proper role", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi without the role " + CanCreateCustomer)
       val postJson = PostRetailCustomerJsonV600(
         legal_name = "Test Customer",
@@ -135,7 +135,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles)
     }
 
-    scenario("We will create a retail customer successfully", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will create a retail customer successfully", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi with the role " + CanCreateCustomer)
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       val postJson = PostRetailCustomerJsonV600(
@@ -159,7 +159,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       customer.parent_customer_id should equal("")
     }
 
-    scenario("We will create a retail customer with invalid date format", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will create a retail customer with invalid date format", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi with invalid date_of_birth format")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       val postJson = PostRetailCustomerJsonV600(
@@ -176,9 +176,9 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
     }
   }
 
-  feature(s"$ApiEndpoint2 - Get Retail Customers at Bank $VersionOfApi") {
+  Feature(s"$ApiEndpoint2 - Get Retail Customers at Bank $VersionOfApi") {
     
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi without user credentials")
       val request = (v6_0_0_Request / "banks" / bankId / "retail-customers").GET
       val response = makeGetRequest(request)
@@ -188,7 +188,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the endpoint without the proper role", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the endpoint without the proper role", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi without the role " + CanGetCustomersAtOneBank)
       val request = (v6_0_0_Request / "banks" / bankId / "retail-customers").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -198,7 +198,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles)
     }
 
-    scenario("We will get retail customers successfully", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will get retail customers successfully", ApiEndpoint2, VersionOfApi) {
       Given("We create a retail customer")
       val customer = createTestRetailCustomer("Retail Customer for List")
       
@@ -216,9 +216,9 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
     }
   }
 
-  feature(s"$ApiEndpoint3 - Create Corporate Customer $VersionOfApi") {
+  Feature(s"$ApiEndpoint3 - Create Corporate Customer $VersionOfApi") {
     
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When(s"We make a request $VersionOfApi without user credentials")
       val postJson = PostCorporateCustomerJsonV600(
         legal_name = "Test Corp",
@@ -232,7 +232,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the endpoint without the proper role", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the endpoint without the proper role", ApiEndpoint3, VersionOfApi) {
       When(s"We make a request $VersionOfApi without the role " + CanCreateCustomer)
       val postJson = PostCorporateCustomerJsonV600(
         legal_name = "Test Corp",
@@ -246,7 +246,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles)
     }
 
-    scenario("We will create a corporate customer successfully", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will create a corporate customer successfully", ApiEndpoint3, VersionOfApi) {
       When(s"We make a request $VersionOfApi with the role " + CanCreateCustomer)
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       val postJson = PostCorporateCustomerJsonV600(
@@ -266,7 +266,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       customer.parent_customer_id should equal("")
     }
 
-    scenario("We will create a subsidiary customer with parent", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will create a subsidiary customer with parent", ApiEndpoint3, VersionOfApi) {
       Given("We create a parent corporate customer")
       val parentCustomer = createTestCorporateCustomer("Parent Corporation", Some("CORPORATE"))
       
@@ -288,7 +288,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       customer.parent_customer_id should equal(parentCustomer.customer_id)
     }
 
-    scenario("We will fail to create subsidiary with non-existing parent", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will fail to create subsidiary with non-existing parent", ApiEndpoint3, VersionOfApi) {
       When(s"We create a subsidiary customer with invalid parent_customer_id")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       val postJson = PostCorporateCustomerJsonV600(
@@ -305,7 +305,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should include("Customer")
     }
 
-    scenario("We will fail to create corporate customer with invalid customer_type", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will fail to create corporate customer with invalid customer_type", ApiEndpoint3, VersionOfApi) {
       When(s"We create a corporate customer with customer_type=INDIVIDUAL")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       val postJson = PostCorporateCustomerJsonV600(
@@ -322,9 +322,9 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
     }
   }
 
-  feature(s"$ApiEndpoint4 - Get Corporate Customers at Bank $VersionOfApi") {
+  Feature(s"$ApiEndpoint4 - Get Corporate Customers at Bank $VersionOfApi") {
     
-    scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
       When(s"We make a request $VersionOfApi without user credentials")
       val request = (v6_0_0_Request / "banks" / bankId / "corporate-customers").GET
       val response = makeGetRequest(request)
@@ -334,7 +334,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the endpoint without the proper role", ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the endpoint without the proper role", ApiEndpoint4, VersionOfApi) {
       When(s"We make a request $VersionOfApi without the role " + CanGetCustomersAtOneBank)
       val request = (v6_0_0_Request / "banks" / bankId / "corporate-customers").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -344,7 +344,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles)
     }
 
-    scenario("We will get corporate customers successfully", ApiEndpoint4, VersionOfApi) {
+    Scenario("We will get corporate customers successfully", ApiEndpoint4, VersionOfApi) {
       Given("We create a corporate customer")
       val customer = createTestCorporateCustomer("Corporate Customer for List", Some("CORPORATE"))
       
@@ -364,9 +364,9 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
     }
   }
 
-  feature(s"$ApiEndpoint5 - Get Customer Children $VersionOfApi") {
+  Feature(s"$ApiEndpoint5 - Get Customer Children $VersionOfApi") {
     
-    scenario("We will call the endpoint without user credentials", ApiEndpoint5, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint5, VersionOfApi) {
       When(s"We make a request $VersionOfApi without user credentials")
       val request = (v6_0_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "children").GET
       val response = makeGetRequest(request)
@@ -376,7 +376,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the endpoint without the proper role", ApiEndpoint5, VersionOfApi) {
+    Scenario("We will call the endpoint without the proper role", ApiEndpoint5, VersionOfApi) {
       When(s"We make a request $VersionOfApi without the role " + CanGetCustomersAtOneBank)
       val request = (v6_0_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "children").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -386,7 +386,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles)
     }
 
-    scenario("We will get customer children successfully", ApiEndpoint5, VersionOfApi) {
+    Scenario("We will get customer children successfully", ApiEndpoint5, VersionOfApi) {
       Given("We create a parent customer and child customers")
       val parentCustomer = createTestCorporateCustomer("Parent for Children Test", Some("CORPORATE"))
       val child1 = createTestCorporateCustomer("Child 1", Some("SUBSIDIARY"), Some(parentCustomer.customer_id))
@@ -406,7 +406,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       children.customers.foreach(_.parent_customer_id should equal(parentCustomer.customer_id))
     }
 
-    scenario("We will get empty list for customer with no children", ApiEndpoint5, VersionOfApi) {
+    Scenario("We will get empty list for customer with no children", ApiEndpoint5, VersionOfApi) {
       Given("We create a customer with no children")
       val customer = createTestCorporateCustomer("Childless Customer", Some("CORPORATE"))
       
@@ -422,9 +422,9 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
     }
   }
 
-  feature(s"$ApiEndpoint6 - Get Customer Subsidiaries $VersionOfApi") {
+  Feature(s"$ApiEndpoint6 - Get Customer Subsidiaries $VersionOfApi") {
     
-    scenario("We will call the endpoint without user credentials", ApiEndpoint6, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint6, VersionOfApi) {
       When(s"We make a request $VersionOfApi without user credentials")
       val request = (v6_0_0_Request / "banks" / bankId / "corporate-customers" / "CUSTOMER_ID" / "subsidiaries").GET
       val response = makeGetRequest(request)
@@ -434,7 +434,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the endpoint without the proper role", ApiEndpoint6, VersionOfApi) {
+    Scenario("We will call the endpoint without the proper role", ApiEndpoint6, VersionOfApi) {
       When(s"We make a request $VersionOfApi without the role " + CanGetCustomersAtOneBank)
       val request = (v6_0_0_Request / "banks" / bankId / "corporate-customers" / "CUSTOMER_ID" / "subsidiaries").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -444,7 +444,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles)
     }
 
-    scenario("We will get customer subsidiaries successfully", ApiEndpoint6, VersionOfApi) {
+    Scenario("We will get customer subsidiaries successfully", ApiEndpoint6, VersionOfApi) {
       Given("We create a corporate customer and subsidiaries")
       val corporateCustomer = createTestCorporateCustomer("Corporate for Subsidiaries Test", Some("CORPORATE"))
       val subsidiary1 = createTestCorporateCustomer("Subsidiary 1", Some("SUBSIDIARY"), Some(corporateCustomer.customer_id))
@@ -464,7 +464,7 @@ class RetailAndCorporateCustomerTest extends V600ServerSetup {
       subsidiaries.customers.foreach(_.parent_customer_id should equal(corporateCustomer.customer_id))
     }
 
-    scenario("We will get empty list for customer with no subsidiaries", ApiEndpoint6, VersionOfApi) {
+    Scenario("We will get empty list for customer with no subsidiaries", ApiEndpoint6, VersionOfApi) {
       Given("We create a corporate customer with no subsidiaries")
       val customer = createTestCorporateCustomer("No Subsidiaries Corp", Some("CORPORATE"))
       

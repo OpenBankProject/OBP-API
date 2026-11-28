@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v7_0_0
 
+import org.json4s.jvalue2monadic
+import org.json4s.jvalue2extractable
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{canCreateScopeAtAnyBank, canGetDynamicEntityDefinitions}
@@ -62,7 +64,7 @@ class CurrentConsumerScopesTest extends V600ServerSetup {
 
     scenario("A caller sees the Scopes of the Consumer they called with, and only those", ApiEndpoint1, VersionOfApi) {
       Given("testConsumer2 holds a Scope at SYS")
-      val granted = Scope.scope.vend.addScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer2.id.get.toString,
+      val granted = Scope.scope.vend.addScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer2.id.toString,
         canGetDynamicEntityDefinitions.toString)
       try {
         When("user2, who signs with testConsumer2, asks")
@@ -70,7 +72,7 @@ class CurrentConsumerScopesTest extends V600ServerSetup {
         Then("the Scope is listed, with its bank id")
         response.code should equal(200)
         val body = response.body.extract[CurrentConsumerScopesJsonV700]
-        body.consumer_id should equal(testConsumer2.consumerId.get)
+        body.consumer_id should equal(testConsumer2.consumerId)
         body.scopes should contain(CurrentConsumerScopeJsonV700(canGetDynamicEntityDefinitions.toString, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID))
 
         When("user1, who signs with testConsumer, asks")
@@ -78,7 +80,7 @@ class CurrentConsumerScopesTest extends V600ServerSetup {
         Then("testConsumer2's Scope is not among testConsumer's")
         other.code should equal(200)
         val otherBody = other.body.extract[CurrentConsumerScopesJsonV700]
-        otherBody.consumer_id should equal(testConsumer.consumerId.get)
+        otherBody.consumer_id should equal(testConsumer.consumerId)
         otherBody.scopes should not contain CurrentConsumerScopeJsonV700(canGetDynamicEntityDefinitions.toString, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
       } finally Scope.scope.vend.deleteScope(granted)
     }
@@ -87,9 +89,9 @@ class CurrentConsumerScopesTest extends V600ServerSetup {
   feature(s"test $ApiEndpoint2 version $VersionOfApi") {
 
     scenario("A Scope can be granted at SYS, once, by a caller holding CanCreateScopeAtAnyBank", ApiEndpoint2, VersionOfApi) {
-      val path = v7_0_0_Request / "consumers" / testConsumer2.consumerId.get / "scopes"
+      val path = v7_0_0_Request / "consumers" / testConsumer2.consumerId / "scopes"
       val body = compact(render(("bank_id" -> DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) ~ ("role_name" -> canGetDynamicEntityDefinitions.toString)))
-      def existing = Scope.scope.vend.getScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer2.id.get.toString,
+      def existing = Scope.scope.vend.getScope(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, testConsumer2.id.toString,
         canGetDynamicEntityDefinitions.toString)
       existing.foreach(s => Scope.scope.vend.deleteScope(net.liftweb.common.Full(s)))
 

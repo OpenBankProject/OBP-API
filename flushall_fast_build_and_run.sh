@@ -350,6 +350,10 @@ if [[ "$USE_MTLS" = true ]]; then
 fi
 
 echo "=========================================="
+# -cp, not -jar: a manifest Class-Path never reaches the `java.class.path` system property, and
+# both DotcScalaCompiler and json4s's ScalaSigReader build a runtime compiler classpath out of that
+# property. Under -jar they see the thin jar alone and every dynamic-code and Scala-3 field-type
+# path fails on a server that otherwise boots fine. See development/docker/entrypoint.sh.
 if [ "$RUN_BACKGROUND" = true ]; then
     echo "Starting HTTP4S server (background)..."
 else
@@ -371,7 +375,7 @@ JAVA_OPTS="--add-opens java.base/java.lang=ALL-UNNAMED \
 
 if [ "$RUN_BACKGROUND" = true ]; then
     # Run in background with output to log file
-    nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > http4s-server.log 2>&1 &
+    nohup java $JAVA_OPTS -cp "obp-api/target/obp-api.jar:obp-api/target/lib/*" bootstrap.http4s.Http4sServer > http4s-server.log 2>&1 &
     SERVER_PID=$!
     # Report the port the server will actually bind (dev.port in props), so callers
     # that capture this script's output (e.g. smoke_test.sh) can parse it out.
@@ -387,7 +391,7 @@ else
     # Run in foreground (Ctrl+C to stop)
     echo "Press Ctrl+C to stop the server"
     echo ""
-    java $JAVA_OPTS -jar obp-api/target/obp-api.jar
+    java $JAVA_OPTS -cp "obp-api/target/obp-api.jar:obp-api/target/lib/*" bootstrap.http4s.Http4sServer
 fi
 
 ################################################################################

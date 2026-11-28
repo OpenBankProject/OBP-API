@@ -32,16 +32,19 @@ import java.security.MessageDigest
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{canCreateDynamicEntityAuditChain, canDeleteCascadeDynamicEntityDefinition, canDeleteDynamicEntityDefinition, canGetDynamicEntityAuditChain, canGetDynamicEntityAuditRootChain, canSealDynamicEntityAuditRootChain}
+import code.api.util.DoobieUtil
 import code.api.util.ErrorMessages._
 import code.api.v6_0_0.V600ServerSetup
-import code.DynamicData.{DynamicData, DynamicDataProvider}
+import code.DynamicData.DynamicDataProvider
 import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityProvider}
 import code.dynamicentityauditchain.{DynamicEntityAuditChain, DynamicEntityAuditChains, DynamicEntityAuditEntry}
 import code.entitlement.Entitlement
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.By
+import doobie.Fragment
+import doobie.implicits._
 import org.json4s.JsonAST._
+import org.json4s.{jvalue2extractable, jvalue2monadic}
 import org.scalatest.Tag
 
 /**
@@ -69,6 +72,37 @@ class DynamicEntityAuditChainsTest extends V600ServerSetup {
   private def root = v7 / "management" / "dynamic-entity-audit-chains" / "root"
 
   private def message(response: code.setup.APIResponse) = response.body.extract[ErrorMessage].message
+
+  // Changes made behind OBP-API's back are written straight to the tables, as a person with access to the
+  // database would.
+  private def runSql(statement: Fragment): Unit = {
+    DoobieUtil.runUpdate(statement.update.run)
+    ()
+  }
+
+  /** The stored JSON of a record, read straight from the dynamicdata table. */
+  private def recordJsonOf(entityName: String, recordId: String): String =
+    DoobieUtil.runQuery(
+      sql"""SELECT datajson FROM dynamicdata
+            WHERE dynamicentityname = ${Option(entityName)} AND dynamicdataid = ${Option(recordId)}
+            ORDER BY id ASC""".query[Option[String]].to[List])
+      .headOption.getOrElse(throw new IllegalStateException("the record")).orNull
+
+  private def setRecordJson(entityName: String, recordId: String, dataJson: String): Unit =
+    runSql(sql"""UPDATE dynamicdata SET datajson = ${Option(dataJson)}
+                 WHERE dynamicentityname = ${Option(entityName)} AND dynamicdataid = ${Option(recordId)}""")
+
+  private def deleteRecord(entityName: String, recordId: String): Unit =
+    runSql(sql"""DELETE FROM dynamicdata
+                 WHERE dynamicentityname = ${Option(entityName)} AND dynamicdataid = ${Option(recordId)}""")
+
+  private def entryOf(chainId: String, sequence: Long): DynamicEntityAuditEntry =
+    DoobieUtil.runQuery(DynamicEntityAuditEntry.findIO(
+      fr"WHERE chain_id = ${Option(chainId)} AND sequence = $sequence"))
+      .headOption.getOrElse(throw new IllegalStateException(s"entry $sequence"))
+
+  private def deleteEntry(chainId: String, sequence: Long): Unit =
+    runSql(sql"DELETE FROM dynamic_entity_audit_entry WHERE chain_id = ${Option(chainId)} AND sequence = $sequence")
 
   private def grantChainRoles(): Unit =
     List(canCreateDynamicEntityAuditChain, canGetDynamicEntityAuditChain)
@@ -253,21 +287,22 @@ class DynamicEntityAuditChainsTest extends V600ServerSetup {
       val entityName = s"tampered_record_$suffix"
       val recordId = java.util.UUID.randomUUID().toString
       val (entityId, _) = auditedEntityWithOneRecord(entityName, recordId)
-      val row = DynamicData.find(By(DynamicData.DynamicEntityName, entityName), By(DynamicData.DynamicDataId, recordId)).openOrThrowException("the record")
+      val recordJson = recordJsonOf(entityName, recordId)
 
       When("the record's data is changed directly")
-      row.DataJson(row.DataJson.get.replace("pending", "pass")).saveMe()
+      setRecordJson(entityName, recordId, recordJson.replace("pending", "pass"))
       Then("the check says it was changed without going through OBP-API")
       val changed = check(entityId)
       (changed \ "is_intact").extract[Boolean] should equal(false)
       problemsIn(changed).exists(_.contains("does not match its latest entry")) should equal(true)
 
       When("a record is added directly")
-      DynamicData.create.DynamicDataId("smuggled").DynamicEntityName(entityName).BankId(SYS).DataJson("{}").IsPersonalEntity(false).saveMe()
+      runSql(sql"""INSERT INTO dynamicdata (dynamicdataid, dynamicentityname, bankid, datajson, ispersonalentity)
+                   VALUES (${Option("smuggled")}, ${Option(entityName)}, ${Option(SYS)}, ${Option("{}")}, ${false})""")
       problemsIn(check(entityId)).exists(_.contains("has no entry in the chain")) should equal(true)
 
       When("the original record is deleted directly")
-      row.delete_!
+      deleteRecord(entityName, recordId)
       problemsIn(check(entityId)).exists(_.contains("it was deleted without going through OBP-API")) should equal(true)
     }
 
@@ -280,23 +315,25 @@ class DynamicEntityAuditChainsTest extends V600ServerSetup {
       update(entityName, recordId, "fail")
       (check(entityId) \ "is_intact").extract[Boolean] should equal(true)
 
-      def entry(sequence: Long) = DynamicEntityAuditEntry.find(By(DynamicEntityAuditEntry.ChainId, chainId), By(DynamicEntityAuditEntry.Sequence, sequence))
-        .openOrThrowException(s"entry $sequence")
+      def entry(sequence: Long) = entryOf(chainId, sequence)
 
       When("an entry's data is changed directly")
       val second = entry(2)
-      val original = second.DataJson.get
-      second.DataJson(original.replace("pass", "fail")).saveMe()
+      val original = second.dataJson.get
+      val changedJson = original.replace("pass", "fail")
+      runSql(sql"""UPDATE dynamic_entity_audit_entry SET data_json = ${Option(changedJson)}
+                   WHERE chain_id = ${Option(chainId)} AND sequence = ${second.sequence}""")
       val dataChanged = check(entityId)
       (dataChanged \ "is_intact").extract[Boolean] should equal(false)
       problemsIn(dataChanged).exists(_.contains("Its data does not match its data_hash")) should equal(true)
 
       When("its data hash is changed to match, too")
-      second.DataHash(sha256(second.DataJson.get)).saveMe()
+      runSql(sql"""UPDATE dynamic_entity_audit_entry SET data_hash = ${Option(sha256(changedJson))}
+                   WHERE chain_id = ${Option(chainId)} AND sequence = ${second.sequence}""")
       problemsIn(check(entityId)).exists(_.contains("Its hash is not the hash of its contents")) should equal(true)
 
       When("the entry is removed instead")
-      second.delete_!
+      deleteEntry(chainId, second.sequence)
       problemsIn(check(entityId)).exists(_.contains("an entry is missing or out of place")) should equal(true)
     }
   }
@@ -343,7 +380,8 @@ class DynamicEntityAuditChainsTest extends V600ServerSetup {
       .foreach(role => Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, role.toString))
 
   private def chainRow(chainId: String): DynamicEntityAuditChain =
-    DynamicEntityAuditChain.find(By(DynamicEntityAuditChain.ChainId, chainId)).openOrThrowException(s"the chain $chainId")
+    DoobieUtil.runQuery(DynamicEntityAuditChain.findOneIO(fr"WHERE chain_id = ${Option(chainId)}"))
+      .getOrElse(throw new IllegalStateException(s"the chain $chainId"))
 
   private def checkRoot(includeChains: Boolean = false): JValue = {
     val response = makeGetRequest((root / "check").GET <@ (user1) <<? List("include_chains" -> includeChains.toString))
@@ -419,7 +457,8 @@ class DynamicEntityAuditChainsTest extends V600ServerSetup {
       val otherId = entityIn(otherName)
 
       When("the chain's row is pointed at the other entity")
-      chainRow(chainId).DynamicEntityId(otherId).EntityName(otherName).saveMe()
+      runSql(sql"""UPDATE dynamic_entity_audit_chain SET dynamic_entity_id = ${Option(otherId)}, entity_name = ${Option(otherName)}
+                   WHERE chain_id = ${Option(chainRow(chainId).chainId)}""")
 
       Then("the other entity's check says the chain does not name it")
       problemsIn(check(otherId)).exists(_.contains("The first entry does not name this chain's entity")) should equal(true)
@@ -437,12 +476,12 @@ class DynamicEntityAuditChainsTest extends V600ServerSetup {
       seal()
 
       When("the last entry is removed, and the chain's row and the record are put back to match the entry before")
-      val last = DynamicEntityAuditEntry.find(By(DynamicEntityAuditEntry.ChainId, chainId), By(DynamicEntityAuditEntry.Sequence, 2L)).openOrThrowException("entry 2")
-      last.delete_!
-      val before = DynamicEntityAuditEntry.find(By(DynamicEntityAuditEntry.ChainId, chainId), By(DynamicEntityAuditEntry.Sequence, 1L)).openOrThrowException("entry 1")
-      chainRow(chainId).LastSequence(1L).LastHash(before.Hash.get).saveMe()
-      val row = DynamicData.find(By(DynamicData.DynamicEntityName, entityName), By(DynamicData.DynamicDataId, recordId)).openOrThrowException("the record")
-      row.DataJson(before.DataJson.get).saveMe()
+      val last = entryOf(chainId, 2L)
+      deleteEntry(chainId, last.sequence)
+      val before = entryOf(chainId, 1L)
+      runSql(sql"""UPDATE dynamic_entity_audit_chain SET last_sequence = ${1L}, last_hash = ${Option(before.hash)}
+                   WHERE chain_id = ${Option(chainRow(chainId).chainId)}""")
+      setRecordJson(entityName, recordId, before.dataJson.get)
 
       Then("the entity's own check passes, because the rewind is consistent")
       withClue(check(entityId)) { (check(entityId) \ "is_intact").extract[Boolean] should equal(true) }
@@ -458,18 +497,18 @@ class DynamicEntityAuditChainsTest extends V600ServerSetup {
       val (entityId, chainId) = auditedEntityWithOneRecord(entityName, recordId)
 
       When("the entity, its record, its chain and its entries are all deleted directly")
-      DynamicEntityAuditEntry.bulkDelete_!!(By(DynamicEntityAuditEntry.ChainId, chainId))
-      chainRow(chainId).delete_!
-      DynamicData.bulkDelete_!!(By(DynamicData.DynamicEntityName, entityName))
-      code.dynamicEntity.DynamicEntity.bulkDelete_!!(By(code.dynamicEntity.DynamicEntity.DynamicEntityId, entityId))
+      runSql(sql"DELETE FROM dynamic_entity_audit_entry WHERE chain_id = ${Option(chainId)}")
+      runSql(sql"DELETE FROM dynamic_entity_audit_chain WHERE chain_id = ${Option(chainRow(chainId).chainId)}")
+      runSql(sql"DELETE FROM dynamicdata WHERE dynamicentityname = ${Option(entityName)}")
+      code.dynamicEntity.DynamicEntity.deleteById(entityId)
       Then("the root chain says the chain it registered no longer exists")
       problemsAbout(checkRoot(), chainId).exists(_.contains("it no longer exists")) should equal(true)
 
       When("a chain is added directly, without being registered")
       val addedName = s"smuggled_$suffix"
       val addedId = entityIn(addedName)
-      val added = DynamicEntityAuditChain.create.ChainId(java.util.UUID.randomUUID().toString).BankId(SYS)
-        .DynamicEntityId(addedId).EntityName(addedName).LastSequence(-1L).LastHash("").saveMe()
+      val added = DoobieUtil.runUpdate(DynamicEntityAuditChain.insertIO(java.util.UUID.randomUUID().toString, SYS,
+        addedId, addedName, ("", "")))
       Then("the root chain says it is not registered")
       problemsAbout(checkRoot(), added.chainId).exists(_.contains("is not registered in the root chain")) should equal(true)
     }
@@ -480,8 +519,7 @@ class DynamicEntityAuditChainsTest extends V600ServerSetup {
       val entityName = s"deep_$suffix"
       val recordId = java.util.UUID.randomUUID().toString
       val (_, chainId) = auditedEntityWithOneRecord(entityName, recordId)
-      val row = DynamicData.find(By(DynamicData.DynamicEntityName, entityName), By(DynamicData.DynamicDataId, recordId)).openOrThrowException("the record")
-      row.DataJson(row.DataJson.get.replace("pending", "pass")).saveMe()
+      setRecordJson(entityName, recordId, recordJsonOf(entityName, recordId).replace("pending", "pass"))
 
       problemsAbout(checkRoot(includeChains = false), chainId) should equal(Nil)
       val deep = problemsAbout(checkRoot(includeChains = true), chainId)

@@ -4,7 +4,8 @@ import java.net.{HttpURLConnection, URI}
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * This suite checks the Telemetry object on its own, without an OBP-API server: the naming rule,
@@ -13,7 +14,7 @@ import org.scalatest.{FlatSpec, Matchers}
  * The registry is shared by the whole JVM, so every check uses a meter name or tag value unique
  * to the check.
  */
-class TelemetryTest extends FlatSpec with Matchers {
+class TelemetryTest extends AnyFlatSpec with Matchers {
 
   private def unique(label: String) = s"${label}_${UUID.randomUUID().toString.replace("-", "").take(8)}"
 

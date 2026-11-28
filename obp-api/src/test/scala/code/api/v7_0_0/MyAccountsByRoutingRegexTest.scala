@@ -31,10 +31,11 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, InvalidAccountRoutingAddressRegex}
 import code.api.v4_0_0.ModeratedAccountsJSON400
 import code.api.v6_0_0.V600ServerSetup
-import code.model.dataAccess.BankAccountRouting
+import code.bankconnectors.DoobieBankAccountRoutingQueries
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import org.json4s.jvalue2extractable
 import org.scalatest.Tag
 
 /** POST /my/accounts/account-routing-regex-query, and the v4.0.0 endpoint it replaces not being served at v7.0.0. */
@@ -52,12 +53,11 @@ class MyAccountsByRoutingRegexTest extends V600ServerSetup {
   /** A routing address on a test account user1 holds the owner view of, unique to this test run. */
   private def routedAccount(): String = {
     val prefix = "MYREGEX" + APIUtil.generateUUID().replace("-", "").take(12).toUpperCase
-    BankAccountRouting.create
-      .BankId(testBankId1.value)
-      .AccountId(testAccountId0.value)
-      .AccountRoutingScheme("AccountNumber")
-      .AccountRoutingAddress(prefix + "-EUR")
-      .saveMe()
+    DoobieBankAccountRoutingQueries.create(
+      testBankId1,
+      testAccountId0,
+      "AccountNumber",
+      prefix + "-EUR")
     prefix
   }
 

@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_1_0
 
 import code.api.Constant
+import org.json4s.jvalue2extractable
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil

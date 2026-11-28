@@ -142,9 +142,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     // }
   // }
 
-  feature("Get Customer by CUSTOMER_ID v3.1.0 - Authorized access")
-  {
-    scenario("We will call the endpoint without the proper Role " + canGetCustomersAtOneBank, ApiEndpoint1, VersionOfApi) {
+  Feature("Get Customer by CUSTOMER_ID v3.1.0 - Authorized access") {
+    Scenario("We will call the endpoint without the proper Role " + canGetCustomersAtOneBank, ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canGetCustomersAtOneBank)
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID").GET <@(user1)
       val response310 = makeGetRequest(request310)
@@ -155,7 +154,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (CanGetCustomersAtOneBank.toString()) should be (true)
     }
-    scenario("We will call the endpoint with the proper Role " + canGetCustomersAtOneBank, ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper Role " + canGetCustomersAtOneBank, ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
       When("We make a request v3.1.0 with the Role " + canGetCustomersAtOneBank + " but with non existing CUSTOMER_ID")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID").GET <@(user1)
@@ -184,8 +183,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     }
   }
 
-  feature("Get Customer by customer number v3.1.0 - Unauthorized access") {
-    scenario(withoutUserCredentials, ApiEndpoint2, VersionOfApi) {
+  Feature("Get Customer by customer number v3.1.0 - Unauthorized access") {
+    Scenario(withoutUserCredentials, ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "customer-number").POST
       val response310 = makePostRequest(request310, write(customerNumberJson))
@@ -196,8 +195,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     }
   }
 
-  feature("Get Customer by customer number v3.1.0 - Authorized access") {
-    scenario("We will call the endpoint without the proper Role " + canGetCustomersAtOneBank, ApiEndpoint2, VersionOfApi) {
+  Feature("Get Customer by customer number v3.1.0 - Authorized access") {
+    Scenario("We will call the endpoint without the proper Role " + canGetCustomersAtOneBank, ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0 without a Role " + canGetCustomersAtOneBank)
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "customer-number").POST <@(user1)
       val response310 = makePostRequest(request310, write(customerNumberJson))
@@ -208,7 +207,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (CanGetCustomersAtOneBank.toString()) should be (true)
     }
-    scenario("We will call the endpoint with the proper Role " + canGetCustomersAtOneBank, ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper Role " + canGetCustomersAtOneBank, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
       When("We make a request v3.1.0 with the Role " + canGetCustomersAtOneBank + " but with non existing customer number")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "customer-number").POST <@(user1)
@@ -220,8 +219,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     }
   }
 
-  feature("Update the email of an Customer v3.1.0 - Unauthorized access") {
-    scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+  Feature("Update the email of an Customer v3.1.0 - Unauthorized access") {
+    Scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "email" ).PUT
       val response310 = makePutRequest(request310, write(putCustomerUpdateEmailJson))
@@ -231,8 +230,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Update the email of an Customer v3.1.0 - Authorized access") {
-    scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+  Feature("Update the email of an Customer v3.1.0 - Authorized access") {
+    Scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "email" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putCustomerUpdateEmailJson))
@@ -244,7 +243,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canUpdateCustomerEmail.toString()) should be (true)
     }
-    scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
@@ -265,8 +264,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     }
   }
 
-  feature("Update the mobile phone number of an Customer v3.1.0 - Unauthorized access") {
-    scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint5, VersionOfApi) {
+  Feature("Update the mobile phone number of an Customer v3.1.0 - Unauthorized access") {
+    Scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint5, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "mobile-number" ).PUT
       val response310 = makePutRequest(request310, write(putCustomerUpdateMobileJson))
@@ -276,8 +275,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Update the mobile phone number of an Customer v3.1.0 - Authorized access") {
-    scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint5, VersionOfApi) {
+  Feature("Update the mobile phone number of an Customer v3.1.0 - Authorized access") {
+    Scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint5, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "mobile-number" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putCustomerUpdateMobileJson))
@@ -289,7 +288,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canUpdateCustomerMobilePhoneNumber.toString()) should be (true)
     }
-    scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint5, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint5, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
@@ -311,8 +310,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
   }
 
 
-  feature("Update the general data of an Customer v3.1.0 - Unauthorized access") {
-    scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint6, VersionOfApi) {
+  Feature("Update the general data of an Customer v3.1.0 - Unauthorized access") {
+    Scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint6, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "identity" ).PUT
       val response310 = makePutRequest(request310, write(putCustomerUpdateGeneralDataJson))
@@ -322,8 +321,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Update the general data of an Customer v3.1.0 - Authorized access") {
-    scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint6, VersionOfApi) {
+  Feature("Update the general data of an Customer v3.1.0 - Authorized access") {
+    Scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint6, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "identity" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putCustomerUpdateGeneralDataJson))
@@ -335,7 +334,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canUpdateCustomerIdentity.toString()) should be (true)
     }
-    scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint6, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint6, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
@@ -360,8 +359,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
   }
 
   
-  feature("Update the credit limit of an Customer v3.1.0 - Unauthorized access") {
-    scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint7, VersionOfApi) {
+  Feature("Update the credit limit of an Customer v3.1.0 - Unauthorized access") {
+    Scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint7, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "credit-limit" ).PUT
       val response310 = makePutRequest(request310, write(putUpdateCustomerCreditLimitJsonV310))
@@ -371,8 +370,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Update the credit limit of an Customer v3.1.0 - Authorized access") {
-    scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint7, VersionOfApi) {
+  Feature("Update the credit limit of an Customer v3.1.0 - Authorized access") {
+    Scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint7, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "credit-limit" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putUpdateCustomerCreditLimitJsonV310))
@@ -384,7 +383,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canUpdateCustomerCreditLimit.toString()) should be (true)
     }
-    scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint7, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint7, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
@@ -407,8 +406,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
   }
 
 
-  feature("Update the credit rating and source of an Customer v3.1.0 - Unauthorized access") {
-    scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint8, VersionOfApi) {
+  Feature("Update the credit rating and source of an Customer v3.1.0 - Unauthorized access") {
+    Scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint8, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "credit-rating-and-source" ).PUT
       val response310 = makePutRequest(request310, write(putUpdateCustomerCreditRatingAndSourceJsonV310))
@@ -418,8 +417,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Update the credit rating and source of an Customer v3.1.0 - Authorized access") {
-    scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint8, VersionOfApi) {
+  Feature("Update the credit rating and source of an Customer v3.1.0 - Authorized access") {
+    Scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint8, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "credit-rating-and-source" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putUpdateCustomerCreditRatingAndSourceJsonV310))
@@ -432,7 +431,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       errorMessage contains (canUpdateCustomerCreditRatingAndSource.toString()) should be (true)
       errorMessage contains (canUpdateCustomerCreditRatingAndSourceAtAnyBank.toString()) should be (true)
     }
-    scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint8, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
@@ -453,7 +452,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       infoGet.credit_rating.map(_.source).getOrElse("") should equal(putUpdateCustomerCreditRatingAndSourceJsonV310.credit_source)
     }
     
-    scenario(s"We will call the endpoint with user credentials and the $canUpdateCustomerCreditRatingAndSourceAtAnyBank role", ApiEndpoint8, VersionOfApi) {
+    Scenario(s"We will call the endpoint with user credentials and the $canUpdateCustomerCreditRatingAndSourceAtAnyBank role", ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
@@ -476,8 +475,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
   }
 
 
-  feature("Update the Branch and source of an Customer v3.1.0 - Unauthorized access") {
-    scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint9, VersionOfApi) {
+  Feature("Update the Branch and source of an Customer v3.1.0 - Unauthorized access") {
+    Scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint9, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "branch" ).PUT
       val response310 = makePutRequest(request310, write(putUpdateCustomerBranch))
@@ -487,8 +486,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Update the Branch and source of an Customer v3.1.0 - Authorized access") {
-    scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint9, VersionOfApi) {
+  Feature("Update the Branch and source of an Customer v3.1.0 - Authorized access") {
+    Scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint9, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "branch" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putUpdateCustomerBranch))
@@ -500,7 +499,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canUpdateCustomerBranch.toString()) should be (true)
     }
-    scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint9, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint9, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
@@ -522,8 +521,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
   }
 
 
-  feature("Update the other data and source of an Customer v3.1.0 - Unauthorized access") {
-    scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint10, VersionOfApi) {
+  Feature("Update the other data and source of an Customer v3.1.0 - Unauthorized access") {
+    Scenario(withoutUserCredentials, ApiEndpoint3, ApiEndpoint10, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "data" ).PUT
       val response310 = makePutRequest(request310, write(putUpdateCustomerData))
@@ -533,8 +532,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature("Update the other data and source of an Customer v3.1.0 - Authorized access") {
-    scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint10, VersionOfApi) {
+  Feature("Update the other data and source of an Customer v3.1.0 - Authorized access") {
+    Scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint10, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "data" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putUpdateCustomerData))
@@ -546,7 +545,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canUpdateCustomerData.toString()) should be (true)
     }
-    scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint10, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint10, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
@@ -571,8 +570,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     }
   }
 
-  feature("Update the number of an Customer v3.1.0 - Unauthorized access") {
-    scenario(withoutUserCredentials, ApiEndpoint11, VersionOfApi) {
+  Feature("Update the number of an Customer v3.1.0 - Unauthorized access") {
+    Scenario(withoutUserCredentials, ApiEndpoint11, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "number" ).PUT
       val response310 = makePutRequest(request310, write(putCustomerUpdateNumberJson))
@@ -583,8 +582,8 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     }
   }
   
-  feature("Update the number of an Customer v3.1.0 - Authorized access") {
-    scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint11, VersionOfApi) {
+  Feature("Update the number of an Customer v3.1.0 - Authorized access") {
+    Scenario(withUserCredentials, ApiEndpoint3, ApiEndpoint11, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID" / "number" ).PUT <@(user1)
       val response310 = makePutRequest(request310, write(putCustomerUpdateNumberJson))
@@ -596,7 +595,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canUpdateCustomerNumber.toString()) should be (true)
     }
-    scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint3, ApiEndpoint11, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials and the proper role", ApiEndpoint3, ApiEndpoint11, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When("We make a request v3.1.0")
       val postRequest310 = (v510Request / "banks" / bankId / "customers").POST <@(user1)
@@ -634,7 +633,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
   }
 
 
-  feature(s" $ApiEndpoint12- Authorized access") {
+  Feature(s" $ApiEndpoint12- Authorized access") {
 
     //first we create the customers (v3.1.0 createCustomer is commented out, so through v5.1.0):
     Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
@@ -644,7 +643,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     Then("We should get a 201")
     response310.code should equal(201)
     
-    scenario(withUserCredentials, VersionOfApi, ApiEndpoint4) {
+    Scenario(withUserCredentials, VersionOfApi, ApiEndpoint4) {
       setPropsValues("allow_customer_firehose" -> "true")
       setPropsValues("enable.force_error"->"true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseCustomerFirehoseAtAnyBank.toString)
@@ -656,7 +655,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       response.body.extract[ModeratedCoreAccountsJsonV300]
     }
 
-    scenario("We will call the endpoint with user credentials, props alias", VersionOfApi, ApiEndpoint4) {
+    Scenario("We will call the endpoint with user credentials, props alias", VersionOfApi, ApiEndpoint4) {
       setPropsValues("allow_firehose_views" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseCustomerFirehoseAtAnyBank.toString)
       When("We send the request")
@@ -668,7 +667,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
     }
 
 
-    scenario("We will call the endpoint missing role", VersionOfApi, ApiEndpoint4) {
+    Scenario("We will call the endpoint missing role", VersionOfApi, ApiEndpoint4) {
       setPropsValues("allow_customer_firehose" -> "true")
       When("We send the request")
       val request = (v3_1_0_Request / "banks" / testBankId1.value / "firehose" / "customers").GET <@ (user1)
@@ -678,7 +677,7 @@ class CustomerTest extends V310ServerSetup  with PropsReset{
       response.body.toString contains (CanUseCustomerFirehoseAtAnyBank.toString()) should be(true)
     }
 
-    scenario("We will call the endpoint missing props ", VersionOfApi, ApiEndpoint4) {
+    Scenario("We will call the endpoint missing props ", VersionOfApi, ApiEndpoint4) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUseCustomerFirehoseAtAnyBank.toString)
       When("We send the request")
       val request = (v3_1_0_Request / "banks" / testBankId1.value /"firehose" / "customers" ).GET <@ (user1)

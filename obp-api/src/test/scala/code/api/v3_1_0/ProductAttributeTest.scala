@@ -288,8 +288,8 @@ class ProductAttributeTest extends V310ServerSetup {
     // }
   // }
 
-  feature("Delete Product Attribute v3.1.0") {
-    scenario("We will call the Delete endpoint without a user credentials", ApiEndpoint4, VersionOfApi) {
+  Feature("Delete Product Attribute v3.1.0") {
+    Scenario("We will call the Delete endpoint without a user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = deleteProductAttributeEndpoint.DELETE
       val response310 = makeDeleteRequest(request310)
@@ -298,7 +298,7 @@ class ProductAttributeTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Delete endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Delete endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = deleteProductAttributeEndpoint.DELETE <@(user1)
       val response310 = makeDeleteRequest(request310)
@@ -311,7 +311,7 @@ class ProductAttributeTest extends V310ServerSetup {
       errorMessage contains (canDeleteProductAttribute.toString()) should be (true)
     }
     // a role at one bank must not delete a product attribute of another bank or another product
-    scenario("We will call the Delete endpoint with an attribute of another bank or another product", ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the Delete endpoint with an attribute of another bank or another product", ApiEndpoint4, VersionOfApi) {
       // an attribute owned by another bank, created directly so no role at that bank is needed
       val otherBankAttribute = Await.result(
         ProductAttributeX.productAttributeProvider.vend.createOrUpdateProductAttribute(

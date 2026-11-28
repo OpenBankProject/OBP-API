@@ -43,7 +43,7 @@ object AuthenticationTypeValidationProvider extends SimpleInjector {
 
   val validationProvider = new Inject(() => buildOne) {}
 
-  def buildOne: MappedAuthTypeValidationProvider.type = MappedAuthTypeValidationProvider
+  def buildOne: DoobieAuthTypeValidationProvider.type = DoobieAuthTypeValidationProvider
 }
 
 case class JsonAuthTypeValidation(operationId: String, authTypes: List[AuthenticationType]) extends JsonAble {

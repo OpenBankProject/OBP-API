@@ -26,7 +26,7 @@ import java.net.URLEncoder
  * code.api.dynamic.entity.query.DynamicQueryDeclarationSpec, the joins by JoinSpec and
  * DynamicEntityJoinPlanIntegrationTest.
  */
-class DynamicQueryTest extends V400ServerSetup {
+class DynamicQueryTest extends V400ServerSetup with code.setup.EnvVarOverride {
 
   private val owner = "dynamic-query-owner"
   private val sfx = java.util.UUID.randomUUID().toString.take(8).replace("-", "")
@@ -174,14 +174,17 @@ class DynamicQueryTest extends V400ServerSetup {
       messageOf(posted) should include("request_verb must be GET")
 
       When("user-supplied code is switched off")
-      userCodeAllowed(false)
-      createDef(s"Plain$sfx", s"""{"${idField(s"Plain$sfx")}":{"type":"string"},"name":{"type":"string"}}""")
-      Then("a Dynamic Query can still be created, but a Scala body cannot")
-      create(queryDoc(s"dq_switched_off_$sfx", s"""{ "from": "Plain$sfx" }""")).code should equal(201)
-      val scala = create(queryDoc(s"dq_scala_$sfx", "").copy(methodBody = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.methodBody,
-        programmingLang = "Scala", requestVerb = "POST", exampleRequestBody = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.exampleRequestBody))
-      messageOf(scala) should include(DynamicCodeExecutionDisabled)
-      userCodeAllowed(true)
+      // OBP_ALLOW_USER_GENERATED_SCALA_CODE, which run_tests_parallel.sh sets, outranks the prop, so it is switched off as well.
+      withEnvOverride("OBP_ALLOW_USER_GENERATED_SCALA_CODE" -> "false") {
+        userCodeAllowed(false)
+        createDef(s"Plain$sfx", s"""{"${idField(s"Plain$sfx")}":{"type":"string"},"name":{"type":"string"}}""")
+        Then("a Dynamic Query can still be created, but a Scala body cannot")
+        create(queryDoc(s"dq_switched_off_$sfx", s"""{ "from": "Plain$sfx" }""")).code should equal(201)
+        val scala = create(queryDoc(s"dq_scala_$sfx", "").copy(methodBody = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.methodBody,
+          programmingLang = "Scala", requestVerb = "POST", exampleRequestBody = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.exampleRequestBody))
+        messageOf(scala) should include(DynamicCodeExecutionDisabled)
+        userCodeAllowed(true)
+      }
     }
 
     scenario("every call to a Dynamic Resource Doc is recorded as an API metric, refused or answered") {

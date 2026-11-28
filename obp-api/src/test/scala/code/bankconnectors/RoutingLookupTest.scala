@@ -29,11 +29,11 @@ package code.bankconnectors
 
 import code.api.util.ErrorMessages._
 import code.api.util.RoutingRules
-import code.model.dataAccess.{BankAccountRouting, MappedBank, MappedBankAccount}
+import code.model.dataAccess.{MappedBank, MappedBankAccount}
 import code.setup.{DefaultUsers, ServerSetupWithTestData}
 import com.openbankproject.commons.model._
+import doobie.implicits._
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 import org.scalatest.Tag
 
@@ -58,14 +58,16 @@ class RoutingLookupTest extends ServerSetupWithTestData with DefaultUsers {
   private def newBankId(): String = "bank." + randomString(8).toLowerCase
 
   private def storeBank(bankId: String, routingScheme: String = "", routingAddress: String = "", swiftBic: String = ""): MappedBank =
-    MappedBank.create
-      .permalink(bankId)
-      .fullBankName("Routing Lookup Test Bank")
-      .shortBankName("RLT")
-      .mBankRoutingScheme(routingScheme)
-      .mBankRoutingAddress(routingAddress)
-      .swiftBIC(swiftBic)
-      .saveMe()
+    MappedBank.insert(
+      bankId = bankId,
+      fullBankName = "Routing Lookup Test Bank",
+      shortBankName = "RLT",
+      logoURL = "", websiteURL = "",
+      swiftBIC = swiftBic,
+      nationalIdentifier = "",
+      bankRoutingScheme = routingScheme,
+      bankRoutingAddress = routingAddress,
+      createdByUserId = "")
 
   private def allBanks(): List[Bank] =
     Await.result(Connector.connector.vend.getBanks(None), 20.seconds).map(_._1).openOrThrowException("getBanks failed")
@@ -75,17 +77,12 @@ class RoutingLookupTest extends ServerSetupWithTestData with DefaultUsers {
 
   private def newAccount(bankId: BankId, number: String = ""): BankAccount = {
     val account = createAccountRelevantResource(Some(resourceUser1), bankId, AccountId("acc-" + randomString(8).toLowerCase), "EUR")
-    MappedBankAccount.find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, account.accountId.value))
-      .openOrThrowException("account not stored").accountNumber(number).saveMe()
+    MappedBankAccount.update(bankId.value, account.accountId.value, List(fr"accountnumber = ${Option(number)}"))
+      .openOrThrowException("account not stored")
   }
 
   private def storeRouting(account: BankAccount, scheme: String, address: String): Unit =
-    BankAccountRouting.create
-      .BankId(account.bankId.value)
-      .AccountId(account.accountId.value)
-      .AccountRoutingScheme(scheme)
-      .AccountRoutingAddress(address)
-      .saveMe()
+    DoobieBankAccountRoutingQueries.create(account.bankId, account.accountId, scheme, address)
 
   private def findAccount(bankId: Option[BankId], scheme: String, address: String): Box[AccountId] =
     Connector.connector.vend.getBankAccountByRoutingLegacy(bankId, scheme, address, None).map(_._1.accountId)
@@ -137,20 +134,20 @@ class RoutingLookupTest extends ServerSetupWithTestData with DefaultUsers {
   feature("Finding a stored account by its account number") {
 
     scenario("The number is stored only in the account number field", RoutingLookup) {
-      val bankId = BankId(storeBank(newBankId()).permalink.get)
+      val bankId = BankId(storeBank(newBankId()).bankId.value)
       val account = newAccount(bankId, number = "0123456789")
       findAccount(Some(bankId), "ACCOUNT_NUMBER", "0123456789") should equal(Full(account.accountId))
     }
 
     scenario("The number is stored only in an ACCOUNT_NUMBER account routing", RoutingLookup) {
-      val bankId = BankId(storeBank(newBankId()).permalink.get)
+      val bankId = BankId(storeBank(newBankId()).bankId.value)
       val account = newAccount(bankId)
       storeRouting(account, "ACCOUNT_NUMBER", "0123456789")
       findAccount(Some(bankId), "ACCOUNT_NUMBER", "0123456789") should equal(Full(account.accountId))
     }
 
     scenario("The number is stored in an account routing named AccountNumber, and looked up as ACCOUNT_NUMBER", RoutingLookup) {
-      val bankId = BankId(storeBank(newBankId()).permalink.get)
+      val bankId = BankId(storeBank(newBankId()).bankId.value)
       val account = newAccount(bankId)
       storeRouting(account, "AccountNumber", "0123456789")
       findAccount(Some(bankId), "ACCOUNT_NUMBER", "0123456789") should equal(Full(account.accountId))
@@ -159,14 +156,14 @@ class RoutingLookupTest extends ServerSetupWithTestData with DefaultUsers {
     }
 
     scenario("The same number is stored in both", RoutingLookup) {
-      val bankId = BankId(storeBank(newBankId()).permalink.get)
+      val bankId = BankId(storeBank(newBankId()).bankId.value)
       val account = newAccount(bankId, number = "0123456789")
       storeRouting(account, "ACCOUNT_NUMBER", "0123456789")
       findAccount(Some(bankId), "ACCOUNT_NUMBER", "0123456789") should equal(Full(account.accountId))
     }
 
     scenario("Two different numbers are stored: looking up either is an error", RoutingLookup) {
-      val bankId = BankId(storeBank(newBankId()).permalink.get)
+      val bankId = BankId(storeBank(newBankId()).bankId.value)
       val account = newAccount(bankId, number = "0123456789")
       storeRouting(account, "ACCOUNT_NUMBER", "9876543210")
       failsWith(findAccount(Some(bankId), "ACCOUNT_NUMBER", "0123456789"), AccountNumberConflict)
@@ -174,15 +171,15 @@ class RoutingLookupTest extends ServerSetupWithTestData with DefaultUsers {
     }
 
     scenario("Two accounts at the same bank have the same number", RoutingLookup) {
-      val bankId = BankId(storeBank(newBankId()).permalink.get)
+      val bankId = BankId(storeBank(newBankId()).bankId.value)
       newAccount(bankId, number = "0123456789")
       newAccount(bankId, number = "0123456789")
       failsWith(findAccount(Some(bankId), "ACCOUNT_NUMBER", "0123456789"), AccountRoutingNotUnique)
     }
 
     scenario("Accounts at two banks have the same number: each is found at its own bank", RoutingLookup) {
-      val bankA = BankId(storeBank(newBankId()).permalink.get)
-      val bankB = BankId(storeBank(newBankId()).permalink.get)
+      val bankA = BankId(storeBank(newBankId()).bankId.value)
+      val bankB = BankId(storeBank(newBankId()).bankId.value)
       val accountA = newAccount(bankA, number = "0123456789")
       val accountB = newAccount(bankB, number = "0123456789")
       findAccount(Some(bankA), "ACCOUNT_NUMBER", "0123456789") should equal(Full(accountA.accountId))
@@ -204,20 +201,20 @@ class RoutingLookupTest extends ServerSetupWithTestData with DefaultUsers {
 
     scenario("The bank is named by its BIC and the account by its number", RoutingLookup) {
       val bic = newBic()
-      val bankId = BankId(storeBank(newBankId(), routingScheme = "BIC", routingAddress = bic).permalink.get)
+      val bankId = BankId(storeBank(newBankId(), routingScheme = "BIC", routingAddress = bic).bankId.value)
       val account = newAccount(bankId, number = "0123456789")
       byRoutings(BankRoutingJson("BIC", bic), BranchRoutingJsonV141("ACCOUNT_NUMBER", "0123456789")) should equal(Full(account.accountId))
     }
 
     scenario("The bank is named by a BIC stored only in swift_bic and the account by its number", RoutingLookup) {
       val bic = newBic()
-      val bankId = BankId(storeBank(newBankId(), swiftBic = bic).permalink.get)
+      val bankId = BankId(storeBank(newBankId(), swiftBic = bic).bankId.value)
       val account = newAccount(bankId, number = "0123456789")
       byRoutings(BankRoutingJson("BIC", bic), BranchRoutingJsonV141("ACCOUNT_NUMBER", "0123456789")) should equal(Full(account.accountId))
     }
 
     scenario("The bank is named by its OBP bank id and the account by its number", RoutingLookup) {
-      val bankId = BankId(storeBank(newBankId()).permalink.get)
+      val bankId = BankId(storeBank(newBankId()).bankId.value)
       val account = newAccount(bankId, number = "0123456789")
       byRoutings(BankRoutingJson("OBP", bankId.value), BranchRoutingJsonV141("ACCOUNT_NUMBER", "0123456789")) should equal(Full(account.accountId))
     }

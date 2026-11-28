@@ -26,28 +26,30 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v7_0_0
 
+import org.json4s.jvalue2monadic
+import org.json4s.jvalue2extractable
 import java.util.{Base64, Date}
 
 import code.DynamicData.{DynamicData, DynamicDataAccess, DynamicDataProvider}
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.generateUUID
-import code.api.util.ApiRole
+import code.api.util.{ApiRole, DoobieUtil}
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages._
 import code.api.v6_0_0.V600ServerSetup
 import code.chat.{ChatMessage, ChatRoom, Reaction}
 import code.customer.MappedCustomer
-import code.customerattribute.MappedCustomerAttribute
 import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityProvider}
 import code.entitlement.Entitlement
 import code.files.{File, FileAttachment, FileContent, MappedFilesProvider}
 import code.retention.{RetentionArchive, RetentionPolicy, RetentionProps, RetentionRun}
 import code.scheduler.{JobScheduler, RetentionScheduler}
-import code.usercustomerlinks.MappedUserCustomerLink
+import code.usercustomerlinks.UserCustomerLink
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.By
+import doobie._
+import doobie.implicits._
 import org.json4s.JsonAST._
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods.{compact, render}
@@ -134,7 +136,12 @@ class RetentionTest extends V600ServerSetup {
   }
 
   private def recordExists(entityName: String, id: String): Boolean =
-    DynamicData.count(By(DynamicData.BankId, SYS), By(DynamicData.DynamicEntityName, entityName), By(DynamicData.DynamicDataId, id)) > 0
+    DynamicData.find(None, entityName, id, None).isDefined
+
+  /** How many rows of `table` hold `value` in `column`: for the tables whose stores have no such count. */
+  private def countWhere(table: String, column: String, value: String): Long =
+    DoobieUtil.runQuery((fr"SELECT COUNT(*) FROM" ++ Fragment.const(table) ++ fr"WHERE" ++ Fragment.const(column) ++
+      fr"= ${Option(value)}").query[Long].unique)
 
   private def policyBody(resourceType: String, action: String, entityName: Option[String] = None, retainDays: Int = 0,
                          archiveDays: Option[Int] = None, condition: Option[(String, String)] = None,
@@ -164,12 +171,12 @@ class RetentionTest extends V600ServerSetup {
     makePostRequest((policies(bankId) / policyId / "runs").POST <@ (user1), compact(render("mode" -> mode)))
 
   private def runsOf(policyId: String): List[RetentionRun] =
-    RetentionRun.findAll(By(RetentionRun.RetentionPolicyId, policyId))
+    RetentionRun.findAllByRetentionPolicyId(policyId)
 
   /** The scheduler runs every enabled policy in the database: switch off any left by other scenarios, and clear its lock. */
   private def schedulerSeesOnlyNewPolicies(): Unit = {
-    RetentionPolicy.findAll(By(RetentionPolicy.Enabled, true)).foreach(_.Enabled(false).saveMe())
-    JobScheduler.findAll(By(JobScheduler.Name, "RetentionScheduler")).foreach(_.delete_!)
+    RetentionPolicy.findAllEnabled().foreach(p => RetentionPolicy.save(p.copy(enabled = false)))
+    JobScheduler.findAllByName("RetentionScheduler").foreach(JobScheduler.delete)
   }
 
   private def items(bankId: String, runId: String): List[JValue] =
@@ -424,8 +431,8 @@ class RetentionTest extends V600ServerSetup {
       val entityName = s"application_${generateUUID().take(8).replace("-", "")}"
       entity(entityName)
       val id = record(entityName, "CLOSED")
-      DynamicDataAccess.create.BankId(SYS).EntityName(entityName).DynamicDataId(id).UserId(resourceUser2.userId)
-        .CanRead(true).GrantedBy(resourceUser1.userId).saveMe()
+      DynamicDataAccess.grant(None, entityName, id, resourceUser2.userId, canRead = true, canUpdate = false,
+        canDelete = false, canGrant = false, grantedBy = resourceUser1.userId)
       // One byte: the Files table keeps its bytes in a MappedBinary, which Lift maps to a one-byte BINARY on H2.
       val bytes = Array[Byte](42)
       val file = MappedFilesProvider.createFile(SYS, "0" * 64, "application/pdf", "evidence.pdf", false, resourceUser1.userId, bytes)
@@ -443,10 +450,10 @@ class RetentionTest extends V600ServerSetup {
 
       Then("the record, its access list, the file and its bytes have left the live tables")
       recordExists(entityName, id) should equal(false)
-      DynamicDataAccess.count(By(DynamicDataAccess.DynamicDataId, id)) should equal(0)
-      File.count(By(File.FileId, file.fileId)) should equal(0)
-      FileContent.count(By(FileContent.FileId, file.fileId)) should equal(0)
-      FileAttachment.count(By(FileAttachment.FileId, file.fileId)) should equal(0)
+      countWhere("dynamicdataaccess", "dynamicdataid", id) should equal(0)
+      File.countByFileId(file.fileId) should equal(0)
+      FileContent.countByFileId(file.fileId) should equal(0)
+      FileAttachment.countByFileId(file.fileId) should equal(0)
 
       And("the disposal register names both, the file under its record")
       val register = items(SYS, runId)
@@ -476,7 +483,7 @@ class RetentionTest extends V600ServerSetup {
       val purge = runNow(SYS, policyId)
       withClue(purge.body) { purge.code should equal(201) }
       int(purge.body, "deleted_count") should equal(2)
-      RetentionArchive.count(By(RetentionArchive.BankId, SYS)) should equal(0)
+      RetentionArchive.countByBankId(SYS) should equal(0)
       items(SYS, str(purge.body, "retention_run_id")).map(i => str(i, "action")).distinct should equal(List("delete_from_archive"))
     }
 
@@ -501,41 +508,47 @@ class RetentionTest extends V600ServerSetup {
       val run = runNow(SYS, cascading)
       int(run.body, "deleted_count") should equal(2)
       recordExists(entityName, id) should equal(false)
-      File.count(By(File.FileId, file.fileId)) should equal(0)
-      RetentionArchive.count() should equal(0)
+      File.countByFileId(file.fileId) should equal(0)
+      RetentionArchive.countAll() should equal(0)
 
       val notCascading = createPolicy(SYS, policyBody("dynamic_entity_record", "delete", Some(other)))
       int(runNow(SYS, notCascading).body, "deleted_count") should equal(1)
       recordExists(other, otherId) should equal(false)
-      File.count(By(File.FileId, kept.fileId)) should equal(1)
-      FileAttachment.count(By(FileAttachment.FileId, kept.fileId)) should equal(0)
+      File.countByFileId(kept.fileId) should equal(1)
+      FileAttachment.countByFileId(kept.fileId) should equal(0)
     }
 
     scenario("anonymise a customer: personal fields cleared, links removed, the customer id kept", CreateRun, RunItems, VersionOfApi) {
       grant(bankId, resourceUser1.userId, allRoles: _*)
       allowArchiveAndDelete(archive = false, delete = true)
       val customerId = generateUUID()
-      MappedCustomer.create.mCustomerId(customerId).mBank(bankId).mNumber(customerId.take(10))
-        .mLegalName("Example Person").mEmail("person@example.com").mMobileNumber("+10000000000")
-        .mDateOfBirth(new Date(0L)).mTitle("Dr").saveMe()
-      MappedCustomerAttribute.create.mBankId(bankId).mCustomerId(customerId).mCustomerAttributeId(generateUUID())
-        .mName("nickname").mType("STRING").mValue("Example").saveMe()
-      MappedUserCustomerLink.create.mUserCustomerLinkId(generateUUID()).mCustomerId(customerId)
-        .mUserId(resourceUser2.userId).mDateInserted(new Date()).mIsActive(true).saveMe()
+      // The store generates the customer id on insert; the scenario's own id is then set on the row.
+      val inserted = MappedCustomer.insert(bankIdValue = bankId, email = "person@example.com", faceImageTime = null,
+        faceImageUrl = "", legalName = "Example Person", mobileNumber = "+10000000000", number = customerId.take(10),
+        dateOfBirth = new Date(0L), relationshipStatus = "", dependents = 0, highestEducationAttained = "",
+        employmentStatus = "", kycStatus = false, lastOkDate = null, creditRating = "", creditSource = "",
+        creditLimitCurrency = "", creditLimitAmount = "", title = "Dr", branchId = "", nameSuffix = "",
+        customerType = "", parentCustomerId = "", isPendingAgent = false, isConfirmedAgent = false)
+      MappedCustomer.setCustomerId(inserted.customerPrimaryKey, customerId)
+      DoobieUtil.runUpdate(
+        sql"""INSERT INTO mappedcustomerattribute (mbankidid, mcustomerid, mcustomerattributeid, mname, mtype, mvalue)
+              VALUES ($bankId, $customerId, ${generateUUID()}, 'nickname', 'STRING', 'Example')""".update.run)
+      UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(resourceUser2.userId, customerId, new Date(), true)
+        .openOrThrowException("user customer link")
 
       val policyId = createPolicy(bankId, policyBody("customer", "anonymise"))
       val run = runNow(bankId, policyId)
       withClue(run.body) { run.code should equal(201) }
       int(run.body, "anonymised_count") should equal(1)
 
-      val customer = MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)).openOrThrowException("customer")
+      val customer = MappedCustomer.findByCustomerId(customerId).openOrThrowException("customer")
       customer.legalName should equal("ANONYMISED")
       customer.email should equal("")
       customer.mobileNumber should equal("")
       customer.title should equal("")
-      customer.mNumber.get should equal(customerId.take(10))
-      MappedCustomerAttribute.count(By(MappedCustomerAttribute.mCustomerId, customerId)) should equal(0)
-      MappedUserCustomerLink.count(By(MappedUserCustomerLink.mCustomerId, customerId)) should equal(0)
+      customer.number should equal(customerId.take(10))
+      countWhere("mappedcustomerattribute", "mcustomerid", customerId) should equal(0)
+      countWhere("mappedusercustomerlink", "mcustomerid", customerId) should equal(0)
 
       val register = items(bankId, str(run.body, "retention_run_id"))
       register.map(i => (str(i, "resource_id"), str(i, "action"), str(i, "owner_user_id"))) should equal(
@@ -548,35 +561,31 @@ class RetentionTest extends V600ServerSetup {
     scenario("delete the chat messages of a bank, keeping the room", CreateRun, GetRuns, VersionOfApi) {
       grant(bankId, resourceUser1.userId, allRoles: _*)
       allowArchiveAndDelete(archive = false, delete = true)
-      val roomId = generateUUID()
-      ChatRoom.create.ChatRoomId(roomId).BankId(bankId).Name("General").CreatedByUserId(resourceUser1.userId)
-        .LastMessagePreview("second message").LastMessageAt(new Date()).saveMe()
+      // The stores generate the room and message ids on insert.
+      val roomId = ChatRoom.insert(bankId, "General", "", resourceUser1.userId, isOpenRoom = false).chatRoomId
+      ChatRoom.updateLastMessageInfo(roomId, new Date(), "second message", "").openOrThrowException("room")
       val messageIds = List("first message", "second message").map { content =>
-        val messageId = generateUUID()
-        ChatMessage.create.ChatMessageId(messageId).ChatRoomId(roomId).SenderUserId(resourceUser1.userId)
-          .Content(content).MessageType("text").saveMe()
-        messageId
+        ChatMessage.insert(roomId, resourceUser1.userId, "", content, "text", Nil, "", "").chatMessageId
       }
-      Reaction.create.ReactionId(generateUUID()).ChatMessageId(messageIds.head).UserId(resourceUser2.userId).Emoji("+1").saveMe()
-      val otherBankRoom = generateUUID()
-      ChatRoom.create.ChatRoomId(otherBankRoom).BankId("another-bank").Name("Elsewhere").saveMe()
-      ChatMessage.create.ChatMessageId(generateUUID()).ChatRoomId(otherBankRoom).Content("elsewhere").MessageType("text").saveMe()
+      Reaction.insert(messageIds.head, resourceUser2.userId, "+1")
+      val otherBankRoom = ChatRoom.insert("another-bank", "Elsewhere", "", "", isOpenRoom = false).chatRoomId
+      ChatMessage.insert(otherBankRoom, "", "", "elsewhere", "text", Nil, "", "")
 
       val policyId = createPolicy(bankId, policyBody("chat_message", "delete"))
       val run = runNow(bankId, policyId)
       withClue(run.body) { run.code should equal(201) }
       int(run.body, "deleted_count") should equal(2)
 
-      ChatMessage.count(By(ChatMessage.ChatRoomId, roomId)) should equal(0)
-      Reaction.count(By(Reaction.ChatMessageId, messageIds.head)) should equal(0)
-      val room = ChatRoom.find(By(ChatRoom.ChatRoomId, roomId)).openOrThrowException("room")
+      countWhere("chatmessage", "chatroomid", roomId) should equal(0)
+      Reaction.findAllByChatMessageId(messageIds.head).size should equal(0)
+      val room = ChatRoom.findByChatRoomId(roomId).openOrThrowException("room")
       room.lastMessagePreview should equal("")
-      ChatMessage.count(By(ChatMessage.ChatRoomId, otherBankRoom)) should equal(1)
+      countWhere("chatmessage", "chatroomid", otherBankRoom) should equal(1)
       items(bankId, str(run.body, "retention_run_id")).map(i => str(i, "resource_id")).toSet should equal(messageIds.toSet)
 
       val listed = makeGetRequest(runs(bankId).GET <@ (user1) <<? List("retention_policy_id" -> policyId))
       (listed.body \ "retention_runs").children.map(r => str(r, "status")) should equal(List("done"))
-      RetentionRun.count(By(RetentionRun.BankId, SYS)) should equal(0)
+      RetentionRun.countByBankId(SYS) should equal(0)
     }
   }
 
@@ -680,7 +689,7 @@ class RetentionTest extends V600ServerSetup {
       record(entityName, "CLOSED")
       val policyId = createPolicy(SYS, policyBody("dynamic_entity_record", "archive", Some(entityName), archiveDays = Some(0)))
       int(runNow(SYS, policyId).body, "archived_count") should equal(1)
-      val archivedCount = RetentionArchive.count(By(RetentionArchive.RetentionPolicyId, policyId))
+      val archivedCount = RetentionArchive.countByRetentionPolicyId(policyId)
       archivedCount should equal(1)
 
       When("the policy runs again, by hand and from the scheduler")
@@ -690,7 +699,7 @@ class RetentionTest extends V600ServerSetup {
       str(again.body, "message") should include("retention.delete.enabled is false")
       RetentionScheduler.runOnce() should equal(true)
       Then("the archive entry is still there")
-      RetentionArchive.count(By(RetentionArchive.RetentionPolicyId, policyId)) should equal(archivedCount)
+      RetentionArchive.countByRetentionPolicyId(policyId) should equal(archivedCount)
     }
   }
 
@@ -745,7 +754,7 @@ class RetentionTest extends V600ServerSetup {
       Then("a run, by hand or from the scheduler, keeps the record younger than five years")
       int(runNow(SYS, policyId).body, "deleted_count") should equal(1)
       schedulerSeesOnlyNewPolicies()
-      RetentionPolicy.findAll(By(RetentionPolicy.RetentionPolicyId, policyId)).foreach(_.Enabled(true).saveMe())
+      RetentionPolicy.findAllByRetentionPolicyId(policyId).foreach(p => RetentionPolicy.save(p.copy(enabled = true)))
       RetentionScheduler.runOnce() should equal(true)
       recordExists(entityName, old) should equal(false)
       recordExists(entityName, young) should equal(true)
@@ -818,13 +827,13 @@ class RetentionTest extends V600ServerSetup {
       val id = record(entityName, "CLOSED")
       val policyId = createPolicy(SYS, policyBody("dynamic_entity_record", "delete", Some(entityName)))
 
-      val lock = JobScheduler.create.JobId(generateUUID()).Name("RetentionScheduler").ApiInstanceId("another-node").saveMe()
+      val lock = JobScheduler.createJob("RetentionScheduler", "another-node")
       RetentionScheduler.runOnce() should equal(false)
       recordExists(entityName, id) should equal(true)
       runsOf(policyId) should equal(Nil)
 
       Then("the next tick, with the lock gone, runs")
-      JobScheduler.delete_!(lock)
+      JobScheduler.delete(lock)
       RetentionScheduler.runOnce() should equal(true)
       recordExists(entityName, id) should equal(false)
     }

@@ -83,6 +83,10 @@ class CustomDBVendor(driverName: String,
         config.setJdbcUrl(dbUrl)
     }
 
+    // Oracle's driver binds a double as a decimal NUMBER unless told otherwise, which keeps about 15 significant
+    // digits; with this it sends the IEEE 754 value, which the BINARY_DOUBLE columns store exactly.
+    if (code.api.util.DBUtil.isOracle) config.addDataSourceProperty("SetFloatAndDoubleUseBinary", "true")
+
     config.addDataSourceProperty("cachePrepStmts", "true")
     config.addDataSourceProperty("prepStmtCacheSize", "250")
     config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048")
@@ -93,14 +97,18 @@ class CustomDBVendor(driverName: String,
     // Every connection taken from the pool, whichever way it is taken (Lift Mapper, Doobie, the
     // request transaction), passes through here, so DatabaseConnectionHoldWatch sees them all.
     val ds: HikariDataSource = new HikariDataSource(config) {
-      override def getConnection(): Connection = DatabaseConnectionHoldWatch.watch(super.getConnection())
+      override def getConnection(): Connection = {
+        val connection = DatabaseConnectionHoldWatch.watch(super.getConnection())
+        // Oracle reads '' as NULL; OracleEmptyStrings keeps the two apart, as every other database does.
+        if (code.api.util.DBUtil.isOracle) code.api.util.OracleEmptyStrings.wrap(connection) else connection
+      }
     }
     DatabaseConnectionHoldWatch.pool = Some(ds)
   }
 
   def createOne: Box[Connection] =  {
-    tryo{t:Throwable => logger.error("Cannot load database driver: %s".format(driverName), t)}{Class.forName(driverName);()}
-    tryo{t:Throwable => logger.error("Unable to get database connection. url=%s".format(dbUrl),t)}(HikariDatasource.ds.getConnection())
+    tryo{(t:Throwable) => logger.error("Cannot load database driver: %s".format(driverName), t)}{Class.forName(driverName);()}
+    tryo{(t:Throwable) => logger.error("Unable to get database connection. url=%s".format(dbUrl),t)}(HikariDatasource.ds.getConnection())
   }
 
   def closeAllConnections_!(): Unit = HikariDatasource.ds.close()

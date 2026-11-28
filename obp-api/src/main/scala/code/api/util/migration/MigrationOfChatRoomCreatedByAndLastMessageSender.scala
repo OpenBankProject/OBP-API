@@ -29,10 +29,8 @@ package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.chat.ChatRoom
 import net.liftweb.common.Full
 import net.liftweb.db.DB
-import net.liftweb.mapper.Schemifier
 import net.liftweb.util.DefaultConnectionIdentifier
 
 object MigrationOfChatRoomCreatedByAndLastMessageSender {
@@ -48,7 +46,7 @@ object MigrationOfChatRoomCreatedByAndLastMessageSender {
    * If an old column does not exist (fresh install), that half is skipped.
    */
   def migrateColumns(name: String): Boolean = {
-    DbFunction.tableExists(ChatRoom) match {
+    DbFunction.tableExistsByName("chatroom") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -66,7 +64,7 @@ object MigrationOfChatRoomCreatedByAndLastMessageSender {
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") match {
               case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () => buildSql(oldCreatedByExists, oldLastMessageSenderExists)
@@ -91,7 +89,7 @@ object MigrationOfChatRoomCreatedByAndLastMessageSender {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${ChatRoom._dbTableNameLC} table does not exist"""
+          "chatroom table does not exist"
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

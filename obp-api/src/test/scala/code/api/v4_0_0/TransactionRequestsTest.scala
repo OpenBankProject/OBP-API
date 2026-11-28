@@ -406,13 +406,13 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
       }
     }
 
-  feature("Security Tests: permissions, roles, views...") {
+  Feature("Security Tests: permissions, roles, views...") {
 
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No login user", ApiEndpoint1) {}
     } else {
-      scenario("No login user", ApiEndpoint1) {
+      Scenario("No login user", ApiEndpoint1) {
 
         val helper = defaultSetup(ACCOUNT.toString)
 
@@ -434,7 +434,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No owner view , No CanCreateAnyTransactionRequest role", ApiEndpoint1) {}
     } else {
-      scenario("No owner view, No CanCreateAnyTransactionRequest role", ApiEndpoint1) {
+      Scenario("No owner view, No CanCreateAnyTransactionRequest role", ApiEndpoint1) {
 
         val helper = defaultSetup(ACCOUNT.toString)
 
@@ -455,7 +455,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No owner view, With CanCreateAnyTransactionRequest role", ApiEndpoint1) {}
     } else {
-      scenario("No owner view, With CanCreateAnyTransactionRequest role", ApiEndpoint1) {
+      Scenario("No owner view, With CanCreateAnyTransactionRequest role", ApiEndpoint1) {
 
         val helper = defaultSetup(ACCOUNT.toString)
 
@@ -476,7 +476,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("Invalid transactionRequestType", ApiEndpoint1) {}
     } else {
-      scenario("Invalid transactionRequestType", ApiEndpoint1) {
+      Scenario("Invalid transactionRequestType", ApiEndpoint1) {
 
         val helper = defaultSetup(ACCOUNT.toString)
 
@@ -499,12 +499,12 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
   }
 
-  feature("we can create transaction requests -- ACCOUNT") {
+  Feature("we can create transaction requests -- ACCOUNT") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, No FX (same currencies)", ApiEndpoint1) {}
     } else {
-      scenario("No challenge, No FX (same currencies)", ApiEndpoint1) {
+      Scenario("No challenge, No FX (same currencies)", ApiEndpoint1) {
 
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(ACCOUNT.toString)
@@ -534,7 +534,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, With FX ", ApiEndpoint1) {}
     } else {
-      scenario("No challenge, With FX ", ApiEndpoint1) {
+      Scenario("No challenge, With FX ", ApiEndpoint1) {
 
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(ACCOUNT.toString)
@@ -574,7 +574,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, No FX", ApiEndpoint1, ApiEndpoint2) {}
     } else {
-      scenario("With challenge, No FX ", ApiEndpoint1, ApiEndpoint2) {
+      Scenario("With challenge, No FX ", ApiEndpoint1, ApiEndpoint2) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(ACCOUNT.toString)
         And("We set the special conditions for different currencies")
@@ -616,7 +616,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         helper.checkBankAccountBalance(true)
       }
 
-      scenario("With challenge, No FX, test the allowed_attempts times ", ApiEndpoint1, ApiEndpoint2) {
+      Scenario("With challenge, No FX, test the allowed_attempts times ", ApiEndpoint1, ApiEndpoint2) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(ACCOUNT.toString)
         And("We set the special conditions for different currencies")
@@ -655,7 +655,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, With FX ", ApiEndpoint1, ApiEndpoint2) {}
     } else {
-      scenario("With challenge, With FX ", ApiEndpoint1, ApiEndpoint2) {
+      Scenario("With challenge, With FX ", ApiEndpoint1, ApiEndpoint2) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(ACCOUNT.toString)
 
@@ -703,12 +703,12 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
   }
 
-  feature("a transaction request whose challenge cannot be sent") {
+  Feature("a transaction request whose challenge cannot be sent") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("is not left waiting for an answer", ApiEndpoint1) {}
     } else {
-      scenario("is not left waiting for an answer", ApiEndpoint1) {
+      Scenario("is not left waiting for an answer", ApiEndpoint1) {
         When("the challenge goes by SMS and no SMS provider is configured")
         setPropsValues("ACCOUNT_OTP_INSTRUCTION_TRANSPORT" -> "SMS")
         val helper = defaultSetup(ACCOUNT.toString)
@@ -731,7 +731,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         helper.checkBankAccountBalance(false)
       }
 
-      scenario("still goes to the signers who can be reached, when there are enough of them", ApiEndpoint1) {
+      Scenario("still goes to the signers who can be reached, when there are enough of them", ApiEndpoint1) {
         When("two of three signers have an address and two answers are required")
         val helper = setUpSignersByEmail(signers = List(resourceUser2, resourceUser3), reachable = List(resourceUser1, resourceUser2))
 
@@ -743,7 +743,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
         created.challenges.map(_.user_id).toSet should equal(Set(resourceUser1.userId, resourceUser2.userId))
       }
 
-      scenario("is marked FAILED when fewer signers than the answers required can be reached", ApiEndpoint1) {
+      Scenario("is marked FAILED when fewer signers than the answers required can be reached", ApiEndpoint1) {
         When("one of three signers has an address and two answers are required")
         val helper = setUpSignersByEmail(signers = List(resourceUser2, resourceUser3), reachable = List(resourceUser1))
 
@@ -757,11 +757,11 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
   }
 
-  feature("a transaction request on an account that needs more answers than it has signers") {
+  Feature("a transaction request on an account that needs more answers than it has signers") {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("is marked FAILED with the reason", ApiEndpoint1) {}
     } else {
-      scenario("is marked FAILED with the reason", ApiEndpoint1) {
+      Scenario("is marked FAILED with the reason", ApiEndpoint1) {
         When("only the owner may answer, can be reached, and two answers are required")
         val helper = setUpSignersByEmail(signers = Nil, reachable = List(resourceUser1))
 
@@ -801,12 +801,12 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     helper
   }
 
-  feature("we can create transaction requests -- FREE_FORM") {
+  Feature("we can create transaction requests -- FREE_FORM") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, No FX ", ApiEndpoint7) {}
     } else {
-      scenario("No challenge, No FX ", ApiEndpoint7) {
+      Scenario("No challenge, No FX ", ApiEndpoint7) {
 
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(FREE_FORM.toString)
@@ -837,7 +837,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, With FX ", ApiEndpoint7) {}
     } else {
-      scenario("No challenge, With FX ", ApiEndpoint7) {
+      Scenario("No challenge, With FX ", ApiEndpoint7) {
 
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(FREE_FORM.toString)
@@ -878,7 +878,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, No FX", ApiEndpoint7, ApiEndpoint2) {}
     } else {
-      scenario("With challenge, No FX ", ApiEndpoint7, ApiEndpoint2) {
+      Scenario("With challenge, No FX ", ApiEndpoint7, ApiEndpoint2) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(FREE_FORM.toString)
         addEntitlement(helper.bankId.value, resourceUser1.userId, CanCreateAnyTransactionRequest.toString)
@@ -925,7 +925,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, With FX ", ApiEndpoint7, ApiEndpoint2) {}
     } else {
-      scenario("With challenge, With FX ", ApiEndpoint7, ApiEndpoint2) {
+      Scenario("With challenge, With FX ", ApiEndpoint7, ApiEndpoint2) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(FREE_FORM.toString)
         addEntitlement(helper.bankId.value, resourceUser1.userId, CanCreateAnyTransactionRequest.toString)
@@ -974,12 +974,12 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
   }
 
-  feature("we can create transaction requests -- SEPA") {
+  Feature("we can create transaction requests -- SEPA") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, No FX ", ApiEndpoint1) {}
     } else {
-      scenario("No challenge, No FX ", ApiEndpoint1) {
+      Scenario("No challenge, No FX ", ApiEndpoint1) {
 
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(SEPA.toString)
@@ -1009,7 +1009,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, With FX ", ApiEndpoint1) {}
     } else {
-      scenario("No challenge, With FX ", ApiEndpoint1) {
+      Scenario("No challenge, With FX ", ApiEndpoint1) {
 
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(SEPA.toString)
@@ -1049,7 +1049,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, No FX ", ApiEndpoint1, ApiEndpoint2) {}
     } else {
-      scenario("With challenge, No FX ", ApiEndpoint1, ApiEndpoint2) {
+      Scenario("With challenge, No FX ", ApiEndpoint1, ApiEndpoint2) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(SEPA.toString)
         And("We set the special conditions for different currencies")
@@ -1126,7 +1126,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, With FX ", ApiEndpoint1) {}
     } else {
-      scenario("With challenge, With FX ", ApiEndpoint1) {
+      Scenario("With challenge, With FX ", ApiEndpoint1) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(SEPA.toString)
 
@@ -1174,12 +1174,12 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
   }
 
-  feature("we can create transaction requests -- COUNTERPARTY") {
+  Feature("we can create transaction requests -- COUNTERPARTY") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, No FX ", ApiEndpoint1) {}
     } else {
-      scenario("No challenge, No FX ", ApiEndpoint1) {
+      Scenario("No challenge, No FX ", ApiEndpoint1) {
 
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(COUNTERPARTY.toString)
@@ -1209,7 +1209,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, With FX ", ApiEndpoint1) {}
     } else {
-      scenario("No challenge, With FX ", ApiEndpoint1) {
+      Scenario("No challenge, With FX ", ApiEndpoint1) {
 
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(COUNTERPARTY.toString)
@@ -1249,7 +1249,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, No FX ", ApiEndpoint1) {}
     } else {
-      scenario("With challenge, No FX ", ApiEndpoint1) {
+      Scenario("With challenge, No FX ", ApiEndpoint1) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(COUNTERPARTY.toString)
         And("We set the special conditions for different currencies")
@@ -1295,7 +1295,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, With FX", ApiEndpoint1) {}
     } else {
-      scenario("With challenge, With FX", ApiEndpoint1) {
+      Scenario("With challenge, With FX", ApiEndpoint1) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(COUNTERPARTY.toString)
 
@@ -1345,7 +1345,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With N challenges, With FX", ApiEndpoint1) {}
     } else {
-      scenario("With N challenges, With FX", ApiEndpoint1) {
+      Scenario("With N challenges, With FX", ApiEndpoint1) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
         val helper = defaultSetup(COUNTERPARTY.toString)
 
@@ -1423,13 +1423,13 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
   }
   
   
-  feature(s"we can create transaction requests -- $AGENT_CASH_WITHDRAWAL") {
+  Feature(s"we can create transaction requests -- $AGENT_CASH_WITHDRAWAL") {
 
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, No FX ", ApiEndpoint11) {}
     } else {
-      scenario("No challenge, No FX ", ApiEndpoint11) {
+      Scenario("No challenge, No FX ", ApiEndpoint11) {
 
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL")
         setPropsValues("AGENT_CASH_WITHDRAWAL_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
@@ -1462,7 +1462,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, With FX ", ApiEndpoint11) {}
     } else {
-      scenario("No challenge, With FX ", ApiEndpoint11) {
+      Scenario("No challenge, With FX ", ApiEndpoint11) {
 
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL")
         setPropsValues("AGENT_CASH_WITHDRAWAL_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
@@ -1504,7 +1504,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, No FX ", ApiEndpoint11) {}
     } else {
-      scenario("With challenge, No FX ", ApiEndpoint11) {
+      Scenario("With challenge, No FX ", ApiEndpoint11) {
 
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL")
         setPropsValues("AGENT_CASH_WITHDRAWAL_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
@@ -1554,7 +1554,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, With FX", ApiEndpoint11) {}
     } else {
-      scenario("With challenge, With FX", ApiEndpoint11) {
+      Scenario("With challenge, With FX", ApiEndpoint11) {
 
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL")
         setPropsValues("AGENT_CASH_WITHDRAWAL_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
@@ -1608,7 +1608,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With N challenges, With FX", ApiEndpoint11) {}
     } else {
-      scenario("With N challenges, With FX", ApiEndpoint1) {
+      Scenario("With N challenges, With FX", ApiEndpoint1) {
 
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL")
         setPropsValues("AGENT_CASH_WITHDRAWAL_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
@@ -1689,12 +1689,12 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
   }
 
-  feature("we can create transaction requests -- CARD") {
+  Feature("we can create transaction requests -- CARD") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("A CARD payee must be a counterparty of the card's account", ApiEndpoint10) {}
     } else {
-      scenario("A CARD payee must be a counterparty of the card's account", ApiEndpoint10) {
+      Scenario("A CARD payee must be a counterparty of the card's account", ApiEndpoint10) {
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
         setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
         val helper = defaultSetup(CARD.toString)
@@ -1718,7 +1718,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("Charging a card needs access to the card's account", ApiEndpoint10) {}
     } else {
-      scenario("Charging a card needs access to the card's account", ApiEndpoint10) {
+      Scenario("Charging a card needs access to the card's account", ApiEndpoint10) {
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
         setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
         val helper = defaultSetup(CARD.toString)
@@ -1737,7 +1737,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("A User with no access to the card's account learns nothing from a wrong card field", ApiEndpoint10) {}
     } else {
-      scenario("A User with no access to the card's account learns nothing from a wrong card field", ApiEndpoint10) {
+      Scenario("A User with no access to the card's account learns nothing from a wrong card field", ApiEndpoint10) {
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
         setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
         val helper = defaultSetup(CARD.toString)
@@ -1757,7 +1757,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("An unknown card number is refused like a card of another User", ApiEndpoint10) {}
     } else {
-      scenario("An unknown card number is refused like a card of another User", ApiEndpoint10) {
+      Scenario("An unknown card number is refused like a card of another User", ApiEndpoint10) {
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
         setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
         val helper = defaultSetup(CARD.toString)
@@ -1776,7 +1776,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, No FX ", ApiEndpoint10) {}
     } else {
-      scenario("No challenge, No FX ", ApiEndpoint10) {
+      Scenario("No challenge, No FX ", ApiEndpoint10) {
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
         setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
 
@@ -1808,7 +1808,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, With FX ", ApiEndpoint10) {}
     } else {
-      scenario("No challenge, With FX ", ApiEndpoint10) {
+      Scenario("No challenge, With FX ", ApiEndpoint10) {
 
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
         setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
@@ -1851,7 +1851,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, No FX ", ApiEndpoint10) {}
     } else {
-      scenario("With challenge, No FX ", ApiEndpoint10) {
+      Scenario("With challenge, No FX ", ApiEndpoint10) {
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
         setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
         
@@ -1900,7 +1900,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With challenge, With FX", ApiEndpoint10) {}
     } else {
-      scenario("With challenge, With FX", ApiEndpoint10) {
+      Scenario("With challenge, With FX", ApiEndpoint10) {
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
         setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
         
@@ -1953,7 +1953,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("With N challenges, With FX", ApiEndpoint10) {}
     } else {
-      scenario("With N challenges, With FX", ApiEndpoint10) {
+      Scenario("With N challenges, With FX", ApiEndpoint10) {
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
         setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
         
@@ -2033,13 +2033,13 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
   }
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
 
     lazy val bankId = testBankId1.value
     lazy val accountId = testAccountId1.value
     lazy val view = Constant.SYSTEM_OWNER_VIEW_ID
 
-    scenario("We will call the endpoint WITHOUT user credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint WITHOUT user credentials", ApiEndpoint1, VersionOfApi) {
 
       val transactionRequestId = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1).transaction_request_id
 
@@ -2051,7 +2051,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the endpoint WITH user credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint WITH user credentials", ApiEndpoint1, VersionOfApi) {
 
       val transactionRequestId = randomTransactionRequestViaEndpoint(bankId, accountId, view, user1).transaction_request_id
 

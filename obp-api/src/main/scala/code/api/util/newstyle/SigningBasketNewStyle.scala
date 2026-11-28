@@ -49,7 +49,7 @@ object SigningBasketNewStyle {
    * way, so the endpoint is not a way to learn which basket ids exist.
    */
   def getOwnBasket(basketId: String, callContext: Option[CallContext]): Future[SigningBasketContent] = {
-    val callingConsumer = callContext.flatMap(_.consumer.toOption).map(_.consumerId.get)
+    val callingConsumer = callContext.flatMap(_.consumer.toOption).map(_.consumerId)
     Future(SigningBasketX.signingBasketProvider.vend.getSigningBasketByBasketId(basketId).toOption).flatMap { found =>
       booleanToFuture(SigningBasketNotFound, failCode = 403, cc = callContext) {
         found.exists(content => content.basket.consumerId.isDefined && content.basket.consumerId == callingConsumer)

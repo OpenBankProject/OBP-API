@@ -32,7 +32,6 @@ import code.api.util.APIUtil.generateUUID
 import code.api.util.ErrorMessages.{RetentionArchiveIsDisabled, RetentionDeleteIsDisabled}
 import code.retention.Retention._
 import code.util.Helper.MdcLoggable
-import net.liftweb.mapper._
 import org.json4s.native.JsonMethods.{compact, render}
 
 import scala.util.control.NonFatal
@@ -52,7 +51,7 @@ class RetentionHolds(holds: List[RetentionHold]) {
 
 object RetentionHolds {
   def active(bankId: String): RetentionHolds =
-    new RetentionHolds(RetentionHold.findAll(By(RetentionHold.BankId, bankId), NullRef(RetentionHold.ReleasedAt)))
+    new RetentionHolds(RetentionHold.findAllActive(bankId))
 }
 
 /**
@@ -77,25 +76,24 @@ class Disposal(val run: RetentionRun, val policy: Option[RetentionPolicy], holds
   def archive(candidate: RetentionCandidate, content: Option[Array[Byte]], parent: Option[(String, String)]): String = {
     val archiveId = generateUUID()
     val now = new Date()
-    RetentionArchive.create
-      .RetentionArchiveId(archiveId)
-      .RetentionPolicyId(policy.map(_.retentionPolicyId).getOrElse(""))
-      .RetentionRunId(run.retentionRunId)
-      .BankId(candidate.bankId)
-      .ResourceType(candidate.resourceType)
-      .ResourceId(candidate.resourceId)
-      .EntityName(candidate.entityName.getOrElse(""))
-      .OwnerUserId(candidate.ownerUserId.getOrElse(""))
-      .ParentResourceType(parent.map(_._1).getOrElse(""))
-      .ParentResourceId(parent.map(_._2).getOrElse(""))
-      .JsonCopy(compact(render(candidate.jsonCopy())))
-      .HasContent(content.isDefined)
-      .ContentSizeInBytes(content.map(_.length.toLong).getOrElse(0L))
-      .ArchivedAt(now)
-      .DeleteAfter(policy.flatMap(_.archiveDays).map(days => plusDays(now, days)).orNull)
-      .saveMe()
-    content.foreach(bytes => RetentionArchiveContent.create.RetentionArchiveId(archiveId)
-      .ContentBase64(java.util.Base64.getEncoder.encodeToString(bytes)).saveMe())
+    RetentionArchive.insert(RetentionArchive(
+      id = -1L,
+      retentionArchiveId = archiveId,
+      retentionPolicyId = policy.map(_.retentionPolicyId).filter(_.nonEmpty),
+      retentionRunId = run.retentionRunId,
+      bankId = candidate.bankId,
+      resourceType = candidate.resourceType,
+      resourceId = candidate.resourceId,
+      entityName = candidate.entityName.filter(_.nonEmpty),
+      ownerUserId = candidate.ownerUserId.filter(_.nonEmpty),
+      parentResourceType = parent.map(_._1).filter(_.nonEmpty),
+      parentResourceId = parent.map(_._2).filter(_.nonEmpty),
+      jsonCopy = compact(render(candidate.jsonCopy())),
+      hasContent = content.isDefined,
+      contentSizeInBytes = content.map(_.length.toLong).getOrElse(0L),
+      archivedAt = now,
+      deleteAfter = policy.flatMap(_.archiveDays).map(days => plusDays(now, days))))
+    content.foreach(bytes => RetentionArchiveContent.insert(archiveId, bytes))
     archiveId
   }
 
@@ -120,22 +118,24 @@ class Disposal(val run: RetentionRun, val policy: Option[RetentionPolicy], holds
 
   private def writeItem(bankId: String, resourceType: String, resourceId: String, entityName: Option[String],
                         ownerUserId: Option[String], action: String, archiveId: Option[String],
-                        parent: Option[(String, String)]): Unit =
-    RetentionRunItem.create
-      .RetentionRunItemId(generateUUID())
-      .RetentionRunId(run.retentionRunId)
-      .RetentionPolicyId(policy.map(_.retentionPolicyId).getOrElse(""))
-      .BankId(bankId)
-      .ResourceType(resourceType)
-      .ResourceId(resourceId)
-      .EntityName(entityName.getOrElse(""))
-      .OwnerUserId(ownerUserId.getOrElse(""))
-      .Action(action)
-      .ParentResourceType(parent.map(_._1).getOrElse(""))
-      .ParentResourceId(parent.map(_._2).getOrElse(""))
-      .RetentionArchiveId(archiveId.getOrElse(""))
-      .DisposedAt(new Date())
-      .saveMe()
+                        parent: Option[(String, String)]): Unit = {
+    RetentionRunItem.insert(RetentionRunItem(
+      id = -1L,
+      retentionRunItemId = generateUUID(),
+      retentionRunId = run.retentionRunId,
+      retentionPolicyId = policy.map(_.retentionPolicyId).filter(_.nonEmpty),
+      bankId = bankId,
+      resourceType = resourceType,
+      resourceId = resourceId,
+      entityName = entityName.filter(_.nonEmpty),
+      ownerUserId = ownerUserId.filter(_.nonEmpty),
+      action = action,
+      parentResourceType = parent.map(_._1).filter(_.nonEmpty),
+      parentResourceId = parent.map(_._2).filter(_.nonEmpty),
+      retentionArchiveId = archiveId.filter(_.nonEmpty),
+      disposedAt = new Date()))
+    ()
+  }
 }
 
 /**
@@ -179,8 +179,7 @@ object RetentionEngine extends MdcLoggable {
   }
 
   def archiveEntriesDue(policy: RetentionPolicy): Int =
-    RetentionArchive.count(By(RetentionArchive.RetentionPolicyId, policy.retentionPolicyId),
-      By_<=(RetentionArchive.DeleteAfter, new Date())).toInt
+    RetentionArchive.countDueOfPolicy(policy.retentionPolicyId, new Date()).toInt
 
   /**
    * Why an execution of this policy must be refused on this instance: archiving or deleting is
@@ -195,24 +194,32 @@ object RetentionEngine extends MdcLoggable {
 
   /** Is an execution of this policy under way? */
   def isRunning(policyId: String): Boolean =
-    RetentionRun.find(By(RetentionRun.RetentionPolicyId, policyId), By(RetentionRun.Status, StatusRunning),
-      By_>(RetentionRun.StartedAt, new Date(System.currentTimeMillis() - StaleRunMillis))).isDefined
+    RetentionRun.existsStartedAfter(policyId, StatusRunning, new Date(System.currentTimeMillis() - StaleRunMillis))
 
   private def newRun(bankId: String, policyId: Option[String], mode: String, status: String,
                      requestedByUserId: String, message: String): RetentionRun = {
     val now = new Date()
-    RetentionRun.create
-      .RetentionRunId(generateUUID())
-      .RetentionPolicyId(policyId.getOrElse(""))
-      .BankId(bankId)
-      .Mode(mode)
-      .Status(status)
-      .RequestedByUserId(requestedByUserId)
-      .RequestedAt(now)
-      .StartedAt(if (status == StatusRunning) now else null)
-      .EndedAt(if (status == StatusRefused) now else null)
-      .Message(message)
-      .saveMe()
+    RetentionRun.insert(RetentionRun(
+      id = -1L,
+      retentionRunId = generateUUID(),
+      retentionPolicyId = policyId.filter(_.nonEmpty),
+      bankId = bankId,
+      mode = mode,
+      status = status,
+      requestedByUserId = requestedByUserId,
+      approvedByUserId = None,
+      approvalDecision = None,
+      approvalComment = None,
+      matchedCount = 0,
+      archivedCount = 0,
+      anonymisedCount = 0,
+      deletedCount = 0,
+      heldCount = 0,
+      failedCount = 0,
+      requestedAt = now,
+      startedAt = if (status == StatusRunning) Some(now) else None,
+      endedAt = if (status == StatusRefused) Some(now) else None,
+      message = message))
   }
 
   /**
@@ -224,10 +231,10 @@ object RetentionEngine extends MdcLoggable {
     if (mode == ModePreview) {
       val run = newRun(policy.bankId, Some(policy.retentionPolicyId), ModePreview, StatusRunning, requestedByUserId, "")
       val result = preview(policy)
-      run.MatchedCount(result.matched).HeldCount(result.held).Status(StatusDone).EndedAt(new Date())
-        .Message(s"Preview only: ${result.matched - result.held} resource(s) would be disposed of by '${policy.action}', ${result.held} on hold." +
-          (if (result.scanLimitReached) s" Counting stopped at $PreviewScanLimit." else ""))
-        .saveMe()
+      RetentionRun.save(run.copy(matchedCount = result.matched, heldCount = result.held, status = StatusDone,
+        endedAt = Some(new Date()),
+        message = s"Preview only: ${result.matched - result.held} resource(s) would be disposed of by '${policy.action}', ${result.held} on hold." +
+          (if (result.scanLimitReached) s" Counting stopped at $PreviewScanLimit." else "")))
     } else refusal(policy) match {
       case Some(reason) =>
         newRun(policy.bankId, Some(policy.retentionPolicyId), ModeExecute, StatusRefused, requestedByUserId, reason)
@@ -245,16 +252,18 @@ object RetentionEngine extends MdcLoggable {
    */
   def decide(run: RetentionRun, policy: Option[RetentionPolicy], approverUserId: String, approve: Boolean,
              comment: Option[String]): RetentionRun = {
-    val decided = run.ApprovedByUserId(approverUserId)
-      .ApprovalDecision(if (approve) DecisionApproved else DecisionRejected)
-      .ApprovalComment(comment.getOrElse(""))
-    if (!approve) decided.Status(StatusRefused).EndedAt(new Date()).Message("Rejected by the approver.").saveMe()
+    val decided = run.copy(
+      approvedByUserId = Option(approverUserId).filter(_.nonEmpty),
+      approvalDecision = Some(if (approve) DecisionApproved else DecisionRejected),
+      approvalComment = comment.filter(_.nonEmpty))
+    def refused(message: String): RetentionRun =
+      RetentionRun.save(decided.copy(status = StatusRefused, endedAt = Some(new Date()), message = message))
+    if (!approve) refused("Rejected by the approver.")
     else policy match {
-      case None =>
-        decided.Status(StatusRefused).EndedAt(new Date()).Message("The policy of this run has been deleted.").saveMe()
+      case None => refused("The policy of this run has been deleted.")
       case Some(p) => refusal(p) match {
-        case Some(reason) => decided.Status(StatusRefused).EndedAt(new Date()).Message(reason).saveMe()
-        case None => execute(decided.Status(StatusRunning).StartedAt(new Date()).saveMe(), p)
+        case Some(reason) => refused(reason)
+        case None => execute(RetentionRun.save(decided.copy(status = StatusRunning, startedAt = Some(new Date()))), p)
       }
     }
   }
@@ -287,7 +296,7 @@ object RetentionEngine extends MdcLoggable {
       }
       val archiveNote =
         if (RetentionProps.deleteEnabled) {
-          deleteDueFromArchive(disposal, List(By(RetentionArchive.RetentionPolicyId, policy.retentionPolicyId)))
+          deleteDueFromArchive(disposal, RetentionArchive.findDueOfPolicy(policy.retentionPolicyId, new Date(), RetentionProps.maxItemsPerRun))
           ""
         } else if (archiveEntriesDue(policy) > 0)
           " Archived resources whose archive period has ended were kept, because retention.delete.enabled is false."
@@ -305,27 +314,28 @@ object RetentionEngine extends MdcLoggable {
   }
 
   private def finish(run: RetentionRun, disposal: Disposal, matched: Int, failed: Int, status: String, message: String): RetentionRun =
-    run.MatchedCount(matched)
-      .ArchivedCount(disposal.archived)
-      .AnonymisedCount(disposal.anonymised)
-      .DeletedCount(disposal.deleted)
-      .HeldCount(disposal.held)
-      .FailedCount(failed)
-      .Status(status)
-      .EndedAt(new Date())
-      .Message(message)
-      .saveMe()
+    RetentionRun.save(run.copy(
+      matchedCount = matched,
+      archivedCount = disposal.archived,
+      anonymisedCount = disposal.anonymised,
+      deletedCount = disposal.deleted,
+      heldCount = disposal.held,
+      failedCount = failed,
+      status = status,
+      endedAt = Some(new Date()),
+      message = message))
 
-  /** Delete the archive entries matching `filter` whose archive period has ended, unless on hold. */
-  private def deleteDueFromArchive(disposal: Disposal, filter: List[QueryParam[RetentionArchive]]): Unit = {
-    val due = RetentionArchive.findAll((filter ::: List(By_<=(RetentionArchive.DeleteAfter, new Date()),
-      OrderBy(RetentionArchive.DeleteAfter, Ascending), MaxRows[RetentionArchive](RetentionProps.maxItemsPerRun))): _*)
+  /**
+   * Delete the archive entries `due` (those whose archive period has ended, the earliest due first, at
+   * most retention.run.max_items of them), unless on hold.
+   */
+  private def deleteDueFromArchive(disposal: Disposal, due: List[RetentionArchive]): Unit = {
     due.foreach { entry =>
       val parentHeld = entry.parentResourceType.exists(t => entry.parentResourceId.exists(id => disposal.isHeld(t, id, entry.entityName)))
       if (disposal.isHeld(entry.resourceType, entry.resourceId, entry.entityName) || parentHeld) disposal.countHeld()
       else {
-        RetentionArchiveContent.bulkDelete_!!(By(RetentionArchiveContent.RetentionArchiveId, entry.retentionArchiveId))
-        entry.delete_!
+        RetentionArchiveContent.deleteByRetentionArchiveId(entry.retentionArchiveId)
+        RetentionArchive.delete(entry)
         disposal.registerDeletedFromArchive(entry)
       }
     }
@@ -337,13 +347,12 @@ object RetentionEngine extends MdcLoggable {
    * policy. Only called with retention.delete.enabled true.
    */
   def deleteAllDueFromArchive(): List[RetentionRun] = {
-    val banks = RetentionArchive.findAll(By_<=(RetentionArchive.DeleteAfter, new Date()),
-      MaxRows[RetentionArchive](RetentionProps.maxItemsPerRun)).map(_.bankId).distinct
+    val banks = RetentionArchive.findDueBankIds(new Date(), RetentionProps.maxItemsPerRun)
     banks.map { bankId =>
       val run = newRun(bankId, None, ModeExecute, StatusRunning, "", "")
       val disposal = new Disposal(run, None, RetentionHolds.active(bankId))
       try {
-        deleteDueFromArchive(disposal, List(By(RetentionArchive.BankId, bankId)))
+        deleteDueFromArchive(disposal, RetentionArchive.findDueOfBank(bankId, new Date(), RetentionProps.maxItemsPerRun))
         finish(run, disposal, 0, 0, StatusDone, "Archived resources whose archive period has ended were deleted from the archive.")
       } catch {
         case NonFatal(e) =>

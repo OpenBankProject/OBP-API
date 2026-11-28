@@ -153,6 +153,10 @@ if [[ "$USE_MTLS" = true ]]; then
 fi
 
 echo "=========================================="
+# -cp, not -jar: a manifest Class-Path never reaches the `java.class.path` system property, and
+# both DotcScalaCompiler and json4s's ScalaSigReader build a runtime compiler classpath out of that
+# property. Under -jar they see the thin jar alone and every dynamic-code and Scala-3 field-type
+# path fails on a server that otherwise boots fine. See development/docker/entrypoint.sh.
 if [ "$RUN_BACKGROUND" = true ]; then
     echo "Starting HTTP4S server (background)..."
 else
@@ -181,7 +185,7 @@ if [ "$RUN_BACKGROUND" = true ]; then
     # via `out=$(./flushall_build_and_run.sh --background ...)` never sees EOF
     # — the substitution hangs forever, since the server (and thus the tee
     # process backing the substitution) never exits on its own.
-    nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > "$RUNTIME_LOG" 2>&1 &
+    nohup java $JAVA_OPTS -cp "obp-api/target/obp-api.jar:obp-api/target/lib/*" bootstrap.http4s.Http4sServer > "$RUNTIME_LOG" 2>&1 &
     SERVER_PID=$!
     # Report the port the server will actually bind (dev.port in props), so callers
     # that capture this script's output (e.g. smoke_test.sh) can parse it out.
@@ -199,5 +203,5 @@ else
     echo "Press Ctrl+C to stop the server"
     echo "Runtime log also written to: $RUNTIME_LOG"
     echo ""
-    java $JAVA_OPTS -jar obp-api/target/obp-api.jar 2>&1 | tee "$RUNTIME_LOG"
+    java $JAVA_OPTS -cp "obp-api/target/obp-api.jar:obp-api/target/lib/*" bootstrap.http4s.Http4sServer 2>&1 | tee "$RUNTIME_LOG"
 fi

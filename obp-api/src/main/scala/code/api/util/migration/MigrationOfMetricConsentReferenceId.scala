@@ -30,7 +30,6 @@ package code.api.util.migration
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.metrics.{MappedMetric, MetricArchive}
-import net.liftweb.mapper.Schemifier
 
 /**
  * Migration: add `consent_reference_id VARCHAR(36)` to both the live `Metric` table and
@@ -47,7 +46,7 @@ import net.liftweb.mapper.Schemifier
 object MigrationOfMetricConsentReferenceId {
 
   def migrate(name: String): Boolean = {
-    DbFunction.tableExists(MappedMetric) match {
+    DbFunction.tableExistsByName("metric") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -67,7 +66,7 @@ object MigrationOfMetricConsentReferenceId {
           } else {
             "CREATE TABLE backup_2026_05_metric AS SELECT * FROM metric;"
           }
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => backupMetric)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => backupMetric)).append("\n")
 
           // 2. Add the new column to the live metric table.
           val addColumnMetric = if (isMssql) {
@@ -76,7 +75,7 @@ object MigrationOfMetricConsentReferenceId {
           } else {
             "ALTER TABLE metric ADD COLUMN IF NOT EXISTS consent_reference_id VARCHAR(36);"
           }
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => addColumnMetric)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => addColumnMetric)).append("\n")
 
           // 3. Add the new column to the archive table.
           val addColumnArchive = if (isMssql) {
@@ -85,7 +84,7 @@ object MigrationOfMetricConsentReferenceId {
           } else {
             "ALTER TABLE metricarchive ADD COLUMN IF NOT EXISTS consent_reference_id VARCHAR(36);"
           }
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => addColumnArchive)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => addColumnArchive)).append("\n")
 
           // 4. Index for search-by-consent on both tables.
           val indexMetric = if (isMssql) {
@@ -94,7 +93,7 @@ object MigrationOfMetricConsentReferenceId {
           } else {
             "CREATE INDEX IF NOT EXISTS idx_metric_consent_reference_id ON metric(consent_reference_id);"
           }
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => indexMetric)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => indexMetric)).append("\n")
 
           val indexArchive = if (isMssql) {
             """IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_metricarchive_consent_reference_id' AND object_id = OBJECT_ID('metricarchive'))
@@ -102,7 +101,7 @@ object MigrationOfMetricConsentReferenceId {
           } else {
             "CREATE INDEX IF NOT EXISTS idx_metricarchive_consent_reference_id ON metricarchive(consent_reference_id);"
           }
-          sqlLog.append(DbFunction.maybeWrite(true, Schemifier.infoF _)(() => indexArchive)).append("\n")
+          sqlLog.append(DbFunction.maybeWrite(true)(() => indexArchive)).append("\n")
 
           isSuccessful = true
         } catch {
@@ -124,7 +123,7 @@ object MigrationOfMetricConsentReferenceId {
         val commitId: String = APIUtil.gitCommit
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
-        val comment: String = s"""${MappedMetric._dbTableNameLC} table does not exist""".stripMargin
+        val comment: String = s"""metric table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

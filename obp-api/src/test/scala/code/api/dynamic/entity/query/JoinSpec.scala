@@ -27,9 +27,11 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.dynamic.entity.query
 
+import org.json4s.jvalue2monadic
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
 import org.json4s.JsonAST._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Pure unit tests for joins: the planner's checks, the direction it infers, and the merge of records
@@ -44,7 +46,7 @@ import org.scalatest.{FlatSpec, Matchers}
  *    loose_activity_id : reference:activity not indexed);
  *  - `employee` (name, manager_id : reference:employee indexed), a self-reference.
  */
-class JoinSpec extends FlatSpec with Matchers {
+class JoinSpec extends AnyFlatSpec with Matchers {
 
   import DynamicEntityFieldType._
 

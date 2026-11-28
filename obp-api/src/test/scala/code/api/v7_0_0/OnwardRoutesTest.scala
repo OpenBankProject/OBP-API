@@ -36,6 +36,7 @@ import code.model.dataAccess.MappedBank
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import org.json4s.jvalue2extractable
 import org.scalatest.Tag
 
 // Onward routes: a member states which banks on other OBP instances can be reached through it, and anyone can read them.
@@ -157,8 +158,9 @@ class OnwardRoutesTest extends V600ServerSetup {
       grantUpdate(testBankId1.value)
       val memberBic = uniqueBic()
       val memberBankId = "onward." + APIUtil.generateUUID().take(8)
-      MappedBank.create.permalink(memberBankId).fullBankName("Member").shortBankName("Member")
-        .mBankRoutingScheme("BIC").mBankRoutingAddress(memberBic).saveMe()
+      MappedBank.insert(bankId = memberBankId, fullBankName = "Member", shortBankName = "Member",
+        logoURL = "", websiteURL = "", swiftBIC = "", nationalIdentifier = "",
+        bankRoutingScheme = "BIC", bankRoutingAddress = memberBic, createdByUserId = "")
       val response = makePutRequest(routesUrl(testBankId1.value).PUT <@ user1, oneRoute(memberBic))
       response.code should equal(400)
       message(response) should startWith(OpenCorridorOnwardRouteNamesMember)

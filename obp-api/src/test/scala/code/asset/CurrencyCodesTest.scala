@@ -1,7 +1,9 @@
 package code.asset
 
 import org.json4s.JsonDSL._
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * This class tests CurrencyCodes, which holds OBP's rule that currency codes are case-insensitive:
@@ -11,7 +13,7 @@ import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
  *
  * Everything here is a pure function call: no server, no database.
  */
-class CurrencyCodesTest extends FeatureSpec with Matchers with GivenWhenThen {
+class CurrencyCodesTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   feature("Comparing and normalising codes") {
 

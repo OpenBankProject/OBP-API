@@ -151,18 +151,18 @@ object JSONFactory700Organisations {
 
   def createMyConsumerJson(consumer: Consumer): MyConsumerJsonV700 =
     MyConsumerJsonV700(
-      consumer_id = consumer.consumerId.get,
-      app_name = consumer.name.get,
-      app_type = consumer.appType.get,
-      description = Option(consumer.description.get).getOrElse(""),
-      developer_email = Option(consumer.developerEmail.get).getOrElse(""),
-      company = Option(consumer.company.get).getOrElse(""),
-      redirect_url = Option(consumer.redirectURL.get).getOrElse(""),
-      logo_url = Option(consumer.logoUrl.get).filter(_.nonEmpty),
-      enabled = consumer.isActive.get,
-      created_by_user_id = Option(consumer.createdByUserId.get).getOrElse(""),
+      consumer_id = consumer.consumerId,
+      app_name = consumer.name,
+      app_type = consumer.appType,
+      description = Option(consumer.description).getOrElse(""),
+      developer_email = Option(consumer.developerEmail).getOrElse(""),
+      company = Option(consumer.company).getOrElse(""),
+      redirect_url = Option(consumer.redirectURL).getOrElse(""),
+      logo_url = Option(consumer.logoUrl).filter(_.nonEmpty),
+      enabled = consumer.isActive,
+      created_by_user_id = Option(consumer.createdByUserId).getOrElse(""),
       organisation_id = ConsumerOwnership.organisationIdOf(consumer),
-      created = consumer.createdAt.get
+      created = consumer.createdAt
     )
 
   private val exampleDate = APIUtil.DateWithDayExampleObject

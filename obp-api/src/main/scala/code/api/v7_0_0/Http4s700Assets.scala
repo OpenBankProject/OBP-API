@@ -205,7 +205,7 @@ object Http4s700Assets {
   )
 
   /** Treats a missing, empty or blank optional value as not set. */
-  private def given(value: Option[String]): Option[String] = value.map(_.trim).filter(_.nonEmpty)
+  private def nonBlank(value: Option[String]): Option[String] = value.map(_.trim).filter(_.nonEmpty)
 
   /** Turns the registry's refusal into a 400 that says what was wrong with the asset. */
   private def createdOrFail(created: Box[AssetTrait], cc: CallContext): AssetTrait = created match {
@@ -221,10 +221,10 @@ object Http4s700Assets {
         val atSystemBank = bankIdInUrl == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
         val assetCode = Assets.normaliseCode(Option(body.asset_code).getOrElse(""))
         val assetType = Option(body.asset_type).map(_.trim.toUpperCase).getOrElse("")
-        val issuerProductCode = given(body.issuer_product_code)
-        val chainScheme = given(body.chain_scheme).map(_.toUpperCase)
-        val chainAssetId = given(body.chain_asset_id)
-        val dti = given(body.dti).map(_.toUpperCase)
+        val issuerProductCode = nonBlank(body.issuer_product_code)
+        val chainScheme = nonBlank(body.chain_scheme).map(_.toUpperCase)
+        val chainAssetId = nonBlank(body.chain_asset_id)
+        val dti = nonBlank(body.dti).map(_.toUpperCase)
         lazy val whyInvalid = Assets.whyInvalid(assetCode, assetType, Option(body.name).getOrElse(""), body.decimal_places,
           if (atSystemBank) None else Some(bankIdInUrl), AssetStatuses.ACTIVE, issuerProductCode, chainScheme, chainAssetId, dti)
         for {

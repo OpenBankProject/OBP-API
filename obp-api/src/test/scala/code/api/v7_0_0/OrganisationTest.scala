@@ -86,7 +86,7 @@ class OrganisationTest extends ServerSetupWithTestData {
     redirectURL = None,
     createdByUserId = Some(ownerUserId),
     None, None, None
-  ).map(_.consumerId.get).openOrThrowException("could not create test consumer")
+  ).map(_.consumerId).openOrThrowException("could not create test consumer")
 
   def createOrganisation(name: String, as: Option[(Consumer, Token)]): MyOrganisationJsonV700 = {
     val response = makePostRequest((v7 / "my" / "organisations").POST <@ (as),

@@ -31,24 +31,20 @@ import code.accountapplication.MappedAccountApplication
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
-import code.CustomerDependants.MappedCustomerDependant
-import code.customer.{MappedCustomer, MappedCustomerMessage}
-import code.customer.internalMapping.MappedCustomerIdMapping
-import code.customeraccountlinks.CustomerAccountLink
+import code.api.util.DoobieUtil
+import code.customer.MappedCustomer
+import code.customeraccountlinks.DoobieCustomerAccountLinkProvider
 import code.customeraddress.MappedCustomerAddress
-import code.crm.MappedCrmEvent
-import code.customerlinks.CustomerLink
-import code.customerattribute.MappedCustomerAttribute
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
-import code.taxresidence.MappedTaxResidence
-import code.usercustomerlinks.MappedUserCustomerLink
 import com.openbankproject.commons.model.CustomerId
 import deletion.DeletionUtil.databaseAtomicTask
+import doobie.implicits._
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper.By
+import net.liftweb.db.DB
+import net.liftweb.util.DefaultConnectionIdentifier
 
 object DeleteCustomerCascade {
 
@@ -87,91 +83,79 @@ object DeleteCustomerCascade {
     }
   }
   private def deleteCustomerMessages(customerId: CustomerId): Boolean = {
-    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall(c =>
-      MappedCustomerMessage.bulkDelete_!!(
-        By(MappedCustomerMessage.customer, c.id.get)
-      ))
+    MappedCustomer.findByCustomerId(customerId.value).forall { c =>
+      DoobieUtil.runUpdate(sql"DELETE FROM mappedcustomermessage WHERE customer = ${c.customerPrimaryKey}".update.run)
+      true
+    }
   }
   private def deleteCustomerDependants(customerId: CustomerId): Boolean = {
-    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall(c =>
-      MappedCustomerDependant.bulkDelete_!!(
-        By(MappedCustomerDependant.mCustomer, c.id.get)
-      ))
+    MappedCustomer.findByCustomerId(customerId.value).forall { c =>
+      DoobieUtil.runUpdate(sql"DELETE FROM mappedcustomerdependant WHERE mcustomer = ${c.customerPrimaryKey}".update.run)
+      true
+    }
   }
   /** A link between two customers is held once, so the deleted customer can be on either side of it. */
   private def deleteCustomerLinks(customerId: CustomerId): Boolean = {
-    CustomerLink.bulkDelete_!!(By(CustomerLink.CustomerId, customerId.value)) &&
-      CustomerLink.bulkDelete_!!(By(CustomerLink.OtherCustomerId, customerId.value))
+    DoobieUtil.runUpdate(sql"DELETE FROM customerlink WHERE customerid = ${customerId.value}".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM customerlink WHERE othercustomerid = ${customerId.value}".update.run)
+    true
   }
   private def deleteCrmEvents(customerId: CustomerId): Boolean = {
-    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall { c =>
-      val number = c.mNumber.get
-      number.isEmpty || MappedCrmEvent.bulkDelete_!!(
-        By(MappedCrmEvent.mBankId, c.mBank.get),
-        By(MappedCrmEvent.mCustomerNumber, number)
-      )
+    MappedCustomer.findByCustomerId(customerId.value).forall { c =>
+      val number = Option(c.number).getOrElse("")
+      number.isEmpty || {
+        DoobieUtil.runUpdate(
+          sql"DELETE FROM mappedcrmevent WHERE mbankid = ${c.bankId} AND mcustomernumber = $number".update.run)
+        true
+      }
     }
   }
   private def deleteCustomerAccountLinks(customerId: CustomerId): Boolean = {
-    CustomerAccountLink.bulkDelete_!!(
-      By(CustomerAccountLink.CustomerId, customerId.value)
-    )
+    DoobieCustomerAccountLinkProvider.deleteByCustomerIdSync(customerId.value)
   }
   private def deleteCustomerAttributes(customerId: CustomerId): Boolean = {
-    MappedCustomerAttribute.bulkDelete_!!(By(MappedCustomerAttribute.mCustomerId, customerId.value))
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM mappedcustomerattribute WHERE mcustomerid = ${customerId.value}".update.run)
+    true
   }
 
   private def deleteCustomer(customerId: CustomerId): Boolean = {
-    MappedCustomer.bulkDelete_!!(
-      By(MappedCustomer.mCustomerId, customerId.value)
-    )
+    MappedCustomer.deleteByCustomerId(customerId.value)
   }
   private def deleteCustomerUserCustomerLinks(customerId: CustomerId): Boolean = {
-    MappedUserCustomerLink.bulkDelete_!!(
-      By(MappedUserCustomerLink.mCustomerId, customerId.value)
-    )
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedusercustomerlink WHERE mcustomerid = ${customerId.value}".update.run)
+    true
   }
   private def deleteTaxResidence(customerId: CustomerId): Boolean = {
-    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall(c =>
-      MappedTaxResidence.bulkDelete_!!(
-        By(MappedTaxResidence.mCustomerId, c.id.get)
-      ))
+    MappedCustomer.findByCustomerId(customerId.value).forall { c =>
+      DoobieUtil.runUpdate(sql"DELETE FROM mappedtaxresidence WHERE mcustomerid = ${c.customerPrimaryKey}".update.run)
+      true
+    }
   }
   private def deleteKycStatus(customerId: CustomerId): Boolean = {
-    MappedKycStatus.bulkDelete_!!(
-      By(MappedKycStatus.mCustomerId, customerId.value)
-    )
+    MappedKycStatus.deleteByCustomerId(customerId.value)
   }
   private def deleteKycMedia(customerId: CustomerId): Boolean = {
-    MappedKycMedia.bulkDelete_!!(
-      By(MappedKycMedia.mCustomerId, customerId.value)
-    )
+    MappedKycMedia.deleteByCustomerId(customerId.value)
   }
   private def deleteKycCheck(customerId: CustomerId): Boolean = {
-    MappedKycCheck.bulkDelete_!!(
-      By(MappedKycCheck.mCustomerId, customerId.value)
-    )
+    MappedKycCheck.deleteByCustomerId(customerId.value)
   }
   private def deleteKycDocument(customerId: CustomerId): Boolean = {
-    MappedKycDocument.bulkDelete_!!(
-      By(MappedKycDocument.mCustomerId, customerId.value)
-    )
+    MappedKycDocument.deleteByCustomerId(customerId.value)
   }
   private def deleteCustomerAddress(customerId: CustomerId): Boolean = {
-    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall(c =>
-      MappedCustomerAddress.bulkDelete_!!(
-      By(MappedCustomerAddress.mCustomerId, c.id.get)
-    ))
+    MappedCustomer.findByCustomerId(customerId.value).forall(c =>
+      MappedCustomerAddress.deleteByCustomerKey(c.customerPrimaryKey)
+    )
   }
   private def deleteAccountApplication(customerId: CustomerId): Boolean = {
-    MappedAccountApplication.bulkDelete_!!(
-      By(MappedAccountApplication.mCustomerId, customerId.value)
-    )
+    MappedAccountApplication.deleteByCustomerId(customerId.value)
   }
   private def deleteCustomerIdMapping(customerId: CustomerId): Boolean = {
-    MappedCustomerIdMapping.bulkDelete_!!(
-      By(MappedCustomerIdMapping.mCustomerId, customerId.value)
-    )
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM mappedcustomeridmapping WHERE mcustomerid = ${customerId.value}".update.run)
+    true
   }
 
 }

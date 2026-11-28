@@ -30,7 +30,6 @@ import code.entitlement.MappedEntitlement
 import code.model.dataAccess.MappedBankAccount
 import code.setup.{APIResponse, DefaultUsers, OBPReq, ServerSetupWithTestData}
 import com.openbankproject.commons.model.{AccountId, BankId}
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 import java.util.concurrent.{CyclicBarrier, Executors, TimeUnit}
@@ -123,15 +122,11 @@ trait ConcurrentRaceSetup extends ServerSetupWithTestData with DefaultUsers {
   /** Balance persisted on the account row, read straight from the DB (no cache, no HTTP). */
   def dbAccountBalance(bankId: BankId, accountId: AccountId): Long =
     MappedBankAccount
-      .find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, accountId.value))
-      .map(_.accountBalance.get)
+      .find(bankId.value, accountId.value)
+      .map(_.accountBalance)
       .getOrElse(fail(s"account row not found: ${bankId.value}/${accountId.value}"))
 
   /** Number of entitlement rows for one (bank,user,role) triple, straight from the DB. */
   def dbEntitlementCount(bankId: String, userId: String, roleName: String): Long =
-    MappedEntitlement.count(
-      By(MappedEntitlement.mBankId, bankId),
-      By(MappedEntitlement.mUserId, userId),
-      By(MappedEntitlement.mRoleName, roleName)
-    )
+    MappedEntitlement.count(bankId, userId, roleName)
 }

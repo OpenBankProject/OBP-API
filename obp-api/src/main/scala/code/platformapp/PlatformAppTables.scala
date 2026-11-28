@@ -29,37 +29,42 @@ package code.platformapp
 
 import java.util.Date
 
-import net.liftweb.common.{Box, Full}
-import net.liftweb.db.DB
-import net.liftweb.mapper._
-import net.liftweb.util.DefaultConnectionIdentifier
+import code.api.util.DoobieUtil
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.util.Helpers.tryo
 
 object PlatformAppDbProvider extends PlatformAppProvider {
 
   override def createPlatformApp(consumerId: String, label: String, markedByUserId: String): Box[PlatformAppTrait] =
     tryo {
-      PlatformApp.create
-        .PlatformAppId(java.util.UUID.randomUUID().toString)
-        .ConsumerId(consumerId)
-        .Label(label)
-        .MarkedByUserId(markedByUserId)
-        .saveMe()
+      val now = new Date()
+      PlatformApp.insert(PlatformApp(
+        platformAppId = java.util.UUID.randomUUID().toString,
+        consumerId = consumerId,
+        label = label,
+        markedByUserId = markedByUserId,
+        createdAt = now,
+        updatedAt = now,
+        declaredAtRaw = null,
+        declaredVersionRaw = null))
     }
 
   override def getPlatformApp(consumerId: String): Box[PlatformAppTrait] =
-    PlatformApp.find(By(PlatformApp.ConsumerId, consumerId))
+    PlatformApp.findByConsumerId(consumerId)
 
   override def getPlatformApps(): Box[List[PlatformAppTrait]] =
-    tryo { PlatformApp.findAll(OrderBy(PlatformApp.Label, Ascending)) }
+    tryo { PlatformApp.findAllOrderedByLabel() }
 
   override def deletePlatformApp(consumerId: String): Box[Boolean] =
-    PlatformApp.find(By(PlatformApp.ConsumerId, consumerId)).flatMap { app =>
+    PlatformApp.findByConsumerId(consumerId).flatMap { app =>
       tryo {
-        DB.use(DefaultConnectionIdentifier) { _ =>
-          PlatformAppRequiredScope.bulkDelete_!!(By(PlatformAppRequiredScope.ConsumerId, consumerId))
-          app.delete_!
-        }
+        // One transaction: the declaration goes with the mark.
+        DoobieUtil.runUpdate(
+          PlatformAppRequiredScope.deleteByConsumerIdIO(consumerId)
+            .flatMap(_ => PlatformApp.deleteIO(app.platformAppId))) > 0
       }
     }
 
@@ -68,106 +73,131 @@ object PlatformAppDbProvider extends PlatformAppProvider {
     version: Option[String],
     scopes: List[PlatformAppRequiredScopeInput]
   ): Box[PlatformAppTrait] =
-    PlatformApp.find(By(PlatformApp.ConsumerId, consumerId)).flatMap { app =>
+    PlatformApp.findByConsumerId(consumerId).flatMap { app =>
       tryo {
         // One transaction: a reader never sees the old declaration half replaced.
-        DB.use(DefaultConnectionIdentifier) { _ =>
-          PlatformAppRequiredScope.bulkDelete_!!(By(PlatformAppRequiredScope.ConsumerId, consumerId))
-          scopes.foreach { s =>
-            PlatformAppRequiredScope.create
-              .ConsumerId(consumerId)
-              .RoleName(s.roleName)
-              .BankId(s.bankId)
-              .NeededFor(s.neededFor)
-              .IsOptional(s.isOptional)
-              .saveMe()
-          }
-          app.DeclaredAt(new Date()).DeclaredVersion(version.getOrElse("")).LastUpdate(new Date()).saveMe()
+        val now = new Date()
+        val declared = app.copy(declaredAtRaw = now, declaredVersionRaw = version.getOrElse(""), updatedAt = now)
+        val replaceScopes = scopes.foldLeft(PlatformAppRequiredScope.deleteByConsumerIdIO(consumerId)) { (io, s) =>
+          io.flatMap(_ => PlatformAppRequiredScope.insertIO(consumerId, s))
         }
+        DoobieUtil.runUpdate(replaceScopes.flatMap(_ => PlatformApp.updateDeclarationIO(declared)))
+        declared
       }
     }
 
   override def getRequiredScopes(consumerId: String): Box[List[PlatformAppRequiredScopeTrait]] =
     tryo {
-      PlatformAppRequiredScope.findAll(
-        By(PlatformAppRequiredScope.ConsumerId, consumerId),
-        OrderBy(PlatformAppRequiredScope.id, Ascending))
+      PlatformAppRequiredScope.findByConsumerId(consumerId)
     }
 }
 
-class PlatformApp extends PlatformAppTrait with LongKeyedMapper[PlatformApp] with IdPK {
-  def getSingleton = PlatformApp
-
-  object PlatformAppId extends MappedString(this, 36) {
-    override def dbColumnName = "platform_app_id"
-  }
-  object ConsumerId extends MappedString(this, 250) {
-    override def dbColumnName = "consumer_id"
-  }
-  object Label extends MappedString(this, 100) {
-    override def dbColumnName = "label"
-  }
-  object MarkedByUserId extends MappedString(this, 255) {
-    override def dbColumnName = "marked_by_user_id"
-  }
-  object CreationDate extends MappedDateTime(this) {
-    override def dbColumnName = "created_at"
-    override def defaultValue = new Date()
-  }
-  object LastUpdate extends MappedDateTime(this) {
-    override def dbColumnName = "updated_at"
-    override def defaultValue = new Date()
-  }
-  object DeclaredAt extends MappedDateTime(this) {
-    override def dbColumnName = "declared_at"
-  }
-  object DeclaredVersion extends MappedString(this, 100) {
-    override def dbColumnName = "declared_version"
-  }
-
-  override def consumerId: String = ConsumerId.get
-  override def label: String = Label.get
-  override def markedByUserId: String = MarkedByUserId.get
-  override def markedAt: Date = CreationDate.get
-  override def declaredAt: Option[Date] = Option(DeclaredAt.get)
-  override def declaredVersion: Option[String] = Option(DeclaredVersion.get).filter(_.nonEmpty)
+/**
+ * A Consumer marked as a platform app. Upstream declares this as a Lift Mapper entity; here it is a
+ * Doobie store over the platform_app table the changelog creates (db.changelog-develop-merge-3.yaml),
+ * unique on consumer_id. created_at is when it was marked.
+ */
+case class PlatformApp(
+  platformAppId: String,
+  consumerId: String,
+  label: String,
+  markedByUserId: String,
+  createdAt: Date,
+  updatedAt: Date,
+  private[platformapp] val declaredAtRaw: Date,
+  private[platformapp] val declaredVersionRaw: String
+) extends PlatformAppTrait {
+  override def markedAt: Date = createdAt
+  override def declaredAt: Option[Date] = Option(declaredAtRaw)
+  override def declaredVersion: Option[String] = Option(declaredVersionRaw).filter(_.nonEmpty)
 }
 
-object PlatformApp extends PlatformApp with LongKeyedMetaMapper[PlatformApp] {
-  override def dbTableName = "platform_app"
-  override def dbIndexes = UniqueIndex(ConsumerId) :: super.dbIndexes
+object PlatformApp {
+
+  private val selectColumns =
+    fr"""SELECT platform_app_id, consumer_id, label, marked_by_user_id, created_at, updated_at, declared_at,
+                declared_version
+         FROM platform_app"""
+
+  private type Row = (Option[String], Option[String], Option[String], Option[String],
+    Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[java.sql.Timestamp], Option[String])
+
+  private def readDate(t: Option[java.sql.Timestamp]): Date = t.map(ts => new Date(ts.getTime)).orNull
+
+  private def ts(d: Date): Option[java.sql.Timestamp] = Option(d).map(x => new java.sql.Timestamp(x.getTime))
+
+  private def fromRow(r: Row): PlatformApp =
+    PlatformApp(r._1.orNull, r._2.orNull, r._3.orNull, r._4.orNull, readDate(r._5), readDate(r._6),
+      readDate(r._7), r._8.orNull)
+
+  private def query(condition: Fragment): List[PlatformApp] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  def findByConsumerId(consumerId: String): Box[PlatformApp] =
+    query(fr"WHERE consumer_id = ${Option(consumerId)} ORDER BY id ASC").headOption match {
+      case Some(app) => Full(app)
+      case None => Empty
+    }
+
+  def findAllOrderedByLabel(): List[PlatformApp] = query(fr"ORDER BY label ASC, id ASC")
+
+  def insert(app: PlatformApp): PlatformApp = {
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO platform_app (platform_app_id, consumer_id, label, marked_by_user_id, created_at, updated_at,
+              declared_at, declared_version)
+            VALUES (${Option(app.platformAppId)}, ${Option(app.consumerId)}, ${Option(app.label)},
+              ${Option(app.markedByUserId)}, ${ts(app.createdAt)}, ${ts(app.updatedAt)}, ${ts(app.declaredAtRaw)},
+              ${Option(app.declaredVersionRaw)})""".update.run)
+    app
+  }
+
+  private[platformapp] def updateDeclarationIO(app: PlatformApp): ConnectionIO[Int] =
+    sql"""UPDATE platform_app SET declared_at = ${ts(app.declaredAtRaw)},
+            declared_version = ${Option(app.declaredVersionRaw)}, updated_at = ${ts(app.updatedAt)}
+          WHERE platform_app_id = ${Option(app.platformAppId)}""".update.run
+
+  private[platformapp] def deleteIO(platformAppId: String): ConnectionIO[Int] =
+    sql"DELETE FROM platform_app WHERE platform_app_id = ${Option(platformAppId)}".update.run
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM platform_app".update.run)
+    ()
+  }
 }
 
-class PlatformAppRequiredScope extends PlatformAppRequiredScopeTrait
-  with LongKeyedMapper[PlatformAppRequiredScope] with IdPK {
-  def getSingleton = PlatformAppRequiredScope
+/**
+ * A Scope a platform app declared it needs. Upstream declares this as a Lift Mapper entity; here it is
+ * a row of the platform_app_required_scope table the changelog creates, with the store below.
+ */
+case class PlatformAppRequiredScope(
+  consumerId: String,
+  roleName: String,
+  bankId: String,
+  neededFor: String,
+  isOptional: Boolean
+) extends PlatformAppRequiredScopeTrait
 
-  object ConsumerId extends MappedString(this, 250) {
-    override def dbColumnName = "consumer_id"
-  }
-  object RoleName extends MappedString(this, 255) {
-    override def dbColumnName = "role_name"
-  }
-  object BankId extends MappedString(this, 255) {
-    override def dbColumnName = "bank_id"
-  }
-  object NeededFor extends MappedString(this, 1000) {
-    override def dbColumnName = "needed_for"
-  }
-  object IsOptional extends MappedBoolean(this) {
-    override def dbColumnName = "is_optional"
-    override def defaultValue = false
-  }
+object PlatformAppRequiredScope {
 
-  override def consumerId: String = ConsumerId.get
-  override def roleName: String = RoleName.get
-  override def bankId: String = BankId.get
-  override def neededFor: String = NeededFor.get
-  override def isOptional: Boolean = IsOptional.get
-}
+  private type Row = (Option[String], Option[String], Option[String], Option[String], Option[Boolean])
 
-object PlatformAppRequiredScope extends PlatformAppRequiredScope
-  with LongKeyedMetaMapper[PlatformAppRequiredScope] {
-  override def dbTableName = "platform_app_required_scope"
-  override def dbIndexes = Index(ConsumerId) :: super.dbIndexes
+  def findByConsumerId(consumerId: String): List[PlatformAppRequiredScope] =
+    DoobieUtil.runQuery(
+      sql"""SELECT consumer_id, role_name, bank_id, needed_for, is_optional FROM platform_app_required_scope
+            WHERE consumer_id = ${Option(consumerId)} ORDER BY id ASC""".query[Row].to[List]).map {
+      case (c, r, b, n, o) => PlatformAppRequiredScope(c.orNull, r.orNull, b.orNull, n.orNull, o.getOrElse(false))
+    }
+
+  private[platformapp] def insertIO(consumerId: String, s: PlatformAppRequiredScopeInput): ConnectionIO[Int] =
+    sql"""INSERT INTO platform_app_required_scope (consumer_id, role_name, bank_id, needed_for, is_optional)
+          VALUES (${Option(consumerId)}, ${Option(s.roleName)}, ${Option(s.bankId)}, ${Option(s.neededFor)},
+            ${s.isOptional})""".update.run
+
+  private[platformapp] def deleteByConsumerIdIO(consumerId: String): ConnectionIO[Int] =
+    sql"DELETE FROM platform_app_required_scope WHERE consumer_id = ${Option(consumerId)}".update.run
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM platform_app_required_scope".update.run)
+    ()
+  }
 }

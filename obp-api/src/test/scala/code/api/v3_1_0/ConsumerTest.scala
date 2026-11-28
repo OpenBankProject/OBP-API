@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_1_0
 
 import com.openbankproject.commons.model.ErrorMessage
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
 import com.openbankproject.commons.util.ApiVersion
@@ -75,9 +76,8 @@ class ConsumerTest extends V310ServerSetup {
       // response310.body.extract[ErrorMessage].message should equal (errorMessage)
     // }
   // }
-  feature("Get Consumers for current user - v3.1.0")
-  {
-    scenario("We will Get Consumers for current user - NOT logged in", ApiEndpoint2, VersionOfApi) {
+  Feature("Get Consumers for current user - v3.1.0") {
+    Scenario("We will Get Consumers for current user - NOT logged in", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "users" / "current" / "consumers").GET
       val response310 = makeGetRequest(request310)
@@ -86,7 +86,7 @@ class ConsumerTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will Get Consumers for current user", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will Get Consumers for current user", ApiEndpoint2, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "users" / "current" / "consumers").GET <@(user1)
       val response310 = makeGetRequest(request310)

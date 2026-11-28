@@ -57,8 +57,8 @@ class DirectDebitTest extends V400ServerSetup {
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
   lazy val view = randomOwnerViewPermalinkViaEndpoint(bankId, bankAccount)
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "direct-debit").POST
       val response400 = makePostRequest(request400, write(postDirectDebitJsonV400))
@@ -67,8 +67,8 @@ class DirectDebitTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / view / "direct-debit").POST <@(user1)
       val response400 = makePostRequest(request400, write(postDirectDebitJsonV400))
@@ -79,8 +79,8 @@ class DirectDebitTest extends V400ServerSetup {
   }
   
   
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "banks" / bankId / "accounts" / bankAccount.id / "direct-debit").POST
       val response400 = makePostRequest(request400, write(postDirectDebitJsonV400))
@@ -89,8 +89,8 @@ class DirectDebitTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "banks" / bankId / "accounts" / bankAccount.id / "direct-debit").POST <@(user1)
       val response400 = makePostRequest(request400, write(postDirectDebitJsonV400))

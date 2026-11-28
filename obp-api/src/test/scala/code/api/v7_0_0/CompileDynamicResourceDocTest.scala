@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v7_0_0
 
+import org.json4s.jvalue2monadic
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
@@ -98,6 +99,21 @@ class CompileDynamicResourceDocTest extends ServerSetupWithTestData {
       dynamicCodeOn()
       makePostRequest(compileRequest, body(validScalaBody, None)).code should equal(401)
       makePostRequest(compileRequest <@ (user1), body(validScalaBody, None)).code should equal(403)
+    }
+
+    scenario("an error on the second of two identical lines is reported on the second, and never on a negative line", ApiEndpoint1, VersionOfApi) {
+      dynamicCodeOn(); grantCreateRole()
+      val twice = makePostRequest(compileRequest <@ (user1),
+        body("val a = 1\nprintln(undefinedName)\nval b = 2\nprintln(undefinedName)\nFuture.successful((a, HttpCode.`200`(callContext.callContext)))", None))
+      val unclosed = makePostRequest(compileRequest <@ (user1),
+        body("val a = {\nFuture.successful((a, HttpCode.`200`(callContext.callContext)))", None))
+      withClue(s"twice ${twice.body}, unclosed ${unclosed.body}: ") {
+        def linesOf(r: code.setup.APIResponse) =
+          (r.body \ "errors").asInstanceOf[JArray].arr.map(e => (e \ "line").asInstanceOf[JInt].num.toInt)
+        // The same statement is on lines 2 and 4 of the body, and each one is reported where it is.
+        linesOf(twice).filter(_ > 0).toSet should equal(Set(2, 4))
+        all(linesOf(twice) ++ linesOf(unclosed)) should be >= 0
+      }
     }
 
     scenario("a Scala body compiles when programming_lang is omitted or Scala", ApiEndpoint1, VersionOfApi) {

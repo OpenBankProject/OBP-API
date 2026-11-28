@@ -1,5 +1,6 @@
 package code.api.v7_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetTrafficSources
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
@@ -55,14 +56,14 @@ class TrafficSourcesEndpointTest extends V600ServerSetup {
       traffic.window_minutes should equal(1)
 
       Then("the authenticated request is under the test Consumer")
-      val consumer = traffic.consumers.find(_.consumer_id == testConsumer.consumerId.get)
+      val consumer = traffic.consumers.find(_.consumer_id == testConsumer.consumerId)
       consumer should not be empty
       consumer.get.endpoints.exists(_.endsWith("-getBanks")) shouldBe true
 
       And("every request is under this client's address, the unknown path as unmatched")
       traffic.addresses should not be empty
       traffic.callers_and_endpoints.exists(p => p.caller_kind == "ip" && p.endpoint == "unmatched") shouldBe true
-      traffic.callers_and_endpoints.exists(p => p.caller_kind == "consumer" && p.caller == testConsumer.consumerId.get &&
+      traffic.callers_and_endpoints.exists(p => p.caller_kind == "consumer" && p.caller == testConsumer.consumerId &&
         p.endpoint.endsWith("-getBanks")) shouldBe true
     }
 

@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v4_0_0
 
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 import code.DynamicData.DynamicDataProvider
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
@@ -36,7 +38,6 @@ import code.dynamicentitywebhook.DynamicEntityWebhooks
 import code.entitlement.Entitlement
 import code.messageoutbox.MessageOutbox
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.By
 import org.json4s.JsonAST._
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods.{compact, render}
@@ -186,8 +187,8 @@ class DynamicEndpointBackedByDynamicEntityTest extends V400ServerSetup {
       records.flatMap(_.dynamicDataId) should equal(List(gadgetId))
 
       And("the webhook saw it created and then updated, never deleted")
-      val queued = MessageOutbox.findAll(By(MessageOutbox.OutboxType, MessageOutbox.TYPE_WEBHOOK), By(MessageOutbox.TargetId, webhook.webhookId))
-        .sortBy(_.id.get)
+      val queued = MessageOutbox.findWebhookRows(webhook.webhookId, None, Int.MaxValue, 0)
+        .sortBy(_.id)
       queued.map(_.operationName) should equal(List("dynamic_entity.record.created", "dynamic_entity.record.updated"))
       queued.foreach(_.payloadJson should include(gadgetId))
     }

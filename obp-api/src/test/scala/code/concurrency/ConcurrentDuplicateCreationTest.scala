@@ -36,10 +36,11 @@ import code.metadata.counterparties.{Counterparties, MappedCounterpartyMetadata}
 import code.model.Consumer
 import code.model.dataAccess.ResourceUser
 import code.users.LiftUsers
-import code.usercustomerlinks.{MappedUserCustomerLink, MappedUserCustomerLinkProvider}
+import code.api.util.DoobieUtil
+import code.usercustomerlinks.DoobieUserCustomerLinkProvider
 import com.openbankproject.commons.model.{AccountId, BankIdAccountId}
+import doobie.implicits._
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
 
 import java.util.{Date, UUID}
 import scala.util.Failure
@@ -66,8 +67,8 @@ import scala.util.Failure
  *     than gracefully returning the existing user. Concurrent first-time OAuth logins → one
  *     request gets a 500 instead of the expected login response.
  *
- *  L. UserCustomerLink duplicate — MappedUserCustomerLinkProvider.getOCreateUserCustomerLink
- *     does find-then-create with no surrounding transaction. MappedUserCustomerLink has
+ *  L. UserCustomerLink duplicate — DoobieUserCustomerLinkProvider.getOCreateUserCustomerLink
+ *     does find-then-create with no surrounding transaction. mappedusercustomerlink has
  *     UniqueIndex(mUserId, mCustomerId), so the second concurrent create throws an uncaught
  *     JDBC exception rather than returning the existing link.
  *
@@ -79,9 +80,9 @@ import scala.util.Failure
  */
 class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
 
-  feature("Concurrent check-then-insert must not create duplicate rows") {
+  Feature("Concurrent check-then-insert must not create duplicate rows") {
 
-    scenario("C: concurrent identical entitlement grants must create exactly one row", ConcurrencyRace) {
+    Scenario("C: concurrent identical entitlement grants must create exactly one row", ConcurrencyRace) {
       Given("user1 can grant entitlements at any bank, and a target user without the role")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateEntitlementAtAnyBank.toString)
       val targetUserId = resourceUser2.userId
@@ -104,7 +105,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("D: concurrent getOrCreateAccountHolder for one (user,account) must create one row", ConcurrencyRace) {
+    Scenario("D: concurrent getOrCreateAccountHolder for one (user,account) must create one row", ConcurrencyRace) {
       Given("an account owned by user1, with user3 not yet a holder")
       val bank      = createBank("__conc-holder-bank")
       val bankId    = bank.bankId
@@ -113,9 +114,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       val user  = resourceUser3
       val biaId = BankIdAccountId(bankId, accountId)
 
-      def holderCount: Long = MapperAccountHolders.count(
-        By(MapperAccountHolders.accountBankPermalink, bankId.value),
-        By(MapperAccountHolders.accountPermalink, accountId.value))
+      def holderCount: Long = MapperAccountHolders.count(bankId.value, accountId.value)
 
       val before = holderCount
       val n      = 8
@@ -133,15 +132,12 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("I: concurrent first-time OAuth logins must not throw a constraint violation", ConcurrencyRace) {
+    Scenario("I: concurrent first-time OAuth logins must not throw a constraint violation", ConcurrencyRace) {
       Given("a provider+id pair that has no ResourceUser yet")
       val provider          = "__conc_oauth_provider_i"
       val idGivenByProvider = "__conc_oauth_id_i"
       // Clean up from any prior run.
-      ResourceUser.findAll(
-        By(ResourceUser.provider_, provider),
-        By(ResourceUser.providerId, idGivenByProvider)
-      ).foreach(_.delete_!)
+      ResourceUser.deleteAllByProviderAndProviderId(provider, idGivenByProvider)
       val n = 2
 
       When(s"$n concurrent getOrCreateUserByProviderId calls race for the same (provider, id)")
@@ -157,31 +153,27 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
 
       Then("no call must throw and exactly one ResourceUser row must exist (UniqueIndex present but exception uncaught)")
       val failures  = results.collect { case scala.util.Failure(e) => e.getClass.getSimpleName + ": " + e.getMessage }
-      val userCount = ResourceUser.count(
-        By(ResourceUser.provider_, provider),
-        By(ResourceUser.providerId, idGivenByProvider)
-      )
+      val userCount = ResourceUser.countByProviderAndProviderId(provider, idGivenByProvider)
       withClue(s"failures=$failures userCount=$userCount (expected: no failures, 1 row) — ") {
         failures shouldBe empty
         userCount should equal(1L)
       }
     }
 
-    scenario("L: concurrent getOCreateUserCustomerLink must not throw and must create exactly one link", ConcurrencyRace) {
-      Given("a user-customer pair with no existing link (MappedUserCustomerLink has UniqueIndex(mUserId, mCustomerId))")
+    Scenario("L: concurrent getOCreateUserCustomerLink must not throw and must create exactly one link", ConcurrencyRace) {
+      Given("a user-customer pair with no existing link (mappedusercustomerlink has UniqueIndex(mUserId, mCustomerId))")
       val userId     = resourceUser1.userId
       val customerId = UUID.randomUUID.toString
 
-      def linkCount: Long = MappedUserCustomerLink.count(
-        By(MappedUserCustomerLink.mUserId, userId),
-        By(MappedUserCustomerLink.mCustomerId, customerId)
-      )
+      def linkCount: Long = DoobieUtil.runQuery(
+        sql"SELECT COUNT(*) FROM mappedusercustomerlink WHERE muserid = $userId AND mcustomerid = $customerId"
+          .query[Long].unique)
       val before = linkCount
       val n      = 8
 
       When(s"$n concurrent getOCreateUserCustomerLink calls race for the same (userId, customerId)")
       val results = runConcurrentWithBarrier(n) { _ =>
-        MappedUserCustomerLinkProvider.getOCreateUserCustomerLink(userId, customerId, new Date(), true)
+        DoobieUserCustomerLinkProvider.getOCreateUserCustomerLink(userId, customerId, new Date(), true)
       }
 
       Then("no call may throw and exactly one link row must exist")
@@ -194,7 +186,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("F: concurrent getOrCreateMetadata must stay graceful and leave exactly one row", ConcurrencyRace) {
+    Scenario("F: concurrent getOrCreateMetadata must stay graceful and leave exactly one row", ConcurrencyRace) {
       Given("a counterparty whose metadata row does not exist yet (UniqueIndex(counterpartyId) backs the table)")
       val bank      = createBank("__conc-cp-bank")
       val bankId    = bank.bankId
@@ -203,8 +195,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       val cp             = createCounterparty(bankId.value, accountId.value, java.util.UUID.randomUUID.toString, true, resourceUser1.userId)
       val counterpartyId = cp.counterpartyId
 
-      def metaCount: Long = MappedCounterpartyMetadata.count(
-        By(MappedCounterpartyMetadata.counterpartyId, counterpartyId))
+      def metaCount: Long = MappedCounterpartyMetadata.countByCounterpartyId(counterpartyId)
 
       val before = metaCount
       val n      = 8
@@ -223,12 +214,12 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("W: concurrent getOrCreateConsumer for one (azp,sub) must resolve to the existing row, not a swallowed Failure", ConcurrencyRace) {
+    Scenario("W: concurrent getOrCreateConsumer for one (azp,sub) must resolve to the existing row, not a swallowed Failure", ConcurrencyRace) {
       Given("no consumer with this (azp, sub) yet (Consumer has UniqueIndex(azp, sub))")
       val azp = "__conc_w_azp_" + UUID.randomUUID.toString.take(8)
       val sub = "__conc_w_sub_" + UUID.randomUUID.toString.take(8)
 
-      def consumerCount: Long = Consumer.count(By(Consumer.azp, azp), By(Consumer.sub, sub))
+      def consumerCount: Long = Consumer.countByAzpAndSub(azp, sub)
       val n = 2
 
       When(s"$n threads concurrently getOrCreateConsumer for the same (azp, sub)")

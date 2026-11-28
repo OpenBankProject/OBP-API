@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v2_2_0
 
 import com.openbankproject.commons.model.ErrorMessage
+import org.json4s.{jvalue2extractable, jvalue2monadic}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ErrorMessages.InvalidISOCurrencyCode
@@ -41,6 +42,15 @@ import org.scalatest.Tag
 import code.api.v2_2_0.Http4s220
 
 class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
+
+  /** Whether a rate is stored for exactly this bank and currency pair, in this direction. */
+  private def fxRateExists(bankId: String, fromCurrencyCode: String, toCurrencyCode: String): Boolean = {
+    import doobie.implicits._
+    code.api.util.DoobieUtil.runQuery(
+      sql"""SELECT COUNT(*) FROM mappedfxrate
+            WHERE mbankid = $bankId AND mfromcurrencycode = $fromCurrencyCode AND mtocurrencycode = $toCurrencyCode"""
+        .query[Int].unique) > 0
+  }
 
   /**
     * Test tags
@@ -61,11 +71,11 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
     super.afterAll()
   }
   
-  feature("Assuring that Get Current FxRate works as expected - v2.2.0") {
+  Feature("Assuring that Get Current FxRate works as expected - v2.2.0") {
 
-    scenario("We Get Current FxRate", VersionOfApi, ApiEndpoint1) {
+    Scenario("We Get Current FxRate", VersionOfApi, ApiEndpoint1) {
       val testBank = testBankId1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.toString).getOrElse("")
       Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
       val requestGet = (v2_2Request / "banks" / testBank.value / "fx" / "EUR" / "EUR" ).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
@@ -73,9 +83,9 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
       responseGet.code should equal(200)
     }
     
-    scenario("We Get Current FxRate with wrong ISO from currency code", VersionOfApi, ApiEndpoint1) {
+    Scenario("We Get Current FxRate with wrong ISO from currency code", VersionOfApi, ApiEndpoint1) {
       val testBank = testBankId1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.toString).getOrElse("")
       Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
       val requestGet = (v2_2Request / "banks" / testBank.value / "fx" / "EUR1" / "EUR" ).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
@@ -84,9 +94,9 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should startWith (InvalidISOCurrencyCode)
     }
 
-    scenario("We Get Current FxRate with wrong ISO to currency code", VersionOfApi, ApiEndpoint1) {
+    Scenario("We Get Current FxRate with wrong ISO to currency code", VersionOfApi, ApiEndpoint1) {
       val testBank = testBankId1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.toString).getOrElse("")
       Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
       val requestGet = (v2_2Request / "banks" / testBank.value / "fx" / "EUR" / "EUR1" ).GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
@@ -97,7 +107,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
 
     scenario("Currency codes in any letter case name the same currency", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
       val testBank = testBankId1
-      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
+      val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.toString).getOrElse("")
       Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
       Entitlement.entitlement.vend.addEntitlement(testBank.value, resourceUser1.userId, ApiRole.canCreateFxRate.toString())
 
@@ -132,11 +142,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
       Then("We should get a 201 for the path bank, and no rate at the other bank")
       responsePut.code should equal(201)
       (responsePut.body \ "bank_id").extract[String] should equal(pathBank.value)
-      code.fx.MappedFXRate.find(
-        net.liftweb.mapper.By(code.fx.MappedFXRate.mBankId, otherBank.value),
-        net.liftweb.mapper.By(code.fx.MappedFXRate.mFromCurrencyCode, "GBP"),
-        net.liftweb.mapper.By(code.fx.MappedFXRate.mToCurrencyCode, "JPY")
-      ).isDefined should equal(false)
+      fxRateExists(otherBank.value, "GBP", "JPY") should equal(false)
     }
   }
 }

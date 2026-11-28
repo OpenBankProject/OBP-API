@@ -3,7 +3,9 @@ package bootstrap.http4s
 import ch.qos.logback.classic.{Level, Logger, LoggerContext}
 import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.classic.spi.LoggerContextListener
-import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import org.slf4j.Logger.ROOT_LOGGER_NAME
 
 /**
@@ -21,7 +23,7 @@ import org.slf4j.Logger.ROOT_LOGGER_NAME
  * parser Logback uses internally), with the system property set immediately beforehand -- this is
  * the standard way to unit-test a logback.xml's own logic rather than the ambient environment.
  */
-class LogbackDefaultLevelTest extends FlatSpec with Matchers with BeforeAndAfterEach {
+class LogbackDefaultLevelTest extends AnyFlatSpec with Matchers with BeforeAndAfterEach {
 
   private val propertyName = "LOG_LEVEL"
 

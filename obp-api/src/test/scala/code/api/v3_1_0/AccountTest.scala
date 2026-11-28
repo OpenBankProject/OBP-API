@@ -43,7 +43,6 @@ import code.api.v3_0_0.Http4s300.Implementations3_0_0
 import code.api.v3_1_0.Http4s310.Implementations3_1_0
 import code.api.v2_0_0.Http4s200.Implementations2_0_0
 import code.entitlement.Entitlement
-import code.model.dataAccess.BankAccountRouting
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
@@ -75,8 +74,8 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
   val userAccountId = UUID.randomUUID.toString
   val user2AccountId = UUID.randomUUID.toString
   
-  feature("test Update Account") {
-    scenario("We will test Update Account Api", ApiEndpoint1, VersionOfApi) {
+  Feature("test Update Account") {
+    Scenario("We will test Update Account Api", ApiEndpoint1, VersionOfApi) {
       Given("The test bank and test account")
       val testAccount = testAccountId1
       val testPutJson = updateAccountRequestJsonV310
@@ -114,7 +113,7 @@ class AccountTest extends V310ServerSetup with DefaultUsers {
       
     }
 
-    scenario("We will test update on account routings", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will test update on account routings", ApiEndpoint1, VersionOfApi) {
       Given("The test bank and test account with a canUpdateAccount entitlement")
       val testAccount0 = testAccountId0
       val testPutJson = updateAccountRequestJsonV310

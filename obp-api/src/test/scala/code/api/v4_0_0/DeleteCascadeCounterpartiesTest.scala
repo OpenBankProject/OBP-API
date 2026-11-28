@@ -32,15 +32,15 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.api.v4_0_0.Http4s400.Implementations4_0_0
-import code.counterpartyattribute.{CounterpartyAttribute, CounterpartyAttributeX}
-import code.counterpartylimit.{CounterpartyLimit, CounterpartyLimitProvider}
+import code.counterpartyattribute.CounterpartyAttributeX
+import code.counterpartylimit.CounterpartyLimitProvider
 import code.entitlement.Entitlement
-import code.metadata.counterparties.{Counterparties, MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
+import code.metadata.counterparties.{Counterparties, MappedCounterparty, MappedCounterpartyMetadata}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.CounterpartyAttributeType
 import com.openbankproject.commons.model.{AccountId, BankId, CounterpartyBespoke, CounterpartyId, CounterpartyTrait}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.{By, ByList}
+import doobie.implicits._
 import net.liftweb.util.Helpers.randomString
 import org.scalatest.Tag
 
@@ -97,26 +97,25 @@ class DeleteCascadeCounterpartiesTest extends V400ServerSetup {
       10.seconds
     ).openOrThrowException(attemptedToOpenAnEmptyBox)
 
-    val storedMetadata = MappedCounterpartyMetadata.find(By(MappedCounterpartyMetadata.counterpartyId, counterparty.counterpartyId))
+    val storedMetadata = MappedCounterpartyMetadata.findByCounterpartyId(counterparty.counterpartyId)
       .openOrThrowException(attemptedToOpenAnEmptyBox)
-    Seeded(bankId, accountId, counterparty, List(storedMetadata.physicalLocation.get, storedMetadata.corporateLocation.get))
+    Seeded(bankId, accountId, counterparty, List(storedMetadata.physicalLocationId, storedMetadata.corporateLocationId).flatten)
   }
 
   /** Rows left in each counterparty table for one seeded counterparty. */
   private def remainingRows(seeded: Seeded): Map[String, Long] = {
     val Seeded(bankId, accountId, counterparty, locationIds) = seeded
     val counterpartyId = counterparty.counterpartyId
-    val primaryKey = counterparty.asInstanceOf[MappedCounterparty].id.get
+    val primaryKey = counterparty.asInstanceOf[MappedCounterparty].counterpartyPrimaryKey
+    def count(query: doobie.ConnectionIO[Long]): Long = code.api.util.DoobieUtil.runQuery(query)
     Map(
-      "counterparty" -> MappedCounterparty.count(By(MappedCounterparty.mCounterPartyId, counterpartyId)),
-      "bespoke" -> MappedCounterpartyBespoke.count(By(MappedCounterpartyBespoke.mCounterparty, primaryKey)),
-      "metadata" -> MappedCounterpartyMetadata.count(
-        By(MappedCounterpartyMetadata.thisBankId, bankId.value),
-        By(MappedCounterpartyMetadata.thisAccountId, accountId.value),
-        By(MappedCounterpartyMetadata.counterpartyId, counterpartyId)),
-      "attribute" -> CounterpartyAttribute.count(By(CounterpartyAttribute.CounterpartyId_, counterpartyId)),
-      "limit" -> CounterpartyLimit.count(By(CounterpartyLimit.CounterpartyId, counterpartyId)),
-      "location" -> MappedCounterpartyWhereTag.count(ByList(MappedCounterpartyWhereTag.id, locationIds))
+      "counterparty" -> count(sql"SELECT COUNT(*) FROM mappedcounterparty WHERE mcounterpartyid = $counterpartyId".query[Long].unique),
+      "bespoke" -> count(sql"SELECT COUNT(*) FROM mappedcounterpartybespoke WHERE mcounterparty = $primaryKey".query[Long].unique),
+      "metadata" -> count(
+        sql"SELECT COUNT(*) FROM mappedcounterpartymetadata WHERE thisbankid = ${bankId.value} AND thisaccountid = ${accountId.value} AND counterpartyid = $counterpartyId".query[Long].unique),
+      "attribute" -> count(sql"SELECT COUNT(*) FROM counterpartyattribute WHERE counterpartyid = $counterpartyId".query[Long].unique),
+      "limit" -> count(sql"SELECT COUNT(*) FROM counterpartylimit WHERE counterpartyid = $counterpartyId".query[Long].unique),
+      "location" -> locationIds.map(id => count(sql"SELECT COUNT(*) FROM mappedcounterpartywheretag WHERE id = $id".query[Long].unique)).sum
     )
   }
 

@@ -28,23 +28,9 @@ package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.apiproduct.ApiProduct
 import code.asset.CurrencyCodes
-import code.bulkpayment.BulkPayment
-import code.counterpartylimit.CounterpartyLimit
-import code.customer.MappedCustomer
-import code.fx.{MappedCurrency, MappedFXRate}
-import code.metadata.counterparties.MappedCounterparty
-import code.model.dataAccess.MappedBankAccount
-import code.opencorridorfees.OpenCorridorFeeAccrual
-import code.productfee.ProductFee
-import code.standingorders.StandingOrder
-import code.transaction.MappedTransaction
-import code.transaction_types.MappedTransactionType
-import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.util.Helper.MdcLoggable
 import net.liftweb.db.DB
-import net.liftweb.mapper.BaseMetaMapper
 import net.liftweb.util.DefaultConnectionIdentifier
 
 import scala.collection.mutable.ListBuffer
@@ -73,28 +59,44 @@ import scala.collection.mutable.ListBuffer
  */
 object MigrationOfCurrencyCodesUpperCase extends MdcLoggable {
 
-  private case class CurrencyColumn(table: BaseMetaMapper, column: String, isPrimaryKey: Boolean = false)
+  // Table and column names as the changelog creates them. Upstream read them off the Lift Mapper
+  // entities, which this branch does not have.
+  private case class CurrencyColumn(table: String, column: String, isPrimaryKey: Boolean = false)
 
   private def currencyColumns: List[CurrencyColumn] = List(
-    CurrencyColumn(MappedCurrency, MappedCurrency.mCurrencyCode.dbColumnName, isPrimaryKey = true),
-    CurrencyColumn(MappedFXRate, MappedFXRate.mFromCurrencyCode.dbColumnName),
-    CurrencyColumn(MappedFXRate, MappedFXRate.mToCurrencyCode.dbColumnName),
-    CurrencyColumn(MappedBankAccount, MappedBankAccount.accountCurrency.dbColumnName),
-    CurrencyColumn(MappedTransaction, MappedTransaction.currency.dbColumnName),
-    CurrencyColumn(MappedTransactionRequest, MappedTransactionRequest.mCharge_Currency.dbColumnName),
-    CurrencyColumn(MappedTransactionRequest, MappedTransactionRequest.mBody_Value_Currency.dbColumnName),
-    CurrencyColumn(MappedTransactionRequestTypeCharge, MappedTransactionRequestTypeCharge.mChargeCurrency.dbColumnName),
-    CurrencyColumn(TransactionRequestReasons, TransactionRequestReasons.Currency.dbColumnName),
-    CurrencyColumn(MappedTransactionType, MappedTransactionType.mCustomerFee_Currency.dbColumnName),
-    CurrencyColumn(StandingOrder, StandingOrder.AmountCurrency.dbColumnName),
-    CurrencyColumn(BulkPayment, BulkPayment.Currency.dbColumnName),
-    CurrencyColumn(MappedCustomer, MappedCustomer.mCreditLimitCurrency.dbColumnName),
-    CurrencyColumn(MappedCounterparty, MappedCounterparty.mCurrency.dbColumnName),
-    CurrencyColumn(CounterpartyLimit, CounterpartyLimit.Currency.dbColumnName),
-    CurrencyColumn(ProductFee, ProductFee.Currency.dbColumnName),
-    CurrencyColumn(ApiProduct, ApiProduct.MonthlySubscriptionCurrency.dbColumnName),
-    CurrencyColumn(OpenCorridorFeeAccrual, OpenCorridorFeeAccrual.Currency.dbColumnName)
+    CurrencyColumn("mappedcurrency", "mcurrencycode", isPrimaryKey = true),
+    CurrencyColumn("mappedfxrate", "mfromcurrencycode"),
+    CurrencyColumn("mappedfxrate", "mtocurrencycode"),
+    CurrencyColumn("mappedbankaccount", "accountcurrency"),
+    CurrencyColumn("mappedtransaction", "currency"),
+    CurrencyColumn("mappedtransactionrequest", "mcharge_currency"),
+    CurrencyColumn("mappedtransactionrequest", "mbody_value_currency"),
+    CurrencyColumn("mappedtransactionrequesttypecharge", "mchargecurrency"),
+    CurrencyColumn("transactionrequestreasons", "currency"),
+    CurrencyColumn("mappedtransactiontype", "mcustomerfee_currency"),
+    CurrencyColumn("standingorder", "amountcurrency"),
+    CurrencyColumn("bulkpayment", "currency"),
+    CurrencyColumn("mappedcustomer", "mcreditlimitcurrency"),
+    CurrencyColumn("mappedcounterparty", "mcurrency"),
+    CurrencyColumn("counterpartylimit", "currency"),
+    CurrencyColumn("productfee", "currency"),
+    CurrencyColumn("apiproduct", "monthlysubscriptioncurrency"),
+    CurrencyColumn("open_corridor_fee_accrual", "currency")
   )
+
+  /** The name the database stores the table under, which differs in letter case between vendors. */
+  private def actualTableName(table: String): Option[String] =
+    DB.use(DefaultConnectionIdentifier) { connection =>
+      val tables = connection.getMetaData.getTables(connection.getCatalog, connection.getSchema, null, Array("TABLE"))
+      try {
+        var found: Option[String] = None
+        while (found.isEmpty && tables.next()) {
+          val name = tables.getString("TABLE_NAME")
+          if (name.equalsIgnoreCase(table)) found = Some(name)
+        }
+        found
+      } finally tables.close()
+    }
 
   /**
    * This returns true when the table has the column. Names are compared ignoring letter case, as
@@ -170,26 +172,32 @@ object MigrationOfCurrencyCodesUpperCase extends MdcLoggable {
     val unchangedColumns = ListBuffer[String]()
 
     currencyColumns.foreach { currencyColumn =>
-      val table = currencyColumn.table.dbTableName.toLowerCase
-      val column = currencyColumn.column.toLowerCase
+      val table = currencyColumn.table
+      val column = currencyColumn.column
       val qualified = s"$table.$column"
-      val actualTableNames = new scala.collection.mutable.HashMap[String, String]()
-      if (!DbFunction.tableExists(currencyColumn.table, actualTableNames)) {
+      val actualTable = actualTableName(table)
+      if (actualTable.isEmpty) {
         missingColumns += s"$qualified (no such table)"
         logger.info(s"upperCaseEverywhere says: $qualified skipped, the table does not exist on this database")
-      } else if (!columnExists(actualTableNames.getOrElse(currencyColumn.table._dbTableNameLC, table), column)) {
+      } else if (!columnExists(actualTable.get, column)) {
         missingColumns += s"$qualified (no such column)"
         logger.info(s"upperCaseEverywhere says: $qualified skipped, the column does not exist on this database")
       } else {
         // SQL Server compares strings with trailing spaces ignored, whatever the collation, so `'EUR '`
         // equals `'EUR'`. The byte length tells them apart. The binary collation makes the case count.
+        // MySQL and MariaDB compare without regard to case and, in their default collations, to trailing spaces;
+        // BINARY compares the bytes, so both count.
         val needsChange = if (code.api.util.DBUtil.isSqlServer) {
           s"($column COLLATE Latin1_General_BIN <> UPPER(TRIM($column)) OR DATALENGTH($column) <> DATALENGTH(TRIM($column)))"
+        } else if (code.api.util.DBUtil.isMySql) {
+          s"BINARY $column <> BINARY UPPER(TRIM($column))"
         } else {
           s"$column <> UPPER(TRIM($column))"
         }
         val twinExists = if (code.api.util.DBUtil.isSqlServer) {
           s"EXISTS (SELECT 1 FROM $table twin WHERE twin.$column COLLATE Latin1_General_BIN = UPPER(TRIM($table.$column)) AND DATALENGTH(twin.$column) = DATALENGTH(TRIM($table.$column)))"
+        } else if (code.api.util.DBUtil.isMySql) {
+          s"EXISTS (SELECT 1 FROM $table twin WHERE BINARY twin.$column = BINARY UPPER(TRIM($table.$column)))"
         } else {
           s"EXISTS (SELECT 1 FROM $table twin WHERE twin.$column = UPPER(TRIM($table.$column)))"
         }

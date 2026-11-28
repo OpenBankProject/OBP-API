@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import code.api.Constant
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNoPermissionAccessView, AuthenticatedUserIsRequired}
@@ -57,8 +58,8 @@ class DoubleEntryTransactionTest extends V400ServerSetup {
   object GetDoubleEntryTransactionEndpoint extends Tag(nameOf(Implementations4_0_0.getDoubleEntryTransaction))
   object GetBalancingTransactionEndpoint extends Tag(nameOf(Implementations4_0_0.getBalancingTransaction))
 
-  feature(s"test $GetDoubleEntryTransactionEndpoint - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", GetDoubleEntryTransactionEndpoint, VersionOfApi) {
+  Feature(s"test $GetDoubleEntryTransactionEndpoint - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", GetDoubleEntryTransactionEndpoint, VersionOfApi) {
       Given("a random transaction")
       lazy val transaction = randomTransactionViaEndpoint(testBankId.value, testAccountId.value, view)
 
@@ -71,8 +72,8 @@ class DoubleEntryTransactionTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $GetDoubleEntryTransactionEndpoint - Authorized access") {
-    scenario("We will call the endpoint with user credentials", GetDoubleEntryTransactionEndpoint, VersionOfApi) {
+  Feature(s"test $GetDoubleEntryTransactionEndpoint - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", GetDoubleEntryTransactionEndpoint, VersionOfApi) {
       Given("a created transaction ")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateHistoricalTransaction.toString)
       val transaction = saveHistoricalTransactionViaEndpoint(testBankId, testAccountId, testBankId2, testAccountId0, BigDecimal(156.96), "a transaction", user1)
@@ -123,8 +124,8 @@ class DoubleEntryTransactionTest extends V400ServerSetup {
   }
 
 
-  feature(s"test $GetBalancingTransactionEndpoint - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", GetBalancingTransactionEndpoint, VersionOfApi) {
+  Feature(s"test $GetBalancingTransactionEndpoint - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", GetBalancingTransactionEndpoint, VersionOfApi) {
       Given("a random transaction")
       lazy val transaction = randomTransactionViaEndpoint(testBankId.value, testAccountId.value, view)
 
@@ -137,8 +138,8 @@ class DoubleEntryTransactionTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $GetBalancingTransactionEndpoint - Authorized access") {
-    scenario("We will call the endpoint with user credentials", GetBalancingTransactionEndpoint, VersionOfApi) {
+  Feature(s"test $GetBalancingTransactionEndpoint - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", GetBalancingTransactionEndpoint, VersionOfApi) {
       Given("a created transaction ")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateHistoricalTransaction.toString)
       val transaction = saveHistoricalTransactionViaEndpoint(testBankId, testAccountId, testBankId2, testAccountId0, BigDecimal(156.96), "a transaction", user1)

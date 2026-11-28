@@ -38,9 +38,9 @@ class FrozenClassTest extends ServerSetup {
   val (persistedVersionToEndpointNames, persistedTypeNameToTypeValFields) = FrozenClassUtil.readPersistedFrozenApiInfo
   val (versionToEndpointNames, typeNameToTypeValFields) = FrozenClassUtil.getFrozenApiInfo
 
-  feature("Frozen version apis not changed") {
+  Feature("Frozen version apis not changed") {
 
-    scenario(s"count of STABLE api versions should not be reduce, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
+    Scenario(s"count of STABLE api versions should not be reduce, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
 
       val persistedStableVersions = persistedVersionToEndpointNames.map(_._1).toSet
       val currentStableVersions = versionToEndpointNames.map(_._1).toSet
@@ -49,7 +49,7 @@ class FrozenClassTest extends ServerSetup {
       increasedVersions should equal(Set.empty[ApiVersion])
     }
 
-    scenario(s"count of STABLE api versions should not be increased, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
+    Scenario(s"count of STABLE api versions should not be increased, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
       val persistedStableVersions = persistedVersionToEndpointNames.map(_._1).toSet
       val currentStableVersions = versionToEndpointNames.map(_._1).toSet
 
@@ -57,7 +57,7 @@ class FrozenClassTest extends ServerSetup {
       reducedVersions should equal(Set.empty[ApiVersion])
     }
 
-    scenario(s"api count of versions with STABLE versionStatus should not be reduce, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
+    Scenario(s"api count of versions with STABLE versionStatus should not be reduce, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
       val reducedApis = for {
         (pVersion, pEndpointNames) <- persistedVersionToEndpointNames
         (version, endpointNames) <- versionToEndpointNames
@@ -70,7 +70,7 @@ class FrozenClassTest extends ServerSetup {
       reducedApis should equal(Nil)
     }
 
-    scenario(s"api count of versions with STABLE versionStatus should not be increased, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
+    Scenario(s"api count of versions with STABLE versionStatus should not be increased, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
       val increasedApis = for {
         (pVersion, pEndpointNames) <- persistedVersionToEndpointNames
         (version, endpointNames) <- versionToEndpointNames
@@ -84,8 +84,8 @@ class FrozenClassTest extends ServerSetup {
     }
   }
 
-  feature("Frozen type structure not be modified") {
-    scenario(s"frozen class structure should not be modified, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
+  Feature("Frozen type structure not be modified") {
+    Scenario(s"frozen class structure should not be modified, if pretty sure need modify it, please run ${FrozenClassUtil.sourceName}", FrozenClassTag) {
           val changedTypes =  for {
             (pTypeName, pFields)  <- persistedTypeNameToTypeValFields.toList
             (typeName, fields) <- typeNameToTypeValFields.toList

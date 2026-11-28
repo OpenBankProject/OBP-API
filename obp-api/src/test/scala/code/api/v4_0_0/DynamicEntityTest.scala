@@ -220,9 +220,9 @@ class DynamicEntityTest extends V400ServerSetup {
   val foobarUpdateObject = parse("""{  "name":"James Brown123",  "number":698761728}""".stripMargin)
   
   
-  feature("CRUD System Level Dynamic Entity endpoints") {
+  Feature("CRUD System Level Dynamic Entity endpoints") {
 
-    scenario("CRUD Dynamic - without user credentials", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario("CRUD Dynamic - without user credentials", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       When(s"We make a  $ApiEndpoint1 request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "system-dynamic-entities").POST
       val response400 = makePostRequest(request400, write(rightEntity))
@@ -262,7 +262,7 @@ class DynamicEntityTest extends V400ServerSetup {
       }
     }
 
-    scenario("CRUD Dynamic - without the proper Role" , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4,  VersionOfApi) {
+    Scenario("CRUD Dynamic - without the proper Role" , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4,  VersionOfApi) {
       When("We make a request v4.0.0 without a Role " + canCreateDynamicEntityDefinition)
       val request400 = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
       val response400 = makePostRequest(request400, write(rightEntity))
@@ -303,7 +303,7 @@ class DynamicEntityTest extends V400ServerSetup {
     }
 
 
-    scenario("Create Dynamic - two users can not create the same entity name", ApiEndpoint1, VersionOfApi) {
+    Scenario("Create Dynamic - two users can not create the same entity name", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, CanCreateDynamicEntityDefinition.toString)
@@ -320,7 +320,7 @@ class DynamicEntityTest extends V400ServerSetup {
       errorMessage contains DynamicEntityNameAlreadyExists should be (true)
     }
     
-    scenario("Create Dynamic - the request json root can only contains two objects: entity and hasPersonalEntity ", ApiEndpoint1, VersionOfApi) {
+    Scenario("Create Dynamic - the request json root can only contains two objects: entity and hasPersonalEntity ", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, CanCreateDynamicEntityDefinition.toString)
 
@@ -333,7 +333,7 @@ class DynamicEntityTest extends V400ServerSetup {
       errorMessage contains "The Json root object should have exactly one entity field" should be (true)
     }
     
-    scenario("Create Dynamic - the request json root can only contains two objects: entity and hasPersonalEntity, test2 ", ApiEndpoint1, VersionOfApi) {
+    Scenario("Create Dynamic - the request json root can only contains two objects: entity and hasPersonalEntity, test2 ", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, CanCreateDynamicEntityDefinition.toString)
 
@@ -346,7 +346,7 @@ class DynamicEntityTest extends V400ServerSetup {
       errorMessage contains "The Json root object should have exactly one entity field" should be (true)
     }
 
-    scenario("We will test the successful cases " , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario("We will test the successful cases " , ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
@@ -459,9 +459,9 @@ class DynamicEntityTest extends V400ServerSetup {
     }
   }
 
-  feature("Test CRUD Bank Level Dynamic Entities endpoints") {
+  Feature("Test CRUD Bank Level Dynamic Entities endpoints") {
 
-    scenario("CRUD Bank Level DynamicEntities - without user credentials", ApiEndpoint8, ApiEndpoint9, ApiEndpoint10, ApiEndpoint11, VersionOfApi) {
+    Scenario("CRUD Bank Level DynamicEntities - without user credentials", ApiEndpoint8, ApiEndpoint9, ApiEndpoint10, ApiEndpoint11, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST
       val response400 = makePostRequest(request400, write(rightEntity))
@@ -503,7 +503,7 @@ class DynamicEntityTest extends V400ServerSetup {
 
     }
 
-    scenario("Create Dynamic - without the proper Roles", ApiEndpoint8, ApiEndpoint9, ApiEndpoint10, ApiEndpoint11,  VersionOfApi) {
+    Scenario("Create Dynamic - without the proper Roles", ApiEndpoint8, ApiEndpoint9, ApiEndpoint10, ApiEndpoint11,  VersionOfApi) {
       val request400 = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST <@(user1)
       val response400 = makePostRequest(request400, write(rightEntity))
       Then("We should get a 403")
@@ -544,7 +544,7 @@ class DynamicEntityTest extends V400ServerSetup {
 
     }
 
-    scenario("Create Dynamic - two users can not the same entity name at same bank", ApiEndpoint9, VersionOfApi) {
+    Scenario("Create Dynamic - two users can not the same entity name at same bank", ApiEndpoint9, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, CanCreateDynamicEntityDefinition.toString)
       val request400User1BankLevel = (v4_0_0_Request / "management" / "banks"/ testBankId1.value / "dynamic-entities").POST <@(user1)
@@ -560,7 +560,7 @@ class DynamicEntityTest extends V400ServerSetup {
       errorMessageBankLevel contains DynamicEntityNameAlreadyExists should be (true)
     }
 
-    scenario("Create Dynamic - one user can create the same entity name at different banks", ApiEndpoint9, VersionOfApi) {
+    Scenario("Create Dynamic - one user can create the same entity name at different banks", ApiEndpoint9, VersionOfApi) {
       When("We make a request v4.0.0")
 
       Then(s"we test the Bank Level $ApiEndpoint9")
@@ -577,7 +577,7 @@ class DynamicEntityTest extends V400ServerSetup {
       response400User2BankLevel.code should equal(201)
     }
 
-    scenario("We will test the successful cases  ", ApiEndpoint8, ApiEndpoint9, ApiEndpoint10, ApiEndpoint11,  VersionOfApi) {
+    Scenario("We will test the successful cases  ", ApiEndpoint8, ApiEndpoint9, ApiEndpoint10, ApiEndpoint11,  VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "banks" /testBankId1.value/ "dynamic-entities").POST <@(user1)
@@ -724,9 +724,9 @@ class DynamicEntityTest extends V400ServerSetup {
     }
   }
 
-  feature("Test CRUD my Dynamic Entities endpoints") {
+  Feature("Test CRUD my Dynamic Entities endpoints") {
 
-    scenario("Test CRUD myDynamic Entities- without user credentials", ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
+    Scenario("Test CRUD myDynamic Entities- without user credentials", ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
       val dynamicEntityId  = "forTestId"
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "my" / "dynamic-entities").GET
@@ -751,7 +751,7 @@ class DynamicEntityTest extends V400ServerSetup {
       response400Delete.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
 
-    scenario("Test the CRUD Success cases ", ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
+    Scenario("Test the CRUD Success cases ", ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       When("we first create system level entity")
@@ -926,8 +926,8 @@ class DynamicEntityTest extends V400ServerSetup {
     }
   }
 
-  feature("Test CRUD Dynamic Entities Mixed System, Bank and my endpoints") {
-    scenario("We will test the successful cases ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, ApiEndpoint8, ApiEndpoint9, VersionOfApi) {
+  Feature("Test CRUD Dynamic Entities Mixed System, Bank and my endpoints") {
+    Scenario("We will test the successful cases ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, ApiEndpoint7, ApiEndpoint8, ApiEndpoint9, VersionOfApi) {
 
       //      First, we create the system level dynamic entity
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
@@ -1127,8 +1127,8 @@ class DynamicEntityTest extends V400ServerSetup {
   }
   }
 
-  feature("Test CRUD Foobar Records and Roles (both Bank and System levels) ") {
-    scenario("We create the system and bank level entities, and check the Foobar roles ", ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
+  Feature("Test CRUD Foobar Records and Roles (both Bank and System levels) ") {
+    Scenario("We create the system and bank level entities, and check the Foobar roles ", ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@(user1)
@@ -1362,7 +1362,7 @@ class DynamicEntityTest extends V400ServerSetup {
 
     }
 
-    scenario("when user1 create fooBar, and delete the foobar entity, user2 create foobar again. user1 should not have the role for it " , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
+    Scenario("when user1 create fooBar, and delete the foobar entity, user2 create foobar again. user1 should not have the role for it " , ApiEndpoint1, ApiEndpoint5, ApiEndpoint6, ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, CanCreateDynamicEntityDefinition.toString)
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanDeleteDynamicEntityDefinition.toString)
@@ -1504,7 +1504,7 @@ class DynamicEntityTest extends V400ServerSetup {
 
     }
 
-    scenario("User1 create System Foobar, user2 create bank Foobar, test the roles..", VersionOfApi) {
+    Scenario("User1 create System Foobar, user2 create bank Foobar, test the roles..", VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, CanCreateDynamicEntityDefinition.toString)
       val foobarObject = parse("""{  "name":"James Brown",  "number":698761728}""".stripMargin)
@@ -1636,8 +1636,8 @@ class DynamicEntityTest extends V400ServerSetup {
  
   }
 
-  feature("Update a populated Dynamic Entity: schema-compatible changes only") {
-    scenario("indexed:true can be switched on with data present; structural changes are still refused", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
+  Feature("Update a populated Dynamic Entity: schema-compatible changes only") {
+    Scenario("indexed:true can be switched on with data present; structural changes are still refused", ApiEndpoint1, ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanUpdateDynamicEntityDefinition.toString)
 
@@ -1715,8 +1715,8 @@ class DynamicEntityTest extends V400ServerSetup {
     }
   }
 
-  feature("Test personal CRUD Records.") {
-    scenario("User1 Create System  Foobar, user1 and user2 both CRUD their own myFooBars. ", ApiEndpoint1, VersionOfApi) {
+  Feature("Test personal CRUD Records.") {
+    Scenario("User1 Create System  Foobar, user1 and user2 both CRUD their own myFooBars. ", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, CanCreateDynamicEntityDefinition.toString)
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser2.userId, CanGetDynamicEntityDefinitions.toString)
@@ -1842,7 +1842,7 @@ class DynamicEntityTest extends V400ServerSetup {
 
     }
 
-    scenario("User1 Create Bank Foobar, user1 and user2 both CRUD their own myFooBars.", ApiEndpoint8, VersionOfApi) {
+    Scenario("User1 Create Bank Foobar, user1 and user2 both CRUD their own myFooBars.", ApiEndpoint8, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanGetDynamicEntityDefinitions.toString)
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser2.userId, "CanCreateDynamicEntityRecord_FooBar")
@@ -1967,7 +1967,7 @@ class DynamicEntityTest extends V400ServerSetup {
       }
     }
 
-    scenario("User1 Create System Level Foobar and set hasPersonalEntity = false, then there will be no my endpoints at all" , ApiEndpoint1, VersionOfApi) {
+    Scenario("User1 Create System Level Foobar and set hasPersonalEntity = false, then there will be no my endpoints at all" , ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       When("We make a request v4.0.0")
       val requestSystemLevel = (v4_0_0_Request / "management" / "system-dynamic-entities").POST <@ (user1)
@@ -2008,7 +2008,7 @@ class DynamicEntityTest extends V400ServerSetup {
       responseCreateFoobar.body.toString contains (s"$InvalidUri") should be (true)
     }
     
-    scenario("User1 Create Bank Level Foobar and set hasPersonalEntity = false, then there will be no my endpoints at all" , ApiEndpoint1, VersionOfApi) {
+    Scenario("User1 Create Bank Level Foobar and set hasPersonalEntity = false, then there will be no my endpoints at all" , ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, CanCreateDynamicEntityDefinition.toString)
       When("We make a request v4.0.0")
       val requestSystemLevel = (v4_0_0_Request / "management" / "banks" / testBankId1.value / "dynamic-entities").POST <@ (user1)

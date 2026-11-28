@@ -29,10 +29,10 @@ package code.api.v6_0_0
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.APIUtil
 import code.api.util.migration.MigrationOfDynamicEntityRoleNames
+import code.api.util.migration.RoleRows
 import code.entitlement.MappedEntitlement
-import code.group.Group
+import code.group.GroupTrait
 import code.setup.ServerSetup
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 /**
@@ -61,18 +61,20 @@ class DynamicEntityRoleRenameMigrationTest extends ServerSetup {
   private val userId = s"role-rename-user-$suffix"
 
   private def entitlementRowsFor(roleName: String): List[MappedEntitlement] =
-    MappedEntitlement.findAll(By(MappedEntitlement.mRoleName, roleName), By(MappedEntitlement.mUserId, userId))
+    MappedEntitlement.findAllByUserId(userId).filter(_.roleName == roleName)
 
   private def giveEntitlement(bankId: String, roleName: String): Unit =
-    MappedEntitlement.create.mBankId(bankId).mUserId(userId).mRoleName(roleName)
-      .mEntitlementId(APIUtil.generateUUID()).saveMe()
+    MappedEntitlement.insert(bankId, userId, roleName, createdByProcess = "", grantedByUserId = None, groupId = None)
 
-  private def makeGroup(name: String, bankId: String, roles: List[String]): Group =
-    Group.create.GroupId(APIUtil.generateUUID()).GroupName(name).GroupDescription("role rename test")
-      .BankId(bankId).ListOfRoles(roles.mkString(",")).IsEnabled(true).saveMe()
+  // The Group is written through the provider, which stores the bank id as given ("" stays "") and the
+  // Roles comma-joined, as the Mapper fixture did.
+  private def makeGroup(name: String, bankId: String, roles: List[String]): GroupTrait =
+    GroupTrait.group.vend.createGroup(Some(bankId), name, "role rename test", roles, isEnabled = true)
+      .openOrThrowException(s"group $name should be created")
 
-  private def reloadGroup(groupName: String): Group =
-    Group.find(By(Group.GroupName, groupName)).openOrThrowException(s"group $groupName should exist")
+  // Read back as stored - the raw bank id and the comma-joined Roles - which is what the scenarios assert on.
+  private def reloadGroup(groupName: String): RoleRows.GroupRow =
+    RoleRows.groups().find(_.groupName == groupName).getOrElse(fail(s"group $groupName should exist"))
 
   feature("The Dynamic Entity Role rename migration") {
 
@@ -88,12 +90,12 @@ class DynamicEntityRoleRenameMigrationTest extends ServerSetup {
       Then("the system level grant carries the new name at the system space")
       val systemRows = entitlementRowsFor(s"CanCreateDynamicEntityRecord_$entity")
       systemRows.size should equal(1)
-      systemRows.head.mBankId.get should equal(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+      systemRows.head.bankId should equal(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
 
       And("the bank level grant carries the new name and stays at its bank")
       val bankRows = entitlementRowsFor(s"CanGetDynamicEntityRecord_$entity")
       bankRows.size should equal(1)
-      bankRows.head.mBankId.get should equal("bank_one")
+      bankRows.head.bankId should equal("bank_one")
 
       And("nothing is left under the old names")
       entitlementRowsFor(s"CanCreateDynamicEntity_System$entity") shouldBe empty
@@ -112,11 +114,11 @@ class DynamicEntityRoleRenameMigrationTest extends ServerSetup {
       Then("both are untouched, name and bank id alike")
       val definitionRows = entitlementRowsFor("CanCreateSystemLevelDynamicEntity")
       definitionRows.size should equal(1)
-      definitionRows.head.mBankId.get should equal("")
+      definitionRows.head.bankId should equal("")
 
       val anyBankRows = entitlementRowsFor("CanCreateAnyBankLevelDynamicEntity")
       anyBankRows.size should equal(1)
-      anyBankRows.head.mBankId.get should equal("")
+      anyBankRows.head.bankId should equal("")
     }
 
     scenario("a Group of Record Roles moves to the system space; a mixed Group stays put", RoleRenameMigration) {
@@ -134,13 +136,13 @@ class DynamicEntityRoleRenameMigrationTest extends ServerSetup {
 
       Then("the pure Group carries the new names and has moved to the system space")
       val pure = reloadGroup(pureName)
-      pure.ListOfRoles.get should equal(s"CanCreateDynamicEntityRecord_$entity,CanGetDynamicEntityRecord_$entity")
-      pure.BankId.get should equal(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+      pure.listOfRoles should equal(s"CanCreateDynamicEntityRecord_$entity,CanGetDynamicEntityRecord_$entity")
+      pure.bankId should equal(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
 
       And("the mixed Group carries the new name for its Record Role but stays at the empty bank id")
       val mixed = reloadGroup(mixedName)
-      mixed.ListOfRoles.get should equal(s"CanCreateDynamicEntityRecord_$entity,CanCreateSystemLevelDynamicEntity")
-      mixed.BankId.get should equal("")
+      mixed.listOfRoles should equal(s"CanCreateDynamicEntityRecord_$entity,CanCreateSystemLevelDynamicEntity")
+      mixed.bankId should equal("")
     }
 
     scenario("the Definition pass merges the System and BankLevel variants, each in its own space", RoleRenameMigration) {
@@ -154,7 +156,7 @@ class DynamicEntityRoleRenameMigrationTest extends ServerSetup {
       MigrationOfDynamicEntityRoleNames.renameDefinitionRolesEverywhere(s"definitionRoleRenameTest_$suffix") should equal(true)
 
       Then("both carry the merged name, the system one at the system space and the bank one at its bank")
-      entitlementRowsFor("CanUpdateDynamicEntityDefinition").map(_.mBankId.get).sorted should equal(
+      entitlementRowsFor("CanUpdateDynamicEntityDefinition").map(_.bankId).sorted should equal(
         List(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, "bank_one").sorted)
 
       And("nothing is left under the old names")
@@ -164,7 +166,7 @@ class DynamicEntityRoleRenameMigrationTest extends ServerSetup {
       And("the any-bank Role is untouched")
       val anyBankRows = entitlementRowsFor("CanGetAnyBankLevelDynamicEntities")
       anyBankRows.size should equal(1)
-      anyBankRows.head.mBankId.get should equal("")
+      anyBankRows.head.bankId should equal("")
     }
 
     scenario("the Definition pass moves a Group the Record pass left behind, but not one holding another kind of Role", RoleRenameMigration) {
@@ -175,7 +177,7 @@ class DynamicEntityRoleRenameMigrationTest extends ServerSetup {
       Given("a system level Group holding a Record Role and a Definition Role, which the Record pass left at the empty bank id")
       makeGroup(leftBehindName, "", List(s"CanCreateDynamicEntity_System$entity", "CanDeleteSystemLevelDynamicEntity"))
       MigrationOfDynamicEntityRoleNames.renameEverywhere(s"roleRenameTest4_$suffix")
-      reloadGroup(leftBehindName).BankId.get should equal("")
+      reloadGroup(leftBehindName).bankId should equal("")
       And("another holding a Definition Role and a Role from outside Dynamic Entities")
       makeGroup(otherRoleName, "", List("CanDeleteSystemLevelDynamicEntity", "CanGetAnyUser"))
 
@@ -184,13 +186,13 @@ class DynamicEntityRoleRenameMigrationTest extends ServerSetup {
 
       Then("the left-behind Group carries the new names and has moved to the system space")
       val leftBehind = reloadGroup(leftBehindName)
-      leftBehind.ListOfRoles.get should equal(s"CanCreateDynamicEntityRecord_$entity,CanDeleteDynamicEntityDefinition")
-      leftBehind.BankId.get should equal(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+      leftBehind.listOfRoles should equal(s"CanCreateDynamicEntityRecord_$entity,CanDeleteDynamicEntityDefinition")
+      leftBehind.bankId should equal(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
 
       And("the other Group carries the new name but stays at the empty bank id, where CanGetAnyUser belongs")
       val other = reloadGroup(otherRoleName)
-      other.ListOfRoles.get should equal("CanDeleteDynamicEntityDefinition,CanGetAnyUser")
-      other.BankId.get should equal("")
+      other.listOfRoles should equal("CanDeleteDynamicEntityDefinition,CanGetAnyUser")
+      other.bankId should equal("")
     }
   }
 }

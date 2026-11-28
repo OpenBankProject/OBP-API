@@ -29,7 +29,7 @@ package code.api.util
 
 import code.api.Constant
 import net.liftweb.db.DB
-import net.liftweb.mapper.DefaultConnectionIdentifier
+import net.liftweb.util.DefaultConnectionIdentifier
 import net.liftweb.util.Helpers.tryo
 
 import java.sql.{ResultSet, Types}
@@ -43,6 +43,15 @@ object DBUtil {
    */
   lazy val isSqlServer: Boolean =
     dbUrl.contains("sqlserver") || APIUtil.getPropsValue("db.driver").exists(_.contains("sqlserver"))
+
+  /** Whether the configured database is MySQL or MariaDB, worked out once for the same reason. */
+  lazy val isMySql: Boolean =
+    dbUrl.startsWith("jdbc:mysql:") || dbUrl.startsWith("jdbc:mariadb:") ||
+      APIUtil.getPropsValue("db.driver").exists(d => d.contains("mysql") || d.contains("mariadb"))
+
+  /** Whether the configured database is Oracle, worked out once for the same reason. */
+  lazy val isOracle: Boolean =
+    dbUrl.startsWith("jdbc:oracle:") || APIUtil.getPropsValue("db.driver").exists(_.contains("oracle"))
 
   /** The endpoint timeout in whole seconds, rounded up, which is the unit JDBC takes. */
   private[code] def queryTimeoutSeconds: Int =

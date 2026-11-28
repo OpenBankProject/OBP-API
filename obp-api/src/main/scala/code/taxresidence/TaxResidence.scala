@@ -38,7 +38,7 @@ object TaxResidenceX extends SimpleInjector {
 
   val taxResidence = new Inject(() => buildOne) {}
 
-  def buildOne: TaxResidenceProvider = MappedTaxResidenceProvider
+  def buildOne: TaxResidenceProvider = DoobieTaxResidenceProvider
   
 }
 

@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v7_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetOidcConsent
 import code.api.util.ErrorMessages
@@ -105,8 +106,8 @@ class GetOidcConsentTest extends V600ServerSetup {
       body.consent_id should equal(consent.consentId)
       body.status should equal(consent.status)
       body.consent_request_id should equal(Some(consentRequestId))
-      body.consumer_id should equal(testConsumer2.consumerId.get)
-      body.client_id should equal(Some(testConsumer2.key.get))
+      body.consumer_id should equal(testConsumer2.consumerId)
+      body.client_id should equal(Some(testConsumer2.key))
       body.user_id should equal(resourceUser2.userId)
       body.username should equal(resourceUser2.name)
       body.provider should equal(resourceUser2.provider)

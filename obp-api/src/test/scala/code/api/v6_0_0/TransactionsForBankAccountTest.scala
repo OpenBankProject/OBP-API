@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v6_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.attributedefinition.AttributeDefinitionDI
 import code.api.util.APIUtil

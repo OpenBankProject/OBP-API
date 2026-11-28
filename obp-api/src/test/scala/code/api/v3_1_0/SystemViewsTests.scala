@@ -45,7 +45,6 @@ import code.views.system.AccountAccess
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{CreateViewJson, UpdateViewJSON}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 class SystemViewsTests extends V310ServerSetup {

@@ -29,13 +29,8 @@ package code.api.util.migration
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.entitlement.MappedEntitlement
-import code.entitlementrequest.MappedEntitlementRequest
-import code.group.Group
-import code.scope.MappedScope
 import code.tenant.Tenant
 import net.liftweb.db.DB
-import net.liftweb.mapper.By
 import net.liftweb.util.DefaultConnectionIdentifier
 
 /**
@@ -87,13 +82,14 @@ object MigrationOfOrganisationToTenant {
 
     copyRows("organisation", "Tenants") { row =>
       val tenantId = row.getString("organisationid")
-      Tenant.find(By(Tenant.TenantId, tenantId)).isEmpty && {
-        Tenant.create.TenantId(tenantId).Name(row.getString("name")).Website(row.getString("website"))
-          .LogoUrl(row.getString("logourl")).Status(row.getString("status")).Visibility(row.getString("visibility"))
-          .CreatedByUserId(row.getString("createdbyuserid"))
-          .CreationDate(row.getTimestamp("creationdate")).LastUpdate(row.getTimestamp("lastupdate"))
-          .save
-      }
+      Tenant.findByTenantId(tenantId).isEmpty && scala.util.Try {
+        val created = Tenant.insert(tenantId, row.getString("name"), row.getString("website"),
+          row.getString("logourl"), row.getString("status"), row.getString("visibility"),
+          row.getString("createdbyuserid"))
+        // The copy keeps the dates the Organisation had rather than the moment it was copied.
+        Option(row.getTimestamp("lastupdate")).foreach(d => Tenant.update(created.copy(updatedAt = new java.util.Date(d.getTime))))
+        Option(row.getTimestamp("creationdate")).foreach(Tenant.setCreationDate(tenantId, _))
+      }.isSuccess
     }
 
     /** Rename each of these Roles held at SYS or the empty bank id, and make it a system Role. */
@@ -115,34 +111,28 @@ object MigrationOfOrganisationToTenant {
       report += s"$label: changed $changed row(s)$notes"
     }
 
-    if (DbFunction.tableExists(MappedEntitlement)) {
-      moveRows("Entitlements", MappedEntitlement.findAll().map(row =>
-        (row.mRoleName.get, row.mBankId.get, (n: String, b: String) => { row.mRoleName(n).mBankId(b).save; () })))
+    RoleRows.roleTables.foreach { case (table, label) =>
+      if (DbFunction.tableExistsByName(table)) {
+        moveRows(label, RoleRows.rows(table).map(row =>
+          (row.roleName, row.bankId, (n: String, b: String) => RoleRows.save(row, n, b))))
+      }
     }
-    if (DbFunction.tableExists(MappedEntitlementRequest)) {
-      moveRows("Entitlement Requests", MappedEntitlementRequest.findAll().map(row =>
-        (row.mRoleName.get, row.mBankId.get, (n: String, b: String) => { row.mRoleName(n).mBankId(b).save; () })))
-    }
-    if (DbFunction.tableExists(MappedScope)) {
-      moveRows("Consumer Scopes", MappedScope.findAll().map(row =>
-        (row.mRoleName.get, row.mBankId.get, (n: String, b: String) => { row.mRoleName(n).mBankId(b).save; () })))
-    }
-    if (DbFunction.tableExists(Group)) {
+    if (DbFunction.tableExistsByName("groupofroles")) {
       var renamedGroups = 0
       var movedGroups = 0
       val mixedGroups = scala.collection.mutable.ListBuffer[String]()
-      Group.findAll().foreach { group =>
-        val storedRoles = group.ListOfRoles.get.split(",").toList.map(_.trim).filter(_.nonEmpty)
-        if (storedRoles.exists(roleRenames.contains) && systemLevel(group.BankId.get)) {
-          group.ListOfRoles(storedRoles.map(r => roleRenames.getOrElse(r, r)).mkString(","))
+      RoleRows.groups().foreach { stored =>
+        val storedRoles = stored.listOfRoles.split(",").toList.map(_.trim).filter(_.nonEmpty)
+        if (storedRoles.exists(roleRenames.contains) && systemLevel(stored.bankId)) {
+          var group = stored.copy(listOfRoles = storedRoles.map(r => roleRenames.getOrElse(r, r)).mkString(","))
           renamedGroups += 1
-          if (group.BankId.get == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) {
+          if (stored.bankId == DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID) {
             if (storedRoles.forall(roleRenames.contains)) {
-              group.BankId("")
+              group = group.copy(bankId = "")
               movedGroups += 1
-            } else mixedGroups += group.GroupName.get
+            } else mixedGroups += stored.groupName
           }
-          group.save
+          RoleRows.saveGroup(group)
         }
       }
       val mixedNote =

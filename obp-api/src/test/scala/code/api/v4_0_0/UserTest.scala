@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import java.util.UUID
+import org.json4s.jvalue2extractable
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetAnyUser
@@ -57,8 +58,8 @@ class UserTest extends V400ServerSetup {
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getUsersByEmail))
   
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users" / "current" / "user_id").GET
       val response400 = makeGetRequest(request400)
@@ -67,8 +68,8 @@ class UserTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users" / "current" / "user_id").GET <@(user1)
       val response400 = makeGetRequest(request400)
@@ -79,8 +80,8 @@ class UserTest extends V400ServerSetup {
   }
 
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users" / "user_id" / "user_id").GET
       val response400 = makeGetRequest(request400)
@@ -89,8 +90,8 @@ class UserTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users" / "user_id" / resourceUser3.userId).GET <@(user1)
       val response400 = makeGetRequest(request400)
@@ -99,8 +100,8 @@ class UserTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanGetAnyUser)
     }
   }
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users" / "user_id" / resourceUser3.userId).GET <@(user1)
@@ -111,8 +112,8 @@ class UserTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users").GET
       val response400 = makeGetRequest(request400)
@@ -121,8 +122,8 @@ class UserTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users").GET <@(user1)
       val response400 = makeGetRequest(request400)
@@ -131,8 +132,8 @@ class UserTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanGetAnyUser)
     }
   }
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint3, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users").GET <@(user1)
@@ -143,8 +144,8 @@ class UserTest extends V400ServerSetup {
     }
   }
   
-  feature(s"test $ApiEndpoint4 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
+  Feature(s"test $ApiEndpoint4 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users" / "username" / "USERNAME").GET
       val response400 = makeGetRequest(request400)
@@ -153,8 +154,8 @@ class UserTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint4, VersionOfApi) {
+  Feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users" / "username" / "USERNAME").GET <@(user1)
       val response400 = makeGetRequest(request400)
@@ -163,8 +164,8 @@ class UserTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanGetAnyUser)
     }
   }
-  feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint4, VersionOfApi) {
+  Feature(s"test $ApiEndpoint4 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint4, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       val user = UserX.createResourceUser(defaultProvider, Some("user.name.1"), None, Some("user.name.1"), None, Some(UUID.randomUUID.toString), None).openOrThrowException(attemptedToOpenAnEmptyBox)
       When("We make a request v4.0.0")
@@ -173,12 +174,12 @@ class UserTest extends V400ServerSetup {
       Then("We get successful response")
       response400.code should equal(200)
       response400.body.extract[UserJsonV400]
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
   
-  feature(s"test $ApiEndpoint5 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint5, VersionOfApi) {
+  Feature(s"test $ApiEndpoint5 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users" / "email" / "EMAIL" / "terminator").GET
       val response400 = makeGetRequest(request400)
@@ -187,8 +188,8 @@ class UserTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint5 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint5, VersionOfApi) {
+  Feature(s"test $ApiEndpoint5 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint5, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "users" / "email" / "EMAIL" / "terminator").GET <@(user1)
       val response400 = makeGetRequest(request400)
@@ -197,8 +198,8 @@ class UserTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanGetAnyUser)
     }
   }
-  feature(s"test $ApiEndpoint5 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint5, VersionOfApi) {
+  Feature(s"test $ApiEndpoint5 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint5, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       val user = UserX.createResourceUser(defaultProvider, Some("user.name.1"), None, Some("user.name.1"), Some("test@tesobe.com"), Some(UUID.randomUUID.toString), None).openOrThrowException(attemptedToOpenAnEmptyBox)
       When("We make a request v4.0.0")
@@ -207,7 +208,7 @@ class UserTest extends V400ServerSetup {
       Then("We get successful response")
       response400.code should equal(200)
       response400.body.extract[UsersJsonV400]
-      Users.users.vend.deleteResourceUser(user.id.get)
+      Users.users.vend.deleteResourceUser(user.id)
     }
   }
   

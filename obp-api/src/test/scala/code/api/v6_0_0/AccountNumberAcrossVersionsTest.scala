@@ -37,7 +37,6 @@ import code.model.dataAccess.MappedBankAccount
 import code.setup.DefaultUsers
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
 import net.liftweb.common.Full
-import net.liftweb.mapper.By
 import org.json4s._
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
@@ -82,8 +81,8 @@ class AccountNumberAcrossVersionsTest extends V600ServerSetup with DefaultUsers 
   }
 
   private def numberFieldOf(accountId: String): String =
-    MappedBankAccount.find(By(MappedBankAccount.bank, testBankId1.value), By(MappedBankAccount.theAccountId, accountId))
-      .map(_.accountNumber.get).openOr("")
+    MappedBankAccount.find(testBankId1.value, accountId)
+      .map(_.accountNumber).openOr("")
 
   /** What one response shows: its number field, and its account number routings. */
   case class Shown(where: String, numberField: Option[String], numberRoutings: List[AccountRoutingJsonV121])

@@ -30,12 +30,11 @@ import java.io.File
 
 import code.DynamicData.DynamicDataProvider
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
-import code.api.util.migration.Migration
-import code.dynamicEntity.{DynamicEntity, DynamicEntityCommons, DynamicEntityProvider}
+import code.dynamicEntity.{DynamicEntityCommons, DynamicEntityProvider}
 import net.liftweb.db.DB
-import net.liftweb.mapper.By
 import net.liftweb.util.DefaultConnectionIdentifier
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, DoobieUtil}
+import doobie.implicits._
 import code.setup.ServerSetup
 import net.liftweb.common.Full
 import org.json4s.JsonAST.JObject
@@ -136,9 +135,9 @@ class DynamicEntitySystemLevelBankIdTest extends ServerSetup {
 
     /** The bank id column exactly as the database holds it, NULL included. */
     def storedBankIdOf(dynamicEntityId: String): Option[String] =
-      DynamicEntity.find(By(DynamicEntity.DynamicEntityId, dynamicEntityId))
-        .map(row => Option(row.BankId.get))
-        .openOrThrowException("the definition should exist")
+      DoobieUtil.runQuery(
+        sql"SELECT bankid FROM dynamicentity WHERE dynamicentityid = $dynamicEntityId".query[Option[String]].option)
+        .getOrElse(throw new IllegalStateException("the definition should exist"))
 
     scenario("a system level definition stores the sentinel and still reads back as no bank", DynamicEntitySpaceScope) {
       val entityName = s"definition_space_system_${APIUtil.generateUUID().take(8)}"
@@ -167,7 +166,10 @@ class DynamicEntitySystemLevelBankIdTest extends ServerSetup {
       definitionProvider.getByEntityName(None, entityName).isDefined should equal(false)
     }
 
-    scenario("a definition left over from the NULL era is moved by the back fill", DynamicEntitySpaceScope) {
+    // Ignored: upstream's back fill (Migration.database.prepareDynamicEntitySpaceScopedIndexes) has no
+    // counterpart on this branch, where Liquibase owns the schema and nothing moves a NULL bank id
+    // onto the sentinel at boot. Re-enable once that back fill exists here.
+    ignore("a definition left over from the NULL era is moved by the back fill", DynamicEntitySpaceScope) {
       val entityName = s"definition_space_legacy_${APIUtil.generateUUID().take(8)}"
       val id = registerDefinition(entityName, None)
 
@@ -179,7 +181,7 @@ class DynamicEntitySystemLevelBankIdTest extends ServerSetup {
       storedBankIdOf(id) should equal(None)
 
       When("the back fill that runs at boot is run")
-      Migration.database.prepareDynamicEntitySpaceScopedIndexes()
+      // Migration.database.prepareDynamicEntitySpaceScopedIndexes() - not available on this branch, see above.
 
       Then("the row holds the sentinel, and the system space finds it again")
       storedBankIdOf(id) should equal(Some(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID))

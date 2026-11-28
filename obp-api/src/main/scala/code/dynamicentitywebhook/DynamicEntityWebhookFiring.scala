@@ -34,6 +34,7 @@ import code.api.util.APIUtil
 import code.messageoutbox.WebhookOutbox
 import code.util.Helper.MdcLoggable
 import org.json4s._
+import org.json4s.jvalue2monadic
 
 /**
  * This object fires Dynamic Entity webhooks when a record is written. The record data provider calls it

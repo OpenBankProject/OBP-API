@@ -83,7 +83,7 @@ object ConsumerGrantTypes {
   /** The unknown values in a list of grant types, if any. */
   def unknown(grantTypes: List[String]): List[String] = grantTypes.filterNot(Known.contains)
 
-  def of(consumer: Consumer): List[String] = parse(consumer.grantTypes.get)
+  def of(consumer: Consumer): List[String] = parse(consumer.grantTypes)
 
   def isSet(consumer: Consumer): Boolean = of(consumer).nonEmpty
 

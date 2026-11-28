@@ -154,8 +154,8 @@ class ViewsTests extends V300ServerSetup {
     // }
   // }
   
-  feature(s"$ApiEndpoint3 -createViewForBankAccount - V300"){
-    scenario("all requirements") {
+  Feature(s"$ApiEndpoint3 -createViewForBankAccount - V300"){
+    Scenario("all requirements") {
       Given("The BANK_ID, ACCOUNT_ID, Login User and postViewBody")
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -175,7 +175,7 @@ class ViewsTests extends V300ServerSetup {
       customViewCount should equal (viewsBefore + 1)
     }
 
-    scenario("no Auth") {
+    Scenario("no Auth") {
       Given("The BANK_ID, ACCOUNT_ID, No Login user")
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -187,7 +187,7 @@ class ViewsTests extends V300ServerSetup {
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
-    scenario("no views") {
+    Scenario("no views") {
       Given("The BANK_ID, ACCOUNT_ID, Login user, no views")
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -199,7 +199,7 @@ class ViewsTests extends V300ServerSetup {
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
-    scenario("no existing account") {
+    Scenario("no existing account") {
       Given("The BANK_ID, wrong ACCOUNT_ID, Login user, views")
       val bankId = randomBankId
       When("the request is sent")
@@ -210,7 +210,7 @@ class ViewsTests extends V300ServerSetup {
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
-    scenario("view already exists") {
+    Scenario("view already exists") {
       Given("The BANK_ID, ACCOUNT_ID, Login user, views")
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -223,7 +223,7 @@ class ViewsTests extends V300ServerSetup {
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
   
-    scenario("can not create the System View") {
+    Scenario("can not create the System View") {
       Given("The BANK_ID, ACCOUNT_ID, Login user, views")
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -236,7 +236,7 @@ class ViewsTests extends V300ServerSetup {
     }
   }
 
-  feature(s"$ApiEndpoint4 -updateViewForBankAccount - v3.0.0") {
+  Feature(s"$ApiEndpoint4 -updateViewForBankAccount - v3.0.0") {
 
     val updatedViewDescription = "aloha"
     val updatedAliasToUse = "public"
@@ -265,7 +265,7 @@ class ViewsTests extends V300ServerSetup {
       )
     }
 
-    scenario("we will update a view on a bank account") {
+    Scenario("we will update a view on a bank account") {
       Given("A view exists")
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -294,7 +294,7 @@ class ViewsTests extends V300ServerSetup {
       updatedView.hide_metadata_if_alias_used should equal(true)
     }
 
-    scenario("we will not update a view that doesn't exist") {
+    Scenario("we will not update a view that doesn't exist") {
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
 
@@ -308,7 +308,7 @@ class ViewsTests extends V300ServerSetup {
       reply.code should equal(400)
     }
 
-    scenario("We will not update a view on a bank account due to missing token") {
+    Scenario("We will not update a view on a bank account due to missing token") {
       Given("A view exists")
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -325,7 +325,7 @@ class ViewsTests extends V300ServerSetup {
       reply.body.extract[ErrorMessage].message.nonEmpty should equal (true)
     }
 
-    scenario("we will not update a view on a bank account due to insufficient privileges") {
+    Scenario("we will not update a view on a bank account due to insufficient privileges") {
       Given("A view exists")
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -343,7 +343,7 @@ class ViewsTests extends V300ServerSetup {
     }
 
     // the view may only get actions the caller already has on one of their views of the account
-    scenario("we will not give a view an action that none of the caller's views has") {
+    Scenario("we will not give a view an action that none of the caller's views has") {
       Given("A view exists")
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
@@ -359,7 +359,7 @@ class ViewsTests extends V300ServerSetup {
       reply.body.extract[ErrorMessage].message should startWith (code.api.util.ErrorMessages.SourceViewHasLessPermission)
     }
 
-    scenario("we can not update a System view on a bank account") {
+    Scenario("we can not update a System view on a bank account") {
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)
   
@@ -381,10 +381,8 @@ class ViewsTests extends V300ServerSetup {
     }
   }
   
-  feature(s"$ApiEndpoint1 - Get Account access for User. - v3.0.0")
-  {
-    scenario("we will Get Account access for User.")
-    {
+  Feature(s"$ApiEndpoint1 - Get Account access for User. - v3.0.0") {
+    Scenario("we will Get Account access for User.") {
       Given("Prepare all the parameters:")
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)

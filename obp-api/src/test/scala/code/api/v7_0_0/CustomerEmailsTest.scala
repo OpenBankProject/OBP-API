@@ -26,11 +26,13 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v7_0_0
 
+import org.json4s.jvalue2extractable
 import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.generateUUID
 import code.api.util.ApiRole.CanSendEmailToCustomerAtOneBank
+import code.api.util.DoobieUtil
 import code.api.util.ErrorMessages._
 import code.api.v6_0_0.V600ServerSetup
 import code.customer.CustomerX
@@ -40,7 +42,7 @@ import code.model.dataAccess.SelfServiceBank
 import code.setup.APIResponse
 import com.openbankproject.commons.model.{BankId, CustomerFaceImage, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.By
+import doobie.implicits._
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
@@ -83,6 +85,12 @@ class CustomerEmailsTest extends V600ServerSetup {
     write(PostCustomerEmailJsonV700(subject, "Thank you for applying.", reference))
   private def message(response: APIResponse): String = response.body.extract[ErrorMessage].message
 
+  /** Removes the self-service record of one bank; the store has no per-bank delete. */
+  private def forgetSelfServiceBank(bank: String): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM selfservicebank WHERE bankid = $bank".update.run)
+    ()
+  }
+
   feature(s"Send Email to Customer - POST /banks/BANK_ID/customers/CUSTOMER_ID/emails - $VersionOfApi") {
 
     scenario("Customers of a self-service bank are not emailed", CustomerEmails, VersionOfApi) {
@@ -90,7 +98,7 @@ class CustomerEmailsTest extends V600ServerSetup {
       val (customerId, _) = customer()
       SelfServiceBank.record(bankId, resourceUser1.userId)
       val response = try withRole { makePostRequest(emails(customerId).POST <@ (user1), body()) }
-        finally SelfServiceBank.findAll(By(SelfServiceBank.BankId, bankId)).foreach(_.delete_!)
+        finally forgetSelfServiceBank(bankId)
       response.code should equal(403)
       message(response) should include(CustomerEmailsNotInSelfServiceBank)
     }
@@ -115,14 +123,14 @@ class CustomerEmailsTest extends V600ServerSetup {
       response.body.toString should not include address
 
       And("the outbox row is an email to the Customer's address, saying which application sent it")
-      val row = MessageOutbox.find(By(MessageOutbox.id, queued.message_id.toLong)).openOrThrowException("row")
+      val row = MessageOutbox.findById(queued.message_id.toLong).openOrThrowException("row")
       row.outboxType should equal(MessageOutbox.TYPE_EMAIL)
       row.targetId should equal(address)
       val payload = MessageOutbox.emailPayload(row)
       payload.subject should equal("Your application was received")
       payload.text_content.getOrElse("") should include("Thank you for applying.")
       payload.text_content.getOrElse("") should include("Sent by")
-      row.MetadataJson.get should include("app:1")
+      row.metadataJson should include("app:1")
     }
 
     scenario("Only the space's own Customers are emailed", CustomerEmails, VersionOfApi) {

@@ -2,11 +2,12 @@ name: Set up the test database
 description: >
   Selects the database the shards run against (H2 unless a manual run or a pull request label asks for
   SQL Server or PostgreSQL), starts its container when one is needed and exports the settings the later
-  steps use: TEST_DB, TEST_DB_DRIVER, TEST_DB_URL and TEST_TIMEOUT_SECONDS.
+  steps use: TEST_DB, TEST_DB_DRIVER, TEST_DB_URL, TEST_DB_USER and TEST_DB_PASSWORD (Oracle only) and
+  TEST_TIMEOUT_SECONDS.
 
 inputs:
   database:
-    description: Database chosen on a manual run (h2, sqlserver, sqlserver2017 or postgres); empty on other triggers.
+    description: Database chosen on a manual run (h2, sqlserver, sqlserver2017, postgres, mysql, mariadb or oracle); empty on other triggers.
     required: false
     default: ''
   pr-labels:
@@ -32,6 +33,9 @@ runs:
         SA_PASSWORD='ObpTests2026!Ci'
         MSSQL_IMAGE='mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04'
         POSTGRES_IMAGE='postgres:16-alpine'
+        MYSQL_IMAGE='mysql:8.4'
+        MARIADB_IMAGE='mariadb:11.4'
+        ORACLE_IMAGE='gvenzl/oracle-free:23-slim'
 
         DB_CHOICE="${INPUT_DB:-h2}"
         if [ "$DB_CHOICE" = "h2" ]; then
@@ -85,12 +89,47 @@ runs:
           # from 30 to over 50 minutes on SQL Server depending on the runner, so it gets 75 minutes.
           echo "TEST_TIMEOUT_SECONDS=4500" >> "$GITHUB_ENV"
         elif [ "$DB_CHOICE" = "postgres" ]; then
-          docker run -d --name postgres -p 5432:5432 \
-            -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=obp_test \
-            "$POSTGRES_IMAGE"
-          wait_until_ready postgres 2 docker exec postgres pg_isready -U postgres
+          # The test job already runs a postgres service on 5432 for PostgresMigrationTest, so a
+          # second container cannot bind the port. The shards use that server, in a database of
+          # their own whose name DisposableDatabaseGuard accepts.
+          PSQL=(docker run --rm --network host -e PGPASSWORD=postgres "$POSTGRES_IMAGE" psql -h localhost -U postgres -v ON_ERROR_STOP=1)
+          wait_until_ready postgres 2 "${PSQL[@]}" -c 'SELECT 1'
+          "${PSQL[@]}" -c "CREATE DATABASE obp_test_only"
           echo "TEST_DB_DRIVER=org.postgresql.Driver" >> "$GITHUB_ENV"
-          echo "TEST_DB_URL=jdbc:postgresql://localhost:5432/obp_test?user=postgres&password=password" >> "$GITHUB_ENV"
+          echo "TEST_DB_URL=jdbc:postgresql://localhost:5432/obp_test_only?user=postgres&password=postgres" >> "$GITHUB_ENV"
+          echo "TEST_TIMEOUT_SECONDS=4500" >> "$GITHUB_ENV"
+        elif [ "$DB_CHOICE" = "mysql" ]; then
+          # lower_case_table_names=1: the queries name tables the way Postgres folds them, without regard to
+          # case, and MySQL on Linux compares table names case-sensitively unless it is told otherwise. It can
+          # only be set when the server initialises its data directory, which this fresh container does.
+          docker run -d --name mysql -p 3306:3306 \
+            -e MYSQL_ROOT_PASSWORD="$SA_PASSWORD" -e MYSQL_DATABASE=obp_suite_mysql \
+            "$MYSQL_IMAGE" --max-connections=400 --lower-case-table-names=1
+          wait_until_ready mysql 5 docker exec mysql mysql -uroot "-p$SA_PASSWORD" -e 'SELECT 1'
+          echo "TEST_DB_DRIVER=com.mysql.cj.jdbc.Driver" >> "$GITHUB_ENV"
+          echo "TEST_DB_URL=jdbc:mysql://localhost:3306/obp_suite_mysql?user=root&password=$SA_PASSWORD&allowPublicKeyRetrieval=true&useSSL=false" >> "$GITHUB_ENV"
+          echo "TEST_TIMEOUT_SECONDS=4500" >> "$GITHUB_ENV"
+        elif [ "$DB_CHOICE" = "mariadb" ]; then
+          # Reached through the MySQL driver, so Liquibase and the application treat it as MySQL; the same
+          # lower_case_table_names setting applies.
+          docker run -d --name mariadb -p 3306:3306 \
+            -e MARIADB_ROOT_PASSWORD="$SA_PASSWORD" -e MARIADB_DATABASE=obp_suite_mysql \
+            "$MARIADB_IMAGE" --max-connections=400 --lower-case-table-names=1
+          wait_until_ready mariadb 5 docker exec mariadb mariadb -uroot "-p$SA_PASSWORD" -e 'SELECT 1'
+          echo "TEST_DB_DRIVER=com.mysql.cj.jdbc.Driver" >> "$GITHUB_ENV"
+          echo "TEST_DB_URL=jdbc:mysql://localhost:3306/obp_suite_mysql?user=root&password=$SA_PASSWORD&allowPublicKeyRetrieval=true&useSSL=false" >> "$GITHUB_ENV"
+          echo "TEST_TIMEOUT_SECONDS=4500" >> "$GITHUB_ENV"
+        elif [ "$DB_CHOICE" = "oracle" ]; then
+          # On Oracle the tables live in the schema of the user the suite logs in as, so that user's name is
+          # what DisposableDatabaseGuard checks.
+          docker run -d --name oracle -p 1521:1521 \
+            -e ORACLE_PASSWORD="$SA_PASSWORD" -e APP_USER=obp_suite_oracle -e APP_USER_PASSWORD="$SA_PASSWORD" \
+            "$ORACLE_IMAGE"
+          wait_until_ready oracle 10 docker exec oracle healthcheck.sh
+          echo "TEST_DB_DRIVER=oracle.jdbc.OracleDriver" >> "$GITHUB_ENV"
+          echo "TEST_DB_URL=jdbc:oracle:thin:@//localhost:1521/FREEPDB1" >> "$GITHUB_ENV"
+          echo "TEST_DB_USER=obp_suite_oracle" >> "$GITHUB_ENV"
+          echo "TEST_DB_PASSWORD=$SA_PASSWORD" >> "$GITHUB_ENV"
           echo "TEST_TIMEOUT_SECONDS=4500" >> "$GITHUB_ENV"
         else
           echo "Running with the default H2 in-memory database; no container is started."

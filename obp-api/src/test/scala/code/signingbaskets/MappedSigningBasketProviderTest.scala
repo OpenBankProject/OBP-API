@@ -51,7 +51,8 @@ class MappedSigningBasketProviderTest extends ServerSetup {
       stored.basket.consumerId should equal(Some("consumer-a"))
       stored.payments should equal(Some(payments))
 
-      val legacy = MappedSigningBasket.create.Status("RCVD").saveMe()
+      // A row written before the consumer was recorded: its consumerid column is NULL.
+      val legacy = MappedSigningBasket.insert("RCVD", consumerId = null)
       provider.getSigningBasketByBasketId(legacy.basketId).openOrThrowException("stored").basket.consumerId should equal(None)
     }
   }

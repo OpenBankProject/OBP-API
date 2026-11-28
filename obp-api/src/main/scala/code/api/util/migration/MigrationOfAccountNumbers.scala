@@ -29,8 +29,9 @@ package code.api.util.migration
 
 import code.api.util.{APIUtil, RoutingRules}
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
-import net.liftweb.mapper.By
+import code.bankconnectors.DoobieBankAccountRoutingQueries
+import code.model.dataAccess.MappedBankAccount
+import doobie.implicits._
 
 /**
  * An account's number belongs in an account number routing (scheme ACCOUNT_NUMBER, or another
@@ -50,11 +51,11 @@ object MigrationOfAccountNumbers {
   def copyRoutingNumbersIntoNumberField(name: String): Boolean = {
     val startDate = System.currentTimeMillis()
     val commitId: String = APIUtil.gitCommit
-    if (!DbFunction.tableExists(BankAccountRouting)) {
+    if (!DbFunction.tableExistsByName("bankaccountrouting")) {
       saveLog(name, commitId, isSuccessful = false, startDate, System.currentTimeMillis(), "BankAccountRouting table does not exist")
       false
     } else {
-      val numberRoutings = BankAccountRouting.findAll()
+      val numberRoutings = DoobieBankAccountRoutingQueries.findAll()
         .filter(routing => RoutingRules.isAccountNumberScheme(routing.accountRouting.scheme))
         .filter(routing => Option(routing.accountRouting.address).exists(_.trim.nonEmpty))
       val byAccount = numberRoutings.groupBy(routing => (routing.bankId.value, routing.accountId.value))
@@ -64,10 +65,10 @@ object MigrationOfAccountNumbers {
       byAccount.foreach { case ((bankId, accountId), routings) =>
         routings.map(_.accountRouting.address.trim).distinct match {
           case number :: Nil =>
-            MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, accountId))
-              .filter(account => Option(account.accountNumber.get).map(_.trim).getOrElse("") != number)
-              .foreach { account =>
-                account.accountNumber(number).saveMe()
+            MappedBankAccount.find(bankId, accountId)
+              .filter(account => Option(account.accountNumber).map(_.trim).getOrElse("") != number)
+              .foreach { _ =>
+                MappedBankAccount.update(bankId, accountId, List(fr"accountnumber = ${Option(number)}"))
                 updated = s"$bankId/$accountId" :: updated
               }
           case several =>

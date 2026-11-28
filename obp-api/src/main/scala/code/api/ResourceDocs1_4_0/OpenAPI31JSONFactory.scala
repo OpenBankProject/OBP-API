@@ -246,7 +246,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
   )
 
   case class ServerVariableJson(
-    enum: Option[List[String]] = None,
+    `enum`: Option[List[String]] = None,
     default: String,
     description: Option[String] = None
   )
@@ -349,7 +349,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
     
     // Type validation
     `type`: Option[String] = None,
-    enum: Option[List[JValue]] = None,
+    `enum`: Option[List[JValue]] = None,
     const: Option[JValue] = None,
     
     // Numeric validation
@@ -756,7 +756,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
         val schemaType = fieldMap.get("type").collect { case JString(t) => t }
         val format = fieldMap.get("format").collect { case JString(f) => f }
 
-        val enum = fieldMap.get("enum").collect {
+        val `enum` = fieldMap.get("enum").collect {
           case JArray(values) => values
         }
 
@@ -785,7 +785,7 @@ object OpenAPI31JSONFactory extends MdcLoggable {
           properties = properties,
           items = items,
           required = required,
-          enum = enum,
+          `enum` = `enum`,
           minItems = minItems,
           maxItems = maxItems
         )

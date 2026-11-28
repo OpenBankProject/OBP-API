@@ -58,7 +58,7 @@ object DynamicEndpointMatch {
 
 object DynamicEndpoints {
   //TODO, better put all other dynamic endpoints into this list. eg: dynamicEntityEndpoints, dynamicSwaggerDocsEndpoints ....
-  val disabledEndpointOperationIds = getDisabledEndpointOperationIds
+  val disabledEndpointOperationIds = getDisabledEndpointOperationIds()
 
   private val endpointGroups: List[EndpointGroup] =
     if(disabledEndpointOperationIds.contains("OBPv4.0.0-test-dynamic-resource-doc")) {
@@ -247,7 +247,9 @@ object CompiledObjects {
     val (requestBodyCaseClasses, responseBodyCaseClasses) = DynamicEndpointCodeGenerator.buildCaseClasses(requestExample, responseExample)
     val (code, bodyStartLine) = wrapMethodBody(requestBodyCaseClasses, responseBodyCaseClasses, decodedMethodBody)
     DynamicUtil.checkScalaCode(code).map { p =>
-      if (p.line > 0) p.copy(line = p.line - bodyStartLine + 1) else p
+      // A line before or after the method body (the template) is not a line of what the author wrote.
+      if (p.line >= bodyStartLine && p.line < bodyStartLine + decodedMethodBody.split("\n", -1).length) p.copy(line = p.line - bodyStartLine + 1)
+      else p.copy(line = 0)
     }
   }
 

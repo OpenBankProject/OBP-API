@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v4_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
@@ -129,11 +130,8 @@ class RefundTransactionRequestTest extends V400ServerSetup {
     // On the local connector, money to or from another bank passes through the default bank's
     // settlement accounts, so the test bank needs them.
     List(code.api.Constant.INCOMING_SETTLEMENT_ACCOUNT_ID, code.api.Constant.OUTGOING_SETTLEMENT_ACCOUNT_ID).foreach { settlementAccountId =>
-      if (code.model.dataAccess.MappedBankAccount.find(
-        net.liftweb.mapper.By(code.model.dataAccess.MappedBankAccount.bank, code.api.util.APIUtil.defaultBankId),
-        net.liftweb.mapper.By(code.model.dataAccess.MappedBankAccount.theAccountId, settlementAccountId)).isEmpty)
-        code.model.dataAccess.MappedBankAccount.create
-          .bank(code.api.util.APIUtil.defaultBankId).theAccountId(settlementAccountId).accountCurrency("EUR").saveMe()
+      if (code.model.dataAccess.MappedBankAccount.find(code.api.util.APIUtil.defaultBankId, settlementAccountId).isEmpty)
+        code.model.dataAccess.MappedBankAccount.insert(code.api.util.APIUtil.defaultBankId, settlementAccountId, accountCurrency = "EUR")
     }
     val externalAccountReference = "EXTERNAL-" + java.util.UUID.randomUUID.toString.take(8)
     val counterpartyId = Counterparties.counterparties.vend.createCounterparty(

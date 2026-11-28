@@ -28,13 +28,15 @@ TESOBE (http://www.tesobe.com/)
 package code.api.util
 
 import com.openbankproject.commons.model.{BankCommons, BankId, BankRoutingJson}
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
+import org.scalatest.{GivenWhenThen, Tag}
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * The NUBAN rules on their own, with no database. The worked example is the one in the CBN's revised
  * NUBAN standard of 2020: bank code 011, serial number 000001457, NUBAN 0000014579.
  */
-class NubanTest extends FeatureSpec with Matchers with GivenWhenThen {
+class NubanTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   object NubanRules extends Tag("Nuban")
 

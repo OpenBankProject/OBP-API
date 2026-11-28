@@ -35,7 +35,6 @@ import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.openbankproject.commons.util.JsonAliases.parse
 import fs2.Stream
-import net.liftweb.mapper.By
 import org.http4s.{Header, Headers, Method, Request, Uri}
 import org.json4s.JValue
 import org.json4s.JsonAST.JObject
@@ -59,12 +58,14 @@ trait SweepFixtures { self: DefaultUsers =>
   /**
    * The first account the fixtures created at `bankId`, if any.
    *
-   * Read from the Mapper rather than over HTTP for the same reason realBankId is: these sweeps
+   * Read from the store rather than over HTTP for the same reason realBankId is: these sweeps
    * are in-process, and a round trip per lookup would be the only slow part of them.
    */
   def realAccountId(bankId: String): Option[String] =
     code.model.dataAccess.MappedBankAccount
-      .find(By(code.model.dataAccess.MappedBankAccount.bank, bankId))
+      .findAllByBankId(bankId)
+      .sortBy(_.accountPrimaryKey)
+      .headOption
       .map(_.accountId.value)
 
   /**

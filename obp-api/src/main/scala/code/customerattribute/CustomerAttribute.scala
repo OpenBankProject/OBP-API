@@ -44,7 +44,7 @@ object CustomerAttributeX extends SimpleInjector {
 
   val customerAttributeProvider = new Inject(() => buildOne) {}
 
-  def buildOne: CustomerAttributeProvider = MappedCustomerAttributeProvider
+  def buildOne: CustomerAttributeProvider = DoobieCustomerAttributeProvider
 
   // Helper to get the count out of an option
   def countOfCustomerAttribute(listOpt: Option[List[CustomerAttribute]]): Int = {

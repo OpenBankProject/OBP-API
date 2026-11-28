@@ -2,7 +2,8 @@ package code.api
 
 import java.io.File
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.io.Source
 
@@ -15,7 +16,7 @@ import scala.io.Source
  * "Can't find ScalaSig", a 400 or 500 on any endpoint whose body or response uses it. This suite
  * asks json4s to describe every nested case class, which is the lookup that would fail.
  */
-class JsonFactorySignatureTest extends FlatSpec with Matchers {
+class JsonFactorySignatureTest extends AnyFlatSpec with Matchers {
 
   private val sourceRoot: File =
     List(new File("src/main/scala"), new File("obp-api/src/main/scala")).find(_.isDirectory)
@@ -43,7 +44,7 @@ class JsonFactorySignatureTest extends FlatSpec with Matchers {
       Class.forName(name + "$").getDeclaredClasses.toList
         .filter(c => classOf[Product].isAssignableFrom(c) && !c.getName.endsWith("$"))
         .flatMap { caseClass =>
-          try { org.json4s.reflect.Reflector.describe(org.json4s.reflect.Reflector.scalaTypeOf(caseClass)); None }
+          try { org.json4s.reflect.Reflector.describe(org.json4s.reflect.scalaTypeDescribable(org.json4s.reflect.Reflector.scalaTypeOf(caseClass))(org.json4s.DefaultFormats)); None }
           catch { case e: Throwable => Some(s"${caseClass.getName}: ${e.getMessage}") }
         }
     }

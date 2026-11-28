@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v7_0_0
 
+import org.json4s.jvalue2extractable
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
@@ -66,7 +67,7 @@ class ConsumerV700Test extends V600ServerSetup {
 
   feature(s"Consumer responses without the key, version $VersionOfApi") {
     scenario("A user without the Role cannot get a Consumer", GetConsumer, VersionOfApi) {
-      val response = makeGetRequest((v7_0_0_Request / "management" / "consumers" / testConsumer.consumerId.get).GET <@ (user1))
+      val response = makeGetRequest((v7_0_0_Request / "management" / "consumers" / testConsumer.consumerId).GET <@ (user1))
       response.code should equal(403)
       response.body.toString should include(canGetConsumers.toString)
     }

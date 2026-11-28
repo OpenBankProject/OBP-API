@@ -1,0 +1,195 @@
+# The indexes MySQL cannot build as the other databases do.
+#
+# InnoDB caps an index key at 3072 bytes, and utf8mb4 counts four bytes per character, so an index
+# over several VARCHAR(255) columns (or one long one) is refused with "Specified key was too long".
+# The changesets that create these indexes elsewhere carry dbms: '!mysql', and this file builds the
+# same indexes, under the same names, with a prefix length on the long columns.
+#
+# A unique index on a prefix is stricter than one on the whole value: two values that share their
+# first N characters are treated as equal. The prefixes keep every key at 3072 bytes or less while
+# leaving room for real identifiers, which are far shorter than the column widths.
+#
+# Every changeset is guarded by `not indexExists` with onFail: MARK_RAN, as the baseline's are.
+databaseChangeLog:
+  - changeSet:
+      id: mysql-create-index-etag_etagresource
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: etag_etagresource
+                tableName: etag
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX etag_etagresource ON etag (etagresource(768))
+  - changeSet:
+      id: mysql-create-index-mappeduserauthcontext_muserid_mkey_createdat
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: mappeduserauthcontext_muserid_mkey_createdat
+                tableName: mappeduserauthcontext
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX mappeduserauthcontext_muserid_mkey_createdat ON mappeduserauthcontext (muserid, mkey(700), createdat)
+  - changeSet:
+      id: mysql-create-index-counterpartylimit_bankid_accountid_viewid_counterpartyid
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: counterpartylimit_bankid_accountid_viewid_counterpartyid
+                tableName: counterpartylimit
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX counterpartylimit_bankid_accountid_viewid_counterpartyid ON counterpartylimit (bankid(191), accountid(191), viewid(191), counterpartyid(191))
+  - changeSet:
+      id: mysql-create-index-viewpermission_bank_id_account_id_view_id_permission
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: viewpermission_bank_id_account_id_view_id_permission
+                tableName: viewpermission
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX viewpermission_bank_id_account_id_view_id_permission ON viewpermission (bank_id(200), account_id(200), view_id, permission)
+  - changeSet:
+      id: mysql-create-index-accountaccess_bank_id_account_id_view_id_user_fk_consumer_id
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: accountaccess_bank_id_account_id_view_id_user_fk_consumer_id
+                tableName: accountaccess
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX accountaccess_bank_id_account_id_view_id_user_fk_consumer_id ON accountaccess (bank_id(200), account_id(200), view_id, user_fk, consumer_id)
+  - changeSet:
+      id: mysql-create-index-metricarchive_url
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: metricarchive_url
+                tableName: metricarchive
+      changes:
+        - sql:
+            sql: CREATE INDEX metricarchive_url ON metricarchive (url(768))
+  - changeSet:
+      id: mysql-create-index-consumer_account_access_bank_id_account_id
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: consumer_account_access_bank_id_account_id
+                tableName: consumer_account_access
+      changes:
+        - sql:
+            sql: CREATE INDEX consumer_account_access_bank_id_account_id ON consumer_account_access (bank_id, account_id)
+  - changeSet:
+      id: mysql-create-index-consumer_account_access_consumer_account_access_id
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: consumer_account_access_consumer_account_access_id
+                tableName: consumer_account_access
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX consumer_account_access_consumer_account_access_id ON consumer_account_access (consumer_account_access_id)
+  - changeSet:
+      id: mysql-create-index-consumer_account_access_consumer_id_bank_id_account_id_view_id
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: consumer_account_access_consumer_id_bank_id_account_id_view_id
+                tableName: consumer_account_access
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX consumer_account_access_consumer_id_bank_id_account_id_view_id ON consumer_account_access (consumer_id(191), bank_id(191), account_id(191), view_id(191))
+  - changeSet:
+      id: mysql-create-index-dynamic_entity_webhook_bank_id_entity_name
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamic_entity_webhook_bank_id_entity_name
+                tableName: dynamic_entity_webhook
+      changes:
+        - sql:
+            sql: CREATE INDEX dynamic_entity_webhook_bank_id_entity_name ON dynamic_entity_webhook (bank_id, entity_name)
+  - changeSet:
+      id: mysql-create-index-dynamic_entity_webhook_dynamic_entity_id_url
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamic_entity_webhook_dynamic_entity_id_url
+                tableName: dynamic_entity_webhook
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX dynamic_entity_webhook_dynamic_entity_id_url ON dynamic_entity_webhook (dynamic_entity_id, url(500))
+  - changeSet:
+      id: mysql-create-index-dynamic_entity_webhook_webhook_id
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamic_entity_webhook_webhook_id
+                tableName: dynamic_entity_webhook
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX dynamic_entity_webhook_webhook_id ON dynamic_entity_webhook (webhook_id)
+  - changeSet:
+      id: mysql-create-index-dynamicdataaccess_bankid_entityname_dynamicdataid_userid
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamicdataaccess_bankid_entityname_dynamicdataid_userid
+                tableName: dynamicdataaccess
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX dynamicdataaccess_bankid_entityname_dynamicdataid_userid ON dynamicdataaccess (bankid(191), entityname(191), dynamicdataid(191), userid(191))
+  - changeSet:
+      id: mysql-create-index-dynamicdataorganisationaccess_bankid_entityname_dynamicdataid_o
+      author: obp
+      dbms: mysql,mariadb
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: dynamicdataorganisationaccess_bankid_entityname_dynamicdataid_o
+                tableName: dynamicdataorganisationaccess
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX dynamicdataorganisationaccess_bankid_entityname_dynamicdataid_o ON dynamicdataorganisationaccess (bankid(240), entityname(240), dynamicdataid(240), organisationid)

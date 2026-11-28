@@ -478,14 +478,14 @@ class API2_2_0Test extends V220ServerSetup with DefaultUsers {
     // }
   // }
   
-  feature("Get Message Docs - v2.2.0"){
-    scenario("Get Message Docs - akka_vDec2018") {
+  Feature("Get Message Docs - v2.2.0"){
+    Scenario("Get Message Docs - akka_vDec2018") {
       val request = (v2_2Request / "message-docs" / "akka_vDec2018" )
       val response: APIResponse = makeGetRequest(request)
   
       response.code should be (200)
     }      
-    scenario("Get Message Docs - stored_procedure_vDec2019") {
+    Scenario("Get Message Docs - stored_procedure_vDec2019") {
       val request = (v2_2Request / "message-docs" / "stored_procedure_vDec2019" )
       val response: APIResponse = makeGetRequest(request)
   

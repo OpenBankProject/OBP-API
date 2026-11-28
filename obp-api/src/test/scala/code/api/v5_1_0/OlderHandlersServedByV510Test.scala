@@ -183,7 +183,7 @@ class OlderHandlersServedByV510Test extends V510ServerSetup {
         Some("enable-disable-test"), None, Some("enable/disable test"), Some("test@example.com"),
         None, Some(resourceUser1.userId), None, None, None
       ).openOrThrowException("Could not create the test consumer")
-      val request = v5_1_0_Request / "management" / "consumers" / target.consumerId.get
+      val request = v5_1_0_Request / "management" / "consumers" / target.consumerId
 
       makePutRequest(request.PUT, write(PutEnabledJSON(false))).code should equal(401)
       val noRole = makePutRequest(request.PUT <@ (user1), write(PutEnabledJSON(false)))
@@ -193,7 +193,7 @@ class OlderHandlersServedByV510Test extends V510ServerSetup {
       val disabled = makePutRequest(request.PUT <@ (user1), write(PutEnabledJSON(false)))
       disabled.code should equal(200)
       disabled.body.extract[PutEnabledJSON].enabled should equal(false)
-      isActive(target.consumerId.get) should equal(false)
+      isActive(target.consumerId) should equal(false)
 
       Then("enabling needs its own role")
       val enableWithoutRole = makePutRequest(request.PUT <@ (user1), write(PutEnabledJSON(true)))
@@ -202,12 +202,12 @@ class OlderHandlersServedByV510Test extends V510ServerSetup {
       val enabled = makePutRequest(request.PUT <@ (user1), write(PutEnabledJSON(true)))
       enabled.code should equal(200)
       enabled.body.extract[PutEnabledJSON].enabled should equal(true)
-      isActive(target.consumerId.get) should equal(true)
+      isActive(target.consumerId) should equal(true)
     }
   }
 
   private def isActive(consumerId: String): Boolean =
-    Consumers.consumers.vend.getConsumerByConsumerId(consumerId).map(_.isActive.get).openOrThrowException("consumer not found")
+    Consumers.consumers.vend.getConsumerByConsumerId(consumerId).map(_.isActive).openOrThrowException("consumer not found")
 
   feature("GET /entitlements (v3.1.0 getAllEntitlements)") {
     scenario("listing every entitlement needs a login and the role for any user at any bank", GetAllEntitlements, VersionOfApi) {

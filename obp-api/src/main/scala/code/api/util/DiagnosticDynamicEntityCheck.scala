@@ -198,7 +198,7 @@ object DiagnosticDynamicEntityCheck {
       // same conversion; reading it raw would report every system level record as orphaned.
       val allDataRecords = DynamicData.findAll()
       val grouped = allDataRecords.groupBy { record =>
-        (record.dynamicEntityName, code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrNoneForSystem(record.BankId.get))
+        (record.dynamicEntityName, code.api.dynamic.entity.helper.DynamicEntitySpace.bankIdOrNoneForSystem(record.bankId.orNull))
       }
 
       // Find groups that have no matching definition

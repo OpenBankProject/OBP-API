@@ -3,7 +3,8 @@ package code.util
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.{Level, Logger => LogbackLogger}
 import ch.qos.logback.core.AppenderBase
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.{CopyOnWriteArrayList, TimeUnit}
@@ -16,7 +17,7 @@ import java.util.concurrent.{CopyOnWriteArrayList, TimeUnit}
  * reliably reaches the underlying logger (just asynchronously), and that it does so on a
  * thread other than the caller's.
  */
-class MdcLoggableDispatchTest extends FlatSpec with Matchers {
+class MdcLoggableDispatchTest extends AnyFlatSpec with Matchers {
 
   private object ProbeLogger extends Helper.MdcLoggable {
     // `logger` is protected on the MdcLoggable/Loggable trait -- only reachable from within a

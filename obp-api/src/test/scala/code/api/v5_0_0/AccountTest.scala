@@ -67,14 +67,24 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
   lazy val putCreateAccountJSONV310 = SwaggerDefinitionsJSON.createAccountRequestJsonV310.copy(user_id = resourceUser1.userId, balance = AmountOfMoneyJsonV121("EUR","0"))
   lazy val putCreateAccountOtherUserJsonV310 = SwaggerDefinitionsJSON.createAccountRequestJsonV310
     .copy(user_id = resourceUser2.userId, balance = AmountOfMoneyJsonV121("EUR","0"),
-    account_routings = List(AccountRoutingJsonV121(Random.nextString(10), Random.nextString(10))))
+    account_routings = List(AccountRoutingJsonV121(randomText(10), randomText(10))))
+
+  /**
+   * Random text across the Basic Multilingual Plane, without control characters or white space. Random.nextString
+   * can end a value in a control character, which the account routing's trim removes, so the value read back
+   * differed from the one sent whenever the last character drawn happened to be one.
+   */
+  private def randomText(length: Int): String =
+    Iterator.continually((Random.nextInt(0xD7FF - 0x21) + 0x21).toChar)
+      .filterNot(c => Character.isISOControl(c) || Character.isWhitespace(c) || Character.isSpaceChar(c))
+      .take(length).mkString
 
   val userAccountId = UUID.randomUUID.toString
   val user2AccountId = UUID.randomUUID.toString
 
 
-  feature(s"Create Account $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"Create Account $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request310 = (v5_0_0_Request / "banks" / testBankId.value / "accounts" / "ACCOUNT_ID" ).PUT
       val response310 = makePutRequest(request310, write(putCreateAccountJSONV310))
@@ -84,8 +94,8 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
   }
-  feature(s"Create Account $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"Create Account $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.canCreateAccount.toString())
       val request = (v5_0_0_Request / "banks" / testBankId.value / "accounts" / "TEST_ACCOUNT_ID" ).PUT <@(user1)
@@ -154,7 +164,7 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
 
     }
 
-    scenario("Create new account will have system owner view, and other use also have the system owner view should not get the account back", ApiEndpoint2, VersionOfApi) {
+    Scenario("Create new account will have system owner view, and other use also have the system owner view should not get the account back", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.canCreateAccount.toString)
       val request500 = (v5_0_0_Request / "banks" / testBankId.value / "accounts" / userAccountId ).PUT <@(user1)
@@ -198,7 +208,7 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
       
     }
 
-    scenario("Create new account with an already existing routing scheme/address should not create the account", ApiEndpoint2, VersionOfApi) {
+    Scenario("Create new account with an already existing routing scheme/address should not create the account", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi to create the first account")
       Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.canCreateAccount.toString)
       val request310_1 = (v5_0_0_Request / "banks" / testBankId.value / "accounts" / "TEST_ACCOUNT_ID_1" ).PUT <@(user1)
@@ -230,7 +240,7 @@ class AccountTest extends V500ServerSetup with DefaultUsers {
       responseApiGetAccount.code should equal(404)
     }
 
-    scenario("Create new account with a duplication in routing scheme should not create the account", ApiEndpoint2, VersionOfApi) {
+    Scenario("Create new account with a duplication in routing scheme should not create the account", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi to create the account")
       Entitlement.entitlement.vend.addEntitlement(testBankId.value, resourceUser1.userId, ApiRole.canCreateAccount.toString)
       val request500 = (v5_0_0_Request / "banks" / testBankId.value / "accounts" / userAccountId ).PUT <@(user1)

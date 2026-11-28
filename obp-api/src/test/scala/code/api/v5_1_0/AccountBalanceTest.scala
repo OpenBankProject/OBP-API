@@ -58,8 +58,8 @@ class AccountBalanceTest extends V510ServerSetup {
   def requestGetAccountsBalances(): OBPReq = (v5_1_0_Request / "banks" / bankAccount.bank_id / "balances").GET
   def requestGetAccountsBalancesThroughView(viewId: String = "None"): OBPReq = (v5_1_0_Request / "banks" / bankAccount.bank_id / "views" / viewId / "balances").GET
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val responseGetAccountBalances = makeGetRequest(requestGetAccountBalances())
       Then("We should get a 401")
@@ -67,15 +67,15 @@ class AccountBalanceTest extends V510ServerSetup {
       responseGetAccountBalances.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access, no proper view") {
-    scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access, no proper view") {
+    Scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1) {
       val responseGetAccountBalances = makeGetRequest(requestGetAccountBalances() <@ user1)
       Then("We should get a 403")
       responseGetAccountBalances.code should equal(403)
     }
   }
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with proper view") {
-    scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access with proper view") {
+    Scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1) {
       val responseGetAccountBalances = makeGetRequest(requestGetAccountBalances("owner") <@ user1)
       Then("We should get a 200")
       responseGetAccountBalances.code should equal(200)
@@ -83,8 +83,8 @@ class AccountBalanceTest extends V510ServerSetup {
   }
 
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val responseGetAccountBalances = makeGetRequest(requestGetAccountsBalances())
       Then("We should get a 401")
@@ -92,8 +92,8 @@ class AccountBalanceTest extends V510ServerSetup {
       responseGetAccountBalances.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access with proper view") {
-    scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Authorized access with proper view") {
+    Scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1) {
 
       val responseGetAccountBalances = makeGetRequest(requestGetAccountsBalances() <@ user1)
       Then("We should get a 200")
@@ -125,8 +125,8 @@ class AccountBalanceTest extends V510ServerSetup {
   }
 
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       val responseGetAccountBalances = makeGetRequest(requestGetAccountsBalancesThroughView("owner"))
       Then("We should get a 401")

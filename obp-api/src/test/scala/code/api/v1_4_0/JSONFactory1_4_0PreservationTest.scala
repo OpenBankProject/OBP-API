@@ -31,8 +31,10 @@ import code.api.util.CustomJsonFormats
 import code.util.Helper.MdcLoggable
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, GivenWhenThen}
 import java.util.Date
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Preservation Property Tests for Non-Nested Array Behavior
@@ -50,7 +52,7 @@ import java.util.Date
  * 
  * Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5
  */
-class JSONFactory1_4_0PreservationTest extends FeatureSpec 
+class JSONFactory1_4_0PreservationTest extends AnyFeatureSpec 
   with BeforeAndAfterEach 
   with GivenWhenThen
   with BeforeAndAfterAll
@@ -58,9 +60,9 @@ class JSONFactory1_4_0PreservationTest extends FeatureSpec
   with MdcLoggable 
   with CustomJsonFormats {
   
-  feature("Preservation: Single-Level Arrays of Primitives") {
+  Feature("Preservation: Single-Level Arrays of Primitives") {
     
-    scenario("Single-level array of integers should generate correct array schema") {
+    Scenario("Single-level array of integers should generate correct array schema") {
       Given("A single-level array of integers: List(1, 2, 3)")
       val intArray = JArray(List(JInt(1), JInt(2), JInt(3)))
       val testObject = JObject(List(JField("numbers", intArray)))
@@ -85,7 +87,7 @@ class JSONFactory1_4_0PreservationTest extends FeatureSpec
       itemProps should not be JNothing
     }
     
-    scenario("Single-level array of strings should generate correct array schema") {
+    Scenario("Single-level array of strings should generate correct array schema") {
       Given("A single-level array of strings: List('a', 'b', 'c')")
       val stringArray = JArray(List(JString("a"), JString("b"), JString("c")))
       val testObject = JObject(List(JField("tags", stringArray)))
@@ -110,7 +112,7 @@ class JSONFactory1_4_0PreservationTest extends FeatureSpec
       itemProps should not be JNothing
     }
     
-    scenario("Single-level array of booleans should generate correct array schema") {
+    Scenario("Single-level array of booleans should generate correct array schema") {
       Given("A single-level array of booleans: List(true, false)")
       val boolArray = JArray(List(JBool(true), JBool(false)))
       val testObject = JObject(List(JField("flags", boolArray)))
@@ -135,7 +137,7 @@ class JSONFactory1_4_0PreservationTest extends FeatureSpec
       itemProps should not be JNothing
     }
     
-    scenario("Single-level array of doubles should generate correct array schema") {
+    Scenario("Single-level array of doubles should generate correct array schema") {
       Given("A single-level array of doubles: List(1.5, 2.5, 3.5)")
       val doubleArray = JArray(List(JDouble(1.5), JDouble(2.5), JDouble(3.5)))
       val testObject = JObject(List(JField("values", doubleArray)))
@@ -161,9 +163,9 @@ class JSONFactory1_4_0PreservationTest extends FeatureSpec
     }
   }
   
-  feature("Preservation: Arrays of Objects") {
+  Feature("Preservation: Arrays of Objects") {
     
-    scenario("Array of objects should generate array schema with object items") {
+    Scenario("Array of objects should generate array schema with object items") {
       Given("An array of objects with properties")
       val objectArray = JArray(List(
         JObject(List(
@@ -205,9 +207,9 @@ class JSONFactory1_4_0PreservationTest extends FeatureSpec
     }
   }
   
-  feature("Preservation: Primitive Types (Non-Arrays)") {
+  Feature("Preservation: Primitive Types (Non-Arrays)") {
     
-    scenario("String field should generate string schema") {
+    Scenario("String field should generate string schema") {
       Given("A simple string field")
       val testObject = JObject(List(JField("name", JString("test"))))
       
@@ -224,7 +226,7 @@ class JSONFactory1_4_0PreservationTest extends FeatureSpec
       (nameField \ "type").extract[String] shouldBe "string"
     }
     
-    scenario("Integer field should generate integer schema") {
+    Scenario("Integer field should generate integer schema") {
       Given("A simple integer field")
       val testObject = JObject(List(JField("count", JInt(42))))
       
@@ -241,7 +243,7 @@ class JSONFactory1_4_0PreservationTest extends FeatureSpec
       (countField \ "type").extract[String] shouldBe "integer"
     }
     
-    scenario("Double field should generate number schema") {
+    Scenario("Double field should generate number schema") {
       Given("A simple double field")
       val testObject = JObject(List(JField("price", JDouble(19.99))))
       
@@ -258,7 +260,7 @@ class JSONFactory1_4_0PreservationTest extends FeatureSpec
       (priceField \ "type").extract[String] shouldBe "number"
     }
     
-    scenario("Boolean field should generate boolean schema") {
+    Scenario("Boolean field should generate boolean schema") {
       Given("A simple boolean field")
       val testObject = JObject(List(JField("active", JBool(true))))
       
@@ -276,9 +278,9 @@ class JSONFactory1_4_0PreservationTest extends FeatureSpec
     }
   }
   
-  feature("Preservation: Wrapped Values") {
+  Feature("Preservation: Wrapped Values") {
     
-    scenario("Some(value) should unwrap and generate correct schema") {
+    Scenario("Some(value) should unwrap and generate correct schema") {
       Given("A value wrapped in Some")
       // Simulate Some by using the same pattern translateEntity handles
       val testObject = JObject(List(JField("optional", JString("value"))))
@@ -296,7 +298,7 @@ class JSONFactory1_4_0PreservationTest extends FeatureSpec
       (optionalField \ "type").extract[String] shouldBe "string"
     }
     
-    scenario("Some(List(...)) should generate array schema") {
+    Scenario("Some(List(...)) should generate array schema") {
       Given("A list wrapped in Some")
       val listValue = JArray(List(JInt(1), JInt(2), JInt(3)))
       val testObject = JObject(List(JField("optionalList", listValue)))
@@ -318,9 +320,9 @@ class JSONFactory1_4_0PreservationTest extends FeatureSpec
     }
   }
   
-  feature("Preservation: Complex Object Structures") {
+  Feature("Preservation: Complex Object Structures") {
     
-    scenario("Nested object (non-array) should generate nested object schema") {
+    Scenario("Nested object (non-array) should generate nested object schema") {
       Given("An object containing another object")
       val nestedObject = JObject(List(
         JField("user", JObject(List(
@@ -356,7 +358,7 @@ class JSONFactory1_4_0PreservationTest extends FeatureSpec
       (emailProp \ "type").extract[String] shouldBe "string"
     }
     
-    scenario("Object with mixed field types should generate correct schema") {
+    Scenario("Object with mixed field types should generate correct schema") {
       Given("An object with various field types")
       val mixedObject = JObject(List(
         JField("id", JInt(123)),

@@ -36,6 +36,7 @@ import com.openbankproject.commons.util.JsonAliases.{compactRender, parse}
 import org.json4s.{Extraction, Formats}
 
 import scala.util.Try
+import org.json4s.jvalue2extractable
 
 /**
  * This object keeps the list of IP addresses an operator has put under a temporary rate limit, a

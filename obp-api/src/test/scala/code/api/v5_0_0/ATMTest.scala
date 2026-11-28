@@ -55,8 +55,8 @@ class ATMTest extends V500ServerSetup {
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_0_0.headAtms))
 
 
-  feature("Head Bank ATMS v5.0.0") {
-    scenario("We will call the Add endpoint properly", ApiEndpoint1, VersionOfApi) {
+  Feature("Head Bank ATMS v5.0.0") {
+    Scenario("We will call the Add endpoint properly", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.0.0")
       lazy val bankId = randomBankId
       val request500 = (v5_0_0_Request / "banks" / bankId / "atms").HEAD
@@ -64,7 +64,7 @@ class ATMTest extends V500ServerSetup {
       Then("We should get a 200")
       response500.code should equal(200)
     }
-    scenario("We will call the Add endpoint with wrong BankId", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Add endpoint with wrong BankId", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.0.0")
       val request500 = (v5_0_0_Request / "banks" / "xx_non_existing_bank_id" / "atms").HEAD
       val response500 = makeHeadRequest(request500)

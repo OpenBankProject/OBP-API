@@ -1,0 +1,264 @@
+# The root changelog: the single description of the schema that every vendor's DDL is generated
+# from.
+#
+# Why one description instead of the 118-per-vendor arrangement it replaces: Flyway applies
+# hand-written SQL, so supporting a database means writing and maintaining a whole script set in
+# its dialect - which is why h2 and postgres have 118 scripts each and mysql, sqlserver and oracle
+# have none at all, despite FlywaySchemaSetup.vendorFolder naming all five. Liquibase generates
+# each vendor's dialect from the change described once, so a deployment on a database nobody here
+# runs is a supported configuration rather than a missing folder.
+#
+# The split is by provenance, which is the distinction that matters when any of this is
+# regenerated:
+#
+#   baseline  generated from a Postgres database built by the Flyway scripts, so it inherits
+#             Schemifier's exported DDL rather than a hand-written idea of the schema. Regenerate
+#             it with scripts/GenerateChangelog.java + scripts/normalise_generated_changelog.py;
+#             do not hand-edit it.
+#   oidc-views  hand-written. The three views OBP-OIDC and the Keycloak provider read, which no
+#             other mechanism creates - a fresh database used to come up with OIDC login broken and
+#             nothing saying why. Included after the baseline, since they read its tables.
+#   app-views hand-written. The two views the application's own request paths read, v_consent and
+#             v_account_access_with_views. They were left to the MigrationOf* scripts, which run
+#             only when migration_scripts.enabled AND migration_scripts.execute_all are both true -
+#             both default false - so a deployment from the shipped props template came up with
+#             every table present and 500ed on the first request that touched a consent. Carries
+#             the same oidc-views context, which marks the pass that runs after those scripts.
+#   dedup     hand-written. The DELETEs that make the unique indexes creatable, which a snapshot
+#             cannot see and which therefore have to be carried across by hand. Included first, so
+#             each runs before the createIndex it clears the way for.
+#
+# text.type is the one column type with no portable spelling. Lift's MappedText became
+# CHARACTER VARYING(1000000000) on H2 - Schemifier's own output - and the H2 -> Postgres
+# translation had to turn that into TEXT, since Postgres caps varchar at 10485760. Liquibase's
+# built-in TEXT is not a substitute for either: on H2 it produces CHARACTER LARGE OBJECT, a CLOB
+# read through a different JDBC path than a varchar, across 36 columns of the database the entire
+# test suite runs against. So each vendor names its own, and H2SchemaEquivalenceTest and
+# SchemaEquivalenceTest hold the result against what the scripts build.
+databaseChangeLog:
+  - property:
+      name: text.type
+      value: VARCHAR(1000000000)
+      dbms: h2
+  - property:
+      name: text.type
+      value: TEXT
+      dbms: postgresql
+  - property:
+      name: text.type
+      value: LONGTEXT
+      dbms: mysql,mariadb
+  - property:
+      name: text.type
+      value: NVARCHAR(MAX)
+      dbms: mssql
+  - property:
+      name: text.type
+      value: CLOB
+      dbms: oracle
+  # A VARCHAR with no length is unbounded on Postgres and H2, where the baseline was generated. MySQL refuses
+  # it, and SQL Server reads it as VARCHAR(1), so every value longer than one character fails to insert.
+  # Postgres and H2 keep the spelling they were created with, so their checksums do not move.
+  - property:
+      name: unbounded.varchar.type
+      value: VARCHAR
+      dbms: h2
+  - property:
+      name: unbounded.varchar.type
+      value: VARCHAR
+      dbms: postgresql
+  - property:
+      name: unbounded.varchar.type
+      value: LONGTEXT
+      dbms: mysql,mariadb
+  - property:
+      name: unbounded.varchar.type
+      value: NVARCHAR(MAX)
+      dbms: mssql
+  - property:
+      name: unbounded.varchar.type
+      value: CLOB
+      dbms: oracle
+  # The OIDC views compare booleans and cast one column, and neither has a portable spelling. Postgres and H2
+  # compare a BOOLEAN with `true`; SQL Server, MySQL and Oracle store it as a number and need `1`. Postgres and
+  # H2 keep the text the views were created with, so their checksums do not move.
+  - property:
+      name: boolean.true
+      value: 'true'
+      dbms: h2
+  - property:
+      name: boolean.true
+      value: 'true'
+      dbms: postgresql
+  - property:
+      name: boolean.true
+      value: '1'
+      dbms: mysql,mariadb
+  - property:
+      name: boolean.true
+      value: '1'
+      dbms: mssql
+  - property:
+      name: boolean.true
+      value: '1'
+      dbms: oracle
+  - property:
+      name: oidc.username.column
+      value: 'au.username::text'
+      dbms: h2
+  - property:
+      name: oidc.username.column
+      value: 'au.username::text'
+      dbms: postgresql
+  - property:
+      name: oidc.username.column
+      value: 'au.username'
+      dbms: mysql,mariadb
+  - property:
+      name: oidc.username.column
+      value: 'au.username'
+      dbms: mssql
+  - property:
+      name: oidc.username.column
+      value: 'au.username'
+      dbms: oracle
+  # MySQL's TIMESTAMP holds only 1970 to 2038, and the application writes dates outside that range (a
+  # customer's face-image time defaults to 1100-01-01). DATETIME(6) holds them at microsecond precision. The
+  # other databases keep TIMESTAMP, so their checksums do not move.
+  - property:
+      name: timestamp.type
+      value: TIMESTAMP
+      dbms: h2
+  - property:
+      name: timestamp.type
+      value: TIMESTAMP
+      dbms: postgresql
+  - property:
+      name: timestamp.type
+      value: DATETIME(6)
+      dbms: mysql,mariadb
+  - property:
+      name: timestamp.type
+      value: TIMESTAMP
+      dbms: mssql
+  - property:
+      name: timestamp.type
+      value: TIMESTAMP
+      dbms: oracle
+  # Oracle cannot alter a VARCHAR2 column into a CLOB, so the six dynamicresourcedoc text columns that later
+  # changesets widen to ${text.type} are created as CLOB there in the first place, and the widenings, finding
+  # no column left at 255, mark themselves run. Elsewhere they start at VARCHAR(255) as before.
+  - property:
+      name: dynamicresourcedoc.text.type
+      value: VARCHAR(255)
+      dbms: h2
+  - property:
+      name: dynamicresourcedoc.text.type
+      value: VARCHAR(255)
+      dbms: postgresql
+  - property:
+      name: dynamicresourcedoc.text.type
+      value: VARCHAR(255)
+      dbms: mysql,mariadb
+  - property:
+      name: dynamicresourcedoc.text.type
+      value: VARCHAR(255)
+      dbms: mssql
+  - property:
+      name: dynamicresourcedoc.text.type
+      value: CLOB
+      dbms: oracle
+  # The width preconditions read the column catalogue. Oracle has no information_schema; user_tab_columns holds
+  # the same facts for the schema the application logs into, under other names.
+  - property:
+      name: column.catalog
+      value: information_schema.columns
+      dbms: h2
+  - property:
+      name: column.catalog
+      value: information_schema.columns
+      dbms: postgresql
+  - property:
+      name: column.catalog
+      value: information_schema.columns
+      dbms: mysql,mariadb
+  - property:
+      name: column.catalog
+      value: information_schema.columns
+      dbms: mssql
+  - property:
+      name: column.catalog
+      value: '(SELECT table_name, column_name, char_length AS character_maximum_length FROM user_tab_columns)'
+      dbms: oracle
+  # transactionrequestattribute.value is compared with = in the attribute queries, and Oracle cannot compare a CLOB,
+  # so there it is VARCHAR2(4000). Everywhere else it is the unbounded text the other unbounded columns are.
+  - property:
+      name: attribute.value.type
+      value: VARCHAR
+      dbms: h2
+  - property:
+      name: attribute.value.type
+      value: VARCHAR
+      dbms: postgresql
+  - property:
+      name: attribute.value.type
+      value: LONGTEXT
+      dbms: mysql,mariadb
+  - property:
+      name: attribute.value.type
+      value: NVARCHAR(MAX)
+      dbms: mssql
+  - property:
+      name: attribute.value.type
+      value: VARCHAR2(4000)
+      dbms: oracle
+  # Binary content has no portable spelling either: Liquibase's BLOB is an oid reference on Postgres,
+  # which a plain bytea value cannot be written to.
+  - property:
+      name: blob.type
+      value: BLOB
+      dbms: h2
+  - property:
+      name: blob.type
+      value: BYTEA
+      dbms: postgresql
+  - property:
+      name: blob.type
+      value: LONGBLOB
+      dbms: mysql,mariadb
+  - property:
+      name: blob.type
+      value: VARBINARY(MAX)
+      dbms: mssql
+  - property:
+      name: blob.type
+      value: BLOB
+      dbms: oracle
+  - include:
+      file: db/changelog/db.changelog-dedup.yaml
+  - include:
+      file: db/changelog/db.changelog-baseline.yaml
+  - include:
+      file: db/changelog/db.changelog-provenance.yaml
+  - include:
+      file: db/changelog/db.changelog-develop-merge.yaml
+  - include:
+      file: db/changelog/db.changelog-develop-merge-2.yaml
+  - include:
+      file: db/changelog/db.changelog-develop-merge-3.yaml
+  - include:
+      file: db/changelog/db.changelog-dynamic-entity-space.yaml
+  - include:
+      file: db/changelog/db.changelog-develop-merge-4a.yaml
+  - include:
+      file: db/changelog/db.changelog-develop-merge-4b.yaml
+  # MySQL's own copies of the indexes it cannot build as the others do; see that file.
+  - include:
+      file: db/changelog/db.changelog-mysql.yaml
+  # Oracle's own corrections; see that file.
+  - include:
+      file: db/changelog/db.changelog-oracle.yaml
+  - include:
+      file: db/changelog/db.changelog-oidc-views.yaml
+  - include:
+      file: db/changelog/db.changelog-app-views.yaml

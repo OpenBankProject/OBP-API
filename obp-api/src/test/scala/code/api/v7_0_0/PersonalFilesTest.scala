@@ -35,7 +35,6 @@ import code.api.util.ErrorMessages._
 import code.api.v6_0_0.V600ServerSetup
 import code.entitlement.Entitlement
 import code.model.dataAccess.{AuthUser, ResourceUser}
-import net.liftweb.mapper.By
 import code.setup.{APIResponse, OBPReq}
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
@@ -43,6 +42,7 @@ import org.json4s.JsonAST._
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods.{compact, render}
 import org.json4s.native.Serialization.write
+import org.json4s.{jvalue2extractable, jvalue2monadic}
 import org.scalatest.Tag
 
 /**
@@ -71,22 +71,22 @@ class PersonalFilesTest extends V600ServerSetup {
   private val loginsMadeHere = scala.collection.mutable.Set[Long]()
 
   private def setValidated(user: ResourceUser, validated: Boolean): Unit = {
-    val login = AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value)).openOr {
+    val login = AuthUser.findByResourceUserPrimaryKey(user.userPrimaryKey.value).openOr {
       // AuthUser.save copies username into the User's name and provider id, so it must be the provider id it has.
-      val made = AuthUser.create.user(user.userPrimaryKey.value).username(user.providerId.get).email(user.emailAddress)
-        .provider(code.api.Constant.localIdentityProvider).password("Aa1!" + generateUUID()).saveMe()
-      loginsMadeHere += made.id.get
+      val made = AuthUser(user = user.userPrimaryKey.value, username = user.idGivenByProvider, email = user.emailAddress,
+        provider = code.api.Constant.localIdentityProvider).withPassword("Aa1!" + generateUUID()).saveMe()
+      loginsMadeHere += made.id
       made
     }
-    login.validated(validated).saveMe()
+    login.setValidated(validated).saveMe()
   }
 
   /**
-   * The logins made here go, so later suites see the test Users as they were. bulkDelete_!! removes the login rows
+   * The logins made here go, so later suites see the test Users as they were. AuthUser.delete removes the login rows
    * only: AuthUser.delete_! would also delete the Users themselves.
    */
   override def afterAll(): Unit = {
-    loginsMadeHere.foreach(id => AuthUser.bulkDelete_!!(By(AuthUser.id, id)))
+    loginsMadeHere.foreach(id => AuthUser.delete(id))
     super.afterAll()
   }
 

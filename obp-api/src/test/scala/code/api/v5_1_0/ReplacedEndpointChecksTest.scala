@@ -172,7 +172,7 @@ class ReplacedEndpointChecksTest extends V510ServerSetup {
   private def authContextUpdatesPath(bank: String) = v5_1_0_Request / "banks" / bank / "users" / "current" / "auth-context-updates"
 
   private def consumerPrimaryKeyOf(user: Option[(Consumer, Token)]): String =
-    Consumers.consumers.vend.getConsumerByConsumerKey(user.get._1.key).map(_.id.get.toString).getOrElse("")
+    Consumers.consumers.vend.getConsumerByConsumerKey(user.get._1.key).map(_.id.toString).getOrElse("")
 
   private def challengeOf(userId: String, authContextUpdateId: String): String =
     UserAuthContextUpdateProvider.userAuthContextUpdateProvider.vend.getUserAuthContextUpdatesBox(userId)

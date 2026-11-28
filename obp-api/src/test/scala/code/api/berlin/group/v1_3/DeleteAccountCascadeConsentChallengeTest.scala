@@ -31,10 +31,11 @@ import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.StartConsentAutho
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.entitlement.Entitlement
-import code.model.dataAccess.BankAccountRouting
+import code.bankconnectors.DoobieBankAccountRoutingQueries
 import code.transactionChallenge.MappedExpectedChallengeAnswer
+import com.openbankproject.commons.model.{AccountId, BankId}
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
-import net.liftweb.mapper.By
+import org.json4s.jvalue2extractable
 import org.scalatest.Tag
 
 /**
@@ -48,14 +49,12 @@ class DeleteAccountCascadeConsentChallengeTest extends BerlinGroupConsentFixture
   object DeleteAccountCascadeConsentChallenge extends Tag("DeleteAccountCascadeConsentChallenge")
 
   private def ibanOf(bankId: String, accountId: String): String =
-    BankAccountRouting.find(
-      By(BankAccountRouting.BankId, bankId),
-      By(BankAccountRouting.AccountId, accountId),
-      By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)
-    ).openOrThrowException(s"no IBAN for $bankId/$accountId").accountRouting.address
+    DoobieBankAccountRoutingQueries.findByBankAccountScheme(
+      BankId(bankId), AccountId(accountId), AccountRoutingScheme.IBAN.toString
+    ).getOrElse(throw new IllegalStateException(s"no IBAN for $bankId/$accountId")).accountRouting.address
 
   private def challengesOf(consentId: String): Int =
-    MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.ConsentId, consentId)).size
+    MappedExpectedChallengeAnswer.findAllByConsentId(consentId).size
 
   // The consent is lodged for one account and resourceUser1 starts its authorisation, which binds
   // the PSU and mints the challenge; the challenge is left unanswered.

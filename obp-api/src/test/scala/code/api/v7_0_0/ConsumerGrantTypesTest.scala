@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
 */
 package code.api.v7_0_0
 
+import org.json4s.jvalue2monadic
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.isApplicationActingAsItself
 import code.api.util.ApiRole.{CanGetAnyUser, CanGetConsumers, CanUpdateConsumerGrantTypes}
@@ -42,7 +44,6 @@ import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods.{compact, render}
@@ -61,8 +62,8 @@ class ConsumerGrantTypesTest extends V600ServerSetup {
 
   /** Sets testConsumer2's grant types for the block, then clears them. */
   private def withGrantTypes(grantTypes: String*)(f: => Unit): Unit = {
-    await(Consumers.consumers.vend.updateConsumerGrantTypes(testConsumer2.id.get, grantTypes.toList))
-    try f finally await(Consumers.consumers.vend.updateConsumerGrantTypes(testConsumer2.id.get, Nil))
+    await(Consumers.consumers.vend.updateConsumerGrantTypes(testConsumer2.id, grantTypes.toList))
+    try f finally await(Consumers.consumers.vend.updateConsumerGrantTypes(testConsumer2.id, Nil))
   }
   private def await[T](f: scala.concurrent.Future[T]): T = scala.concurrent.Await.result(f, scala.concurrent.duration.Duration(10, "seconds"))
 
@@ -76,7 +77,7 @@ class ConsumerGrantTypesTest extends V600ServerSetup {
   feature("The rules") {
 
     scenario("parsing and the two kinds of Consumer", VersionOfApi) {
-      def consumer(value: String) = Consumer.create.grantTypes(value)
+      def consumer(value: String) = Consumer(grantTypes = value)
       ConsumerGrantTypes.parse(" Client_Credentials, ,client_credentials ") should equal(List("client_credentials"))
       ConsumerGrantTypes.unknown(List("client_credentials", "password")) should equal(List("password"))
 
@@ -109,7 +110,7 @@ class ConsumerGrantTypesTest extends V600ServerSetup {
 
     scenario("grant types do not decide whether the application acts as itself", VersionOfApi) {
       ensurePlatformApp(testConsumer2)
-      val consumerPk = testConsumer2.id.get.toString
+      val consumerPk = testConsumer2.id.toString
       withGrantTypes("client_credentials") {
         // A person's user is still a person: grant types only control how tokens are obtained.
         isApplicationActingAsItself(resourceUser2.userId, consumerPk) should be(false)
@@ -121,10 +122,10 @@ class ConsumerGrantTypesTest extends V600ServerSetup {
   feature("Get and Update Consumer Grant Types") {
 
     scenario("need their Roles", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
-      val get = makeGetRequest(grantTypesPath(testConsumer2.consumerId.get).GET <@ (user3))
+      val get = makeGetRequest(grantTypesPath(testConsumer2.consumerId).GET <@ (user3))
       get.code should equal(403)
       message(get) should include(UserHasMissingRoles)
-      val put = makePutRequest(grantTypesPath(testConsumer2.consumerId.get).PUT <@ (user3), body("client_credentials"))
+      val put = makePutRequest(grantTypesPath(testConsumer2.consumerId).PUT <@ (user3), body("client_credentials"))
       put.code should equal(403)
       message(put) should include(UserHasMissingRoles)
     }
@@ -132,7 +133,7 @@ class ConsumerGrantTypesTest extends V600ServerSetup {
     scenario("set, read and clear them; unknown values are refused", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanUpdateConsumerGrantTypes.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetConsumers.toString)
-      val path = grantTypesPath(testConsumer2.consumerId.get)
+      val path = grantTypesPath(testConsumer2.consumerId)
       try {
         val unknown = makePutRequest(path.PUT <@ (user1), body("password"))
         unknown.code should equal(400)
@@ -152,7 +153,7 @@ class ConsumerGrantTypesTest extends V600ServerSetup {
         (cleared.body \ "grant_types").extract[List[String]] should equal(Nil)
         (cleared.body \ "oauth2_grant_types").extract[List[String]] should equal(ConsumerGrantTypes.DefaultOAuth2)
       } finally {
-        await(Consumers.consumers.vend.updateConsumerGrantTypes(testConsumer2.id.get, Nil))
+        await(Consumers.consumers.vend.updateConsumerGrantTypes(testConsumer2.id, Nil))
       }
     }
   }
@@ -164,13 +165,13 @@ class ConsumerGrantTypesTest extends V600ServerSetup {
 
     scenario("not set: people and the application call through it as before", VersionOfApi) {
       makeGetRequest(currentUser <@ (user2)).code should equal(200)
-      val scope = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, CanGetAnyUser.toString)
+      val scope = Scope.scope.vend.addScope("", testConsumer2.id.toString, CanGetAnyUser.toString)
       try makeGetRequest(users <@ (application2)).code should equal(200)
       finally Scope.scope.vend.deleteScope(scope)
     }
 
     scenario("client credentials only: a person is refused, the application acts as itself", VersionOfApi) {
-      val scope = Scope.scope.vend.addScope("", testConsumer2.id.get.toString, CanGetAnyUser.toString)
+      val scope = Scope.scope.vend.addScope("", testConsumer2.id.toString, CanGetAnyUser.toString)
       try withGrantTypes("client_credentials") {
         val person = makeGetRequest(currentUser <@ (user2))
         person.code should equal(401)
@@ -198,23 +199,23 @@ class ConsumerGrantTypesTest extends V600ServerSetup {
       val key = randomString(40).toLowerCase
       val username = "grant.types." + randomString(8).toLowerCase
       val password = TestPasswordConfig.VALID_PASSWORD
-      AuthUser.create.email(s"$username@example.com").username(username).password(password).validated(true)
-        .firstName("Grant").lastName("Types").saveMe()
+      AuthUser(email = s"$username@example.com", username = username, validated = true,
+        firstName = "Grant", lastName = "Types").withPassword(password).saveMe()
       val consumer = Consumers.consumers.vend.createConsumer(Some(key), Some(randomString(40).toLowerCase), Some(true),
         Some("grant types test " + randomString(6)), None, Some("description"), Some("grant.types@example.com"),
         None, None, None, None, None).openOrThrowException("consumer")
       val login = v6_0_0_Request / "my" / "logins" / "direct"
       val headers = List(("DirectLogin", s"username=$username, password=$password, consumer_key=$key"))
       try {
-        await(Consumers.consumers.vend.updateConsumerGrantTypes(consumer.id.get, List("client_credentials")))
+        await(Consumers.consumers.vend.updateConsumerGrantTypes(consumer.id, List("client_credentials")))
         val refused = makePostRequestAdditionalHeader(login, "", headers)
         refused.code should equal(401)
         message(refused) should include("OBP-20410")
 
-        await(Consumers.consumers.vend.updateConsumerGrantTypes(consumer.id.get, List("direct_login")))
+        await(Consumers.consumers.vend.updateConsumerGrantTypes(consumer.id, List("direct_login")))
         makePostRequestAdditionalHeader(login, "", headers).code should equal(201)
       } finally {
-        AuthUser.find(By(AuthUser.username, username)).foreach(_.delete_!)
+        AuthUser.findByUsername(username).foreach(_.delete_!)
       }
     }
   }

@@ -27,6 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api.v6_0_0
 
+import org.json4s.jvalue2monadic
+import org.json4s.jvalue2extractable
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
@@ -38,7 +40,6 @@ import code.model.dataAccess.{BankRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankRoutingJson, ErrorMessage}
 import net.liftweb.common.Full
-import net.liftweb.mapper.By
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
@@ -81,8 +82,8 @@ class NubanAccountCreationTest extends V600ServerSetup with DefaultUsers {
   }
 
   private def numberFieldOf(accountId: String): String =
-    MappedBankAccount.find(By(MappedBankAccount.bank, testBankId1.value), By(MappedBankAccount.theAccountId, accountId))
-      .map(_.accountNumber.get).openOr("")
+    MappedBankAccount.find(testBankId1.value, accountId)
+      .map(_.accountNumber).openOr("")
 
   private def routingsShownBy(version: String, accountId: String): List[AccountRoutingJsonV121] = {
     val response = makeGetRequest((baseRequest / "obp" / version / "my" / "banks" / testBankId1.value / "accounts" / accountId / "account").GET <@ (user1))

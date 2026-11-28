@@ -27,9 +27,11 @@ TESOBE (http://www.tesobe.com/)
 
 package code.opencorridorroutes
 
-import code.api.util.APIUtil
-import net.liftweb.mapper._
-import org.json4s._
+import code.api.util.{APIUtil, DoobieUtil}
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import org.json4s.{Formats, NoTypeHints}
 import org.json4s.native.Serialization
 
 import java.util.Date
@@ -44,51 +46,77 @@ import java.util.Date
  *
  * A route never makes the bank it reaches a member here: that bank is not listed by Get Banks, and appears only
  * inside the onward routes of the bank that reaches it.
+ *
+ * One row of the table onwardroute, as it is stored. The routings and the rates are JSON, in the columns
+ * bank_routings and rates; the currencies are comma separated.
  */
-class OnwardRoute extends LongKeyedMapper[OnwardRoute] with IdPK {
-  def getSingleton = OnwardRoute
-
+case class OnwardRoute(
   /** The member bank that states the route: the one a payment is paid to. */
-  object BankId extends MappedString(this, 255) {
-    override def dbColumnName = "bank_id"
-  }
+  bankId: String,
   /** Where the route is in the bank's list, so the list reads back in the order it was given. */
-  object Position extends MappedInt(this) {
-    override def dbColumnName = "position"
-  }
+  position: Int,
   /** The full name of the bank the route reaches. */
-  object FullName extends MappedString(this, 255) {
-    override def dbColumnName = "full_name"
-  }
+  fullName: String,
   /** The routings of the bank the route reaches, as a JSON list of scheme and address pairs. */
-  object BankRoutings extends MappedText(this) {
-    override def dbColumnName = "bank_routings"
-  }
+  bankRoutings: String,
   /** The OBP instance the bank the route reaches is a member of, named by its host. */
-  object ObpHost extends MappedString(this, 255) {
-    override def dbColumnName = "obp_host"
-  }
+  obpHost: String,
   /** The ISO 3166 alpha-2 country of the bank the route reaches. */
-  object Country extends MappedString(this, 8) {
-    override def dbColumnName = "country"
-  }
+  country: String,
   /** The currencies a payment on this instance may be sent in for this route, comma separated. */
-  object Currencies extends MappedString(this, 255) {
-    override def dbColumnName = "currencies"
-  }
+  currencies: String,
   /** The bank's exchange rates for this route, as a JSON list of from, to and rate. */
-  object Rates extends MappedText(this) {
-    override def dbColumnName = "rates"
-  }
+  rates: String,
   /** When the bank last confirmed the route. Validity is worked out from this when the route is read. */
-  object LastConfirmed extends MappedDateTime(this) {
-    override def dbColumnName = "last_confirmed"
-  }
-}
+  lastConfirmed: Date
+)
 
-object OnwardRoute extends OnwardRoute with LongKeyedMetaMapper[OnwardRoute] {
-  override def dbTableName = "OnwardRoute"
-  override def dbIndexes = Index(BankId) :: super.dbIndexes
+object OnwardRoute {
+
+  private type Row = (Option[String], Option[Int], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[java.sql.Timestamp])
+
+  private val selectColumns =
+    fr"""SELECT bank_id, position, full_name, bank_routings, obp_host, country, currencies, rates, last_confirmed
+         FROM onwardroute"""
+
+  private def fromRow(row: Row): OnwardRoute = row match {
+    case (bankId, position, fullName, bankRoutings, obpHost, country, currencies, rates, lastConfirmed) =>
+      OnwardRoute(bankId.orNull, position.getOrElse(0), fullName.orNull, bankRoutings.orNull, obpHost.orNull,
+        country.orNull, currencies.orNull, rates.orNull, lastConfirmed.map(t => new Date(t.getTime)).orNull)
+  }
+
+  /** The routes of the given banks, by bank and then by position. */
+  def findAllOfBanks(bankIds: List[String]): List[OnwardRoute] =
+    // Mapper's ByList with an empty list matched nothing.
+    if (bankIds.isEmpty) Nil
+    else {
+      val in = Fragments.in(fr"bank_id", cats.data.NonEmptyList.fromListUnsafe(bankIds.distinct))
+      DoobieUtil.runQuery((selectColumns ++ fr"WHERE" ++ in ++ fr"ORDER BY position ASC, id ASC").query[Row].to[List])
+        .map(fromRow)
+    }
+
+  /** Every route of every bank, by bank and then by position. */
+  def findAll(): List[OnwardRoute] =
+    DoobieUtil.runQuery((selectColumns ++ fr"ORDER BY bank_id ASC, position ASC, id ASC").query[Row].to[List])
+      .map(fromRow)
+
+  /** Replaces the bank's whole list with `routes`, in one transaction (the request's, inside a request). */
+  def replaceAllOfBank(bankId: String, routes: List[OnwardRoute]): Unit = {
+    import cats.implicits._
+    val program: ConnectionIO[Unit] = for {
+      _ <- sql"DELETE FROM onwardroute WHERE bank_id = ${Option(bankId)}".update.run
+      _ <- routes.traverse_ { route =>
+        val lastConfirmed = Option(route.lastConfirmed).map(d => new java.sql.Timestamp(d.getTime))
+        sql"""INSERT INTO onwardroute
+              (bank_id, position, full_name, bank_routings, obp_host, country, currencies, rates, last_confirmed)
+              VALUES (${Option(bankId)}, ${route.position}, ${Option(route.fullName)}, ${Option(route.bankRoutings)},
+               ${Option(route.obpHost)}, ${Option(route.country)}, ${Option(route.currencies)}, ${Option(route.rates)},
+               $lastConfirmed)""".update.run
+      }
+    } yield ()
+    DoobieUtil.runUpdate(program)
+  }
 }
 
 /** One routing of the bank a route reaches, for example BIC DEMCZZ22. */
@@ -138,21 +166,19 @@ object OnwardRoutes {
   /** Replace the bank's whole list with `routes`, all confirmed at `confirmedAt`. A route the bank no longer lists is gone at once. */
   def replaceForBank(bankId: String, routes: List[OnwardRouteInput], confirmedAt: Date): List[OnwardRouteView] = {
     // The bank's earlier list is removed first: the new list replaces it whole.
-    OnwardRoute.findAll(By(OnwardRoute.BankId, bankId)).foreach(_.delete_!)
     // Each route is stored in the order the bank gave it.
-    routes.zipWithIndex.foreach { case (route, position) =>
-      OnwardRoute.create
-        .BankId(bankId)
-        .Position(position)
-        .FullName(route.fullName)
-        .BankRoutings(Serialization.write(route.bankRoutings))
-        .ObpHost(route.obpHost)
-        .Country(route.country)
-        .Currencies(route.currencies.mkString(","))
-        .Rates(Serialization.write(route.rates.map { case (from, to, rate) => OnwardRouteStoredRate(from, to, rate.bigDecimal.toPlainString) }))
-        .LastConfirmed(confirmedAt)
-        .saveMe()
-    }
+    OnwardRoute.replaceAllOfBank(bankId, routes.zipWithIndex.map { case (route, position) =>
+      OnwardRoute(
+        bankId = bankId,
+        position = position,
+        fullName = route.fullName,
+        bankRoutings = Serialization.write(route.bankRoutings),
+        obpHost = route.obpHost,
+        country = route.country,
+        currencies = route.currencies.mkString(","),
+        rates = Serialization.write(route.rates.map { case (from, to, rate) => OnwardRouteStoredRate(from, to, rate.bigDecimal.toPlainString) }),
+        lastConfirmed = confirmedAt)
+    })
     // Read back what is now valid, as any reader would see it.
     validForBank(bankId)
   }
@@ -167,8 +193,8 @@ object OnwardRoutes {
     else {
       val now = new Date()
       // Ordered by position, so each bank's routes read back in the order the bank gave them.
-      OnwardRoute.findAll(ByList(OnwardRoute.BankId, bankIds.distinct), OrderBy(OnwardRoute.Position, Ascending))
-        .map(toView)
+      OnwardRoute.findAllOfBanks(bankIds)
+        .flatMap(toView)
         .filter(_.validUntil.after(now))
         .map(route => route.copy(rates = route.rates.filter(_.validUntil.after(now))))
         .groupBy(_.bankId)
@@ -177,25 +203,26 @@ object OnwardRoutes {
   /** Every still-valid route on this instance, of every bank. Used to find which banks reach a given bank. */
   def allValid(): List[OnwardRouteView] = {
     val now = new Date()
-    OnwardRoute.findAll(OrderBy(OnwardRoute.BankId, Ascending), OrderBy(OnwardRoute.Position, Ascending))
-      .map(toView)
+    OnwardRoute.findAll()
+      .flatMap(toView)
       .filter(_.validUntil.after(now))
       .map(route => route.copy(rates = route.rates.filter(_.validUntil.after(now))))
   }
 
-  private def toView(row: OnwardRoute): OnwardRouteView = {
-    val lastConfirmed = row.LastConfirmed.get
+  // A route that was never confirmed has no validity to work out, and is not valid. Every route is
+  // stored with the time it was confirmed, so this is only a row written some other way.
+  private def toView(row: OnwardRoute): Option[OnwardRouteView] = Option(row.lastConfirmed).map { lastConfirmed =>
     // Validity comes from the current setting, so a change to it applies to stored routes at once.
     val validUntil = new Date(lastConfirmed.getTime + routeValiditySeconds * 1000L)
     val rateValidUntil = new Date(lastConfirmed.getTime + rateValiditySeconds * 1000L)
     OnwardRouteView(
-      bankId = row.BankId.get,
-      fullName = row.FullName.get,
-      bankRoutings = scala.util.Try(Serialization.read[List[OnwardRouteBankRouting]](row.BankRoutings.get)).getOrElse(Nil),
-      obpHost = row.ObpHost.get,
-      country = row.Country.get,
-      currencies = Option(row.Currencies.get).map(_.split(",").toList.map(_.trim).filter(_.nonEmpty)).getOrElse(Nil),
-      rates = scala.util.Try(Serialization.read[List[OnwardRouteStoredRate]](row.Rates.get)).getOrElse(Nil)
+      bankId = row.bankId,
+      fullName = row.fullName,
+      bankRoutings = scala.util.Try(Serialization.read[List[OnwardRouteBankRouting]](row.bankRoutings)).getOrElse(Nil),
+      obpHost = row.obpHost,
+      country = row.country,
+      currencies = Option(row.currencies).map(_.split(",").toList.map(_.trim).filter(_.nonEmpty)).getOrElse(Nil),
+      rates = scala.util.Try(Serialization.read[List[OnwardRouteStoredRate]](row.rates)).getOrElse(Nil)
         .map(stored => OnwardRouteRate(stored.from, stored.to, BigDecimal(stored.rate), rateValidUntil)),
       lastConfirmed = lastConfirmed,
       validUntil = validUntil

@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_1_0
 
 import com.openbankproject.commons.model.ErrorMessage
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanRefreshUser
 import com.openbankproject.commons.util.ApiVersion
@@ -46,9 +47,8 @@ class RefreshUserTest extends V310ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.refreshUser))
-  feature(nameOf(Implementations3_1_0.refreshUser))
-  {
-    scenario(s"The user missing the $CanRefreshUser role", ApiEndpoint1, VersionOfApi) {
+  Feature(nameOf(Implementations3_1_0.refreshUser)) {
+    Scenario(s"The user missing the $CanRefreshUser role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val userId = resourceUser1.userId
       val request310 = (v3_1_0_Request / "users" / userId /"refresh").POST <@(user1)
@@ -60,7 +60,7 @@ class RefreshUserTest extends V310ServerSetup {
     }
     
     
-    scenario(s"Test the success case ", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"Test the success case ", ApiEndpoint1, VersionOfApi) {
       When("")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanRefreshUser.toString)
       When("We make a request v3.1.0")

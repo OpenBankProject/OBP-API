@@ -36,7 +36,7 @@ object TransactionIdMappingProvider extends SimpleInjector {
 
   val transactionIdMappingProvider = new Inject(() => buildOne) {}
 
-  def buildOne: TransactionIdMappingProvider = MappedTransactionIdMappingProvider
+  def buildOne: TransactionIdMappingProvider = DoobieTransactionIdMappingProvider
 
 }
 

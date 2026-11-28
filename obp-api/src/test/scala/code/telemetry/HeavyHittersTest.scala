@@ -1,6 +1,7 @@
 package code.telemetry
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.mutable
 
@@ -9,7 +10,7 @@ import scala.collection.mutable
  * capacity it counts exactly; a key with more than N / capacity offers is always kept; and every
  * entry's true count lies between `count - error` and `count`.
  */
-class HeavyHittersTest extends FlatSpec with Matchers {
+class HeavyHittersTest extends AnyFlatSpec with Matchers {
 
   final class Hits { var n = 0 }
 

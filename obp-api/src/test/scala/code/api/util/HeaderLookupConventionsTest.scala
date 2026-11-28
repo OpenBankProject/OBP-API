@@ -2,7 +2,8 @@ package code.api.util
 
 import java.io.File
 
-import org.scalatest.{FeatureSpec, Matchers}
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.io.Source
 
@@ -18,7 +19,7 @@ import scala.io.Source
  * `reqHeaders` or `headers`, on the line of the comparison or one of the two lines before it (a
  * lookup is often split across lines). It does not need a database or a server.
  */
-class HeaderLookupConventionsTest extends FeatureSpec with Matchers {
+class HeaderLookupConventionsTest extends AnyFeatureSpec with Matchers {
 
   // Maven runs the suite from obp-api/, an IDE often from the repository root.
   private val sourceRoot: File =

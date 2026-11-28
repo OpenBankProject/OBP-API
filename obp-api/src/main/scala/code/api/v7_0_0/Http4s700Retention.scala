@@ -45,8 +45,6 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
-import net.liftweb.mapper._
-import net.liftweb.mapper.QueryParam
 import org.http4s._
 import org.http4s.dsl.io._
 import org.json4s.Formats
@@ -54,6 +52,7 @@ import org.json4s.Formats
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.util.Try
+import org.json4s.jvalue2extractable
 
 /**
  * This object holds the v7.0.0 data retention endpoints: retention policies, their previews and runs,
@@ -85,19 +84,19 @@ object Http4s700Retention {
   // ---- lookups, always within the space of the URL
 
   private def policyFound(bankId: String, policyId: String, cc: CallContext): Future[RetentionPolicy] =
-    Future(RetentionPolicy.find(By(RetentionPolicy.BankId, bankId), By(RetentionPolicy.RetentionPolicyId, policyId)))
+    Future(RetentionPolicy.find(bankId, policyId))
       .map(box => code.api.util.APIUtil.unboxFullOrFail(box, Some(cc), s"$RetentionPolicyNotFound Current RETENTION_POLICY_ID is $policyId.", 404))
 
   private def runFound(bankId: String, runId: String, cc: CallContext): Future[RetentionRun] =
-    Future(RetentionRun.find(By(RetentionRun.BankId, bankId), By(RetentionRun.RetentionRunId, runId)))
+    Future(RetentionRun.find(bankId, runId))
       .map(box => code.api.util.APIUtil.unboxFullOrFail(box, Some(cc), s"$RetentionRunNotFound Current RETENTION_RUN_ID is $runId.", 404))
 
   private def holdFound(bankId: String, holdId: String, cc: CallContext): Future[RetentionHold] =
-    Future(RetentionHold.find(By(RetentionHold.BankId, bankId), By(RetentionHold.RetentionHoldId, holdId)))
+    Future(RetentionHold.find(bankId, holdId))
       .map(box => code.api.util.APIUtil.unboxFullOrFail(box, Some(cc), s"$RetentionHoldNotFound Current RETENTION_HOLD_ID is $holdId.", 404))
 
   private def archiveEntryFound(bankId: String, archiveId: String, cc: CallContext): Future[RetentionArchive] =
-    Future(RetentionArchive.find(By(RetentionArchive.BankId, bankId), By(RetentionArchive.RetentionArchiveId, archiveId)))
+    Future(RetentionArchive.find(bankId, archiveId))
       .map(box => code.api.util.APIUtil.unboxFullOrFail(box, Some(cc), s"$RetentionArchiveEntryNotFound Current RETENTION_ARCHIVE_ID is $archiveId.", 404))
 
   private def check(problem: Option[String], prefix: String, cc: CallContext): Future[Box[Unit]] =
@@ -166,21 +165,19 @@ object Http4s700Retention {
       .filter(_.field.nonEmpty)
 
   private def save(policy: RetentionPolicy, s: PolicySettings, cascade: Boolean, requiresApproval: Boolean, enabled: Boolean): RetentionPolicy =
-    policy
-      .Name(s.name)
-      .Description(s.description)
-      .ResourceType(s.resourceType)
-      .EntityName(s.entityName.getOrElse(""))
-      .DateBasis(s.dateBasis)
-      .ConditionField(s.condition.map(_.field).getOrElse(""))
-      .ConditionValue(s.condition.map(_.value).getOrElse(""))
-      .RetainDays(s.retainDays)
-      .ArchiveDays(s.archiveDays.getOrElse(-1))
-      .Action(s.action)
-      .Cascade(cascade)
-      .RequiresApproval(requiresApproval)
-      .Enabled(enabled)
-      .saveMe()
+    RetentionPolicy.save(policy.copy(
+      name = s.name,
+      description = s.description,
+      resourceType = s.resourceType,
+      entityName = s.entityName.filter(_.nonEmpty),
+      dateBasis = s.dateBasis,
+      condition = s.condition.filter(_.field.nonEmpty),
+      retainDays = s.retainDays,
+      archiveDays = s.archiveDays.filter(_ >= 0),
+      action = s.action,
+      cascade = cascade,
+      requiresApproval = requiresApproval,
+      enabled = enabled))
 
   private val policyDescription =
     s"""A retention policy says how long one kind of resource of a space stays live, and what happens to it then.
@@ -238,7 +235,7 @@ object Http4s700Retention {
         for {
           problem <- Future(policyProblem(bankId, settings))
           _ <- check(problem, InvalidRetentionPolicy, cc)
-          created <- Future(save(RetentionPolicy.create.RetentionPolicyId(generateUUID()).BankId(bankId).CreatedByUserId(user.userId),
+          created <- Future(save(RetentionPolicy.newPolicy(generateUUID(), bankId, user.userId),
             settings, body.cascade.getOrElse(false), body.requires_approval.getOrElse(false), body.enabled.getOrElse(true)))
         } yield JSONFactory700Retention.createPolicyJson(created)
       }
@@ -268,7 +265,7 @@ object Http4s700Retention {
   lazy val getRetentionPolicies: Http4sRoute = Http4sRoute {
     case req @ GET -> `prefixPath` / "management" / "banks" / bankId / "retention-policies" =>
       EndpointHelpers.withUser(req) { (_, _) =>
-        Future(RetentionPolicy.findAll(By(RetentionPolicy.BankId, bankId), OrderBy(RetentionPolicy.id, Ascending)))
+        Future(RetentionPolicy.findAllByBankId(bankId))
           .map(policies => RetentionPoliciesJsonV700(policies.map(JSONFactory700Retention.createPolicyJson)))
       }
   }
@@ -368,9 +365,10 @@ object Http4s700Retention {
         for {
           policy <- policyFound(bankId, policyId, cc)
           _ <- Future {
-            RetentionRun.findAll(By(RetentionRun.RetentionPolicyId, policyId), By(RetentionRun.Status, StatusPending)).foreach(
-              _.Status(StatusRefused).EndedAt(new Date()).Message("The policy of this run has been deleted.").saveMe())
-            policy.delete_!
+            RetentionRun.findAllByRetentionPolicyIdAndStatus(policyId, StatusPending).foreach(run =>
+              RetentionRun.save(run.copy(status = StatusRefused, endedAt = Some(new Date()),
+                message = "The policy of this run has been deleted.")))
+            RetentionPolicy.delete(policy)
           }
         } yield ()
       }
@@ -505,11 +503,7 @@ object Http4s700Retention {
           _ <- Helper.booleanToFuture(s"${InvalidRetentionQueryParameter}status must be one of ${statuses.mkString(", ")}.", 400, Some(cc)) {
             p.get("status").forall(statuses.contains)
           }
-          runs <- Future(RetentionRun.findAll(
-            (List[QueryParam[RetentionRun]](By(RetentionRun.BankId, bankId)) :::
-              p.get("retention_policy_id").map(id => By(RetentionRun.RetentionPolicyId, id)).toList :::
-              p.get("status").map(s => By(RetentionRun.Status, s)).toList :::
-              List(OrderBy(RetentionRun.id, Descending), StartAt[RetentionRun](pg.offset), MaxRows[RetentionRun](pg.limit))): _*))
+          runs <- Future(RetentionRun.findPage(bankId, p.get("retention_policy_id"), p.get("status"), pg.limit, pg.offset))
         } yield RetentionRunsJsonV700(runs.map(JSONFactory700Retention.createRunJson))
       }
   }
@@ -570,7 +564,7 @@ object Http4s700Retention {
           _ <- Helper.booleanToFuture(s"$RetentionRunNotPending Current status is ${run.status}.", 400, Some(cc))(run.status == StatusPending)
           _ <- Helper.booleanToFuture(RetentionRunApproverIsRequester, 403, Some(cc))(run.requestedByUserId != user.userId)
           policy = run.retentionPolicyId.flatMap(id =>
-            RetentionPolicy.find(By(RetentionPolicy.BankId, bankId), By(RetentionPolicy.RetentionPolicyId, id)).toOption)
+            RetentionPolicy.find(bankId, id).toOption)
           _ <- Helper.booleanToFuture(RetentionRunAlreadyInProgress, 409, Some(cc)) {
             decision == DecisionReject || policy.forall(p => !RetentionEngine.isRunning(p.retentionPolicyId))
           }
@@ -614,8 +608,7 @@ object Http4s700Retention {
         for {
           pg <- page(req, cc)
           run <- runFound(bankId, runId, cc)
-          items <- Future(RetentionRunItem.findAll(By(RetentionRunItem.RetentionRunId, run.retentionRunId),
-            OrderBy(RetentionRunItem.id, Ascending), StartAt[RetentionRunItem](pg.offset), MaxRows[RetentionRunItem](pg.limit)))
+          items <- Future(RetentionRunItem.findPageByRetentionRunId(run.retentionRunId, pg.limit, pg.offset))
         } yield RetentionRunItemsJsonV700(items.map(JSONFactory700Retention.createRunItemJson))
       }
   }
@@ -667,16 +660,18 @@ object Http4s700Retention {
           else None
         for {
           _ <- check(problem, InvalidRetentionHold, cc)
-          hold <- Future(RetentionHold.create
-            .RetentionHoldId(generateUUID())
-            .BankId(bankId)
-            .ResourceType(resourceType)
-            .ResourceId(resourceId.getOrElse(""))
-            .EntityName(entityName.getOrElse(""))
-            .Reason(reason)
-            .PlacedByUserId(user.userId)
-            .PlacedAt(new Date())
-            .saveMe())
+          hold <- Future(RetentionHold.insert(RetentionHold(
+            id = -1L,
+            retentionHoldId = generateUUID(),
+            bankId = bankId,
+            resourceType = resourceType,
+            resourceId = resourceId,
+            entityName = entityName,
+            reason = reason,
+            placedByUserId = Option(user.userId).getOrElse(""),
+            placedAt = new Date(),
+            releasedByUserId = None,
+            releasedAt = None)))
         } yield JSONFactory700Retention.createHoldJson(hold)
       }
   }
@@ -708,12 +703,8 @@ object Http4s700Retention {
           _ <- Helper.booleanToFuture(s"${InvalidRetentionQueryParameter}is_active must be true or false.", 400, Some(cc)) {
             p.get("is_active").forall(v => v == "true" || v == "false")
           }
-          holds <- Future(RetentionHold.findAll(
-            (List[QueryParam[RetentionHold]](By(RetentionHold.BankId, bankId)) :::
-              p.get("resource_type").map(t => By(RetentionHold.ResourceType, t)).toList :::
-              p.get("resource_id").map(id => By(RetentionHold.ResourceId, id)).toList :::
-              p.get("is_active").map(v => if (v == "true") NullRef(RetentionHold.ReleasedAt) else NotNullRef(RetentionHold.ReleasedAt)).toList :::
-              List(OrderBy(RetentionHold.id, Descending), StartAt[RetentionHold](pg.offset), MaxRows[RetentionHold](pg.limit))): _*))
+          holds <- Future(RetentionHold.findPage(bankId, p.get("resource_type"), p.get("resource_id"),
+            p.get("is_active").map(_ == "true"), pg.limit, pg.offset))
         } yield RetentionHoldsJsonV700(holds.map(JSONFactory700Retention.createHoldJson))
       }
   }
@@ -744,7 +735,7 @@ object Http4s700Retention {
         for {
           hold <- holdFound(bankId, holdId, cc)
           _ <- Helper.booleanToFuture(RetentionHoldAlreadyReleased, 400, Some(cc))(hold.isActive)
-          _ <- Future(hold.ReleasedByUserId(user.userId).ReleasedAt(new Date()).saveMe())
+          _ <- Future(RetentionHold.release(hold, user.userId, new Date()))
         } yield ()
       }
   }
@@ -782,15 +773,9 @@ object Http4s700Retention {
         val p = params(req)
         for {
           pg <- page(req, cc)
-          entries <- Future(RetentionArchive.findAll(
-            (List[QueryParam[RetentionArchive]](By(RetentionArchive.BankId, bankId)) :::
-              p.get("resource_type").map(v => By(RetentionArchive.ResourceType, v)).toList :::
-              p.get("resource_id").map(v => By(RetentionArchive.ResourceId, v)).toList :::
-              p.get("entity_name").map(v => By(RetentionArchive.EntityName, v)).toList :::
-              p.get("owner_user_id").map(v => By(RetentionArchive.OwnerUserId, v)).toList :::
-              p.get("retention_policy_id").map(v => By(RetentionArchive.RetentionPolicyId, v)).toList :::
-              p.get("retention_run_id").map(v => By(RetentionArchive.RetentionRunId, v)).toList :::
-              List(OrderBy(RetentionArchive.id, Descending), StartAt[RetentionArchive](pg.offset), MaxRows[RetentionArchive](pg.limit))): _*))
+          entries <- Future(RetentionArchive.findPage(bankId, p.get("resource_type"), p.get("resource_id"),
+            p.get("entity_name"), p.get("owner_user_id"), p.get("retention_policy_id"), p.get("retention_run_id"),
+            pg.limit, pg.offset))
         } yield RetentionArchiveEntriesJsonV700(entries.map(JSONFactory700Retention.createArchiveEntryJson(_, withData = false, None)))
       }
   }
@@ -826,7 +811,7 @@ object Http4s700Retention {
           entry <- archiveEntryFound(bankId, archiveId, cc)
           content <- Future(
             if (includeContent.contains("true") && entry.hasContent)
-              RetentionArchiveContent.find(By(RetentionArchiveContent.RetentionArchiveId, entry.retentionArchiveId))
+              RetentionArchiveContent.findByRetentionArchiveId(entry.retentionArchiveId)
                 .toOption.flatMap(_.content)
             else None)
         } yield JSONFactory700Retention.createArchiveEntryJson(entry, withData = true, content)

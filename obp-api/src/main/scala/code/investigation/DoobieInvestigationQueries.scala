@@ -47,7 +47,7 @@ import doobie.implicits.javasql._
  * - customeraccountlink
  * - mappedbankaccount
  * - mappedtransaction
- * - mappedcustomerlink
+ * - customerlink
  */
 object DoobieInvestigationQueries extends MdcLoggable {
 
@@ -111,8 +111,11 @@ object DoobieInvestigationQueries extends MdcLoggable {
             FROM mappedcustomer
             WHERE mcustomerid = $customerId
               AND mbank = $bankId"""
-        .query[CustomerRow]
+        .query[(Option[String], Option[String], Option[String], Option[String], Option[Boolean])]
         .option
+        .map(_.map { case (id, legalName, email, mobile, kyc) =>
+          CustomerRow(id.orNull, legalName.orNull, email.orNull, mobile.orNull, kyc.getOrElse(false))
+        })
 
     DoobieUtil.runQuery(query)
   }
@@ -163,8 +166,16 @@ object DoobieInvestigationQueries extends MdcLoggable {
               AND tstartdate >= $fromDate
               AND tstartdate <= $toDate
             ORDER BY tstartdate DESC """ ++ pagination)
-        .query[TransactionRow]
+        .query[(Option[String], Option[String], Option[String], Option[Long], Option[String],
+                Option[String], Option[String], Timestamp, Timestamp,
+                Option[String], Option[String], Option[String])]
         .to[List]
+        .map(_.map { case (txId, bank, account, amount, currency, txType, description,
+                           startDate, finishDate, cpHolder, cpRouting, cpBank) =>
+          TransactionRow(txId.orNull, bank.orNull, account.orNull, amount.getOrElse(0L),
+            currency.orNull, txType.orNull, description.orNull, startDate, finishDate,
+            cpHolder.orNull, cpRouting.orNull, cpBank.orNull)
+        })
 
     DoobieUtil.runQuery(query)
   }
@@ -176,11 +187,13 @@ object DoobieInvestigationQueries extends MdcLoggable {
   def getCustomerLinks(customerId: String): List[CustomerLinkRow] = {
     logger.info(s"getCustomerLinks says: customerId=$customerId")
     val query: ConnectionIO[List[CustomerLinkRow]] =
-      sql"""SELECT cl.mcustomerlinkid, cl.mothercustomerid, cl.motherbankid, cl.mrelationshipto,
+      // customerlink, not mappedcustomerlink: the entity overrode dbTableName, and its columns
+      // carry no m-prefix either. See V044__customerlink.sql, written from the real schema.
+      sql"""SELECT cl.customerlinkid, cl.othercustomerid, cl.otherbankid, cl.relationshipto,
                    COALESCE(c.mlegalname, '')
-            FROM mappedcustomerlink cl
-            LEFT JOIN mappedcustomer c ON c.mcustomerid = cl.mothercustomerid
-            WHERE cl.mcustomerid = $customerId"""
+            FROM customerlink cl
+            LEFT JOIN mappedcustomer c ON c.mcustomerid = cl.othercustomerid
+            WHERE cl.customerid = $customerId"""
         .query[CustomerLinkRow]
         .to[List]
 
@@ -196,8 +209,11 @@ object DoobieInvestigationQueries extends MdcLoggable {
       sql"""SELECT customerid, accountid, bankid, relationshiptype
             FROM customeraccountlink
             WHERE customerid = $customerId"""
-        .query[AccountLinkRow]
+        .query[(Option[String], Option[String], Option[String], Option[String])]
         .to[List]
+        .map(_.map { case (customer, account, bank, relationship) =>
+          AccountLinkRow(customer.orNull, account.orNull, bank.orNull, relationship.orNull)
+        })
 
     DoobieUtil.runQuery(query)
   }

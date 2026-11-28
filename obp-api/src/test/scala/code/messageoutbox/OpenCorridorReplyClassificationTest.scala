@@ -1,6 +1,8 @@
 package code.messageoutbox
 
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * This class tests which Bank Node error replies the outbox relay parks as STICKY at once, because
@@ -8,7 +10,7 @@ import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
  *
  * Everything here is a pure function call: no broker, no database.
  */
-class OpenCorridorReplyClassificationTest extends FeatureSpec with Matchers with GivenWhenThen {
+class OpenCorridorReplyClassificationTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   feature("Bank Node error replies") {
 

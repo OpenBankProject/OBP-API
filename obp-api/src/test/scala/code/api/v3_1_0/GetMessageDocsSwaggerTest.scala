@@ -44,9 +44,8 @@ class GetMessageDocsSwaggerTest extends V310ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.getMessageDocsSwagger))
 
-  feature("Get Message Docs Swagger v3.1.0")
-  {
-    scenario(s"should return proper response", ApiEndpoint, VersionOfApi) {
+  Feature("Get Message Docs Swagger v3.1.0") {
+    Scenario(s"should return proper response", ApiEndpoint, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "message-docs" / "rest_vMar2019" / "swagger2.0").GET
       val response310 = makeGetRequest(request310)

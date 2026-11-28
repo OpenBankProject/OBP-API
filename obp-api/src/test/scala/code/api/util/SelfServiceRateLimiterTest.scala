@@ -44,14 +44,14 @@ class SelfServiceRateLimiterTest extends ServerSetup {
 
   private val P = SelfServiceRateLimiter.PropsPrefix
 
-  feature("SelfServiceRateLimiter") {
+  Feature("SelfServiceRateLimiter") {
 
-    scenario("disabled: returns Skipped and counts nothing") {
+    Scenario("disabled: returns Skipped and counts nothing") {
       setPropsValues(s"$P.enabled" -> "false")
       SelfServiceRateLimiter.check("signup", freshIp()) shouldBe Skipped("signup")
     }
 
-    scenario("default mode is shadow: a trip returns Warned, never Blocked") {
+    Scenario("default mode is shadow: a trip returns Warned, never Blocked") {
       val scope = freshScope()
       setPropsValues(
         s"$P.enabled" -> "true",
@@ -70,7 +70,7 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       exceeded.current shouldBe 2L
     }
 
-    scenario("the warning text carries OBP-10059, the scope and the limit; no date unless announced") {
+    Scenario("the warning text carries OBP-10059, the scope and the limit; no date unless announced") {
       val scope = freshScope()
       val exceeded = Window("ip_per_hour", RateLimitingPeriod.PER_HOUR, limit = 5, current = 6, resetSeconds = 100)
       setPropsValues(s"$P.enforce_announced_from" -> "")
@@ -81,7 +81,7 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       SelfServiceRateLimiter.warningMessage(scope, exceeded) should endWith(" in the future, from 2026-10-01.")
     }
 
-    scenario("enforce mode: the (limit+1)th request is Blocked, with reset within the window") {
+    Scenario("enforce mode: the (limit+1)th request is Blocked, with reset within the window") {
       val scope = freshScope()
       setPropsValues(
         s"$P.enabled" -> "true",
@@ -102,7 +102,7 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       SelfServiceRateLimiter.blockedMessage(scope, exceeded) should include("OBP-10060")
     }
 
-    scenario("different IPs do not share per-IP counters") {
+    Scenario("different IPs do not share per-IP counters") {
       val scope = freshScope()
       setPropsValues(
         s"$P.enabled" -> "true",
@@ -116,7 +116,7 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       SelfServiceRateLimiter.check(scope, freshIp()) shouldBe a[Allowed]
     }
 
-    scenario("a window set to -1 is switched off; -1 everywhere means Skipped") {
+    Scenario("a window set to -1 is switched off; -1 everywhere means Skipped") {
       val scope = freshScope()
       setPropsValues(
         s"$P.enabled" -> "true",
@@ -129,7 +129,7 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       SelfServiceRateLimiter.check(scope, freshIp()) shouldBe Skipped(scope)
     }
 
-    scenario("the global per-hour cap trips across different IPs") {
+    Scenario("the global per-hour cap trips across different IPs") {
       val scope = freshScope()
       setPropsValues(
         s"$P.enabled" -> "true",
@@ -147,7 +147,7 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       exceeded.name shouldBe "global_per_hour"
     }
 
-    scenario("an unknown IP disables the per-IP windows but keeps the global one") {
+    Scenario("an unknown IP disables the per-IP windows but keeps the global one") {
       val scope = freshScope()
       setPropsValues(
         s"$P.enabled" -> "true",
@@ -160,7 +160,7 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       outcome.windows.map(_.name) shouldBe List("global_per_hour")
     }
 
-    scenario("limit resolution: scope prop beats generic prop beats built-in defaults") {
+    Scenario("limit resolution: scope prop beats generic prop beats built-in defaults") {
       val scope = freshScope()
       setPropsValues(
         s"$P.per_ip.per_minute" -> "7",
@@ -175,7 +175,7 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       SelfServiceRateLimiter.globalPerHourLimit("signup") shouldBe scopeDefaults("signup").globalPerHour
     }
 
-    scenario("tightest window is the one with the fewest remaining calls") {
+    Scenario("tightest window is the one with the fewest remaining calls") {
       val windows = List(
         Window("ip_per_minute", RateLimitingPeriod.PER_MINUTE, limit = 10, current = 1, resetSeconds = 50),
         Window("ip_per_hour", RateLimitingPeriod.PER_HOUR, limit = 60, current = 58, resetSeconds = 900),
@@ -185,9 +185,9 @@ class SelfServiceRateLimiterTest extends ServerSetup {
     }
   }
 
-  feature("The documentation scope") {
+  Feature("The documentation scope") {
 
-    scenario("it has generous built-in limits and no global cap") {
+    Scenario("it has generous built-in limits and no global cap") {
       setPropsValues(s"$P.per_ip.per_minute" -> "", s"$P.per_ip.per_hour" -> "", s"$P.per_ip.per_day" -> "",
         s"$P.documentation.per_ip.per_minute" -> "", s"$P.documentation.per_ip.per_hour" -> "",
         s"$P.documentation.per_ip.per_day" -> "", s"$P.documentation.global.per_hour" -> "")
@@ -197,7 +197,7 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       SelfServiceRateLimiter.globalPerHourLimit("documentation") shouldBe -1L
     }
 
-    scenario("it stays in shadow mode when the other scopes are enforced, until its own mode is set") {
+    Scenario("it stays in shadow mode when the other scopes are enforced, until its own mode is set") {
       setPropsValues(s"$P.mode" -> "enforce", s"$P.documentation.mode" -> "")
       SelfServiceRateLimiter.modeFor("documentation") shouldBe SelfServiceRateLimiter.ModeShadow
       SelfServiceRateLimiter.modeFor("signup") shouldBe SelfServiceRateLimiter.ModeEnforce
@@ -207,7 +207,7 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       setPropsValues(s"$P.mode" -> "", s"$P.documentation.mode" -> "")
     }
 
-    scenario("a trip in the documentation scope is only a warning under a general enforce mode") {
+    Scenario("a trip in the documentation scope is only a warning under a general enforce mode") {
       setPropsValues(s"$P.enabled" -> "true", s"$P.mode" -> "enforce", s"$P.documentation.mode" -> "",
         s"$P.documentation.per_ip.per_minute" -> "1")
       val ip = freshIp()
@@ -217,12 +217,12 @@ class SelfServiceRateLimiterTest extends ServerSetup {
     }
   }
 
-  feature("SelfServiceRateLimitMiddleware scope table") {
+  Feature("SelfServiceRateLimitMiddleware scope table") {
 
     def post(path: String): Request[IO] = Request[IO](Method.POST, Uri.unsafeFromString(path))
     def get(path: String): Request[IO] = Request[IO](Method.GET, Uri.unsafeFromString(path))
 
-    scenario("self-service paths map to their scopes, for any API version") {
+    Scenario("self-service paths map to their scopes, for any API version") {
       SelfServiceRateLimitMiddleware.scopeFor(post("/obp/v6.0.0/users")) shouldBe Some("signup")
       SelfServiceRateLimitMiddleware.scopeFor(post("/obp/v7.0.0/users")) shouldBe Some("signup")
       SelfServiceRateLimitMiddleware.scopeFor(post("/obp/v6.0.0/users/email-validation")) shouldBe Some("signup")
@@ -239,7 +239,7 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       SelfServiceRateLimitMiddleware.scopeFor(post("/obp/v4.0.0/account/check/scheme/iban")) shouldBe Some("lookup")
     }
 
-    scenario("the documentation routes map to the documentation scope, for any version prefix") {
+    Scenario("the documentation routes map to the documentation scope, for any version prefix") {
       SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v7.0.0/resource-docs/v7.0.0/obp")) shouldBe Some("documentation")
       SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v3.1.0/resource-docs/v5.1.0/swagger")) shouldBe Some("documentation")
       SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v6.0.0/resource-docs/v6.0.0/openapi")) shouldBe Some("documentation")
@@ -264,7 +264,7 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v7.0.0/management/dynamic-message-docs")) shouldBe None
     }
 
-    scenario("every scope in the table has built-in limits and a description") {
+    Scenario("every scope in the table has built-in limits and a description") {
       val scopes = SelfServiceRateLimitMiddleware.entries.map(_.scope).toSet
       scopes.foreach { scope =>
         withClue(s"scope $scope: ") {
@@ -274,7 +274,7 @@ class SelfServiceRateLimiterTest extends ServerSetup {
       }
     }
 
-    scenario("everything else is left alone") {
+    Scenario("everything else is left alone") {
       SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v6.0.0/users")) shouldBe None
       SelfServiceRateLimitMiddleware.scopeFor(get("/obp/v6.0.0/users/current")) shouldBe None
       SelfServiceRateLimitMiddleware.scopeFor(post("/obp/v6.0.0/users/USER_ID/attributes")) shouldBe None

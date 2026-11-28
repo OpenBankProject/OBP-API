@@ -27,10 +27,14 @@ TESOBE (http://www.tesobe.com/)
 
 package code.organisation
 
-import code.api.util.APIUtil
-import net.liftweb.common.Box
-import net.liftweb.mapper._
+import code.api.util.{APIUtil, DoobieUtil}
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.util.Helpers.tryo
+
+import java.util.Date
 
 /**
  * An Organisation is a group of people that uses the APIs and owns Consumers, for example a fintech. It has
@@ -72,151 +76,232 @@ object Organisations {
                          createdByUserId: String): Box[OrganisationTrait] =
     tryo {
       {
-        val organisation = Organisation.create
-          .OrganisationId(APIUtil.generateUUID())
-          .BankId(bankId)
-          .Name(name)
-          .Description(description)
-          .Website(website.getOrElse(""))
-          .Status(StatusActive)
-          .CreatedByUserId(createdByUserId)
-          .saveMe()
-        OrganisationMember.create
-          .OrganisationId(organisation.organisationId)
-          .UserId(firstAdminUserId)
-          .MemberRole(RoleAdmin)
-          .CreatedByUserId(createdByUserId)
-          .saveMe()
+        val organisation = Organisation.insert(APIUtil.generateUUID(), bankId, name, description, website.getOrElse(""),
+          StatusActive, createdByUserId)
+        OrganisationMember.insert(organisation.organisationId, firstAdminUserId, RoleAdmin, createdByUserId)
         organisation
       }
     }
 
   def getOrganisation(organisationId: String): Box[OrganisationTrait] =
-    Organisation.find(By(Organisation.OrganisationId, organisationId))
+    Organisation.findByOrganisationId(organisationId)
 
-  def getOrganisations(): List[OrganisationTrait] = Organisation.findAll(OrderBy(Organisation.Name, Ascending))
+  def getOrganisations(): List[OrganisationTrait] = Organisation.findAllOrderedByName()
 
   def getOrganisationsOfUser(userId: String): List[(OrganisationTrait, OrganisationMemberTrait)] = {
-    val memberships = OrganisationMember.findAll(By(OrganisationMember.UserId, userId))
+    val memberships = OrganisationMember.findAllByUserId(userId)
     memberships.flatMap(membership => getOrganisation(membership.organisationId).toList.map(organisation => (organisation, membership)))
       .sortBy(_._1.name.toLowerCase)
   }
 
   def updateOrganisation(organisationId: String, name: Option[String], description: Option[String], website: Option[String]): Box[OrganisationTrait] =
-    Organisation.find(By(Organisation.OrganisationId, organisationId)).flatMap { organisation =>
+    Organisation.findByOrganisationId(organisationId).flatMap { organisation =>
       tryo {
-        name.foreach(value => organisation.Name(value))
-        description.foreach(value => organisation.Description(value))
-        website.foreach(value => organisation.Website(value))
-        organisation.LastUpdate(new java.util.Date()).saveMe()
+        Organisation.update(organisation.copy(
+          name = name.getOrElse(organisation.name),
+          description = description.getOrElse(organisation.description),
+          websiteRaw = website.getOrElse(organisation.websiteRaw),
+          updatedAt = new Date()))
       }
     }
 
   def updateStatus(organisationId: String, status: String): Box[OrganisationTrait] =
-    Organisation.find(By(Organisation.OrganisationId, organisationId)).flatMap { organisation =>
-      tryo { organisation.Status(status).LastUpdate(new java.util.Date()).saveMe() }
+    Organisation.findByOrganisationId(organisationId).flatMap { organisation =>
+      tryo { Organisation.update(organisation.copy(status = status, updatedAt = new Date())) }
     }
 
   /** Deletes the Organisation and its memberships. The caller checks first that it has no Consumers. */
   def deleteOrganisation(organisationId: String): Box[Boolean] =
-    Organisation.find(By(Organisation.OrganisationId, organisationId)).flatMap { organisation =>
+    Organisation.findByOrganisationId(organisationId).flatMap { organisation =>
       tryo {
-        OrganisationMember.bulkDelete_!!(By(OrganisationMember.OrganisationId, organisationId))
+        OrganisationMember.deleteAllOfOrganisation(organisationId)
         // Its grants on Dynamic Entity records go too, so a later Organisation can never inherit them.
         code.DynamicData.DynamicDataAccessProvider.provider.vend.deleteAllForOrganisation(organisationId)
-        organisation.delete_!
+        Organisation.delete(organisation.organisationId)
       }
     }
 
   def getMembers(organisationId: String): List[OrganisationMemberTrait] =
-    OrganisationMember.findAll(By(OrganisationMember.OrganisationId, organisationId), OrderBy(OrganisationMember.CreationDate, Ascending))
+    OrganisationMember.findAllOfOrganisation(organisationId)
 
   def getMember(organisationId: String, userId: String): Box[OrganisationMemberTrait] =
-    OrganisationMember.find(By(OrganisationMember.OrganisationId, organisationId), By(OrganisationMember.UserId, userId))
+    OrganisationMember.find(organisationId, userId)
 
   def addMember(organisationId: String, userId: String, memberRole: String, createdByUserId: String): Box[OrganisationMemberTrait] =
     tryo {
-      OrganisationMember.create
-        .OrganisationId(organisationId)
-        .UserId(userId)
-        .MemberRole(memberRole)
-        .CreatedByUserId(createdByUserId)
-        .saveMe()
+      OrganisationMember.insert(organisationId, userId, memberRole, createdByUserId)
     }
 
   def updateMemberRole(organisationId: String, userId: String, memberRole: String): Box[OrganisationMemberTrait] =
-    OrganisationMember.find(By(OrganisationMember.OrganisationId, organisationId), By(OrganisationMember.UserId, userId)).flatMap { member =>
-      tryo { member.MemberRole(memberRole).saveMe() }
+    OrganisationMember.find(organisationId, userId).flatMap { member =>
+      tryo { OrganisationMember.updateRole(member.copy(memberRole = memberRole)) }
     }
 
   def removeMember(organisationId: String, userId: String): Box[Boolean] =
-    OrganisationMember.find(By(OrganisationMember.OrganisationId, organisationId), By(OrganisationMember.UserId, userId)).flatMap { member =>
-      tryo { member.delete_! }
+    OrganisationMember.find(organisationId, userId).flatMap { member =>
+      tryo { OrganisationMember.delete(member.organisationId, member.userId) }
     }
 
   def adminCount(organisationId: String): Long =
-    OrganisationMember.count(By(OrganisationMember.OrganisationId, organisationId), By(OrganisationMember.MemberRole, RoleAdmin))
+    OrganisationMember.countWithRole(organisationId, RoleAdmin)
 }
 
-class Organisation extends OrganisationTrait with LongKeyedMapper[Organisation] with IdPK {
-
-  def getSingleton = Organisation
-
-  object OrganisationId extends MappedString(this, 36)
-  // The space that administers the Organisation: a bank id, or SYS. Staff Roles are checked here.
-  object BankId extends MappedString(this, 255) {
-    override def defaultValue = code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
-  }
-  object Name extends MappedString(this, 255)
-  object Description extends MappedText(this)
-  object Website extends MappedString(this, 1024)
-  object Status extends MappedString(this, 32)
-  object CreatedByUserId extends MappedString(this, 36)
-  object CreationDate extends MappedDateTime(this) {
-    override def defaultValue = new java.util.Date()
-  }
-  object LastUpdate extends MappedDateTime(this) {
-    override def defaultValue = new java.util.Date()
-  }
-
-  override def organisationId: String = OrganisationId.get
-  override def bankId: String = BankId.get
-  override def name: String = Name.get
-  override def description: String = Option(Description.get).getOrElse("")
-  override def website: Option[String] = Option(Website.get).filter(_.nonEmpty)
-  override def status: String = Status.get
-  override def createdByUserId: String = CreatedByUserId.get
-  override def createdAt: java.util.Date = CreationDate.get
-  override def updatedAt: java.util.Date = LastUpdate.get
+/**
+ * One Organisation. The bank_id is the space that administers it: a bank id, or SYS. Staff Roles are checked
+ * there. An empty website reads back as None, and a missing description as "", as Mapper's did.
+ */
+case class Organisation(
+  organisationId: String,
+  bankId: String,
+  name: String,
+  description: String,
+  private[organisation] val websiteRaw: String,
+  status: String,
+  createdByUserId: String,
+  createdAt: Date,
+  updatedAt: Date
+) extends OrganisationTrait {
+  override def website: Option[String] = Option(websiteRaw).filter(_.nonEmpty)
 }
 
-object Organisation extends Organisation with LongKeyedMetaMapper[Organisation] {
-  // Not "Organisation": the table of that name, from before Organisations were renamed Tenants, may still
-  // exist with old rows in it.
-  override def dbTableName = "ObpOrganisation"
-  override def dbIndexes = UniqueIndex(OrganisationId) :: Index(BankId) :: super.dbIndexes
-}
+object Organisation {
 
-class OrganisationMember extends OrganisationMemberTrait with LongKeyedMapper[OrganisationMember] with IdPK {
+  // Not "organisation": the table of that name, from before Organisations were renamed Tenants, may still
+  // exist with old rows in it. ProjectionStore names these in raw SQL for its organisation-grant joins.
+  val tableName: String = "obporganisation"
+  val organisationIdColumn: String = "organisationid"
+  val statusColumn: String = "status"
 
-  def getSingleton = OrganisationMember
+  private val selectColumns =
+    fr"""SELECT organisationid, bankid, name, description, website, status, createdbyuserid, creationdate,
+                lastupdate
+         FROM obporganisation"""
 
-  object OrganisationId extends MappedString(this, 36)
-  object UserId extends MappedString(this, 36)
-  object MemberRole extends MappedString(this, 32)
-  object CreatedByUserId extends MappedString(this, 36)
-  object CreationDate extends MappedDateTime(this) {
-    override def defaultValue = new java.util.Date()
+  private type Row = (Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[java.sql.Timestamp], Option[java.sql.Timestamp])
+
+  private def readDate(t: Option[java.sql.Timestamp]): Date = t.map(ts => new Date(ts.getTime)).orNull
+
+  private def fromRow(r: Row): Organisation =
+    Organisation(r._1.orNull, r._2.orNull, r._3.orNull, r._4.getOrElse(""), r._5.orNull, r._6.orNull, r._7.orNull,
+      readDate(r._8), readDate(r._9))
+
+  private def query(condition: Fragment): List[Organisation] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  private def ts(d: Date): java.sql.Timestamp = new java.sql.Timestamp(d.getTime)
+
+  def findByOrganisationId(organisationId: String): Box[Organisation] =
+    query(fr"WHERE organisationid = ${Option(organisationId)} ORDER BY id ASC").headOption match {
+      case Some(o) => Full(o)
+      case None => Empty
+    }
+
+  def findAllOrderedByName(): List[Organisation] = query(fr"ORDER BY name ASC, id ASC")
+
+  def insert(organisationId: String, bankId: String, name: String, description: String, website: String,
+             status: String, createdByUserId: String): Organisation = {
+    val now = new Date()
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO obporganisation (organisationid, bankid, name, description, website, status, createdbyuserid,
+              creationdate, lastupdate)
+            VALUES (${Option(organisationId)}, ${Option(bankId)}, ${Option(name)}, ${Option(description)},
+              ${Option(website)}, ${Option(status)}, ${Option(createdByUserId)}, ${ts(now)}, ${ts(now)})"""
+        .update.run)
+    Organisation(organisationId, bankId, name, Option(description).getOrElse(""), website, status, createdByUserId, now, now)
   }
 
-  override def organisationId: String = OrganisationId.get
-  override def userId: String = UserId.get
-  override def memberRole: String = MemberRole.get
-  override def createdByUserId: String = CreatedByUserId.get
-  override def createdAt: java.util.Date = CreationDate.get
+  def update(o: Organisation): Organisation = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE obporganisation SET name = ${Option(o.name)}, description = ${Option(o.description)},
+              website = ${Option(o.websiteRaw)}, status = ${Option(o.status)}, lastupdate = ${ts(o.updatedAt)}
+            WHERE organisationid = ${Option(o.organisationId)}""".update.run)
+    o
+  }
+
+  def delete(organisationId: String): Boolean =
+    DoobieUtil.runUpdate(sql"DELETE FROM obporganisation WHERE organisationid = ${Option(organisationId)}".update.run) > 0
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM obporganisation".update.run)
+    ()
+  }
 }
 
-object OrganisationMember extends OrganisationMember with LongKeyedMetaMapper[OrganisationMember] {
-  override def dbTableName = "ObpOrganisationMember"
-  override def dbIndexes = UniqueIndex(OrganisationId, UserId) :: Index(UserId) :: super.dbIndexes
+case class OrganisationMember(
+  organisationId: String,
+  userId: String,
+  memberRole: String,
+  createdByUserId: String,
+  createdAt: Date
+) extends OrganisationMemberTrait
+
+object OrganisationMember {
+
+  val tableName: String = "obporganisationmember"
+  val organisationIdColumn: String = "organisationid"
+  val userIdColumn: String = "userid"
+
+  private val selectColumns =
+    fr"""SELECT organisationid, userid, memberrole, createdbyuserid, creationdate
+         FROM obporganisationmember"""
+
+  private type Row = (Option[String], Option[String], Option[String], Option[String], Option[java.sql.Timestamp])
+
+  private def fromRow(r: Row): OrganisationMember =
+    OrganisationMember(r._1.orNull, r._2.orNull, r._3.orNull, r._4.orNull, r._5.map(t => new Date(t.getTime)).orNull)
+
+  private def query(condition: Fragment): List[OrganisationMember] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  def find(organisationId: String, userId: String): Box[OrganisationMember] =
+    query(fr"WHERE organisationid = ${Option(organisationId)} AND userid = ${Option(userId)} ORDER BY id ASC")
+      .headOption match {
+        case Some(m) => Full(m)
+        case None => Empty
+      }
+
+  def findAllByUserId(userId: String): List[OrganisationMember] =
+    query(fr"WHERE userid = ${Option(userId)} ORDER BY id ASC")
+
+  def findAllOfOrganisation(organisationId: String): List[OrganisationMember] =
+    query(fr"WHERE organisationid = ${Option(organisationId)} ORDER BY creationdate ASC, id ASC")
+
+  def countWithRole(organisationId: String, memberRole: String): Long =
+    DoobieUtil.runQuery(
+      sql"""SELECT COUNT(*) FROM obporganisationmember
+            WHERE organisationid = ${Option(organisationId)} AND memberrole = ${Option(memberRole)}"""
+        .query[Long].unique)
+
+  /** The unique index on (organisation, user) is what rejects a second membership of the same User. */
+  def insert(organisationId: String, userId: String, memberRole: String, createdByUserId: String): OrganisationMember = {
+    val now = new Date()
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO obporganisationmember (organisationid, userid, memberrole, createdbyuserid, creationdate)
+            VALUES (${Option(organisationId)}, ${Option(userId)}, ${Option(memberRole)}, ${Option(createdByUserId)},
+              ${new java.sql.Timestamp(now.getTime)})"""
+        .update.run)
+    OrganisationMember(organisationId, userId, memberRole, createdByUserId, now)
+  }
+
+  def updateRole(m: OrganisationMember): OrganisationMember = {
+    DoobieUtil.runUpdate(
+      sql"""UPDATE obporganisationmember SET memberrole = ${Option(m.memberRole)}
+            WHERE organisationid = ${Option(m.organisationId)} AND userid = ${Option(m.userId)}""".update.run)
+    m
+  }
+
+  def delete(organisationId: String, userId: String): Boolean =
+    DoobieUtil.runUpdate(
+      sql"""DELETE FROM obporganisationmember
+            WHERE organisationid = ${Option(organisationId)} AND userid = ${Option(userId)}""".update.run) > 0
+
+  def deleteAllOfOrganisation(organisationId: String): Int =
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM obporganisationmember WHERE organisationid = ${Option(organisationId)}".update.run)
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM obporganisationmember".update.run)
+    ()
+  }
 }

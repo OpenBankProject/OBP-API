@@ -1,0 +1,21 @@
+# Corrections only Oracle needs.
+#
+# Liquibase takes PASSWORD for a reserved word on Oracle, so it created amqp_bank_broker's password column quoted and
+# in lower case, as "password". Oracle folds an unquoted name to upper case, so every query naming the column
+# without quotes looked for PASSWORD and failed with ORA-00904. Oracle accepts PASSWORD as a column name, so the
+# column is renamed to the upper-case name an unquoted reference resolves to.
+databaseChangeLog:
+  - changeSet:
+      id: oracle-rename-amqp_bank_broker-password
+      author: obp
+      dbms: oracle
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 1
+            sql: SELECT COUNT(*) FROM user_tab_columns WHERE table_name = 'AMQP_BANK_BROKER' AND column_name = 'password'
+      changes:
+        - renameColumn:
+            tableName: amqp_bank_broker
+            oldColumnName: password
+            newColumnName: PASSWORD

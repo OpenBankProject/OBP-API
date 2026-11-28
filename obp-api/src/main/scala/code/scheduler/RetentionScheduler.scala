@@ -31,12 +31,10 @@ import java.util.concurrent.TimeUnit
 
 import code.actorsystem.ObpActorSystem
 import code.api.Constant
-import code.api.util.APIUtil.generateUUID
 import code.retention.Retention.{ModeExecute, StatusPending}
 import code.retention.{RetentionEngine, RetentionPolicy, RetentionProps, RetentionRun}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
-import net.liftweb.mapper.By
 
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
@@ -57,7 +55,7 @@ import scala.util.control.NonFatal
 object RetentionScheduler extends MdcLoggable {
 
   private lazy val actorSystem = ObpActorSystem.localActorSystem
-  implicit lazy val executor = actorSystem.dispatcher
+  implicit lazy val executor: scala.concurrent.ExecutionContext = actorSystem.dispatcher
   private lazy val scheduler = actorSystem.scheduler
   private val jobName = "RetentionScheduler"
   private val apiInstanceId = Constant.ApiInstanceId
@@ -75,7 +73,7 @@ object RetentionScheduler extends MdcLoggable {
   def start(intervalInSeconds: Long): Unit = {
     logger.info(s"RetentionScheduler.start: every $intervalInSeconds seconds")
     // This instance cannot have a run in progress at boot, so a lock row of its own is a leftover.
-    JobScheduler.findAll(By(JobScheduler.ApiInstanceId, apiInstanceId), By(JobScheduler.Name, jobName)).foreach(_.delete_!)
+    JobScheduler.findAllByApiInstanceId(apiInstanceId).filter(_.name == jobName).foreach(JobScheduler.delete)
     scheduler.schedule(
       initialDelay = Duration(intervalInSeconds, TimeUnit.SECONDS),
       interval = Duration(intervalInSeconds, TimeUnit.SECONDS),
@@ -87,19 +85,19 @@ object RetentionScheduler extends MdcLoggable {
 
   /** One tick. Returns false when it was skipped because another tick holds the lock. */
   def runOnce(): Boolean =
-    JobScheduler.find(By(JobScheduler.Name, jobName)) match {
+    JobScheduler.findByName(jobName) match {
       case Full(job) =>
-        logger.info(s"RetentionScheduler.runOnce skipped: job ${job.JobId.get} started at ${job.createdAt.get} on ${job.ApiInstanceId.get} is in progress")
+        logger.info(s"RetentionScheduler.runOnce skipped: job ${job.jobId} started at ${job.createdAt} on ${job.apiInstanceId} is in progress")
         false
       case _ =>
-        val job = JobScheduler.create.JobId(generateUUID()).Name(jobName).ApiInstanceId(apiInstanceId).saveMe()
+        val job = JobScheduler.createJob(jobName, apiInstanceId)
         try {
-          RetentionPolicy.findAll(By(RetentionPolicy.Enabled, true)).foreach(runPolicy)
+          RetentionPolicy.findAllEnabled().foreach(runPolicy)
           if (RetentionProps.deleteEnabled) RetentionEngine.deleteAllDueFromArchive()
         } catch {
           case NonFatal(e) => logger.error("RetentionScheduler.runOnce failed", e)
         } finally {
-          JobScheduler.delete_!(job)
+          JobScheduler.delete(job)
         }
         true
     }
@@ -112,7 +110,7 @@ object RetentionScheduler extends MdcLoggable {
         logger.info(s"RetentionScheduler: policy $id skipped: ${RetentionEngine.refusal(policy).getOrElse("")}")
       else if (!RetentionEngine.hasWork(policy)) ()
       else if (policy.requiresApproval) {
-        val alreadyPending = RetentionRun.find(By(RetentionRun.RetentionPolicyId, id), By(RetentionRun.Status, StatusPending)).isDefined
+        val alreadyPending = RetentionRun.existsByRetentionPolicyIdAndStatus(id, StatusPending)
         if (!alreadyPending) {
           val run = RetentionEngine.requestRun(policy, ModeExecute, "")
           logger.info(s"RetentionScheduler: policy $id has resources due; run ${run.retentionRunId} is waiting for approval")

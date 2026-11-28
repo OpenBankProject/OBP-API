@@ -29,6 +29,7 @@ package code.api.v4_0_0
 
 import code.api.Constant._
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.ErrorMessages.CannotFindAccountAccess
 import code.api.v2_0_0.BasicAccountsJSON
 import code.api.v3_1_0.AccountsBalancesV310Json

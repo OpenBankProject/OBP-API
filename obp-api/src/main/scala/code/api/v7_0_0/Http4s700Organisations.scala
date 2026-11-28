@@ -48,6 +48,7 @@ import com.openbankproject.commons.util.ApiVersion
 import org.http4s._
 import org.http4s.dsl.io._
 import org.json4s.Formats
+import org.json4s.jvalue2monadic
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
@@ -89,8 +90,8 @@ object Http4s700Organisations {
   private def validName(name: String): Boolean = name.trim.nonEmpty && name.trim.length <= 255
 
   /** SYS, or the id of a bank that exists. */
-  private def organisationBankId(given: Option[String], cc: CallContext): Future[String] = {
-    val bankId = given.map(_.trim).filter(_.nonEmpty).getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+  private def organisationBankId(requested: Option[String], cc: CallContext): Future[String] = {
+    val bankId = requested.map(_.trim).filter(_.nonEmpty).getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
     Helper.booleanToFuture(InvalidOrganisationBankId, 400, Some(cc))(APIUtil.isBankIdWhereRolesCanBeHeld(bankId, Some(cc)))
       .map(_ => bankId)
   }
@@ -103,7 +104,7 @@ object Http4s700Organisations {
     val asEntitlement = code.entitlement.Entitlement.entitlement.vend.getEntitlementsByUserId(userId)
       .map(_.exists(_.roleName == role.toString)).openOr(false)
     lazy val asScope = cc.consumer.toOption
-      .flatMap(consumer => code.scope.Scope.scope.vend.getScopesByConsumerId(consumer.id.get.toString).toOption)
+      .flatMap(consumer => code.scope.Scope.scope.vend.getScopesByConsumerId(consumer.id.toString).toOption)
       .exists(_.exists(_.roleName == role.toString))
     asEntitlement || asScope
   }
@@ -698,11 +699,11 @@ object Http4s700Organisations {
       EndpointHelpers.withUser(req) { (user, cc) =>
         for {
           consumer <- myConsumer(consumerId, user.userId, cc)
-          callCounters <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
+          callCounters <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId).toList)
           date = new java.util.Date()
-          (activeRateLimit, rateLimitIds) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId.get, date)
+          (activeRateLimit, rateLimitIds) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId, date)
         } yield MyConsumerUsageJsonV700(
-          consumer.consumerId.get,
+          consumer.consumerId,
           JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(activeRateLimit, rateLimitIds, date),
           JSONFactory600.createRedisCallCountersJson(callCounters)
         )
@@ -734,8 +735,8 @@ object Http4s700Organisations {
       EndpointHelpers.withUser(req) { (user, cc) =>
         for {
           consumer <- myConsumer(consumerId, user.userId, cc)
-          scopes <- Future(code.scope.Scope.scope.vend.getScopesByConsumerId(consumer.id.get.toString).openOr(Nil))
-        } yield MyConsumerScopesJsonV700(consumer.consumerId.get,
+          scopes <- Future(code.scope.Scope.scope.vend.getScopesByConsumerId(consumer.id.toString).openOr(Nil))
+        } yield MyConsumerScopesJsonV700(consumer.consumerId,
           scopes.map(scope => MyConsumerScopeJsonV700(scope.roleName, scope.bankId)).sortBy(scope => (scope.role_name, scope.bank_id)))
       }
   }
@@ -764,7 +765,7 @@ object Http4s700Organisations {
       EndpointHelpers.withUser(req) { (user, cc) =>
         for {
           consumer <- myConsumer(consumerId, user.userId, cc)
-          (subscriptions, _) <- NewStyle.function.getApiProductSubscriptionsByConsumerId(consumer.consumerId.get, Some(cc))
+          (subscriptions, _) <- NewStyle.function.getApiProductSubscriptionsByConsumerId(consumer.consumerId, Some(cc))
           withAttributes <- Future.sequence(subscriptions.map { subscription =>
             NewStyle.function.getApiProductSubscriptionAttributes(subscription.apiProductSubscriptionId, Some(cc))
               .map { case (attributes, _) => JSONFactory700.createApiProductSubscriptionJsonV700(subscription, Some(attributes)) }
@@ -812,7 +813,7 @@ object Http4s700Organisations {
             case None => Future.successful(())
           }
           updated <- Future {
-            net.liftweb.util.Helpers.tryo(consumer.organisationId(targetOrganisationId.getOrElse("")).saveMe())
+            net.liftweb.util.Helpers.tryo(Consumer.update(consumer.copy(organisationId = targetOrganisationId.getOrElse(""))))
           }.map(unboxFullOrFail(_, Some(cc), UpdateConsumerOrganisationError, 400))
         } yield JSONFactory700Organisations.createMyConsumerJson(updated)
       }

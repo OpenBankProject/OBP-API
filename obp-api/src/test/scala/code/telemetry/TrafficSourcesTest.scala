@@ -1,13 +1,15 @@
 package code.telemetry
 
 import code.telemetry.TrafficSources.{AddressCaller, ConsumerCaller, Note}
-import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * This suite checks what TrafficSources records for a request and how it merges minutes into a
  * window. Times are passed in, so the minutes are chosen by the test.
  */
-class TrafficSourcesTest extends FlatSpec with Matchers with BeforeAndAfterEach {
+class TrafficSourcesTest extends AnyFlatSpec with Matchers with BeforeAndAfterEach {
 
   override def beforeEach(): Unit = TrafficSources.clear()
 

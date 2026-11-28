@@ -40,7 +40,7 @@ import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.JsonAST.{JInt, JNothing, JNull, JString, JValue}
 import org.json4s.native.Serialization.write
-import net.liftweb.mapper.By
+import org.json4s.{jvalue2extractable, jvalue2monadic}
 import org.scalatest.Tag
 
 import scala.concurrent.Await
@@ -66,7 +66,7 @@ class AssetsEndpointTest extends V600ServerSetup with RestoresSeededAssetRegistr
   private def assets = v7_0_0_Request / "assets"
 
   private def seedRegistry(): Unit = {
-    Asset.bulkDelete_!!()
+    Asset.deleteAll()
     AssetSeed.run()
   }
 
@@ -81,8 +81,8 @@ class AssetsEndpointTest extends V600ServerSetup with RestoresSeededAssetRegistr
   private def registerCardanoToken(): Unit = {
     Assets.createAsset("TZBOND29", AssetTypes.DEBT_SECURITY, "Example 2029 Note", 0, Some("bank-a"), AssetStatuses.ACTIVE, "user-1")
       .openOrThrowException("the token is created")
-    Asset.find(By(Asset.AssetCode, "TZBOND29")).openOrThrowException("the token exists")
-      .ChainScheme("CARDANO_MAINNET").ChainAssetId(tokenChainAssetId).saveMe()
+    Asset.update(Asset.findByAssetCode("TZBOND29").openOrThrowException("the token exists")
+      .withChainIdentity("CARDANO_MAINNET", tokenChainAssetId))
   }
 
   feature(s"Get Assets - GET /obp/v7.0.0/assets - $VersionOfApi") {

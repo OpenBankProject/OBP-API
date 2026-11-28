@@ -3,14 +3,15 @@ package code.util
 import java.util.concurrent.{ArrayBlockingQueue, CountDownLatch, ThreadPoolExecutor, TimeUnit}
 import java.util.concurrent.atomic.AtomicInteger
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * The log dispatch pool must have a bounded, documented failure mode: when its queue is full,
  * non-critical entries are dropped and counted, critical (warn/error) entries still run on the
  * caller, and nothing throws to the caller.
  */
-class MdcLoggableBoundedQueueTest extends FlatSpec with Matchers {
+class MdcLoggableBoundedQueueTest extends AnyFlatSpec with Matchers {
 
   /** One worker, queue of one, AbortPolicy: the third submission while the worker is busy is rejected. */
   private def tinyExecutor(): ThreadPoolExecutor =

@@ -29,10 +29,13 @@ package code.accountcreation
 
 import java.util.Date
 
+import code.api.util.DoobieUtil
 import code.consent.Consents
 import code.users.{UserReference, Users}
-import net.liftweb.common.{Box, Full}
-import net.liftweb.mapper._
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.SimpleInjector
 
@@ -79,56 +82,74 @@ object AccountCreationDbProvider extends AccountCreationProvider {
         .flatMap(id => Consents.consentProvider.vend.getConsentByConsentId(id).toOption)
         .map(_.consentReferenceId)
       row <- tryo {
-        AccountCreation.create
-          .BankId(bankId)
-          .AccountId(accountId)
-          .CreatedByUserId(attribution.userId)
-          .CreatedByOnBehalfOfUserId(attribution.onBehalfOfUserId)
-          .ConsentReferenceId(consentReferenceId.orNull)
-          .saveMe()
+        AccountCreation.insert(AccountCreation(
+          bankId = bankId,
+          accountId = accountId,
+          createdByUserId = attribution.userId,
+          createdByOnBehalfOfUserId = attribution.onBehalfOfUserId,
+          consentReferenceIdRaw = consentReferenceId.orNull,
+          createdAt = new Date()))
       }
     } yield row
 
   override def get(bankId: String, accountId: String): Box[AccountCreationTrait] =
-    AccountCreation.find(By(AccountCreation.BankId, bankId), By(AccountCreation.AccountId, accountId))
+    AccountCreation.query(fr"WHERE bank_id = ${Option(bankId)} AND account_id = ${Option(accountId)} ORDER BY id ASC")
+      .headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
 
   override def getForAccounts(bankId: String, accountIds: List[String]): List[AccountCreationTrait] =
     if (accountIds.isEmpty) Nil
-    else AccountCreation.findAll(By(AccountCreation.BankId, bankId), ByList(AccountCreation.AccountId, accountIds))
+    else AccountCreation.query(fr"WHERE bank_id = ${Option(bankId)} AND" ++
+      Fragments.in(fr"account_id", cats.data.NonEmptyList.fromListUnsafe(accountIds.distinct)) ++ fr"ORDER BY id ASC")
 }
 
-class AccountCreation extends AccountCreationTrait with LongKeyedMapper[AccountCreation] with IdPK {
-  def getSingleton = AccountCreation
-
-  object BankId extends MappedString(this, 255) {
-    override def dbColumnName = "bank_id"
-  }
-  object AccountId extends MappedString(this, 255) {
-    override def dbColumnName = "account_id"
-  }
-  object CreatedByUserId extends MappedString(this, 255) {
-    override def dbColumnName = "created_by_user_id"
-  }
-  object CreatedByOnBehalfOfUserId extends MappedString(this, 255) {
-    override def dbColumnName = "created_by_on_behalf_of_user_id"
-  }
-  object ConsentReferenceId extends MappedString(this, 255) {
-    override def dbColumnName = "consent_reference_id"
-  }
-  object CreatedAt extends MappedDateTime(this) {
-    override def dbColumnName = "created_at"
-    override def defaultValue = new Date()
-  }
-
-  override def bankId: String = BankId.get
-  override def accountId: String = AccountId.get
-  override def createdByUserId: String = CreatedByUserId.get
-  override def createdByOnBehalfOfUserId: String = CreatedByOnBehalfOfUserId.get
-  override def consentReferenceId: Option[String] = Option(ConsentReferenceId.get).filter(_.nonEmpty)
-  override def createdAt: Date = CreatedAt.get
+/**
+ * One row of account_creation. Upstream declares this as a Lift Mapper entity; here it is a Doobie
+ * store over the table the changelog creates (db.changelog-develop-merge-3.yaml), unique on
+ * (bank_id, account_id).
+ */
+case class AccountCreation(
+  bankId: String,
+  accountId: String,
+  createdByUserId: String,
+  createdByOnBehalfOfUserId: String,
+  private[accountcreation] val consentReferenceIdRaw: String,
+  createdAt: Date
+) extends AccountCreationTrait {
+  override def consentReferenceId: Option[String] = Option(consentReferenceIdRaw).filter(_.nonEmpty)
 }
 
-object AccountCreation extends AccountCreation with LongKeyedMetaMapper[AccountCreation] {
-  override def dbTableName = "account_creation"
-  override def dbIndexes = UniqueIndex(BankId, AccountId) :: super.dbIndexes
+object AccountCreation {
+
+  private val selectColumns =
+    fr"""SELECT bank_id, account_id, created_by_user_id, created_by_on_behalf_of_user_id, consent_reference_id,
+                created_at
+         FROM account_creation"""
+
+  private type Row = (Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[java.sql.Timestamp])
+
+  private def fromRow(r: Row): AccountCreation =
+    AccountCreation(r._1.orNull, r._2.orNull, r._3.orNull, r._4.orNull, r._5.orNull,
+      r._6.map(ts => new Date(ts.getTime)).orNull)
+
+  private[accountcreation] def query(condition: Fragment): List[AccountCreation] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  def insert(a: AccountCreation): AccountCreation = {
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO account_creation (bank_id, account_id, created_by_user_id, created_by_on_behalf_of_user_id,
+              consent_reference_id, created_at)
+            VALUES (${Option(a.bankId)}, ${Option(a.accountId)}, ${Option(a.createdByUserId)},
+              ${Option(a.createdByOnBehalfOfUserId)}, ${Option(a.consentReferenceIdRaw)},
+              ${Option(a.createdAt).map(d => new java.sql.Timestamp(d.getTime))})""".update.run)
+    a
+  }
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM account_creation".update.run)
+    ()
+  }
 }

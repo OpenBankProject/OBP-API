@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.ResourceDocs1_4_0
 
+import org.json4s.jvalue2monadic
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.canReadDynamicResourceDocsAtOneBank

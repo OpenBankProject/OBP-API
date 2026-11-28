@@ -98,8 +98,8 @@ class AccountAccessTest extends V400ServerSetup {
     view
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / "account-access" / "grant").POST
       val response400 = makePostRequest(request400, write(postAccountAccessJson))
@@ -108,8 +108,8 @@ class AccountAccessTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "banks" / bankId / "accounts" / bankAccount.id / "account-access" / "revoke").POST
       val response400 = makePostRequest(request400, write(postAccountAccessJson))
@@ -119,8 +119,8 @@ class AccountAccessTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 and $ApiEndpoint2 and $ApiEndpoint3 version $VersionOfApi - Authorized access") {
-    scenario("A user cannot revoke their own access", VersionOfApi, ApiEndpoint2) {
+  Feature(s"test $ApiEndpoint1 and $ApiEndpoint2 and $ApiEndpoint3 version $VersionOfApi - Authorized access") {
+    Scenario("A user cannot revoke their own access", VersionOfApi, ApiEndpoint2) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -137,7 +137,7 @@ class AccountAccessTest extends V400ServerSetup {
       responseRevoke.body.extract[ErrorMessage].message should include(CannotRevokeOwnAccountAccess)
     }
 
-    scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
+    Scenario("We will call the endpoint with user credentials", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
 
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
@@ -175,8 +175,8 @@ class AccountAccessTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint4 version $VersionOfApi - views the caller may not grant, or that do not exist") {
-    scenario("A user with a limited view cannot swap it for the owner view", VersionOfApi, ApiEndpoint4) {
+  Feature(s"test $ApiEndpoint4 version $VersionOfApi - views the caller may not grant, or that do not exist") {
+    Scenario("A user with a limited view cannot swap it for the owner view", VersionOfApi, ApiEndpoint4) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)
@@ -195,7 +195,7 @@ class AccountAccessTest extends V400ServerSetup {
         .map(_.views.map(_.viewId.value)).openOr(Nil) should equal(List(limitedView.viewId.value))
     }
 
-    scenario("An unknown view id is refused before the caller's access is revoked", VersionOfApi, ApiEndpoint4) {
+    Scenario("An unknown view id is refused before the caller's access is revoked", VersionOfApi, ApiEndpoint4) {
       val addedEntitlement: Box[Entitlement] = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAccount.toString)
       val account = try {
         createAnAccount(bankId, user1)

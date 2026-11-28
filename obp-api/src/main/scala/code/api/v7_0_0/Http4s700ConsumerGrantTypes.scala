@@ -70,7 +70,7 @@ object Http4s700ConsumerGrantTypes {
     code.api.util.APIUtil.unboxFullOrFail(box, Some(cc), UnknownError, 400)
 
   private def json(consumer: Consumer) = ConsumerGrantTypesJsonV700(
-    consumer_id = consumer.consumerId.get,
+    consumer_id = consumer.consumerId,
     grant_types = ConsumerGrantTypes.of(consumer),
     oauth2_grant_types = ConsumerGrantTypes.oauth2GrantTypes(consumer))
 
@@ -147,7 +147,7 @@ object Http4s700ConsumerGrantTypes {
               (!grantTypes.contains(ConsumerGrantTypes.RefreshToken) || grantTypes.contains(ConsumerGrantTypes.AuthorizationCode))
           }
           consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
-          updated <- Consumers.consumers.vend.updateConsumerGrantTypes(consumer.id.get, grantTypes) map {
+          updated <- Consumers.consumers.vend.updateConsumerGrantTypes(consumer.id, grantTypes) map {
             x => fullOrFail(x, cc)
           }
         } yield json(updated)

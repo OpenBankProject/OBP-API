@@ -37,14 +37,14 @@ class AuthRateLimiterTest extends ServerSetup {
   private def freshUsername(): String = s"authratelimit_user_${ipCounter.incrementAndGet()}"
   private val provider = "local"
 
-  feature("AuthRateLimiter") {
+  Feature("AuthRateLimiter") {
 
-    scenario("disabled by default — always returns Right, no Redis calls") {
+    Scenario("disabled by default — always returns Right, no Redis calls") {
       // No setPropsValues — relies on the code default `auth.rate_limit.enabled = false`
       AuthRateLimiter.check(freshIp(), provider, freshUsername()) shouldBe Right(())
     }
 
-    scenario("enabled, under limits — returns Right") {
+    Scenario("enabled, under limits — returns Right") {
       setPropsValues(
         "auth.rate_limit.enabled" -> "true",
         "auth.rate_limit.mode" -> "enforce",
@@ -55,7 +55,7 @@ class AuthRateLimiterTest extends ServerSetup {
       AuthRateLimiter.check(freshIp(), provider, freshUsername()) shouldBe Right(())
     }
 
-    scenario("enforce mode: per-IP/min limit trips on the (limit+1)th attempt") {
+    Scenario("enforce mode: per-IP/min limit trips on the (limit+1)th attempt") {
       setPropsValues(
         "auth.rate_limit.enabled" -> "true",
         "auth.rate_limit.mode" -> "enforce",
@@ -76,7 +76,7 @@ class AuthRateLimiterTest extends ServerSetup {
       exceeded.retryAfterSeconds should (be > 0L and be <= 60L)
     }
 
-    scenario("shadow mode: trip is logged but check still returns Right") {
+    Scenario("shadow mode: trip is logged but check still returns Right") {
       setPropsValues(
         "auth.rate_limit.enabled" -> "true",
         "auth.rate_limit.mode" -> "shadow",
@@ -91,7 +91,7 @@ class AuthRateLimiterTest extends ServerSetup {
       AuthRateLimiter.check(ip, provider, freshUsername()) shouldBe Right(())
     }
 
-    scenario("per-username/min trips independent of IP") {
+    Scenario("per-username/min trips independent of IP") {
       setPropsValues(
         "auth.rate_limit.enabled" -> "true",
         "auth.rate_limit.mode" -> "enforce",
@@ -110,7 +110,7 @@ class AuthRateLimiterTest extends ServerSetup {
       exceeded.limit shouldBe 2L
     }
 
-    scenario("same username across providers do not share a counter") {
+    Scenario("same username across providers do not share a counter") {
       setPropsValues(
         "auth.rate_limit.enabled" -> "true",
         "auth.rate_limit.mode" -> "enforce",

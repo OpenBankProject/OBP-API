@@ -179,8 +179,8 @@ class AccountTest extends V200ServerSetup with DefaultUsers with PrivateUser2Acc
     }
   }
 
-  feature("Information about the public bank accounts for all banks"){
-    scenario("we get the public bank accounts"){
+  Feature("Information about the public bank accounts for all banks"){
+    Scenario("we get the public bank accounts"){
       accountTestsSpecificDBSetup()
       Given("We will not use an access token")
       When("the request is sent")

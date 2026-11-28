@@ -31,7 +31,9 @@ import code.api.Constant
 import code.api.cache.Redis
 import code.api.util.http4s.RequestScopeConnection
 import code.setup.RedisTestTarget
-import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -46,7 +48,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
  * the map's whole time-to-live, and other instances never heard of the change at all: a new entity's
  * record endpoints answered 404 for up to five minutes.
  */
-class DefinitionsCacheInvalidationTest extends FlatSpec with Matchers with BeforeAndAfterEach {
+class DefinitionsCacheInvalidationTest extends AnyFlatSpec with Matchers with BeforeAndAfterEach {
 
   private val namespace = "dynamic_entity"
 

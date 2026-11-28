@@ -30,19 +30,18 @@ package code.api.util.migration
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.views.system.AccountAccess
-import net.liftweb.mapper.Schemifier
 
 object MigrationOfAccountAccessWithViewsView {
 
   def addAccountAccessWithViewsView(name: String): Boolean = {
-    DbFunction.tableExists(AccountAccess) match {
+    DbFunction.tableExistsByName("accountaccess") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
 
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
+          DbFunction.maybeWrite(true) {
             APIUtil.getPropsValue("db.driver") openOr("org.h2.Driver") match {
               case value if value.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
                 () =>
@@ -162,7 +161,7 @@ object MigrationOfAccountAccessWithViewsView {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${AccountAccess._dbTableNameLC} table does not exist""".stripMargin
+          "accountaccess table does not exist"
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
@@ -186,7 +185,7 @@ object MigrationOfAccountAccessWithViewsView {
 
     // DROP VIEW IF EXISTS is the same on PostgreSQL, H2 and SQL Server
     val executedSql =
-      DbFunction.maybeWrite(true, Schemifier.infoF _) {
+      DbFunction.maybeWrite(true) {
         () => "DROP VIEW IF EXISTS v_account_access_with_views;"
       }
 

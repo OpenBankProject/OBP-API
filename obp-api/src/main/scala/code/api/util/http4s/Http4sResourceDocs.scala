@@ -29,6 +29,8 @@ package code.api.util.http4s
 
 import org.json4s._
 import cats.effect.IO
+import code.api.Constant.HostName
+import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocs300, ResourceDocsAPIMethods, ResourceDocsAPIMethodsUtil}
 import code.api.Constant.{DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, HostName}
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocs300, ResourceDocsAPIMethodsUtil}
 import code.api.ResponseHeader
@@ -37,7 +39,7 @@ import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResour
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CustomJsonFormats, ResourceDocFilters, YAMLUtils}
 import code.api.v1_4_0.JSONFactory1_4_0
-import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
+import code.apicollectionendpoint.DoobieApiCollectionEndpointsProvider
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -95,7 +97,7 @@ object Http4sResourceDocs extends MdcLoggable {
   private val ImplDefault = ResourceDocs140.ImplementationsResourceDocs
   private val ImplV600 = ResourceDocs300.ResourceDocs600.ImplementationsResourceDocs
 
-  private def implForPrefix(prefix: String) = prefix match {
+  private def implForPrefix(prefix: String): ResourceDocsAPIMethods#ImplementationsResourceDocsImpl = prefix match {
     case "v6.0.0" => ImplV600
     case _        => ImplDefault
   }
@@ -355,7 +357,7 @@ object Http4sResourceDocs extends MdcLoggable {
       )
       val jvalue: JValue = (params.apiCollectionId, params.contentParam) match {
         case (Some(_), _) =>
-          val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(params.apiCollectionId.getOrElse(""))
+          val operationIds = DoobieApiCollectionEndpointsProvider.getApiCollectionEndpoints(params.apiCollectionId.getOrElse(""))
             .map(_.operationId).map(APIUtil.getObpFormatOperationId)
           val resourceDocs = APIUtil.ResourceDoc.getResourceDocs(operationIds)
           val rdJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, params.locale, includeTechnology = includeTech)
@@ -442,7 +444,7 @@ object Http4sResourceDocs extends MdcLoggable {
         else {
           val resourceDocsJsonFiltered: List[JSONFactory1_4_0.ResourceDocJson] = params.apiCollectionId match {
             case Some(_) =>
-              val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(params.apiCollectionId.getOrElse(""))
+              val operationIds = DoobieApiCollectionEndpointsProvider.getApiCollectionEndpoints(params.apiCollectionId.getOrElse(""))
                 .map(_.operationId).map(APIUtil.getObpFormatOperationId)
               val resourceDocs = APIUtil.ResourceDoc.getResourceDocs(operationIds)
               JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, params.locale, includeTechnology = true).resource_docs
@@ -516,7 +518,7 @@ object Http4sResourceDocs extends MdcLoggable {
         else {
           val resourceDocsJsonFiltered: List[JSONFactory1_4_0.ResourceDocJson] = params.apiCollectionId match {
             case Some(_) =>
-              val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(params.apiCollectionId.getOrElse(""))
+              val operationIds = DoobieApiCollectionEndpointsProvider.getApiCollectionEndpoints(params.apiCollectionId.getOrElse(""))
                 .map(_.operationId).map(APIUtil.getObpFormatOperationId)
               val resourceDocs = APIUtil.ResourceDoc.getResourceDocs(operationIds)
               JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, params.locale, includeTechnology = true).resource_docs
@@ -587,7 +589,7 @@ object Http4sResourceDocs extends MdcLoggable {
         else {
           val resourceDocsJsonFiltered: List[JSONFactory1_4_0.ResourceDocJson] = params.apiCollectionId match {
             case Some(_) =>
-              val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(params.apiCollectionId.getOrElse(""))
+              val operationIds = DoobieApiCollectionEndpointsProvider.getApiCollectionEndpoints(params.apiCollectionId.getOrElse(""))
                 .map(_.operationId).map(APIUtil.getObpFormatOperationId)
               val resourceDocs = APIUtil.ResourceDoc.getResourceDocs(operationIds)
               JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, params.locale, includeTechnology = true).resource_docs

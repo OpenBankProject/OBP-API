@@ -1,13 +1,15 @@
 package code.api.util
 
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Mail is sent inside requests (the consent challenge, for one), so an SMTP server that accepts the connection and
  * then goes quiet must not hold the request, and its database connection, forever. Jakarta Mail waits without limit
  * unless the session says otherwise.
  */
-class CommonsEmailWrapperTest extends FeatureSpec with Matchers with GivenWhenThen {
+class CommonsEmailWrapperTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   private val config = CommonsEmailWrapper.EmailConfig(smtpHost = "localhost", smtpPort = 1025, username = "", password = "")
 

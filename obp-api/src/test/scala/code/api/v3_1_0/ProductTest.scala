@@ -246,8 +246,8 @@ class ProductTest extends V310ServerSetup {
 
   private val productTreePath = "product-tree"
 
-  feature("Get Product Tree v3.1.0 (the products are created through the connector)") {
-    scenario("We get the product tree of a child product", ApiEndpoint4, VersionOfApi) {
+  Feature("Get Product Tree v3.1.0 (the products are created through the connector)") {
+    Scenario("We get the product tree of a child product", ApiEndpoint4, VersionOfApi) {
       val grandparent = createProduct(testBankId, "TREE_GRANDPARENT", parentPostPutProductJsonV310)
       val parent = createProduct(testBankId, "TREE_PARENT", parentPostPutProductJsonV310.copy(parent_product_code = grandparent.code))
       createProduct(testBankId, "TREE_CHILD", parentPostPutProductJsonV310.copy(parent_product_code = parent.code))

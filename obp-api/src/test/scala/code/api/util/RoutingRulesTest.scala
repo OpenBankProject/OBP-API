@@ -33,7 +33,9 @@ import code.api.util.ErrorMessages._
 import code.api.v1_2_1.BankRoutingJsonV121
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
+import org.scalatest.{GivenWhenThen, Tag}
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * The rules for a bank's BIC and an account's number, on the commons models, with no server.
@@ -46,7 +48,7 @@ import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
  * Every model here is built the way a connector could send it, nulls included, because the rules
  * must hold whichever connector supplied the bank or the account.
  */
-class RoutingRulesTest extends FeatureSpec with Matchers with GivenWhenThen {
+class RoutingRulesTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   object RoutingRulesTag extends Tag("RoutingRules")
 

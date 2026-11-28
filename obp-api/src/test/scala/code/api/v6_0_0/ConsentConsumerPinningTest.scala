@@ -72,8 +72,8 @@ class ConsentConsumerPinningTest extends V600ServerSetup with TestConnectorSetup
   // unidentified, so nothing until now has exercised "identified, active, and not the right one".
   private lazy val consumerAKey = user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")
   private lazy val consumerBKey = user2.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")
-  private lazy val consumerAId = testConsumer.consumerId.get
-  private lazy val consumerBId = testConsumer2.consumerId.get
+  private lazy val consumerAId = testConsumer.consumerId
+  private lazy val consumerBId = testConsumer2.consumerId
 
   private def consumerKeyHeader(key: String) = List((RequestHeader.`Consumer-Key`, key))
   private def consentJwtHeader(jwt: String) = List((RequestHeader.`Consent-JWT`, jwt))
@@ -203,13 +203,13 @@ class ConsentConsumerPinningTest extends V600ServerSetup with TestConnectorSetup
     // would pass for the wrong reason the day the ordering changed.
     scenario("a Consent whose Consumer is disabled afterwards is refused", VersionOfApi, ConsentPinning) {
       val disabledLater = createLocalConsumer("consent-pinning-disabled-later")
-      val jwt = acceptedConsentJwt(Some(disabledLater.consumerId.get))
+      val jwt = acceptedConsentJwt(Some(disabledLater.consumerId))
 
       When("the Consent's Consumer is disabled after the Consent was granted")
-      Consumers.consumers.vend.updateConsumer(disabledLater.id.get, isActive = Some(false))
+      Consumers.consumers.vend.updateConsumer(disabledLater.id, isActive = Some(false))
 
       Then("the pin still passes -- the ids match -- but the disabled Consumer is refused")
-      val response = callAsConsent(jwt, consumerKeyHeader(disabledLater.key.get))
+      val response = callAsConsent(jwt, consumerKeyHeader(disabledLater.key))
       response.body.extract[ErrorMessage].message should include(ConsumerIsDisabled)
     }
 
@@ -221,7 +221,7 @@ class ConsentConsumerPinningTest extends V600ServerSetup with TestConnectorSetup
       VersionOfApi, ConsentPinning) {
       val certificate = s"-----BEGIN CERTIFICATE-----CONSENTPINNINGQSEALC${randomString(20)}-----END CERTIFICATE-----"
       val certConsumer = createLocalConsumer("consent-pinning-qsealc", Some(certificate))
-      val jwt = acceptedConsentJwt(Some(certConsumer.consumerId.get))
+      val jwt = acceptedConsentJwt(Some(certConsumer.consumerId))
 
       When("the instance validates the MTLS certificate but the caller only sent its signing certificate")
       setPropsValues("consumer_validation_method_for_consent" -> "CONSUMER_CERTIFICATE")
@@ -241,7 +241,7 @@ class ConsentConsumerPinningTest extends V600ServerSetup with TestConnectorSetup
       VersionOfApi, ConsentPinning) {
       val certificate = s"-----BEGIN CERTIFICATE-----CONSENTPINNINGQWAC${randomString(20)}-----END CERTIFICATE-----"
       val certConsumer = createLocalConsumer("consent-pinning-qwac", Some(certificate))
-      val jwt = acceptedConsentJwt(Some(certConsumer.consumerId.get))
+      val jwt = acceptedConsentJwt(Some(certConsumer.consumerId))
 
       When("the caller presents the certificate of the named Consumer and the Consumer-Key of another")
       val response = callAsConsent(jwt,

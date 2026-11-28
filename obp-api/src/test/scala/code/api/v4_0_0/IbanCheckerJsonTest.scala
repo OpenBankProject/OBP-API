@@ -1,14 +1,15 @@
 package code.api.v4_0_0
 
 import com.openbankproject.commons.model.{IbanChecker, IbanDetails}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * This class tests that the response of POST /obp/v4.0.0/account/check/scheme/iban gives each SEPA
  * attribute the value of its own field, so a bank's credit transfer support is not shown as its
  * direct debit support.
  */
-class IbanCheckerJsonTest extends FlatSpec with Matchers {
+class IbanCheckerJsonTest extends AnyFlatSpec with Matchers {
 
   // every SEPA field has a different value, so a shifted mapping shows up
   private val details = IbanDetails("BIC1", "bank", "branch", "address", "city", "zip", "phone", "country", "DE",

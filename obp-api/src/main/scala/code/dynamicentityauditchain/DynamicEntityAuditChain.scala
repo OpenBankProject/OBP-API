@@ -30,14 +30,15 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.Date
 
+import cats.implicits._
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, DoobieUtil}
 import code.users.{UserReference, Users}
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Box, Full}
-import net.liftweb.db.DB
-import net.liftweb.mapper._
-import net.liftweb.util.DefaultConnectionIdentifier
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.util.Helpers.tryo
 
 import scala.collection.mutable
@@ -48,6 +49,8 @@ import scala.collection.mutable
  * A chain cannot be switched off. There is no endpoint to stop one, and an entity with a chain cannot be deleted or renamed. Someone with direct access to the database can still change anything, so the chain does not prevent tampering: it makes it visible.
  *
  * Each entity's chain is bound to its entity: its first entry names the entity, and that entry's hash covers the name. The chains are tied together by one root chain per OBP instance, which records each chain when it is started, and the last entry of each chain whenever the chains are sealed. So a whole chain deleted, moved, rewound or rewritten shows up in the root chain's check. A consistent rewrite of every chain and of the root chain is only caught by comparing the root chain's last hash with a copy kept somewhere else, which is what that hash is published for.
+ *
+ * Every write here is one Doobie program run by DoobieUtil.runUpdate: inside a request it runs in the request's transaction, and outside one it is a transaction of its own, so a chain starts, or an entry is added, completely or not at all.
  */
 object DynamicEntityAuditChains extends MdcLoggable {
 
@@ -73,17 +76,24 @@ object DynamicEntityAuditChains extends MdcLoggable {
   /** The space as the chain stores it: a bank id, or SYS for the system space. */
   private def spaceOf(bankId: Option[String]): String = bankId.filter(_.nonEmpty).getOrElse(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
 
+  private def box[A](value: Option[A]): Box[A] = value match {
+    case Some(found) => Full(found)
+    case None => Empty
+  }
+
   /** The chain of the entity named `entityName` in the space `bankId` (None for the system space), if it has one. */
   def chainOf(bankId: Option[String], entityName: String): Box[DynamicEntityAuditChain] =
-    DynamicEntityAuditChain.find(By(DynamicEntityAuditChain.BankId, spaceOf(bankId)), By(DynamicEntityAuditChain.EntityName, entityName))
+    box(DoobieUtil.runQuery(DynamicEntityAuditChain.findOneIO(
+      fr"WHERE bank_id = ${spaceOf(bankId)} AND entity_name = ${Option(entityName)}")))
 
   /** The chain of the Dynamic Entity with this id, if it has one. */
   def chainOfEntity(dynamicEntityId: String): Box[DynamicEntityAuditChain] =
-    DynamicEntityAuditChain.find(By(DynamicEntityAuditChain.DynamicEntityId, dynamicEntityId))
+    box(DoobieUtil.runQuery(DynamicEntityAuditChain.findOneIO(fr"WHERE dynamic_entity_id = ${Option(dynamicEntityId)}")))
 
   /** Whether the Dynamic Entity with this id has a chain. Used to refuse deleting or renaming it. */
   def hasChain(dynamicEntityId: String): Boolean =
-    Option(dynamicEntityId).exists(id => id.nonEmpty && DynamicEntityAuditChain.count(By(DynamicEntityAuditChain.DynamicEntityId, id)) > 0)
+    Option(dynamicEntityId).exists(id => id.nonEmpty && DoobieUtil.runQuery(
+      sql"SELECT COUNT(*) FROM dynamic_entity_audit_chain WHERE dynamic_entity_id = $id".query[Long].unique) > 0)
 
   /** The SHA-256 of a string's UTF-8 bytes, as 64 lowercase hexadecimal characters. */
   def sha256Hex(text: String): String =
@@ -117,44 +127,36 @@ object DynamicEntityAuditChains extends MdcLoggable {
         }
     }
 
+  /** The writers of the entries one call adds: worked out once, before the call's Doobie program runs. */
+  private def entryWritersOf(callerUserId: Option[String]): (String, String) =
+    writersOf(callerUserId, UserReference.DynamicEntityAuditEntry_UserId)
+
   /**
    * This adds one entry to a chain, in the caller's transaction.
    *
    * The order of the entries is decided by the database, not by the clock. The UPDATE below adds one to the chain's last sequence number, and in doing so locks the chain's row until the transaction ends, so a second write to the same entity waits here until the first has committed or rolled back, and then reads the sequence number and hash the first left behind. Writes to other entities have other chains and do not wait. The unique index on (chain_id, sequence) is the backstop: two entries can never share a number.
    */
-  private def append(chain: DynamicEntityAuditChain, operation: String, recordId: String, ownerUserId: Option[String],
-                     dataJson: Option[String], callerUserId: Option[String]): DynamicEntityAuditEntry = {
-    val table = DynamicEntityAuditChain.dbTableName
-    val lastSequenceColumn = DynamicEntityAuditChain.LastSequence._dbColumnNameLC
-    val chainIdColumn = DynamicEntityAuditChain.ChainId._dbColumnNameLC
-    val updated = DB.runUpdate(s"UPDATE $table SET $lastSequenceColumn = $lastSequenceColumn + 1 WHERE $chainIdColumn = ?", List(chain.chainId))
-    if (updated != 1) throw new IllegalStateException(s"append says: the audit chain ${chain.chainId} of ${chain.entityName} could not be locked")
-    // Read again now that the row is locked: these are the values the entry before this one left.
-    val locked = DynamicEntityAuditChain.find(By(DynamicEntityAuditChain.ChainId, chain.chainId))
-      .openOrThrowException(s"the audit chain ${chain.chainId}")
-    val sequence = locked.LastSequence.get
-    val previousHash = Option(locked.LastHash.get).filter(_.nonEmpty).getOrElse(NoPreviousHash)
-    val (userId, onBehalfOfUserId) = writersOf(callerUserId, UserReference.DynamicEntityAuditEntry_UserId)
-    val dataHash = dataHashOf(dataJson)
-    val recordedAtMillis = System.currentTimeMillis()
-    val owner = ownerUserId.getOrElse("")
-    val hash = entryHash(locked.chainId, sequence, operation, recordId, owner, dataHash, userId, onBehalfOfUserId, recordedAtMillis, previousHash)
-    val entry = DynamicEntityAuditEntry.create
-      .ChainId(locked.chainId)
-      .Sequence(sequence)
-      .Operation(operation)
-      .RecordId(recordId)
-      .OwnerUserId(owner)
-      .DataJson(dataJson.orNull)
-      .DataHash(dataHash)
-      .UserId(userId)
-      .OnBehalfOfUserId(onBehalfOfUserId)
-      .RecordedAtMillis(recordedAtMillis)
-      .PreviousHash(previousHash)
-      .Hash(hash)
-      .saveMe()
-    locked.LastHash(hash).saveMe()
-    entry
+  private def appendIO(chain: DynamicEntityAuditChain, operation: String, recordId: String, ownerUserId: Option[String],
+                       dataJson: Option[String], writers: (String, String)): ConnectionIO[DynamicEntityAuditEntry] = {
+    val (userId, onBehalfOfUserId) = writers
+    for {
+      updated <- sql"""UPDATE dynamic_entity_audit_chain SET last_sequence = last_sequence + 1
+                       WHERE chain_id = ${Option(chain.chainId)}""".update.run
+      _ <- FC.delay(if (updated != 1) throw new IllegalStateException(s"append says: the audit chain ${chain.chainId} of ${chain.entityName} could not be locked"))
+      // Read again now that the row is locked: these are the values the entry before this one left.
+      lockedRow <- DynamicEntityAuditChain.findOneIO(fr"WHERE chain_id = ${Option(chain.chainId)}")
+      locked <- FC.delay(lockedRow.getOrElse(throw new IllegalStateException(s"the audit chain ${chain.chainId}")))
+      recordedAtMillis <- FC.delay(System.currentTimeMillis())
+      sequence = locked.lastSequence
+      previousHash = Option(locked.lastHash).filter(_.nonEmpty).getOrElse(NoPreviousHash)
+      dataHash = dataHashOf(dataJson)
+      owner = ownerUserId.getOrElse("")
+      hash = entryHash(locked.chainId, sequence, operation, recordId, owner, dataHash, userId, onBehalfOfUserId, recordedAtMillis, previousHash)
+      entry = DynamicEntityAuditEntry(locked.chainId, sequence, operation, recordId, owner, dataJson, dataHash, userId,
+        onBehalfOfUserId, recordedAtMillis, previousHash, hash)
+      _ <- DynamicEntityAuditEntry.insertIO(entry)
+      _ <- sql"UPDATE dynamic_entity_audit_chain SET last_hash = ${Option(hash)} WHERE chain_id = ${Option(locked.chainId)}".update.run
+    } yield entry
   }
 
   /** The chain id of the root chain. There is one root chain per OBP instance, and it holds no records. */
@@ -195,82 +197,77 @@ object DynamicEntityAuditChains extends MdcLoggable {
     }.getOrElse(Map.empty)
   }
 
+  private def rootChainIO: ConnectionIO[Option[DynamicEntityAuditChain]] =
+    DynamicEntityAuditChain.findOneIO(fr"WHERE chain_id = $RootChainId")
+
   /** The root chain, if it has been created. */
-  def rootChain: Box[DynamicEntityAuditChain] = DynamicEntityAuditChain.find(By(DynamicEntityAuditChain.ChainId, RootChainId))
+  def rootChain: Box[DynamicEntityAuditChain] = box(DoobieUtil.runQuery(rootChainIO))
+
+  private def entityChainsIO: ConnectionIO[List[DynamicEntityAuditChain]] =
+    DynamicEntityAuditChain.findAllIO(fr"WHERE chain_id <> $RootChainId ORDER BY id ASC")
 
   /** Every entity's chain, oldest first. The root chain is not one of them. */
-  def entityChains: List[DynamicEntityAuditChain] =
-    DynamicEntityAuditChain.findAll(NotBy(DynamicEntityAuditChain.ChainId, RootChainId), OrderBy(DynamicEntityAuditChain.id, Ascending))
+  def entityChains: List[DynamicEntityAuditChain] = DoobieUtil.runQuery(entityChainsIO)
 
   /** The entry of a chain with this sequence number, if there is one. */
+  private def entryAtIO(chainId: String, sequence: Long): ConnectionIO[Option[DynamicEntityAuditEntry]] =
+    DynamicEntityAuditEntry.findIO(fr"WHERE chain_id = ${Option(chainId)} AND sequence = $sequence ORDER BY id ASC" ++
+      DoobieUtil.pagination(1, 0)).map(_.headOption)
+
   private def entryAt(chainId: String, sequence: Long): Box[DynamicEntityAuditEntry] =
-    DynamicEntityAuditEntry.find(By(DynamicEntityAuditEntry.ChainId, chainId), By(DynamicEntityAuditEntry.Sequence, sequence))
+    box(DoobieUtil.runQuery(entryAtIO(chainId, sequence)))
 
   /** The entry of a chain with the highest sequence number, if there is one. */
-  private def lastEntryOf(chainId: String): Box[DynamicEntityAuditEntry] =
-    DynamicEntityAuditEntry.findAll(By(DynamicEntityAuditEntry.ChainId, chainId), OrderBy(DynamicEntityAuditEntry.Sequence, Descending), MaxRows(1)).headOption
+  private def lastEntryOfIO(chainId: String): ConnectionIO[Option[DynamicEntityAuditEntry]] =
+    DynamicEntityAuditEntry.findIO(fr"WHERE chain_id = ${Option(chainId)} ORDER BY sequence DESC" ++
+      DoobieUtil.pagination(1, 0)).map(_.headOption)
 
   /**
    * The root chain, created when the first entity chain is started. When it is created, every entity chain that already exists is registered in it, so no chain is left out.
    */
-  private def ensureRoot(callerUserId: Option[String]): DynamicEntityAuditChain =
-    rootChain.openOr {
-      val (userId, onBehalfOfUserId) = writersOf(callerUserId, UserReference.DynamicEntityAuditChain_StartedByUserId)
-      val root = DynamicEntityAuditChain.create
-        .ChainId(RootChainId)
-        .BankId(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
-        .DynamicEntityId(RootChainId)
-        .EntityName("")
-        .LastSequence(-1L)
-        .LastHash("")
-        .StartedByUserId(userId)
-        .StartedByOnBehalfOfUserId(onBehalfOfUserId)
-        .StartedAt(new Date())
-        .saveMe()
-      append(root, OperationStarted, "", None, Some(RootIdentityJson), callerUserId)
-      entityChains.foreach(register(root, _, callerUserId))
-      root
+  private def ensureRootIO(startedBy: (String, String), writers: (String, String)): ConnectionIO[DynamicEntityAuditChain] =
+    rootChainIO.flatMap {
+      case Some(root) => root.pure[ConnectionIO]
+      case None =>
+        for {
+          root <- DynamicEntityAuditChain.insertIO(RootChainId, DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID, RootChainId, "", startedBy)
+          _ <- appendIO(root, OperationStarted, "", None, Some(RootIdentityJson), writers)
+          chains <- entityChainsIO
+          _ <- chains.traverse_(registerIO(root, _, writers))
+        } yield root
     }
 
   /** This records in the root chain that an entity's chain exists: its entity, the hash of its first entry, and its last entry now. */
-  private def register(root: DynamicEntityAuditChain, chain: DynamicEntityAuditChain, callerUserId: Option[String]): Unit = {
-    val first = entryAt(chain.chainId, 0L).openOrThrowException(s"the first entry of the audit chain ${chain.chainId}")
-    val last = lastEntryOf(chain.chainId).openOrThrowException(s"the last entry of the audit chain ${chain.chainId}")
-    append(root, OperationChainStarted, chain.chainId, None, Some(compactJson(List(
-      "chain_id" -> chain.chainId, "bank_id" -> chain.bankId, "dynamic_entity_id" -> chain.dynamicEntityId, "entity_name" -> chain.entityName,
-      "started_hash" -> first.Hash.get, "last_sequence" -> last.Sequence.get, "last_hash" -> last.Hash.get))), callerUserId)
-  }
+  private def registerIO(root: DynamicEntityAuditChain, chain: DynamicEntityAuditChain, writers: (String, String)): ConnectionIO[Unit] =
+    for {
+      firstEntry <- entryAtIO(chain.chainId, 0L)
+      first <- FC.delay(firstEntry.getOrElse(throw new IllegalStateException(s"the first entry of the audit chain ${chain.chainId}")))
+      lastEntry <- lastEntryOfIO(chain.chainId)
+      last <- FC.delay(lastEntry.getOrElse(throw new IllegalStateException(s"the last entry of the audit chain ${chain.chainId}")))
+      _ <- appendIO(root, OperationChainStarted, chain.chainId, None, Some(compactJson(List(
+        "chain_id" -> chain.chainId, "bank_id" -> chain.bankId, "dynamic_entity_id" -> chain.dynamicEntityId, "entity_name" -> chain.entityName,
+        "started_hash" -> first.hash, "last_sequence" -> last.sequence, "last_hash" -> last.hash))), writers)
+    } yield ()
 
   /**
    * This starts the chain of a Dynamic Entity. The first entry is STARTED, whose data names the entity. Then there is one EXISTING entry for each record the entity already holds, oldest first, so that the chain starts from the records as they are. Last, the chain is registered in the root chain. It all happens in one transaction: the chain starts completely or not at all.
    */
   def start(bankId: Option[String], dynamicEntityId: String, entityName: String, callerUserId: Option[String]): Box[DynamicEntityAuditChain] =
     tryo {
-      DB.use(DefaultConnectionIdentifier) { _ =>
-        val root = ensureRoot(callerUserId)
-        val (userId, onBehalfOfUserId) = writersOf(callerUserId, UserReference.DynamicEntityAuditChain_StartedByUserId)
-        val chain = DynamicEntityAuditChain.create
-          .ChainId(APIUtil.generateUUID())
-          .BankId(spaceOf(bankId))
-          .DynamicEntityId(dynamicEntityId)
-          .EntityName(entityName)
-          .LastSequence(-1L)
-          .LastHash("")
-          .StartedByUserId(userId)
-          .StartedByOnBehalfOfUserId(onBehalfOfUserId)
-          .StartedAt(new Date())
-          .saveMe()
-        append(chain, OperationStarted, "", None, Some(identityJson(chain)), callerUserId)
-        code.DynamicData.DynamicData.findAll(
-          By(code.DynamicData.DynamicData.BankId, spaceOf(bankId)),
-          By(code.DynamicData.DynamicData.DynamicEntityName, entityName),
-          OrderBy(code.DynamicData.DynamicData.id, Ascending)
-        ).foreach { record =>
-          append(chain, OperationExisting, record.DynamicDataId.get, Option(record.UserId.get), Option(record.DataJson.get), callerUserId)
+      val startedBy = writersOf(callerUserId, UserReference.DynamicEntityAuditChain_StartedByUserId)
+      val writers = entryWritersOf(callerUserId)
+      val program = for {
+        root <- ensureRootIO(startedBy, writers)
+        chain <- DynamicEntityAuditChain.insertIO(APIUtil.generateUUID(), spaceOf(bankId), dynamicEntityId, entityName, startedBy)
+        _ <- appendIO(chain, OperationStarted, "", None, Some(identityJson(chain)), writers)
+        records <- DynamicEntityAuditChain.recordsIO(spaceOf(bankId), entityName, None)
+        _ <- records.traverse_ { record =>
+          appendIO(chain, OperationExisting, record.dynamicDataId, record.userId, record.dataJson, writers)
         }
-        register(root, chain, callerUserId)
-        DynamicEntityAuditChain.find(By(DynamicEntityAuditChain.ChainId, chain.chainId)).openOrThrowException("the new audit chain")
-      }
+        _ <- registerIO(root, chain, writers)
+        started <- DynamicEntityAuditChain.findOneIO(fr"WHERE chain_id = ${Option(chain.chainId)}")
+      } yield started.getOrElse(throw new IllegalStateException("the new audit chain"))
+      DoobieUtil.runUpdate(program)
     }
 
   /**
@@ -278,37 +275,42 @@ object DynamicEntityAuditChains extends MdcLoggable {
    */
   def seal(callerUserId: Option[String]): Box[(DynamicEntityAuditChain, Int)] =
     tryo {
-      DB.use(DefaultConnectionIdentifier) { _ =>
-        val root = ensureRoot(callerUserId)
-        val recorded = latestHeads(root.chainId)
-        val sealedCount = entityChains.count { chain =>
-          lastEntryOf(chain.chainId).toOption.exists { last =>
-            val changed = !recorded.get(chain.chainId).contains((last.Sequence.get, last.Hash.get))
-            if (changed)
-              append(root, OperationChainHead, chain.chainId, None, Some(compactJson(List(
-                "chain_id" -> chain.chainId, "last_sequence" -> last.Sequence.get, "last_hash" -> last.Hash.get))), callerUserId)
-            changed
+      val startedBy = writersOf(callerUserId, UserReference.DynamicEntityAuditChain_StartedByUserId)
+      val writers = entryWritersOf(callerUserId)
+      val program = for {
+        root <- ensureRootIO(startedBy, writers)
+        recorded <- latestHeadsIO(root.chainId)
+        chains <- entityChainsIO
+        sealedPerChain <- chains.traverse { chain =>
+          lastEntryOfIO(chain.chainId).flatMap {
+            case Some(last) if !recorded.get(chain.chainId).contains((last.sequence, last.hash)) =>
+              appendIO(root, OperationChainHead, chain.chainId, None, Some(compactJson(List(
+                "chain_id" -> chain.chainId, "last_sequence" -> last.sequence, "last_hash" -> last.hash))), writers).map(_ => 1)
+            case _ => 0.pure[ConnectionIO]
           }
         }
-        (rootChain.openOrThrowException("the root audit chain"), sealedCount)
-      }
+        sealedRoot <- rootChainIO
+      } yield (sealedRoot.getOrElse(throw new IllegalStateException("the root audit chain")), sealedPerChain.sum)
+      DoobieUtil.runUpdate(program)
     }
 
   /** The last entry of each entity chain as the root chain last recorded it: chain id to (sequence, hash). */
-  private def latestHeads(rootChainId: String): Map[String, (Long, String)] = {
-    val heads = mutable.HashMap[String, (Long, String)]()
-    var page = entries(rootChainId, 0L, PageSize)
-    while (page.nonEmpty) {
-      page.foreach { entry =>
-        if (entry.Operation.get == OperationChainStarted || entry.Operation.get == OperationChainHead) {
-          val data = parseJson(Option(entry.DataJson.get).getOrElse(""))
-          for (chainId <- data.get("chain_id"); sequence <- data.get("last_sequence").flatMap(text => scala.util.Try(text.toLong).toOption); hash <- data.get("last_hash"))
-            heads(chainId) = (sequence, hash)
+  private def latestHeadsIO(rootChainId: String): ConnectionIO[Map[String, (Long, String)]] = {
+    def fromPage(heads: Map[String, (Long, String)], fromSequence: Long): ConnectionIO[Map[String, (Long, String)]] =
+      entriesIO(rootChainId, fromSequence, PageSize).flatMap { page =>
+        if (page.isEmpty) heads.pure[ConnectionIO]
+        else {
+          val next = page.foldLeft(heads) { (found, entry) =>
+            if (entry.operation == OperationChainStarted || entry.operation == OperationChainHead) {
+              val data = parseJson(entry.dataJson.getOrElse(""))
+              (for (chainId <- data.get("chain_id"); sequence <- data.get("last_sequence").flatMap(text => scala.util.Try(text.toLong).toOption); hash <- data.get("last_hash"))
+                yield found + (chainId -> (sequence, hash))).getOrElse(found)
+            } else found
+          }
+          fromPage(next, page.last.sequence + 1)
         }
       }
-      page = entries(rootChainId, page.last.Sequence.get + 1, PageSize)
-    }
-    heads.toMap
+    fromPage(Map.empty, 0L)
   }
 
   /**
@@ -317,30 +319,30 @@ object DynamicEntityAuditChains extends MdcLoggable {
   def recordSaved(bankId: Option[String], entityName: String, recordId: String, isNew: Boolean, ownerUserId: Option[String],
                   dataJson: String, callerUserId: Option[String]): Unit =
     chainOf(bankId, entityName).foreach { chain =>
-      append(chain, if (isNew) OperationCreated else OperationUpdated, recordId, ownerUserId, Some(dataJson), callerUserId)
+      DoobieUtil.runUpdate(appendIO(chain, if (isNew) OperationCreated else OperationUpdated, recordId, ownerUserId, Some(dataJson),
+        entryWritersOf(callerUserId)))
     }
 
   /** A record of the entity was deleted, by a caller or, with `byRetention`, by a data retention run. As recordSaved. */
   def recordDeleted(bankId: Option[String], entityName: String, recordId: String, ownerUserId: Option[String],
                     callerUserId: Option[String], byRetention: Boolean = false): Unit =
     chainOf(bankId, entityName).foreach { chain =>
-      append(chain, if (byRetention) OperationDeletedByRetention else OperationDeleted, recordId, ownerUserId, None, callerUserId)
+      DoobieUtil.runUpdate(appendIO(chain, if (byRetention) OperationDeletedByRetention else OperationDeleted, recordId, ownerUserId, None,
+        entryWritersOf(callerUserId)))
     }
+
+  private def entriesIO(chainId: String, fromSequence: Long, limit: Int): ConnectionIO[List[DynamicEntityAuditEntry]] =
+    DynamicEntityAuditEntry.findIO(fr"WHERE chain_id = ${Option(chainId)} AND sequence >= $fromSequence ORDER BY sequence ASC" ++
+      DoobieUtil.pagination(limit, 0))
 
   /** Up to `limit` entries of a chain, from the sequence number `fromSequence` on, in order. */
   def entries(chainId: String, fromSequence: Long, limit: Int): List[DynamicEntityAuditEntry] =
-    DynamicEntityAuditEntry.findAll(
-      By(DynamicEntityAuditEntry.ChainId, chainId),
-      By_>=(DynamicEntityAuditEntry.Sequence, fromSequence),
-      OrderBy(DynamicEntityAuditEntry.Sequence, Ascending),
-      MaxRows(limit))
+    DoobieUtil.runQuery(entriesIO(chainId, fromSequence, limit))
 
   /** The entries of one record in a chain, oldest first. In the root chain, the record is an entity chain, named by its chain id. */
   def entriesOfRecord(chainId: String, recordId: String): List[DynamicEntityAuditEntry] =
-    DynamicEntityAuditEntry.findAll(
-      By(DynamicEntityAuditEntry.ChainId, chainId),
-      By(DynamicEntityAuditEntry.RecordId, recordId),
-      OrderBy(DynamicEntityAuditEntry.Sequence, Ascending))
+    DoobieUtil.runQuery(DynamicEntityAuditEntry.findIO(
+      fr"WHERE chain_id = ${Option(chainId)} AND record_id = ${Option(recordId)} ORDER BY sequence ASC"))
 
   /** One thing wrong with a chain: at an entry (`sequence`), with a record (`recordId`), or both. `chainId` names the entity chain, for a problem the root check found in one. */
   case class Problem(sequence: Option[Long], recordId: Option[String], problem: String, chainId: Option[String] = None)
@@ -374,20 +376,20 @@ object DynamicEntityAuditChains extends MdcLoggable {
     var page = entries(chain.chainId, 0L, PageSize)
     while (page.nonEmpty) {
       page.foreach { entry =>
-        val sequence = entry.Sequence.get
+        val sequence = entry.sequence
         if (sequence != expectedSequence)
           problems.found(Some(sequence), None, s"Expected entry $expectedSequence here, found entry $sequence: an entry is missing or out of place.")
-        if (entry.PreviousHash.get != previousHash)
+        if (entry.previousHash != previousHash)
           problems.found(Some(sequence), None, "Its previous_hash is not the hash of the entry before it.")
-        if (entry.DataHash.get != dataHashOf(Option(entry.DataJson.get)))
-          problems.found(Some(sequence), Option(entry.RecordId.get).filter(_.nonEmpty), "Its data does not match its data_hash: the data was changed.")
-        val hash = entryHash(entry.ChainId.get, sequence, entry.Operation.get, entry.RecordId.get, entry.OwnerUserId.get, entry.DataHash.get,
-          entry.UserId.get, entry.OnBehalfOfUserId.get, entry.RecordedAtMillis.get, entry.PreviousHash.get)
-        if (entry.Hash.get != hash)
+        if (entry.dataHash != dataHashOf(entry.dataJson))
+          problems.found(Some(sequence), Option(entry.recordId).filter(_.nonEmpty), "Its data does not match its data_hash: the data was changed.")
+        val hash = entryHash(entry.chainId, sequence, entry.operation, entry.recordId, entry.ownerUserId, entry.dataHash,
+          entry.userId, entry.onBehalfOfUserId, entry.recordedAtMillis, entry.previousHash)
+        if (entry.hash != hash)
           problems.found(Some(sequence), None, "Its hash is not the hash of its contents: the entry was changed.")
         visit(entry)
         expectedSequence = sequence + 1
-        previousHash = entry.Hash.get
+        previousHash = entry.hash
         entriesChecked += 1
       }
       page = entries(chain.chainId, expectedSequence, PageSize)
@@ -396,8 +398,8 @@ object DynamicEntityAuditChains extends MdcLoggable {
       problems.found(None, None, "The chain has no entries: its first entry is missing.")
     val lastSequence = expectedSequence - 1
     val lastHash = if (entriesChecked == 0) "" else previousHash
-    if (chain.LastSequence.get != lastSequence || Option(chain.LastHash.get).getOrElse("") != lastHash)
-      problems.found(None, None, s"The chain says its last entry is ${chain.LastSequence.get}, with hash ${chain.LastHash.get}, but its last entry is $lastSequence, with hash $lastHash: entries were added or removed.")
+    if (chain.lastSequence != lastSequence || chain.lastHash != lastHash)
+      problems.found(None, None, s"The chain says its last entry is ${chain.lastSequence}, with hash ${chain.lastHash}, but its last entry is $lastSequence, with hash $lastHash: entries were added or removed.")
     (entriesChecked, lastSequence, lastHash)
   }
 
@@ -413,10 +415,10 @@ object DynamicEntityAuditChains extends MdcLoggable {
     // The latest entry of each record: its operation, data hash, owner and sequence number.
     val latest = mutable.HashMap[String, (String, String, String, Long)]()
     val (entriesChecked, lastSequence, lastHash) = checkEntries(chain, problems, { entry =>
-      if (entry.Sequence.get == 0L && (entry.Operation.get != OperationStarted || Option(entry.DataJson.get).getOrElse("") != identityJson(chain)))
+      if (entry.sequence == 0L && (entry.operation != OperationStarted || entry.dataJson.getOrElse("") != identityJson(chain)))
         problems.found(Some(0L), None, "The first entry does not name this chain's entity: the chain was moved to another entity, or its first entry was changed.")
-      Option(entry.RecordId.get).filter(_.nonEmpty).foreach { recordId =>
-        latest(recordId) = (entry.Operation.get, entry.DataHash.get, Option(entry.OwnerUserId.get).getOrElse(""), entry.Sequence.get)
+      Option(entry.recordId).filter(_.nonEmpty).foreach { recordId =>
+        latest(recordId) = (entry.operation, entry.dataHash, Option(entry.ownerUserId).getOrElse(""), entry.sequence)
       }
     })
 
@@ -432,7 +434,7 @@ object DynamicEntityAuditChains extends MdcLoggable {
     var rows = recordsAfter(chain, lastRowId)
     while (rows.nonEmpty) {
       rows.foreach { record =>
-        val recordId = record.DynamicDataId.get
+        val recordId = record.dynamicDataId
         seen += recordId
         recordsChecked += 1
         latest.get(recordId) match {
@@ -441,12 +443,12 @@ object DynamicEntityAuditChains extends MdcLoggable {
           case Some((operation, _, _, sequence)) if deletions.contains(operation) =>
             problems.found(Some(sequence), Some(recordId), "This record exists, but the chain says it was deleted: it was put back without going through OBP-API.")
           case Some((_, dataHash, owner, sequence)) =>
-            if (dataHash != sha256Hex(record.DataJson.get))
+            if (dataHash != dataHashOf(record.dataJson))
               problems.found(Some(sequence), Some(recordId), "This record does not match its latest entry: it was changed without going through OBP-API.")
-            else if (owner != Option(record.UserId.get).getOrElse(""))
+            else if (owner != record.userId.getOrElse(""))
               problems.found(Some(sequence), Some(recordId), "This record's owner does not match its latest entry: it was changed without going through OBP-API.")
         }
-        lastRowId = record.id.get
+        lastRowId = record.id
       }
       rows = recordsAfter(chain, lastRowId)
     }
@@ -471,12 +473,12 @@ object DynamicEntityAuditChains extends MdcLoggable {
     val registered = mutable.LinkedHashMap[String, (Map[String, String], Long)]()
     val heads = mutable.HashMap[String, (Long, String, Long)]()
     val (entriesChecked, lastSequence, lastHash) = checkEntries(root, problems, { entry =>
-      val sequence = entry.Sequence.get
-      if (sequence == 0L && (entry.Operation.get != OperationStarted || Option(entry.DataJson.get).getOrElse("") != RootIdentityJson))
+      val sequence = entry.sequence
+      if (sequence == 0L && (entry.operation != OperationStarted || entry.dataJson.getOrElse("") != RootIdentityJson))
         problems.found(Some(0L), None, "The first entry does not name this chain as the root chain: it was changed.")
-      val data = parseJson(Option(entry.DataJson.get).getOrElse(""))
+      val data = parseJson(entry.dataJson.getOrElse(""))
       val headOf = for (headSequence <- data.get("last_sequence").flatMap(text => scala.util.Try(text.toLong).toOption); headHash <- data.get("last_hash")) yield (headSequence, headHash)
-      entry.Operation.get match {
+      entry.operation match {
         case OperationChainStarted =>
           data.get("chain_id").foreach { chainId =>
             if (registered.contains(chainId))
@@ -503,10 +505,10 @@ object DynamicEntityAuditChains extends MdcLoggable {
         case Some(chain) =>
           val sameEntity = data.get("bank_id").contains(chain.bankId) && data.get("dynamic_entity_id").contains(chain.dynamicEntityId) && data.get("entity_name").contains(chain.entityName)
           if (!sameEntity) problems.found(Some(sequence), Some(chainId), s"The chain of ${data.getOrElse("entity_name", "")} now names another entity: it was moved without going through OBP-API.")
-          if (!entryAt(chainId, 0L).toOption.exists(first => data.get("started_hash").contains(first.Hash.get)))
+          if (!entryAt(chainId, 0L).toOption.exists(first => data.get("started_hash").contains(first.hash)))
             problems.found(Some(sequence), Some(chainId), s"The first entry of the chain of ${chain.entityName} is not the one registered here: the chain was rewritten from the start.")
           heads.get(chainId).foreach { case (headSequence, headHash, rootSequence) =>
-            if (!entryAt(chainId, headSequence).toOption.exists(_.Hash.get == headHash))
+            if (!entryAt(chainId, headSequence).toOption.exists(_.hash == headHash))
               problems.found(Some(rootSequence), Some(chainId), s"Entry $headSequence of the chain of ${chain.entityName} is no longer the one recorded here: the chain was rewound or rewritten.")
           }
       }
@@ -525,124 +527,137 @@ object DynamicEntityAuditChains extends MdcLoggable {
     CheckResult(problems.count == 0, entriesChecked, chains.size.toLong, lastSequence, lastHash, problems.count, problems.sorted, new Date())
   }
 
-  private def recordsAfter(chain: DynamicEntityAuditChain, rowId: Long): List[code.DynamicData.DynamicData] =
-    code.DynamicData.DynamicData.findAll(
-      By(code.DynamicData.DynamicData.BankId, chain.BankId.get),
-      By(code.DynamicData.DynamicData.DynamicEntityName, chain.EntityName.get),
-      By_>(code.DynamicData.DynamicData.id, rowId),
-      OrderBy(code.DynamicData.DynamicData.id, Ascending),
-      MaxRows(PageSize))
+  private def recordsAfter(chain: DynamicEntityAuditChain, rowId: Long): List[DynamicEntityAuditChain.Record] =
+    DoobieUtil.runQuery(DynamicEntityAuditChain.recordsIO(chain.bankId, chain.entityName, Some(rowId)))
 }
 
 /**
  * The chain of one Dynamic Entity: which entity, who started it and when, and the sequence number and hash of its last entry. The last sequence number is what each new entry locks and moves on; the last hash is what the next entry points back to, and what can be kept outside OBP to compare against later.
+ *
+ * One row of dynamic_entity_audit_chain. `bankId` is SYS for the system space, never NULL: see DynamicEntitySpace. `entityName` is kept beside the id because a record write knows the entity by name, and looks the chain up by it.
  */
-class DynamicEntityAuditChain extends LongKeyedMapper[DynamicEntityAuditChain] with IdPK {
-  def getSingleton = DynamicEntityAuditChain
+case class DynamicEntityAuditChain(
+  id: Long,
+  chainId: String,
+  bankId: String,
+  dynamicEntityId: String,
+  entityName: String,
+  lastSequence: Long,
+  lastHash: String,
+  startedByUserId: String,
+  startedByOnBehalfOfUserId: String,
+  startedAt: Date
+)
 
-  object ChainId extends MappedString(this, 36) {
-    override def dbColumnName = "chain_id"
-  }
-  // SYS for the system space, never NULL: see DynamicEntitySpace.
-  object BankId extends MappedString(this, 255) {
-    override def dbColumnName = "bank_id"
-    override def defaultValue = DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
-  }
-  object DynamicEntityId extends MappedString(this, 255) {
-    override def dbColumnName = "dynamic_entity_id"
-  }
-  // Kept beside the id because a record write knows the entity by name, and looks the chain up by it.
-  object EntityName extends MappedString(this, 255) {
-    override def dbColumnName = "entity_name"
-  }
-  object LastSequence extends MappedLong(this) {
-    override def dbColumnName = "last_sequence"
-  }
-  object LastHash extends MappedString(this, 64) {
-    override def dbColumnName = "last_hash"
-  }
-  object StartedByUserId extends MappedString(this, 255) {
-    override def dbColumnName = "started_by_user_id"
-  }
-  object StartedByOnBehalfOfUserId extends MappedString(this, 255) {
-    override def dbColumnName = "started_by_on_behalf_of_user_id"
-  }
-  object StartedAt extends MappedDateTime(this) {
-    override def dbColumnName = "started_at"
+object DynamicEntityAuditChain {
+
+  private type Row = (Long, Option[String], Option[String], Option[String], Option[String], Option[Long], Option[String],
+    Option[String], Option[String], Option[java.sql.Timestamp])
+
+  private val selectColumns =
+    fr"""SELECT id, chain_id, bank_id, dynamic_entity_id, entity_name, last_sequence, last_hash, started_by_user_id,
+                started_by_on_behalf_of_user_id, started_at
+         FROM dynamic_entity_audit_chain"""
+
+  private def fromRow(row: Row): DynamicEntityAuditChain = row match {
+    case (id, chainId, bankId, dynamicEntityId, entityName, lastSequence, lastHash, startedByUserId, startedByOnBehalfOfUserId, startedAt) =>
+      DynamicEntityAuditChain(id, chainId.orNull, bankId.orNull, dynamicEntityId.orNull, entityName.orNull,
+        lastSequence.getOrElse(0L), lastHash.getOrElse(""), startedByUserId.getOrElse(""), startedByOnBehalfOfUserId.getOrElse(""),
+        startedAt.map(t => new Date(t.getTime)).orNull)
   }
 
-  def chainId: String = ChainId.get
-  def bankId: String = BankId.get
-  def dynamicEntityId: String = DynamicEntityId.get
-  def entityName: String = EntityName.get
-  def lastSequence: Long = LastSequence.get
-  def lastHash: String = Option(LastHash.get).getOrElse("")
-  def startedByUserId: String = Option(StartedByUserId.get).getOrElse("")
-  def startedByOnBehalfOfUserId: String = Option(StartedByOnBehalfOfUserId.get).getOrElse("")
-  def startedAt: Date = StartedAt.get
-}
+  def findAllIO(condition: Fragment): ConnectionIO[List[DynamicEntityAuditChain]] =
+    (selectColumns ++ condition).query[Row].to[List].map(_.map(fromRow))
 
-object DynamicEntityAuditChain extends DynamicEntityAuditChain with LongKeyedMetaMapper[DynamicEntityAuditChain] {
-  override def dbTableName = "dynamic_entity_audit_chain"
-  override def dbIndexes =
-    UniqueIndex(ChainId) ::
-      UniqueIndex(DynamicEntityId) ::
-      UniqueIndex(BankId, EntityName) ::
-      super.dbIndexes
+  /** The first row matching `condition`, by insertion order. */
+  def findOneIO(condition: Fragment): ConnectionIO[Option[DynamicEntityAuditChain]] =
+    findAllIO(condition ++ fr"ORDER BY id ASC" ++ DoobieUtil.pagination(1, 0)).map(_.headOption)
+
+  /** A new chain with no entries yet: its last sequence number is -1, so its first entry is 0. */
+  def insertIO(chainId: String, bankId: String, dynamicEntityId: String, entityName: String,
+               startedBy: (String, String)): ConnectionIO[DynamicEntityAuditChain] = {
+    val (startedByUserId, startedByOnBehalfOfUserId) = startedBy
+    val startedAt = new Date()
+    sql"""INSERT INTO dynamic_entity_audit_chain
+          (chain_id, bank_id, dynamic_entity_id, entity_name, last_sequence, last_hash, started_by_user_id,
+           started_by_on_behalf_of_user_id, started_at)
+          VALUES (${Option(chainId)}, ${Option(bankId)}, ${Option(dynamicEntityId)}, ${Option(entityName)}, ${-1L}, ${Option("")},
+           ${Option(startedByUserId)}, ${Option(startedByOnBehalfOfUserId)}, ${new java.sql.Timestamp(startedAt.getTime)})"""
+      .update.withUniqueGeneratedKeys[Long]("id")
+      .map(id => DynamicEntityAuditChain(id, chainId, bankId, dynamicEntityId, entityName, -1L, "", startedByUserId,
+        startedByOnBehalfOfUserId, startedAt))
+  }
+
+  /** A record of a Dynamic Entity, as far as a chain reads it. `id` is the row's key, which pages the records. */
+  case class Record(id: Long, dynamicDataId: String, userId: Option[String], dataJson: Option[String])
+
+  /** The records of an entity in a space (SYS for the system space), oldest first: all of them, or a page of them after the row `afterRowId`. */
+  def recordsIO(space: String, entityName: String, afterRowId: Option[Long]): ConnectionIO[List[Record]] = {
+    val page = afterRowId match {
+      case Some(rowId) => fr"AND id > $rowId ORDER BY id ASC" ++ DoobieUtil.pagination(PageSize, 0)
+      case None => fr"ORDER BY id ASC"
+    }
+    (fr"""SELECT id, dynamicdataid, userid, datajson FROM dynamicdata
+          WHERE bankid = ${Option(space)} AND dynamicentityname = ${Option(entityName)}""" ++ page)
+      .query[(Long, Option[String], Option[String], Option[String])].to[List]
+      .map(_.map { case (id, dynamicDataId, userId, dataJson) => Record(id, dynamicDataId.orNull, userId, dataJson) })
+  }
+
+  // The same page size as the chain checks use.
+  private val PageSize = 1000
 }
 
 /**
  * One entry of a chain: one change to one record, or the chain's first entry. Entries are only ever added, never changed or deleted.
+ *
+ * One row of dynamic_entity_audit_entry. `recordId` is empty for the STARTED entry; `ownerUserId` is the user a personal record belongs to, and empty for other records; `dataJson` is the record's JSON exactly as it was stored, and None for STARTED and for deletions; `recordedAtMillis` is milliseconds since 1970 in UTC, kept as a number so that the hash can be worked out again exactly.
  */
-class DynamicEntityAuditEntry extends LongKeyedMapper[DynamicEntityAuditEntry] with IdPK {
-  def getSingleton = DynamicEntityAuditEntry
+case class DynamicEntityAuditEntry(
+  chainId: String,
+  sequence: Long,
+  operation: String,
+  recordId: String,
+  ownerUserId: String,
+  dataJson: Option[String],
+  dataHash: String,
+  userId: String,
+  onBehalfOfUserId: String,
+  recordedAtMillis: Long,
+  previousHash: String,
+  hash: String
+)
 
-  object ChainId extends MappedString(this, 36) {
-    override def dbColumnName = "chain_id"
-  }
-  object Sequence extends MappedLong(this) {
-    override def dbColumnName = "sequence"
-  }
-  object Operation extends MappedString(this, 32) {
-    override def dbColumnName = "operation"
-  }
-  // Empty for the STARTED entry.
-  object RecordId extends MappedString(this, 255) {
-    override def dbColumnName = "record_id"
-  }
-  // The user a personal record belongs to; empty for other records.
-  object OwnerUserId extends MappedString(this, 255) {
-    override def dbColumnName = "owner_user_id"
-  }
-  // The record's JSON exactly as it was stored; NULL for STARTED and for deletions.
-  object DataJson extends MappedText(this) {
-    override def dbColumnName = "data_json"
-  }
-  object DataHash extends MappedString(this, 64) {
-    override def dbColumnName = "data_hash"
-  }
-  object UserId extends MappedString(this, 255) {
-    override def dbColumnName = "user_id"
-  }
-  object OnBehalfOfUserId extends MappedString(this, 255) {
-    override def dbColumnName = "on_behalf_of_user_id"
-  }
-  // Milliseconds since 1970 in UTC, kept as a number so that the hash can be worked out again exactly.
-  object RecordedAtMillis extends MappedLong(this) {
-    override def dbColumnName = "recorded_at_millis"
-  }
-  object PreviousHash extends MappedString(this, 64) {
-    override def dbColumnName = "previous_hash"
-  }
-  object Hash extends MappedString(this, 64) {
-    override def dbColumnName = "hash"
-  }
-}
+object DynamicEntityAuditEntry {
 
-object DynamicEntityAuditEntry extends DynamicEntityAuditEntry with LongKeyedMetaMapper[DynamicEntityAuditEntry] {
-  override def dbTableName = "dynamic_entity_audit_entry"
-  override def dbIndexes =
-    UniqueIndex(ChainId, Sequence) ::
-      Index(ChainId, RecordId) ::
-      super.dbIndexes
+  private type Row = (Option[String], Option[Long], Option[String], Option[String], Option[String], Option[String],
+    Option[String], Option[String], Option[String], Option[Long], Option[String], Option[String])
+
+  private val selectColumns =
+    fr"""SELECT chain_id, sequence, operation, record_id, owner_user_id, data_json, data_hash, user_id,
+                on_behalf_of_user_id, recorded_at_millis, previous_hash, hash
+         FROM dynamic_entity_audit_entry"""
+
+  private def fromRow(row: Row): DynamicEntityAuditEntry = row match {
+    case (chainId, sequence, operation, recordId, ownerUserId, dataJson, dataHash, userId, onBehalfOfUserId,
+          recordedAtMillis, previousHash, hash) =>
+      DynamicEntityAuditEntry(chainId.orNull, sequence.getOrElse(0L), operation.orNull, recordId.orNull, ownerUserId.orNull,
+        dataJson, dataHash.orNull, userId.orNull, onBehalfOfUserId.orNull, recordedAtMillis.getOrElse(0L),
+        previousHash.orNull, hash.orNull)
+  }
+
+  def findIO(condition: Fragment): ConnectionIO[List[DynamicEntityAuditEntry]] =
+    (selectColumns ++ condition).query[Row].to[List].map(_.map(fromRow))
+
+  def insertIO(entry: DynamicEntityAuditEntry): ConnectionIO[Int] =
+    sql"""INSERT INTO dynamic_entity_audit_entry
+          (chain_id, sequence, operation, record_id, owner_user_id, data_json, data_hash, user_id, on_behalf_of_user_id,
+           recorded_at_millis, previous_hash, hash)
+          VALUES (${Option(entry.chainId)}, ${entry.sequence}, ${Option(entry.operation)}, ${Option(entry.recordId)},
+           ${Option(entry.ownerUserId)}, ${entry.dataJson.flatMap(Option(_))}, ${Option(entry.dataHash)}, ${Option(entry.userId)},
+           ${Option(entry.onBehalfOfUserId)}, ${entry.recordedAtMillis}, ${Option(entry.previousHash)}, ${Option(entry.hash)})"""
+      .update.run
+
+  /** How many entries there are, in every chain. */
+  def count: Long =
+    DoobieUtil.runQuery(sql"SELECT COUNT(*) FROM dynamic_entity_audit_entry".query[Long].unique)
 }

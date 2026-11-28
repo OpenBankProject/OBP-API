@@ -29,10 +29,6 @@ package code.api.util.migration
 import code.api.Constant.DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.entitlement.MappedEntitlement
-import code.entitlementrequest.MappedEntitlementRequest
-import code.group.Group
-import code.scope.MappedScope
 
 /**
  * Rename the Dynamic Entity Roles wherever a Role name is stored, and move the ones that were system
@@ -201,40 +197,28 @@ object MigrationOfDynamicEntityRoleNames {
       report += s"$label: renamed $renamed row(s)$orphanNote"
     }
 
-    if (DbFunction.tableExists(MappedEntitlement)) {
-      val rows = MappedEntitlement.findAll()
-      renameRows("Entitlements", rows.map(row =>
-        (row.mRoleName.get, row.mBankId.get,
-          (n: String) => { row.mRoleName(n); () },
-          (b: String) => { row.mBankId(b).save; () })))
+    RoleRows.roleTables.foreach { case (table, label) =>
+      if (DbFunction.tableExistsByName(table)) {
+        renameRows(label, RoleRows.rows(table).map { row =>
+          var newName = row.roleName
+          (row.roleName, row.bankId,
+            (n: String) => { newName = n; () },
+            (b: String) => { RoleRows.save(row, newName, b); () })
+        })
+      }
     }
 
-    if (DbFunction.tableExists(MappedEntitlementRequest)) {
-      val rows = MappedEntitlementRequest.findAll()
-      renameRows("Entitlement Requests", rows.map(row =>
-        (row.mRoleName.get, row.mBankId.get,
-          (n: String) => { row.mRoleName(n); () },
-          (b: String) => { row.mBankId(b).save; () })))
-    }
-
-    if (DbFunction.tableExists(MappedScope)) {
-      val rows = MappedScope.findAll()
-      renameRows("Consumer Scopes", rows.map(row =>
-        (row.mRoleName.get, row.mBankId.get,
-          (n: String) => { row.mRoleName(n); () },
-          (b: String) => { row.mBankId(b).save; () })))
-    }
-
-    if (DbFunction.tableExists(Group)) {
+    if (DbFunction.tableExistsByName("groupofroles")) {
       var renamedGroups = 0
       var movedGroups = 0
       val mixedGroups = scala.collection.mutable.ListBuffer[String]()
-      Group.findAll().foreach { group =>
-        val wasSystemLevel = group.BankId.get.isEmpty
-        val storedRoles = group.ListOfRoles.get.split(",").toList.map(_.trim).filter(_.nonEmpty)
+      RoleRows.groups().foreach { stored =>
+        var group = stored
+        val wasSystemLevel = group.bankId.isEmpty
+        val storedRoles = group.listOfRoles.split(",").toList.map(_.trim).filter(_.nonEmpty)
         val renamedRoles = storedRoles.map(r => pass.renameOf(r, wasSystemLevel).getOrElse(r))
         if (renamedRoles != storedRoles) {
-          group.ListOfRoles(renamedRoles.mkString(","))
+          group = group.copy(listOfRoles = renamedRoles.mkString(","))
           renamedGroups += 1
         }
         // A system level Group grants at its own bank id, which is empty, so a Group whose Roles all
@@ -242,12 +226,12 @@ object MigrationOfDynamicEntityRoleNames {
         // move: its other Roles belong at the empty bank id and would land where nothing reads them.
         val everyRoleMoves = storedRoles.nonEmpty && storedRoles.forall(pass.belongsInSpace)
         if (wasSystemLevel && everyRoleMoves) {
-          group.BankId(DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
+          group = group.copy(bankId = DYNAMIC_ENTITY_SYSTEM_LEVEL_BANK_ID)
           movedGroups += 1
         } else if (wasSystemLevel && storedRoles.exists(r => pass.renameOf(r, wasSystemLevel).isDefined)) {
-          mixedGroups += group.GroupName.get
+          mixedGroups += group.groupName
         }
-        group.save
+        if (group != stored) RoleRows.saveGroup(group)
       }
       val mixedNote =
         if (mixedGroups.isEmpty) ""

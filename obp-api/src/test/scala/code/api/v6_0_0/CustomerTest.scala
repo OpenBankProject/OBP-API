@@ -82,9 +82,9 @@ class CustomerTest extends V600ServerSetup {
     response.body.extract[CustomerJsonV600]
   }
 
-  feature(s"$ApiEndpoint1 - Get Customers by Legal Name $VersionOfApi") {
+  Feature(s"$ApiEndpoint1 - Get Customers by Legal Name $VersionOfApi") {
     
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi without user credentials")
       val request = (v6_0_0_Request / "banks" / bankId / "customers" / "legal-name").POST
       val response = makePostRequest(request, write(postCustomerLegalNameJsonV510))
@@ -94,7 +94,7 @@ class CustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the endpoint without the proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint without the proper role", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi without the role " + CanGetCustomersAtOneBank)
       val request = (v6_0_0_Request / "banks" / bankId / "customers" / "legal-name").POST <@ (user1)
       val response = makePostRequest(request, write(postCustomerLegalNameJsonV510))
@@ -105,7 +105,7 @@ class CustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should include(CanGetCustomersAtOneBank.toString)
     }
 
-    scenario("We will call the endpoint with the proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper role", ApiEndpoint1, VersionOfApi) {
       Given("We create a test customer")
       val customer = createTestCustomer()
       
@@ -123,9 +123,9 @@ class CustomerTest extends V600ServerSetup {
     }
   }
 
-  feature(s"$ApiEndpoint2 - Get Customer by CUSTOMER_ID $VersionOfApi") {
+  Feature(s"$ApiEndpoint2 - Get Customer by CUSTOMER_ID $VersionOfApi") {
     
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi without user credentials")
       val request = (v6_0_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID").GET
       val response = makeGetRequest(request)
@@ -135,7 +135,7 @@ class CustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the endpoint without the proper role", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the endpoint without the proper role", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi without the role " + CanGetCustomersAtOneBank)
       val request = (v6_0_0_Request / "banks" / bankId / "customers" / "CUSTOMER_ID").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -147,7 +147,7 @@ class CustomerTest extends V600ServerSetup {
       errorMessage should include(CanGetCustomersAtOneBank.toString)
     }
 
-    scenario("We will call the endpoint with the proper role but non-existing customer", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper role but non-existing customer", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi with the role " + CanGetCustomersAtOneBank + " but with non-existing CUSTOMER_ID")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
       val request = (v6_0_0_Request / "banks" / bankId / "customers" / "NON_EXISTING_CUSTOMER_ID").GET <@ (user1)
@@ -158,7 +158,7 @@ class CustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should startWith(CustomerNotFoundByCustomerId)
     }
 
-    scenario("We will call the endpoint with the proper role and valid customer ID", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper role and valid customer ID", ApiEndpoint2, VersionOfApi) {
       Given("We create a test customer")
       val customer = createTestCustomer()
       
@@ -175,9 +175,9 @@ class CustomerTest extends V600ServerSetup {
     }
   }
 
-  feature(s"$ApiEndpoint3 - Get Customer by CUSTOMER_NUMBER $VersionOfApi") {
+  Feature(s"$ApiEndpoint3 - Get Customer by CUSTOMER_NUMBER $VersionOfApi") {
     
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When(s"We make a request $VersionOfApi without user credentials")
       val request = (v6_0_0_Request / "banks" / bankId / "customers" / "customer-number").POST
       val response = makePostRequest(request, write(customerNumberJson))
@@ -187,7 +187,7 @@ class CustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the endpoint without the proper role", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the endpoint without the proper role", ApiEndpoint3, VersionOfApi) {
       When(s"We make a request $VersionOfApi without the role " + CanGetCustomersAtOneBank)
       val request = (v6_0_0_Request / "banks" / bankId / "customers" / "customer-number").POST <@ (user1)
       val response = makePostRequest(request, write(customerNumberJson))
@@ -199,7 +199,7 @@ class CustomerTest extends V600ServerSetup {
       errorMessage should include(CanGetCustomersAtOneBank.toString)
     }
 
-    scenario("We will call the endpoint with the proper role but non-existing customer number", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper role but non-existing customer number", ApiEndpoint3, VersionOfApi) {
       When(s"We make a request $VersionOfApi with the role " + CanGetCustomersAtOneBank + " but with non-existing customer number")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetCustomersAtOneBank.toString)
       val searchJson = PostCustomerNumberJsonV310(customer_number = "999999999")
@@ -211,7 +211,7 @@ class CustomerTest extends V600ServerSetup {
       response.body.extract[ErrorMessage].message should startWith(CustomerNotFound)
     }
 
-    scenario("We will call the endpoint with the proper role and valid customer number", ApiEndpoint3, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper role and valid customer number", ApiEndpoint3, VersionOfApi) {
       Given("We create a test customer")
       val customer = createTestCustomer()
       

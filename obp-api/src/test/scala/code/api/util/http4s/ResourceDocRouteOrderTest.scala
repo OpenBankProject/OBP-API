@@ -34,7 +34,9 @@ import com.openbankproject.commons.util.ApiVersion
 import org.http4s._
 import org.http4s.dsl.io._
 import org.json4s.JsonAST.JObject
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
+import org.scalatest.{GivenWhenThen, Tag}
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Unit tests for ResourceDocMatcher.orderByRoutes and Http4sRoute.chain.
@@ -42,7 +44,7 @@ import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
  * The middleware selects the doc of the first route that serves a request, so the docs it is given
  * must be in the order the routes are tried in. orderByRoutes derives that order from the route chain.
  */
-class ResourceDocRouteOrderTest extends FeatureSpec with Matchers with GivenWhenThen {
+class ResourceDocRouteOrderTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
 
   object ResourceDocRouteOrderTag extends Tag("ResourceDocRouteOrder")
 

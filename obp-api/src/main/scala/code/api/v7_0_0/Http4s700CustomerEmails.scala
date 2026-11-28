@@ -42,7 +42,6 @@ import code.util.Helper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.mapper.{By, By_>}
 import net.liftweb.util.Helpers.tryo
 import org.http4s._
 import org.http4s.dsl.io._
@@ -94,12 +93,8 @@ object Http4s700CustomerEmails {
 
   /** Emails queued for a Customer in the last 24 hours, by any application. */
   private def sentInLastDay(customerId: String): Long =
-    MessageOutbox.count(
-      By(MessageOutbox.OutboxType, MessageOutbox.TYPE_EMAIL),
-      By(MessageOutbox.OperationName, OperationCustomerEmail),
-      By(MessageOutbox.SubjectId, customerId),
-      By_>(MessageOutbox.CreatedAt, new java.util.Date(System.currentTimeMillis() - 24L * 60 * 60 * 1000))
-    )
+    MessageOutbox.countQueuedSince(MessageOutbox.TYPE_EMAIL, OperationCustomerEmail, customerId,
+      new java.util.Date(System.currentTimeMillis() - 24L * 60 * 60 * 1000))
 
   // Route: POST /obp/v7.0.0/banks/BANK_ID/customers/CUSTOMER_ID/emails
   lazy val sendEmailToCustomer: Http4sRoute = Http4sRoute {
@@ -108,7 +103,7 @@ object Http4s700CustomerEmails {
         val subject = Option(body.subject).map(_.trim).getOrElse("")
         val text = Option(body.text).map(_.trim).getOrElse("")
         val reference = body.reference.map(_.trim).filter(_.nonEmpty)
-        val sender = cc.consumer.map(_.name.get).toOption.filter(_.trim.nonEmpty).getOrElse("an application")
+        val sender = cc.consumer.map(_.name).toOption.filter(_.trim.nonEmpty).getOrElse("an application")
         for {
           // Anyone can make a self-service bank, hold the Role there and give its Customers any address.
           _ <- Helper.booleanToFuture(s"$CustomerEmailsNotInSelfServiceBank Current bank_id is $bankIdInUrl.", 403, Some(cc)) {
@@ -136,7 +131,7 @@ object Http4s700CustomerEmails {
           footer = s"\n\n--\nSent by $sender through ${Constant.HostName}."
           metadata = Serialization.write(Map(
             "bank_id" -> Some(bankIdInUrl),
-            "consumer_id" -> cc.consumer.map(_.consumerId.get).toOption,
+            "consumer_id" -> cc.consumer.map(_.consumerId).toOption,
             "sent_by_user_id" -> Some(caller.userId),
             "reference" -> reference
           ).collect { case (k, Some(v)) => k -> v })

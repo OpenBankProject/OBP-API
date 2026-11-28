@@ -28,6 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v1_4_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.v1_4_0.JSONFactory1_4_0.{ProductJson, ProductsJson}
 import com.openbankproject.commons.model.Product
 import code.products.{Products, ProductsProvider}

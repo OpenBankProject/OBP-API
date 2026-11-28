@@ -32,7 +32,7 @@ import java.util.Date
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetCrmEvents
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
-import code.crm.MappedCrmEvent
+import code.crm.DoobieCrmEventProvider
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers}
 import org.json4s._
@@ -45,12 +45,12 @@ class CrmEventsTest extends V140ServerSetup with DefaultUsers {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    MappedCrmEvent.bulkDelete_!!()
+    DoobieCrmEventProvider.bulkDelete()
   }
 
   override def afterEach(): Unit = {
     super.afterEach()
-    MappedCrmEvent.bulkDelete_!!()
+    DoobieCrmEventProvider.bulkDelete()
   }
 
   private def crmEventsAt(bankId: String) = (v1_4Request / "banks" / bankId / "crm-events").GET
@@ -58,19 +58,18 @@ class CrmEventsTest extends V140ServerSetup with DefaultUsers {
   private def messageOf(response: APIResponse): String = (response.body \ "message").extractOpt[String].getOrElse("")
 
   private def createCrmEvent(crmEventId: String, bankId: String, customerName: String) =
-    MappedCrmEvent.create
-      .mCrmEventId(crmEventId)
-      .mBankId(bankId)
-      .mUserId(resourceUser2)
-      .mCustomerName(customerName)
-      .mCustomerNumber("1234")
-      .mScheduledDate(new Date(12340000))
-      .mActualDate(new Date(12340000))
-      .mChannel("PHONE")
-      .mDetail("Call about mortgage")
-      .mResult("No answer")
-      .mCategory("Category X")
-      .saveMe()
+    DoobieCrmEventProvider.createEvent(
+      bankId = bankId,
+      crmEventId = crmEventId,
+      category = "Category X",
+      detail = "Call about mortgage",
+      channel = "PHONE",
+      actualDate = new Date(12340000),
+      customerName = customerName,
+      customerNumber = "1234",
+      userIdPrimaryKey = resourceUser2.id,
+      scheduledDate = new Date(12340000),
+      result = "No answer")
 
   feature("getCrmEvents needs authentication and the Role CanGetCrmEvents") {
 

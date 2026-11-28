@@ -25,6 +25,8 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v5_1_0
 
+import org.json4s.jvalue2monadic
+import org.json4s.jvalue2extractable
 import code.api.RequestHeader
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
@@ -48,20 +50,20 @@ class ConsentsDisabledTest extends V510ServerSetup {
 
   private val consumerKeyHeader = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))
   private lazy val body = write(SwaggerDefinitionsJSON.postConsentImplicitJsonV310.copy(entitlements = Nil, views = Nil,
-    consumer_id = Some(testConsumer.consumerId.get)))
+    consumer_id = Some(testConsumer.consumerId)))
 
   feature(s"Creating a consent while consents are not allowed - $VersionOfApi") {
 
     scenario("v5.1.0 and v6.0.0 Create Consent (IMPLICIT) are refused with OBP-35007 and store nothing", CreateConsent, VersionOfApi) {
       setPropsValues("consents.allowed" -> "false")
-      val before = MappedConsent.count
+      val before = MappedConsent.count()
       for (version <- List("v5.1.0", "v6.0.0")) {
         val request = (baseRequest / "obp" / version / "my" / "consents" / "IMPLICIT").POST <@ (user1)
         val response = makePostRequest(request, body, consumerKeyHeader)
         response.code should equal(401)
         response.body.extract[ErrorMessage].message should include(ConsentDisabled.trim)
       }
-      MappedConsent.count should equal(before)
+      MappedConsent.count() should equal(before)
     }
 
     scenario("With consents allowed the same request gets past the switch", CreateConsent, VersionOfApi) {

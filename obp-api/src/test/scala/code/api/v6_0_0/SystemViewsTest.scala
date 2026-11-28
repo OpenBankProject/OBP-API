@@ -28,6 +28,8 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 import code.api.util.ApiRole.CanGetSystemViews
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.UserHasMissingRoles
@@ -60,9 +62,9 @@ class SystemViewsTest extends V600ServerSetup with DefaultUsers {
   object ApiEndpoint1 extends Tag(nameOf(Implementations6_0_0.getSystemViews))
   object ApiEndpoint2 extends Tag(nameOf(Implementations6_0_0.getSystemViewById))
 
-  feature(s"Test GET /management/system-views endpoint - $VersionOfApi") {
+  Feature(s"Test GET /management/system-views endpoint - $VersionOfApi") {
 
-    scenario("We try to get system views - Anonymous access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to get system views - Anonymous access", ApiEndpoint1, VersionOfApi) {
       When("We make the request without authentication")
       val request = (v6_0_0_Request / "management" / "system-views").GET
       val response = makeGetRequest(request)
@@ -71,7 +73,7 @@ class SystemViewsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("We try to get system views without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to get system views without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request as user1 without the CanGetSystemViews role")
       val request = (v6_0_0_Request / "management" / "system-views").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -81,7 +83,7 @@ class SystemViewsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetSystemViews)
     }
 
-    scenario("We try to get system views with proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario("We try to get system views with proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We grant the CanGetSystemViews role to user1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemViews.toString)
       
@@ -103,9 +105,9 @@ class SystemViewsTest extends V600ServerSetup with DefaultUsers {
     }
   }
 
-  feature(s"Test automatic role guard from ResourceDoc - $VersionOfApi") {
+  Feature(s"Test automatic role guard from ResourceDoc - $VersionOfApi") {
 
-    scenario("Verify that role check is automatic from ResourceDoc configuration", ApiEndpoint1, VersionOfApi) {
+    Scenario("Verify that role check is automatic from ResourceDoc configuration", ApiEndpoint1, VersionOfApi) {
       info("This test verifies that the automatic role guard works correctly")
       info("The endpoint should check CanGetSystemViews role automatically")
       info("without explicit hasEntitlement call in the endpoint implementation")
@@ -130,9 +132,9 @@ class SystemViewsTest extends V600ServerSetup with DefaultUsers {
     }
   }
 
-  feature(s"Test GET /management/system-views/VIEW_ID endpoint - $VersionOfApi") {
+  Feature(s"Test GET /management/system-views/VIEW_ID endpoint - $VersionOfApi") {
 
-    scenario("We try to get a system view by ID - Anonymous access", ApiEndpoint2, VersionOfApi) {
+    Scenario("We try to get a system view by ID - Anonymous access", ApiEndpoint2, VersionOfApi) {
       When("We make the request without authentication")
       val request = (v6_0_0_Request / "management" / "system-views" / "owner").GET
       val response = makeGetRequest(request)
@@ -141,7 +143,7 @@ class SystemViewsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("We try to get a system view by ID without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
+    Scenario("We try to get a system view by ID without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
       When("We make the request as user1 without the CanGetSystemViews role")
       val request = (v6_0_0_Request / "management" / "system-views" / "owner").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -151,7 +153,7 @@ class SystemViewsTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetSystemViews)
     }
 
-    scenario("We try to get a system view by ID with proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
+    Scenario("We try to get a system view by ID with proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
       When("We grant the CanGetSystemViews role to user1")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemViews.toString)
       
@@ -176,7 +178,7 @@ class SystemViewsTest extends V600ServerSetup with DefaultUsers {
       allowedActions should contain("can_see_bank_account_balance")
     }
 
-    scenario("We try to get different system views by ID - Authorized access", ApiEndpoint2, VersionOfApi) {
+    Scenario("We try to get different system views by ID - Authorized access", ApiEndpoint2, VersionOfApi) {
       When("We have the CanGetSystemViews role")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemViews.toString)
       
@@ -199,7 +201,7 @@ class SystemViewsTest extends V600ServerSetup with DefaultUsers {
       auditorViewId should equal("auditor")
     }
 
-    scenario("We try to get a non-existent system view by ID - Authorized access", ApiEndpoint2, VersionOfApi) {
+    Scenario("We try to get a non-existent system view by ID - Authorized access", ApiEndpoint2, VersionOfApi) {
       When("We have the CanGetSystemViews role")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetSystemViews.toString)
       

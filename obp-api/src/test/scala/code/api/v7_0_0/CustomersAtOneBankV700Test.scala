@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
 */
 package code.api.v7_0_0
 
+import org.json4s.jvalue2extractable
 import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
